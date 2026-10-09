@@ -471,3 +471,58 @@ it("applies song-loop toggles during playback without seeking or restarting", as
     expect(deviceTransport).not.toHaveBeenCalled();
   }
 });
+
+function mockInstrumentLifecycle() {
+  const start = vi.fn(async () => { useAppStore.setState({ activeSessionId: "composer-session", activeSessionState: "running" }); });
+  const stop = vi.fn(async () => { useAppStore.setState({ activeSessionState: "idle" }); });
+  useAppStore.setState({ startSession: start, stopSession: stop });
+  return { start, stop };
+}
+
+it("stops instruments started by composer Play, including after repeated Play", async () => {
+  useAppStore.setState({ activeSessionId: null, activeSessionState: "idle" });
+  const { start, stop } = mockInstrumentLifecycle();
+  const { result } = setup(false);
+  await act(() => result.current.transportDevice(null, true));
+  await act(() => result.current.transportDevice(null, true));
+  await act(() => result.current.transportDevice(null, false));
+  expect(start).toHaveBeenCalledTimes(1);
+  expect(stop).toHaveBeenCalledTimes(1);
+});
+
+it("leaves pre-existing instruments running on composer Stop", async () => {
+  const { start, stop } = mockInstrumentLifecycle();
+  const { result } = setup(false);
+  await act(() => result.current.transportDevice(null, true));
+  await act(() => result.current.transportDevice(null, false));
+  expect(start).not.toHaveBeenCalled();
+  expect(stop).not.toHaveBeenCalled();
+});
+
+it("does not stop instruments manually restarted after composer startup", async () => {
+  useAppStore.setState({ activeSessionId: null, activeSessionState: "idle" });
+  const { stop } = mockInstrumentLifecycle();
+  const { result } = setup(false);
+  await act(() => result.current.transportDevice(null, true));
+  act(() => useAppStore.setState({ activeSessionState: "idle" }));
+  act(() => useAppStore.setState({ activeSessionState: "running" }));
+  await act(() => result.current.transportDevice(null, false));
+  expect(stop).not.toHaveBeenCalled();
+});
+
+it("stops an engine whose startup completes after composer Stop", async () => {
+  useAppStore.setState({ activeSessionId: null, activeSessionState: "idle" });
+  const { start, stop } = mockInstrumentLifecycle();
+  let finish!: () => void;
+  start.mockImplementationOnce(() => new Promise<void>(resolve => { finish = () => {
+    useAppStore.setState({ activeSessionId: "composer-session", activeSessionState: "running" }); resolve();
+  }; }));
+  const { result } = setup(false);
+  let play!: Promise<void>;
+  let stopping!: Promise<void>;
+  await act(async () => { play = result.current.transportDevice(null, true); await Promise.resolve(); });
+  await act(async () => { stopping = result.current.transportDevice(null, false); await Promise.resolve(); });
+  await act(async () => { finish(); await Promise.all([play, stopping]); });
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(deviceTransport.mock.calls.every(([, request]) => request.action === "stop")).toBe(true);
+});

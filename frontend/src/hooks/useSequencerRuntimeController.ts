@@ -160,12 +160,15 @@ export function useSequencerRuntimeController({
   const auditionCommandVersion = useRef(new Map<string, number>());
   const deviceCommandVersions = useRef(new Map<string, number>());
   const deviceCommandQueue = useRef(Promise.resolve());
+  const arrangerStartedSession = useRef<string | null>(null);
   const previewGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string; definition?: AuditionDefinition }>());
   const workspaceGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string }>());
   const refreshAuditions = useRef<(sessionId: string) => Promise<void>>(async () => {});
   const workspaceGeneration = useAppStore(state => state.performanceWorkspaceGeneration);
   const previewLifecycle = useRef({ id: activeSessionId, state: activeSessionState, generation: workspaceGeneration });
   useEffect(() => {
+    if (activeSessionState !== "running" || arrangerStartedSession.current !== activeSessionId ||
+        previewLifecycle.current.generation !== workspaceGeneration) arrangerStartedSession.current = null;
     const previous = previewLifecycle.current;
     previewLifecycle.current = { id: activeSessionId, state: activeSessionState, generation: workspaceGeneration };
     if (previous.generation !== workspaceGeneration || previous.id && previous.id !== activeSessionId || previous.state === "running" && activeSessionState !== "running") {
@@ -841,7 +844,13 @@ export function useSequencerRuntimeController({
         if (playing && useAppStore.getState().activeSessionState !== "running") {
           browserClockClientRef.current.prime();
           await useAppStore.getState().startSession();
+          const started = useAppStore.getState();
+          if (!deviceId && started.activeSessionState === "running" && started.performanceWorkspaceGeneration === generation) {
+            arrangerStartedSession.current = started.activeSessionId;
+          }
         }
+        // A Stop during engine startup must also shut down the resulting session.
+        if (!deviceId && !playing && !initialSession) await deviceCommandQueue.current;
         if (!current()) return;
         const store = useAppStore.getState();
         const session = store.activeSessionId;
@@ -865,6 +874,10 @@ export function useSequencerRuntimeController({
         if (!current() || useAppStore.getState().activeSessionId !== session) return;
         sequencerSessionIdRef.current = session;
         applySequencerStatus(result, { preserveLocalEnablement: false });
+        if (!deviceId && !playing && arrangerStartedSession.current === session) {
+          await useAppStore.getState().stopSession();
+          arrangerStartedSession.current = null;
+        }
       } catch (error) {
         if (current()) setSequencerError(error instanceof Error ? error.message : String(error));
       }
