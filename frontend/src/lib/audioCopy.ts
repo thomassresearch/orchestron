@@ -8,6 +8,7 @@ const rows = {
   portPurpose: ["Port purpose", "Port-Funktion", "Fonction du port", "Función del puerto"],
   mainInput: ["Main input", "Haupteingang", "Entrée principale", "Entrada principal"],
   brokenRoute: ["Repair route", "Verbindung reparieren", "Réparer la route", "Reparar ruta"],
+  invalidInsertOwner: ["Invalid insert ownership", "Ungültige Insert-Zuordnung", "Attribution d’insert invalide", "Asignación de inserción no válida"],
   feedback: ["Feedback cycle: remove a connection", "Rückkopplung: Verbindung entfernen", "Boucle : supprimer une connexion", "Bucle: eliminar una conexión"],
   noOutput: ["Connect an audio output", "Audioausgang verbinden", "Connecter une sortie audio", "Conectar una salida de audio"],
   noInput: ["Select an audio source", "Audioquelle wählen", "Choisir une source audio", "Seleccionar fuente de audio"],

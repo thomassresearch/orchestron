@@ -21,3 +21,13 @@ const stereoLifecycleHelp: Record<GuiLanguage, string> = {
 for (const language of ["english", "german", "french", "spanish"] as const) {
   audioDesignHelp[language] += "\n\n" + stereoLifecycleHelp[language];
 }
+
+const insertRemovalHelp: Record<GuiLanguage, string> = {
+  english: "Removing a rack instrument also removes its dedicated inserts, connections and mixer settings. Removing one insert reconnects the remaining simple chain; custom connections between surviving instances remain for repair. Routing diagnostics flags missing or self-referencing insert assignments in red, even without visible routes. Check routing shows backend failures beside the button. Check again after changing the rack, patches, routing or mix.",
+  german: "Beim Entfernen eines Rack-Instruments werden auch seine eigenen Inserts, Verbindungen und Mixer-Einstellungen entfernt. Das Entfernen eines Inserts verbindet die verbleibende einfache Kette neu; benutzerdefinierte Verbindungen zwischen verbleibenden Instanzen bleiben zur Reparatur erhalten. Die Routing-Diagnose markiert fehlende oder selbstreferenzierende Insert-Zuordnungen rot, auch ohne sichtbare Verbindungen. Routing prüfen zeigt Backend-Fehler direkt neben dem Knopf. Nach Änderungen an Rack, Patches, Routing oder Mix erneut prüfen.",
+  french: "Supprimer un instrument du rack supprime aussi ses inserts dédiés, leurs connexions et réglages de mixeur. Supprimer un insert reconnecte la chaîne simple restante ; les connexions personnalisées entre instances restantes sont conservées pour réparation. Le diagnostic du routage signale en rouge les attributions d’insert manquantes ou autoréférentes, même sans routes visibles. Vérifier le routage affiche les erreurs du serveur près du bouton. Relancez la vérification après toute modification du rack, des patches, du routage ou du mixage.",
+  spanish: "Eliminar un instrumento del rack también elimina sus inserciones dedicadas, conexiones y ajustes del mezclador. Eliminar una inserción reconecta la cadena simple restante; las conexiones personalizadas entre las instancias restantes se conservan para repararlas. El diagnóstico de rutas marca en rojo las asignaciones de inserción ausentes o autorreferentes, incluso sin rutas visibles. Comprobar rutas muestra los errores del servidor junto al botón. Vuelva a comprobar tras cambiar el rack, los patches, las rutas o la mezcla."
+};
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  audioRoutingHelp[language] += "\n\n" + insertRemovalHelp[language];
+}

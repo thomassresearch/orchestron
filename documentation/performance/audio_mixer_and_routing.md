@@ -38,6 +38,8 @@ Additional output groups retain their own port names and mappings. They share th
 
 An **insert** processes one strip in series after its voices are summed. Select that strip, choose a saved continuous patch with audio inputs and outputs in the **Inserts…** selector below the routing controls, then click the adjacent **Add**. Open **Inserts** on the strip to inspect its chain. Click a processor name to edit its patch, **↑** to move it earlier, or **×** to remove that insert instance. Reusing one saved effect creates separate processing instances; an insert does not appear as a separate mixer strip.
 
+Removing an instrument from the rack also removes its dedicated inserts, including any inserts on those processors, plus their connections and mixer settings. Removing a single insert through the rack or its **×** button reconnects the remaining simple chain. Custom connections between surviving instances are preserved for inspection and repair; unrelated returns, sends and Master controls remain unchanged.
+
 A **return** is a continuous rack instance that can receive sends from several sources and has its own mixer strip. Add it with **Add Instrument**, connect its output to Master, then add sends from the source strips. For a parallel reverb/delay arrangement, design the return patch to output the desired wet signal; the starter pass-through would merely add another copy of the dry signal.
 
 ### Add a stereo send
@@ -85,9 +87,12 @@ Topology changes require stopping the engine. **Stop to edit routing** makes tha
 
 Expand **Routing diagnostics** and click **Check routing** after editing connections. Diagnostics describe connectivity, while meters report measured sound. Clicking an instance-related diagnostic can open its patch for inspection. A **Muted or silent path** entry selects the corresponding strip.
 
+Invalid insert assignments appear in red, including an insert whose processor or owning strip is missing, or which refers to itself. These errors are detected even when all visible connections to the deleted instance have already been removed. Backend validation failures appear directly beside **Check routing**. Previous check results are discarded after changes to the rack, patch definitions, routing or mixer settings; check again after editing.
+
 | Symptom or diagnostic | What to check |
 | --- | --- |
 | Repair route / Missing reference | Restore the referenced patch or repair the destination and exact port names in Destination matrix. |
+| Invalid insert ownership | Repair the insert assignment that refers to a missing instance or to itself. Removing audio connections alone does not repair an invalid insert assignment. |
 | Feedback cycle | Remove a connection that feeds a processing path back into itself. Playback and CSD export remain blocked until genuine cycles are resolved. |
 | Connect an audio output / Select an audio source | Follow the source to an output sink; route audio into effects that require inputs. |
 | Complete stereo mapping / Unused ports | Check both channel mappings and the declared audio groups. These structural warnings do not prove a patch is silent. |
@@ -99,6 +104,11 @@ Expand **Routing diagnostics** and click **Check routing** after editing connect
   <img src="../../screenshots/perform_routing_diagnostics_silent_path.png" alt="Routing diagnostics identifying a muted Sine Lead path" width="760" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>A valid route can still be silent: here the Sine Lead strip is muted.</em></p>
+
+<p align="center">
+  <img src="../../screenshots/perform_routing_invalid_insert.jpg" alt="Routing diagnostics showing an invalid insert assignment and its failed backend check beside Check routing" width="900" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>A diagnostic preview of the damaged Sunlit Strings performance: the missing insert assignment is flagged locally and the backend failure appears in the same section. The saved performance was repaired separately.</em></p>
 
 ## Persistence and compatibility
 

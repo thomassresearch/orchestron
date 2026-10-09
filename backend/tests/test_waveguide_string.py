@@ -211,3 +211,58 @@ def test_unconnected_waveguide_defaults_compile_to_silence():
     formulas = patch.graph.ui_layout["input_formulas"]
     patch.graph.ui_layout["input_formulas"] = {k: v for k, v in formulas.items() if not k.startswith(node.id + "::")}
     assert abs(audition([(0.1, 52, 100, 0.4)], 0.8, patch=patch)).max() == 0
+
+
+@pytest.mark.parametrize("frequency", [82.4069, 110, 329.6276])
+def test_output_dc_filter_preserves_musical_fundamentals(frequency):
+    from types import SimpleNamespace
+
+    from backend.app.services.compiler_waveguide import WAVEGUIDE_OPCODES
+
+    orc = f"""sr=48000
+ksmps=16
+nchnls=2
+0dbfs=1
+{WAVEGUIDE_OPCODES}
+instr 1
+ aInput oscili .01, {frequency}
+ aOutput vcs_wg_dc aInput
+ aConstant = .01
+ aDC vcs_wg_dc aConstant
+ outs aOutput, aDC
+endin
+alwayson 1
+"""
+    x, _ = render(SimpleNamespace(orc=orc), [], [], 1.0, mode="host")
+    # The old default dcblock2 lost 7–11 dB on the bass strings.
+    gain_db = 20 * np.log10(rms(x[24000:, 0]) / (.01 / np.sqrt(2)))
+    assert abs(gain_db) < .1
+    assert abs(x[-4800:, 1]).max() < 1e-9
+
+
+def harmonic_levels(audio, note):
+    signal = audio[7680:19200, 0]  # 60–300 ms after the pluck at 100 ms.
+    spectrum = abs(np.fft.rfft(signal * np.hanning(len(signal)), 131072))
+    frequencies = np.fft.rfftfreq(131072, 1 / 48000)
+    base = 440 * 2 ** ((note - 69) / 12)
+    amplitudes = [spectrum[abs(frequencies - base * h) < 5].max() for h in [1, 2, 3]]
+    return 20 * np.log10(np.array(amplitudes) / amplitudes[0])
+
+
+@pytest.mark.parametrize("note", [43, 45, 64])
+def test_reference_informed_harmonic_balance_and_body_blend(note):
+    notes = [(.1, note, 100, .6)]
+    default = audition(notes, .9)
+    finger = audition(notes, .9, settings={"guitar_pick": 0})
+    dark = audition(notes, .9, settings={"guitar_brightness": 0})
+    direct = audition(notes, .9, settings={"guitar_body": 0})
+    normal = harmonic_levels(default, note)
+    # Broad musical bounds from the reference analysis, not a waveform snapshot
+    # or an exact imitation of the recording's microphone/room coloration.
+    assert normal[1] < 4
+    assert normal[2] < -10
+    for soft in [finger, dark]:
+        assert harmonic_levels(soft, note)[2] < normal[2] - 5
+    # Fixed seed and zero noise isolate the body contribution by subtraction.
+    body = (default - direct)[7200:21600]
+    assert rms(body) < rms(direct[7200:21600])

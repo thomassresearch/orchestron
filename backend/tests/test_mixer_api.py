@@ -87,6 +87,19 @@ def test_new_and_legacy_routing_cannot_conflict(tmp_path):
         assert client.post("/api/sessions", json=payload).status_code == 422
 
 
+@pytest.mark.parametrize("owners", [{"missing": "source"}, {"source": "missing"}, {"source": "source"}, {"gone": "also-gone"}])
+def test_insert_ownership_validation_matches_session_creation(tmp_path, owners):
+    with _client(tmp_path) as client:
+        payload = session_payload(client)
+        payload["audio_graph"]["insertOwners"] = owners
+        for endpoint in ("/api/sessions/validate-instruments", "/api/sessions"):
+            response = client.post(endpoint, json=payload)
+            assert response.status_code == 422, response.text
+            assert response.json()["detail"]["diagnostics"] == [
+                "Insert ownership references a missing or invalid instance."
+            ]
+
+
 @pytest.mark.parametrize("mode", ["midiFile", "score"])
 def test_performance_csd_modes_embed_mixer_and_preserve_velocities(tmp_path, mode):
     from io import BytesIO

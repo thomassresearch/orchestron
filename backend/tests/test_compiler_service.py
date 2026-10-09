@@ -731,6 +731,7 @@ def test_waveguide_helpers_emit_once_for_multiple_voices(mixer, mode):
         audio_graph=AudioGraph(routes=routes) if mixer else None)
     assert artifact.orc.count('opcode vcs_waveguide_string,') == 1
     assert artifact.orc.count('opcode vcs_wg_rail,') == 1
+    assert artifact.orc.count('opcode vcs_wg_dc,') == 1
     assert artifact.orc.count(' mode ') == 24
     assert 'setksmps 1' in artifact.orc
     assert 'gk_vcs_waveguide' not in artifact.orc

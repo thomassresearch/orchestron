@@ -1,5 +1,6 @@
 import { validateArrangementEdit } from "../lib/arrangementEditing";
 import { reorderRackInstruments } from "../lib/rackOrdering";
+import { removeRackInstrument } from "../lib/insertRouting";
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import { legacyGainDb, newRoute } from "../lib/audioRouting";
@@ -185,12 +186,13 @@ export function createSequencerTrackStoreActions(
     removeSequencerInstrument: (bindingId) => {
       if (get().activeSessionState === "running") return;
       const state = get();
-      const strips = { ...state.mixer.strips };
-      delete strips[bindingId];
-      set({ mixer: { ...state.mixer, strips } });
+      if (!state.sequencerInstruments.some(binding => binding.id === bindingId)) return;
+      const next = removeRackInstrument(state.audioGraph, state.mixer, state.sequencerInstruments, state.patches, bindingId);
       set({
+        audioGraph: next.audioGraph,
+        mixer: next.mixer,
         sequencerInstruments: normalizeEffectRoutesForBindings(
-          state.sequencerInstruments.filter((binding) => binding.id !== bindingId),
+          next.bindings,
           performablePatches(state.patches)
         )
       });

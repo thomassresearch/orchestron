@@ -11,7 +11,16 @@ def waveguide_header(targets: list[PatchInstrumentTarget]) -> list[str]:
 
 # All delay read/write pairs are contained in one UDO invocation. Neither graph
 # topological order nor the parent instrument's ksmps can change their association.
-WAVEGUIDE_OPCODES = r"""opcode vcs_wg_rail, aa, aiiiiiik
+WAVEGUIDE_OPCODES = r"""opcode vcs_wg_dc, a, a
+ setksmps 1
+ aInput xin
+ ; A 5 Hz pole preserves E2 at every sample rate (unlike dcblock2's default order).
+ iDC = exp(-2 * $M_PI * 5 / sr)
+ aOutput dcblock aInput, iDC
+ xout aOutput
+endop
+
+opcode vcs_wg_rail, aa, aiiiiiik
  setksmps 1
  aExc, iFreq, iDecay, iCutoff, iDisp, iObserve, iWeight, kGate xin
  iOmega = 2 * $M_PI * iFreq / sr
@@ -76,8 +85,9 @@ opcode vcs_waveguide_string, aa, aiiiiiiiik
  aDrive = (aContact - aOffset) * iEnergy
  ; Note-off damps both feedback loops; the parent madsr also gates the body.
  aOne, aBridgeOne vcs_wg_rail aDrive, iFreq, iDecay, iCutoff, iDisp, iObserve, .78, kGate
- aTwo, aBridgeTwo vcs_wg_rail aDrive, iFreq, iDecay * .72, iCutoff * .82, iDisp * .72, iObserve, .22, kGate
- aMotion dcblock2 (aOne + aTwo) * limit(kGate, 0, 1)
- aBridge dcblock2 (aBridgeOne + aBridgeTwo) * limit(kGate, 0, 1)
+ aTwo, aBridgeTwo vcs_wg_rail aDrive, iFreq, iDecay * .55, iCutoff * .55, iDisp * .72, iObserve, .22, kGate
+ ; Output DC removal stays outside the compensated feedback loops.
+ aMotion vcs_wg_dc (aOne + aTwo) * limit(kGate, 0, 1)
+ aBridge vcs_wg_dc (aBridgeOne + aBridgeTwo) * limit(kGate, 0, 1)
  xout aMotion, aBridge
 endop"""

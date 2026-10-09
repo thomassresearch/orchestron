@@ -7576,6 +7576,8 @@ def test_physical_guitar_opcodes_and_saved_graph_compile(tmp_path: Path) -> None
         compiled = client.post(f"/api/sessions/{session['session_id']}/compile")
         assert compiled.status_code == 200, compiled.text
         assert compiled.json()['orc'].count('opcode vcs_waveguide_string,') == 1
+        assert compiled.json()['orc'].count('opcode vcs_wg_dc,') == 1
+        assert 'aOutput dcblock aInput, iDC' in compiled.json()['orc']
         assert client.get('/api/patches/'+identity).json()['graph'] == saved.json()['graph']
         controls = [n for n in saved.json()['graph']['nodes'] if n['opcode'] == 'perf_controller']
         assert len(controls) == 8
@@ -7596,3 +7598,41 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
             assert csd.count('opcode vcs_wg_rail,') == 1
             assert 'ksmps = 1' in csd
             assert ' mode ' in csd
+
+
+def test_tube_overdrive_native_roundtrip_and_instance_controls(tmp_path):
+    """The example fixture remains a stereo continuous insert through native import."""
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture("tube_overdrive")
+    definition = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={"id"}))
+    payload = definition.model_dump(mode="json", by_alias=True)
+    with _client(tmp_path) as client:
+        exported = client.post("/api/bundles/export/patch", json=payload)
+        assert exported.status_code == 200, exported.text
+        preview = client.post("/api/bundles/import/expand?preview=true", content=exported.content,
+                              headers={"X-File-Name": "Tube_Overdrive.orch.instrument.json"})
+        assert preview.status_code == 200, preview.text
+        assert preview.json()["graph"] == payload["graph"]
+        plan = {"patches": [{"id": "tube-import", "sourcePatchId": patch.id,
+                             "type": "create", "name": patch.name}]}
+        imported = client.post("/api/bundles/import/commit",
+                               files={"bundle": ("Tube_Overdrive.orch.instrument.json", exported.content)},
+                               data={"plan": json.dumps(plan)})
+        assert imported.status_code == 200, imported.text
+        restored = client.get("/api/patches/tube-import").json()
+        assert restored["always_on"] and restored["instrument_type"] == "continuous"
+        assert restored["graph"] == payload["graph"]
+        values = {"tube_drive_db": 18, "tube_tone_hz": 4000, "tube_output_db": -6}
+        session = client.post("/api/sessions", json={"instruments": [
+            {"id": "tube", "patch_id": "tube-import", "midi_channel": 0, "performance_controller_values": values},
+        ]})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f'/api/sessions/{session.json()["session_id"]}/compile')
+        assert compiled.status_code == 200, compiled.text
+        bindings = compiled.json()["manifest"]["performanceControllers"]["tube"]
+        assert {key: item["value"] for key, item in bindings.items()} == values
+        assert {key: item["default"] for key, item in bindings.items()} == {
+            "tube_drive_db": 12, "tube_tone_hz": 6500, "tube_output_db": -3,
+        }

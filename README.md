@@ -74,6 +74,8 @@ Load instruments into the Perform rack, assign MIDI channels, and play from the 
 
 Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 
+Removing a rack instrument also removes its dedicated inserts and connections; removing one insert reconnects the remaining simple chain. **Routing diagnostics → Check routing** catches missing insert assignments and displays validation errors beside the check button. See the [routing diagnostics example](documentation/performance/audio_mixer_and_routing.md#troubleshoot-routing-and-silence).
+
 For optional instrument and performance creation with a coding agent, see the [Agent Tooling Appendix](documentation/appendix/appendix.md), including the two creator skills and their command-line utilities.
 
 ![Ratchet drums demo mixer with World Drumkit and Flute followed by continuous effects and pinned Master](screenshots/perform_mixer_sends_inserts_master.png)
@@ -119,6 +121,10 @@ guide for compiler setup and [playback implementation selection](BACKEND.md#comp
 
 You can also [import example instruments](examples/instruments/) or [load an example performance](examples/performances/). The [examples guide](examples/README.md) explains both routes.
 
+[Tube Overdrive](documentation/instrument_design/tube_overdrive.md) adds warm stereo
+saturation as a continuous mixer insert, with per-instance Drive, Tone and Output
+controls. Restart the rack to apply changed settings.
+
 The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
 includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
 with a waveguide string model, velocity-sensitive plucking and finger/plectrum,
@@ -126,7 +132,8 @@ tone, and sustain controls.
 
 The new [physical steel-string guitar](examples/instruments/steel_string_waveguide/README.md)
 adds two string polarizations, twelve body resonances, pluck-position and palm-mute controls.
-It includes dry listening previews and a matched-level comparison with the existing guitar.
+Its reference-informed tuning preserves bass fundamentals and softens finger plucks,
+with dry listening previews and matched-level comparisons.
 
 ### Connect and tune
 

@@ -1,0 +1,488 @@
+{
+  "sourcePatchId": "tube-overdrive-v1",
+  "name": "Tube Overdrive",
+  "description": "Warm stereo tube-style saturation: biased tanh, input filtering, DC removal and tone control. Drive (0–24 dB), Tone (2–12 kHz), Output (−18 to +6 dB). Restart the rack after changing performance controls. Fully wet; use as an insert. 0 dB Drive is not bypass. No oversampling or cabinet simulation.",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "tube_drive_db",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Drive (dB)",
+          "min": 0,
+          "max": 24,
+          "default": 12,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 990.0,
+          "y": -310.0
+        }
+      },
+      {
+        "id": "tube_tone_hz",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone (Hz)",
+          "min": 2000,
+          "max": 12000,
+          "default": 6500,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 1650.0,
+          "y": -310.0
+        }
+      },
+      {
+        "id": "tube_output_db",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -18,
+          "max": 6,
+          "default": -3,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 2310.0,
+          "y": -310.0
+        }
+      },
+      {
+        "id": "tube_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1980.0,
+          "y": -310.0
+        }
+      },
+      {
+        "id": "tube_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "tube_hp_left",
+        "opcode": "atone",
+        "params": {
+          "khp": 20,
+          "iskip": 0
+        },
+        "position": {
+          "x": 330.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "tube_pre_left",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 12000,
+          "iskip": 0
+        },
+        "position": {
+          "x": 660.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "tube_shape_left",
+        "opcode": "tanh",
+        "params": {},
+        "position": {
+          "x": 990.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "tube_dc_left",
+        "opcode": "atone",
+        "params": {
+          "khp": 10,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1320.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "tube_tone_left",
+        "opcode": "butterlp",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 1650.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "tube_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "tube_hp_right",
+        "opcode": "atone",
+        "params": {
+          "khp": 20,
+          "iskip": 0
+        },
+        "position": {
+          "x": 330.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "tube_pre_right",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 12000,
+          "iskip": 0
+        },
+        "position": {
+          "x": 660.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "tube_shape_right",
+        "opcode": "tanh",
+        "params": {},
+        "position": {
+          "x": 990.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "tube_dc_right",
+        "opcode": "atone",
+        "params": {
+          "khp": 10,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1320.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "tube_tone_right",
+        "opcode": "butterlp",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 1650.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "tube_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2310.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "tube_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2310.0,
+          "y": 390.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "tube_output_db",
+        "from_port_id": "iout",
+        "to_node_id": "tube_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tube_drive_db",
+        "from_port_id": "iout",
+        "to_node_id": "tube_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tube_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "tube_hp_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_hp_left",
+        "from_port_id": "aout",
+        "to_node_id": "tube_pre_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_pre_left",
+        "from_port_id": "aout",
+        "to_node_id": "tube_shape_left",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "tube_drive_db",
+        "from_port_id": "iout",
+        "to_node_id": "tube_shape_left",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "tube_shape_left",
+        "from_port_id": "aout",
+        "to_node_id": "tube_dc_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_dc_left",
+        "from_port_id": "aout",
+        "to_node_id": "tube_tone_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_tone_hz",
+        "from_port_id": "iout",
+        "to_node_id": "tube_tone_left",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "tube_tone_left",
+        "from_port_id": "aout",
+        "to_node_id": "tube_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "tube_gain",
+        "from_port_id": "aout",
+        "to_node_id": "tube_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "tube_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "tube_hp_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_hp_right",
+        "from_port_id": "aout",
+        "to_node_id": "tube_pre_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_pre_right",
+        "from_port_id": "aout",
+        "to_node_id": "tube_shape_right",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "tube_drive_db",
+        "from_port_id": "iout",
+        "to_node_id": "tube_shape_right",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "tube_shape_right",
+        "from_port_id": "aout",
+        "to_node_id": "tube_dc_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_dc_right",
+        "from_port_id": "aout",
+        "to_node_id": "tube_tone_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tube_tone_hz",
+        "from_port_id": "iout",
+        "to_node_id": "tube_tone_right",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "tube_tone_right",
+        "from_port_id": "aout",
+        "to_node_id": "tube_out_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "tube_gain",
+        "from_port_id": "aout",
+        "to_node_id": "tube_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "tube_gain::ksig": {
+          "expression": "ampdb(level - drive / 2)",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "tube_output_db",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "drive",
+              "from_node_id": "tube_drive_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tube_shape_left::xin": {
+          "expression": "signal * ampdb(drive) + 0.15",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "tube_pre_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "drive",
+              "from_node_id": "tube_drive_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tube_dc_left::asig": {
+          "expression": "shaped - 0.148885033623318",
+          "inputs": [
+            {
+              "token": "shaped",
+              "from_node_id": "tube_shape_left",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tube_out_left::asignal": {
+          "expression": "signal * gain",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "tube_tone_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "tube_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tube_shape_right::xin": {
+          "expression": "signal * ampdb(drive) + 0.15",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "tube_pre_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "drive",
+              "from_node_id": "tube_drive_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tube_dc_right::asig": {
+          "expression": "shaped - 0.148885033623318",
+          "inputs": [
+            {
+              "token": "shaped",
+              "from_node_id": "tube_shape_right",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tube_out_right::asignal": {
+          "expression": "signal * gain",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "tube_tone_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "tube_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "tube_input": true,
+        "tube_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "tube_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "tube_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "tube_input",
+      "mainOutput": "tube_output",
+      "guided": false
+    },
+    "control_flow": {}
+  },
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous"
+}

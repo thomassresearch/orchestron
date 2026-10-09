@@ -34,6 +34,10 @@ and a WAV render with two warm passages within the industrial groove.
 
 ## Import an instrument (Instrument Design -> Import)
 
+[Tube Overdrive](instruments/tube_overdrive/README.md) is a warm stereo continuous
+effect with Drive, Tone and Output performance controls. It is supplied alongside
+the original Overdrive, with an editable graph and reproducible audio comparisons.
+
 1. Open the **Instrument Design** tab.
 2. Click **Import**.
 3. Select a file from `examples/instruments/`.

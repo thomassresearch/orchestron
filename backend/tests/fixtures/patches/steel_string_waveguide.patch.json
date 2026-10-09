@@ -282,10 +282,28 @@
         }
       },
       {
+        "id": "guitar_displacement",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 950,
+          "y": -700
+        }
+      },
+      {
+        "id": "guitar_contact_noise",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 1150,
+          "y": 400
+        }
+      },
+      {
         "id": "guitar_string",
         "opcode": "waveguide_string",
         "params": {
-          "ipickup": 0.23,
+          "ipickup": 0.12,
           "idispersion": 0.3,
           "iseed": 0
         },
@@ -563,6 +581,12 @@
         "to_port_id": "idur2"
       },
       {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "guitar_force_gain",
+        "to_port_id": "kin"
+      },
+      {
         "from_node_id": "amp_velocity_envelope",
         "from_port_id": "kout",
         "to_node_id": "guitar_force_gain",
@@ -611,6 +635,18 @@
         "to_port_id": "asig"
       },
       {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "guitar_excitation",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "guitar_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_excitation",
+        "to_port_id": "xfreq"
+      },
+      {
         "from_node_id": "guitar_pick",
         "from_port_id": "iout",
         "to_node_id": "guitar_excitation",
@@ -624,6 +660,66 @@
       },
       {
         "from_node_id": "guitar_excitation",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_displacement",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "guitar_displacement",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "guitar_pick",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_displacement",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "guitar_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_displacement",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "guitar_displacement",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "guitar_noise",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_contact_noise",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "guitar_contact",
+        "from_port_id": "aenv",
+        "to_node_id": "guitar_contact_noise",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "guitar_noise_gain",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_contact_noise",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "guitar_pick",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_contact_noise",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "guitar_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "guitar_contact_noise",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "guitar_displacement",
         "from_port_id": "aout",
         "to_node_id": "guitar_string",
         "to_port_id": "aexc"
@@ -701,8 +797,20 @@
         "to_port_id": "ain"
       },
       {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_body_01",
+        "to_port_id": "ain"
+      },
+      {
         "from_node_id": "guitar_string",
         "from_port_id": "abridge",
+        "to_node_id": "guitar_body_02",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
         "to_node_id": "guitar_body_02",
         "to_port_id": "ain"
       },
@@ -713,8 +821,20 @@
         "to_port_id": "ain"
       },
       {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_body_03",
+        "to_port_id": "ain"
+      },
+      {
         "from_node_id": "guitar_string",
         "from_port_id": "abridge",
+        "to_node_id": "guitar_body_04",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
         "to_node_id": "guitar_body_04",
         "to_port_id": "ain"
       },
@@ -725,8 +845,20 @@
         "to_port_id": "ain"
       },
       {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_body_05",
+        "to_port_id": "ain"
+      },
+      {
         "from_node_id": "guitar_string",
         "from_port_id": "abridge",
+        "to_node_id": "guitar_body_06",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
         "to_node_id": "guitar_body_06",
         "to_port_id": "ain"
       },
@@ -737,8 +869,20 @@
         "to_port_id": "ain"
       },
       {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_body_07",
+        "to_port_id": "ain"
+      },
+      {
         "from_node_id": "guitar_string",
         "from_port_id": "abridge",
+        "to_node_id": "guitar_body_08",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
         "to_node_id": "guitar_body_08",
         "to_port_id": "ain"
       },
@@ -749,8 +893,20 @@
         "to_port_id": "ain"
       },
       {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_body_09",
+        "to_port_id": "ain"
+      },
+      {
         "from_node_id": "guitar_string",
         "from_port_id": "abridge",
+        "to_node_id": "guitar_body_10",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
         "to_node_id": "guitar_body_10",
         "to_port_id": "ain"
       },
@@ -761,8 +917,20 @@
         "to_port_id": "ain"
       },
       {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
+        "to_node_id": "guitar_body_11",
+        "to_port_id": "ain"
+      },
+      {
         "from_node_id": "guitar_string",
         "from_port_id": "abridge",
+        "to_node_id": "guitar_body_12",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "guitar_contact_noise",
+        "from_port_id": "aout",
         "to_node_id": "guitar_body_12",
         "to_port_id": "ain"
       },
@@ -936,8 +1104,13 @@
           ]
         },
         "guitar_force_gain::kin": {
-          "expression": ".7 * amplitude * (1 + 1.7 * pick)",
+          "expression": ".7 * amplitude * (1 + 1.7 * pick) * 250 / (100 + hz)",
           "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
             {
               "token": "amplitude",
               "from_node_id": "amp_velocity_envelope",
@@ -991,8 +1164,18 @@
           ]
         },
         "guitar_excitation::xfreq": {
-          "expression": "1200 + 10500 * pick + 4000 * velocity",
+          "expression": "1 / (1 / 16000 + 1 / (hz * (.6 + 1.5 * pick + .8 * bright + .25 * velocity)))",
           "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "bright",
+              "from_node_id": "guitar_brightness",
+              "from_port_id": "iout"
+            },
             {
               "token": "pick",
               "from_node_id": "guitar_pick",
@@ -1005,12 +1188,82 @@
             }
           ]
         },
-        "guitar_string::aexc": {
+        "guitar_displacement::asig": {
           "expression": "excitation",
           "inputs": [
             {
               "token": "excitation",
               "from_node_id": "guitar_excitation",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "guitar_displacement::xfreq": {
+          "expression": "1 / (1 / 16000 + 1 / (hz * (.6 + 1.5 * pick + .8 * bright + .25 * velocity)))",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "pick",
+              "from_node_id": "guitar_pick",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "bright",
+              "from_node_id": "guitar_brightness",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "guitar_contact_noise::asig": {
+          "expression": "noise * envelope * gain",
+          "inputs": [
+            {
+              "token": "noise",
+              "from_node_id": "guitar_noise",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "envelope",
+              "from_node_id": "guitar_contact",
+              "from_port_id": "aenv"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "guitar_noise_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "guitar_contact_noise::xfreq": {
+          "expression": "900 + 7500 * pick + 3000 * bright",
+          "inputs": [
+            {
+              "token": "pick",
+              "from_node_id": "guitar_pick",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "bright",
+              "from_node_id": "guitar_brightness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "guitar_string::aexc": {
+          "expression": "excitation",
+          "inputs": [
+            {
+              "token": "excitation",
+              "from_node_id": "guitar_displacement",
               "from_port_id": "aout"
             }
           ]
@@ -1046,7 +1299,7 @@
           ]
         },
         "guitar_string::icutoff": {
-          "expression": "(5000 + 12000 * bright + 1800 * velocity) / (1 + 3 * mute) + 3 * hz * mute",
+          "expression": "(2500 + 6500 * bright + 1800 * velocity + 4 * hz) / (1 + 3 * mute) + 3 * hz * mute",
           "inputs": [
             {
               "token": "bright",
@@ -1101,122 +1354,182 @@
           ]
         },
         "guitar_body_01::ain": {
-          "expression": "0.1400000000 * bridge",
+          "expression": "167.1327291710 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_02::ain": {
-          "expression": "0.1111111111 * bridge",
+          "expression": "258.3087292952 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_03::ain": {
-          "expression": "0.1000000000 * bridge",
+          "expression": "326.7256359733 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_04::ain": {
-          "expression": "0.0650000000 * bridge",
+          "expression": "314.4734246243 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_05::ain": {
-          "expression": "0.0458333333 * bridge",
+          "expression": "299.4984996422 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_06::ain": {
-          "expression": "0.0480000000 * bridge",
+          "expression": "440.3256263271 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_07::ain": {
-          "expression": "0.0333333333 * bridge",
+          "expression": "418.8790204786 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_08::ain": {
-          "expression": "0.0228571429 * bridge",
+          "expression": "416.4854260759 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_09::ain": {
-          "expression": "0.0208333333 * bridge",
+          "expression": "536.6887449883 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_10::ain": {
-          "expression": "0.0180000000 * bridge",
+          "expression": "655.9645460695 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_11::ain": {
-          "expression": "0.0150000000 * bridge",
+          "expression": "791.6813487046 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
         "guitar_body_12::ain": {
-          "expression": "0.0133333333 * bridge",
+          "expression": "1022.0648099679 / sr * (bridge + .08 * contact)",
           "inputs": [
             {
               "token": "bridge",
               "from_node_id": "guitar_string",
               "from_port_id": "abridge"
+            },
+            {
+              "token": "contact",
+              "from_node_id": "guitar_contact_noise",
+              "from_port_id": "aout"
             }
           ]
         },
@@ -1296,7 +1609,7 @@
           ]
         },
         "guitar_dc::asig": {
-          "expression": ".3 * string + 1.8 * body * resonance",
+          "expression": ".75 * string + .55 * body * resonance",
           "inputs": [
             {
               "token": "string",
@@ -1326,7 +1639,7 @@
           ]
         },
         "output_pan2::asig": {
-          "expression": ".025 * signal * gate",
+          "expression": "3 * signal * gate",
           "inputs": [
             {
               "token": "signal",

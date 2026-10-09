@@ -94,6 +94,16 @@ export function audioGraphDiagnostics(bindings: SequencerInstrumentBinding[], pa
   byId.set(MASTER, masterEndpoint);
   const result: import("../types").AudioDiagnostic[] = [];
   const edges: [string,string][] = [];
+  for (const [processor, owner] of Object.entries(graph.insertOwners)) {
+    const exists = (id: string) => id === MASTER ? graph.masterId === MASTER : !!byId.get(id);
+    if (!exists(processor) || !exists(owner) || processor === owner) {
+      result.push({
+        code: "invalid_insert_owner", severity: "error",
+        instanceId: byId.get(processor) ? processor : byId.get(owner) ? owner : undefined,
+        message: `${byId.get(processor)?.name ?? processor} → ${byId.get(owner)?.name ?? owner}`
+      });
+    }
+  }
   if (graph.masterId && graph.masterId !== MASTER && !byId.get(graph.masterId)) result.push({code:"missing_master",severity:"error",instanceId:graph.masterId,message:graph.masterId});
   if (!graph.routes.some(r => r.targetId === MASTER && r.targetStage === "strip")) edges.push([`raw:${MASTER}`,`strip:${MASTER}`]);
   for (const binding of bindings) {

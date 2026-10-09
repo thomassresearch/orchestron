@@ -35,6 +35,11 @@ The legato version also exposes Slide half-time. Finger → Plectrum blends atta
 and tone continuously, but its setting is still read at the next phrase or note;
 moving the knob does not morph a string that is already sounding.
 
+The [Tube Overdrive example](../instrument_design/tube_overdrive.md) exposes Drive
+(dB), Tone (Hz), and Output (dB) for warm stereo saturation. Each insert instance
+retains its own settings; restart the rack after changing these continuous-effect
+controls.
+
 ## Save, Reload, and Export
 
 Untouched controls follow the patch default. After a value changes, an explicit instance override remains until reset, including when it is subsequently set to the current default. App state retains edits immediately through the existing persistence workflow; Save Performance is required to update a saved performance. Native JSON/ZIP bundles and both CSD (MIDI) and CSD (SCORE) exports preserve instance values. The CSD contains its initial settings and runs without a controller client. These controls do not send MIDI CC and do not become MIDI automation.

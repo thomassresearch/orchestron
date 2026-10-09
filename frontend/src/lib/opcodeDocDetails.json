@@ -7839,10 +7839,10 @@
     },
     "outputs": {
       "astring": {
-        "english": "DC-blocked string motion at the observation taps.",
-        "german": "Gleichspannungsfreie Saitenbewegung an den Beobachtungsabgriffen.",
-        "french": "Mouvement de corde sans composante continue aux points d’observation.",
-        "spanish": "Movimiento de cuerda sin componente continua en las tomas de observación."
+        "english": "String motion at the observation taps, with a 5 Hz DC blocker that preserves bass fundamentals.",
+        "german": "Saitenbewegung an den Beobachtungsabgriffen mit einem 5-Hz-Gleichspannungsfilter, der tiefe Grundtöne erhält.",
+        "french": "Mouvement de corde aux points d’observation, avec un filtre de composante continue à 5 Hz préservant les fondamentales graves.",
+        "spanish": "Movimiento de cuerda en las tomas de observación, con un filtro de continua de 5 Hz que conserva las fundamentales graves."
       },
       "abridge": {
         "english": "DC-blocked bridge drive for external body resonators.",

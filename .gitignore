@@ -35,3 +35,4 @@ graphify-out/
 
 examples/performances/*/
 examples/instruments/*/
+!examples/instruments/tube_overdrive/

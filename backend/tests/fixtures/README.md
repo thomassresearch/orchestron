@@ -4,6 +4,11 @@ Instrument patches used by tests live in `patches/`. Load a fresh `PatchDocument
 with `backend.tests.csound_test_support.load_patch_fixture` so tests can modify
 their own in-memory copy.
 
+- `tube_overdrive.patch.json` is an independent stereo insert snapshot for silence,
+  asymmetry, drive/tone/output response, DC removal, headroom, stereo isolation,
+  live/offline rendering and native import/export. Its audio harness accepts a
+  patch document and never loads examples from tests.
+
 - `analog_drumkit.patch.json` is a fixed copy of the five-voice analog drumkit
   supplied when this fixture was added. Backend audio regressions and frontend
   template tests share this snapshot.

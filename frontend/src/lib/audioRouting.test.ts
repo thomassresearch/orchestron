@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { audioTemplate } from "./audioTemplates";
 import { projectAudioBlocks } from "./audioBlocks";
-import { emptyAudioGraph, defaultStrip, migrateAudio, validateAudioState } from "./audioRouting";
+import { emptyAudioGraph, defaultStrip, migrateAudio, validateAudioState, audioGraphDiagnostics, MASTER } from "./audioRouting";
 import { insertChain, wireInsertChain } from "./insertRouting";
 import { buildSequencerConfigSnapshot, parseSequencerConfigSnapshot, normalizePersistedSequencerInstruments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
@@ -37,6 +37,20 @@ describe("performance audio persistence", () => {
   });
 });
 describe("stereo blocks and inserts", () => {
+  it.each<Record<string, string>>([
+    { missing: "one" }, { two: "missing" }, { two: "two" }, { missing: "also-missing" }
+  ])("reports invalid insert ownership even without remaining insert routes: %o", insertOwners => {
+    const diagnostics = audioGraphDiagnostics(bindings, [source, effect], { ...emptyAudioGraph(), insertOwners });
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({ code: "invalid_insert_owner", severity: "error" });
+    expect(diagnostics[0].message).toContain(" → ");
+  });
+  it("accepts existing ownership and the internal Master, but rejects an absent Master", () => {
+    expect(audioGraphDiagnostics(bindings, [source, effect], { ...emptyAudioGraph(), insertOwners: { two: "one" } })).toEqual([]);
+    expect(audioGraphDiagnostics(bindings, [source, effect], { ...emptyAudioGraph(), insertOwners: { two: MASTER } })).toEqual([]);
+    expect(audioGraphDiagnostics(bindings, [source, effect], { ...emptyAudioGraph(), masterId: null, insertOwners: { two: MASTER } }))
+      .toContainEqual(expect.objectContaining({ code: "invalid_insert_owner", severity: "error" }));
+  });
   it("round-trips real nodes, wiring and formulas through collapsed blocks", () => {
     const graph = audioTemplate("effect").graph;
     const input = graph.nodes.find((n) => n.opcode === "inleta")!;
