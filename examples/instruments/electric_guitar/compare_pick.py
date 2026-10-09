@@ -153,12 +153,15 @@ def main():
     low_differences = {}
     for note in [40, 55, 69, 70]:
         difference = float(abs(np.load(before / f"pitch_{note}.npy") - np.load(work / f"pitch_{note}.npy")).max())
-        assert difference < 1e-7, (note, difference)
+        # Pitch-dependent decay intentionally changes notes above low E2.
+        if note == 40:
+            assert difference < 1e-7, (note, difference)
         low_differences[note] = difference
     report = dict(
         graph_sha256=renders["graph_sha256"],
         measurements=metrics,
         lower_note_maximum_sample_differences=low_differences,
+        lower_note_difference_note="E2 retains its previous sound. Higher notes now have intentionally shortened decay.",
         previous_graph_sha256=json.loads((before / "range_comparison.json").read_text())["graph_sha256"],
         images=image_paths,
         spectrograms_inspected=False,

@@ -1,9 +1,9 @@
 {
-  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
+  "graph_sha256": "45cb1ba0f16008db29b98e077dfb6a23a051c971dc8ef0306e5f50e5d9fb0525",
   "measurements": [
     {
       "note": 71,
-      "constant_gain": 2.292748621701554,
+      "constant_gain": 2.698564055171763,
       "bands": [
         {
           "hz": [
@@ -11,8 +11,8 @@
             12000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.12129033616994428,
-            "Updated": 0.08098068531444527
+            "Previous": 0.13606423090835118,
+            "Updated": 0.1071955638131731
           }
         },
         {
@@ -21,8 +21,8 @@
             5000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.12315571072608338,
-            "Updated": 0.1149259028482768
+            "Previous": 0.18535656895185088,
+            "Updated": 0.15102749574190671
           }
         },
         {
@@ -31,15 +31,15 @@
             10000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.13233560761022345,
-            "Updated": 0.11764370030821844
+            "Previous": 0.19548598667311576,
+            "Updated": 0.14426026309032436
           }
         }
       ]
     },
     {
       "note": 76,
-      "constant_gain": 2.9508406494320547,
+      "constant_gain": 3.949444954281047,
       "bands": [
         {
           "hz": [
@@ -47,8 +47,8 @@
             12000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.10976865489360645,
-            "Updated": 0.07109475595640417
+            "Previous": 0.2102812075092001,
+            "Updated": 0.17101748121408525
           }
         },
         {
@@ -57,8 +57,8 @@
             5000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.1385694731213921,
-            "Updated": 0.08405537333412177
+            "Previous": 0.17930020641953073,
+            "Updated": 0.20160347337367157
           }
         },
         {
@@ -67,15 +67,15 @@
             10000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.17950547002506567,
-            "Updated": 0.12382314278834124
+            "Previous": 0.1812925263451746,
+            "Updated": 0.21725249265253985
           }
         }
       ]
     },
     {
       "note": 80,
-      "constant_gain": 9.948553479506689,
+      "constant_gain": 12.74333020524013,
       "bands": [
         {
           "hz": [
@@ -83,8 +83,8 @@
             12000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.06255350553194355,
-            "Updated": 0.05479424711281416
+            "Previous": 0.2410578796546082,
+            "Updated": 0.20860893948442893
           }
         },
         {
@@ -93,8 +93,8 @@
             5000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.121393181378384,
-            "Updated": 0.08190914873788604
+            "Previous": 0.17229314688716554,
+            "Updated": 0.1878416367777216
           }
         },
         {
@@ -103,15 +103,15 @@
             10000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.1683644457976736,
-            "Updated": 0.07801237219680404
+            "Previous": 0.15134827526053882,
+            "Updated": 0.1458001119333516
           }
         }
       ]
     },
     {
       "note": 83,
-      "constant_gain": 15.543688637387216,
+      "constant_gain": 22.26461395434997,
       "bands": [
         {
           "hz": [
@@ -119,8 +119,8 @@
             12000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.22229205361614368,
-            "Updated": 0.08409869213833136
+            "Previous": 0.64676232888662,
+            "Updated": 0.3814028207455952
           }
         },
         {
@@ -129,8 +129,8 @@
             5000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.16815508167978935,
-            "Updated": 0.0891878488500049
+            "Previous": 0.5012390379260235,
+            "Updated": 0.3434168700592023
           }
         },
         {
@@ -139,8 +139,8 @@
             10000
           ],
           "envelope_nrmse_0_60ms": {
-            "Previous": 0.2172612663441148,
-            "Updated": 0.0855620200515653
+            "Previous": 0.590513236749222,
+            "Updated": 0.24969284255120314
           }
         }
       ]
@@ -148,10 +148,11 @@
   ],
   "lower_note_maximum_sample_differences": {
     "40": 6.410320954608473e-10,
-    "55": 6.283728190559223e-10,
-    "69": 1.1577215019986653e-09,
-    "70": 1.1257494311744942e-09
+    "55": 0.0073208298249592026,
+    "69": 0.01400159665220332,
+    "70": 0.014561840339194596
   },
+  "lower_note_difference_note": "E2 retains its previous sound. Higher notes now have intentionally shortened decay.",
   "previous_graph_sha256": "929e634c04bbbf6f8767cfb9ba85f1d02d6b2404a5ddc856fe90b57fef74d9a3",
   "images": [
     "validation/pick_envelopes.png",
@@ -173,5 +174,5 @@
     "validation/high_pick.stft.png",
     "validation/high_pick.mel.png"
   ],
-  "inspection_notes": "Opened final Mel and log-STFT images. The 0.49 s key hold retains straight harmonics; the 1 s hold returns smoothly to pitch after release; the 4 s hold develops vibrato after 0.5 s and returns to steady pitch around 2.5 s. Both channels retain the fitted pick and natural decay. Full held-note tails decay to silence. Four-second excerpt boundary smearing is from analysis window padding, not a new attack."
+  "visual_inspection_notes": "Reviewed 2.67 ms contact-window STFT and Mel plots at four high pitches. Contact coefficients remain unchanged; shortened decay alters levels and subsequent falloff."
 }

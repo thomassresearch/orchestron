@@ -60,6 +60,9 @@ def main(action, api_url):
     vibrato = json.loads((HERE / "validation/vibrato.json").read_text())
     assert vibrato["passed"] and vibrato["audio_pitch_checked"] and vibrato["spectrograms_inspected"]
     assert vibrato["graph_sha256"] == graph_hash(payload["graph"])
+    pitch_decay = json.loads((HERE / "validation/pitch_decay.json").read_text())
+    assert pitch_decay["passed"] and pitch_decay["decay_ratios_measured"] and pitch_decay["spectrograms_inspected"]
+    assert pitch_decay["graph_sha256"] == graph_hash(payload["graph"])
     manifest_path = HERE / "library_manifest.json"
     if manifest_path.exists():
         previous = json.loads(manifest_path.read_text())

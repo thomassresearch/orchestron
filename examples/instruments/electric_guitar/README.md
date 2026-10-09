@@ -34,6 +34,19 @@ stage rather than extrapolating a nearly flat short segment into indefinite
 ringing. The **String decay**, **Tail length** and **Palm mute** controls change
 this per-pick behavior; they do not depend on a later MIDI note-off.
 
+**Decay at B4 (factor)** adds a smooth shortening with pitch. Low E2 and notes
+below it keep the previous duration. At **B4 (MIDI 71)**—the open B3 string at
+its 12th fret—the default **0.5** halves the existing decay time. Higher notes
+shorten further. The factor follows `factor ^ (max(0, MIDI note - 40) / 31)`;
+it scales each partial's early and late exponential time constants and the
+silence deadline. Pick attack timing and vibrato timing are independent.
+
+The control ranges from **0.25** (quarter time at B4) to **1.0** (previous decay
+at every pitch). This is a pitch-based approximation: without string assignment,
+the patch cannot distinguish an open string from the same note played fretted
+on a lower string. It retains the fitted register differences underneath this
+additional factor. The original recording fits remain unchanged as source data.
+
 `xtratim` gives short MIDI notes enough processing time to finish the same natural
 tail. A time-based gate reaches exact zero after the exponential tail has fallen
 below −120 dB relative to its initial envelope. This deliberately replaces the
@@ -82,6 +95,7 @@ the pitch offset after note-off. No new opcodes or engine changes are required.
 | Tail length | 0.04–0.8, relative scale | 0.16 |
 | Output | −18–0 dB | −6 dB |
 | Pick strength | 0–2 | 1 |
+| Decay at B4 (factor) | 0.25–1 | 0.5 |
 
 Settings apply at the next pick. Lower Pickup colour values brighten upper
 partials. String decay scales early and late time constants; Tail length scales
@@ -104,11 +118,12 @@ statistics. The analysis source and recording remain local.
 The fit was checked against all 18 reference notes using per-note constant level
 matching. Significant partials are compared by harmonic order so recorded tuning
 errors do not contaminate the tone measurement. The median per-note harmonic
-level error is about **0.81 dB** within the comparison window. This is a fit
+level error is about **1.11 dB** within the comparison window with the additional
+pitch-dependent shortening enabled. This is a fit
 measurement, not an independent listening or realism score.
 
-The **102 range auditions** cover every semitone from D2 to E6, short versus
-held-note attacks and amplitude decay, natural silence, velocity response, all nine controller extremes,
+The **104 range auditions** cover every semitone from D2 to E6, short versus
+held-note attacks and amplitude decay, natural silence, velocity response, all ten controller extremes,
 stereo output, rapid retriggers, six-note stress chords, parent control block
 sizes 1/16/64, and live MIDI/MIDI-file/SCORE consistency. Pick strength was also
 checked at 0/1/2 on B4, E5 and B5, plus a high-register chord at maximum strength.
@@ -122,8 +137,8 @@ log-STFT plots are opened and inspected after the final sound changes. Numerical
 and visual checks are recorded separately from listening, which has not been
 performed by the assistant. See [validation/audio.json](validation/audio.json)
 and [validation/range_comparison.json](validation/range_comparison.json).
-The high-register attack envelope error decreased for all four measured notes
-in each of the three comparison bands over the first 60 ms. See
+The fitted high-register contact coefficients are retained; the additional
+decay scaling intentionally changes the sound's falloff against the recording. See
 [validation/pick_comparison.json](validation/pick_comparison.json) for matched-gain
 reference/previous/updated measurements; these are fit metrics, not listening scores.
 
@@ -134,6 +149,12 @@ audio verifies increasing depth/rate and the return to steady pitch in host
 MIDI, MIDI-file and SCORE modes. `validation/vibrato_pitch.png` shows the pitch
 curves, alongside Mel and log-STFT images of both audio channels.
 
+[validation/pitch_decay.json](validation/pitch_decay.json) checks the new control
+at 0.25/0.5/1 across E2, E3, E4, B4, B5 and E6. Measured fundamental decay slopes
+verify the requested time ratios. Factor 1 restores the prior sound and E2
+remains unchanged at every setting. The new stable controller ID is
+`eg_pitch_decay`; the existing nine controller IDs and defaults are preserved.
+
 Local ignored `auditions/full_range_reference_then_synth.wav` alternates the
 reference and synth at E2, G3, B4, E5, G-sharp5 and B5. These excerpts have equal
 duration and end fades for comparison; fades are not part of the instrument.
@@ -143,6 +164,8 @@ synth at B4, E5, G-sharp5 and B5. `auditions/pick_strength_0_1_2.wav` demonstrat
 the three knob positions at B4, then B5, using identical gain for each position.
 `auditions/delayed_vibrato.wav` plays B4 held for 0.49, 1 and 4 seconds, each
 with four seconds of ringing audio and the same playback gain.
+`auditions/pitch_decay_B4.wav` compares B4 with decay factors 1, 0.5 and 0.25,
+using the same velocity and playback gain.
 The earlier B4 reference, coefficients and analysis are retained as history;
 the new whole-range recording governs this revision.
 
@@ -156,6 +179,8 @@ the patch skill's optional audio dependencies.
 .venv/bin/python examples/instruments/electric_guitar/build_guitar.py preflight
 .venv/bin/python examples/instruments/electric_guitar/validate_range.py
 .venv/bin/python examples/instruments/electric_guitar/validate_vibrato.py render
+.venv/bin/python examples/instruments/electric_guitar/validate_pitch_decay.py render
+MPLCONFIGDIR=/tmp/orchestron-eg-mpl integrations/skills/orchestron-patch-creator/.venv/bin/python examples/instruments/electric_guitar/validate_pitch_decay.py analyze
 MPLCONFIGDIR=/tmp/orchestron-eg-mpl integrations/skills/orchestron-patch-creator/.venv/bin/python examples/instruments/electric_guitar/validate_vibrato.py analyze
 MPLCONFIGDIR=/tmp/orchestron-eg-mpl integrations/skills/orchestron-patch-creator/.venv/bin/python examples/instruments/electric_guitar/compare_range.py --reference /absolute/path/decoded-range-reference.wav
 MPLCONFIGDIR=/tmp/orchestron-eg-mpl integrations/skills/orchestron-patch-creator/.venv/bin/python examples/instruments/electric_guitar/compare_pick.py
@@ -170,10 +195,13 @@ coefficients are versioned in `range_tuning.json`.
 Run `fit_pick_profiles.py` in the same audio environment to reproduce the
 high-register contact fit in `pick_tuning.json`. The pick comparison also uses
 the prior-revision auditions retained locally in `work/pick_revision/before/`.
+The pitch-decay compatibility check uses the previous published patch saved as
+`work/pitch_decay/before.patch.json` before this revision.
 
 Inspect the generated plots and record `spectrograms_inspected: true` in
-`validation/audio.json`, `validation/range_comparison.json`, and
-`validation/pick_comparison.json`, and `validation/vibrato.json`, then publish:
+`validation/audio.json`, `validation/range_comparison.json`,
+`validation/pick_comparison.json`, `validation/vibrato.json`, and
+`validation/pitch_decay.json`, then publish:
 
 ```sh
 .venv/bin/python examples/instruments/electric_guitar/build_guitar.py publish

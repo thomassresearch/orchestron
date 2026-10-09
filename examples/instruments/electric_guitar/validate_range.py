@@ -92,7 +92,7 @@ def main():
     assert mode_spread < 0.1, mode_spread
     control_effects = {}
     for identity, _, low, high, _, _ in CONTROLS:
-        note = 76 if identity == "eg_pick" else 52
+        note = 76 if identity == "eg_pick" else (71 if identity == "eg_pitch_decay" else 52)
         pair = []
         for name, value in [("min", low), ("max", high)]:
             settings = {identity: value}

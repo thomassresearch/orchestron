@@ -1,5 +1,5 @@
 {
-  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
+  "graph_sha256": "45cb1ba0f16008db29b98e077dfb6a23a051c971dc8ef0306e5f50e5d9fb0525",
   "source_user_provided": true,
   "decoded_reference_sha256": "48ab4a9a39de030e5542edce0af39d6627cbf674c560ac5adff09fe248de3731",
   "fitted_midi_range": [
@@ -22,158 +22,158 @@
     {
       "midi": 44,
       "harmonic_level_mae_db": {
-        "Updated": 0.8726719328494084,
+        "Updated": 0.9343160352782396,
         "Previous": 21.340777389928185
       },
-      "constant_comparison_gain": 6.901307979694142,
-      "early_envelope_normalized_rmse": 0.03521226753349935
+      "constant_comparison_gain": 7.04381069805792,
+      "early_envelope_normalized_rmse": 0.029572034563297808
     },
     {
       "midi": 45,
       "harmonic_level_mae_db": {
-        "Updated": 0.5337756319766757,
+        "Updated": 0.5638351551212735,
         "Previous": 21.95422490029602
       },
-      "constant_comparison_gain": 4.1637347446494,
-      "early_envelope_normalized_rmse": 0.03084217456974101
+      "constant_comparison_gain": 4.224483682325917,
+      "early_envelope_normalized_rmse": 0.027663600253146865
     },
     {
       "midi": 48,
       "harmonic_level_mae_db": {
-        "Updated": 0.3263500879878113,
+        "Updated": 0.3739351005589825,
         "Previous": 23.034058897068704
       },
-      "constant_comparison_gain": 7.079475205669377,
-      "early_envelope_normalized_rmse": 0.05924484394014493
+      "constant_comparison_gain": 7.211436820222429,
+      "early_envelope_normalized_rmse": 0.06794468800467202
     },
     {
       "midi": 50,
       "harmonic_level_mae_db": {
-        "Updated": 1.0270962595360211,
+        "Updated": 1.1734643053276654,
         "Previous": 20.231054878674115
       },
-      "constant_comparison_gain": 7.949861117343738,
-      "early_envelope_normalized_rmse": 0.03597700081042222
+      "constant_comparison_gain": 8.137296831770929,
+      "early_envelope_normalized_rmse": 0.025910736685090148
     },
     {
       "midi": 53,
       "harmonic_level_mae_db": {
-        "Updated": 0.6805906482039831,
+        "Updated": 0.7281503169710125,
         "Previous": 23.76204365029464
       },
-      "constant_comparison_gain": 3.059930579183792,
-      "early_envelope_normalized_rmse": 0.04471115633214582
+      "constant_comparison_gain": 3.134664235103922,
+      "early_envelope_normalized_rmse": 0.05650479780212448
     },
     {
       "midi": 55,
       "harmonic_level_mae_db": {
-        "Updated": 0.7764610598951781,
+        "Updated": 0.7615057978897883,
         "Previous": 22.550744603214415
       },
-      "constant_comparison_gain": 4.009213183223343,
-      "early_envelope_normalized_rmse": 0.03320995438373163
+      "constant_comparison_gain": 4.286654185941674,
+      "early_envelope_normalized_rmse": 0.02996409673571936
     },
     {
       "midi": 59,
       "harmonic_level_mae_db": {
-        "Updated": 0.9988917816532898,
+        "Updated": 1.788045892771915,
         "Previous": 18.879228762923653
       },
-      "constant_comparison_gain": 4.694965974504415,
-      "early_envelope_normalized_rmse": 0.07203561753447105
+      "constant_comparison_gain": 4.885547617925644,
+      "early_envelope_normalized_rmse": 0.06054736231501984
     },
     {
       "midi": 60,
       "harmonic_level_mae_db": {
-        "Updated": 0.41558176938937214,
+        "Updated": 0.7712024257832215,
         "Previous": 18.481538140709112
       },
-      "constant_comparison_gain": 8.442929823433886,
-      "early_envelope_normalized_rmse": 0.029870854231441493
+      "constant_comparison_gain": 9.05116343562481,
+      "early_envelope_normalized_rmse": 0.04009114206562375
     },
     {
       "midi": 62,
       "harmonic_level_mae_db": {
-        "Updated": 0.6061411400252783,
+        "Updated": 1.450195101690867,
         "Previous": 14.645515191669718
       },
-      "constant_comparison_gain": 10.01749199657702,
-      "early_envelope_normalized_rmse": 0.018532073918185375
+      "constant_comparison_gain": 10.949788737204722,
+      "early_envelope_normalized_rmse": 0.04014324687129051
     },
     {
       "midi": 63,
       "harmonic_level_mae_db": {
-        "Updated": 0.9898712574947749,
+        "Updated": 0.83340687596179,
         "Previous": 24.608516930879915
       },
-      "constant_comparison_gain": 7.761024467676992,
-      "early_envelope_normalized_rmse": 0.03595838870966304
+      "constant_comparison_gain": 8.512178133642367,
+      "early_envelope_normalized_rmse": 0.08060641566866984
     },
     {
       "midi": 66,
       "harmonic_level_mae_db": {
-        "Updated": 0.3719144020711318,
+        "Updated": 1.0655807123286565,
         "Previous": 21.443969461667344
       },
-      "constant_comparison_gain": 4.851371922678372,
-      "early_envelope_normalized_rmse": 0.01723775796872229
+      "constant_comparison_gain": 5.45744052725831,
+      "early_envelope_normalized_rmse": 0.0687936844620457
     },
     {
       "midi": 67,
       "harmonic_level_mae_db": {
-        "Updated": 1.0157256713371687,
+        "Updated": 1.1494471656976093,
         "Previous": 22.910068968368662
       },
-      "constant_comparison_gain": 8.167247096681823,
-      "early_envelope_normalized_rmse": 0.01481335846005984
+      "constant_comparison_gain": 9.315805988719566,
+      "early_envelope_normalized_rmse": 0.06443524458842265
     },
     {
       "midi": 69,
       "harmonic_level_mae_db": {
-        "Updated": 2.06891263981033,
+        "Updated": 2.693028699706733,
         "Previous": 22.123612631143452
       },
-      "constant_comparison_gain": 1.7049993121176183,
-      "early_envelope_normalized_rmse": 0.06788957819536746
+      "constant_comparison_gain": 1.9611094404636176,
+      "early_envelope_normalized_rmse": 0.0842734686970341
     },
     {
       "midi": 71,
       "harmonic_level_mae_db": {
-        "Updated": 0.385988388033057,
+        "Updated": 1.232896674260724,
         "Previous": 23.21733688700498
       },
-      "constant_comparison_gain": 2.292748621701554,
-      "early_envelope_normalized_rmse": 0.01771669576724775
+      "constant_comparison_gain": 2.698564055171763,
+      "early_envelope_normalized_rmse": 0.09765096414296663
     },
     {
       "midi": 76,
       "harmonic_level_mae_db": {
-        "Updated": 0.5556410702535647,
+        "Updated": 1.370033487373222,
         "Previous": 18.496316390335462
       },
-      "constant_comparison_gain": 2.9508406494320547,
-      "early_envelope_normalized_rmse": 0.023495129469595907
+      "constant_comparison_gain": 3.949444954281047,
+      "early_envelope_normalized_rmse": 0.1640133818614901
     },
     {
       "midi": 80,
       "harmonic_level_mae_db": {
-        "Updated": 0.8539629181741603,
+        "Updated": 2.9960314796549166,
         "Previous": 9.603944952584742
       },
-      "constant_comparison_gain": 9.948553479506689,
-      "early_envelope_normalized_rmse": 0.03119101589223117
+      "constant_comparison_gain": 12.74333020524013,
+      "early_envelope_normalized_rmse": 0.1666173344802461
     },
     {
       "midi": 83,
       "harmonic_level_mae_db": {
-        "Updated": 1.489132305238586,
+        "Updated": 3.663175161839151,
         "Previous": 12.73792420103364
       },
-      "constant_comparison_gain": 15.543688637387216,
-      "early_envelope_normalized_rmse": 0.10461832516596933
+      "constant_comparison_gain": 22.26461395434997,
+      "early_envelope_normalized_rmse": 0.30668993676781064
     }
   ],
-  "median_harmonic_level_mae_db": 0.8152119890346692,
+  "median_harmonic_level_mae_db": 1.107513939013133,
   "comparison_level_window_seconds": [
     0.08,
     0.25
@@ -198,5 +198,5 @@
     "validation/held_note_decay.stft.png",
     "validation/held_note_decay.mel.png"
   ],
-  "inspection_notes": "Opened final Mel and log-STFT images. The 0.49 s key hold retains straight harmonics; the 1 s hold returns smoothly to pitch after release; the 4 s hold develops vibrato after 0.5 s and returns to steady pitch around 2.5 s. Both channels retain the fitted pick and natural decay. Full held-note tails decay to silence. Four-second excerpt boundary smearing is from analysis window padding, not a new attack."
+  "visual_inspection_notes": "Reviewed both-channel range and full held-note-tail plots. Higher-note falloff is intentionally faster than the original recording; low-E2 behavior is unchanged."
 }

@@ -1,136 +1,136 @@
 {
   "passed": true,
-  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
+  "graph_sha256": "45cb1ba0f16008db29b98e077dfb6a23a051c971dc8ef0306e5f50e5d9fb0525",
   "checks": [
     {
       "mode": "host",
       "hold_seconds": 0.03,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "host",
       "hold_seconds": 0.49,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "host",
       "hold_seconds": 0.499,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "host",
       "hold_seconds": 0.5,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "host",
       "hold_seconds": 1.0,
-      "max_baseline_difference": 0.014295647728387276,
-      "late_decay_rms_difference_db": 0.0008783648583658987,
-      "peak_dbfs": -23.336872158743457
+      "max_baseline_difference": 0.004063856338143968,
+      "late_decay_rms_difference_db": 0.0015928032582763763,
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "host",
       "hold_seconds": 4.0,
-      "max_baseline_difference": 0.014295647728387276,
-      "late_decay_rms_difference_db": 0.00015898921211032757,
-      "peak_dbfs": -23.336872158743457
+      "max_baseline_difference": 0.004063856338143968,
+      "late_decay_rms_difference_db": 0.00026440693015672423,
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "midi",
       "hold_seconds": 0.03,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "midi",
       "hold_seconds": 0.49,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "midi",
       "hold_seconds": 0.499,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "midi",
       "hold_seconds": 0.5,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.336872158743457
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "midi",
       "hold_seconds": 1.0,
-      "max_baseline_difference": 0.014299278532858901,
-      "late_decay_rms_difference_db": 0.0008811414343341539,
-      "peak_dbfs": -23.336872158743457
+      "max_baseline_difference": 0.004064676479024606,
+      "late_decay_rms_difference_db": 0.0015984566750262275,
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "midi",
       "hold_seconds": 4.0,
-      "max_baseline_difference": 0.014299278532858901,
-      "late_decay_rms_difference_db": 0.00015818727200667126,
-      "peak_dbfs": -23.336872158743457
+      "max_baseline_difference": 0.004064676479024606,
+      "late_decay_rms_difference_db": 0.0002629864107461799,
+      "peak_dbfs": -23.621022670736412
     },
     {
       "mode": "score",
       "hold_seconds": 0.03,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.329801433438597
+      "peak_dbfs": -23.617273220964815
     },
     {
       "mode": "score",
       "hold_seconds": 0.49,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.329801433438597
+      "peak_dbfs": -23.617273220964815
     },
     {
       "mode": "score",
       "hold_seconds": 0.499,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.329801433438597
+      "peak_dbfs": -23.617273220964815
     },
     {
       "mode": "score",
       "hold_seconds": 0.5,
       "max_baseline_difference": 0.0,
       "late_decay_rms_difference_db": 0.0,
-      "peak_dbfs": -23.329801433438597
+      "peak_dbfs": -23.617273220964815
     },
     {
       "mode": "score",
       "hold_seconds": 1.0,
-      "max_baseline_difference": 0.01424203960189322,
-      "late_decay_rms_difference_db": 0.0006072622954036433,
-      "peak_dbfs": -23.329801433438597
+      "max_baseline_difference": 0.004058633949965478,
+      "late_decay_rms_difference_db": 0.001354763681618465,
+      "peak_dbfs": -23.617273220964815
     },
     {
       "mode": "score",
       "hold_seconds": 4.0,
-      "max_baseline_difference": 0.01424203960189322,
-      "late_decay_rms_difference_db": 0.00013958961959303906,
-      "peak_dbfs": -23.329801433438597
+      "max_baseline_difference": 0.004058633949965478,
+      "late_decay_rms_difference_db": 0.00028058495733773725,
+      "peak_dbfs": -23.617273220964815
     }
   ],
-  "polyphonic_tail_max_difference": 0.0,
-  "held_stress_chord_peak_dbfs": -3.5024137845325907,
+  "polyphonic_tail_max_difference": 1.3118846287074604e-17,
+  "held_stress_chord_peak_dbfs": -4.563315142170335,
   "audio_pitch_checked": true,
   "spectrograms_inspected": true,
   "listening_performed": false,
@@ -138,56 +138,56 @@
     {
       "mode": "host",
       "hold_seconds": 0.49,
-      "peak_cents": 0.04800047487287308,
-      "late_residual_cents": 0.047393883408073725
+      "peak_cents": 0.047567189985755945,
+      "late_residual_cents": 0.0473921689120212
     },
     {
       "mode": "host",
       "hold_seconds": 1.0,
-      "peak_cents": 12.048350850081192,
-      "late_residual_cents": 0.04739385835502131
+      "peak_cents": 12.037396106178265,
+      "late_residual_cents": 0.047392168839895034
     },
     {
       "mode": "host",
       "hold_seconds": 4.0,
-      "peak_cents": 18.753882986369888,
-      "late_residual_cents": 0.04739380543913601
+      "peak_cents": 18.753993350507482,
+      "late_residual_cents": 0.04739218510522238
     },
     {
       "mode": "midi",
       "hold_seconds": 0.49,
-      "peak_cents": 0.04800047487287308,
-      "late_residual_cents": 0.047393883408073725
+      "peak_cents": 0.047567189985755945,
+      "late_residual_cents": 0.0473921689120212
     },
     {
       "mode": "midi",
       "hold_seconds": 1.0,
-      "peak_cents": 12.054354785545437,
-      "late_residual_cents": 0.04739385837094274
+      "peak_cents": 12.043386065225132,
+      "late_residual_cents": 0.047392168894552805
     },
     {
       "mode": "midi",
       "hold_seconds": 4.0,
-      "peak_cents": 18.751108919751747,
-      "late_residual_cents": 0.04739380462531476
+      "peak_cents": 18.75122369274993,
+      "late_residual_cents": 0.047392185088453255
     },
     {
       "mode": "score",
       "hold_seconds": 0.49,
-      "peak_cents": 0.0029232093258778785,
-      "late_residual_cents": 0.002753911750719775
+      "peak_cents": 0.002770543159273787,
+      "late_residual_cents": 0.002752950757502533
     },
     {
       "mode": "score",
       "hold_seconds": 1.0,
-      "peak_cents": 12.102841778266027,
-      "late_residual_cents": 0.002753910076658006
+      "peak_cents": 12.091877693814245,
+      "late_residual_cents": 0.0027529507514647117
     },
     {
       "mode": "score",
       "hold_seconds": 4.0,
-      "peak_cents": 18.79972330807124,
-      "late_residual_cents": 0.002753905204441368
+      "peak_cents": 18.799838609737602,
+      "late_residual_cents": 0.0027529555441952783
     }
   ],
   "images": [
@@ -209,13 +209,8 @@
     "pitch_smoothing_half_time_seconds": 0.004
   },
   "inspected_images": [
-    "validation/vibrato_pitch.png",
-    "validation/vibrato_0.49.stft.png",
-    "validation/vibrato_0.49.mel.png",
-    "validation/vibrato_1.0.stft.png",
-    "validation/vibrato_1.0.mel.png",
     "validation/vibrato_4.0.stft.png",
     "validation/vibrato_4.0.mel.png"
   ],
-  "inspection_notes": "Opened final Mel and log-STFT images. The 0.49 s key hold retains straight harmonics; the 1 s hold returns smoothly to pitch after release; the 4 s hold develops vibrato after 0.5 s and returns to steady pitch around 2.5 s. Both channels retain the fitted pick and natural decay. Full held-note tails decay to silence. Four-second excerpt boundary smearing is from analysis window padding, not a new attack."
+  "visual_inspection_notes": "Reviewed both-channel held-B4 Mel and STFT plots. Delayed pitch modulation and fade remain present while amplitude decays faster."
 }

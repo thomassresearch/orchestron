@@ -26,6 +26,7 @@ CONTROLS = [
     ("eg_release", "Tail length", 0.04, 0.8, 0.16, "logarithmic"),
     ("eg_level", "Output (dB)", -18, 0, -6, "linear"),
     ("eg_pick", "Pick strength", 0, 2, 1, "linear"),
+    ("eg_pitch_decay", "Decay at B4 (factor)", 0.25, 1, 0.5, "linear"),
 ]
 
 
@@ -46,6 +47,11 @@ def interpolate(profiles, values):
     return "(" + " + ".join(terms) + ")"
 
 
+def pitch_decay_factor(note, reference_factor=0.5):
+    """Full duration at/below E2, reference factor at B4 (B string, fret 12)."""
+    return reference_factor ** (max(0, note - 40) / 31)
+
+
 def lifetime(note, settings=None):
     """Conservative time to exact silence, shared with authoring validation."""
     settings = settings or {}
@@ -60,9 +66,9 @@ def lifetime(note, settings=None):
     blend = max(0, min(1, (frequency - a[0]) / (b[0] - a[0])))
     early = a[1] + blend * (b[1] - a[1])
     tail = a[2] + blend * (b[2] - a[2])
-    return (early + 2 * tail * (0.75 + 1.5625 * settings.get("eg_release", 0.16))) * settings.get("eg_decay", 9) / 9 / (
-        1 + 12 * settings.get("eg_mute", 0)
-    ) + 0.10
+    return (early + 2 * tail * (0.75 + 1.5625 * settings.get("eg_release", 0.16))) * pitch_decay_factor(
+        note, settings.get("eg_pitch_decay", 0.5)
+    ) * settings.get("eg_decay", 9) / 9 / (1 + 12 * settings.get("eg_mute", 0)) + 0.10
 
 
 def build(tuning=None):
@@ -78,6 +84,7 @@ def build(tuning=None):
                 "Register-dependent partials, attacks and exponential decays. "
                 "Each note rings to silence independently of MIDI note duration; note-off does not mute it. "
                 "Palm mute and Tail length control damping at the next pick. "
+                "Decay at B4 progressively shortens higher notes: full time at E2, half time at B4 by default. "
                 "Pick strength controls the brief contact sound; sharper high-register attacks follow the recording. "
                 "Held notes develop gentle vibrato after 0.5 seconds, rising in depth and rate then fading by 2.5 seconds. "
                 "Key release fades the vibrato without muting the natural string decay. "
@@ -136,7 +143,12 @@ def build(tuning=None):
     # 0.5 s then has exactly zero modulation for its entire ringing tail.
     node("eg_vibrato_smooth", "portk", -100, 1700, khtim=0.004, isig=0)
     formula("eg_vibrato_smooth.ksig", "cents", cents="eg_vibrato_lfo.kout")
-    controls = dict(hz=pitch, scale="eg_decay.iout", mute="eg_mute.iout", tail="eg_release.iout")
+    node("eg_decay_note", "notnum", 0, 1100)
+    # ampdb/dbamp implement a power law using existing formula functions.
+    # B3 is the open B string (MIDI 59); its 12th fret is B4 (MIDI 71).
+    pitch_decay = "ampdb(dbamp(factor)*(abs(note-40)+note-40)/62)"
+    decay_sources = dict(note="eg_decay_note.inote", factor="eg_pitch_decay.iout")
+    controls = dict(hz=pitch, scale="eg_decay.iout", mute="eg_mute.iout", tail="eg_release.iout", **decay_sources)
     for i, (identity, label, low, high, default, scale) in enumerate(CONTROLS):
         node(
             identity,
@@ -171,7 +183,7 @@ def build(tuning=None):
         ic=1e-12,
     )
     tail_max = interpolate(profiles, [max(p["tail_t60"]) for p in profiles])
-    ttl = f"({early}+2*{tail_max}*(.75+1.5625*tail))*scale/9/(1+12*mute)+.08"
+    ttl = f"({early}+2*{tail_max}*(.75+1.5625*tail))*{pitch_decay}*scale/9/(1+12*mute)+.08"
     node("eg_note_lifetime", "xtratim", 0, 650)
     formula("eg_note_lifetime.iextradur", ttl + "+.04", **controls)
     node("eg_silence_gate", "linseg", 400, 650, ia=1, ib=1, idur2=0.02, ic=0)
@@ -197,15 +209,16 @@ def build(tuning=None):
         node(prefix + "_decay", "expsega", x, y + 430, ia=1, ic=1e-6)
         formula(
             prefix + "_decay.idur1",
-            f"{early}*scale/9/(1+12*mute)",
+            f"{early}*{pitch_decay}*scale/9/(1+12*mute)",
             hz=pitch,
             scale="eg_decay.iout",
             mute="eg_mute.iout",
+            **decay_sources,
         )
         formula(prefix + "_decay.ib", f"ampdb(-60*{early}/{decay})", hz=pitch)
         formula(
             prefix + "_decay.idur2",
-            f"{tail_decay}*(2-{early}/{decay})*scale/9*(.75+1.5625*tail)/(1+12*mute)",
+            f"{tail_decay}*(2-{early}/{decay})*{pitch_decay}*scale/9*(.75+1.5625*tail)/(1+12*mute)",
             **controls,
         )
         node(prefix + "_osc", "oscil3", x + 560, y, ifn=-1, iphs=(i * 0.137) % 1)

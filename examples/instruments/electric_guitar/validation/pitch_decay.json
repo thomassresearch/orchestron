@@ -1,0 +1,302 @@
+{
+  "passed": true,
+  "graph_sha256": "45cb1ba0f16008db29b98e077dfb6a23a051c971dc8ef0306e5f50e5d9fb0525",
+  "previous_graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
+  "checks": [
+    {
+      "note": 40,
+      "controller": 0.25,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -24.071625561035557,
+      "silence_deadline_seconds": 16.8
+    },
+    {
+      "note": 52,
+      "controller": 0.25,
+      "time_scale": 0.5847153827988435,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -24.92161499542307,
+      "silence_deadline_seconds": 8.879627331747049
+    },
+    {
+      "note": 64,
+      "controller": 0.25,
+      "time_scale": 0.34189207888159806,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -26.043769769984394,
+      "silence_deadline_seconds": 4.64540790016825
+    },
+    {
+      "note": 71,
+      "controller": 0.25,
+      "time_scale": 0.25,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -24.125282778665003,
+      "silence_deadline_seconds": 3.15
+    },
+    {
+      "note": 83,
+      "controller": 0.25,
+      "time_scale": 0.14617884569971085,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -28.792956721508098,
+      "silence_deadline_seconds": 1.6611900720729118
+    },
+    {
+      "note": 88,
+      "controller": 0.25,
+      "time_scale": 0.11689019360198089,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -29.2796270728756,
+      "silence_deadline_seconds": 1.348387267669156
+    },
+    {
+      "note": 40,
+      "controller": 0.5,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -24.071625561035557,
+      "silence_deadline_seconds": 16.8
+    },
+    {
+      "note": 52,
+      "controller": 0.5,
+      "time_scale": 0.7646668443177352,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -24.86157809968217,
+      "silence_deadline_seconds": 11.581637260708701
+    },
+    {
+      "note": 64,
+      "controller": 0.5,
+      "time_scale": 0.5847153827988435,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -25.80956079639464,
+      "silence_deadline_seconds": 7.873710139813412
+    },
+    {
+      "note": 71,
+      "controller": 0.5,
+      "time_scale": 0.5,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -23.621022670736412,
+      "silence_deadline_seconds": 6.199999999999999
+    },
+    {
+      "note": 83,
+      "controller": 0.5,
+      "time_scale": 0.38233342215886756,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -28.53495707844628,
+      "silence_deadline_seconds": 4.183320948656705
+    },
+    {
+      "note": 88,
+      "controller": 0.5,
+      "time_scale": 0.34189207888159806,
+      "old_patch_max_sample_difference": null,
+      "peak_dbfs": -28.949641347924057,
+      "silence_deadline_seconds": 3.751407402455467
+    },
+    {
+      "note": 40,
+      "controller": 1.0,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -24.071625561035557,
+      "silence_deadline_seconds": 16.8
+    },
+    {
+      "note": 52,
+      "controller": 1.0,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -24.80689478219969,
+      "silence_deadline_seconds": 15.115215248351788
+    },
+    {
+      "note": 64,
+      "controller": 1.0,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -25.61826692334715,
+      "silence_deadline_seconds": 13.394861685702837
+    },
+    {
+      "note": 71,
+      "controller": 1.0,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -23.336872158743457,
+      "silence_deadline_seconds": 12.299999999999999
+    },
+    {
+      "note": 83,
+      "controller": 1.0,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -27.326494400420852,
+      "silence_deadline_seconds": 10.78
+    },
+    {
+      "note": 88,
+      "controller": 1.0,
+      "time_scale": 1.0,
+      "old_patch_max_sample_difference": 0.0,
+      "peak_dbfs": -27.568404923209187,
+      "silence_deadline_seconds": 10.78
+    }
+  ],
+  "decay_ratios_measured": true,
+  "spectrograms_inspected": true,
+  "listening_performed": false,
+  "measurements": [
+    {
+      "note": 40,
+      "controller": 0.25,
+      "measured_late_t60_seconds": 8.073309236825622,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    },
+    {
+      "note": 40,
+      "controller": 0.5,
+      "measured_late_t60_seconds": 8.073309236825622,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    },
+    {
+      "note": 40,
+      "controller": 1.0,
+      "measured_late_t60_seconds": 8.073309236825622,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    },
+    {
+      "note": 52,
+      "controller": 0.25,
+      "measured_late_t60_seconds": 3.915467597759397,
+      "measured_time_ratio": 0.5863692603454677,
+      "expected_time_ratio": 0.5847153827988435
+    },
+    {
+      "note": 52,
+      "controller": 0.5,
+      "measured_late_t60_seconds": 5.114469268785445,
+      "measured_time_ratio": 0.765928330990017,
+      "expected_time_ratio": 0.7646668443177352
+    },
+    {
+      "note": 52,
+      "controller": 1.0,
+      "measured_late_t60_seconds": 6.677477593986671,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    },
+    {
+      "note": 64,
+      "controller": 0.25,
+      "measured_late_t60_seconds": 2.163075987590066,
+      "measured_time_ratio": 0.34172595738359146,
+      "expected_time_ratio": 0.34189207888159806
+    },
+    {
+      "note": 64,
+      "controller": 0.5,
+      "measured_late_t60_seconds": 3.702356511438587,
+      "measured_time_ratio": 0.5849037808682369,
+      "expected_time_ratio": 0.5847153827988435
+    },
+    {
+      "note": 64,
+      "controller": 1.0,
+      "measured_late_t60_seconds": 6.32985566607686,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    },
+    {
+      "note": 71,
+      "controller": 0.25,
+      "measured_late_t60_seconds": 1.457560647604647,
+      "measured_time_ratio": 0.24984257980913133,
+      "expected_time_ratio": 0.25
+    },
+    {
+      "note": 71,
+      "controller": 0.5,
+      "measured_late_t60_seconds": 2.9169738972526718,
+      "measured_time_ratio": 0.5000027168153768,
+      "expected_time_ratio": 0.5
+    },
+    {
+      "note": 71,
+      "controller": 1.0,
+      "measured_late_t60_seconds": 5.833916095159435,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    },
+    {
+      "note": 83,
+      "controller": 0.25,
+      "measured_late_t60_seconds": 0.7294377904440988,
+      "measured_time_ratio": 0.14614199007438303,
+      "expected_time_ratio": 0.14617884569971085
+    },
+    {
+      "note": 83,
+      "controller": 0.5,
+      "measured_late_t60_seconds": 1.908037949613386,
+      "measured_time_ratio": 0.38227312424295773,
+      "expected_time_ratio": 0.38233342215886756
+    },
+    {
+      "note": 83,
+      "controller": 1.0,
+      "measured_late_t60_seconds": 4.991295041711361,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    },
+    {
+      "note": 88,
+      "controller": 0.25,
+      "measured_late_t60_seconds": 0.5832817921434231,
+      "measured_time_ratio": 0.11685973673241007,
+      "expected_time_ratio": 0.11689019360198089
+    },
+    {
+      "note": 88,
+      "controller": 0.5,
+      "measured_late_t60_seconds": 1.706142719138927,
+      "measured_time_ratio": 0.3418234405257551,
+      "expected_time_ratio": 0.34189207888159806
+    },
+    {
+      "note": 88,
+      "controller": 1.0,
+      "measured_late_t60_seconds": 4.991298187493305,
+      "measured_time_ratio": 1.0,
+      "expected_time_ratio": 1.0
+    }
+  ],
+  "images": [
+    "validation/pitch_decay_envelopes.png",
+    "validation/pitch_decay_B4_0.25.mel.png",
+    "validation/pitch_decay_B4_0.25.stft.png",
+    "validation/pitch_decay_B4_0.5.mel.png",
+    "validation/pitch_decay_B4_0.5.stft.png",
+    "validation/pitch_decay_B4_1.0.mel.png",
+    "validation/pitch_decay_B4_1.0.stft.png"
+  ],
+  "interpretation": "Factor scales each note's existing natural decay; E2 and lower retain full time. B4 is MIDI 71, the open B3 string raised by 12 frets. Pitch alone cannot identify the actual string.",
+  "inspected_images": [
+    "validation/pitch_decay_envelopes.png",
+    "validation/pitch_decay_B4_0.25.stft.png",
+    "validation/pitch_decay_B4_0.25.mel.png",
+    "validation/pitch_decay_B4_0.5.stft.png",
+    "validation/pitch_decay_B4_0.5.mel.png",
+    "validation/pitch_decay_B4_1.0.stft.png",
+    "validation/pitch_decay_B4_1.0.mel.png"
+  ],
+  "visual_inspection_notes": "Reviewed six-pitch envelope plot and both-channel B4 Mel/STFT plots at quarter, half and full time. E2 curves coincide; higher pitches show progressively shorter smooth exponential tails without unexpected bursts."
+}

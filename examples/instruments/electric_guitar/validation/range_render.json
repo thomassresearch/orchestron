@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
+  "graph_sha256": "45cb1ba0f16008db29b98e077dfb6a23a051c971dc8ef0306e5f50e5d9fb0525",
   "auditions": [
     {
       "name": "pitch_38",
@@ -63,8 +63,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.860545207238914,
-      "rms_dbfs": -36.58281366749626
+      "peak_dbfs": -24.865869938927872,
+      "rms_dbfs": -36.60591131922381
     },
     {
       "name": "pitch_42",
@@ -79,8 +79,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.30055566655731,
-      "rms_dbfs": -37.1416653011488
+      "peak_dbfs": -25.312625613046464,
+      "rms_dbfs": -37.196605921725215
     },
     {
       "name": "pitch_43",
@@ -95,8 +95,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.302291909036427,
-      "rms_dbfs": -37.539219930186924
+      "peak_dbfs": -25.325139701893654,
+      "rms_dbfs": -37.64876575091184
     },
     {
       "name": "pitch_44",
@@ -111,8 +111,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.964446504843018,
-      "rms_dbfs": -38.32270662116685
+      "peak_dbfs": -25.011261748912396,
+      "rms_dbfs": -38.53089933539821
     },
     {
       "name": "pitch_45",
@@ -127,8 +127,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -23.678458952519804,
-      "rms_dbfs": -36.925931732324266
+      "peak_dbfs": -23.710529368559392,
+      "rms_dbfs": -37.13967115803213
     },
     {
       "name": "pitch_46",
@@ -143,8 +143,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.328816589527836,
-      "rms_dbfs": -37.17648052235402
+      "peak_dbfs": -24.362139773448433,
+      "rms_dbfs": -37.416485073270024
     },
     {
       "name": "pitch_47",
@@ -159,8 +159,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.722199042238202,
-      "rms_dbfs": -37.00998721370075
+      "peak_dbfs": -24.758734316561597,
+      "rms_dbfs": -37.27587236025377
     },
     {
       "name": "pitch_48",
@@ -175,8 +175,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.752087417341222,
-      "rms_dbfs": -36.38896389871582
+      "peak_dbfs": -24.787564434351484,
+      "rms_dbfs": -36.680450180018916
     },
     {
       "name": "pitch_49",
@@ -191,8 +191,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.835492798192593,
-      "rms_dbfs": -36.38869684233914
+      "peak_dbfs": -24.873421548707984,
+      "rms_dbfs": -36.71600422328139
     },
     {
       "name": "pitch_50",
@@ -207,8 +207,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.833250289081793,
-      "rms_dbfs": -36.37049794203342
+      "peak_dbfs": -24.874544125639076,
+      "rms_dbfs": -36.73791518527326
     },
     {
       "name": "pitch_51",
@@ -223,8 +223,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.89921776586847,
-      "rms_dbfs": -36.29368630310627
+      "peak_dbfs": -24.943288114123266,
+      "rms_dbfs": -36.67868853452086
     },
     {
       "name": "pitch_52",
@@ -239,8 +239,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.80689478219969,
-      "rms_dbfs": -36.19842771602443
+      "peak_dbfs": -24.86157809968217,
+      "rms_dbfs": -36.60632431428435
     },
     {
       "name": "pitch_53",
@@ -255,8 +255,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.60416227862848,
-      "rms_dbfs": -36.06628584178151
+      "peak_dbfs": -24.640859618127887,
+      "rms_dbfs": -36.50128321092542
     },
     {
       "name": "pitch_54",
@@ -271,8 +271,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.59491029714698,
-      "rms_dbfs": -36.65641815080855
+      "peak_dbfs": -24.681860256937682,
+      "rms_dbfs": -37.230451866859454
     },
     {
       "name": "pitch_55",
@@ -287,8 +287,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.456636811301106,
-      "rms_dbfs": -37.597602220718485
+      "peak_dbfs": -24.55293561390009,
+      "rms_dbfs": -38.483344849247814
     },
     {
       "name": "pitch_56",
@@ -303,8 +303,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.14168118168229,
-      "rms_dbfs": -37.45210495597357
+      "peak_dbfs": -25.33654245531963,
+      "rms_dbfs": -38.298922541447375
     },
     {
       "name": "pitch_57",
@@ -319,8 +319,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.70368256983143,
-      "rms_dbfs": -37.1702811141758
+      "peak_dbfs": -25.860272515761174,
+      "rms_dbfs": -37.96920430222816
     },
     {
       "name": "pitch_58",
@@ -335,8 +335,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.856618853516746,
-      "rms_dbfs": -36.72334144431879
+      "peak_dbfs": -26.080934482691784,
+      "rms_dbfs": -37.47534069861592
     },
     {
       "name": "pitch_59",
@@ -351,8 +351,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.78494969352798,
-      "rms_dbfs": -36.10048615240172
+      "peak_dbfs": -25.869989513528733,
+      "rms_dbfs": -36.81333918876444
     },
     {
       "name": "pitch_60",
@@ -367,8 +367,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.133481975333957,
-      "rms_dbfs": -36.85115101223009
+      "peak_dbfs": -25.25373768275808,
+      "rms_dbfs": -37.87556531282239
     },
     {
       "name": "pitch_61",
@@ -383,8 +383,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.30514563810051,
-      "rms_dbfs": -37.09456046457445
+      "peak_dbfs": -25.428812366622736,
+      "rms_dbfs": -38.22874116160967
     },
     {
       "name": "pitch_62",
@@ -399,8 +399,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.30006194199696,
-      "rms_dbfs": -37.22480574687948
+      "peak_dbfs": -25.458889857648966,
+      "rms_dbfs": -38.414139118277724
     },
     {
       "name": "pitch_63",
@@ -415,8 +415,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.43044560212876,
-      "rms_dbfs": -37.09893959903002
+      "peak_dbfs": -24.552242942407222,
+      "rms_dbfs": -38.433509274605726
     },
     {
       "name": "pitch_64",
@@ -431,8 +431,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.61826692334715,
-      "rms_dbfs": -37.947927790218976
+      "peak_dbfs": -25.80956079639464,
+      "rms_dbfs": -39.36117320373137
     },
     {
       "name": "pitch_65",
@@ -447,8 +447,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -26.060589849844938,
-      "rms_dbfs": -37.777138908795095
+      "peak_dbfs": -26.19508990502233,
+      "rms_dbfs": -39.281349894208105
     },
     {
       "name": "pitch_66",
@@ -463,8 +463,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.674172260366692,
-      "rms_dbfs": -37.1974756778195
+      "peak_dbfs": -25.807150839725715,
+      "rms_dbfs": -38.81055115981322
     },
     {
       "name": "pitch_67",
@@ -479,8 +479,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -26.00757320403284,
-      "rms_dbfs": -37.44525581233855
+      "peak_dbfs": -26.16201422049108,
+      "rms_dbfs": -39.12329391750727
     },
     {
       "name": "pitch_68",
@@ -495,8 +495,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.827560470673987,
-      "rms_dbfs": -37.75219652201929
+      "peak_dbfs": -26.070240271854143,
+      "rms_dbfs": -39.50970319685839
     },
     {
       "name": "pitch_69",
@@ -511,8 +511,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.173553411228962,
-      "rms_dbfs": -37.492952725751756
+      "peak_dbfs": -24.520193799331146,
+      "rms_dbfs": -39.44437653097748
     },
     {
       "name": "pitch_70",
@@ -527,8 +527,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.07414650333258,
-      "rms_dbfs": -39.17442557843565
+      "peak_dbfs": -25.464231469151244,
+      "rms_dbfs": -41.18879600924481
     },
     {
       "name": "pitch_71",
@@ -543,8 +543,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -37.6609723869798
+      "peak_dbfs": -23.621022670736412,
+      "rms_dbfs": -39.812179792759096
     },
     {
       "name": "pitch_72",
@@ -559,8 +559,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.81442153392479,
-      "rms_dbfs": -38.312242337381775
+      "peak_dbfs": -25.115909962660446,
+      "rms_dbfs": -40.52990957414038
     },
     {
       "name": "pitch_73",
@@ -575,8 +575,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.346752303419166,
-      "rms_dbfs": -38.525824251723385
+      "peak_dbfs": -25.64688544814868,
+      "rms_dbfs": -40.898663923666646
     },
     {
       "name": "pitch_74",
@@ -591,8 +591,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.2946606995151,
-      "rms_dbfs": -38.57268247219679
+      "peak_dbfs": -25.585803740136353,
+      "rms_dbfs": -41.12335808492781
     },
     {
       "name": "pitch_75",
@@ -607,8 +607,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.870885965941927,
-      "rms_dbfs": -38.52876040302091
+      "peak_dbfs": -25.13376744289357,
+      "rms_dbfs": -41.26993606124234
     },
     {
       "name": "pitch_76",
@@ -623,8 +623,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.316144856979708,
-      "rms_dbfs": -38.569816441716036
+      "peak_dbfs": -24.584838108418463,
+      "rms_dbfs": -41.55191615539155
     },
     {
       "name": "pitch_77",
@@ -639,8 +639,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.315796210998812,
-      "rms_dbfs": -38.619026526298896
+      "peak_dbfs": -25.553929470073207,
+      "rms_dbfs": -41.681678215889654
     },
     {
       "name": "pitch_78",
@@ -655,8 +655,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.80800327973149,
-      "rms_dbfs": -38.37182763294897
+      "peak_dbfs": -26.01042639600697,
+      "rms_dbfs": -41.46705526843963
     },
     {
       "name": "pitch_79",
@@ -671,8 +671,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.974218297331394,
-      "rms_dbfs": -38.006441185621675
+      "peak_dbfs": -26.155672294216316,
+      "rms_dbfs": -41.07868512182523
     },
     {
       "name": "pitch_80",
@@ -687,8 +687,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -25.70046019480411,
-      "rms_dbfs": -37.59432623465718
+      "peak_dbfs": -25.861884970692856,
+      "rms_dbfs": -40.59355808788062
     },
     {
       "name": "pitch_81",
@@ -703,8 +703,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -26.4946952440242,
-      "rms_dbfs": -37.83355706806714
+      "peak_dbfs": -26.913315413392812,
+      "rms_dbfs": -41.03801906429233
     },
     {
       "name": "pitch_82",
@@ -719,8 +719,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -26.941416042141665,
-      "rms_dbfs": -38.14657449182577
+      "peak_dbfs": -27.746109557418475,
+      "rms_dbfs": -41.612852600007955
     },
     {
       "name": "pitch_83",
@@ -735,8 +735,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.326494400420852,
-      "rms_dbfs": -38.56265613706431
+      "peak_dbfs": -28.53495707844628,
+      "rms_dbfs": -42.3631432173029
     },
     {
       "name": "pitch_84",
@@ -751,8 +751,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.36514330095857,
-      "rms_dbfs": -38.57106557498674
+      "peak_dbfs": -28.605876352248572,
+      "rms_dbfs": -42.47762725486784
     },
     {
       "name": "pitch_85",
@@ -767,8 +767,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.4094825892622,
-      "rms_dbfs": -38.58006433599919
+      "peak_dbfs": -28.68822681198054,
+      "rms_dbfs": -42.59220833439021
     },
     {
       "name": "pitch_86",
@@ -783,8 +783,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.458497547554973,
-      "rms_dbfs": -38.58857892233507
+      "peak_dbfs": -28.767146999399856,
+      "rms_dbfs": -42.705505612141046
     },
     {
       "name": "pitch_87",
@@ -799,8 +799,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.509223731485328,
-      "rms_dbfs": -38.59864686497411
+      "peak_dbfs": -28.80522038869886,
+      "rms_dbfs": -42.82117268226585
     },
     {
       "name": "pitch_88",
@@ -815,8 +815,8 @@
       "seconds": 0.8,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.568404923209187,
-      "rms_dbfs": -38.61110759441377
+      "peak_dbfs": -28.949641347924057,
+      "rms_dbfs": -42.940706105423686
     },
     {
       "name": "tap_host_40",
@@ -860,11 +860,11 @@
           0.03
         ]
       ],
-      "seconds": 16.0,
+      "seconds": 12.0,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.456636811301106,
-      "rms_dbfs": -49.314752265839665
+      "peak_dbfs": -24.55293561390009,
+      "rms_dbfs": -49.5443311943436
     },
     {
       "name": "held_host_55",
@@ -873,14 +873,14 @@
           0.15,
           55,
           100,
-          21.0
+          17.0
         ]
       ],
-      "seconds": 16.0,
+      "seconds": 12.0,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.456636811301106,
-      "rms_dbfs": -49.31475627824442
+      "peak_dbfs": -24.55293561390009,
+      "rms_dbfs": -49.54433246464089
     },
     {
       "name": "tap_host_71",
@@ -892,11 +892,11 @@
           0.03
         ]
       ],
-      "seconds": 14.0,
+      "seconds": 8.0,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -48.94629048998012
+      "peak_dbfs": -23.621022670736412,
+      "rms_dbfs": -49.59479300328513
     },
     {
       "name": "held_host_71",
@@ -905,14 +905,14 @@
           0.15,
           71,
           100,
-          19.0
+          13.0
         ]
       ],
-      "seconds": 14.0,
+      "seconds": 8.0,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -48.94628864571544
+      "peak_dbfs": -23.621022670736412,
+      "rms_dbfs": -49.5947931301109
     },
     {
       "name": "tap_host_83",
@@ -924,11 +924,11 @@
           0.03
         ]
       ],
-      "seconds": 12.0,
+      "seconds": 6.0,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.326494400420852,
-      "rms_dbfs": -49.5504729045357
+      "peak_dbfs": -28.53495707844628,
+      "rms_dbfs": -51.07374741617921
     },
     {
       "name": "held_host_83",
@@ -937,14 +937,14 @@
           0.15,
           83,
           100,
-          17.0
+          11.0
         ]
       ],
-      "seconds": 12.0,
+      "seconds": 6.0,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -27.326494400420852,
-      "rms_dbfs": -49.55047316173691
+      "peak_dbfs": -28.53495707844628,
+      "rms_dbfs": -51.07374747108861
     },
     {
       "name": "tap_midi_71",
@@ -956,11 +956,11 @@
           0.03
         ]
       ],
-      "seconds": 14.0,
+      "seconds": 8.0,
       "settings": {},
       "mode": "midi",
-      "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -48.94629048998012
+      "peak_dbfs": -23.621022670736412,
+      "rms_dbfs": -49.59479300328513
     },
     {
       "name": "held_midi_71",
@@ -969,14 +969,14 @@
           0.15,
           71,
           100,
-          19.0
+          13.0
         ]
       ],
-      "seconds": 14.0,
+      "seconds": 8.0,
       "settings": {},
       "mode": "midi",
-      "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -48.946288687903845
+      "peak_dbfs": -23.621022670736412,
+      "rms_dbfs": -49.59479313913867
     },
     {
       "name": "tap_score_71",
@@ -988,11 +988,11 @@
           0.03
         ]
       ],
-      "seconds": 14.0,
+      "seconds": 8.0,
       "settings": {},
       "mode": "score",
-      "peak_dbfs": -23.329801433438597,
-      "rms_dbfs": -48.94475497250988
+      "peak_dbfs": -23.617273220964815,
+      "rms_dbfs": -49.592964107753126
     },
     {
       "name": "held_score_71",
@@ -1001,14 +1001,14 @@
           0.15,
           71,
           100,
-          19.0
+          13.0
         ]
       ],
-      "seconds": 14.0,
+      "seconds": 8.0,
       "settings": {},
       "mode": "score",
-      "peak_dbfs": -23.329801433438597,
-      "rms_dbfs": -48.94475905727981
+      "peak_dbfs": -23.617273220964815,
+      "rms_dbfs": -49.592964435456565
     },
     {
       "name": "eg_pickup_min",
@@ -1020,13 +1020,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_pickup": 0.08
       },
       "mode": "host",
-      "peak_dbfs": -21.311734484142633,
-      "rms_dbfs": -43.786560799127294
+      "peak_dbfs": -21.356838606205933,
+      "rms_dbfs": -43.80251509800804
     },
     {
       "name": "eg_pickup_max",
@@ -1038,13 +1038,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_pickup": 0.42
       },
       "mode": "host",
-      "peak_dbfs": -27.403752250280206,
-      "rms_dbfs": -49.948204794184655
+      "peak_dbfs": -27.459230992816323,
+      "rms_dbfs": -49.959405193683146
     },
     {
       "name": "eg_tone_min",
@@ -1056,13 +1056,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_tone": 700
       },
       "mode": "host",
-      "peak_dbfs": -25.301749847199495,
-      "rms_dbfs": -47.5315044379768
+      "peak_dbfs": -25.337330398458175,
+      "rms_dbfs": -47.54379398077886
     },
     {
       "name": "eg_tone_max",
@@ -1074,13 +1074,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_tone": 5000
       },
       "mode": "host",
-      "peak_dbfs": -24.80444234160831,
-      "rms_dbfs": -47.400469880036425
+      "peak_dbfs": -24.859655881175158,
+      "rms_dbfs": -47.41286259499145
     },
     {
       "name": "eg_drive_min",
@@ -1092,13 +1092,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_drive": 0
       },
       "mode": "host",
-      "peak_dbfs": -24.80689478219969,
-      "rms_dbfs": -47.400524403294014
+      "peak_dbfs": -24.86157809968217,
+      "rms_dbfs": -47.41291727996729
     },
     {
       "name": "eg_drive_max",
@@ -1110,13 +1110,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_drive": 18
       },
       "mode": "host",
-      "peak_dbfs": -26.65953866214023,
-      "rms_dbfs": -44.21600196997841
+      "peak_dbfs": -26.70185005883003,
+      "rms_dbfs": -44.30123869439712
     },
     {
       "name": "eg_decay_min",
@@ -1133,8 +1133,8 @@
         "eg_decay": 1
       },
       "mode": "host",
-      "peak_dbfs": -25.611858753345874,
-      "rms_dbfs": -49.65523014011272
+      "peak_dbfs": -25.82869774294716,
+      "rms_dbfs": -50.90181162950156
     },
     {
       "name": "eg_decay_max",
@@ -1146,13 +1146,13 @@
           0.03
         ]
       ],
-      "seconds": 22.0,
+      "seconds": 17.0,
       "settings": {
         "eg_decay": 12
       },
       "mode": "host",
-      "peak_dbfs": -24.762163036926047,
-      "rms_dbfs": -47.258993467311726
+      "peak_dbfs": -24.803464154428166,
+      "rms_dbfs": -47.31557984314743
     },
     {
       "name": "eg_mute_min",
@@ -1164,13 +1164,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_mute": 0
       },
       "mode": "host",
-      "peak_dbfs": -24.80689478219969,
-      "rms_dbfs": -47.400524403294014
+      "peak_dbfs": -24.86157809968217,
+      "rms_dbfs": -47.41291727996729
     },
     {
       "name": "eg_mute_max",
@@ -1182,13 +1182,13 @@
           0.03
         ]
       ],
-      "seconds": 3.0,
+      "seconds": 2.0,
       "settings": {
         "eg_mute": 1
       },
       "mode": "host",
-      "peak_dbfs": -25.958374210603434,
-      "rms_dbfs": -51.37840290837645
+      "peak_dbfs": -26.175474493215805,
+      "rms_dbfs": -50.900987532362336
     },
     {
       "name": "eg_width_min",
@@ -1200,13 +1200,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_width": 0
       },
       "mode": "host",
-      "peak_dbfs": -25.98426737824241,
-      "rms_dbfs": -47.400523709075664
+      "peak_dbfs": -26.038950695724886,
+      "rms_dbfs": -47.41291658321144
     },
     {
       "name": "eg_width_max",
@@ -1218,13 +1218,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_width": 0.6
       },
       "mode": "host",
-      "peak_dbfs": -24.212877193561297,
-      "rms_dbfs": -47.40052396411026
+      "peak_dbfs": -24.26756051104377,
+      "rms_dbfs": -47.41291683915239
     },
     {
       "name": "eg_release_min",
@@ -1236,13 +1236,13 @@
           0.03
         ]
       ],
-      "seconds": 14.0,
+      "seconds": 11.0,
       "settings": {
         "eg_release": 0.04
       },
       "mode": "host",
-      "peak_dbfs": -24.80689478219969,
-      "rms_dbfs": -46.85602418621087
+      "peak_dbfs": -24.86157809968217,
+      "rms_dbfs": -46.986662020383115
     },
     {
       "name": "eg_release_max",
@@ -1254,13 +1254,13 @@
           0.03
         ]
       ],
-      "seconds": 31.0,
+      "seconds": 24.0,
       "settings": {
         "eg_release": 0.8
       },
       "mode": "host",
-      "peak_dbfs": -24.80689478219969,
-      "rms_dbfs": -48.69118328771506
+      "peak_dbfs": -24.86157809968217,
+      "rms_dbfs": -48.75495738536636
     },
     {
       "name": "eg_level_min",
@@ -1272,13 +1272,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_level": -18
       },
       "mode": "host",
-      "peak_dbfs": -36.80689429755809,
-      "rms_dbfs": -59.400523918652404
+      "peak_dbfs": -36.86157761504056,
+      "rms_dbfs": -59.412916795325685
     },
     {
       "name": "eg_level_max",
@@ -1290,13 +1290,13 @@
           0.03
         ]
       ],
-      "seconds": 17.0,
+      "seconds": 13.0,
       "settings": {
         "eg_level": 0
       },
       "mode": "host",
-      "peak_dbfs": -18.806895024520504,
-      "rms_dbfs": -41.40052464561482
+      "peak_dbfs": -18.861578342002975,
+      "rms_dbfs": -41.4129175222881
     },
     {
       "name": "eg_pick_min",
@@ -1308,13 +1308,13 @@
           0.03
         ]
       ],
-      "seconds": 13.0,
+      "seconds": 7.0,
       "settings": {
         "eg_pick": 0
       },
       "mode": "host",
-      "peak_dbfs": -24.833399130919265,
-      "rms_dbfs": -50.035874983009705
+      "peak_dbfs": -25.36725136961814,
+      "rms_dbfs": -50.987410309559706
     },
     {
       "name": "eg_pick_max",
@@ -1326,13 +1326,49 @@
           0.03
         ]
       ],
-      "seconds": 13.0,
+      "seconds": 7.0,
       "settings": {
         "eg_pick": 2
       },
       "mode": "host",
-      "peak_dbfs": -22.895622201551067,
-      "rms_dbfs": -49.93710535131623
+      "peak_dbfs": -23.080275528311986,
+      "rms_dbfs": -50.77820813665048
+    },
+    {
+      "name": "eg_pitch_decay_min",
+      "notes": [
+        [
+          0.15,
+          71,
+          100,
+          0.03
+        ]
+      ],
+      "seconds": 5.0,
+      "settings": {
+        "eg_pitch_decay": 0.25
+      },
+      "mode": "host",
+      "peak_dbfs": -24.125282778665003,
+      "rms_dbfs": -50.6863616020702
+    },
+    {
+      "name": "eg_pitch_decay_max",
+      "notes": [
+        [
+          0.15,
+          71,
+          100,
+          0.03
+        ]
+      ],
+      "seconds": 14.0,
+      "settings": {
+        "eg_pitch_decay": 1
+      },
+      "mode": "host",
+      "peak_dbfs": -23.336872158743457,
+      "rms_dbfs": -48.94629048998012
     },
     {
       "name": "pick_71_0",
@@ -1349,8 +1385,8 @@
         "eg_pick": 0
       },
       "mode": "host",
-      "peak_dbfs": -23.56741805933977,
-      "rms_dbfs": -37.71287644356462
+      "peak_dbfs": -24.068885432071646,
+      "rms_dbfs": -39.894914262553456
     },
     {
       "name": "pick_71_1",
@@ -1367,8 +1403,8 @@
         "eg_pick": 1
       },
       "mode": "host",
-      "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -37.6609723869798
+      "peak_dbfs": -23.621022670736412,
+      "rms_dbfs": -39.812179792759096
     },
     {
       "name": "pick_71_2",
@@ -1385,8 +1421,8 @@
         "eg_pick": 2
       },
       "mode": "host",
-      "peak_dbfs": -22.478806032836154,
-      "rms_dbfs": -37.59349634124319
+      "peak_dbfs": -22.661567387261712,
+      "rms_dbfs": -39.70520667338812
     },
     {
       "name": "pick_76_0",
@@ -1403,8 +1439,8 @@
         "eg_pick": 0
       },
       "mode": "host",
-      "peak_dbfs": -24.833399130919265,
-      "rms_dbfs": -38.61587018412666
+      "peak_dbfs": -25.36725136961814,
+      "rms_dbfs": -41.63676538498079
     },
     {
       "name": "pick_76_1",
@@ -1421,8 +1457,8 @@
         "eg_pick": 1
       },
       "mode": "host",
-      "peak_dbfs": -24.316144856979708,
-      "rms_dbfs": -38.569816441716036
+      "peak_dbfs": -24.584838108418463,
+      "rms_dbfs": -41.55191615539155
     },
     {
       "name": "pick_76_2",
@@ -1439,8 +1475,8 @@
         "eg_pick": 2
       },
       "mode": "host",
-      "peak_dbfs": -22.895622201551067,
-      "rms_dbfs": -38.500355912161254
+      "peak_dbfs": -23.080275528311986,
+      "rms_dbfs": -41.42427274264871
     },
     {
       "name": "pick_83_0",
@@ -1457,8 +1493,8 @@
         "eg_pick": 0
       },
       "mode": "host",
-      "peak_dbfs": -27.373839470280217,
-      "rms_dbfs": -38.701741200269886
+      "peak_dbfs": -28.729831078029374,
+      "rms_dbfs": -42.679125931290585
     },
     {
       "name": "pick_83_1",
@@ -1475,8 +1511,8 @@
         "eg_pick": 1
       },
       "mode": "host",
-      "peak_dbfs": -27.326494400420852,
-      "rms_dbfs": -38.56265613706431
+      "peak_dbfs": -28.53495707844628,
+      "rms_dbfs": -42.3631432173029
     },
     {
       "name": "pick_83_2",
@@ -1493,8 +1529,8 @@
         "eg_pick": 2
       },
       "mode": "host",
-      "peak_dbfs": -23.276648603962833,
-      "rms_dbfs": -38.32840114148399
+      "peak_dbfs": -23.346811597761338,
+      "rms_dbfs": -41.848933597094266
     },
     {
       "name": "velocity_24",
@@ -1509,8 +1545,8 @@
       "seconds": 1.5,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -41.82855389660986,
-      "rms_dbfs": -54.85486804102335
+      "peak_dbfs": -41.99178151491772,
+      "rms_dbfs": -56.2904384470486
     },
     {
       "name": "velocity_48",
@@ -1525,8 +1561,8 @@
       "seconds": 1.5,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -34.35631361134584,
-      "rms_dbfs": -47.36068855737132
+      "peak_dbfs": -34.51878832778127,
+      "rms_dbfs": -48.79583964446603
     },
     {
       "name": "velocity_80",
@@ -1541,8 +1577,8 @@
       "seconds": 1.5,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -28.38930302988028,
-      "rms_dbfs": -41.313174445493615
+      "peak_dbfs": -28.5490527377728,
+      "rms_dbfs": -42.74679252848854
     },
     {
       "name": "velocity_127",
@@ -1557,8 +1593,8 @@
       "seconds": 1.5,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -22.860777524172136,
-      "rms_dbfs": -35.48703704616272
+      "peak_dbfs": -23.012359169747022,
+      "rms_dbfs": -36.91502228436465
     },
     {
       "name": "headroom_0",
@@ -1610,8 +1646,8 @@
         "eg_pickup": 0.08
       },
       "mode": "host",
-      "peak_dbfs": -3.5312029228950497,
-      "rms_dbfs": -19.310129887816686
+      "peak_dbfs": -3.5701600966775713,
+      "rms_dbfs": -20.436773763216884
     },
     {
       "name": "headroom_9",
@@ -1663,8 +1699,8 @@
         "eg_pickup": 0.08
       },
       "mode": "host",
-      "peak_dbfs": -3.646794486817816,
-      "rms_dbfs": -17.801998701729723
+      "peak_dbfs": -3.664874142335128,
+      "rms_dbfs": -18.95185421549601
     },
     {
       "name": "headroom_18",
@@ -1716,8 +1752,8 @@
         "eg_pickup": 0.08
       },
       "mode": "host",
-      "peak_dbfs": -7.829084076617453,
-      "rms_dbfs": -18.87418049530121
+      "peak_dbfs": -8.501433171465177,
+      "rms_dbfs": -19.88578616989561
     },
     {
       "name": "high_pick_headroom",
@@ -1769,8 +1805,8 @@
         "eg_width": 0
       },
       "mode": "host",
-      "peak_dbfs": -3.5024137845325907,
-      "rms_dbfs": -23.363340885276184
+      "peak_dbfs": -4.563315142170335,
+      "rms_dbfs": -27.065552614030132
     },
     {
       "name": "rapid_retriggers",
@@ -1851,8 +1887,8 @@
       "seconds": 6,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -24.55995739318547,
-      "rms_dbfs": -39.41323375335792
+      "peak_dbfs": -24.71446149653341,
+      "rms_dbfs": -40.055165432700434
     },
     {
       "name": "block_1",
@@ -1873,8 +1909,8 @@
       "seconds": 2,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -19.822285017208777,
-      "rms_dbfs": -35.9866023840579
+      "peak_dbfs": -19.916783263920344,
+      "rms_dbfs": -36.74796135137933
     },
     {
       "name": "block_16",
@@ -1895,8 +1931,8 @@
       "seconds": 2,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -19.822425296004045,
-      "rms_dbfs": -35.98661057274007
+      "peak_dbfs": -19.917336885424664,
+      "rms_dbfs": -36.74797114602968
     },
     {
       "name": "block_64",
@@ -1917,8 +1953,8 @@
       "seconds": 2,
       "settings": {},
       "mode": "host",
-      "peak_dbfs": -19.82247300972334,
-      "rms_dbfs": -35.98660610735908
+      "peak_dbfs": -19.91672927416226,
+      "rms_dbfs": -36.747965790565026
     }
   ],
   "tuning": [
@@ -1936,195 +1972,195 @@
     },
     {
       "note": 41,
-      "cents": 0.8372446393272054
+      "cents": 0.8353994840820409
     },
     {
       "note": 42,
-      "cents": -0.5022214810222498
+      "cents": -0.5039032050060074
     },
     {
       "note": 43,
-      "cents": 0.16211122135251155
+      "cents": 0.16022005866762679
     },
     {
       "note": 44,
-      "cents": -0.6916021207311815
+      "cents": -0.6887268181204508
     },
     {
       "note": 45,
-      "cents": -0.032753229238073646
+      "cents": -0.033901586553703185
     },
     {
       "note": 46,
-      "cents": 0.16899561099261776
+      "cents": 0.16609315543507217
     },
     {
       "note": 47,
-      "cents": -0.31804404199398
+      "cents": -0.3193100539409493
     },
     {
       "note": 48,
-      "cents": -0.33310239166220157
+      "cents": -0.3314267406767418
     },
     {
       "note": 49,
-      "cents": 0.29475750375907234
+      "cents": 0.29031091398441733
     },
     {
       "note": 50,
-      "cents": 0.12677831789390012
+      "cents": 0.12337022267635217
     },
     {
       "note": 51,
-      "cents": -0.0019550949289554717
+      "cents": -0.004962543612053219
     },
     {
       "note": 52,
-      "cents": 0.1661325946188367
+      "cents": 0.16179746484549098
     },
     {
       "note": 53,
-      "cents": -0.27578868189390915
+      "cents": -0.2809190104239282
     },
     {
       "note": 54,
-      "cents": 0.3020232260075116
+      "cents": 0.3004548977304105
     },
     {
       "note": 55,
-      "cents": 0.13846696920433132
+      "cents": 0.13980095752279373
     },
     {
       "note": 56,
-      "cents": 0.09545630869155915
+      "cents": 0.09783530465055602
     },
     {
       "note": 57,
-      "cents": -0.004784791652631121
+      "cents": -0.0013834833166667805
     },
     {
       "note": 58,
-      "cents": -0.27166800259628415
+      "cents": -0.2686743941089183
     },
     {
       "note": 59,
-      "cents": 0.08921054703193478
+      "cents": 0.09137714517436457
     },
     {
       "note": 60,
-      "cents": -0.24036389795917143
+      "cents": -0.23653154913714697
     },
     {
       "note": 61,
-      "cents": -0.3219933569248542
+      "cents": -0.31817622358402786
     },
     {
       "note": 62,
-      "cents": 0.08554828468389969
+      "cents": 0.08462784883162851
     },
     {
       "note": 63,
-      "cents": 0.002957817975643994
+      "cents": 0.003456014606156926
     },
     {
       "note": 64,
-      "cents": 0.08140663936189557
+      "cents": 0.07478895571188018
     },
     {
       "note": 65,
-      "cents": 0.07261452694839432
+      "cents": 0.06814851908212564
     },
     {
       "note": 66,
-      "cents": -0.0016941326808471188
+      "cents": -0.0013468033199210592
     },
     {
       "note": 67,
-      "cents": 0.015155875086584029
+      "cents": -0.016178061565885467
     },
     {
       "note": 68,
-      "cents": -0.1393113753525462
+      "cents": -0.1301528706172136
     },
     {
       "note": 69,
-      "cents": -0.004054774923161674
+      "cents": -0.0034590614561459034
     },
     {
       "note": 70,
-      "cents": -0.2222201005748354
+      "cents": -0.20965231289031733
     },
     {
       "note": 71,
-      "cents": 0.06795433621748104
+      "cents": 0.0536099851504777
     },
     {
       "note": 72,
-      "cents": 0.04260937782153449
+      "cents": 0.03692954811105937
     },
     {
       "note": 73,
-      "cents": -0.048484974654814786
+      "cents": -0.05592620320256349
     },
     {
       "note": 74,
-      "cents": 0.05400102612111257
+      "cents": 0.037930330053435345
     },
     {
       "note": 75,
-      "cents": 0.00986978124578039
+      "cents": 0.00929067036021496
     },
     {
       "note": 76,
-      "cents": -0.18254905888047315
+      "cents": -0.16428124506003283
     },
     {
       "note": 77,
-      "cents": 0.032833488583652835
+      "cents": 0.015684593143674062
     },
     {
       "note": 78,
-      "cents": -0.0013449512459797928
+      "cents": -0.0007701607573024811
     },
     {
       "note": 79,
-      "cents": -0.17033670337653156
+      "cents": -0.15684289456974476
     },
     {
       "note": 80,
-      "cents": -0.117058633013536
+      "cents": -0.10446321965553265
     },
     {
       "note": 81,
-      "cents": -0.0017188589520508496
+      "cents": -0.001874003626164195
     },
     {
       "note": 82,
-      "cents": -0.11177783576941856
+      "cents": -0.1084342848429504
     },
     {
       "note": 83,
-      "cents": -0.03742528740289264
+      "cents": -0.039002072211580883
     },
     {
       "note": 84,
-      "cents": -0.022146240591750164
+      "cents": -0.0182478071731401
     },
     {
       "note": 85,
-      "cents": -0.12255137198045975
+      "cents": -0.1176520587870696
     },
     {
       "note": 86,
-      "cents": -0.08110214677008558
+      "cents": -0.07384879687461493
     },
     {
       "note": 87,
-      "cents": 0.006352889374993298
+      "cents": 0.005436891421683334
     },
     {
       "note": 88,
-      "cents": -0.051670453994471385
+      "cents": -0.060741035564533724
     }
   ],
   "note_duration_independence": [
@@ -2140,82 +2176,83 @@
       "mode": "host",
       "note": 55,
       "maximum_sample_difference_before_vibrato": 0.0,
-      "maximum_decay_window_rms_difference_db": 0.0031821998995624767,
+      "maximum_decay_window_rms_difference_db": 0.003966569220629879,
       "held_silence_dbfs": -300.0,
-      "silence_deadline_seconds": 14.700000000000001
+      "silence_deadline_seconds": 10.539824079283289
     },
     {
       "mode": "host",
       "note": 71,
       "maximum_sample_difference_before_vibrato": 0.0,
-      "maximum_decay_window_rms_difference_db": 0.0029993970549000437,
+      "maximum_decay_window_rms_difference_db": 0.005292644340286756,
       "held_silence_dbfs": -300.0,
-      "silence_deadline_seconds": 12.299999999999999
+      "silence_deadline_seconds": 6.199999999999999
     },
     {
       "mode": "host",
       "note": 83,
       "maximum_sample_difference_before_vibrato": 0.0,
-      "maximum_decay_window_rms_difference_db": 0.0020082728320858223,
+      "maximum_decay_window_rms_difference_db": 0.0025818251847340434,
       "held_silence_dbfs": -300.0,
-      "silence_deadline_seconds": 10.78
+      "silence_deadline_seconds": 4.183320948656705
     },
     {
       "mode": "midi",
       "note": 71,
       "maximum_sample_difference_before_vibrato": 0.0,
-      "maximum_decay_window_rms_difference_db": 0.0029943026867869094,
+      "maximum_decay_window_rms_difference_db": 0.005283695615645456,
       "held_silence_dbfs": -300.0,
-      "silence_deadline_seconds": 12.299999999999999
+      "silence_deadline_seconds": 6.199999999999999
     },
     {
       "mode": "score",
       "note": 71,
       "maximum_sample_difference_before_vibrato": 0.0,
-      "maximum_decay_window_rms_difference_db": 0.002955891028719293,
+      "maximum_decay_window_rms_difference_db": 0.005257524716213879,
       "held_silence_dbfs": -300.0,
-      "silence_deadline_seconds": 12.299999999999999
+      "silence_deadline_seconds": 6.199999999999999
     }
   ],
   "controller_relative_differences": {
-    "eg_pickup": 0.5129382816746139,
-    "eg_tone": 0.49952539100334453,
-    "eg_drive": 0.37715345464023287,
-    "eg_decay": 0.9024506906933737,
-    "eg_mute": 0.9133240154597196,
-    "eg_width": 0.5276520559980782,
-    "eg_release": 0.3626824446051674,
+    "eg_pickup": 0.5126830917290687,
+    "eg_tone": 0.499481006986421,
+    "eg_drive": 0.37311466207361094,
+    "eg_decay": 0.9030707372606774,
+    "eg_mute": 0.9141629008808837,
+    "eg_width": 0.5276182298562122,
+    "eg_release": 0.3629953200748651,
     "eg_level": 0.8741074482840517,
-    "eg_pick": 0.2174704287596192
+    "eg_pick": 0.22768071882498195,
+    "eg_pitch_decay": 0.6962224723905313
   },
   "pick_strength_attack_rms_dbfs": {
     "71": [
-      -35.182185256834856,
-      -34.813854966110604,
-      -34.3705613152599
+      -35.53786383512727,
+      -35.15137142177434,
+      -34.687175841656654
     ],
     "76": [
-      -35.06385563433893,
-      -34.801504423328275,
-      -34.427928725269474
+      -35.615103251991314,
+      -35.34008871804454,
+      -34.94679758224347
     ],
     "83": [
-      -37.0304840663693,
-      -35.91774594284141,
-      -34.458471284293566
+      -37.88397438152268,
+      -36.64335901158447,
+      -35.03920839569302
     ]
   },
   "velocity_rms_dbfs": [
-    -54.85486804102335,
-    -47.36068855737132,
-    -41.313174445493615,
-    -35.48703704616272
+    -56.2904384470486,
+    -48.79583964446603,
+    -42.74679252848854,
+    -36.91502228436465
   ],
-  "input_mode_rms_spread_db": 0.0015355174702449403,
+  "input_mode_rms_spread_db": 0.0018288955320073796,
   "block_size_rms_dbfs": {
-    "1": -35.9866023840579,
-    "16": -35.98661057274007,
-    "64": -35.98660610735908
+    "1": -36.74796135137933,
+    "16": -36.74797114602968,
+    "64": -36.747965790565026
   },
   "listening_performed": false,
   "spectrograms_inspected": false
