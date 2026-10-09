@@ -1,0 +1,5 @@
+work/
+auditions/
+validation/*.png
+validation/compile.json
+library_manifest.json

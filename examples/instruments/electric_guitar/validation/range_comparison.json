@@ -1,0 +1,201 @@
+{
+  "graph_sha256": "17d5314949fd3ef0ae67863b4a7f9fb70034dd34fcccf768d5eebca7823f7ec3",
+  "source_user_provided": true,
+  "decoded_reference_sha256": "48ab4a9a39de030e5542edce0af39d6627cbf674c560ac5adff09fe248de3731",
+  "fitted_midi_range": [
+    40,
+    83
+  ],
+  "intermediate_semitones_native_tested": true,
+  "string_boundaries_estimated": true,
+  "reference_muting_excluded_from_decay_fit": true,
+  "measurements": [
+    {
+      "midi": 40,
+      "harmonic_level_mae_db": {
+        "Updated": 1.0567693456992222,
+        "Previous": 26.885074645054136
+      },
+      "constant_comparison_gain": 8.528898626989049,
+      "early_envelope_normalized_rmse": 0.07595105323300141
+    },
+    {
+      "midi": 44,
+      "harmonic_level_mae_db": {
+        "Updated": 0.8726719328494084,
+        "Previous": 21.340777389928185
+      },
+      "constant_comparison_gain": 6.901307979694142,
+      "early_envelope_normalized_rmse": 0.03521226753349935
+    },
+    {
+      "midi": 45,
+      "harmonic_level_mae_db": {
+        "Updated": 0.5337756319766757,
+        "Previous": 21.95422490029602
+      },
+      "constant_comparison_gain": 4.1637347446494,
+      "early_envelope_normalized_rmse": 0.03084217456974101
+    },
+    {
+      "midi": 48,
+      "harmonic_level_mae_db": {
+        "Updated": 0.3263500879878113,
+        "Previous": 23.034058897068704
+      },
+      "constant_comparison_gain": 7.079475205669377,
+      "early_envelope_normalized_rmse": 0.05924484394014493
+    },
+    {
+      "midi": 50,
+      "harmonic_level_mae_db": {
+        "Updated": 1.0270962595360211,
+        "Previous": 20.231054878674115
+      },
+      "constant_comparison_gain": 7.949861117343738,
+      "early_envelope_normalized_rmse": 0.03597700081042222
+    },
+    {
+      "midi": 53,
+      "harmonic_level_mae_db": {
+        "Updated": 0.6805906482039831,
+        "Previous": 23.76204365029464
+      },
+      "constant_comparison_gain": 3.059930579183792,
+      "early_envelope_normalized_rmse": 0.04471115633214582
+    },
+    {
+      "midi": 55,
+      "harmonic_level_mae_db": {
+        "Updated": 0.7764610598951781,
+        "Previous": 22.550744603214415
+      },
+      "constant_comparison_gain": 4.009213183223343,
+      "early_envelope_normalized_rmse": 0.03320995438373163
+    },
+    {
+      "midi": 59,
+      "harmonic_level_mae_db": {
+        "Updated": 0.9988917816532898,
+        "Previous": 18.879228762923653
+      },
+      "constant_comparison_gain": 4.694965974504415,
+      "early_envelope_normalized_rmse": 0.07203561753447105
+    },
+    {
+      "midi": 60,
+      "harmonic_level_mae_db": {
+        "Updated": 0.41558176938937214,
+        "Previous": 18.481538140709112
+      },
+      "constant_comparison_gain": 8.442929823433886,
+      "early_envelope_normalized_rmse": 0.029870854231441493
+    },
+    {
+      "midi": 62,
+      "harmonic_level_mae_db": {
+        "Updated": 0.6061411400252783,
+        "Previous": 14.645515191669718
+      },
+      "constant_comparison_gain": 10.01749199657702,
+      "early_envelope_normalized_rmse": 0.018532073918185375
+    },
+    {
+      "midi": 63,
+      "harmonic_level_mae_db": {
+        "Updated": 0.9898712574947749,
+        "Previous": 24.608516930879915
+      },
+      "constant_comparison_gain": 7.761024467676992,
+      "early_envelope_normalized_rmse": 0.03595838870966304
+    },
+    {
+      "midi": 66,
+      "harmonic_level_mae_db": {
+        "Updated": 0.3719144020711318,
+        "Previous": 21.443969461667344
+      },
+      "constant_comparison_gain": 4.851371922678372,
+      "early_envelope_normalized_rmse": 0.01723775796872229
+    },
+    {
+      "midi": 67,
+      "harmonic_level_mae_db": {
+        "Updated": 1.0157256713371687,
+        "Previous": 22.910068968368662
+      },
+      "constant_comparison_gain": 8.167247096681823,
+      "early_envelope_normalized_rmse": 0.01481335846005984
+    },
+    {
+      "midi": 69,
+      "harmonic_level_mae_db": {
+        "Updated": 2.06891263981033,
+        "Previous": 22.123612631143452
+      },
+      "constant_comparison_gain": 1.7049993121176183,
+      "early_envelope_normalized_rmse": 0.06788957819536746
+    },
+    {
+      "midi": 71,
+      "harmonic_level_mae_db": {
+        "Updated": 0.385988388033057,
+        "Previous": 23.21733688700498
+      },
+      "constant_comparison_gain": 2.292748621701554,
+      "early_envelope_normalized_rmse": 0.01771669576724775
+    },
+    {
+      "midi": 76,
+      "harmonic_level_mae_db": {
+        "Updated": 0.5556410702535647,
+        "Previous": 18.496316390335462
+      },
+      "constant_comparison_gain": 2.9508406494320547,
+      "early_envelope_normalized_rmse": 0.023495129469595907
+    },
+    {
+      "midi": 80,
+      "harmonic_level_mae_db": {
+        "Updated": 0.8539629181741603,
+        "Previous": 9.603944952584742
+      },
+      "constant_comparison_gain": 9.948553479506689,
+      "early_envelope_normalized_rmse": 0.03119101589223117
+    },
+    {
+      "midi": 83,
+      "harmonic_level_mae_db": {
+        "Updated": 1.489132305238586,
+        "Previous": 12.73792420103364
+      },
+      "constant_comparison_gain": 15.543688637387216,
+      "early_envelope_normalized_rmse": 0.10461832516596933
+    }
+  ],
+  "median_harmonic_level_mae_db": 0.8152119890346692,
+  "comparison_level_window_seconds": [
+    0.08,
+    0.25
+  ],
+  "significant_partial_threshold_db": -40,
+  "source_tuning_normalized_to_midi": true,
+  "images": [
+    "validation/range_harmonics.png",
+    "validation/range.stft.png",
+    "validation/range.mel.png",
+    "validation/range_attack.stft.png",
+    "validation/range_attack.mel.png",
+    "validation/held_note_decay.mel.png",
+    "validation/held_note_decay.stft.png"
+  ],
+  "spectrograms_inspected": true,
+  "listening_performed": false,
+  "limitations": "Fit errors describe the measured notes, not an independent perceptual test. Exact string boundaries are inferred. Unrecorded late tails use bounded exponential damping, not the manual mute events.",
+  "visual_inspection_note": "Opened final Mel and log-STFT comparisons at 42.67 ms, 5.33 ms and 2.67 ms windows, controller 0/1/2 panels, attack-envelope and partial-level plots, and both-channel full held-note tails. High-register contact rises more sharply and its short energy excess varies with Pick strength; the later ringing tone and full decay remain intact. Background noise and exact recorded phase fluctuations are not reproduced.",
+  "build_checks": {
+    "frontend": "passed",
+    "docker_frontend_build": "passed",
+    "shared_drumkit_input_present": true
+  }
+}

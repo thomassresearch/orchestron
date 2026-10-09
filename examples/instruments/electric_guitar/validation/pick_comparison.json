@@ -1,0 +1,178 @@
+{
+  "graph_sha256": "17d5314949fd3ef0ae67863b4a7f9fb70034dd34fcccf768d5eebca7823f7ec3",
+  "measurements": [
+    {
+      "note": 71,
+      "constant_gain": 2.292748621701554,
+      "bands": [
+        {
+          "hz": [
+            60,
+            12000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.12129033616994428,
+            "Updated": 0.08098068531444527
+          }
+        },
+        {
+          "hz": [
+            2000,
+            5000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.12315571072608338,
+            "Updated": 0.1149259028482768
+          }
+        },
+        {
+          "hz": [
+            5000,
+            10000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.13233560761022345,
+            "Updated": 0.11764370030821844
+          }
+        }
+      ]
+    },
+    {
+      "note": 76,
+      "constant_gain": 2.9508406494320547,
+      "bands": [
+        {
+          "hz": [
+            60,
+            12000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.10976865489360645,
+            "Updated": 0.07109475595640417
+          }
+        },
+        {
+          "hz": [
+            2000,
+            5000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.1385694731213921,
+            "Updated": 0.08405537333412177
+          }
+        },
+        {
+          "hz": [
+            5000,
+            10000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.17950547002506567,
+            "Updated": 0.12382314278834124
+          }
+        }
+      ]
+    },
+    {
+      "note": 80,
+      "constant_gain": 9.948553479506689,
+      "bands": [
+        {
+          "hz": [
+            60,
+            12000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.06255350553194355,
+            "Updated": 0.05479424711281416
+          }
+        },
+        {
+          "hz": [
+            2000,
+            5000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.121393181378384,
+            "Updated": 0.08190914873788604
+          }
+        },
+        {
+          "hz": [
+            5000,
+            10000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.1683644457976736,
+            "Updated": 0.07801237219680404
+          }
+        }
+      ]
+    },
+    {
+      "note": 83,
+      "constant_gain": 15.543688637387216,
+      "bands": [
+        {
+          "hz": [
+            60,
+            12000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.22229205361614368,
+            "Updated": 0.08409869213833136
+          }
+        },
+        {
+          "hz": [
+            2000,
+            5000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.16815508167978935,
+            "Updated": 0.0891878488500049
+          }
+        },
+        {
+          "hz": [
+            5000,
+            10000
+          ],
+          "envelope_nrmse_0_60ms": {
+            "Previous": 0.2172612663441148,
+            "Updated": 0.0855620200515653
+          }
+        }
+      ]
+    }
+  ],
+  "lower_note_maximum_sample_differences": {
+    "40": 6.410320954608473e-10,
+    "55": 6.283728190559223e-10,
+    "69": 1.1577215019986653e-09,
+    "70": 1.1257494311744942e-09
+  },
+  "previous_graph_sha256": "929e634c04bbbf6f8767cfb9ba85f1d02d6b2404a5ddc856fe90b57fef74d9a3",
+  "images": [
+    "validation/pick_envelopes.png",
+    "validation/high_pick.stft.png",
+    "validation/high_pick.mel.png",
+    "validation/pick_strength.stft.png",
+    "validation/pick_strength.mel.png"
+  ],
+  "spectrograms_inspected": true,
+  "listening_performed": false,
+  "analysis": {
+    "envelope_smoothing_ms": 3,
+    "attack_window_ms": 60,
+    "n_fft": 128,
+    "hop_samples": 12
+  },
+  "limitation": "These comparisons fit the supplied recording; they are not a perceptual quality score.",
+  "visual_inspection_note": "Opened final Mel and log-STFT comparisons at 42.67 ms, 5.33 ms and 2.67 ms windows, controller 0/1/2 panels, attack-envelope and partial-level plots, and both-channel full held-note tails. High-register contact rises more sharply and its short energy excess varies with Pick strength; the later ringing tone and full decay remain intact. Background noise and exact recorded phase fluctuations are not reproduced.",
+  "build_checks": {
+    "frontend": "passed",
+    "docker_frontend_build": "passed",
+    "shared_drumkit_input_present": true
+  }
+}

@@ -36,3 +36,4 @@ graphify-out/
 examples/performances/*/
 examples/instruments/*/
 !examples/instruments/tube_overdrive/
+!examples/instruments/electric_guitar/

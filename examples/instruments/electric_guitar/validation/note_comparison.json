@@ -1,0 +1,81 @@
+{
+  "reference_sha256": "f5f0fd8ef2d079277a85a5969fe3d438276d9b5fa915639c33e00636ae59c82a",
+  "reference_user_confirmed": true,
+  "reference_source_crop_seconds": [
+    2.4,
+    2.86
+  ],
+  "note": 71,
+  "note_name": "B4",
+  "velocity": 100,
+  "ignored_below_hz": 400,
+  "analysis_bands_hz": [
+    [
+      420,
+      580
+    ],
+    [
+      2300,
+      2650
+    ],
+    [
+      2800,
+      3500
+    ],
+    [
+      3500,
+      5500
+    ],
+    [
+      5500,
+      9500
+    ]
+  ],
+  "background_power_subtracted": true,
+  "comparison_window_seconds": [
+    0.034,
+    0.095
+  ],
+  "steady_gain_window_seconds": [
+    0.1,
+    0.25
+  ],
+  "stft_window_samples": 256,
+  "stft_window_ms": 5.333333333333333,
+  "hop_samples": 24,
+  "hop_ms": 0.5,
+  "measurements": {
+    "Previous": {
+      "onset_offset_seconds": 0.07050000000000005,
+      "constant_comparison_gain": 30.42297687563317,
+      "attack_band_normalized_rmse": 1.6781121538462487,
+      "fundamental_10_to_90_ms": 6.999999999999992,
+      "fundamental_peak_ms": 77.0,
+      "bright_pick_peak_ms": 82.0
+    },
+    "Updated": {
+      "onset_offset_seconds": 0.03305536808669886,
+      "constant_comparison_gain": 2.4205724309525083,
+      "attack_band_normalized_rmse": 0.11670206402275432,
+      "fundamental_10_to_90_ms": 16.0,
+      "fundamental_peak_ms": 75.0,
+      "bright_pick_peak_ms": 47.0
+    },
+    "Reference": {
+      "fundamental_10_to_90_ms": 19.500000000000004,
+      "fundamental_peak_ms": 77.5,
+      "bright_pick_peak_ms": 47.0
+    }
+  },
+  "images": [
+    "validation/matched_note_attack.stft.png",
+    "validation/matched_note_attack.mel.png",
+    "validation/matched_note_envelopes.png"
+  ],
+  "spectrograms_inspected": true,
+  "listening_performed": false,
+  "limits": "Residual accompaniment can share guitar partials. Metrics characterize this note and analysis setup, not perceived identity.",
+  "graph_sha256": "d8603c778865cd8a5fcb910bfc9a24edde777d4f0d190eb3ab3e6981de8f5594",
+  "visual_inspection_notes": "Final Mel and log-STFT plots opened after the last native render. Separate bright pick and delayed fundamental rise are visible; no repeated chorus attack. Release and register plots retain stable notes and finished tails. Fine reference fluctuations and residual accompaniment remain unmatched.",
+  "playback_comparison": "Reference and synth excerpts have identical padding and duration; synth excerpt ends with the same 25 ms fade. Separate synth audition preserves the full native release."
+}
