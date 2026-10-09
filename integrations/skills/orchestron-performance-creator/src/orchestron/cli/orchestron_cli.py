@@ -22,7 +22,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 18
+CURRENT_CONFIG_VERSION = 19
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16, 32}
@@ -1873,6 +1873,16 @@ def normalize_performance_config(
         instrument.pop("effectRoutes", None)
         instrument.pop("effectSourceIds", None)
     sequencer = ensure_sequencer(config)
+    for track in sequencer.get("tracks", []):
+        for pad in [track, *track.get("pads", [])]:
+            for step in pad.get("steps", []):
+                if not isinstance(step, dict):
+                    continue
+                if step.get("strumDirection", "off") not in ("off", "up", "down"):
+                    raise OrchestronCliError("invalid_strum", "strumDirection must be off, up or down.")
+                spread = step.get("strumSpreadPercent", 0)
+                if type(spread) is not int or not 0 <= spread <= 100:
+                    raise OrchestronCliError("invalid_strum", "strumSpreadPercent must be an integer from 0 through 100.")
     for arp in sequencer.get("arpeggiators", []):
         normalize_arpeggiator(arp)
     for preset in sequencer.get("arpeggiatorPresets", []):
@@ -3782,6 +3792,8 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                             "note": chord_notes(step.get("note"), str(step.get("chord", "none"))),
                             "hold": bool(step.get("hold", False)),
                             "timing_offset_percent": step.get("timingOffsetPercent", 0),
+                            "strum_direction": step.get("strumDirection", "off"),
+                            "strum_spread_percent": step.get("strumSpreadPercent", 0),
                             "velocity": max(0, min(127, int(step.get("velocity", 100)))),
                         }
                     )

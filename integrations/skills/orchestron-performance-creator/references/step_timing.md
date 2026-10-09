@@ -111,13 +111,18 @@ Offsets and step indices must be integers, not booleans, decimals or numeric str
 
 ## Persistence
 
-The CLI writes performance config v18 and reads v1–18. Persisted steps/cells use `timingOffsetPercent`; score events and the runtime API use `timing_offset_percent`. Save/load, native bundles, CLI runtime conversion and both CSD export modes preserve supported offsets. App-state version 3, native envelope version 1 and score-spec version 1 remain unchanged.
+The CLI writes performance config v19 and reads v1–19. Persisted steps/cells use `timingOffsetPercent`; score events and the runtime API use `timing_offset_percent`. Save/load, native bundles, CLI runtime conversion and both CSD export modes preserve supported offsets. App-state version 3, native envelope version 1 and score-spec version 1 remain unchanged.
 
 ## Meter timing and compatibility
 
-Performance configurations write v18. The CLI migrates v1–16 before normalization, including /8 pad/rest lengths and saved arranger history. Session requests explicitly send `beat_unit: "meter"`; omitted API values retain legacy quarter-beat interpretation. Subdivision accepts 1, 2, 3, 4, 6, 8; melodic/drum lengths accept 1–16 and controller lengths 1–32, with a strict 128-step limit. Rest tokens include -32. Global BPM remains quarter-note based; /8 local beats last half a quarter. Millisecond offsets include the denominator and playback-speed ratio. Native bundle envelopes are unchanged.
+Performance configurations write v19. The CLI migrates v1–16 before normalization, including /8 pad/rest lengths and saved arranger history. Session requests explicitly send `beat_unit: "meter"`; omitted API values retain legacy quarter-beat interpretation. Subdivision accepts 1, 2, 3, 4, 6, 8; melodic/drum lengths accept 1–16 and controller lengths 1–32, with a strict 128-step limit. Rest tokens include -32. Global BPM remains quarter-note based; /8 local beats last half a quarter. Millisecond offsets include the denominator and playback-speed ratio. Native bundle envelopes are unchanged.
 
 For twelve triplet steps over one 4/4 bar, set `lengthBeats: 4`, timing `meterNumerator: 4`, `meterDenominator: 4`, `stepsPerBeat: 3`, and speed numerator/denominator 1/1. A 6/8 bar uses length 6 and spans three shared quarter beats. See the [multilingual timing guide](../../../../documentation/performance/sequencer_timing.md).
 
 
 Drummer cells can additionally carry `ratchets` (1–8, default 1) and `ratchetEndVelocity` (0–127 or null). Existing snapshot normalization retains these values; runtime conversion sends `ratchets` and `ratchet_end_velocity`. Timing shifts the whole roll. Use `edit ratchets list|set|reset` or score `step_ratchets` to author them; see [drummer ratchets](step_ratchets.md) for commands, score examples and ramp behavior.
+
+
+## Melodic strumming compatibility (v19)
+
+Melodic steps may store `strumDirection` (`off`, `up`, `down`) and integer `strumSpreadPercent` (0–100). Normalization validates and preserves them, including on inactive steps; runtime conversion sends `strum_direction` and `strum_spread_percent`, defaulting to off/0. Timing shifts the whole gesture. Spread measures the first-to-last attack interval as a percentage of one local grid step; 100% reaches the next step. Each note keeps its duration, including HOLD, and may overlap later steps. MIDI/SCORE exports use the shared scheduler. The existing CLI does not add strum-specific authoring commands.

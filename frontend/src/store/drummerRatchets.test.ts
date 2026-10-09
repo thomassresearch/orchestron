@@ -17,7 +17,7 @@ it("edits the displayed pad and preserves ratchets in copies, saved data and run
   store.toggleDrummerSequencerCell(drum.id, row, 2, true);
   store.copyDrummerSequencerPad(drum.id, 1, 2);
   const snapshot = store.buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(18);
+  expect(snapshot.version).toBe(19);
   const restored = parseSequencerConfigSnapshot(JSON.parse(JSON.stringify(snapshot)), [], null);
   const loaded = restored.sequencer.drummerTracks[0];
   expect(loaded.pads[2].rows[0].steps[2]).toMatchObject({ active: true, ratchets: 4, ratchetEndVelocity: 40 });
@@ -45,7 +45,7 @@ it("keeps v17 meter timing unchanged while upgrading the saved version", () => {
   before.version = 17;
   store.applySequencerConfigSnapshot(before);
   const after = store.buildSequencerConfigSnapshot();
-  expect(after.version).toBe(18);
+  expect(after.version).toBe(19);
   expect(after.sequencer.drummerTracks).toEqual(before.sequencer.drummerTracks);
 });
 

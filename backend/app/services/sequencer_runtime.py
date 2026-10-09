@@ -22,6 +22,7 @@ from backend.app.models.session import (
 from backend.app.services.arpeggiator_runtime import MidiSourceContext
 from backend.app.services.preview_commands import PreviewCommands
 from backend.app.services.sequencer_source_transport import SequencerSourceTransport
+from backend.app.services.sequencer_strum import StrumState, refresh_strum_releases
 from backend.app.services.sequencer_note_timing import RatchetRoll, SoundingTimedNote
 from backend.app.services.sequencer_runtime_config import (
     clamp_controller_value as _clamp_controller_value,
@@ -116,6 +117,7 @@ class SessionSequencerRuntime:
         self._active_notes: dict[str, set[int]] = {}
         self._timed_notes: dict[str, SoundingTimedNote] = {}
         self._ratchet_rolls: dict[str, RatchetRoll] = {}
+        self._strum_states: dict[str, StrumState] = {}
         self._last_timed_attack: dict[str, tuple[int, int, int]] = {}
         self._render_subunit_remainder = 0.0
         self._next_render_event_subunit: int | None = None
@@ -207,7 +209,7 @@ class SessionSequencerRuntime:
                 self._absolute_subunit = self._normalize_stopped_absolute_subunit_locked(self._absolute_subunit, next_config)
             self._active_notes = {identity: self._active_notes.get(identity, set()) for identity in next_config.tracks}
             for identity, track in next_config.tracks.items():
-                if track.has_timing_offsets and self._active_notes[identity] and identity not in self._timed_notes:
+                if track.has_timing_offsets and self._active_notes[identity] and identity not in self._timed_notes and identity not in self._strum_states:
                     self._timed_notes[identity] = SoundingTimedNote(self._absolute_subunit - 1, 0, None)
             if position_step is not None:
                 # Install bounds and seek together, before an old position could
@@ -234,6 +236,7 @@ class SessionSequencerRuntime:
                         ], source_context=MidiSourceContext(source_id=track.track_id))
                         track.last_value = value
             self._refresh_timed_releases(next_config)
+            refresh_strum_releases(self, next_config)
             self._reset_render_event_cursor_locked(next_config)
             return self._status_locked()
 
@@ -698,6 +701,7 @@ class SessionSequencerRuntime:
                 requested_subunit = max(0, int(round(requested_position_step))) * _TRANSPORT_SUBUNITS_PER_STEP
                 self._absolute_subunit = self._normalize_start_absolute_subunit_locked(requested_subunit, config)
                 self._ratchet_rolls.clear()
+                self._strum_states.clear()
                 self._timed_notes.clear()
                 self._last_timed_attack.clear()
                 self._apply_absolute_subunit_locked(config, self._absolute_subunit)
@@ -908,6 +912,16 @@ class SessionSequencerRuntime:
 
     def _remap_timed_loop(self, config: SequencerRuntimeConfig, previous_pads: dict[str, int]) -> None:
         distance = config.playback_end_subunit - config.playback_start_subunit
+        for track_id, state in list(self._strum_states.items()):
+            track = config.tracks.get(track_id)
+            if (track is not None and track.enabled and track.active_pad == previous_pads.get(track_id)
+                    and self._local_transport_offset_for(track, config.playback_start_subunit) == 0):
+                state.remap(distance)
+                identity = self._last_timed_attack.get(track_id)
+                if identity is not None:
+                    self._last_timed_attack[track_id] = (identity[0], identity[1] - distance, identity[2])
+            elif track is not None:
+                self._release_track_notes_locked(track_id, track.midi_channel)
         for track_id, sounding in list(self._timed_notes.items()):
             track = config.tracks.get(track_id)
             if track is None:
@@ -1639,6 +1653,7 @@ class SessionSequencerRuntime:
                 notes.clear()
 
         self._ratchet_rolls.clear()
+        self._strum_states.clear()
         self._timed_notes.clear()
         self._last_timed_attack.clear()
         self._apply_absolute_subunit_locked(config, normalized_target)
@@ -1899,6 +1914,7 @@ class SessionSequencerRuntime:
         if not preserve_roll:
             self._ratchet_rolls.pop(track_id, None)
         self._timed_notes.pop(track_id, None)
+        self._strum_states.pop(track_id, None)
         active_notes = self._active_notes.get(track_id)
         if not active_notes:
             return
@@ -1921,7 +1937,7 @@ class SessionSequencerRuntime:
 
         for track_id, previous_track in previous_config.tracks.items():
             active_notes = self._active_notes.get(track_id)
-            if not active_notes and track_id not in self._ratchet_rolls:
+            if not active_notes and track_id not in self._ratchet_rolls and track_id not in self._strum_states:
                 continue
             next_track = next_config.tracks.get(track_id)
             if (
@@ -1933,6 +1949,7 @@ class SessionSequencerRuntime:
 
     def _send_all_notes_off_locked(self) -> None:
         self._ratchet_rolls.clear()
+        self._strum_states.clear()
         self._timed_notes.clear()
         self._last_timed_attack.clear()
         config = self._config

@@ -1,3 +1,4 @@
+import { MelodicStepProperties, melodicStepCopy } from "./sequencer/MelodicStepProperties";
 import { DrummerRatchetControl, drummerRatchetCopy, drummerCellDescription } from "./sequencer/DrummerRatchetControl";
 import { BeatGroupHeaders, SequencerTimingControls } from "./sequencer/SequencerTimingControls";
 import { sequencerStepBoundary } from "../lib/sequencerTimingPresentation";
@@ -364,6 +365,7 @@ function useSequencerPageContext({
     onSequencerTrackStepHoldChange,
     onSequencerTrackStepVelocityChange,
     onSequencerTrackStepTimingOffsetChange,
+    onSequencerTrackStepStrumChange,
     onSequencerTrackStepCopy,
     onSequencerTrackClearSteps,
     onSequencerTrackReorder,
@@ -676,6 +678,7 @@ function useSequencerPageContext({
     onSequencerTrackStepChordChange,
     onSequencerTrackStepVelocityChange,
     onSequencerTrackStepTimingOffsetChange,
+    onSequencerTrackStepStrumChange,
     onSequencerPadTransposeLong,
     onDrummerSequencerTrackEnabledChange,
     onDrummerSequencerTrackClearSteps,
@@ -1428,6 +1431,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
     onSequencerTrackStepChordChange,
     onSequencerTrackStepVelocityChange,
     onSequencerTrackStepTimingOffsetChange,
+    onSequencerTrackStepStrumChange,
     onSequencerPadTransposeLong,
   } = context;
   const editingPads = useAppStore(state => state.sequencerEditingPads);
@@ -1440,6 +1444,18 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
     }
   }, [authored, editingPads, selectEditingPad]);
 
+  const [propertiesTarget, setPropertiesTarget] = useState<{ trackId: string; padIndex: number; step: number } | null>(null);
+  const propertiesTrigger = useRef<HTMLElement | null>(null);
+  const closeProperties = () => { setPropertiesTarget(null); propertiesTrigger.current?.focus(); };
+  const openProperties = (trackId: string, padIndex: number, step: number, trigger: HTMLElement) => {
+    propertiesTrigger.current = trigger;
+    setPropertiesTarget({ trackId, padIndex, step });
+  };
+  useEffect(() => {
+    if (!propertiesTarget) return;
+    const track = sequencer.tracks.find(item => item.id === propertiesTarget.trackId);
+    if (!track || track.activePad !== propertiesTarget.padIndex || propertiesTarget.step >= track.stepCount) setPropertiesTarget(null);
+  }, [sequencer.tracks, propertiesTarget]);
   const [stepSelectPreview, setStepSelectPreview] = usePerformanceEditorState<Record<string, string>>("page", "stepSelectPreview", {});
   const padTransposePressRef = useRef<Record<string, { timerId: number; longPressTriggered: boolean }>>({});
   const padTransposePressKey = useCallback((trackId: string, padIndex: number, direction: -1 | 1) => {
@@ -1811,6 +1827,14 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </div>
             </div>
 
+            {propertiesTarget?.trackId === track.id && propertiesTarget.padIndex === track.activePad && track.steps[propertiesTarget.step] && (
+              <MelodicStepProperties key={`${track.id}:${track.activePad}:${propertiesTarget.step}`}
+                step={track.steps[propertiesTarget.step]} index={propertiesTarget.step}
+                label={`${track.steps[propertiesTarget.step].note === null ? ui.rest : noteOptionsByNote.get(track.steps[propertiesTarget.step].note!)?.label ?? track.steps[propertiesTarget.step].note}${track.steps[propertiesTarget.step].chord !== "none" ? ` · ${track.steps[propertiesTarget.step].chord}` : ""}`}
+                timing={track.timing} language={guiLanguage} onClose={closeProperties}
+                onTiming={value => onSequencerTrackStepTimingOffsetChange?.(track.id, propertiesTarget.step, value)}
+                onStrum={(direction, spread) => onSequencerTrackStepStrumChange?.(track.id, propertiesTarget.step, direction, spread)} />
+            )}
             <RetainedScroll owner={`device:${track.id}`} field="grid" className="overflow-x-auto pb-1">
               <div
                 className="grid gap-1.5"
@@ -1884,7 +1908,13 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                         }
                         onSequencerTrackStepCopy(payload.trackId, payload.stepIndex, track.id, step);
                       }}
-                      className={`rounded-md border p-1.5 transition ${isActive
+                      onKeyDown={event => {
+                        if ((event.shiftKey && event.key === "F10") || event.key === "ContextMenu") {
+                          event.preventDefault(); event.stopPropagation();
+                          openProperties(track.id, track.activePad, step, event.target as HTMLElement);
+                        }
+                      }}
+                      className={`rounded-md border p-1.5 transition ${propertiesTarget?.trackId === track.id && propertiesTarget.step === step ? "ring-2 ring-cyan-400" : ""} ${isActive
                           ? "border-accent bg-accent/15 shadow-[0_0_0_1px_rgba(14,165,233,0.55)]"
                           : isInScale
                             ? "border-emerald-500/70 bg-emerald-900/20"
@@ -1903,7 +1933,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           }}
                           className="absolute left-0 top-0 inline-flex cursor-grab select-none rounded px-1 py-0.5 text-[8px] text-slate-500 hover:bg-slate-800/80 hover:text-slate-300 active:cursor-grabbing"
                           aria-label={`Step ${step + 1}: drag to copy settings`}
-                          title="Drag onto another step to copy note/chord/octave/velocity/timing"
+                          title="Drag onto another step to copy note/chord/octave/velocity/timing/strum"
                         >
                           ::
                         </div>
@@ -1923,9 +1953,14 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           />
                         </button>
                         {step + 1}
+                        <button type="button" className="ml-1 rounded px-1 text-slate-400 hover:bg-slate-700 hover:text-white"
+                          aria-label={`${melodicStepCopy[guiLanguage].properties} ${step + 1}`} title={melodicStepCopy[guiLanguage].hint}
+                          onClick={event => openProperties(track.id, track.activePad, step, event.currentTarget)}>⋮</button>
                       </div>
 
-                      <div className="relative mt-1">
+                      <div className="relative mt-1" onContextMenu={event => {
+                        event.preventDefault(); openProperties(track.id, track.activePad, step, event.currentTarget.querySelector("select") ?? event.currentTarget);
+                      }}>
                         <select
                           value={selectValue}
                           onMouseDown={(event) => {
@@ -2036,6 +2071,9 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                       </div>
 
                       <label
+                        onContextMenu={event => {
+                          event.preventDefault(); openProperties(track.id, track.activePad, step, event.currentTarget.querySelector("select") ?? event.currentTarget);
+                        }}
                         className={`mt-1 flex items-center gap-1.5 rounded-md border bg-slate-950/70 px-2 py-1 ${chordColorBorderClass(selectedChordColor)}`}
                       >
                         <span className="shrink-0 text-[9px] uppercase tracking-[0.16em] text-slate-400">CHD</span>
@@ -2145,8 +2183,16 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                         />
                       </label>
 
-                      <NoteTimingControl value={stepState?.timingOffsetPercent ?? 0} timing={track.timing}
-                        language={guiLanguage} onChange={(value) => onSequencerTrackStepTimingOffsetChange?.(track.id, step, value)} />
+                      <div className="mt-1 flex flex-wrap justify-center gap-1 text-[10px] text-cyan-300">
+                        {!!stepState?.timingOffsetPercent && <button type="button" className="rounded bg-slate-950 px-1 py-0.5"
+                          title={timingDescription(stepState.timingOffsetPercent, track.timing, guiLanguage)}
+                          onClick={event => openProperties(track.id, track.activePad, step, event.currentTarget)}>
+                          {noteTimingCopy[guiLanguage].timing} {stepState.timingOffsetPercent > 0 ? "+" : ""}{stepState.timingOffsetPercent}%</button>}
+                        {noteValue !== null && chordValue !== "none" && stepState?.strumDirection && stepState.strumDirection !== "off" && !!stepState.strumSpreadPercent &&
+                          <button type="button" className="rounded bg-slate-950 px-1 py-0.5" title={`${melodicStepCopy[guiLanguage].strum}: ${melodicStepCopy[guiLanguage][stepState.strumDirection]}`}
+                            onClick={event => openProperties(track.id, track.activePad, step, event.currentTarget)}>
+                            {stepState.strumDirection === "up" ? "↑" : "↓"} {stepState.strumSpreadPercent}%</button>}
+                      </div>
 
                       <div
                         className={`mt-1 text-center text-[10px] ${noteValue === null

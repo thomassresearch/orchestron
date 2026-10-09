@@ -337,6 +337,15 @@ SequencerStepNotes = int | list[int] | None
 
 
 class SessionSequencerStepConfig(BaseModel):
+    strum_direction: Literal["off", "up", "down"] = "off"
+    strum_spread_percent: int = Field(default=0, ge=0, le=100, strict=True)
+
+    @model_validator(mode="after")
+    def reject_strummed_ratchets(self) -> "SessionSequencerStepConfig":
+        if self.strum_direction != "off" and self.strum_spread_percent > 0 and self.ratchets > 1:
+            raise ValueError("Strumming cannot be combined with multiple ratchets")
+        return self
+
     ratchets: int = Field(default=1, ge=1, le=8, strict=True)
     ratchet_end_velocity: int | None = Field(default=None, ge=0, le=127, strict=True)
     timing_offset_percent: int = Field(default=0, ge=-50, le=50, strict=True)
@@ -423,6 +432,10 @@ class SessionSequencerTrackConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_pad_indexes(self) -> "SessionSequencerTrackConfig":
+        steps = [step for pad in self.pads for step in pad.steps if isinstance(step, SessionSequencerStepConfig)]
+        if (any(step.strum_direction != "off" and step.strum_spread_percent > 0 for step in steps)
+                and any(step.ratchets > 1 for step in steps)):
+            raise ValueError("Strumming and multiple ratchets cannot be combined in one note track")
         if any(length * self.timing.steps_per_beat > 128 for length in
                [self.length_beats, *(pad.length_beats or self.length_beats for pad in self.pads)]):
             raise ValueError("A sequencer pad cannot exceed 128 steps.")

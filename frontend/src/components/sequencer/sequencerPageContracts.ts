@@ -92,6 +92,7 @@ export interface SequencerPageMelodicTrackActions {
   onSequencerTrackStepChordChange: (trackId: string, index: number, chord: SequencerChord) => void;
   onSequencerTrackStepHoldChange: (trackId: string, index: number, hold: boolean) => void;
   onSequencerTrackStepVelocityChange: (trackId: string, index: number, velocity: number) => void;
+  onSequencerTrackStepStrumChange?: (trackId: string, index: number, direction: import("../../types").StrumDirection, spread: number) => void;
   onSequencerTrackStepTimingOffsetChange?: (trackId: string, index: number, timingOffsetPercent: number) => void;
   onSequencerTrackStepCopy: (
     sourceTrackId: string,

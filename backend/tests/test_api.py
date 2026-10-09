@@ -7636,3 +7636,88 @@ def test_tube_overdrive_native_roundtrip_and_instance_controls(tmp_path):
         assert {key: item["default"] for key, item in bindings.items()} == {
             "tube_drive_db": 12, "tube_tone_hz": 6500, "tube_output_db": -3,
         }
+
+
+@pytest.mark.parametrize('field,value', [
+    ('strum_direction', 'alternate'), ('strum_direction', 1),
+    ('strum_spread_percent', -1), ('strum_spread_percent', 101),
+    ('strum_spread_percent', 1.5), ('strum_spread_percent', True), ('strum_spread_percent', '40'),
+])
+def test_sequencer_api_rejects_invalid_strum(tmp_path: Path, field, value) -> None:
+    with _client(tmp_path) as client:
+        response = client.put('/api/sessions/unknown/sequencer/config', json={
+            'tracks': [{'track_id': 'lead', 'pads': [{'pad_index': 0,
+                'steps': [{'note': [60, 64, 67], field: value}]}]}]})
+        assert response.status_code == 422
+        assert field in response.text
+
+
+def test_sequencer_api_rejects_strum_ratchet_combination(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.put('/api/sessions/unknown/sequencer/config', json={
+            'tracks': [{'track_id': 'lead', 'pads': [{'pad_index': 0,
+                'steps': [{'note': [60, 64], 'ratchets': 2, 'strum_direction': 'up', 'strum_spread_percent': 100}]}]}]})
+        assert response.status_code == 422
+        assert 'Strumming' in response.text
+
+
+def test_sequencer_api_rejects_ratchets_elsewhere_in_a_strumming_track(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        response = client.put('/api/sessions/unknown/sequencer/config', json={
+            'tracks': [{'track_id': 'lead', 'pads': [
+                {'pad_index': 0, 'steps': [{'note': [60, 64], 'strum_direction': 'up', 'strum_spread_percent': 100}]},
+                {'pad_index': 1, 'steps': [{'note': 60, 'ratchets': 2}]},
+            ]}]})
+        assert response.status_code == 422
+        assert 'Strumming' in response.text
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_performance_exports_preserve_strum_endpoints_and_durations(tmp_path: Path, event_source: str) -> None:
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    payload['performanceExport']['performance']['config']['version'] = 19
+    payload['sequencerConfig']['tracks'][0]['pads'][0]['steps'] = [
+        {'note': [60, 64, 67], 'velocity': 100, 'strum_direction': 'up', 'strum_spread_percent': 100}, 62, None, None]
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == 'midiFile':
+                events = [(tick, msg.type, msg.note) for tick, msg in _midi_messages_with_absolute_ticks(
+                    archive.read('Offline_Export/Offline_Export.mid')) if msg.type in {'note_on', 'note_off'}]
+                assert [(tick, note) for tick, kind, note in events if kind == 'note_on'] == [(0, 60), (60, 64), (120, 67), (120, 62)]
+                assert (180, 'note_off', 64) in events
+                assert (240, 'note_off', 67) in events
+            else:
+                csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+                events = [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith('i 1 ')]
+                assert sorted(events) == sorted([[0, .125, 60, 100], [.0625, .125, 64, 100],
+                                                 [.125, .125, 67, 100], [.125, .125, 62, 100]])
+
+
+@pytest.mark.parametrize('archive_format', ['json', 'zip'])
+def test_strum_survives_performance_app_state_and_native_bundle(tmp_path: Path, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()['performanceExport']
+    config = payload['performance']['config']
+    config.update(version=19, sequencer={'tracks': [{'id': 'lead', 'pads': [{'steps': [
+        {'note': None, 'chord': 'none', 'strumDirection': 'down', 'strumSpreadPercent': 100}]}]}]})
+    with _client(tmp_path) as client:
+        saved = client.post('/api/performances', json={'name': 'Strum', 'config': config})
+        assert saved.status_code == 201
+        assert client.get(f'/api/performances/{saved.json()["id"]}').json()['config'] == config
+        state = {'version': 3, 'sequencer': config['sequencer']}
+        assert client.put('/api/app-state', json={'state': state}).status_code == 200
+        assert client.get('/api/app-state').json()['state']['sequencer'] == config['sequencer']
+        exported = client.post('/api/bundles/export/performance', json=payload)
+        assert exported.status_code == 200
+        data = exported.content
+        if archive_format == 'zip':
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, 'w') as archive:
+                archive.writestr('strum.orch.json', data)
+            data = buffer.getvalue()
+        imported = client.post('/api/bundles/import/expand', content=data,
+            headers={'Content-Type': 'application/octet-stream', 'X-File-Name': f'strum.orch.{archive_format}'})
+        assert imported.status_code == 200
+        assert imported.json()['performance']['config']['sequencer'] == config['sequencer']

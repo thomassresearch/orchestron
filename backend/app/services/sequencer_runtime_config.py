@@ -7,6 +7,7 @@ from backend.app.models.controller_curve import (
     normalize_controller_keypoints as _normalize_controller_keypoints,
     sample_controller_curve_values as _sample_controller_curve_values,
 )
+from backend.app.services.sequencer_strum import prepared_strum_attacks
 from backend.app.services.sequencer_note_timing import note_positions, ratchet_strikes, terminating_steps
 
 from backend.app.models.session import (
@@ -164,7 +165,7 @@ def _transport_extent_for_track(
     )
 
 
-_NoteStepKey = tuple[tuple[int, ...], bool, int | None, int, int, int | None]
+_NoteStepKey = tuple[tuple[int, ...], bool, int | None, int, int, int | None, str, int]
 
 
 def _note_step_key(
@@ -174,9 +175,10 @@ def _note_step_key(
     # Trailing authored steps are retained in the request but do not play in this pad.
     return tuple(
         (_normalize_step_notes(step.note), bool(step.hold), step.velocity,
-         step.timing_offset_percent, step.ratchets, step.ratchet_end_velocity)
+         step.timing_offset_percent, step.ratchets, step.ratchet_end_velocity,
+         step.strum_direction, step.strum_spread_percent)
         if isinstance(step, SessionSequencerStepConfig)
-        else (_normalize_step_notes(step), False, None, 0, 1, None)
+        else (_normalize_step_notes(step), False, None, 0, 1, None, "off", 0)
         for step in steps[:step_count]
     )
 
@@ -193,7 +195,7 @@ def _cached_note_pad(
     mode: str | None,
 ) -> SequencerPadRuntime:
     """Share immutable pad data only; each compilation creates fresh track state."""
-    padded = key[:step_count] + (((), False, None, 0, 1, None),) * max(0, step_count - len(key))
+    padded = key[:step_count] + (((), False, None, 0, 1, None, "off", 0),) * max(0, step_count - len(key))
     steps = tuple(
         SequencerStepRuntime(
             notes=notes,
@@ -202,8 +204,10 @@ def _cached_note_pad(
             timing_offset_percent=offset,
             ratchets=ratchets,
             ratchet_end_velocity=end_velocity,
+            strum_direction=direction,
+            strum_spread_percent=spread,
         )
-        for notes, hold, value, offset, ratchets, end_velocity in padded[:MAX_SEQUENCER_STEPS]
+        for notes, hold, value, offset, ratchets, end_velocity, direction, spread in padded[:MAX_SEQUENCER_STEPS]
     )
     positions = note_positions(steps, span)
     return SequencerPadRuntime(
@@ -216,6 +220,7 @@ def _cached_note_pad(
         note_offsets=tuple(at for at, _ in positions),
         note_step_indices=tuple(index for _, index in positions),
         ratchet_strikes=ratchet_strikes(steps, span),
+        strum_attacks=tuple(prepared_strum_attacks(step, span) for step in steps),
         terminating_step_indices=terminating_steps(steps),
     )
 
@@ -280,6 +285,7 @@ def compile_sequencer_runtime_config(
         queued_pad = track_request.queued_pad if track_request.queued_pad in pads else None
         tracks[track_request.track_id] = SequencerTrackRuntime(
             track_id=track_request.track_id,
+            has_strums=any(any(pad.strum_attacks) for pad in pads.values()),
             has_timing_offsets=any(step.timing_offset_percent or step.ratchets > 1 for pad in pads.values() for step in pad.steps),
             midi_channel=track_request.midi_channel,
             timing=track_timing,

@@ -192,6 +192,7 @@ export default function App() {
   const setSequencerTrackStepChord = useAppStore((state) => state.setSequencerTrackStepChord);
   const setSequencerTrackStepHold = useAppStore((state) => state.setSequencerTrackStepHold);
   const setSequencerTrackStepVelocity = useAppStore((state) => state.setSequencerTrackStepVelocity);
+  const setSequencerTrackStepStrum = useAppStore((state) => state.setSequencerTrackStepStrum);
   const setSequencerTrackStepTimingOffset = useAppStore((state) => state.setSequencerTrackStepTimingOffset);
   const copySequencerTrackStepSettings = useAppStore((state) => state.copySequencerTrackStepSettings);
   const clearSequencerTrackSteps = useAppStore((state) => state.clearSequencerTrackSteps);
@@ -408,6 +409,8 @@ export default function App() {
                 note: notes.length === 0 ? null : notes.length === 1 ? notes[0] : notes,
                 hold: step.hold,
                 timing_offset_percent: step.timingOffsetPercent ?? 0,
+                strum_direction: step.strumDirection ?? "off",
+                strum_spread_percent: step.strumSpreadPercent ?? 0,
                 velocity: normalizeMidiVelocity(step.velocity)
               };
             })
@@ -1452,6 +1455,7 @@ export default function App() {
     onSequencerTrackStepHoldChange: setSequencerTrackStepHold,
     onSequencerTrackStepVelocityChange: setSequencerTrackStepVelocity,
     onSequencerTrackStepTimingOffsetChange: setSequencerTrackStepTimingOffset,
+    onSequencerTrackStepStrumChange: setSequencerTrackStepStrum,
     onSequencerTrackStepCopy: copySequencerTrackStepSettings,
     onSequencerTrackClearSteps: clearSequencerTrackSteps,
     onSequencerTrackReorder: moveSequencerTrack,

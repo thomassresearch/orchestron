@@ -17,6 +17,8 @@ class SequencerStepRuntime:
     timing_offset_percent: int = 0
     ratchets: int = 1
     ratchet_end_velocity: int | None = None
+    strum_direction: str = "off"
+    strum_spread_percent: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +40,7 @@ class SequencerPadRuntime:
     note_step_indices: tuple[int, ...] = ()
     terminating_step_indices: tuple[int, ...] = ()
     ratchet_strikes: tuple[tuple[RatchetStrike, ...], ...] = ()
+    strum_attacks: tuple[tuple[tuple[int, int], ...], ...] = ()
     scale_root: str | None = None
     mode: str | None = None
 
@@ -86,6 +89,7 @@ class SequencerTrackRuntime:
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
     has_timing_offsets: bool = False
+    has_strums: bool = False
 
 
 @dataclass(slots=True)

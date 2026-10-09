@@ -18,6 +18,7 @@ from backend.app.models.sequencer_constants import (
 )
 
 import math
+from bisect import bisect_right
 from fractions import Fraction
 from typing import Annotated, Literal
 
@@ -82,7 +83,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 class ExportPerformanceConfig(BaseModel):
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=18)
+    version: int = Field(default=1, ge=1, le=19)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -211,6 +212,7 @@ class PerformanceCsdExportRequest(BaseModel):
             for channel in controller.target_channels
         })
         note_activity_events: dict[int, list[tuple[int, str, tuple[int, ...]]]] = {}
+        note_event_counts: dict[int, int] = {}
         arpeggiator_input_channels = {
             arpeggiator.input_channel
             for arpeggiator in self.sequencer_config.arpeggiators
@@ -224,6 +226,7 @@ class PerformanceCsdExportRequest(BaseModel):
             )
             if track.midi_channel not in arpeggiator_input_channels:
                 event_count += track_event_count
+            note_event_counts[track.midi_channel] = note_event_counts.get(track.midi_channel, 0) + track_event_count
             if track_activity_events:
                 note_activity_events.setdefault(track.midi_channel, []).extend(track_activity_events)
             if event_count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
@@ -251,6 +254,7 @@ class PerformanceCsdExportRequest(BaseModel):
                 note_activity_events.get(arpeggiator.input_channel, []),
                 playback_start_subunit=playback_start_subunit,
                 playback_end_subunit=playback_end_subunit,
+                input_event_count=note_event_counts.get(arpeggiator.input_channel, 0),
             )
             if event_count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
                 return event_count
@@ -418,6 +422,74 @@ def _iter_track_token_segments(
     return (segments, cursor)
 
 
+def _estimate_strum_track_events(track, *, playback_start_subunit: int, playback_end_subunit: int,
+                                stop_at_limit: bool) -> tuple[int, list[tuple[int, str, tuple[int, ...]]]]:
+    """Bound individual notes and merge overlapping pitch lifetimes for arp input.
+
+    Counting two events per potential attack is conservative for retriggers and
+    silent notes. Merged lifetimes must not shorten a chord feeding an arpeggiator.
+    """
+    pads = _pad_by_index(track.pads)
+    span = _transport_subunits_per_local_step(track.timing)
+    segments, _ = _iter_track_token_segments(track, playback_end_subunit=playback_end_subunit)
+    terminals = {playback_end_subunit}
+    occurrences = []
+    attack_bound = 0
+    for segment_index, (token, start, end) in enumerate(segments):
+        pad = pads.get(token)
+        if pad is None:
+            terminals.add(start)
+            continue
+        count = _step_count_for_length(int(pad.length_beats or track.length_beats), track.timing)
+        for index in range(count):
+            nominal = start + index * span
+            if nominal >= min(end, playback_end_subunit + span):
+                break
+            step = pad.steps[index] if index < len(pad.steps) else None
+            notes = _sequencer_step_note_values(step)
+            if notes or not _sequencer_step_hold(step):
+                terminals.add(nominal)
+            if not notes:
+                continue
+            structured = isinstance(step, SessionSequencerStepConfig)
+            shifted = nominal + (round(Fraction(span * step.timing_offset_percent, 100)) if structured else 0)
+            if index == 0 and (segment_index == 0 or segments[segment_index - 1][0] != token):
+                shifted = max(start, shifted)
+            spread = step.strum_spread_percent if structured and step.strum_direction != "off" and len(notes) > 1 else 0
+            ordered = tuple(sorted(notes, reverse=structured and step.strum_direction == "down")) if spread else notes
+            offsets = tuple(round(Fraction(span * spread * i, 100 * max(1, len(notes) - 1))) for i in range(len(notes)))
+            attack_bound += 2 * sum(playback_start_subunit <= shifted + offset < playback_end_subunit for offset in offsets)
+            if stop_at_limit and attack_bound > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
+                return attack_bound, []
+            occurrences.append((nominal, shifted, ordered, offsets))
+    boundaries = sorted(terminals)
+    intervals: dict[int, list[tuple[int, int]]] = {}
+    count = 0
+    for nominal, shifted, pitches, offsets in occurrences:
+        cursor = bisect_right(boundaries, nominal)
+        ending = boundaries[cursor] if cursor < len(boundaries) else playback_end_subunit
+        for pitch, offset in zip(pitches, offsets):
+            at = shifted + offset
+            end = min(playback_end_subunit, ending + shifted - nominal + offset)
+            if at >= playback_end_subunit or end < playback_start_subunit:
+                continue
+            count += 2  # also bound occurrences overlapping a partial export range
+            if stop_at_limit and count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
+                return count, []
+            intervals.setdefault(pitch, []).append((max(0, at), end))
+    events = []
+    for pitch, spans in intervals.items():
+        merged: list[tuple[int, int]] = []
+        for start, end in sorted(spans):
+            if merged and start <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            else:
+                merged.append((start, end))
+        for start, end in merged:
+            events.extend(((start, "on", (pitch,)), (end, "off", (pitch,))))
+    return count, sorted(events, key=lambda event: (event[0], event[1] != "off"))
+
+
 def _estimate_note_track_events(
     track: SessionSequencerTrackConfig,
     *,
@@ -428,6 +500,11 @@ def _estimate_note_track_events(
     if not track.enabled:
         return (0, [])
 
+    if any(isinstance(step, SessionSequencerStepConfig) and step.strum_direction != "off"
+           and step.strum_spread_percent and len(_sequencer_step_note_values(step)) > 1
+           for pad in track.pads for step in pad.steps):
+        return _estimate_strum_track_events(track, playback_start_subunit=playback_start_subunit,
+                                           playback_end_subunit=playback_end_subunit, stop_at_limit=stop_at_limit)
     pads = _pad_by_index(track.pads)
     local_step_span = _transport_subunits_per_local_step(track.timing)
     event_count = 0
@@ -583,6 +660,7 @@ def _estimate_arpeggiator_events(
     *,
     playback_start_subunit: int,
     playback_end_subunit: int,
+    input_event_count: int = 0,
 ) -> int:
     if not arpeggiator.enabled or not activity_events:
         return 0
@@ -618,7 +696,7 @@ def _estimate_arpeggiator_events(
     if arpeggiator.processing_mode == "mute":
         return 0
     if arpeggiator.processing_mode == "bypass":
-        return sum(len(notes) for _, _, notes in activity_events) + 2 * 128
+        return max(input_event_count, sum(len(notes) for _, _, notes in activity_events)) + 2 * 128
     if arpeggiator.hold_mode != "off":
         first = min((at for at, kind, _ in activity_events if kind != "off"), default=playback_end_subunit)
         max_notes = min(128, sum(len(notes) for _, kind, notes in activity_events if kind != "off"))

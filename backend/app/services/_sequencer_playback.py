@@ -9,6 +9,7 @@ from __future__ import annotations
 from bisect import bisect_left, bisect_right
 from copy import copy
 
+from backend.app.services.sequencer_strum import perform_strum_events
 from backend.app.services.sequencer_note_timing import RatchetRoll, SoundingTimedNote
 from backend.app.services.sequencer_runtime_constants import (
     MAX_SEQUENCER_STEPS as _MAX_STEPS,
@@ -243,6 +244,9 @@ def _perform_note_events_locked(self, config: SequencerRuntimeConfig, now: int, 
         pad = _active_pad_runtime(track)
         if not track.enabled or pad is None or not pad.steps:
             self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
+            continue
+        if track.has_strums or track_id in self._strum_states:
+            perform_strum_events(self, track, pad, config, now, delay)
             continue
         roll = self._ratchet_rolls.get(track_id)
         if roll is not None and roll.pad_index != track.active_pad:
@@ -484,7 +488,10 @@ def _next_event_subunit_locked(self, config: SequencerRuntimeConfig, current_sub
                 roll = self._ratchet_rolls.get(track.track_id)
                 if roll is not None:
                     candidates.extend(at for at in (roll.next_attack, roll.end) if at is not None and at > current_subunit)
-                if track.has_timing_offsets or track.track_id in self._timed_notes or roll is not None:
+                strum = self._strum_states.get(track.track_id)
+                if strum is not None:
+                    candidates.extend(strum.future_events(current_subunit))
+                if track.has_strums or strum is not None or track.has_timing_offsets or track.track_id in self._timed_notes or roll is not None:
                     candidates.extend(at for at, _, _, _ in self._timed_attacks(track, current_subunit, config) if at > current_subunit)
                     sounding = self._timed_notes.get(track.track_id)
                     if sounding is not None and sounding.release_subunit is not None and sounding.release_subunit > current_subunit:

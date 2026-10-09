@@ -57,7 +57,7 @@ def test_list_legacy_defaults_without_writing(session, capsys):
 def test_counts_and_ramps_round_trip_to_runtime(session, capsys, count, end_velocity):
     ratchets(session, capsys, "set", "--key", "38", "--step", "4", "--count", str(count), "--end-velocity", str(end_velocity))
     restored = cli.normalize_performance_config(config(session), [])
-    assert restored["version"] == 18
+    assert restored["version"] == 19
     wire = next(t for t in cli.build_runtime_config(restored)["tracks"] if t["track_id"] == "drumrow:drum-1:drum-row-2")
     cell = wire["pads"][0]["steps"][4]
     assert (cell["ratchets"], cell["ratchet_end_velocity"]) == (count, end_velocity)

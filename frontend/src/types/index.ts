@@ -158,7 +158,11 @@ export type SequencerChord =
   | "dim7"
   | "minmaj7";
 
+export type StrumDirection = "off" | "up" | "down";
+
 export interface SequencerStepState {
+  strumDirection?: StrumDirection;
+  strumSpreadPercent?: number;
   timingOffsetPercent?: number;
   note: number | null;
   chord: SequencerChord;
@@ -542,7 +546,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -752,6 +756,8 @@ export interface PerformanceListItem {
 export interface SessionSequencerStepConfig {
   ratchets?: number;
   ratchet_end_velocity?: number | null;
+  strum_direction?: StrumDirection;
+  strum_spread_percent?: number;
   timing_offset_percent?: number;
   note: number | Array<number> | null;
   hold: boolean;

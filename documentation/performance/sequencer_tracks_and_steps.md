@@ -134,13 +134,33 @@ Step cells visually indicate:
 
 Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with 4/4, Subdivision 4 and speed 1×, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.
 
-Moving a note also moves its release, preserving its length and any HOLD extension. A following attack can shorten the preceding note to avoid overlap. Chords move together. If neighboring attacks land at exactly the same instant, the later logical step wins.
+Moving a note also moves its release, preserving its length and any HOLD extension. A following attack can shorten an ordinary preceding note to avoid overlap. Timing moves the entire chord, including its strum. Strummed notes retain their individual durations and can overlap later steps. For coincident ordinary attacks, the later logical step wins; for strummed notes this applies only to identical pitches.
 
 An early first step plays before the boundary when the same pad repeats. On a fresh start or a different-pad launch it plays at the boundary instead. Queued stops, pauses and finite arrangement ends suppress repeat anticipation. A command received after an anticipated attack has already sounded cannot undo that attack.
 
 Copying steps or pads preserves timing. Clear Steps resets it. Inactive drum cells retain their timing for reactivation. Old performances load on grid; Save/Load, browser restoration, native bundles and both CSD export modes preserve offsets. Timing edits during playback use the normal coalesced live-edit workflow.
 
-Use the **Timing** slider or signed percentage field in each step to adjust its position. The reset arrow restores zero. The slider supports arrow keys; the note/chord copy handle also copies timing.
+Right-click a melodic note or chord, press **Shift+F10** while focusing a step, or click its **⋮** button to open **Step properties** above the grid. Use the **Timing** slider or signed percentage field; the reset arrow restores zero. Timing remains available for rests. Nonzero timing appears as a clickable badge in the step. The slider supports arrow keys; the note/chord copy handle also copies timing.
+
+## Strummed Chords
+
+In **Step properties**, select **Strum → Low → High** or **High → Low**. Notes play in pitch order, including the chord's octave and voicing. **Off** plays the chord together. **Spread** sets the time from the first to the last note as an integer **0–100% of one local grid step**; the slider, percentage field and reset share the same value. The millisecond readout follows tempo, meter, subdivision and playback speed. Spread uses the next grid boundary, even if that step is empty.
+
+For a three-note chord at 120 BPM, 4/4, Subdivision 4 and speed 1×, a step lasts 125 ms:
+
+| Spread | First note | Second note | Last note |
+| --- | --- | --- | --- |
+| 0% | 0 ms | 0 ms | 0 ms |
+| 40% | 0 ms | 25 ms | 50 ms |
+| 100% | 0 ms | 62.5 ms | 125 ms |
+
+Timing shifts all these attacks together. At 100%, the last note lands at the next step relative to the shifted start. Each note keeps the original chord duration, including HOLD extensions, so later notes may overlap following steps. A repeated pitch retriggers: the newer note replaces that pitch's old release. Different pitches sounding together at a step boundary are retained. This is one strum per chord occurrence; melodic steps have no ratchet controls.
+
+Select a note and chord to enable Strum. Removing the chord or changing the note to a rest disables strumming but retains the settings for reuse. **Off** retains Spread; **0%** plays simultaneously. A compact **↑ 40%** or **↓ 40%** badge opens the same panel. Step/pad copies, hidden steps, saves, browser restoration and native bundles preserve the settings; **Clear Steps** resets them. MIDI and SCORE exports use the same attacks and durations.
+
+The panel edits the displayed pad and closes on pad changes, collapse, removal, New/Load/Import, or Escape. Direction, spread and timing edits to a strum already in progress apply on its next occurrence; live HOLD edits still update its release. Same-pad repeats can carry delayed notes across their boundary. Stops, seeks, a different pad, arrangement rests and finite endings cancel unfinished strums and release their notes.
+
+![Step properties above the melodic grid, with timing, direction, spread and per-step badges](../../screenshots/perform_melodic_strum.png)
 
 ## Clear Steps
 

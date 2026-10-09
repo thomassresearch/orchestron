@@ -133,3 +133,17 @@ def test_invalid_timing_divisors_raise_in_both_implementations(kernel):
     )
     with pytest.raises(ZeroDivisionError):
         kernel.timing_span(timing)
+
+
+def test_strum_kernel_event_streams_match(kernel):
+    from backend.tests.test_sequencer_note_timing import advance, notes
+    from backend.tests.test_melodic_strum import chord
+
+    def capture_with(selected):
+        runtime, capture, _ = make_runtime([chord(spread=73), chord('down', 100, -20), None, None])
+        for name in ('_next_event_subunit_locked', '_perform_note_events_locked'):
+            setattr(runtime, name, getattr(selected, name).__get__(runtime))
+        advance(runtime, capture, 6400)
+        return notes(capture)
+
+    assert capture_with(kernel) == capture_with(playback.python_kernel())

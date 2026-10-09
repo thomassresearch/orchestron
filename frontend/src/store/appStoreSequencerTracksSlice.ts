@@ -1,6 +1,7 @@
 import { validateArrangementEdit } from "../lib/arrangementEditing";
 import { reorderRackInstruments } from "../lib/rackOrdering";
 import { removeRackInstrument } from "../lib/insertRouting";
+import { normalizeStrumDirection, normalizeStrumSpread } from "../lib/sequencerStrum";
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { nextPerformanceDeviceName } from "../lib/performanceDeviceNames";
 import { legacyGainDb, newRoute } from "../lib/audioRouting";
@@ -103,6 +104,7 @@ export type SequencerTrackStoreActions = Pick<
   | "setSequencerTrackStepChord"
   | "setSequencerTrackStepHold"
   | "setSequencerTrackStepVelocity"
+  | "setSequencerTrackStepStrum"
   | "setSequencerTrackStepTimingOffset"
   | "copySequencerTrackStepSettings"
   | "clearSequencerTrackSteps"
@@ -819,6 +821,47 @@ export function createSequencerTrackStoreActions(
       });
     },
 
+    setSequencerTrackStepStrum: (trackId, index, direction, spread) => {
+      if (index < 0 || index >= STEP_CAPACITY) {
+        return;
+      }
+
+      const sequencer = get().sequencer;
+      set({
+        sequencer: {
+          ...sequencer,
+          tracks: sequencer.tracks.map((track) => {
+            if (track.id !== trackId) {
+              return track;
+            }
+
+            const pads = track.pads.map((pad) => ({
+              ...pad,
+              steps: cloneSequencerSteps(pad.steps)
+            }));
+            const activePad = normalizePadIndex(track.activePad);
+            const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
+            const steps = cloneSequencerSteps(activePadState.steps);
+            const stepState = steps[index] ?? createEmptySequencerStep();
+            steps[index] = {
+              ...stepState,
+              strumDirection: normalizeStrumDirection(direction),
+              strumSpreadPercent: normalizeStrumSpread(spread)
+            };
+            pads[activePad] = {
+              ...activePadState,
+              steps
+            };
+
+            return {
+              ...track,
+              pads,
+              steps
+            };
+          })
+        }
+      });
+    },
     setSequencerTrackStepTimingOffset: (trackId, index, timingOffsetPercent) => {
       if (index < 0 || index >= STEP_CAPACITY) {
         return;
@@ -906,6 +949,8 @@ export function createSequencerTrackStoreActions(
               note: normalizeStepNote(sourceStep.note),
               chord: normalizeSequencerChord(sourceStep.chord),
               timingOffsetPercent: normalizeTimingOffset(sourceStep.timingOffsetPercent),
+              strumDirection: normalizeStrumDirection(sourceStep.strumDirection),
+              strumSpreadPercent: normalizeStrumSpread(sourceStep.strumSpreadPercent),
               velocity: normalizeStepVelocity(sourceStep.velocity)
             };
             pads[activePad] = {

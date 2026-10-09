@@ -1,3 +1,4 @@
+import { normalizeStrumDirection, normalizeStrumSpread } from "../lib/sequencerStrum";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { emptyArrangerHistory, readArrangerHistory, type ArrangerHistory } from "./arrangerHistory";
 import { normalizeTimingOffset } from "../lib/sequencer";
@@ -422,6 +423,8 @@ export function createEmptySequencerStep(): SequencerStepState {
   return {
     note: null,
     chord: "none",
+    strumDirection: "off",
+    strumSpreadPercent: 0,
     hold: false,
     timingOffsetPercent: 0,
     velocity: 127
@@ -432,6 +435,8 @@ export function cloneSequencerStep(step: SequencerStepState): SequencerStepState
   return {
     note: step.note,
     chord: normalizeSequencerChord(step.chord),
+    strumDirection: normalizeStrumDirection(step.strumDirection),
+    strumSpreadPercent: normalizeStrumSpread(step.strumSpreadPercent),
     hold: step.hold,
     timingOffsetPercent: normalizeTimingOffset(step.timingOffsetPercent),
     velocity: step.velocity
@@ -760,6 +765,8 @@ export function normalizeSequencerStep(value: unknown): SequencerStepState {
     return {
       note: normalizeStepNote(step.note ?? step.notes ?? step.value),
       chord: normalizeSequencerChord(step.chord),
+      strumDirection: normalizeStrumDirection(step.strumDirection ?? step.strum_direction),
+      strumSpreadPercent: normalizeStrumSpread(step.strumSpreadPercent ?? step.strum_spread_percent),
       hold: normalizeStepHold(step.hold),
       timingOffsetPercent: normalizeTimingOffset(step.timingOffsetPercent ?? step.timing_offset_percent),
       velocity: normalizeStepVelocity(step.velocity ?? step.vel)
@@ -769,6 +776,8 @@ export function normalizeSequencerStep(value: unknown): SequencerStepState {
   return {
     note: normalizeStepNote(value),
     chord: "none",
+    strumDirection: "off",
+    strumSpreadPercent: 0,
     hold: false,
     timingOffsetPercent: 0,
     velocity: 127
@@ -2930,7 +2939,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 18,
+    version: 19,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -3146,7 +3155,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 15 &&
     payload.version !== 16 &&
     payload.version !== 17 &&
-    payload.version !== 18
+    payload.version !== 18 &&
+    payload.version !== 19
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

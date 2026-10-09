@@ -174,6 +174,7 @@ export interface AppStore {
   setSequencerTrackStepChord: (trackId: string, index: number, chord: SequencerChord) => void;
   setSequencerTrackStepHold: (trackId: string, index: number, hold: boolean) => void;
   setSequencerTrackStepVelocity: (trackId: string, index: number, velocity: number) => void;
+  setSequencerTrackStepStrum: (trackId: string, index: number, direction: import("../types").StrumDirection, spread: number) => void;
   setSequencerTrackStepTimingOffset: (trackId: string, index: number, timingOffsetPercent: number) => void;
   copySequencerTrackStepSettings: (
     sourceTrackId: string,

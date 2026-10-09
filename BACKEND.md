@@ -888,7 +888,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v18 and accept v1–18; app state is v3 (reads v1–3); native envelopes are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v19 and accept v1–19; app state is v3 (reads v1–3); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -936,6 +936,14 @@ Compile, Start, Stop, and Delete serialize through each session's lifecycle lock
 Drummer cells persist `ratchets` (integer 1–8, default 1) and nullable `ratchetEndVelocity` (0–127, default null). The shared session step API uses strict `ratchets` and `ratchet_end_velocity`; frontend and standalone CLI conversion preserve both. Missing fields retain single-hit playback. App state remains v3 and native envelopes v1; the meter migration still runs only below performance v17 / app state v3.
 
 Preparation caches rational, absolute strike offsets and linearly interpolated velocities. A started roll snapshots its strikes, pitch and timing; later count/ramp/timing edits apply to its next occurrence. Zero-velocity strikes release their predecessor without emitting a note-on. Owned releases precede retriggers; later logical cells cancel unfinished rolls. Fresh/different-pad launches clamp the first roll as a group, while confirmed same-pad repeats permit anticipation and late tails. Stops, seeks, different pads, arrangement rests, removals and finite ends clear pending rolls. The existing source contexts retain lane mute/solo ownership and independent-device behavior. MIDI and SCORE capture use the same scheduler; export estimates include repeated strikes and downstream arpeggiator activity.
+
+### Melodic strumming (performance v19)
+
+Melodic steps persist `strumDirection` (`off`/`up`/`down`, default `off`) and `strumSpreadPercent` (strict integer 0–100, default 0); the session API uses snake_case names. Preparation caches pitch-ordered attacks at `round(step_span * spread * index / (100 * (note_count - 1)))`, using rational absolute positions on the shared musical clock. Off, 0% and single notes keep simultaneous playback. Timing shifts the complete gesture. At 100% the last attack is one local grid step after its first, regardless of empty following steps.
+
+`sequencer_strum.py` owns pending attacks and per-pitch releases. Each note preserves the original chord/HOLD duration, shifting its release by the same amount as its attack. Retriggering a pitch replaces its release record; at coincident attacks the later logical step wins for that pitch only. Started gestures snapshot their notes, direction, spacing and timing; live HOLD changes still refresh releases. Same-pad repeats remap owned tails; stop, seek, pad changes, arrangement rests, removal and finite endings cancel them. Source-tagged scheduling preserves mute/solo and independent Manual pads. Both Python and Cython kernels, browser-clock rendering, MIDI capture and SCORE capture use this implementation.
+
+The API rejects active strumming combined with ratchets anywhere in the same track; the melodic GUI does not expose ratchets. Export estimates bound individual attacks and overlapping arpeggiator input, retaining retrigger counts for bypass. Frontend and standalone CLI write v19/read v1–19; app-state v3 and native envelope v1 stay unchanged. Inactive fields, hidden steps and pad/step copies retain settings; clearing resets them. CLI normalization validates/preserves fields and maps them to runtime requests without new authoring commands.
 
 ### Opt-in monophonic phrases
 
