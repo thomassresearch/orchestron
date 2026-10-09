@@ -64,14 +64,23 @@ def main():
             seconds = float(np.ceil(lifetime(note) + 1))
             tap = audition(f"tap_{mode}_{note}", [(0.15, note, 100, 0.03)], seconds, mode=mode)
             held = audition(f"held_{mode}_{note}", [(0.15, note, 100, seconds + 5)], seconds, mode=mode)
-            delta = float(abs(tap - held).max())
+            # Held notes now have pitch vibrato after 0.5 s, but their attack
+            # and natural amplitude decay must still match a short tap.
+            delta = float(abs(tap[: round(0.64 * 48000)] - held[: round(0.64 * 48000)]).max())
             assert delta < 1e-8, (mode, note, delta)
+            envelope_error = max(
+                abs(db(rms(tap[start : start + 24000])) - db(rms(held[start : start + 24000])))
+                for start in range(round(0.7 * 48000), len(tap) - 24000, 24000)
+                if rms(tap[start : start + 24000]) > 1e-7
+            )
+            assert envelope_error < 0.5, (mode, note, envelope_error)
             assert abs(held[-24000:]).max() < 1e-10, (mode, note, "held note still rings")
             independence.append(
                 dict(
                     mode=mode,
                     note=note,
-                    maximum_sample_difference=delta,
+                    maximum_sample_difference_before_vibrato=delta,
+                    maximum_decay_window_rms_difference_db=envelope_error,
                     held_silence_dbfs=db(abs(held[-24000:]).max()),
                     silence_deadline_seconds=lifetime(note),
                 )

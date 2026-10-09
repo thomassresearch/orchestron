@@ -1,5 +1,5 @@
 {
-  "graph_sha256": "17d5314949fd3ef0ae67863b4a7f9fb70034dd34fcccf768d5eebca7823f7ec3",
+  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
   "source_user_provided": true,
   "decoded_reference_sha256": "48ab4a9a39de030e5542edce0af39d6627cbf674c560ac5adff09fe248de3731",
   "fitted_midi_range": [
@@ -192,10 +192,11 @@
   "spectrograms_inspected": true,
   "listening_performed": false,
   "limitations": "Fit errors describe the measured notes, not an independent perceptual test. Exact string boundaries are inferred. Unrecorded late tails use bounded exponential damping, not the manual mute events.",
-  "visual_inspection_note": "Opened final Mel and log-STFT comparisons at 42.67 ms, 5.33 ms and 2.67 ms windows, controller 0/1/2 panels, attack-envelope and partial-level plots, and both-channel full held-note tails. High-register contact rises more sharply and its short energy excess varies with Pick strength; the later ringing tone and full decay remain intact. Background noise and exact recorded phase fluctuations are not reproduced.",
-  "build_checks": {
-    "frontend": "passed",
-    "docker_frontend_build": "passed",
-    "shared_drumkit_input_present": true
-  }
+  "inspected_images": [
+    "validation/range.stft.png",
+    "validation/range.mel.png",
+    "validation/held_note_decay.stft.png",
+    "validation/held_note_decay.mel.png"
+  ],
+  "inspection_notes": "Opened final Mel and log-STFT images. The 0.49 s key hold retains straight harmonics; the 1 s hold returns smoothly to pitch after release; the 4 s hold develops vibrato after 0.5 s and returns to steady pitch around 2.5 s. Both channels retain the fitted pick and natural decay. Full held-note tails decay to silence. Four-second excerpt boundary smearing is from analysis window padding, not a new attack."
 }

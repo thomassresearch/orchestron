@@ -1,5 +1,5 @@
 {
-  "graph_sha256": "17d5314949fd3ef0ae67863b4a7f9fb70034dd34fcccf768d5eebca7823f7ec3",
+  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
   "measurements": [
     {
       "note": 71,
@@ -169,10 +169,9 @@
     "hop_samples": 12
   },
   "limitation": "These comparisons fit the supplied recording; they are not a perceptual quality score.",
-  "visual_inspection_note": "Opened final Mel and log-STFT comparisons at 42.67 ms, 5.33 ms and 2.67 ms windows, controller 0/1/2 panels, attack-envelope and partial-level plots, and both-channel full held-note tails. High-register contact rises more sharply and its short energy excess varies with Pick strength; the later ringing tone and full decay remain intact. Background noise and exact recorded phase fluctuations are not reproduced.",
-  "build_checks": {
-    "frontend": "passed",
-    "docker_frontend_build": "passed",
-    "shared_drumkit_input_present": true
-  }
+  "inspected_images": [
+    "validation/high_pick.stft.png",
+    "validation/high_pick.mel.png"
+  ],
+  "inspection_notes": "Opened final Mel and log-STFT images. The 0.49 s key hold retains straight harmonics; the 1 s hold returns smoothly to pitch after release; the 4 s hold develops vibrato after 0.5 s and returns to steady pitch around 2.5 s. Both channels retain the fitted pick and natural decay. Full held-note tails decay to silence. Four-second excerpt boundary smearing is from analysis window padding, not a new attack."
 }

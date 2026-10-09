@@ -79,6 +79,8 @@ def build(tuning=None):
                 "Each note rings to silence independently of MIDI note duration; note-off does not mute it. "
                 "Palm mute and Tail length control damping at the next pick. "
                 "Pick strength controls the brief contact sound; sharper high-register attacks follow the recording. "
+                "Held notes develop gentle vibrato after 0.5 seconds, rising in depth and rate then fading by 2.5 seconds. "
+                "Key release fades the vibrato without muting the natural string decay. "
                 "No samples. All sources, envelopes and formulas are editable. Route Stereo Output to Master."
             ),
             family="simple_osc",
@@ -120,6 +122,20 @@ def build(tuning=None):
         return interpolate(profiles, values)
 
     pitch = "pitch_cpsmidi.kfreq"
+    # Only oscillator pitch is modulated. The fitted string profiles and natural
+    # amplitude decay continue to use the original played pitch.
+    node("eg_vibrato_depth", "linseg", -1100, 1700, ia=0, idur1=0.5, ib=0, idur2=0.8, ic=20, idur3=1.2, id=0)
+    node("eg_vibrato_rate", "linseg", -1100, 2200, ia=4, idur1=0.5, ib=4, idur2=0.8, ic=6, idur3=1.2, id=6)
+    node("eg_vibrato_release", "release", -1100, 2700)
+    node("eg_vibrato_lfo", "lfo", -600, 1700, itype=0)
+    formula(
+        "eg_vibrato_lfo.kamp", "depth*(1-released)", depth="eg_vibrato_depth.kenv", released="eg_vibrato_release.krel"
+    )
+    formula("eg_vibrato_lfo.kcps", "rate", rate="eg_vibrato_rate.kenv")
+    # Smooth the gated pitch offset, not the key gate: a note released before
+    # 0.5 s then has exactly zero modulation for its entire ringing tail.
+    node("eg_vibrato_smooth", "portk", -100, 1700, khtim=0.004, isig=0)
+    formula("eg_vibrato_smooth.ksig", "cents", cents="eg_vibrato_lfo.kout")
     controls = dict(hz=pitch, scale="eg_decay.iout", mute="eg_mute.iout", tail="eg_release.iout")
     for i, (identity, label, low, high, default, scale) in enumerate(CONTROLS):
         node(
@@ -221,7 +237,9 @@ def build(tuning=None):
             decay=prefix + "_decay.aenv",
             **contact_sources,
         )
-        formula(prefix + "_osc.freq", f"hz*{ratio}", hz=pitch)
+        formula(
+            prefix + "_osc.freq", f"hz*{ratio}*ampdb(cents*0.0050171665944)", hz=pitch, cents="eg_vibrato_smooth.kout"
+        )
         sums[f"h{harmonic}"] = prefix + "_osc.asig"
     node("eg_string_sum", "a_mul", 8750, -500, b=1)
     formula("eg_string_sum.a", " + ".join(sums), **sums)

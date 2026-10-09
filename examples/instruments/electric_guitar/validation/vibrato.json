@@ -1,0 +1,221 @@
+{
+  "passed": true,
+  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
+  "checks": [
+    {
+      "mode": "host",
+      "hold_seconds": 0.03,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "host",
+      "hold_seconds": 0.49,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "host",
+      "hold_seconds": 0.499,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "host",
+      "hold_seconds": 0.5,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "host",
+      "hold_seconds": 1.0,
+      "max_baseline_difference": 0.014295647728387276,
+      "late_decay_rms_difference_db": 0.0008783648583658987,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "host",
+      "hold_seconds": 4.0,
+      "max_baseline_difference": 0.014295647728387276,
+      "late_decay_rms_difference_db": 0.00015898921211032757,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 0.03,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 0.49,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 0.499,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 0.5,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 1.0,
+      "max_baseline_difference": 0.014299278532858901,
+      "late_decay_rms_difference_db": 0.0008811414343341539,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 4.0,
+      "max_baseline_difference": 0.014299278532858901,
+      "late_decay_rms_difference_db": 0.00015818727200667126,
+      "peak_dbfs": -23.336872158743457
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 0.03,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.329801433438597
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 0.49,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.329801433438597
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 0.499,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.329801433438597
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 0.5,
+      "max_baseline_difference": 0.0,
+      "late_decay_rms_difference_db": 0.0,
+      "peak_dbfs": -23.329801433438597
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 1.0,
+      "max_baseline_difference": 0.01424203960189322,
+      "late_decay_rms_difference_db": 0.0006072622954036433,
+      "peak_dbfs": -23.329801433438597
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 4.0,
+      "max_baseline_difference": 0.01424203960189322,
+      "late_decay_rms_difference_db": 0.00013958961959303906,
+      "peak_dbfs": -23.329801433438597
+    }
+  ],
+  "polyphonic_tail_max_difference": 0.0,
+  "held_stress_chord_peak_dbfs": -3.5024137845325907,
+  "audio_pitch_checked": true,
+  "spectrograms_inspected": true,
+  "listening_performed": false,
+  "pitch_measurements": [
+    {
+      "mode": "host",
+      "hold_seconds": 0.49,
+      "peak_cents": 0.04800047487287308,
+      "late_residual_cents": 0.047393883408073725
+    },
+    {
+      "mode": "host",
+      "hold_seconds": 1.0,
+      "peak_cents": 12.048350850081192,
+      "late_residual_cents": 0.04739385835502131
+    },
+    {
+      "mode": "host",
+      "hold_seconds": 4.0,
+      "peak_cents": 18.753882986369888,
+      "late_residual_cents": 0.04739380543913601
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 0.49,
+      "peak_cents": 0.04800047487287308,
+      "late_residual_cents": 0.047393883408073725
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 1.0,
+      "peak_cents": 12.054354785545437,
+      "late_residual_cents": 0.04739385837094274
+    },
+    {
+      "mode": "midi",
+      "hold_seconds": 4.0,
+      "peak_cents": 18.751108919751747,
+      "late_residual_cents": 0.04739380462531476
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 0.49,
+      "peak_cents": 0.0029232093258778785,
+      "late_residual_cents": 0.002753911750719775
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 1.0,
+      "peak_cents": 12.102841778266027,
+      "late_residual_cents": 0.002753910076658006
+    },
+    {
+      "mode": "score",
+      "hold_seconds": 4.0,
+      "peak_cents": 18.79972330807124,
+      "late_residual_cents": 0.002753905204441368
+    }
+  ],
+  "images": [
+    "validation/vibrato_pitch.png",
+    "validation/vibrato_0.49.mel.png",
+    "validation/vibrato_0.49.stft.png",
+    "validation/vibrato_1.0.mel.png",
+    "validation/vibrato_1.0.stft.png",
+    "validation/vibrato_4.0.mel.png",
+    "validation/vibrato_4.0.stft.png"
+  ],
+  "contour": {
+    "delay_seconds": 0.5,
+    "rise_seconds": 0.8,
+    "fade_seconds": 1.2,
+    "peak_depth_cents": 20,
+    "initial_rate_hz": 4,
+    "final_rate_hz": 6,
+    "pitch_smoothing_half_time_seconds": 0.004
+  },
+  "inspected_images": [
+    "validation/vibrato_pitch.png",
+    "validation/vibrato_0.49.stft.png",
+    "validation/vibrato_0.49.mel.png",
+    "validation/vibrato_1.0.stft.png",
+    "validation/vibrato_1.0.mel.png",
+    "validation/vibrato_4.0.stft.png",
+    "validation/vibrato_4.0.mel.png"
+  ],
+  "inspection_notes": "Opened final Mel and log-STFT images. The 0.49 s key hold retains straight harmonics; the 1 s hold returns smoothly to pitch after release; the 4 s hold develops vibrato after 0.5 s and returns to steady pitch around 2.5 s. Both channels retain the fitted pick and natural decay. Full held-note tails decay to silence. Four-second excerpt boundary smearing is from analysis window padding, not a new attack."
+}

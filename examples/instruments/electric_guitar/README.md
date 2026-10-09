@@ -2,8 +2,9 @@
 
 An entirely synthesized, polyphonic picked electric guitar fitted to
 `MyEGuitarWholePitchRange.m4a`. The fit uses 18 notes from **E2 to B5**. Each MIDI
-note starts a pick and then decays to silence independently of key duration:
-a short tap and a long hold have the same sound. MIDI note-off does not mute it.
+note starts a pick and then decays to silence independently of key duration.
+Holding the key introduces delayed pitch vibrato; MIDI note-off fades that
+vibrato without muting the ringing string.
 
 Import [E_Guitar.orch.instrument.json](../E_Guitar.orch.instrument.json), add it to
 the Perform rack, and route **Stereo Output → Master**. The authoring script
@@ -51,6 +52,23 @@ their previous attack at the default setting. The ringing partial balance and
 natural decay remain unchanged. [pick_tuning.json](pick_tuning.json) contains
 the four high-register contact profiles, without recorded audio.
 
+## Delayed vibrato
+
+Vibrato begins only if the key is still held after **0.5 seconds**. Its depth
+rises from zero to **±20 cents** over **0.8 seconds**, while its rate increases
+from **4 to 6 Hz**. Depth then fades to zero over **1.2 seconds**, so the
+vibrato finishes at about **2.5 seconds** even if the key remains held.
+
+Releasing a key during vibrato smoothly returns pitch to the played note.
+Keys released before the delay never develop vibrato during their natural tail.
+Each polyphonic note has independent timing. The existing fitted attack,
+partial balance and decay envelopes use the original pitch and are preserved.
+
+The five `eg_vibrato_*` nodes use existing `linseg`, `release`, `lfo` and `portk`
+opcodes. Edit `eg_vibrato_depth` for delay/rise/depth/fade, and
+`eg_vibrato_rate` for the rate contour. The `portk` half-time is 4 ms and smooths
+the pitch offset after note-off. No new opcodes or engine changes are required.
+
 ## Controls
 
 | Per-instance control | Range | Default |
@@ -89,8 +107,8 @@ errors do not contaminate the tone measurement. The median per-note harmonic
 level error is about **0.81 dB** within the comparison window. This is a fit
 measurement, not an independent listening or realism score.
 
-All **102 native auditions** passed: every semitone from D2 to E6, short versus
-held notes, natural silence, velocity response, all nine controller extremes,
+The **102 range auditions** cover every semitone from D2 to E6, short versus
+held-note attacks and amplitude decay, natural silence, velocity response, all nine controller extremes,
 stereo output, rapid retriggers, six-note stress chords, parent control block
 sizes 1/16/64, and live MIDI/MIDI-file/SCORE consistency. Pick strength was also
 checked at 0/1/2 on B4, E5 and B5, plus a high-register chord at maximum strength.
@@ -109,6 +127,13 @@ in each of the three comparison bands over the first 60 ms. See
 [validation/pick_comparison.json](validation/pick_comparison.json) for matched-gain
 reference/previous/updated measurements; these are fit metrics, not listening scores.
 
+[validation/vibrato.json](validation/vibrato.json) adds native checks for keys
+released at 30/490/499/500 ms, held notes, release during vibrato, independent
+polyphonic timing and a held stress chord. Pitch measured from the rendered
+audio verifies increasing depth/rate and the return to steady pitch in host
+MIDI, MIDI-file and SCORE modes. `validation/vibrato_pitch.png` shows the pitch
+curves, alongside Mel and log-STFT images of both audio channels.
+
 Local ignored `auditions/full_range_reference_then_synth.wav` alternates the
 reference and synth at E2, G3, B4, E5, G-sharp5 and B5. These excerpts have equal
 duration and end fades for comparison; fades are not part of the instrument.
@@ -116,6 +141,8 @@ duration and end fades for comparison; fades are not part of the instrument.
 `auditions/high_pick_reference_then_synth.wav` compares reference then updated
 synth at B4, E5, G-sharp5 and B5. `auditions/pick_strength_0_1_2.wav` demonstrates
 the three knob positions at B4, then B5, using identical gain for each position.
+`auditions/delayed_vibrato.wav` plays B4 held for 0.49, 1 and 4 seconds, each
+with four seconds of ringing audio and the same playback gain.
 The earlier B4 reference, coefficients and analysis are retained as history;
 the new whole-range recording governs this revision.
 
@@ -128,6 +155,8 @@ the patch skill's optional audio dependencies.
 .venv/bin/python examples/instruments/electric_guitar/build_guitar.py build
 .venv/bin/python examples/instruments/electric_guitar/build_guitar.py preflight
 .venv/bin/python examples/instruments/electric_guitar/validate_range.py
+.venv/bin/python examples/instruments/electric_guitar/validate_vibrato.py render
+MPLCONFIGDIR=/tmp/orchestron-eg-mpl integrations/skills/orchestron-patch-creator/.venv/bin/python examples/instruments/electric_guitar/validate_vibrato.py analyze
 MPLCONFIGDIR=/tmp/orchestron-eg-mpl integrations/skills/orchestron-patch-creator/.venv/bin/python examples/instruments/electric_guitar/compare_range.py --reference /absolute/path/decoded-range-reference.wav
 MPLCONFIGDIR=/tmp/orchestron-eg-mpl integrations/skills/orchestron-patch-creator/.venv/bin/python examples/instruments/electric_guitar/compare_pick.py
 ```
@@ -144,7 +173,7 @@ the prior-revision auditions retained locally in `work/pick_revision/before/`.
 
 Inspect the generated plots and record `spectrograms_inspected: true` in
 `validation/audio.json`, `validation/range_comparison.json`, and
-`validation/pick_comparison.json`, then publish:
+`validation/pick_comparison.json`, and `validation/vibrato.json`, then publish:
 
 ```sh
 .venv/bin/python examples/instruments/electric_guitar/build_guitar.py publish

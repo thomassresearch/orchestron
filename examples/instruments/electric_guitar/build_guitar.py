@@ -57,6 +57,9 @@ def main(action, api_url):
     pick_comparison = json.loads((HERE / "validation/pick_comparison.json").read_text())
     assert pick_comparison["spectrograms_inspected"]
     assert pick_comparison["graph_sha256"] == graph_hash(payload["graph"])
+    vibrato = json.loads((HERE / "validation/vibrato.json").read_text())
+    assert vibrato["passed"] and vibrato["audio_pitch_checked"] and vibrato["spectrograms_inspected"]
+    assert vibrato["graph_sha256"] == graph_hash(payload["graph"])
     manifest_path = HERE / "library_manifest.json"
     if manifest_path.exists():
         previous = json.loads(manifest_path.read_text())

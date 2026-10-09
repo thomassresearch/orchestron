@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "graph_sha256": "17d5314949fd3ef0ae67863b4a7f9fb70034dd34fcccf768d5eebca7823f7ec3",
+  "graph_sha256": "b83661e0f64a14c8010fb2a8c05962167e6d42d32788a0a1b3cc3c152ad320b5",
   "auditions": [
     {
       "name": "pitch_38",
@@ -848,7 +848,7 @@
       "settings": {},
       "mode": "host",
       "peak_dbfs": -24.071625561035557,
-      "rms_dbfs": -46.89670255626923
+      "rms_dbfs": -46.89671063778054
     },
     {
       "name": "tap_host_55",
@@ -880,7 +880,7 @@
       "settings": {},
       "mode": "host",
       "peak_dbfs": -24.456636811301106,
-      "rms_dbfs": -49.314752265839665
+      "rms_dbfs": -49.31475627824442
     },
     {
       "name": "tap_host_71",
@@ -912,7 +912,7 @@
       "settings": {},
       "mode": "host",
       "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -48.94629048998012
+      "rms_dbfs": -48.94628864571544
     },
     {
       "name": "tap_host_83",
@@ -944,7 +944,7 @@
       "settings": {},
       "mode": "host",
       "peak_dbfs": -27.326494400420852,
-      "rms_dbfs": -49.5504729045357
+      "rms_dbfs": -49.55047316173691
     },
     {
       "name": "tap_midi_71",
@@ -976,7 +976,7 @@
       "settings": {},
       "mode": "midi",
       "peak_dbfs": -23.336872158743457,
-      "rms_dbfs": -48.94629048998012
+      "rms_dbfs": -48.946288687903845
     },
     {
       "name": "tap_score_71",
@@ -1008,7 +1008,7 @@
       "settings": {},
       "mode": "score",
       "peak_dbfs": -23.329801433438597,
-      "rms_dbfs": -48.94475497250988
+      "rms_dbfs": -48.94475905727981
     },
     {
       "name": "eg_pickup_min",
@@ -2131,42 +2131,48 @@
     {
       "mode": "host",
       "note": 40,
-      "maximum_sample_difference": 1.3765246131596197e-13,
+      "maximum_sample_difference_before_vibrato": 0.0,
+      "maximum_decay_window_rms_difference_db": 0.0008758233504835289,
       "held_silence_dbfs": -300.0,
       "silence_deadline_seconds": 16.8
     },
     {
       "mode": "host",
       "note": 55,
-      "maximum_sample_difference": 5.4553705972347706e-14,
+      "maximum_sample_difference_before_vibrato": 0.0,
+      "maximum_decay_window_rms_difference_db": 0.0031821998995624767,
       "held_silence_dbfs": -300.0,
       "silence_deadline_seconds": 14.700000000000001
     },
     {
       "mode": "host",
       "note": 71,
-      "maximum_sample_difference": 2.418273838782684e-14,
+      "maximum_sample_difference_before_vibrato": 0.0,
+      "maximum_decay_window_rms_difference_db": 0.0029993970549000437,
       "held_silence_dbfs": -300.0,
       "silence_deadline_seconds": 12.299999999999999
     },
     {
       "mode": "host",
       "note": 83,
-      "maximum_sample_difference": 2.1105864366533441e-16,
+      "maximum_sample_difference_before_vibrato": 0.0,
+      "maximum_decay_window_rms_difference_db": 0.0020082728320858223,
       "held_silence_dbfs": -300.0,
       "silence_deadline_seconds": 10.78
     },
     {
       "mode": "midi",
       "note": 71,
-      "maximum_sample_difference": 1.995829050384145e-14,
+      "maximum_sample_difference_before_vibrato": 0.0,
+      "maximum_decay_window_rms_difference_db": 0.0029943026867869094,
       "held_silence_dbfs": -300.0,
       "silence_deadline_seconds": 12.299999999999999
     },
     {
       "mode": "score",
       "note": 71,
-      "maximum_sample_difference": 2.4979793909632374e-14,
+      "maximum_sample_difference_before_vibrato": 0.0,
+      "maximum_decay_window_rms_difference_db": 0.002955891028719293,
       "held_silence_dbfs": -300.0,
       "silence_deadline_seconds": 12.299999999999999
     }
@@ -2220,17 +2226,26 @@
     "validation/range_attack.stft.png",
     "validation/range_attack.mel.png",
     "validation/held_note_decay.mel.png",
-    "validation/held_note_decay.stft.png",
-    "validation/pick_envelopes.png",
-    "validation/high_pick.stft.png",
-    "validation/high_pick.mel.png",
-    "validation/pick_strength.stft.png",
-    "validation/pick_strength.mel.png"
+    "validation/held_note_decay.stft.png"
   ],
-  "visual_inspection_note": "Opened final Mel and log-STFT comparisons at 42.67 ms, 5.33 ms and 2.67 ms windows, controller 0/1/2 panels, attack-envelope and partial-level plots, and both-channel full held-note tails. High-register contact rises more sharply and its short energy excess varies with Pick strength; the later ringing tone and full decay remain intact. Background noise and exact recorded phase fluctuations are not reproduced.",
+  "inspected_images": [
+    "validation/range.stft.png",
+    "validation/range.mel.png",
+    "validation/held_note_decay.stft.png",
+    "validation/held_note_decay.mel.png",
+    "validation/vibrato_pitch.png",
+    "validation/vibrato_0.49.stft.png",
+    "validation/vibrato_0.49.mel.png",
+    "validation/vibrato_1.0.stft.png",
+    "validation/vibrato_1.0.mel.png",
+    "validation/vibrato_4.0.stft.png",
+    "validation/vibrato_4.0.mel.png"
+  ],
+  "inspection_notes": "Opened final Mel and log-STFT images. The 0.49 s key hold retains straight harmonics; the 1 s hold returns smoothly to pitch after release; the 4 s hold develops vibrato after 0.5 s and returns to steady pitch around 2.5 s. Both channels retain the fitted pick and natural decay. Full held-note tails decay to silence. Four-second excerpt boundary smearing is from analysis window padding, not a new attack.",
+  "vibrato_validation": "validation/vibrato.json",
   "build_checks": {
-    "frontend": "passed",
+    "frontend_build": "passed",
     "docker_frontend_build": "passed",
-    "shared_drumkit_input_present": true
+    "shared_drumkit_input_exists": true
   }
 }
