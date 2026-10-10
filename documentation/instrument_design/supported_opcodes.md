@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **180** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **186** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -22,7 +22,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | distortion | 4 |
 | dynamics | 2 |
 | envelope | 12 |
-| filter | 20 |
+| filter | 26 |
 | fm | 17 |
 | math | 3 |
 | midi | 8 |
@@ -130,7 +130,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | diode_ladder | 6 (a, k, k, i, i, i) | 1 (a) | Diode ladder low-pass filter model. |
 | exciter | 5 (a, k, k, k, k) | 1 (a) | Harmonic exciter that adds controlled upper partials. |
 | fofilter | 5 (a, k, k, k, i) | 1 (a) | Formant filter. |
-| mode | 4 (a, k, k, i) | 1 (a) | Native mass–spring–damper body resonator. |
+| mode | 4 (a, k, k, i) | 1 (a) | Mass-spring-damper resonator for acoustic body modes. |
 | moogladder | 3 (a, k, k) | 1 (a) | Moog ladder low-pass filter. |
 | moogladder2 | 3 (a, k, k) | 1 (a) | Nonlinear Moog-style ladder filter with audio-rate modulation support. |
 | moogvcf | 5 (a, k, k, i, i) | 1 (a) | Moog ladder voltage-controlled filter emulation. |
@@ -140,6 +140,12 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | statevar | 5 (a, k, k, i, i) | 4 (a, a, a, a) | State-variable filter with simultaneous HP/LP/BP/BR outputs. |
 | tbvcf | 6 (a, k, k, k, k, i) | 1 (a) | TB-303 style voltage-controlled filter model. |
 | vclpf | 4 (a, k, k, i) | 1 (a) | Virtual-analog low-pass filter. |
+| zdf_1pole | 4 (a, k, k, i) | 1 (a) | One-pole zero-delay feedback filter with selectable low-pass, high-pass, or allpass output. |
+| zdf_1pole_mode | 3 (a, k, i) | 2 (a, a) | One-pole zero-delay feedback filter with simultaneous low-pass and high-pass outputs. |
+| zdf_2pole | 5 (a, k, k, k, i) | 1 (a) | Two-pole zero-delay feedback filter with seven selectable response modes. |
+| zdf_2pole_mode | 4 (a, k, k, i) | 3 (a, a, a) | Two-pole zero-delay feedback filter with simultaneous low-pass, band-pass, and high-pass outputs. |
+| zdf_ladder | 4 (a, k, k, i) | 1 (a) | Four-pole zero-delay feedback Moog ladder low-pass filter. |
+| zfilter2 | 6 (a, k, k, i, i, i) | 1 (a) | Custom IIR filter with control-rate pole damping and frequency warping. |
 
 ### fm
 

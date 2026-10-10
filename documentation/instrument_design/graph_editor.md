@@ -97,6 +97,10 @@ Deletion flow:
 
 The constant opcodes (`const_a`, `const_i`, `const_k`, `const_s`) provide inline editable values directly on the node. `const_s` accepts lowercase letters, digits, and underscores, must begin with a lowercase letter, and is limited to 50 characters.
 
+### Custom IIR Coefficients
+
+The `zfilter2` node has an inline comma-separated coefficient field. Its Coefficients socket also accepts ordered init-rate connections that replace the field. See [ZDF and custom IIR filters](opcode_catalog_and_documentation.md#zdf-and-custom-iir-filters) for coefficient order, counts, and Csound compatibility limits.
+
 ### Documentation Button (`?`)
 
 Nodes with documentation expose a `?` button to open the opcode documentation modal.

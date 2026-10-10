@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 
 from collections import defaultdict
@@ -138,6 +139,14 @@ class OrchestraEmitter:
                 has_input_formula = lookup_input_formula_config(ui_layout, target_key) is not None
 
                 if inbound_connections:
+                    if compiled.spec.name == "zfilter2" and input_port.id == "icoeffs":
+                        if has_input_formula:
+                            raise CompilationError(["zfilter2 coefficients use ordered connections, not a combine formula."])
+                        env[input_port.id] = ", ".join(
+                            output_vars[(link.from_node_id, link.from_port_id)] for link in inbound_connections
+                        )
+                        input_is_audio[input_port.id] = False
+                        continue
                     if len(inbound_connections) == 1 and not has_input_formula:
                         source_connection = inbound_connections[0]
                         key = (source_connection.from_node_id, source_connection.from_port_id)
@@ -425,6 +434,8 @@ class OrchestraEmitter:
                 raise CompilationError([f"Template value missing for node '{compiled.node.id}': {err}"]) from err
 
             rendered = self._cleanup_optional_placeholders(rendered)
+            if compiled.spec.name == "zfilter2":
+                rendered = self._guard_zfilter2_coefficients(compiled.node.id, env, rendered)
             instrument_lines.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])
 
         for lines, env in legato_envelopes:
@@ -1068,11 +1079,65 @@ class OrchestraEmitter:
 
     @staticmethod
     def _resolve_literal_value(node: NodeInstance, input_port: PortSpec) -> tuple[str, bool]:
+        if node.opcode == "zfilter2" and input_port.id == "icoeffs":
+            value = node.params.get(input_port.id, input_port.default)
+            if value is None:
+                return "", False
+            tokens = str(value).split(",")
+            if not 2 <= len(tokens) <= 100 or any(not token.strip() for token in tokens):
+                raise CompilationError([f"zfilter2 node '{node.id}' requires 2 to 100 nonempty coefficients."])
+            for token in tokens:
+                depth = 0
+                for char in token:
+                    depth += (char == "(") - (char == ")")
+                    if depth < 0:
+                        break
+                if depth != 0:
+                    raise CompilationError([
+                        f"zfilter2 node '{node.id}' requires balanced scalar coefficient expressions; "
+                        "commas inside expressions are not supported."
+                    ])
+            # A coefficient list is the only numeric parameter that expands to
+            # multiple arguments. Keep the normal scalar expression rules intact.
+            return ", ".join(OrchestraEmitter._format_literal(token.strip(), SignalType.INIT) for token in tokens), True
         if input_port.id in node.params:
             return OrchestraEmitter._format_literal(node.params[input_port.id], input_port.signal_type), True
         if input_port.default is not None:
             return OrchestraEmitter._format_literal(input_port.default, input_port.signal_type), True
         return "", False
+
+    @staticmethod
+    def _guard_zfilter2_coefficients(node_id: str, env: dict[str, str], rendered: str) -> str:
+        count = len(env["icoeffs"].split(","))
+        try:
+            numerator, denominator = float(env["im"]), float(env["in"])
+        except ValueError:
+            # Connected init-rate sources and formulas are known only when a
+            # voice starts. Never let an invalid count reach Csound's varargs.
+            m, n = f"({env['im']})", f"({env['in']})"
+            condition = (
+                f"{m} >= 1 && {m} <= 51 && {m} == int({m}) && "
+                f"{n} >= 1 && {n} <= 49 && {n} == int({n}) && {m} + {n} == {count}"
+            )
+            return "\n".join([
+                f"if {condition} then", f"  {rendered}", "else",
+                f"  {env['aout']} = 0",
+                '  prints "zfilter2: invalid coefficient counts; voice stopped.\\n"',
+                "  turnoff", "endif",
+            ])
+        if not (
+            math.isfinite(numerator) and math.isfinite(denominator)
+            and numerator.is_integer() and denominator.is_integer()
+            # Csound 6.18 crashes with no poles and overruns an internal array
+            # at 50 poles. Keep the catalog usable with supported Csound 6 hosts.
+            and 1 <= numerator <= 51 and 1 <= denominator <= 49
+            and numerator + denominator == count
+        ):
+            raise CompilationError([
+                f"zfilter2 node '{node_id}' requires integer im (1..51) and in (1..49) "
+                f"with im + in equal to the coefficient count ({count})."
+            ])
+        return rendered
 
     @staticmethod
     def _cleanup_optional_placeholders(rendered: str) -> str:

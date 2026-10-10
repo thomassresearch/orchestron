@@ -75,6 +75,28 @@ Each filter exposes optional init-rate `iskip`: 0 clears its internal state at i
 
 Connect the audio outputs of `atone` and `atonex` to downstream audio nodes or both `outs` inputs. Connect `atonek` to a control input such as oscillator amplitude or frequency. The node's `?` help documents every port in English, German, French, and Spanish.
 
+## ZDF and Custom IIR Filters
+
+Search for `zdf` in the `filter` category. All five nodes accept audio input `ain`; `xcf` accepts init, control, or audio rate and starts at 1200 Hz. The two-pole and ladder filters also expose `xq` (0.5–25, default 1) at the same rates.
+
+- [`zdf_1pole`](https://csound.com/docs/manual/zdf_1pole.html): 6 dB/oct, with `kmode` 0 = low-pass, 1 = high-pass, 2 = allpass.
+- [`zdf_1pole_mode`](https://csound.com/docs/manual/zdf_1pole_mode.html): simultaneous `alp`, `ahp` outputs, in that order.
+- [`zdf_2pole`](https://csound.com/docs/manual/zdf_2pole.html): 12 dB/oct, with `kmode` 0 = low-pass, 1 = high-pass, 2 = band-pass, 3 = unity-gain band-pass, 4 = notch, 5 = allpass, 6 = peak.
+- [`zdf_2pole_mode`](https://csound.com/docs/manual/zdf_2pole_mode.html): simultaneous `alp`, `abp`, `ahp` outputs, in that order.
+- [`zdf_ladder`](https://csound.com/docs/manual/zdf_ladder.html): four-pole (24 dB/oct) Moog ladder low-pass; Q = 25 reaches self-oscillation.
+
+`kmode` accepts control or init rate and defaults to 0. Every ZDF node has optional init-rate `istor`: 0 clears filter memory, nonzero retains it. Setting `istor` alone preserves other defaults. Cutoff and Q defaults are editor starting values.
+
+[`zfilter2`](https://csound.com/docs/manual/zfilter2.html) uses custom IIR coefficients with control/init-rate `kdamp` and `kfreq`. Positive damping adjustments lengthen ringing and negative ones shorten it; positive warp shifts pole frequencies upward and negative warp shifts them downward. Both start at 0 (unchanged poles); use values strictly between -1 and 1.
+
+Edit its inline **Coefficients** field as a comma-separated list: all numerator coefficients starting at b0, followed by denominator coefficients starting at a1. The leading denominator coefficient a0 is implicitly 1. **NumeratorCount** (`im`) counts numerator coefficients including b0; **DenominatorCount** (`in`) counts denominator coefficients. Connect `const_i` nodes to change these counts. Defaults are 3 and 2, with `0.06745527, 0.13491055, 0.06745527, -1.1429805, 0.4128016`, a stable second-order low-pass filter.
+
+You can instead connect init-rate sources to **Coefficients** in coefficient order. Each connection supplies one coefficient, replacing the entire inline list; these inputs are not summed, and the list does not accept a combine formula. Connection order survives save/export. Use separate upstream init-rate calculations for individual coefficients.
+
+Supply exactly `im + in` coefficients. The editor supports 1–51 numerator coefficients and 1–49 denominator coefficients for Csound 6 compatibility: zero poles and 50 poles encounter native bugs in Csound 6.18. Invalid literal counts fail compilation; invalid connected counts stop the affected voice before the native filter initializes. Coefficients remain the responsibility of the filter design: count checks do not establish stability.
+
+![ZDF catalog and custom IIR coefficient control](../../screenshots/instrument_zdf_filters.png)
+
 ## STK Instruments
 
 Search for `stk` to find the 27 Synthesis Toolkit instruments in the `physical_modeling`, `fm`, and `oscillator` categories. They include strings, winds, percussion, voices, organs, and electric pianos. Each node produces one mono audio signal; connect it to both `outs` inputs for centered stereo output.

@@ -62,6 +62,7 @@ export interface ReteNodeEditorProps {
 }
 
 type ReteEditorCopy = {
+  coefficients: string;
   showDocumentation: string;
   optionalInput: string;
   optionalInputWithFormula: string;
@@ -99,6 +100,7 @@ type ReteEditorCopy = {
 
 const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
   english: {
+    coefficients: "Coefficients (b0…, a1…)",
     scrollGraphHorizontally: "Scroll graph horizontally",
     scrollGraphVertically: "Scroll graph vertically",
     showDocumentation: "Show documentation",
@@ -134,6 +136,7 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     portIdPrefix: "Port id"
   },
   german: {
+    coefficients: "Koeffizienten (b0…, a1…)",
     scrollGraphHorizontally: "Graph horizontal scrollen",
     scrollGraphVertically: "Graph vertikal scrollen",
     showDocumentation: "Dokumentation anzeigen",
@@ -170,6 +173,7 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     portIdPrefix: "Port-ID"
   },
   french: {
+    coefficients: "Coefficients (b0…, a1…)",
     scrollGraphHorizontally: "Faire défiler le graphe horizontalement",
     scrollGraphVertically: "Faire défiler le graphe verticalement",
     showDocumentation: "Afficher la documentation",
@@ -206,6 +210,7 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     portIdPrefix: "ID port"
   },
   spanish: {
+    coefficients: "Coeficientes (b0…, a1…)",
     scrollGraphHorizontally: "Desplazar el grafo horizontalmente",
     scrollGraphVertically: "Desplazar el grafo verticalmente",
     showDocumentation: "Mostrar documentacion",
@@ -244,6 +249,7 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
 };
 
 const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k", "const_s"]);
+class CoefficientListControl extends ClassicPreset.InputControl<"text"> {}
 const CONST_S_DEFAULT_VALUE = "string";
 const CONST_S_MAX_LENGTH = 50;
 const GENERATOR_CATEGORIES = new Set(["oscillator", "envelope"]);
@@ -1189,6 +1195,11 @@ export function ReteNodeEditor({
                 return null;
               }
               return function ColoredControl(props: any) {
+                if (context.payload instanceof CoefficientListControl) {
+                  return <label className="block text-xs text-slate-900">{copy.coefficients}
+                    <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />
+                  </label>;
+                }
                 return <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />;
               };
             },
@@ -1197,12 +1208,15 @@ export function ReteNodeEditor({
               const isOptionalInput = context.side === "input" && Boolean(optionalPorts?.has(context.key));
               const patchNodeId = reteToPatchRef.current.get(String(context.nodeId));
               const readOnly = presentationRef.current.readOnlyInputs?.has(`${patchNodeId}::${context.key}`);
-              const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input" && !readOnly);
+              const coefficientList = context.key === "icoeffs" && graphRef.current.nodes.some(
+                (node) => node.id === patchNodeId && node.opcode === "zfilter2"
+              );
+              const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input" && !readOnly && !coefficientList);
               const hasConfiguredFormula =
                 context.side === "input" && patchNodeId
                   ? configuredFormulaTargetKeySet.has(formulaTargetKey(patchNodeId, context.key))
                   : false;
-              const socketTitle = readOnly ? presentationRef.current.readOnlyInputLabel : hasFormulaAssistant
+              const socketTitle = coefficientList ? copy.coefficients : readOnly ? presentationRef.current.readOnlyInputLabel : hasFormulaAssistant
                 ? isOptionalInput
                   ? copy.optionalInputWithFormula
                   : copy.inputWithFormula
@@ -1401,14 +1415,16 @@ export function ReteNodeEditor({
           }
         }
 
-        if (isConstantOpcode) {
+        if (isConstantOpcode || node.opcode === "zfilter2") {
+          const parameter = node.opcode === "zfilter2" ? "icoeffs" : "value";
           const initialValue =
             node.opcode === "const_s"
               ? normalizeConstStringValue(String(node.params.value ?? CONST_S_DEFAULT_VALUE))
-              : String(node.params.value ?? 0);
+              : String(node.params[parameter] ?? spec?.inputs.find((input) => input.id === parameter)?.default ?? 0);
+          const Control = node.opcode === "zfilter2" ? CoefficientListControl : ClassicPreset.InputControl;
           visualNode.addControl(
-            "value",
-            new ClassicPreset.InputControl("text", {
+            parameter,
+            new Control("text", {
               initial: initialValue,
               change: (nextValue: string) => {
                 if (initializingRef.current) {
@@ -1422,7 +1438,7 @@ export function ReteNodeEditor({
                           ...graphNode,
                           params: {
                             ...graphNode.params,
-                            value: normalizeConstantControlValue(node.opcode, nextValue)
+                            [parameter]: node.opcode === "zfilter2" ? nextValue : normalizeConstantControlValue(node.opcode, nextValue)
                           }
                         }
                       : graphNode

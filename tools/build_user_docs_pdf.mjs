@@ -937,7 +937,7 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
         background: #f7f9fc;
       }
       .table-wrap {
-        overflow-x: auto;
+        overflow: visible;
       }
       .image-block {
         margin: 0.9em auto 1.2em;
@@ -967,6 +967,9 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
         border-collapse: collapse;
         margin: 0.7em 0 1.1em;
         table-layout: fixed;
+      }
+      tr {
+        page-break-inside: avoid;
       }
       thead th {
         background: #edf2f8;

@@ -229,6 +229,8 @@ Implementation note: when compiling a multi-instrument bundle, the engine settin
 
 Parameter emission retains the instance/route identity, parameter kind and field as the extension point for future mixer automation. An offline profile does not inherently require every future parameter to be constant: authored curves can later supply time-varying coefficients there. No curve schema or lane automation is introduced by the current profile. Csound logging remains unchanged. Run `uv run python -m backend.tools.benchmark_offline_mixer` for a reproducible live/offline mixer render comparison with identical sample timing and fixed inputs.
 
+`zfilter2` expands its init-rate `icoeffs` parameter into a coefficient list. Ordered incoming connections replace that list (no implicit sum or combine formula). The emitter validates literal numerator/denominator counts and guards dynamic init-rate counts before native initialization. Counts are limited to 1–51 numerator and 1–49 denominator coefficients to avoid zero-pole and 50-pole memory bugs in the [Csound 6.18 implementation](https://github.com/csound/csound/blob/6.18.0/Opcodes/filter.c). Only this parameter accepts comma-separated scalar expressions; normal literal validation remains unchanged.
+
 ### MidiService
 
 - Uses `mido` when available.

@@ -7851,5 +7851,287 @@
         "spanish": "Señal del puente sin componente continua para resonadores externos."
       }
     }
+  },
+  "zdf_1pole": {
+    "description": {
+      "english": "One-pole zero-delay feedback filter with selectable low-pass, high-pass, or allpass output.",
+      "german": "Einpoliger Filter mit verzögerungsfreier Rückkopplung und wählbarem Tiefpass-, Hochpass- oder Allpass-Ausgang.",
+      "french": "Filtre à un pôle avec rétroaction sans retard et sortie passe-bas, passe-haut ou passe-tout au choix.",
+      "spanish": "Filtro de un polo con realimentación sin retardo y salida seleccionable de paso bajo, paso alto o paso todo."
+    },
+    "inputs": {
+      "ain": {
+        "english": "Audio input signal.",
+        "german": "Audioeingangssignal.",
+        "french": "Signal d'entrée audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "xcf": {
+        "english": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz.",
+        "german": "Grenzfrequenz in Hz; akzeptiert Init-, Kontroll- oder Audiorate. Der Editor beginnt bei 1200 Hz.",
+        "french": "Fréquence de coupure en Hz ; accepte les taux d’initialisation, de contrôle ou audio. Valeur initiale dans l’éditeur : 1200 Hz.",
+        "spanish": "Frecuencia de corte en Hz; acepta tasas de inicialización, control o audio. Valor inicial del editor: 1200 Hz."
+      },
+      "kmode": {
+        "english": "0 = low-pass, 1 = high-pass, 2 = allpass. Defaults to 0.",
+        "german": "0 = Tiefpass, 1 = Hochpass, 2 = Allpass. Der Standardwert ist 0.",
+        "french": "0 = passe-bas, 1 = passe-haut, 2 = passe-tout. La valeur par défaut est 0.",
+        "spanish": "0 = paso bajo, 1 = paso alto, 2 = paso total. El valor predeterminado es 0."
+      },
+      "istor": {
+        "english": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0.",
+        "german": "Anfangszustand des Filters: 0 löscht den internen Speicher, ein Wert ungleich 0 behält ihn bei. Standard: 0.",
+        "french": "État initial du filtre : 0 efface la mémoire interne ; une valeur non nulle la conserve. Valeur par défaut : 0.",
+        "spanish": "Estado inicial del filtro: 0 borra la memoria interna; un valor distinto de cero la conserva. Valor predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Filtered audio output.",
+        "german": "Gefilterte Audioausgabe.",
+        "french": "Sortie audio filtrée.",
+        "spanish": "Salida de audio filtrada."
+      }
+    }
+  },
+  "zdf_1pole_mode": {
+    "description": {
+      "english": "One-pole zero-delay feedback filter with simultaneous low-pass and high-pass outputs.",
+      "german": "Einpoliger Filter mit verzögerungsfreier Rückkopplung und gleichzeitigen Tiefpass- und Hochpass-Ausgängen.",
+      "french": "Filtre à un pôle avec rétroaction sans retard et sorties passe-bas et passe-haut simultanées.",
+      "spanish": "Filtro de un polo con realimentación sin retardo y salidas simultáneas de paso bajo y paso alto."
+    },
+    "inputs": {
+      "ain": {
+        "english": "Audio input signal.",
+        "german": "Audioeingangssignal.",
+        "french": "Signal d'entrée audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "xcf": {
+        "english": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz.",
+        "german": "Grenzfrequenz in Hz; akzeptiert Init-, Kontroll- oder Audiorate. Der Editor beginnt bei 1200 Hz.",
+        "french": "Fréquence de coupure en Hz ; accepte les taux d’initialisation, de contrôle ou audio. Valeur initiale dans l’éditeur : 1200 Hz.",
+        "spanish": "Frecuencia de corte en Hz; acepta tasas de inicialización, control o audio. Valor inicial del editor: 1200 Hz."
+      },
+      "istor": {
+        "english": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0.",
+        "german": "Anfangszustand des Filters: 0 löscht den internen Speicher, ein Wert ungleich 0 behält ihn bei. Standard: 0.",
+        "french": "État initial du filtre : 0 efface la mémoire interne ; une valeur non nulle la conserve. Valeur par défaut : 0.",
+        "spanish": "Estado inicial del filtro: 0 borra la memoria interna; un valor distinto de cero la conserva. Valor predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "alp": {
+        "english": "Low-pass audio output.",
+        "german": "Tiefpass-Audioausgabe.",
+        "french": "Sortie audio passe-bas.",
+        "spanish": "Salida de audio de paso bajo."
+      },
+      "ahp": {
+        "english": "High-pass audio output.",
+        "german": "Hochpass-Audioausgabe.",
+        "french": "Sortie audio passe-haut.",
+        "spanish": "Salida de audio de paso alto."
+      }
+    }
+  },
+  "zdf_2pole": {
+    "description": {
+      "english": "Two-pole zero-delay feedback filter with seven selectable response modes.",
+      "german": "Zweipoliger Filter mit verzögerungsfreier Rückkopplung und sieben wählbaren Filtertypen.",
+      "french": "Filtre à deux pôles avec rétroaction sans retard et sept types de réponse au choix.",
+      "spanish": "Filtro de dos polos con realimentación sin retardo y siete tipos de respuesta seleccionables."
+    },
+    "inputs": {
+      "ain": {
+        "english": "Audio input signal.",
+        "german": "Audioeingangssignal.",
+        "french": "Signal d'entrée audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "xcf": {
+        "english": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz.",
+        "german": "Grenzfrequenz in Hz; akzeptiert Init-, Kontroll- oder Audiorate. Der Editor beginnt bei 1200 Hz.",
+        "french": "Fréquence de coupure en Hz ; accepte les taux d’initialisation, de contrôle ou audio. Valeur initiale dans l’éditeur : 1200 Hz.",
+        "spanish": "Frecuencia de corte en Hz; acepta tasas de inicialización, control o audio. Valor inicial del editor: 1200 Hz."
+      },
+      "xq": {
+        "english": "Filter Q, from 0.5 to 25; accepts init, control, or audio rate.",
+        "german": "Filtergüte Q von 0,5 bis 25; akzeptiert Init-, Kontroll- oder Audiorate.",
+        "french": "Facteur de qualité Q, de 0,5 à 25 ; accepte les taux d’initialisation, de contrôle ou audio.",
+        "spanish": "Factor de calidad Q de 0,5 a 25; acepta tasas de inicialización, control o audio."
+      },
+      "kmode": {
+        "english": "0 = low-pass, 1 = high-pass, 2 = band-pass, 3 = unity-gain band-pass, 4 = notch, 5 = allpass, 6 = peak. Defaults to 0.",
+        "german": "0 = Tiefpass, 1 = Hochpass, 2 = Bandpass, 3 = Bandpass mit Einheitsverstärkung, 4 = Bandsperre, 5 = Allpass, 6 = Peak. Standard: 0.",
+        "french": "0 = passe-bas, 1 = passe-haut, 2 = passe-bande, 3 = passe-bande à gain unitaire, 4 = coupe-bande, 5 = passe-tout, 6 = pic. Valeur par défaut : 0.",
+        "spanish": "0 = paso bajo, 1 = paso alto, 2 = paso de banda, 3 = paso de banda con ganancia unitaria, 4 = rechazo de banda, 5 = paso todo, 6 = pico. Valor predeterminado: 0."
+      },
+      "istor": {
+        "english": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0.",
+        "german": "Anfangszustand des Filters: 0 löscht den internen Speicher, ein Wert ungleich 0 behält ihn bei. Standard: 0.",
+        "french": "État initial du filtre : 0 efface la mémoire interne ; une valeur non nulle la conserve. Valeur par défaut : 0.",
+        "spanish": "Estado inicial del filtro: 0 borra la memoria interna; un valor distinto de cero la conserva. Valor predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Filtered audio output.",
+        "german": "Gefilterte Audioausgabe.",
+        "french": "Sortie audio filtrée.",
+        "spanish": "Salida de audio filtrada."
+      }
+    }
+  },
+  "zdf_2pole_mode": {
+    "description": {
+      "english": "Two-pole zero-delay feedback filter with simultaneous low-pass, band-pass, and high-pass outputs.",
+      "german": "Zweipoliger Filter mit verzögerungsfreier Rückkopplung und gleichzeitigen Tiefpass-, Bandpass- und Hochpass-Ausgängen.",
+      "french": "Filtre à deux pôles avec rétroaction sans retard et sorties passe-bas, passe-bande et passe-haut simultanées.",
+      "spanish": "Filtro de dos polos con realimentación sin retardo y salidas simultáneas de paso bajo, paso de banda y paso alto."
+    },
+    "inputs": {
+      "ain": {
+        "english": "Audio input signal.",
+        "german": "Audioeingangssignal.",
+        "french": "Signal d'entrée audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "xcf": {
+        "english": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz.",
+        "german": "Grenzfrequenz in Hz; akzeptiert Init-, Kontroll- oder Audiorate. Der Editor beginnt bei 1200 Hz.",
+        "french": "Fréquence de coupure en Hz ; accepte les taux d’initialisation, de contrôle ou audio. Valeur initiale dans l’éditeur : 1200 Hz.",
+        "spanish": "Frecuencia de corte en Hz; acepta tasas de inicialización, control o audio. Valor inicial del editor: 1200 Hz."
+      },
+      "xq": {
+        "english": "Filter Q, from 0.5 to 25; accepts init, control, or audio rate.",
+        "german": "Filtergüte Q von 0,5 bis 25; akzeptiert Init-, Kontroll- oder Audiorate.",
+        "french": "Facteur de qualité Q, de 0,5 à 25 ; accepte les taux d’initialisation, de contrôle ou audio.",
+        "spanish": "Factor de calidad Q de 0,5 a 25; acepta tasas de inicialización, control o audio."
+      },
+      "istor": {
+        "english": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0.",
+        "german": "Anfangszustand des Filters: 0 löscht den internen Speicher, ein Wert ungleich 0 behält ihn bei. Standard: 0.",
+        "french": "État initial du filtre : 0 efface la mémoire interne ; une valeur non nulle la conserve. Valeur par défaut : 0.",
+        "spanish": "Estado inicial del filtro: 0 borra la memoria interna; un valor distinto de cero la conserva. Valor predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "alp": {
+        "english": "Low-pass audio output.",
+        "german": "Tiefpass-Audioausgabe.",
+        "french": "Sortie audio passe-bas.",
+        "spanish": "Salida de audio de paso bajo."
+      },
+      "abp": {
+        "english": "Band-pass audio output.",
+        "german": "Bandpass-Audioausgang.",
+        "french": "Sortie audio passe-bande.",
+        "spanish": "Salida de audio paso banda."
+      },
+      "ahp": {
+        "english": "High-pass audio output.",
+        "german": "Hochpass-Audioausgabe.",
+        "french": "Sortie audio passe-haut.",
+        "spanish": "Salida de audio de paso alto."
+      }
+    }
+  },
+  "zdf_ladder": {
+    "description": {
+      "english": "Four-pole zero-delay feedback Moog ladder low-pass filter.",
+      "german": "Vierpoliger Moog-Ladder-Tiefpass mit verzögerungsfreier Rückkopplung.",
+      "french": "Filtre passe-bas Moog en échelle à quatre pôles avec rétroaction sans retard.",
+      "spanish": "Filtro de paso bajo Moog en escalera de cuatro polos con realimentación sin retardo."
+    },
+    "inputs": {
+      "ain": {
+        "english": "Audio input signal.",
+        "german": "Audioeingangssignal.",
+        "french": "Signal d'entrée audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "xcf": {
+        "english": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz.",
+        "german": "Grenzfrequenz in Hz; akzeptiert Init-, Kontroll- oder Audiorate. Der Editor beginnt bei 1200 Hz.",
+        "french": "Fréquence de coupure en Hz ; accepte les taux d’initialisation, de contrôle ou audio. Valeur initiale dans l’éditeur : 1200 Hz.",
+        "spanish": "Frecuencia de corte en Hz; acepta tasas de inicialización, control o audio. Valor inicial del editor: 1200 Hz."
+      },
+      "xq": {
+        "english": "Filter Q, from 0.5 to 25; accepts init, control, or audio rate. Self-oscillation occurs at 25.",
+        "german": "Filtergüte Q von 0,5 bis 25; akzeptiert Init-, Kontroll- oder Audiorate. Bei 25 setzt Selbstoszillation ein.",
+        "french": "Facteur de qualité Q, de 0,5 à 25 ; accepte les taux d’initialisation, de contrôle ou audio. L’auto-oscillation apparaît à 25.",
+        "spanish": "Factor de calidad Q de 0,5 a 25; acepta tasas de inicialización, control o audio. A 25 se produce autooscilación."
+      },
+      "istor": {
+        "english": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0.",
+        "german": "Anfangszustand des Filters: 0 löscht den internen Speicher, ein Wert ungleich 0 behält ihn bei. Standard: 0.",
+        "french": "État initial du filtre : 0 efface la mémoire interne ; une valeur non nulle la conserve. Valeur par défaut : 0.",
+        "spanish": "Estado inicial del filtro: 0 borra la memoria interna; un valor distinto de cero la conserva. Valor predeterminado: 0."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Filtered audio output.",
+        "german": "Gefilterte Audioausgabe.",
+        "french": "Sortie audio filtrée.",
+        "spanish": "Salida de audio filtrada."
+      }
+    }
+  },
+  "zfilter2": {
+    "description": {
+      "english": "Custom IIR filter with control-rate pole damping and frequency warping.",
+      "german": "IIR-Filter mit eigenen Koeffizienten sowie Poldämpfung und Frequenzverformung mit Kontrollrate.",
+      "french": "Filtre IIR à coefficients personnalisés, avec amortissement et déplacement en fréquence des pôles à la fréquence de contrôle.",
+      "spanish": "Filtro IIR con coeficientes personalizados, amortiguación de polos y modificación de frecuencias a tasa de control."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Audio input signal.",
+        "german": "Audioeingangssignal.",
+        "french": "Signal d'entrée audio.",
+        "spanish": "Señal de entrada de audio."
+      },
+      "kdamp": {
+        "english": "Pole damping adjustment, between -1 and 1 (exclusive). Positive values lengthen ringing; negative values shorten it. Zero leaves pole radii unchanged.",
+        "german": "Änderung der Poldämpfung, strikt zwischen -1 und 1. Positive Werte verlängern das Nachschwingen, negative verkürzen es. 0 lässt die Polradien unverändert.",
+        "french": "Réglage de l’amortissement des pôles, strictement entre -1 et 1. Les valeurs positives prolongent la résonance ; les valeurs négatives la raccourcissent. 0 conserve les rayons des pôles.",
+        "spanish": "Ajuste de amortiguación de polos, estrictamente entre -1 y 1. Los valores positivos prolongan la resonancia; los negativos la acortan. 0 conserva los radios de los polos."
+      },
+      "kfreq": {
+        "english": "Pole frequency warp, between -1 and 1 (exclusive). Positive values raise frequencies; negative values lower them. Zero leaves frequencies unchanged.",
+        "german": "Polfrequenzverzerrung, zwischen -1 und 1 (exklusiv). Positive Werte erhöhen die Frequenz; negative Werte senken sie. Bei Null bleiben die Frequenzen unverändert.",
+        "french": "Déformation de fréquence des pôles, entre -1 et 1 (exclusif). Les valeurs positives augmentent les fréquences; les valeurs négatives les diminuent. Zéro laisse les fréquences inchangées.",
+        "spanish": "Deformación de frecuencia polar, entre -1 y 1 (exclusiva). Los valores positivos aumentan las frecuencias; los valores negativos los reducen. Zero deja las frecuencias sin cambios."
+      },
+      "im": {
+        "english": "Number of numerator coefficients including b0 (1 to 51), not the numerator polynomial degree.",
+        "german": "Anzahl der Zählerkoeffizienten einschließlich b0 (1 bis 51), nicht der Grad des Zählerpolynoms.",
+        "french": "Nombre de coefficients du numérateur incluant b0 (1 à 51), et non le degré polynomial du numérateur.",
+        "spanish": "Número de coeficientes del numerador, incluido b0 (1 a 51), no el grado del polinomio del numerador."
+      },
+      "in": {
+        "english": "Number of denominator coefficients a1 through aN (1 to 49 for compatibility with Csound 6). The leading denominator coefficient a0 is implicitly 1.",
+        "german": "Anzahl der Nennerkoeffizienten a1 bis aN (1 bis 49 für Kompatibilität mit Csound 6). Der führende Nennerkoeffizient a0 ist implizit 1.",
+        "french": "Nombre de coefficients dénominateurs a1 à aN (1 à 49 pour compatibilité avec Csound 6). Le coefficient du dénominateur principal a0 est implicitement 1.",
+        "spanish": "Número de coeficientes del denominador a1 a aN (de 1 a 49 para compatibilidad con Csound 6). El coeficiente del denominador principal a0 es implícitamente 1."
+      },
+      "icoeffs": {
+        "english": "Edit the inline comma-separated init-rate coefficient list: numerator coefficients b0 onward, then denominator coefficients a1 onward. Supply exactly NumeratorCount + DenominatorCount values. Alternatively, connect init-rate sources in coefficient order; these replace the entire inline list and are not summed. Combine formulas are not supported on this list input. Defaults form a stable second-order low-pass filter.",
+        "german": "Bearbeiten Sie die Koeffizienten direkt im Knoten als kommagetrennte Liste mit Init-Rate: zuerst alle Zählerkoeffizienten ab b0, danach alle Nennerkoeffizienten ab a1. Die Anzahl muss genau NumeratorCount + DenominatorCount betragen. Alternativ verbinden Sie Init-Rate-Quellen in Koeffizientenreihenfolge; diese ersetzen die gesamte Liste und werden nicht summiert. Kombinationsformeln sind für diesen Listeneingang nicht verfügbar. Die Vorgabe ergibt einen stabilen Tiefpass zweiter Ordnung.",
+        "french": "Modifiez directement dans le nœud la liste de coefficients au taux d’initialisation, séparés par des virgules : tous les coefficients du numérateur à partir de b0, puis ceux du dénominateur à partir de a1. Leur nombre doit être exactement NumeratorCount + DenominatorCount. Vous pouvez aussi connecter des sources au taux d’initialisation dans l’ordre des coefficients ; elles remplacent toute la liste et ne sont pas additionnées. Les formules de combinaison ne sont pas disponibles sur cette entrée de liste. Les valeurs par défaut donnent un filtre passe-bas stable du second ordre.",
+        "spanish": "Edite en el nodo la lista de coeficientes a tasa de inicialización separados por comas: todos los coeficientes del numerador desde b0, seguidos de los del denominador desde a1. La cantidad debe ser exactamente NumeratorCount + DenominatorCount. También puede conectar fuentes a tasa de inicialización en el orden de los coeficientes; reemplazan toda la lista y no se suman. Esta entrada de lista no admite fórmulas de combinación. Los valores predeterminados forman un filtro de paso bajo estable de segundo orden."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Filtered audio output.",
+        "german": "Gefilterte Audioausgabe.",
+        "french": "Sortie audio filtrée.",
+        "spanish": "Salida de audio filtrada."
+      }
+    }
   }
 }

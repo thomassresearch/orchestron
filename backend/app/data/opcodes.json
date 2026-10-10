@@ -3491,6 +3491,490 @@
     "icon_filename": "moogladder.svg"
   },
   {
+    "name": "zdf_1pole",
+    "category": "filter",
+    "description": "One-pole zero-delay feedback filter with selectable low-pass, high-pass, or allpass output.",
+    "documentation_markdown": "### `zdf_1pole`\n\nOne-pole zero-delay feedback filter with selectable low-pass, high-pass, or allpass output.\n\n**Reference**\n- [Csound manual](https://csound.com/docs/manual/zdf_1pole.html)",
+    "documentation_url": "https://csound.com/docs/manual/zdf_1pole.html",
+    "inputs": [
+      {
+        "id": "ain",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio input signal."
+      },
+      {
+        "id": "xcf",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1200,
+        "description": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz."
+      },
+      {
+        "id": "kmode",
+        "name": "Mode",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 0,
+        "description": "0 = low-pass, 1 = high-pass, 2 = allpass. Defaults to 0."
+      },
+      {
+        "id": "istor",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Filtered audio output."
+      }
+    ],
+    "template": "{aout} zdf_1pole {ain}, {xcf}, {kmode}, {istor}",
+    "tags": [
+      "filter",
+      "zdf",
+      "zero-delay",
+      "lowpass",
+      "highpass",
+      "multimode"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "zdf_1pole_mode",
+    "category": "filter",
+    "description": "One-pole zero-delay feedback filter with simultaneous low-pass and high-pass outputs.",
+    "documentation_markdown": "### `zdf_1pole_mode`\n\nOne-pole zero-delay feedback filter with simultaneous low-pass and high-pass outputs.\n\n**Reference**\n- [Csound manual](https://csound.com/docs/manual/zdf_1pole_mode.html)",
+    "documentation_url": "https://csound.com/docs/manual/zdf_1pole_mode.html",
+    "inputs": [
+      {
+        "id": "ain",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio input signal."
+      },
+      {
+        "id": "xcf",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1200,
+        "description": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz."
+      },
+      {
+        "id": "istor",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "alp",
+        "name": "aLP",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Low-pass audio output."
+      },
+      {
+        "id": "ahp",
+        "name": "aHP",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "High-pass audio output."
+      }
+    ],
+    "template": "{alp}, {ahp} zdf_1pole_mode {ain}, {xcf}, {istor}",
+    "tags": [
+      "filter",
+      "zdf",
+      "zero-delay",
+      "lowpass",
+      "highpass",
+      "multimode"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "zdf_2pole",
+    "category": "filter",
+    "description": "Two-pole zero-delay feedback filter with seven selectable response modes.",
+    "documentation_markdown": "### `zdf_2pole`\n\nTwo-pole zero-delay feedback filter with seven selectable response modes.\n\n**Reference**\n- [Csound manual](https://csound.com/docs/manual/zdf_2pole.html)",
+    "documentation_url": "https://csound.com/docs/manual/zdf_2pole.html",
+    "inputs": [
+      {
+        "id": "ain",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio input signal."
+      },
+      {
+        "id": "xcf",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1200,
+        "description": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz."
+      },
+      {
+        "id": "xq",
+        "name": "Q",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Filter Q, from 0.5 to 25; accepts init, control, or audio rate."
+      },
+      {
+        "id": "kmode",
+        "name": "Mode",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 0,
+        "description": "0 = low-pass, 1 = high-pass, 2 = band-pass, 3 = unity-gain band-pass, 4 = notch, 5 = allpass, 6 = peak. Defaults to 0."
+      },
+      {
+        "id": "istor",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Filtered audio output."
+      }
+    ],
+    "template": "{aout} zdf_2pole {ain}, {xcf}, {xq}, {kmode}, {istor}",
+    "tags": [
+      "filter",
+      "zdf",
+      "zero-delay",
+      "lowpass",
+      "highpass",
+      "multimode"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "zdf_2pole_mode",
+    "category": "filter",
+    "description": "Two-pole zero-delay feedback filter with simultaneous low-pass, band-pass, and high-pass outputs.",
+    "documentation_markdown": "### `zdf_2pole_mode`\n\nTwo-pole zero-delay feedback filter with simultaneous low-pass, band-pass, and high-pass outputs.\n\n**Reference**\n- [Csound manual](https://csound.com/docs/manual/zdf_2pole_mode.html)",
+    "documentation_url": "https://csound.com/docs/manual/zdf_2pole_mode.html",
+    "inputs": [
+      {
+        "id": "ain",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio input signal."
+      },
+      {
+        "id": "xcf",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1200,
+        "description": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz."
+      },
+      {
+        "id": "xq",
+        "name": "Q",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Filter Q, from 0.5 to 25; accepts init, control, or audio rate."
+      },
+      {
+        "id": "istor",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "alp",
+        "name": "aLP",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Low-pass audio output."
+      },
+      {
+        "id": "abp",
+        "name": "aBP",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Band-pass audio output."
+      },
+      {
+        "id": "ahp",
+        "name": "aHP",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "High-pass audio output."
+      }
+    ],
+    "template": "{alp}, {abp}, {ahp} zdf_2pole_mode {ain}, {xcf}, {xq}, {istor}",
+    "tags": [
+      "filter",
+      "zdf",
+      "zero-delay",
+      "lowpass",
+      "highpass",
+      "multimode"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "zdf_ladder",
+    "category": "filter",
+    "description": "Four-pole zero-delay feedback Moog ladder low-pass filter.",
+    "documentation_markdown": "### `zdf_ladder`\n\nFour-pole zero-delay feedback Moog ladder low-pass filter.\n\n**Reference**\n- [Csound manual](https://csound.com/docs/manual/zdf_ladder.html)",
+    "documentation_url": "https://csound.com/docs/manual/zdf_ladder.html",
+    "inputs": [
+      {
+        "id": "ain",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio input signal."
+      },
+      {
+        "id": "xcf",
+        "name": "Cutoff",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1200,
+        "description": "Cutoff frequency in Hz; accepts init, control, or audio rate. The editor starts at 1200 Hz."
+      },
+      {
+        "id": "xq",
+        "name": "Q",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Filter Q, from 0.5 to 25; accepts init, control, or audio rate. Self-oscillation occurs at 25."
+      },
+      {
+        "id": "istor",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial filter state: 0 clears the internal memory; nonzero retains it. Defaults to 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Filtered audio output."
+      }
+    ],
+    "template": "{aout} zdf_ladder {ain}, {xcf}, {xq}, {istor}",
+    "tags": [
+      "filter",
+      "zdf",
+      "zero-delay",
+      "lowpass",
+      "ladder",
+      "moog"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "zfilter2",
+    "category": "filter",
+    "description": "Custom IIR filter with control-rate pole damping and frequency warping.",
+    "documentation_markdown": "### `zfilter2`\n\nCustom IIR filter with control-rate pole damping and frequency warping.\n\n**Reference**\n- [Csound manual](https://csound.com/docs/manual/zfilter2.html)",
+    "documentation_url": "https://csound.com/docs/manual/zfilter2.html",
+    "inputs": [
+      {
+        "id": "asig",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio input signal."
+      },
+      {
+        "id": "kdamp",
+        "name": "Damping",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0,
+        "description": "Pole damping adjustment, between -1 and 1 (exclusive). Positive values lengthen ringing; negative values shorten it. Zero leaves pole radii unchanged."
+      },
+      {
+        "id": "kfreq",
+        "name": "Warp",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0,
+        "description": "Pole frequency warp, between -1 and 1 (exclusive). Positive values raise frequencies; negative values lower them. Zero leaves frequencies unchanged."
+      },
+      {
+        "id": "im",
+        "name": "NumeratorCount",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 3,
+        "description": "Number of numerator coefficients including b0 (1 to 51), not the numerator polynomial degree."
+      },
+      {
+        "id": "in",
+        "name": "DenominatorCount",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 2,
+        "description": "Number of denominator coefficients a1 through aN (1 to 49 for compatibility with Csound 6). The leading denominator coefficient a0 is implicitly 1."
+      },
+      {
+        "id": "icoeffs",
+        "name": "Coefficients",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": "0.06745527, 0.13491055, 0.06745527, -1.1429805, 0.4128016",
+        "description": "Edit the inline comma-separated init-rate coefficient list: numerator coefficients b0 onward, then denominator coefficients a1 onward. Supply exactly NumeratorCount + DenominatorCount values. Alternatively, connect init-rate sources in coefficient order; these replace the entire inline list and are not summed. Combine formulas are not supported on this list input. Defaults form a stable second-order low-pass filter."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Filtered audio output."
+      }
+    ],
+    "template": "{aout} zfilter2 {asig}, {kdamp}, {kfreq}, {im}, {in}, {icoeffs}",
+    "tags": [
+      "filter",
+      "iir",
+      "coefficients",
+      "pole",
+      "warp"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
     "name": "tbvcf",
     "category": "filter",
     "description": "TB-303 style voltage-controlled filter model.",

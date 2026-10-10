@@ -48,6 +48,61 @@ from backend.app.services.sequencer_timing_migration import migrate_sequencer_ti
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
+def test_opcodes_include_zdf_and_zfilter_manual_signatures(tmp_path: Path) -> None:
+    expected = {
+        "zdf_1pole": (["ain", "xcf", "kmode", "istor"], ["aout"]),
+        "zdf_1pole_mode": (["ain", "xcf", "istor"], ["alp", "ahp"]),
+        "zdf_2pole": (["ain", "xcf", "xq", "kmode", "istor"], ["aout"]),
+        "zdf_2pole_mode": (["ain", "xcf", "xq", "istor"], ["alp", "abp", "ahp"]),
+        "zdf_ladder": (["ain", "xcf", "xq", "istor"], ["aout"]),
+        "zfilter2": (["asig", "kdamp", "kfreq", "im", "in", "icoeffs"], ["aout"]),
+    }
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes?category=filter")
+        assert response.status_code == 200
+        by_name = {item["name"]: item for item in response.json()}
+        for name, (inputs, outputs) in expected.items():
+            opcode = by_name[name]
+            assert client.get(f"/api/opcodes/{name}").json() == opcode
+            assert opcode["category"] == "filter"
+            assert opcode["documentation_url"] == f"https://csound.com/docs/manual/{name}.html"
+            assert opcode["documentation_url"] in opcode["documentation_markdown"]
+            assert [p["id"] for p in opcode["inputs"]] == inputs
+            assert [(p["id"], p["signal_type"]) for p in opcode["outputs"]] == [(p, "a") for p in outputs]
+            assert opcode["inputs"][0]["signal_type"] == "a"
+            assert opcode["inputs"][0]["default"] is None
+            for port in opcode["inputs"][1:]:
+                assert port["signal_type"] == ("k" if port["id"].startswith(("k", "x")) else "i")
+                assert port["required"] is (port["id"] not in {"kmode", "istor"})
+                if port["id"] in {"xcf", "xq"}:
+                    assert port["accepted_signal_types"] == ["a", "k", "i"]
+                    assert port["default"] == (1200 if port["id"] == "xcf" else 1)
+                elif port["id"] in {"kmode", "kdamp", "kfreq"}:
+                    assert port["accepted_signal_types"] == ["k", "i"]
+                    assert port["default"] == 0
+                elif port["id"] == "istor":
+                    assert port["default"] == 0
+            if name == "zfilter2":
+                assert [p["default"] for p in opcode["inputs"][3:5]] == [3, 2]
+                assert len(opcode["inputs"][5]["default"].split(",")) == 5
+
+
+def test_zfilter_opcode_compile_rejects_mismatched_coefficients(tmp_path: Path) -> None:
+    payload = _minimal_patch_payload()
+    payload["graph"]["nodes"].append({
+        "id": "filter", "opcode": "zfilter2", "params": {"asig": 0, "icoeffs": "1, -0.5"},
+    })
+    payload["graph"]["nodes"].append({"id": "out", "opcode": "outs", "params": {"left": 0, "right": 0}})
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=payload)
+        assert patch.status_code == 201
+        session = client.post("/api/sessions", json={"patch_id": patch.json()["id"]})
+        assert session.status_code == 201
+        response = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
+        assert response.status_code == 422
+        assert "coefficient count (2)" in response.text
+
+
 def test_opcodes_include_atone_filters_with_manual_signatures(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         response = client.get("/api/opcodes")

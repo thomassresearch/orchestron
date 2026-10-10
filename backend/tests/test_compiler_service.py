@@ -587,6 +587,118 @@ def test_atone_connected_inputs_enforce_manual_rates(
     assert f"{source_rate}_mod_{source_rate}out_1" in line
 
 
+
+def _zdf_filter_patch(name: str, params: dict | None = None) -> PatchDocument:
+    spec = OpcodeService(icon_prefix="/static/icons").get_opcode(name)
+    assert spec is not None
+    return PatchDocument(name=f"{name} test", graph=PatchGraph(
+        nodes=[NodeInstance(id="source", opcode="vco2"),
+               NodeInstance(id="filter", opcode=name, params=params or {}),
+               NodeInstance(id="out", opcode="outs")],
+        connections=[Connection(from_node_id="source", from_port_id="asig",
+                                to_node_id="filter", to_port_id=spec.inputs[0].id),
+                     *[Connection(from_node_id="filter", from_port_id=port.id,
+                                  to_node_id="out", to_port_id="left" if index == 0 else "right")
+                       for index, port in enumerate(spec.outputs)],
+                     Connection(from_node_id="filter", from_port_id=spec.outputs[0].id,
+                                to_node_id="out", to_port_id="right")],
+    ))
+
+
+@pytest.mark.parametrize(("name", "params", "outputs", "tail"), [
+    ("zdf_1pole", {}, ["aout"], "1200, 0, 0"),
+    ("zdf_1pole", {"istor": 1}, ["aout"], "1200, 0, 1"),
+    ("zdf_1pole", {"kmode": 2}, ["aout"], "1200, 2, 0"),
+    ("zdf_1pole_mode", {}, ["alp", "ahp"], "1200, 0"),
+    ("zdf_1pole_mode", {"istor": 1}, ["alp", "ahp"], "1200, 1"),
+    ("zdf_2pole", {}, ["aout"], "1200, 1, 0, 0"),
+    ("zdf_2pole", {"istor": 1}, ["aout"], "1200, 1, 0, 1"),
+    ("zdf_2pole", {"xcf": 2400, "xq": 4, "kmode": 6}, ["aout"], "2400, 4, 6, 0"),
+    ("zdf_2pole_mode", {}, ["alp", "abp", "ahp"], "1200, 1, 0"),
+    ("zdf_2pole_mode", {"istor": 1}, ["alp", "abp", "ahp"], "1200, 1, 1"),
+    ("zdf_ladder", {}, ["aout"], "1200, 1, 0"),
+    ("zdf_ladder", {"xcf": 800, "xq": 2, "istor": 1}, ["aout"], "800, 2, 1"),
+    ("zfilter2", {}, ["aout"], "0, 0, 3, 2, 0.06745527, 0.13491055, 0.06745527, -1.1429805, 0.4128016"),
+    ("zfilter2", {"im": 1, "in": 1, "icoeffs": "0.5, -0.5", "kdamp": 0.1, "kfreq": -0.2},
+     ["aout"], "0.1, -0.2, 1, 1, 0.5, -0.5"),
+    ("zfilter2", {"im": 1, "in": 1, "icoeffs": "(1 / 2), -(1 / 2)"},
+     ["aout"], "0, 0, 1, 1, (1 / 2), -(1 / 2)"),
+])
+def test_zdf_and_zfilter_compile_argument_output_order(name, params, outputs, tail) -> None:
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        _zdf_filter_patch(name, params), midi_input="0", rtmidi_module="alsaseq",
+    )
+    output_vars = ", ".join(f"a_filter_{port}_{index + 2}" for index, port in enumerate(outputs))
+    assert f"{output_vars} {name} a_source_asig_1, {tail}" in artifact.orc
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+
+
+@pytest.mark.parametrize("source_rate", ["a", "k", "i", "S"])
+@pytest.mark.parametrize(("name", "port", "accepted"), [
+    (name, port, rates)
+    for name in ("zdf_1pole", "zdf_1pole_mode", "zdf_2pole", "zdf_2pole_mode", "zdf_ladder")
+    for port, rates in [
+        ("ain", "a"), ("xcf", "aki"), ("istor", "i"),
+        *([("xq", "aki")] if name in {"zdf_2pole", "zdf_2pole_mode", "zdf_ladder"} else []),
+        *([("kmode", "ki")] if name in {"zdf_1pole", "zdf_2pole"} else []),
+    ]
+] + [("zfilter2", port, rates) for port, rates in [
+    ("asig", "a"), ("kdamp", "ki"), ("kfreq", "ki"), ("im", "i"), ("in", "i"), ("icoeffs", "i"),
+]])
+def test_zdf_and_zfilter_connected_rates(name, port, accepted, source_rate) -> None:
+    patch = _zdf_filter_patch(name)
+    patch.graph.nodes.insert(0, NodeInstance(id="mod", opcode=f"const_{source_rate.lower()}",
+                                           params={"value": "signal" if source_rate == "S" else 1}))
+    patch.graph.connections = [c for c in patch.graph.connections if (c.to_node_id, c.to_port_id) != ("filter", port)]
+    patch.graph.connections.append(Connection(from_node_id="mod", from_port_id=f"{source_rate.lower()}out",
+                                              to_node_id="filter", to_port_id=port))
+    compiler = CompilerService(OpcodeService("/static/icons"))
+    if source_rate not in accepted:
+        with pytest.raises(CompilationError) as error:
+            compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+        assert any("Signal type mismatch" in item for item in error.value.diagnostics)
+    elif port == "icoeffs":
+        # A single scalar source cannot fill the default five-coefficient filter.
+        with pytest.raises(CompilationError) as error:
+            compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+        assert any("coefficient count" in item for item in error.value.diagnostics)
+    else:
+        artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+        assert f"{source_rate}_mod_{source_rate.lower()}out_1" in artifact.orc
+
+
+@pytest.mark.parametrize("params", [
+    {"im": 0}, {"im": 52}, {"im": 1.5}, {"in": 0}, {"in": 50}, {"in": -1},
+    {"icoeffs": "1, 2"}, {"icoeffs": ""}, {"icoeffs": "1,,2"},
+    {"icoeffs": "1,"}, {"icoeffs": "1; exitnow, 2"}, {"icoeffs": "1\nouts 1, 1"},
+    {"im": 1, "in": 2, "icoeffs": "max(1, 2), -0.5"},
+    {"im": 1, "in": 1, "icoeffs": "(1, -0.5"},
+    {"im": 1, "in": 1, "icoeffs": "1)+(2, -0.5"},
+    {"icoeffs": ",".join(["0"] * 101)},
+])
+def test_zfilter2_rejects_invalid_coefficient_layout(params) -> None:
+    with pytest.raises(CompilationError):
+        CompilerService(OpcodeService("/static/icons")).compile_patch(
+            _zdf_filter_patch("zfilter2", params), midi_input="0", rtmidi_module="alsaseq",
+        )
+
+
+def test_zfilter2_preserves_ordered_connected_coefficients_and_guards_dynamic_counts() -> None:
+    patch = _zdf_filter_patch("zfilter2", {"im": 1, "in": 1})
+    for id, value, port in [("numerator", 1, "im"), ("b0", 0.5, "icoeffs"), ("a1", -0.5, "icoeffs")]:
+        patch.graph.nodes.insert(0, NodeInstance(id=id, opcode="const_i", params={"value": value}))
+        patch.graph.connections.append(Connection(from_node_id=id, from_port_id="iout", to_node_id="filter", to_port_id=port))
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if " zfilter2 " in line)
+    assert line.endswith("i_numerator_iout_3, 1, i_b0_iout_2, i_a1_iout_1")
+    assert "== 2 then" in artifact.orc
+    assert "voice stopped" in artifact.orc
+    patch.graph.ui_layout = {"input_formulas": {"filter::icoeffs": {"expression": "in1 + in2"}}}
+    with pytest.raises(CompilationError) as error:
+        CompilerService(OpcodeService("/static/icons")).compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    assert any("ordered connections" in item for item in error.value.diagnostics)
+
+
 def _stk_patch(name: str, params: dict | None = None) -> PatchDocument:
     return PatchDocument(
         name=f"{name} compile test",
