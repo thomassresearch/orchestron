@@ -125,4 +125,4 @@ Drummer cells can additionally carry `ratchets` (1–8, default 1) and `ratchetE
 
 ## Melodic strumming compatibility (v19)
 
-Melodic steps may store `strumDirection` (`off`, `up`, `down`) and integer `strumSpreadPercent` (0–100). Normalization validates and preserves them, including on inactive steps; runtime conversion sends `strum_direction` and `strum_spread_percent`, defaulting to off/0. Timing shifts the whole gesture. Spread measures the first-to-last attack interval as a percentage of one local grid step; 100% reaches the next step. Each note keeps its duration, including HOLD, and may overlap later steps. MIDI/SCORE exports use the shared scheduler. The existing CLI does not add strum-specific authoring commands.
+Use `edit strum list|set|reset`, score `step_strum`, or inline event/progression fields to author melodic strumming. Timing shifts the whole gesture; spread measures the first-to-last attack interval as 0–100% of one local grid step. Each note keeps its duration, including HOLD, and may overlap later steps. See [melodic strumming](step_strum.md) for commands, score examples, persistence and runtime behavior.

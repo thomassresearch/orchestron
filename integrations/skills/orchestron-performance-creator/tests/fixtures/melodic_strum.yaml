@@ -1,0 +1,41 @@
+version: 1
+title: Strummed chord variations
+tempo: 120
+key: C
+mode: ionian
+tracks:
+  - type: melodic
+    channel: 2
+    pad: 2
+    step_strum:
+      - at_step: 4
+        strum_direction: down
+        strum_spread_percent: 100
+    pads:
+      - pad: 2
+        steps: "s0=C3:maj/4s s4=F3:min7/4s"
+        step_timing:
+          - at_step: 4
+            timing_offset_percent: -20
+        step_strum:
+          - at_step: 0
+            strum_direction: up
+            strum_spread_percent: 40
+      - pad: 3
+        progression:
+          - Imaj7
+          - roman: IV7
+            strum_direction: down
+            strum_spread_percent: 75
+        step_strum:
+          - at_step: 8
+            strum_direction: up
+            strum_spread_percent: 100
+      - pad: 4
+        events:
+          - root: G3
+            chord: dom7
+            duration_steps: 2
+            timing_offset_percent: 25
+            strum_direction: up
+            strum_spread_percent: 100

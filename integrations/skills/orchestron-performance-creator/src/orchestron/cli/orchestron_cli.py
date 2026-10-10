@@ -3419,6 +3419,21 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
         if not isinstance(track_spec, dict):
             raise OrchestronCliError("invalid_score_spec", "track entries must be objects.", path=f"tracks[{index}]")
         track_type = str(track_spec.get("type", "melodic"))
+        for definition, _, source in score_pad_sources(track_spec, field=f"tracks[{index}]"):
+            for name in ("strum_direction", "strum_spread_percent"):
+                if name in definition:
+                    raise OrchestronCliError("invalid_step_strum", "Use step_strum for track/pad strumming assignments.",
+                                             path=f"{source}.{name}")
+            if track_type != "melodic":
+                if "step_strum" in definition:
+                    raise OrchestronCliError("unsupported_strum_track", "step_strum requires a melodic track.",
+                                             path=f"{source}.step_strum")
+                for collection in ("events", "progression"):
+                    material = definition.get(collection)
+                    for entry_index, entry in enumerate(material if isinstance(material, list) else []):
+                        if isinstance(entry, dict) and {"strum_direction", "strum_spread_percent"} & entry.keys():
+                            raise OrchestronCliError("unsupported_strum_track", "Strumming requires a melodic track.",
+                                                     path=f"{source}.{collection}[{entry_index}]")
         if track_type != "drummer":
             for definition, _, source in score_pad_sources(track_spec, field=f"tracks[{index}]"):
                 if "step_ratchets" in definition:
@@ -3511,6 +3526,8 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
             apply_score_step_timing(created[-1], track_type, track_spec, field=f"tracks[{index}]")
         if track_type == "drummer":
             apply_score_step_ratchets(created[-1], track_spec, field=f"tracks[{index}]")
+        if track_type == "melodic":
+            apply_score_step_strum(created[-1], track_spec, field=f"tracks[{index}]")
     return created
 
 
@@ -3597,12 +3614,16 @@ def set_step_timing_targets(track: dict[str, Any], kind: str, targets: list, per
             track["steps"] = copy.deepcopy(cells)
 
 
-def step_timing_result(config: dict[str, Any], track: dict[str, Any], kind: str, targets: list) -> dict[str, Any]:
+def local_step_milliseconds(config: dict[str, Any], track: dict[str, Any]) -> float:
     sequencer = config.get("sequencer", {})
     global_timing = timing_to_runtime(sequencer.get("timing") or default_timing())
     local = timing_to_runtime(track.get("timing") or sequencer.get("timing") or default_timing())
     # Tempo is global, whereas subdivision and beat ratio belong to the device.
-    step_ms = 60000 / global_timing["tempo_bpm"] * 4 / local["meter_denominator"] / local["steps_per_beat"] * local["beat_rate_denominator"] / local["beat_rate_numerator"]
+    return 60000 / global_timing["tempo_bpm"] * 4 / local["meter_denominator"] / local["steps_per_beat"] * local["beat_rate_denominator"] / local["beat_rate_numerator"]
+
+
+def step_timing_result(config: dict[str, Any], track: dict[str, Any], kind: str, targets: list) -> dict[str, Any]:
+    step_ms = local_step_milliseconds(config, track)
     result = []
     for metadata, cells, index in targets:
         cell = timing_cell(cells[index], kind)
@@ -3663,6 +3684,88 @@ def apply_score_step_timing(track: dict[str, Any], kind: str, spec: dict[str, An
             changes.append((targets, percent))
     for targets, percent in changes:
         set_step_timing_targets(track, kind, targets, percent)
+
+
+def strum_integer(value: Any, low: int, high: int, *, field: str, cli: bool = False) -> int:
+    if cli and isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value):
+        value = int(value)
+    if type(value) is not int or not low <= value <= high:
+        raise OrchestronCliError("invalid_step_strum", f"{field} must be an integer from {low} through {high}.",
+                                 path=field, retry=["Use whole percentages in 0..100 and an existing zero-based step."])
+    return value
+
+
+def strum_direction(value: Any, *, field: str) -> str:
+    if value not in ("off", "up", "down"):
+        raise OrchestronCliError("invalid_step_strum", "Strum direction must be off, up or down.", path=field,
+                                 retry=["Use up for low-to-high, down for high-to-low, or off to disable strumming."])
+    return value
+
+
+def set_step_strum_targets(track: dict[str, Any], targets: list, values: dict[str, Any]) -> None:
+    for metadata, cells, index in targets:
+        cells[index] = {**timing_cell(cells[index], "melodic"), **values}
+        if metadata["pad"] - 1 == track.get("activePad", 0) and "steps" in track:
+            track["steps"] = copy.deepcopy(cells)
+
+
+def step_strum_result(config: dict[str, Any], track: dict[str, Any], targets: list) -> dict[str, Any]:
+    result = step_timing_result(config, track, "melodic", targets)
+    step_ms = local_step_milliseconds(config, track)
+    for row, (_, cells, index) in zip(result["steps"], targets):
+        cell = timing_cell(cells[index], "melodic")
+        direction = strum_direction(cell.get("strumDirection", "off"), field="strumDirection")
+        spread = strum_integer(cell.get("strumSpreadPercent", 0), 0, 100, field="strumSpreadPercent")
+        notes = chord_notes(cell.get("note"), cell.get("chord", "none"))
+        row.update(strumDirection=direction, strumSpreadPercent=spread,
+                   strumSpreadMilliseconds=round(spread / 100 * step_ms, 6),
+                   strumActive=isinstance(notes, list) and direction != "off" and spread > 0 and cell.get("velocity", 100) > 0)
+    return result
+
+
+def apply_score_step_strum(track: dict[str, Any], spec: dict[str, Any], *, field: str) -> None:
+    """Resolve explicit and inline assignments before changing generated notes."""
+    changes = []
+    seen = set()
+    names = {"strum_direction", "strum_spread_percent"}
+    for definition, pad_index, source in score_pad_sources(spec, field=field):
+        entries = definition.get("step_strum", [])
+        if not isinstance(entries, list):
+            raise OrchestronCliError("invalid_step_strum", "step_strum must be a list.", path=f"{source}.step_strum")
+        assignments = [(entry, f"{source}.step_strum[{index}]") for index, entry in enumerate(entries)]
+        selected = None if isinstance(definition.get("steps"), (str, list)) else "events" if isinstance(definition.get("events"), list) else "progression"
+        for collection in ("events", "progression"):
+            cursor = 0
+            material = definition.get(collection)
+            for index, entry in enumerate(material if isinstance(material, list) else []):
+                default_duration = definition.get("length_beats", spec.get("length_beats", 4))
+                at = entry.get("at_step", cursor if collection == "progression" else 0) if isinstance(entry, dict) else cursor
+                duration = entry.get("duration_steps", default_duration) if isinstance(entry, dict) else default_duration
+                if isinstance(entry, dict) and names & entry.keys():
+                    path = f"{source}.{collection}[{index}]"
+                    if selected != collection:
+                        raise OrchestronCliError("unused_event_strum", "Strumming is attached to unused musical material.", path=path)
+                    assignments.append(({"at_step": at, **{name: entry[name] for name in names if name in entry}}, path))
+                if collection == "progression":
+                    cursor = clamp_int(at, 0, MAX_STEPS_PER_PAD - 1, field=source) + clamp_int(duration, 1, MAX_STEPS_PER_PAD, field=source)
+        for entry, path in assignments:
+            if not isinstance(entry, dict) or set(entry) - (names | {"at_step"}) or not names & entry.keys():
+                raise OrchestronCliError("invalid_step_strum",
+                                         "Strum entries require at_step and strum_direction and/or strum_spread_percent.", path=path)
+            at = strum_integer(entry.get("at_step"), 0, MAX_STEPS_PER_PAD - 1, field=f"{path}.at_step")
+            values = {}
+            if "strum_direction" in entry:
+                values["strumDirection"] = strum_direction(entry["strum_direction"], field=f"{path}.strum_direction")
+            if "strum_spread_percent" in entry:
+                values["strumSpreadPercent"] = strum_integer(entry["strum_spread_percent"], 0, 100, field=f"{path}.strum_spread_percent")
+            targets = step_timing_targets(track, "melodic", pad_index, [at], editing=True, field=path)
+            identity = (pad_index, at)
+            if identity in seen:
+                raise OrchestronCliError("duplicate_step_strum", "Strumming is assigned more than once to the same step.", path=path)
+            seen.add(identity)
+            changes.append((targets, values))
+    for targets, values in changes:
+        set_step_strum_targets(track, targets, values)
 
 
 def ratchet_integer(value: Any, low: int, high: int, *, field: str, cli: bool = False) -> int:
@@ -4373,6 +4476,36 @@ def command_edit_step_timing(args: argparse.Namespace, ctx: CliContext) -> None:
         result = update_session_config(ctx, operation)
     else:
         result = operation(load_edit_session(ctx.session_file).get("config", {}))
+    print_payload(result, ctx)
+
+
+def command_edit_strum(args: argparse.Namespace, ctx: CliContext) -> None:
+    editing = args.strum_command != "list"
+    pad_index = parse_user_pad_index(args.pad, field="pad")
+    steps = [strum_integer(step, 0, MAX_STEPS_PER_PAD - 1, field="step", cli=True) for step in args.step] if args.step else None
+    values = {}
+    if args.strum_command == "reset":
+        values = {"strumDirection": "off", "strumSpreadPercent": 0}
+    elif args.strum_command == "set":
+        if args.direction is not None:
+            values["strumDirection"] = strum_direction(args.direction, field="direction")
+        if args.spread is not None:
+            values["strumSpreadPercent"] = strum_integer(args.spread, 0, 100, field="spread", cli=True)
+        if not values:
+            raise OrchestronCliError("missing_strum_setting", "Specify --direction and/or --spread.", path="strum",
+                                     retry=["Use --direction up --spread 40, or reset to restore off/0."])
+
+    def operation(config: dict[str, Any]) -> dict[str, Any]:
+        kind, track = timing_track(config, args.track)
+        if kind != "melodic":
+            raise OrchestronCliError("unsupported_strum_track", "Strum commands require a melodic track.", path="track",
+                                     retry=["Run `edit sequencers list` and select a melodic track ID."])
+        targets = step_timing_targets(track, kind, pad_index, steps, editing=editing, field="step_strum")
+        if editing:
+            set_step_strum_targets(track, targets, values)
+        return step_strum_result(config, track, targets)
+
+    result = update_session_config(ctx, operation) if editing else operation(load_edit_session(ctx.session_file).get("config", {}))
     print_payload(result, ctx)
 
 
@@ -5264,6 +5397,19 @@ def build_parser() -> argparse.ArgumentParser:
         if action == "set":
             timing_parser.add_argument("--percent", required=True, help="Whole percentage of a local step, -50..50; negative is early.")
         timing_parser.set_defaults(func=command_edit_step_timing)
+    strum = edit_sub.add_parser("strum", help="Inspect, set or reset melodic chord strumming.")
+    strum_sub = strum.add_subparsers(dest="strum_command", required=True)
+    for action in ("list", "set", "reset"):
+        strum_parser = strum_sub.add_parser(action, help={"list": "Inspect direction, spread, milliseconds and activation.",
+                                                        "set": "Set direction and/or spread without changing notes.",
+                                                        "reset": "Restore simultaneous chords: off and 0%% spread."}[action])
+        strum_parser.add_argument("--track", required=True, help="Exact melodic track ID from edit sequencers list.")
+        strum_parser.add_argument("--pad", required=True, help="Pattern pad, 1..8 or P1..P8.")
+        strum_parser.add_argument("--step", action="append", required=action != "list", help="Zero-based step index; repeat to select several. List defaults to all visible steps.")
+        if action == "set":
+            strum_parser.add_argument("--direction", help="off, up (low to high), or down (high to low). Omit to retain the setting.")
+            strum_parser.add_argument("--spread", "--spread-percent", help="Integer first-to-last spacing, 0..100%% of one local step. Omit to retain the setting.")
+        strum_parser.set_defaults(func=command_edit_strum)
     ratchets = edit_sub.add_parser("ratchets", help="Inspect, set or reset drummer rolls and velocity ramps.")
     ratchet_sub = ratchets.add_subparsers(dest="ratchet_command", required=True)
     for action in ("list", "set", "reset"):

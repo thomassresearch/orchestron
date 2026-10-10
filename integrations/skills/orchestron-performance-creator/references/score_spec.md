@@ -46,6 +46,8 @@ uv run orchestron_cli --json edit apply-score path/to/score.yaml
 
 For early/late placement, see [per-note timing](step_timing.md): melodic `events` and object-form `progression` entries accept `timing_offset_percent`; melodic/drummer tracks and pads accept `step_timing` lists. Values are integer percentages from −50 to +50. These additions retain score-spec version 1.
 
+For strummed chords, melodic `events` and object-form `progression` entries accept `strum_direction` (`"off"`, `up`, `down`) and `strum_spread_percent` (integer 0–100). Tracks and pads can instead use `step_strum` lists with `at_step` and either or both settings. Spread measures the first-to-last attack interval as a percentage of one local grid step; each note retains its full duration. See [melodic strumming](step_strum.md) for examples, targeting, inactive settings and validation. Quote `"off"` in YAML to avoid boolean conversion. Score-spec version remains 1.
+
 Melodic explicit events:
 
 ```yaml

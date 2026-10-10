@@ -1,6 +1,6 @@
 ---
 name: orchestron-performance-creator
-description: Create, edit, import, validate, save, and live-test Orchestron performances through orchestron_cli, including musical structure, mixer and Master routing, shared effects, MIDI automation, per-note timing, drummer ratchets with velocity ramps, and per-instance perf_controller settings.
+description: Create, edit, import, validate, save, and live-test Orchestron performances through orchestron_cli, including musical structure, mixer and Master routing, shared effects, MIDI automation, per-note timing, melodic chord strumming, drummer ratchets with velocity ramps, and per-instance perf_controller settings.
 ---
 
 # Orchestron Performance Creator
@@ -47,6 +47,7 @@ If the backend is not running, ask the user whether to start it with `make run` 
 7. Add sequencers/controllers/arpeggiators with explicit flags or a YAML/JSON score spec.
    For selected early/late notes or syncopated patterns, read [per-note timing](references/step_timing.md). Use `edit sequencers list` to discover tracks, then `edit step-timing list|set|reset` to inspect or adjust individual melodic steps and drum hits.
    For drum rolls, read [drummer ratchets](references/step_ratchets.md). Use `edit ratchets list|set|reset` or score `step_ratchets` to set 1–8 hits with optional final velocity. These edits preserve cell activation.
+   For strummed chords, read [melodic strumming](references/step_strum.md). Use `edit strum list|set|reset` or score `step_strum` / inline event and progression fields. Direction is off/up/down; spread is 0–100% of one local step, with each note retaining its duration.
 8. Run `edit validate`; this asks the backend to resolve every source outlet to its target inlet and rejects missing ports, invalid targets, and feedback loops.
 9. Commit only after validation succeeds.
 10. For live testing, use `edit create-runtime --start`. After rack, patch-definition, or route changes, use `edit rebuild-runtime`; use `edit push-runtime` when only sequencer, mixer, or performance-controller values changed. Always-on instruments need a rack restart to adopt controller changes.
@@ -71,6 +72,9 @@ uv run orchestron_cli --json edit mixer list
 uv run orchestron_cli --json edit mixer strip set --binding bass --gain-db -6
 uv run orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
 uv run orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
+uv run orchestron_cli --json edit sequencers list
+# Replace voice-1 with the melodic track ID reported above:
+uv run orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 0 --step 4 --direction up --spread 40
 uv run orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
 uv run orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
 uv run orchestron_cli --json edit validate
@@ -93,6 +97,7 @@ CLI and data formats:
 - For YAML/JSON score specs, read `references/score_spec.md`.
 - For early/late notes, syncopated patterns, CLI timing inspection/editing, and score timing fields, read [per-note timing](references/step_timing.md).
 - For drummer rolls, velocity ramps, `edit ratchets` commands and score `step_ratchets`, read [drummer ratchets](references/step_ratchets.md).
+- For melodic chords played low-to-high or high-to-low, tempo-synced spread, `edit strum` commands and score fields, read [melodic strumming](references/step_strum.md).
 - For `perf_controller` discovery, per-instance overrides, reset, persistence, exports, and live updates, read `references/performance_controllers.md`. These I-rate instrument settings are separate from MIDI CC controllers and controller sequencers.
 - For patch graph input formulas such as `0.1 * in1`, read `references/patch_formulas.md`.
 - For main/send routing, port discovery, Master, direct output, validation, and runtime replacement, read `references/effect_routing.md`.

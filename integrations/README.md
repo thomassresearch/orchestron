@@ -41,6 +41,8 @@ Use `edit sequencers list` to discover melodic/drummer track IDs, pads and drum 
 
 Use `edit ratchets list|set|reset` to create drum rolls with 1–8 hits and optional velocity ramps. For example, `edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --count 4 --end-velocity 40` adds four hits to an existing snare cell. YAML/JSON scores support the same settings through `step_ratchets`. See [drummer ratchets](skills/orchestron-performance-creator/references/step_ratchets.md); inactive cells retain their activation state.
 
+Use `edit strum list|set|reset` for melodic chords. For example, `edit strum set --track voice-1 --pad 1 --step 0 --direction up --spread 40` spreads a chord's notes over 40% of one local grid step. Direction and spread can be edited separately, and each note retains its duration. Scores support `step_strum` lists and inline event/progression fields. See [melodic strumming](skills/orchestron-performance-creator/references/step_strum.md) for pad targeting, reset and examples.
+
 For larger arrangements, use a score spec and apply it to an active edit session:
 
 ```bash

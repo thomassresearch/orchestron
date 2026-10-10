@@ -64,6 +64,8 @@ Program drum rolls with **1–8 ratchets per hit** and an optional velocity ramp
 
 Strum melodic chords **Low → High** or **High → Low**, with a tempo-synced **Spread of 0–100%** of one step. At 100%, the last note starts at the next step; each note keeps its duration and can overlap later steps. Right-click a note or chord, press **Shift+F10**, or use its **⋮** button to open Timing and Strum together. See [strummed chords](documentation/performance/sequencer_tracks_and_steps.md#strummed-chords).
 
+Author the same settings with [`edit strum list|set|reset` or YAML/JSON score fields](integrations/skills/orchestron-performance-creator/references/step_strum.md) through the performance creator CLI.
+
 ![Melodic step properties with Timing, strum direction and spread, and compact badges in the grid](screenshots/perform_melodic_strum.png)
 
 Explore the guides to [sequencer editing](documentation/performance/sequencer_tracks_and_steps.md), [pattern pads](documentation/performance/pattern_pads_and_pad_looper.md), [arpeggiators](documentation/performance/arpeggiators.md), and the [multitrack arranger](documentation/performance/multitrack_arranger.md).
