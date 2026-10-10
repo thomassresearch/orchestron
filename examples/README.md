@@ -32,6 +32,9 @@ dark-wave performance using Analog Drumkit and eight EBM / Dark Wave instruments
 It includes an editable arrangement, native and Csound exports, a reproducible score,
 and a WAV render with two warm passages within the industrial groove.
 
+[Hardtrance Demo](performances/hardtrance_demo/README.md) documents a seven-minute,
+146 BPM hard trance arrangement, its instrument settings, and its shared effects routing.
+
 ## Import an instrument (Instrument Design -> Import)
 
 [Tube Overdrive](instruments/tube_overdrive/README.md) is a warm stereo continuous

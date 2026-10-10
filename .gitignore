@@ -34,7 +34,10 @@ graphify-out/
 .gitattributes
 
 examples/performances/*/
+examples/performances/hardtrance_demo/
+examples/performances/hardtrance_demo/*
+examples/performances/hardtrance_demo/README.md
 examples/instruments/*/
-!examples/instruments/tube_overdrive/
-!examples/instruments/electric_guitar/
-!examples/instruments/cure_guitar_fx/
+examples/instruments/tube_overdrive/
+examples/instruments/electric_guitar/
+examples/instruments/cure_guitar_fx/
