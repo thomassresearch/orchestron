@@ -1,0 +1,1024 @@
+{
+  "name": "Cure Guitar FX",
+  "description": "Cure-inspired stereo guitar insert: slow flanger, lush chorus, then clean feedback delay. Separate Mix, Rate and Depth controls for chorus/flanger; flanger feedback; delay Mix, Time and Feedback; Output level. Defaults: chorus 32% / 0.7 Hz / 2.5 ms, flanger 20% / 0.18 Hz / 2 ms / 25% feedback, delay 22% / 350 ms / 35% feedback, output -3 dB. No reverb, drive or amp simulation. Place before your existing reverb. Each Mix at 0 bypasses that stage; all mixes 0 and Output 0 dB is dry unity. Stereo channels remain separate, with 90-degree-offset modulation for width. Restart the rack after changing controls. High feedback can boost peaks; Output is not a limiter.",
+  "is_template": false,
+  "always_on": true,
+  "instrument_type": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "chorus_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Chorus Mix (%)",
+          "min": 0,
+          "max": 100,
+          "default": 32,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -850.0
+        }
+      },
+      {
+        "id": "chorus_rate",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Chorus Rate (Hz)",
+          "min": 0.05,
+          "max": 3,
+          "default": 0.7,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -850.0
+        }
+      },
+      {
+        "id": "chorus_depth",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Chorus Depth (ms)",
+          "min": 0,
+          "max": 8,
+          "default": 2.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -850.0
+        }
+      },
+      {
+        "id": "flanger_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Flanger Mix (%)",
+          "min": 0,
+          "max": 100,
+          "default": 20,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1080.0,
+          "y": -850.0
+        }
+      },
+      {
+        "id": "flanger_rate",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Flanger Rate (Hz)",
+          "min": 0.02,
+          "max": 2,
+          "default": 0.18,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 1440.0,
+          "y": -850.0
+        }
+      },
+      {
+        "id": "flanger_depth",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Flanger Depth (ms)",
+          "min": 0,
+          "max": 3,
+          "default": 2,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1800.0,
+          "y": -850.0
+        }
+      },
+      {
+        "id": "flanger_feedback",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Flanger Feedback (%)",
+          "min": 0,
+          "max": 65,
+          "default": 25,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -530.0
+        }
+      },
+      {
+        "id": "delay_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Delay Mix (%)",
+          "min": 0,
+          "max": 100,
+          "default": 22,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -530.0
+        }
+      },
+      {
+        "id": "delay_time",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Delay Time (ms)",
+          "min": 40,
+          "max": 1000,
+          "default": 350,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -530.0
+        }
+      },
+      {
+        "id": "delay_feedback",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Delay Feedback (%)",
+          "min": 0,
+          "max": 75,
+          "default": 35,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1080.0,
+          "y": -530.0
+        }
+      },
+      {
+        "id": "output_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -18,
+          "max": 0,
+          "default": -3,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1440.0,
+          "y": -530.0
+        }
+      },
+      {
+        "id": "output_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 2700.0,
+          "y": -350.0
+        }
+      },
+      {
+        "id": "flanger_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 720.0,
+          "y": -350.0
+        }
+      },
+      {
+        "id": "input_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "flanger_lfo_left",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": -300.0
+        }
+      },
+      {
+        "id": "flanger_left",
+        "opcode": "flanger",
+        "params": {
+          "imaxd": 0.01
+        },
+        "position": {
+          "x": 720.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "flanger_blend_left",
+        "opcode": "ntrpol",
+        "params": {},
+        "position": {
+          "x": 1080.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "chorus_lfo_left",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 1080.0,
+          "y": -300.0
+        }
+      },
+      {
+        "id": "chorus_left",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 40,
+          "iws": 0
+        },
+        "position": {
+          "x": 1440.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "chorus_blend_left",
+        "opcode": "ntrpol",
+        "params": {},
+        "position": {
+          "x": 1800.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "delay_left",
+        "opcode": "flanger",
+        "params": {
+          "imaxd": 1.1
+        },
+        "position": {
+          "x": 2160.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "delay_blend_left",
+        "opcode": "ntrpol",
+        "params": {},
+        "position": {
+          "x": 2520.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "input_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "flanger_lfo_right",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1,
+          "iphs": 0.25
+        },
+        "position": {
+          "x": 360.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "flanger_right",
+        "opcode": "flanger",
+        "params": {
+          "imaxd": 0.01
+        },
+        "position": {
+          "x": 720.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "flanger_blend_right",
+        "opcode": "ntrpol",
+        "params": {},
+        "position": {
+          "x": 1080.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "chorus_lfo_right",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1,
+          "iphs": 0.25
+        },
+        "position": {
+          "x": 1080.0,
+          "y": 500.0
+        }
+      },
+      {
+        "id": "chorus_right",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 40,
+          "iws": 0
+        },
+        "position": {
+          "x": 1440.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "chorus_blend_right",
+        "opcode": "ntrpol",
+        "params": {},
+        "position": {
+          "x": 1800.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "delay_right",
+        "opcode": "flanger",
+        "params": {
+          "imaxd": 1.1
+        },
+        "position": {
+          "x": 2160.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "delay_blend_right",
+        "opcode": "ntrpol",
+        "params": {},
+        "position": {
+          "x": 2520.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2880.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2880.0,
+          "y": 800.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "output_level",
+        "from_port_id": "iout",
+        "to_node_id": "output_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "flanger_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "flanger_rate",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_lfo_left",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "input_left",
+        "from_port_id": "asignal",
+        "to_node_id": "flanger_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "flanger_gain",
+        "from_port_id": "aout",
+        "to_node_id": "flanger_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "flanger_lfo_left",
+        "from_port_id": "asig",
+        "to_node_id": "flanger_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "flanger_depth",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "flanger_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_left",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "input_left",
+        "from_port_id": "asignal",
+        "to_node_id": "flanger_blend_left",
+        "to_port_id": "asig1"
+      },
+      {
+        "from_node_id": "flanger_left",
+        "from_port_id": "aout",
+        "to_node_id": "flanger_blend_left",
+        "to_port_id": "asig2"
+      },
+      {
+        "from_node_id": "flanger_mix",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_blend_left",
+        "to_port_id": "kpoint"
+      },
+      {
+        "from_node_id": "chorus_rate",
+        "from_port_id": "iout",
+        "to_node_id": "chorus_lfo_left",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "flanger_blend_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "chorus_lfo_left",
+        "from_port_id": "asig",
+        "to_node_id": "chorus_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "chorus_depth",
+        "from_port_id": "iout",
+        "to_node_id": "chorus_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "flanger_blend_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_left",
+        "to_port_id": "asig1"
+      },
+      {
+        "from_node_id": "chorus_left",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_left",
+        "to_port_id": "asig2"
+      },
+      {
+        "from_node_id": "chorus_mix",
+        "from_port_id": "iout",
+        "to_node_id": "chorus_blend_left",
+        "to_port_id": "kpoint"
+      },
+      {
+        "from_node_id": "chorus_blend_left",
+        "from_port_id": "aout",
+        "to_node_id": "delay_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_time",
+        "from_port_id": "iout",
+        "to_node_id": "delay_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "delay_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "delay_left",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "chorus_blend_left",
+        "from_port_id": "aout",
+        "to_node_id": "delay_blend_left",
+        "to_port_id": "asig1"
+      },
+      {
+        "from_node_id": "delay_left",
+        "from_port_id": "aout",
+        "to_node_id": "delay_blend_left",
+        "to_port_id": "asig2"
+      },
+      {
+        "from_node_id": "delay_mix",
+        "from_port_id": "iout",
+        "to_node_id": "delay_blend_left",
+        "to_port_id": "kpoint"
+      },
+      {
+        "from_node_id": "delay_blend_left",
+        "from_port_id": "aout",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "flanger_rate",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_lfo_right",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "input_right",
+        "from_port_id": "asignal",
+        "to_node_id": "flanger_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "flanger_gain",
+        "from_port_id": "aout",
+        "to_node_id": "flanger_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "flanger_lfo_right",
+        "from_port_id": "asig",
+        "to_node_id": "flanger_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "flanger_depth",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "flanger_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_right",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "input_right",
+        "from_port_id": "asignal",
+        "to_node_id": "flanger_blend_right",
+        "to_port_id": "asig1"
+      },
+      {
+        "from_node_id": "flanger_right",
+        "from_port_id": "aout",
+        "to_node_id": "flanger_blend_right",
+        "to_port_id": "asig2"
+      },
+      {
+        "from_node_id": "flanger_mix",
+        "from_port_id": "iout",
+        "to_node_id": "flanger_blend_right",
+        "to_port_id": "kpoint"
+      },
+      {
+        "from_node_id": "chorus_rate",
+        "from_port_id": "iout",
+        "to_node_id": "chorus_lfo_right",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "flanger_blend_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "chorus_lfo_right",
+        "from_port_id": "asig",
+        "to_node_id": "chorus_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "chorus_depth",
+        "from_port_id": "iout",
+        "to_node_id": "chorus_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "flanger_blend_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_right",
+        "to_port_id": "asig1"
+      },
+      {
+        "from_node_id": "chorus_right",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_blend_right",
+        "to_port_id": "asig2"
+      },
+      {
+        "from_node_id": "chorus_mix",
+        "from_port_id": "iout",
+        "to_node_id": "chorus_blend_right",
+        "to_port_id": "kpoint"
+      },
+      {
+        "from_node_id": "chorus_blend_right",
+        "from_port_id": "aout",
+        "to_node_id": "delay_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "delay_time",
+        "from_port_id": "iout",
+        "to_node_id": "delay_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "delay_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "delay_right",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "chorus_blend_right",
+        "from_port_id": "aout",
+        "to_node_id": "delay_blend_right",
+        "to_port_id": "asig1"
+      },
+      {
+        "from_node_id": "delay_right",
+        "from_port_id": "aout",
+        "to_node_id": "delay_blend_right",
+        "to_port_id": "asig2"
+      },
+      {
+        "from_node_id": "delay_mix",
+        "from_port_id": "iout",
+        "to_node_id": "delay_blend_right",
+        "to_port_id": "kpoint"
+      },
+      {
+        "from_node_id": "delay_blend_right",
+        "from_port_id": "aout",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "output_gain::ksig": {
+          "expression": "ampdb(level)",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "output_level",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "flanger_gain::ksig": {
+          "expression": "1 - feedback / 100",
+          "inputs": [
+            {
+              "token": "feedback",
+              "from_node_id": "flanger_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "flanger_left::asig": {
+          "expression": "dry * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "input_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "flanger_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "flanger_left::adel": {
+          "expression": "(3.5 + wave * depth) / 1000",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "flanger_lfo_left",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "flanger_depth",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "flanger_left::kfeedback": {
+          "expression": "feedback / 100",
+          "inputs": [
+            {
+              "token": "feedback",
+              "from_node_id": "flanger_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "flanger_blend_left::kpoint": {
+          "expression": "mix / 100",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "flanger_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "chorus_left::adel": {
+          "expression": "18 + wave * depth",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "chorus_lfo_left",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "chorus_depth",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "chorus_blend_left::kpoint": {
+          "expression": "mix / 100",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "chorus_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "delay_left::adel": {
+          "expression": "time / 1000",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "delay_time",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "delay_left::kfeedback": {
+          "expression": "feedback / 100",
+          "inputs": [
+            {
+              "token": "feedback",
+              "from_node_id": "delay_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "delay_blend_left::kpoint": {
+          "expression": "mix / 100",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "delay_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "output_left::asignal": {
+          "expression": "signal * gain",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "delay_blend_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "output_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "flanger_right::asig": {
+          "expression": "dry * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "input_right",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "flanger_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "flanger_right::adel": {
+          "expression": "(3.5 + wave * depth) / 1000",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "flanger_lfo_right",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "flanger_depth",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "flanger_right::kfeedback": {
+          "expression": "feedback / 100",
+          "inputs": [
+            {
+              "token": "feedback",
+              "from_node_id": "flanger_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "flanger_blend_right::kpoint": {
+          "expression": "mix / 100",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "flanger_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "chorus_right::adel": {
+          "expression": "18 + wave * depth",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "chorus_lfo_right",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "chorus_depth",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "chorus_blend_right::kpoint": {
+          "expression": "mix / 100",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "chorus_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "delay_right::adel": {
+          "expression": "time / 1000",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "delay_time",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "delay_right::kfeedback": {
+          "expression": "feedback / 100",
+          "inputs": [
+            {
+              "token": "feedback",
+              "from_node_id": "delay_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "delay_blend_right::kpoint": {
+          "expression": "mix / 100",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "delay_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "output_right::asignal": {
+          "expression": "signal * gain",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "delay_blend_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "output_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "fx_input": true,
+        "fx_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "fx_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "fx_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "fx_input",
+      "mainOutput": "fx_output",
+      "guided": false
+    },
+    "control_flow": {}
+  },
+  "id": "cure-guitar-fx-v1"
+}
