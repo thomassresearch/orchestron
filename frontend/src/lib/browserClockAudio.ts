@@ -428,14 +428,15 @@ export class BrowserClockAudioClient {
 
   private handleFatalError(message: string): void {
     this.fatalError = message;
-    this.connectedSessionId = null;
     this.workerPrimed = false;
     if (this.stateBuffer) {
       Atomics.store(this.stateBuffer, BROWSER_CLOCK_STATE_PLAYBACK_ENABLED, 0);
     }
     const error = new Error(message);
     this.finishConnect(error);
+    // Unregister the mixer transport before discarding its session identity.
     this.rejectPending(error);
+    this.connectedSessionId = null;
     this.callbacks.onStatusChange("error");
     this.callbacks.onErrorChange(message);
   }
