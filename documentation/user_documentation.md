@@ -67,6 +67,7 @@ The animation describes the existing native Csound runtime. See [clock ownership
 - [Agent CLI](appendix/agent_cli.md)
 - [Orchestron Patch Creator Skill](appendix/patch_creator_skill.md)
 - [Orchestron Performance Creator Skill](appendix/performance_creator_skill.md)
+- [Orchestron Composition Creator Skill](appendix/composition_creator_skill.md)
 
 ## Feature Coverage Map
 

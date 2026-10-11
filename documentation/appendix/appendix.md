@@ -5,6 +5,7 @@ These optional tools let a coding agent create instruments and performances from
 - [Agent CLI](agent_cli.md) introduces the command-line utilities.
 - [Orchestron Patch Creator Skill](patch_creator_skill.md) describes instrument and effect authoring.
 - [Orchestron Performance Creator Skill](performance_creator_skill.md) describes arranging and mixing with existing instruments.
+- [Orchestron Composition Creator Skill](composition_creator_skill.md) develops playable melodic candidates through listening, selection and refinement.
 
 Detailed skill links open the repository sources so they are usable from the PDF as well. The example prompts refer to your local checkout.
 
@@ -19,4 +20,4 @@ A skill is a directory containing a `SKILL.md` instruction file, supporting refe
 
 Explicitly asking an agent to read the file does not require a product-specific skill installation. Automatic skill discovery and shortcut invocation depend on the agent; the prompts in the following chapters use ordinary language and repository paths.
 
-Both utilities use `uv` and require Python 3.13. Library operations, compilation, performance validation and live sessions need a reachable Orchestron backend, normally `http://localhost:8000/api`. Run the backend using the normal setup procedure (`make run` from the repository root), or provide an existing server's URL. Local patch-spec validation and graph generation can run without the backend. The utilities access the library through the API, not by editing SQLite directly.
+The utilities use `uv` and require Python 3.13. Library operations, compilation, performance validation and live sessions need a reachable Orchestron backend, normally `http://localhost:8000/api`. Run the backend using the normal setup procedure (`make run` from the repository root), or provide an existing server's URL. Local patch-spec validation and graph generation can run without the backend. Composition generation, audition and score export also run locally without the backend. The utilities access the library through the API, not by editing SQLite directly.

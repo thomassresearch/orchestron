@@ -1,0 +1,33 @@
+[project]
+name = "orchestron-composition-creator"
+version = "0.1.0"
+description = "Resumable algorithmic composition, audition and Orchestron score export."
+requires-python = ">=3.13,<3.14"
+dependencies = ["music21==10.5.0", "mido==1.3.3", "numpy>=2.0,<3"]
+
+[project.scripts]
+orchestron_compose = "orchestron_composition.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=9,<10", "ruff>=0.15,<0.16"]
+
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/orchestron_composition"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"assets" = "orchestron_composition/assets"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+extend-exclude = ["src/orchestron_composition/vendor"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

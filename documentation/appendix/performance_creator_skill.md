@@ -34,6 +34,20 @@ uv run --project integrations/skills/orchestron-performance-creator \
 
 See [composition workflow](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-performance-creator/references/composition_workflow.md) and [score specs](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-performance-creator/references/score_spec.md) for detailed authoring instructions.
 
+## Use an Accepted Composition
+
+[Composition Creator](composition_creator_skill.md) develops melodic candidates
+through listening and selection, then exports `orchestron-score.json`. Performance
+Creator imports score versions 1 and 2, including per-note velocity and local
+meter/subdivision/beat-rate timing. Version 2 checks explicit event overlap and pad
+boundaries. Polyphonic parts become coordinated voice tracks on the instrument's
+MIDI channel, preserving normal editable note/chord cells.
+
+Start a new staged performance, bind the score's channels to suitable instruments,
+connect their outputs, then use `edit apply-score /absolute/path/orchestron-score.json`.
+Apply once: the command appends tracks. Validate and save using the commands above.
+The score is separate from a native `.orch.json` performance bundle.
+
 ## Combine Both Skills
 
 Ask the agent to create and validate a new sound with Patch Creator, then read Performance Creator and discover the saved patch in the backend library. It can add that patch to a new performance, connect its Stereo Output to Master, write complementary parts, validate and save. Include the desired names, musical constraints and playback preference in the same request. Creating the patch, saving the performance and starting playback are separate operations.

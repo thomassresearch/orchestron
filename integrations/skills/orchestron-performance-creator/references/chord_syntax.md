@@ -62,3 +62,8 @@ To shift selected attacks, use [per-note timing commands or score fields](step_t
 To play a chord low-to-high or high-to-low, use [melodic strumming commands or score fields](step_strum.md). `edit strum set --track voice-1 --pad 1 --step 0 --direction up --spread 40` spaces its notes over 40% of one local grid step while preserving each note's duration. Discover the actual track ID with `edit sequencers list`.
 
 Avoid arbitrary MIDI note arrays unless the implementation later extends the persisted model. Raw voicings do not round-trip cleanly through the current GUI chord selector.
+
+For algorithmic composition, represent independent voices as separate melodic
+tracks on the same instrument MIDI channel. Composition Creator's exporter does
+this automatically. Score v2 validates explicit event overlap and supports
+per-event velocity and local timing; see [score specs](score_spec.md).

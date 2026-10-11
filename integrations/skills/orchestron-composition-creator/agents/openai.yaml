@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestron Composition Creator"
+  short_description: "Explore melodies through listening and selection"
+  default_prompt: "Use $orchestron-composition-creator to propose playable melodic ideas, develop my favourites, and export a score for Orchestron."

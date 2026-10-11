@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="session-token" content="__SESSION_TOKEN__">
+  <title>Orchestron · Composition studio</title>
+  <link rel="stylesheet" href="/audition.css">
+  <script src="/audition.js" defer></script>
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="mark" aria-hidden="true">♮</span> ORCHESTRON <span data-text="studio"></span></div>
+    <label class="language"><span data-text="language"></span><select id="language" aria-label="Language"><option value="en">English</option><option value="de">Deutsch</option><option value="fr">Français</option><option value="es">Español</option></select></label>
+  </header>
+  <main>
+    <div class="intro"><p class="eyebrow" data-text="eyebrow"></p><h1 id="title"></h1><p id="brief"></p><p class="description" data-text="intro"></p></div>
+    <div class="toolbar"><label><span data-text="round"></span> <select id="round"></select></label><label class="loop"><input type="checkbox" id="loop"><span data-text="loop"></span></label><button id="refresh" data-text="refresh"></button></div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <section id="candidates" aria-label="Candidates"></section>
+    <aside><span class="step">↳</span><div><strong data-text="next"></strong><p data-text="continueHelp"></p></div></aside>
+  </main>
+  <footer><span data-text="footer"></span><span id="revision"></span></footer>
+</body>
+</html>

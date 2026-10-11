@@ -1,0 +1,17 @@
+{
+  "schema": "orchestron.composition", "version": 1, "title": "Triplet study",
+  "tempo": 108, "key": "D", "mode": "dorian", "meter": [4, 4], "length_qn": "8",
+  "parts": [
+    {"id": "lead", "name": "Melody", "channel": 1, "program": 0, "events": [
+      {"pitch_midi": 62, "onset_qn": "0", "duration_qn": "1/3", "velocity": 90},
+      {"pitch_midi": 65, "onset_qn": "2/3", "duration_qn": "2/3", "velocity": 71},
+      {"pitch_midi": 69, "onset_qn": "2", "duration_qn": "1", "velocity": 101},
+      {"pitch_midi": 62, "onset_qn": "4", "duration_qn": "2", "velocity": 84}
+    ]},
+    {"id": "harmony", "name": "Harmony", "channel": 2, "program": 0, "events": [
+      {"pitch_midi": 50, "onset_qn": "0", "duration_qn": "4", "velocity": 55},
+      {"pitch_midi": 57, "onset_qn": "0", "duration_qn": "4", "velocity": 52},
+      {"pitch_midi": 65, "onset_qn": "0", "duration_qn": "3", "velocity": 51}
+    ]}
+  ]
+}

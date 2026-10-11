@@ -88,7 +88,11 @@ Mix instruments and effect returns with volume faders, pan or balance, mute, sol
 
 Removing a rack instrument also removes its dedicated inserts and connections; removing one insert reconnects the remaining simple chain. **Routing diagnostics → Check routing** catches missing insert assignments and displays validation errors beside the check button. See the [routing diagnostics example](documentation/performance/audio_mixer_and_routing.md#troubleshoot-routing-and-silence).
 
-For optional instrument and performance creation with a coding agent, see the [Agent Tooling Appendix](documentation/appendix/appendix.md), including the two creator skills and their command-line utilities.
+For optional instrument, composition and performance creation with a coding agent, see the [Agent Tooling Appendix](documentation/appendix/appendix.md) and its creator skills and command-line utilities.
+
+Explore melodic ideas with [Composition Creator](documentation/appendix/composition_creator_skill.md): listen to candidate phrases, select favourites, leave feedback and lock passages you want to preserve. Develop accepted ideas into a song, then hand its machine-readable score to Performance Creator for instruments, routing and saving. The local audition page supports EN/DE/FR/ES and works without a running Orchestron backend.
+
+![Composition audition page with three playable melodies and saved selection controls](screenshots/composition_audition.png)
 
 ![Ratchet drums demo mixer with World Drumkit and Flute followed by continuous effects and pinned Master](screenshots/perform_mixer_sends_inserts_master.png)
 

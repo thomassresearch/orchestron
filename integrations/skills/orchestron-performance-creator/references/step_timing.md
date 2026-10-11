@@ -119,6 +119,11 @@ Performance configurations write v19. The CLI migrates v1–16 before normalizat
 
 For twelve triplet steps over one 4/4 bar, set `lengthBeats: 4`, timing `meterNumerator: 4`, `meterDenominator: 4`, `stepsPerBeat: 3`, and speed numerator/denominator 1/1. A 6/8 bar uses length 6 and spans three shared quarter beats. See the [multilingual timing guide](../../../../documentation/performance/sequencer_timing.md).
 
+YAML/JSON score tracks can now set the same values through snake-case `timing`
+fields, for example `timing: {meter_numerator: 4, meter_denominator: 4,
+steps_per_beat: 3}`. Score versions 1 and 2 are supported; Composition Creator
+exports v2 for stricter event validation. See [score specs](score_spec.md).
+
 
 Drummer cells can additionally carry `ratchets` (1–8, default 1) and `ratchetEndVelocity` (0–127 or null). Existing snapshot normalization retains these values; runtime conversion sends `ratchets` and `ratchet_end_velocity`. Timing shifts the whole roll. Use `edit ratchets list|set|reset` or score `step_ratchets` to author them; see [drummer ratchets](step_ratchets.md) for commands, score examples and ramp behavior.
 

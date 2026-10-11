@@ -39,12 +39,13 @@ If the backend is not running, ask the user whether to start it with `make run` 
 
 1. Check backend health.
 2. List/import patches as needed.
-3. If composing new material, choose the musical brief before writing notes: ambient state, techno process, trance wave, or Goa/psy rise.
+3. If composing new material, choose the musical brief before writing notes: ambient state, techno process, trance wave, or Goa/psy rise. For interactive melodic exploration, use `orchestron-composition-creator` first. When realising its accepted score, preserve the supplied notes and arrangement and use its channel-to-part mapping to choose instruments.
 4. Start an edit session from an existing performance or a new draft.
 5. Add instruments first, then run `edit instruments list` to discover their stable binding IDs and audio ports.
    For per-performance sound customization, read `references/performance_controllers.md`, discover the patch's controller node IDs, and stage overrides using `edit performance-controllers set`.
 6. Read `references/effect_routing.md` and `references/mixer.md` to connect main outputs and sends and set strip/return/Master levels. The built-in `$master` needs no patch or rack instance. Use the optional `edit add-standard-effects --send-gain-db -12` only when the user wants dry instruments and reverb feeding a compressor into Master; read `references/standard_effect_patching.md` first. Effects are not mandatory.
 7. Add sequencers/controllers/arpeggiators with explicit flags or a YAML/JSON score spec.
+   Read [score specs](references/score_spec.md) for composition handoffs: `edit apply-score` accepts v1/v2, per-event velocity and local track timing. V2 checks explicit event boundaries and overlaps. Independent voices use separate melodic tracks on the same instrument channel, preserving GUI-compatible note/chord cells. Apply a whole-song score once to a fresh staged draft; the command appends tracks.
    For selected early/late notes or syncopated patterns, read [per-note timing](references/step_timing.md). Use `edit sequencers list` to discover tracks, then `edit step-timing list|set|reset` to inspect or adjust individual melodic steps and drum hits.
    For drum rolls, read [drummer ratchets](references/step_ratchets.md). Use `edit ratchets list|set|reset` or score `step_ratchets` to set 1–8 hits with optional final velocity. These edits preserve cell activation.
    For strummed chords, read [melodic strumming](references/step_strum.md). Use `edit strum list|set|reset` or score `step_strum` / inline event and progression fields. Direction is off/up/down; spread is 0–100% of one local step, with each note retaining its duration.

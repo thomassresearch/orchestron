@@ -2691,11 +2691,12 @@ def add_melodic_track_to_config(
     pad_loop_pattern: dict[str, Any] | None = None,
     pad_loop_enabled: bool | None = None,
     pad_loop_repeat: bool = False,
+    timing_override: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     validate_melodic_theory(scale_root=scale_root, scale_type=scale_type, mode=mode)
     active_pad = parse_internal_pad_index(active_pad, field="active_pad")
     sequencer = ensure_sequencer(config)
-    timing = sequencer.get("timing") or default_timing()
+    timing = copy.deepcopy(timing_override or sequencer.get("timing") or default_timing())
     tracks = sequencer.setdefault("tracks", [])
     track_id = next_track_id(tracks, "voice")
     pads = [
@@ -2854,10 +2855,11 @@ def add_drummer_track_to_config(
     pad_loop_enabled: bool | None = None,
     pad_loop_repeat: bool = False,
     include_primary_pad: bool = True,
+    timing_override: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     active_pad = parse_internal_pad_index(active_pad, field="active_pad")
     sequencer = ensure_sequencer(config)
-    timing = sequencer.get("timing") or default_timing()
+    timing = copy.deepcopy(timing_override or sequencer.get("timing") or default_timing())
     tracks = sequencer.setdefault("drummerTracks", [])
     rows = default_drum_rows()
     pads = [default_drummer_pad(rows, length_beats=length_beats, timing=timing) for _ in range(DEFAULT_PAD_COUNT)]
@@ -2965,10 +2967,11 @@ def add_controller_sequencer_to_config(
     pad_loop_enabled: bool | None = None,
     pad_loop_repeat: bool = False,
     include_primary_pad: bool = True,
+    timing_override: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     active_pad = parse_internal_pad_index(active_pad, field="active_pad")
     sequencer = ensure_sequencer(config)
-    timing = sequencer.get("timing") or default_timing()
+    timing = copy.deepcopy(timing_override or sequencer.get("timing") or default_timing())
     tracks = sequencer.setdefault("controllerSequencers", [])
     pads = [default_controller_pad(length_beats=length_beats, timing=timing) for _ in range(DEFAULT_PAD_COUNT)]
     definitions = []
@@ -3299,7 +3302,7 @@ def melodic_pad_definition_from_score(
                 root = midi_to_note_name(note, prefer_flats=key_pitch_class(local_key)[1])
                 step_tokens.append(f"s{at}={root}:{chord}/{duration}s")
                 cursor = at + duration
-        if step_tokens:
+        if step_tokens or isinstance(events, list):
             steps_pattern = " ".join(step_tokens)
         else:
             raw_grid = first_mapping_value(spec, "grid_pattern", "gridPattern")
@@ -3401,7 +3404,87 @@ def controller_pad_definitions_from_score(track_spec: dict[str, Any], *, field: 
     return active_pad, include_primary, definitions
 
 
+def score_integer(value: Any, low: int, high: int, *, field: str) -> int:
+    if type(value) is not int or not low <= value <= high:
+        raise OrchestronCliError("invalid_score_spec", f"{field} must be an integer in {low}..{high}.", path=field)
+    return value
+
+
+def score_track_timing(spec: dict[str, Any], inherited: dict[str, Any], *, field: str) -> dict[str, Any] | None:
+    if "timing" not in spec:
+        return None
+    path = f"{field}.timing"
+    raw = spec["timing"]
+    fields = {
+        "meter_numerator": ("meterNumerator", {2, 3, 4, 5, 6, 7}),
+        "meter_denominator": ("meterDenominator", {4, 8}),
+        "steps_per_beat": ("stepsPerBeat", {1, 2, 3, 4, 6, 8}),
+        "beat_rate_numerator": ("beatRateNumerator", {1, 2, 3, 4, 5, 7}),
+        "beat_rate_denominator": ("beatRateDenominator", {1, 2, 3, 4, 5}),
+    }
+    if not isinstance(raw, dict) or set(raw) - fields.keys():
+        raise OrchestronCliError("invalid_score_timing", "Use local meter, subdivision and beat-rate fields; tempo is global.", path=path)
+    timing = copy.deepcopy(inherited)
+    for key, (target, choices) in fields.items():
+        if key in raw:
+            if type(raw[key]) is not int or raw[key] not in choices:
+                raise OrchestronCliError("invalid_score_timing", f"{key} must be one of {sorted(choices)}.", path=f"{path}.{key}")
+            timing[target] = raw[key]
+    if (timing["beatRateNumerator"], timing["beatRateDenominator"]) not in {
+        (1, 1), (2, 1), (3, 2), (4, 3), (3, 4), (5, 4), (4, 5), (7, 4),
+    }:
+        raise OrchestronCliError("invalid_score_timing", "Unsupported local beat-rate ratio.", path=path)
+    return timing
+
+
+def apply_score_event_dynamics(track: dict[str, Any], spec: dict[str, Any], *, field: str, strict: bool) -> None:
+    for definition, pad_index, source in score_pad_sources(spec, field=field):
+        if "timing" in definition and definition is not spec:
+            raise OrchestronCliError("invalid_score_timing", "Timing belongs to a track, not an individual pad.", path=f"{source}.timing")
+        selected = None if isinstance(definition.get("steps"), (str, list)) else "events" if isinstance(definition.get("events"), list) else "progression"
+        pad = track["pads"][pad_index]
+        occupied: set[int] = set()
+        for collection in ("events", "progression"):
+            cursor = 0
+            material = definition.get(collection)
+            for index, entry in enumerate(material if isinstance(material, list) else []):
+                path = f"{source}.{collection}[{index}]"
+                obj = entry if isinstance(entry, dict) else {}
+                at = obj.get("at_step", cursor if collection == "progression" else 0)
+                duration = obj.get("duration_steps", definition.get("length_beats", spec.get("length_beats", 4)) if collection == "progression" else 1)
+                if "velocity" in obj and selected != collection:
+                    raise OrchestronCliError("unused_event_velocity", "Velocity is attached to unused musical material.", path=path)
+                if selected == collection:
+                    if strict:
+                        allowed = {"at_step", "duration_steps", "velocity", "timing_offset_percent", "strum_direction", "strum_spread_percent"}
+                        allowed |= {"root", "chord"} if collection == "events" else {"roman"}
+                        if set(obj) - allowed:
+                            raise OrchestronCliError("invalid_score_spec", "Unknown event fields; use separate tracks for independent voices.", path=path)
+                        at = score_integer(at, 0, pad["stepCount"] - 1, field=f"{path}.at_step")
+                        duration = score_integer(duration, 1, pad["stepCount"] - at, field=f"{path}.duration_steps")
+                        cells = set(range(at, at + duration))
+                        if cells & occupied:
+                            raise OrchestronCliError("overlapping_score_events", "Events overlap in one voice; use separate melodic tracks.", path=path)
+                        occupied.update(cells)
+                    if "velocity" in obj:
+                        velocity = score_integer(obj["velocity"], 1, 127, field=f"{path}.velocity")
+                        at = score_integer(at, 0, pad["stepCount"] - 1, field=f"{path}.at_step")
+                        pad["steps"][at]["velocity"] = velocity
+                if collection == "progression":
+                    cursor = at + duration
+
+
 def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> list[dict[str, Any]]:
+    if type(spec.get("version", 1)) is not int or spec.get("version", 1) not in (1, 2):
+        raise OrchestronCliError("unsupported_score_version", "Supported score versions are 1 and 2.", path="version")
+    staged = copy.deepcopy(config)
+    created = _apply_score_spec_to_config(staged, spec)
+    config.clear()
+    config.update(staged)
+    return created
+
+
+def _apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> list[dict[str, Any]]:
     created: list[dict[str, Any]] = []
     sequencer = ensure_sequencer(config)
     tempo = spec.get("tempo")
@@ -3465,6 +3548,7 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
                     pad_loop_pattern=pad_loop_pattern,
                     pad_loop_enabled=pad_loop_enabled,
                     pad_loop_repeat=pad_loop_repeat,
+                    timing_override=score_track_timing(track_spec, sequencer["timing"], field=field),
                 )
             )
         elif track_type == "drummer":
@@ -3484,6 +3568,7 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
                     pad_loop_pattern=pad_loop_pattern,
                     pad_loop_enabled=pad_loop_enabled,
                     pad_loop_repeat=pad_loop_repeat,
+                    timing_override=score_track_timing(track_spec, sequencer["timing"], field=field),
                     include_primary_pad=include_primary_pad,
                 )
             )
@@ -3504,10 +3589,13 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
                     pad_loop_pattern=pad_loop_pattern,
                     pad_loop_enabled=pad_loop_enabled,
                     pad_loop_repeat=pad_loop_repeat,
+                    timing_override=score_track_timing(track_spec, sequencer["timing"], field=field),
                     include_primary_pad=include_primary_pad,
                 )
             )
         elif track_type == "arpeggiator":
+            if "timing" in track_spec:
+                raise OrchestronCliError("invalid_score_timing", "Arpeggiators use rate, not track timing.", path=f"tracks[{index}].timing")
             created.append(
                 add_arpeggiator_to_config(
                     config,
@@ -3527,6 +3615,7 @@ def apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) -> 
         if track_type == "drummer":
             apply_score_step_ratchets(created[-1], track_spec, field=f"tracks[{index}]")
         if track_type == "melodic":
+            apply_score_event_dynamics(created[-1], track_spec, field=f"tracks[{index}]", strict=spec.get("version", 1) == 2)
             apply_score_step_strum(created[-1], track_spec, field=f"tracks[{index}]")
     return created
 

@@ -165,5 +165,6 @@ UI interactions, validation ranges, and operational procedures.
 | Resource defaults and validation | [Settings](backend/app/core/config.py), [JSON limits](backend/app/services/persisted_json_limits.py), [GEN validation](backend/app/models/patch.py), [export limits](backend/app/models/export.py) |
 | Author instruments, formulas, and audio validation | [Patch creator skill](integrations/skills/orchestron-patch-creator/SKILL.md) |
 | Author performances, routes, and runtime updates | [Performance creator skill](integrations/skills/orchestron-performance-creator/SKILL.md) |
+| Interactive melody generation, audition, and score handoff | [Composition creator skill](integrations/skills/orchestron-composition-creator/SKILL.md) |
 | External MIDI and native timing probes | [MIDI setup](documentation/configuration/midi_setup_and_inputs.md), [host helper](host-midi-helper/README.md), [diagnostic tools](tools/README.md) |
 | Docker publishing, recovery, and retention | [Release procedures](documentation/docker_images.md) |
