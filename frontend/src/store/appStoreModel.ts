@@ -2004,7 +2004,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
   const rawTracks = Array.isArray(sequencer.tracks) ? sequencer.tracks : null;
   const hasTracks = rawTracks !== null;
   if (rawTracks) {
-    for (let index = 0; index < Math.min(8, rawTracks.length); index += 1) {
+    for (let index = 0; index < Math.min(MAX_SEQUENCERS_PER_TYPE, rawTracks.length); index += 1) {
       tracks.push(normalizeSequencerTrackWithTiming(rawTracks[index], index + 1, timing));
     }
   } else {
@@ -2022,7 +2022,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
 
   const drummerTracks: DrummerSequencerTrackState[] = [];
   if (Array.isArray(sequencer.drummerTracks)) {
-    for (let index = 0; index < Math.min(8, sequencer.drummerTracks.length); index += 1) {
+    for (let index = 0; index < Math.min(MAX_SEQUENCERS_PER_TYPE, sequencer.drummerTracks.length); index += 1) {
       drummerTracks.push(normalizeDrummerSequencerTrack(sequencer.drummerTracks[index], index + 1, timing));
     }
   }
@@ -2062,7 +2062,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
 
   const controllerSequencers: ControllerSequencerState[] = [];
   if (Array.isArray(sequencer.controllerSequencers)) {
-    for (let index = 0; index < Math.min(8, sequencer.controllerSequencers.length); index += 1) {
+    for (let index = 0; index < Math.min(MAX_SEQUENCERS_PER_TYPE, sequencer.controllerSequencers.length); index += 1) {
       controllerSequencers.push(
         normalizeControllerSequencerState(sequencer.controllerSequencers[index], index + 1, timing)
       );

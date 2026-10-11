@@ -93,3 +93,31 @@ def test_local_timing_is_independent_for_other_sequencer_types(kind):
     assert track["pads"][0]["stepCount"] == 18
     assert track["timing"]["beatRateNumerator"] == 3
     assert config["sequencer"]["timing"]["beatRateNumerator"] == 1
+
+
+@pytest.mark.parametrize("count", [9, 14, 16])
+@pytest.mark.parametrize("kind,key", [
+    ("melodic", "tracks"),
+    ("drummer", "drummerTracks"),
+    ("controller", "controllerSequencers"),
+])
+def test_many_sequencers_survive_skill_load_and_runtime_round_trip(count, kind, key, tmp_path):
+    config = cli.empty_performance_config()
+    specs = []
+    for index in range(count):
+        spec = {"type": kind, "channel": index + 1, "name": f"Part {index + 1}"}
+        if kind == "melodic":
+            spec["events"] = [{"root": "Gb4", "at_step": 0, "duration_steps": 2, "velocity": 70 + index}]
+        specs.append(spec)
+    cli.apply_score_spec_to_config(config, {"version": 2, "tracks": specs})
+    cli.normalize_performance_config(config, [])
+    runtime_before = cli.build_runtime_config(config)
+
+    path = tmp_path / "edit-session.json"
+    cli.save_edit_session(path, {"config": config, "dirty": False})
+    loaded = cli.load_edit_session(path)["config"]
+    cli.normalize_performance_config(loaded, [])
+
+    assert len(loaded["sequencer"][key]) == count
+    assert loaded["sequencer"][key] == config["sequencer"][key]
+    assert cli.build_runtime_config(loaded) == runtime_before

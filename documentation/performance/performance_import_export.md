@@ -4,6 +4,8 @@
 
 Performance import/export lets you move complete live setups between machines or save versioned backups.
 
+Save/load, native import/export and autosave recovery preserve up to **16 melodic, 16 drummer and 16 controller sequencers** independently, including their MIDI channels, pattern pads and arrangements. Each sequencer still has eight pattern pads.
+
 ## Performance Export (`Export`)
 
 The Performance page `Export` button creates an Orchestron performance bundle from the current performance workspace.

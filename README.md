@@ -44,6 +44,8 @@ Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compil
 
 ## Build patterns and arrangements
 
+Use up to **16 sequencers of each type**—melodic, drummer and controller—in one performance. Save/load, native bundles and autosave recovery preserve all of them, including their channels, patterns and arrangements.
+
 Create melodies, bass lines, drum patterns, and movement in the same performance. Melodic sequencers offer scales, modes, individual notes, and chords; drummer sequencers let you shape each hit's velocity. Move individual notes, chords, and drum hits early or late with per-step timing controls, preserving the pattern's meter and length. Draw controller curves for repeating changes to MIDI-controlled parameters, and use beat-synchronized arpeggiators to drive existing MIDI instruments with editable rhythms, ties, ratchets and eight musical variation pads. Arpeggiators can follow their own arranger lanes or run independently in Live mode, with the same green Start and orange Stop controls as the other devices. Their Input Channel → Target Channel controls sit together in the top row, making the MIDI route visible immediately.
 
 Arpeggiator steps show large note previews and scale-degree borders using the piano keyboard’s colours. Chord borders show separate colour segments; Scale Off keeps borders neutral. Hover over a step to read its full note preview and scale degrees.
@@ -84,7 +86,7 @@ Load instruments into the Perform rack, assign MIDI channels, and play from the 
 
 *Play a melody with harmonic guidance and reach for MIDI controls beneath the keyboard.*
 
-Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
+Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Each instrument strip shows its rack patch number and MIDI channel above the instrument name; continuous instruments show **Continuous** instead of a channel. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 
 Removing a rack instrument also removes its dedicated inserts and connections; removing one insert reconnects the remaining simple chain. **Routing diagnostics → Check routing** catches missing insert assignments and displays validation errors beside the check button. See the [routing diagnostics example](documentation/performance/audio_mixer_and_routing.md#troubleshoot-routing-and-silence).
 
@@ -94,9 +96,9 @@ Explore melodic ideas with [Composition Creator](documentation/appendix/composit
 
 ![Composition audition page with three playable melodies and saved selection controls](screenshots/composition_audition.png)
 
-![Ratchet drums demo mixer with World Drumkit and Flute followed by continuous effects and pinned Master](screenshots/perform_mixer_sends_inserts_master.png)
+![Ratchet drums demo mixer with patch numbers and MIDI channels above World Drumkit and Flute, continuous effects and pinned Master](screenshots/perform_mixer_sends_inserts_master.png)
 
-*The live “Ratchet drums demo” performance: World Drumkit and Flute appear before the continuous compressor and reverb, with Master pinned at the right. Playback is stopped.*
+*The live “Ratchet drums demo” performance: Patch numbers and MIDI channels identify World Drumkit and Flute; the compressor and reverb show Continuous, with Master pinned at the right. Playback is stopped.*
 
 Notes, controller curves, tempo, and arrangement edits can be applied while playback continues. Mixer controls stay available during performance; stop the instruments before changing rack assignments or audio connections. The rack separates note-triggered and continuous instruments with a thin line. While stopped, drag a card’s `::` handle to reorder instruments within its group; the mixer and compact rack follow the saved order. Collapsible panels let you focus on the part of the setup you are using.
 

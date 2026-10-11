@@ -56,6 +56,7 @@ const rows = {
   collapse: ["Collapse", "Einklappen", "Réduire", "Contraer"],
   activation: ["Activation", "Aktivierung", "Activation", "Activación"],
   midi: ["MIDI notes", "MIDI-Noten", "Notes MIDI", "Notas MIDI"],
+  midiChannelShort: ["MIDI Ch.", "MIDI-Kan.", "Can. MIDI", "Can. MIDI"],
   continuous: ["Continuous", "Dauerhaft", "Continue", "Continua"],
   instrument: ["Playable instrument", "Spielbares Instrument", "Instrument jouable", "Instrumento tocable"],
   drumset: ["Drumset", "Schlagzeug", "Batterie", "Batería"],

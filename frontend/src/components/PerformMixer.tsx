@@ -1,9 +1,10 @@
 import { EditorDetails, EditorScope, RetainedScroll, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { MixerKnob } from "./MixerKnob";
+import { SEQUENCER_UI_COPY } from "./sequencer/sequencerUiCopy";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { api } from "../api/client";
 import { audioCopy } from "../lib/audioCopy";
-import { groupRackInstruments } from "../lib/rackOrdering";
+import { groupRackInstruments, type RackInstrumentBindingRow } from "../lib/rackOrdering";
 import { MASTER, masterEndpoint, audioGraphDiagnostics, defaultStrip, mainPorts, newRoute, outputPorts, suggestedInterface } from "../lib/audioRouting";
 import { insertChain, wireInsertChain } from "../lib/insertRouting";
 import { meterSnapshot, subscribeMeters } from "../lib/mixerRuntime";
@@ -71,7 +72,7 @@ function MixerBody({ onStop }: { onStop: () => void }) {
   const byId = useMemo(() => new Map([[MASTER, masterEndpoint], ...bindings.map((b) => [b.id, patches.find((p) => p.id === b.patchId)] as const)]), [bindings, patches]);
   const endpoints = [...bindings, { id: MASTER }];
   const rackGroups = groupRackInstruments(bindings, new Map(patches.map(patch => [patch.id, patch])));
-  const stripBindings = [...rackGroups.standard, ...rackGroups.alwaysOn].map(row => row.binding).filter(binding => !graph.insertOwners[binding.id]);
+  const stripRows = [...rackGroups.standard, ...rackGroups.alwaysOn].filter(row => !graph.insertOwners[row.binding.id]);
   const missingMaster = graph.masterId && graph.masterId !== MASTER && !byId.get(graph.masterId);
   const repairMaster = async () => {
     if (running) return;
@@ -162,11 +163,13 @@ function MixerBody({ onStop }: { onStop: () => void }) {
       applyGraph({ ...current.audioGraph, routes: [...current.audioGraph.routes.filter((r) => !(r.sourceId === id && r.kind === "main")), ...ports.map((sourcePort, i) => newRoute({ sourceId: id, sourcePort, targetId: masterId, targetPort: inputs[i], kind: "main", sourceStage: "strip", targetStage: "input" }))] });
     } catch (e) { setError(String(e)); }
   };
-  const strip = (id: string) => {
+  const strip = (id: string, row?: RackInstrumentBindingRow) => {
     const state = mixer.strips[id] ?? defaultStrip(); const patch = byId.get(id); const master = id === MASTER;
+    const assignment = row ? `${SEQUENCER_UI_COPY[language].patch(row.index + 1)} · ${patch?.always_on ? t("continuous") : `${t("midiChannelShort")} ${row.binding.midiChannel}`}` : undefined;
     const direct = !master && patch?.has_direct_output && !graph.routes.some((r) => r.sourceId === id && r.sourcePort.startsWith("$direct") && r.kind === "main");
     const chain = insertChain(graph, id);
     return <article key={id} className={`w-52 shrink-0 rounded-lg border p-3 ${master ? "sticky right-0 z-10 ml-auto border-cyan-600 bg-slate-900 shadow-[-8px_0_16px_#020617]" : selected === id ? "border-cyan-500 bg-slate-800" : "border-slate-700 bg-slate-900"}`}>
+      <div className="min-h-[15px] text-[10px] leading-[15px] text-slate-400">{assignment}</div>
       <button className="w-full truncate text-left text-sm font-semibold" onClick={() => select(id)}>{name(id)}</button>
       <div className="my-1 min-h-8 text-[10px] text-slate-400">{direct ? <span className="rounded border border-amber-600 px-1 text-amber-200">{t("direct")}</span> : [...new Set(graph.routes.filter((r) => r.sourceId === id && r.kind !== "insert").map((r) => name(r.targetId)))].join(", ") || (master ? t("audioOutput") : "—")}</div>
       <Meter id={id} name={name(id)} />
@@ -181,7 +184,7 @@ function MixerBody({ onStop }: { onStop: () => void }) {
       {!master && <button disabled={running} className={`${button} mt-1`} onClick={() => void throughMaster(id)}>{t("routeMaster")}</button>}
     </article>;
   };
-  return <> {notice && <div className="my-2 rounded border border-amber-800 p-2 text-xs text-amber-100">{t("migration")} <button className={button} onClick={() => useAppStore.setState({ migrationNotice: false })}>{t("dismiss")}</button></div>}{(error || syncError) && <div role="alert" className="my-2 text-xs text-rose-300">{error || syncError}</div>}<RetainedScroll owner="mixer" field="stripsScroll" className="my-3 flex gap-2 overflow-x-auto pb-2">{stripBindings.map((b) => strip(b.id))}{strip(MASTER)}</RetainedScroll><div className="max-w-md text-xs">{t("audioOutput")}<Meter id="$output" name={t("audioOutput")} /></div>{running && <button className={button} onClick={onStop}>{t("stop")}</button>}<EditorDetails owner={"mixer"} field="routing" initiallyOpen className="mt-3 border-t border-slate-800 pt-2" summary={<>{t("routing")}</>}>{() => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
+  return <> {notice && <div className="my-2 rounded border border-amber-800 p-2 text-xs text-amber-100">{t("migration")} <button className={button} onClick={() => useAppStore.setState({ migrationNotice: false })}>{t("dismiss")}</button></div>}{(error || syncError) && <div role="alert" className="my-2 text-xs text-rose-300">{error || syncError}</div>}<RetainedScroll owner="mixer" field="stripsScroll" className="my-3 flex gap-2 overflow-x-auto pb-2">{stripRows.map(row => strip(row.binding.id, row))}{strip(MASTER)}</RetainedScroll><div className="max-w-md text-xs">{t("audioOutput")}<Meter id="$output" name={t("audioOutput")} /></div>{running && <button className={button} onClick={onStop}>{t("stop")}</button>}<EditorDetails owner={"mixer"} field="routing" initiallyOpen className="mt-3 border-t border-slate-800 pt-2" summary={<>{t("routing")}</>}>{() => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
     <label className="flex flex-col text-xs">{t("source")}<select className={field} value={selected} disabled={running} onChange={(e) => { select(e.target.value); setSourcePort(""); }}><option value="">—</option>{endpoints.map((b) => <option key={b.id} value={b.id}>{name(b.id)}{b.id !== MASTER ? ` · ${b.id.slice(0, 4)}` : ""}</option>)}</select></label>
     <label className="flex flex-col text-xs">{t("destination")}<select className={field} value={target} disabled={running} onChange={(e) => { setTarget(e.target.value); setTargetPort(""); }}><option value="">—</option><option value="$output">{t("audioOutput")}</option>{endpoints.filter((b) => b.id !== selected && byId.get(b.id)?.audio_inlet_names.length).map((b) => <option key={b.id} value={b.id}>{name(b.id)}{b.id !== MASTER ? ` · ${b.id.slice(0, 4)}` : ""}</option>)}</select></label>
     <label className="text-xs"><input type="checkbox" checked={stereo} disabled={running} onChange={(e) => setStereo(e.target.checked)} /> Stereo</label>

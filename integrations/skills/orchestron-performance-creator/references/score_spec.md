@@ -85,6 +85,14 @@ HOLD continuation cells preserve duration; the attack velocity controls the note
 
 ## Local timing and composition handoff
 
+Orchestron supports up to 16 sequencers of each type (melodic, drummer and
+controller), each with eight pattern pads. Preserve every generated voice when
+loading or saving the score; eight pads is not an eight-track limit. The skill's
+Python loader and Orchestron's frontend loader are separate. Older frontend
+builds truncated imported performances to eight sequencers even though the CLI
+and offline renderer retained them. When checking a many-voice handoff, verify
+the track count after loading it in the current app as well as in the CLI.
+
 Melodic, drummer and controller tracks accept `timing` with these snake-case fields:
 
 | Field | Values |

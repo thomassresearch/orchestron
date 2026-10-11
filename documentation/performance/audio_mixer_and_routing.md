@@ -10,15 +10,15 @@ Collapsing Mixer suspends its visual contents and meter subscriptions while audi
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
 2. In Perform, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
-3. Expand **Mixer** below the rack. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
+3. Expand **Mixer** below the rack. Above each instrument name, a small label shows its rack patch number and MIDI channel, for example **Patch 2 · MIDI Ch. 3**. Continuous instruments and effects show **Patch 4 · Continuous**. Patch numbers match the rack even when insert processors have no separate mixer strip. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
 4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then open **Routing diagnostics → Check routing**.
 5. Click **Start Instruments** and play via a piano roll, sequencer or MIDI input. Change gain, balance, mute/solo and existing send settings while listening. Watch strip meters and the final Audio Output meter.
 6. Use **Save Performance** to retain this mix. Stop the engine before adding/removing routes, replacing assignments or reordering inserts.
 
 <p align="center">
-  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Ratchet drums demo mixer with World Drumkit, Flute, Compressor Effect, Reverb Effect and pinned Master" width="900" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Ratchet drums demo mixer with patch numbers, MIDI channels, continuous effect labels and pinned Master" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Live “Ratchet drums demo” mixer, stopped: the strips follow the rack’s grouped order, with Master pinned at the right. World Drumkit and Flute have post-fader send controls for Reverb Effect; both sends are set to silence (−∞ dB). This performance has no insert processors.</em></p>
+<p align="center"><em>Live “Ratchet drums demo” mixer, stopped: the strips show their rack patch numbers and MIDI channels or Continuous above their names, with Master pinned at the right. World Drumkit and Flute have post-fader send controls for Reverb Effect; both sends are set to silence (−∞ dB). This performance has no insert processors.</em></p>
 
 ## Signal flow
 
