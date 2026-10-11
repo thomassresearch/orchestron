@@ -40,6 +40,12 @@ Import custom scores using `import-score SESSION FILE`; they become pending
 candidates and need a listening decision before export/development.
 For a revision of an accepted idea, include `--from ACCEPTED_ID`; this records
 lineage, inherits melody locks, and rejects changes to locked notes or silence.
+Add `--trace FILE` with the creation record produced by the tracing helper for
+custom scripts. See [creation history](creation_history.md) for its schema,
+source roles and validation. Export's `provenance.creation_history` carries the
+complete recorded ancestry, repeated phrase placements and final material; it
+survives canonical-score reimport into a different session. This metadata does
+not change score-spec v2 or add history to native performance bundles.
 
 Limits: fixed integer tempo 30..300, seven diatonic modes, meter numerator 2..7
 and denominator 4/8, 1..16 parts, 8192 events, length at most 1024 quarter notes.

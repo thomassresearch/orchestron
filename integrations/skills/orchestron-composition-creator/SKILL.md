@@ -11,6 +11,8 @@ export music. It runs locally without an Orchestron backend. Read
 [score and handoff](references/score_and_handoff.md) before authoring custom
 material or exporting. [Compatibility](references/compatibility.md) explains
 the bundled arvo fixes and preview dependencies.
+Read [creation history](references/creation_history.md) when explaining a candidate
+or authoring custom material; it covers the recorder and portable ancestry.
 
 ## Entry point
 
@@ -54,6 +56,10 @@ in the user's browser. Keep the process available while they audition.
    free-text feedback is automatically interpreted by the generator.
    Import custom revisions with `import-score --from ACCEPTED_ID` to verify and
    inherit the parent's locks and record its lineage.
+   For custom scripts, capture musical calls with `Recorder.call`, describe authored
+   changes with `Recorder.authored`, and supply `--trace FILE` on import. Declare
+   every contributing candidate and its role. Record actual inputs/outputs while
+   working; never infer an unrecorded operation from the resulting notes.
 5. Preserve locked passages. Locks are half-open quarter-note ranges on the
    **melody**; complete intersecting notes, their velocities, and silence inside
    the ranges are protected. Harmony stays unchanged during development. Use
@@ -78,7 +84,10 @@ The tool does not guarantee stylistic quality: listening decisions remain centra
 Deliver `composition.json` (rational-time working score), `orchestron-score.json`
 (Performance Creator score v2), `mix.mid`, `solo.mid`, `score.musicxml`, and
 `mix.wav`/`solo.wav`. The score includes accepted candidate IDs and generation
-provenance. These are score artifacts, not native `.orch.json` bundles.
+provenance, including the complete recorded creation chain and phrase placements.
+Each audition card has a collapsible creation-history panel; `trace SESSION ID`
+returns the same ancestry. Older or unrecorded material shows explicit gaps.
+These are score artifacts, not native `.orch.json` bundles.
 
 When asked to realise the song, use the available `orchestron-performance-creator`
 skill, or the sibling directory's `SKILL.md`. It discovers instruments, binds the

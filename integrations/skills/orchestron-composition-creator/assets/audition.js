@@ -28,6 +28,7 @@ function card(item,index){
   const content=element("div","card-content"), audio=element("audio");audio.controls=true;audio.preload="metadata";audio.loop=document.querySelector("#loop").checked;audio.src=`/media/${item.id}/mix.wav`;audio.setAttribute("aria-label",t(item.kind));
   audio.addEventListener("play",()=>document.querySelectorAll("audio").forEach(a=>{if(a!==audio)a.pause();}));audio.addEventListener("error",()=>status(t("playingError"),true));content.append(audio);
   const listen=element("div","listen"), mix=element("select");mix.setAttribute("aria-label",`${t("mix")} / ${t("solo")}`);for(const key of ["mix","solo"]){const o=element("option","",t(key));o.value=key;mix.append(o);}mix.onchange=()=>{audio.pause();audio.src=`/media/${item.id}/${mix.value}.wav`;};const download=element("a","",t("midi"));download.href=`/media/${item.id}/mix.mid`;download.download=`${item.id}.mid`;listen.append(mix,download);content.append(listen);
+  const tracePanel=window.CompositionTrace.panel(item, language, () => draft.locks);content.append(tracePanel);
   const localStatus=element("p","card-status",draft.dirty?t("unsaved"):item.review.decision!=="pending"?t("saved"):""), buttons=element("div","decision");
   function dirty(){draft.dirty=true;localStatus.textContent=t("unsaved");}
   for(const choice of ["keep","favourite","reject","pending"]){const b=element("button","",t(choice));b.type="button";b.setAttribute("aria-pressed",String(draft.decision===choice));b.onclick=()=>{draft.decision=choice;card.dataset.decision=choice;buttons.querySelectorAll("button").forEach(button=>button.setAttribute("aria-pressed",String(button===b)));dirty();};buttons.append(b);}content.append(buttons);
@@ -39,7 +40,7 @@ function card(item,index){
     try {
       const ranges=locks.value.trim()?locks.value.split(",").map(raw=>{const p=raw.trim().split(":");if(p.length!==2)throw Error(t("lockHelp"));return{start_qn:p[0].trim(),end_qn:p[1].trim()};}):[];
       const response=await fetch("/api/review",{method:"POST",headers:{"Content-Type":"application/json","X-Session-Token":document.querySelector('meta[name="session-token"]').content},body:JSON.stringify({id:item.id,revision:state.revision,decision:draft.decision,feedback:feedback.value,locks:ranges})});
-      const next=await response.json();if(!response.ok)throw Error(next.error||t("failed"));state=next;draft.dirty=false;draft.locks=ranges;localStatus.textContent=t("saved");status(t("saved"));document.querySelector("#revision").textContent=`${t("revision")} ${state.revision}`;
+      const next=await response.json();if(!response.ok)throw Error(next.error||t("failed"));state=next;draft.dirty=false;draft.locks=ranges;tracePanel.dispatchEvent(new Event("review-saved"));localStatus.textContent=t("saved");status(t("saved"));document.querySelector("#revision").textContent=`${t("revision")} ${state.revision}`;
     } catch(error){status(error.message,true);} finally {controls.forEach(control=>control.disabled=false);}
   };content.append(save,localStatus);card.append(content);return card;
 }

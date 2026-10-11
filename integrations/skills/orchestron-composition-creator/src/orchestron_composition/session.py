@@ -15,6 +15,7 @@ import uuid
 from .generators import develop, new_phrase, validate_brief
 from .orchestron_export import export_score
 from .score import CompositionError, end, qn, validate
+from .trace import Recorder, lock_context, material, resolve, source_snapshot, validate_trace
 
 
 def read_json(path: Path) -> dict:
@@ -144,6 +145,7 @@ def generate(
         if parent:
             fingerprints.add(json.dumps(parent["score"]["parts"], sort_keys=True))
         for index in range(count):
+            recorder = Recorder()
             op = ("vary", "answer", "invert", "isorhythm")[index] if parent and operation == "vary" else operation
             if parent:
                 score = develop(
@@ -153,9 +155,10 @@ def generate(
                     op,
                     parent["review"]["locks"],
                     rhythm["score"] if rhythm else None,
+                    trace=recorder,
                 )
             else:
-                score = new_phrase(state["brief"], seed + index, index)
+                score = new_phrase(state["brief"], seed + index, index, trace=recorder)
             export_score(score)  # Reject inexpressible candidates before presenting them.
             fingerprint = json.dumps(score["parts"], sort_keys=True)
             if fingerprint in fingerprints:
@@ -169,6 +172,14 @@ def generate(
                 "seed": seed + index,
                 "parents": [i for i in (parent_id, rhythm_id) if i],
                 "score": score,
+                "trace": recorder.finish(
+                    score,
+                    sources=[
+                        source_snapshot(item, role, state["revision"])
+                        for item, role in ((parent, "pitch"), (rhythm, "rhythm"))
+                        if item is not None
+                    ],
+                ),
                 "review": {
                     "decision": "pending",
                     "feedback": "",
@@ -184,9 +195,11 @@ def generate(
     return ids
 
 
-def import_candidate(directory: Path, score: dict, parent_id: str | None = None) -> str:
+def import_candidate(directory: Path, score: dict, parent_id: str | None = None, trace: dict | None = None) -> str:
     validate(score)
     export_score(score)
+    if trace is not None:
+        validate_trace(trace, score)
     with transaction(directory) as state:
         if len(state["candidates"]) >= 128:
             raise CompositionError("Session has reached its 128-candidate limit.")
@@ -194,6 +207,36 @@ def import_candidate(directory: Path, score: dict, parent_id: str | None = None)
             raise CompositionError("Imported score must match the session's tempo, key, mode and meter.")
         parent = candidate(state, parent_id, accepted=True) if parent_id else None
         locks = copy.deepcopy(parent["review"]["locks"]) if parent else []
+        supplied = copy.deepcopy(trace)
+        recorder = Recorder()
+        recorder.record(
+            "orchestron.import_score",
+            "Import an authored score; supplied steps are author-provided records.",
+            parameters={"supplied_trace": supplied is not None},
+            inputs={"material": material(score), "has_export_provenance": "provenance" in score},
+            output={k: score[k] for k in ("tempo", "key", "mode", "meter", "length_qn", "parts")},
+        )
+        creation = supplied or recorder.finish(score)
+        if supplied:
+            creation["steps"].extend(recorder.steps)
+            creation["origin"] = "supplied"
+        sources = [source_snapshot(parent, "pitch", state["revision"])] if parent else []
+        for source in creation["sources"]:
+            if source["candidate_id"] == parent_id and source["role"] == "pitch":
+                continue
+            source_item = candidate(state, source["candidate_id"], accepted=True)
+            sources.append(source_snapshot(source_item, source["role"], state["revision"]))
+        creation["sources"] = sources
+        provenance = score.get("provenance", {})
+        history = provenance.get("creation_history") if isinstance(provenance, dict) else None
+        if history is not None:
+            if "history" in creation and creation["history"] != history:
+                raise CompositionError("The supplied trace and score contain conflicting creation histories.")
+            creation["history"] = copy.deepcopy(history)
+        if (supplied is None or not supplied["steps"]) and history is None:
+            creation["gap"] = "The imported score's internal creation operations were not recorded."
+        if supplied is None and isinstance(history, dict) and history.get("result") != material(score):
+            creation["gap"] = "The imported material differs from the recorded export, or its result was not recorded."
         if parent:
             for lock in locks:
                 start, stop = qn(lock["start_qn"]), qn(lock["end_qn"])
@@ -207,16 +250,28 @@ def import_candidate(directory: Path, score: dict, parent_id: str | None = None)
 
                 if stop > qn(score["length_qn"]) or protected_events(score) != protected_events(parent["score"]):
                     raise CompositionError("The revision changes a locked melody passage, including its silence.")
+            recorder = Recorder()
+            recorder.record(
+                "orchestron.verify_locks",
+                "Verify the primary parent's protected notes and silence.",
+                parameters=lock_context(parent["score"]["parts"][0]["events"], locks),
+                inputs=parent["score"]["parts"][0]["events"],
+                output=score["parts"][0]["events"],
+            )
+            creation["steps"].extend(recorder.steps)
+        validate_trace(creation, score)
         identity = f"import-{uuid.uuid4().hex[:8]}"
         state["candidates"][identity] = {
             "id": identity,
             "round": len(state["rounds"]) + 1,
             "kind": "imported",
             "seed": None,
-            "parents": [parent_id] if parent else [],
+            "parents": list(dict.fromkeys(s["candidate_id"] for s in sources)),
             "score": score,
+            "trace": creation,
             "review": {"decision": "pending", "feedback": "", "locks": locks},
         }
+        resolve(state, [identity])  # Validate ancestry before committing the candidate.
         state["rounds"].append({"ids": [identity], "operation": "import"})
     return identity
 

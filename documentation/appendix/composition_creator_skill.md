@@ -41,6 +41,34 @@ remain available. The page works in English, German, French and Spanish. Unsaved
 changes are marked. A conflicting newer revision must be refreshed before saving.
 The session is stored locally and can be resumed after closing the page.
 
+## Follow a Melody's Creation
+
+Open **How this melody was created** beneath a candidate's player. The panel
+shows its original material, earlier versions and contributing candidates in
+creation order. Expand an ancestor or a step to inspect arvo function names,
+resolved arguments and input/output material. It also records pitch fitting,
+rhythm combinations, accompaniment and continuation, so the history explains the
+final melody rather than just the first transformation.
+
+![Expanded creation history showing contributing candidates and recorded musical steps](../../screenshots/composition_creation_history.png)
+
+Parent roles identify where pitches and rhythm came from. Saved feedback and
+reviews are captured when a child is created. **Locks applied during creation**
+show the ranges used for that operation, with measure/beat positions and exact
+quarter-note values. Retained notes, protected silence and discarded generated
+notes are available in the details. **Saved locks for future development** are
+the current candidate's review and can differ from those historical locks.
+
+The panel loads on demand without interrupting playback or unsaved reviews.
+**Download history JSON** saves the complete record. CLI users can read the same
+record with `orchestron_compose trace SESSION CANDIDATE_ID`.
+
+Built-in generation records its operations automatically. Custom authoring scripts
+use the [trace recorder](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-composition-creator/references/creation_history.md)
+and import their records with `import-score --trace FILE`. Authored descriptions
+are distinguished from captured function calls. Earlier candidates and unrecorded
+imports show gaps explicitly; the tool does not reconstruct their missing history.
+
 ## Local Commands
 
 From the repository root:
@@ -68,6 +96,9 @@ and accepted-candidate provenance. The exporter finds exact supported grids and
 creates editable voice tracks and pads; it reports unsupported timing or capacity
 instead of silently changing the music. Initial scope is fixed tempo/meter and
 standard MIDI pitches, with straight/triplet grids and supported subdivisions.
+The canonical score also retains full recorded creation history and phrase
+placements, including repetitions, when imported into another composition session.
+Performance Creator's score format and native performance bundles are unchanged.
 
 [Performance Creator](performance_creator_skill.md) then discovers instruments,
 maps the score's channels, sets routing and mixer levels, applies the score,
@@ -79,11 +110,17 @@ bundles and should not be passed to the application's Import dialog.
 **Deutsch:** Ideen anhören, **Behalten/Favorit** wählen, Feedback und geschützte
 Melodieabschnitte speichern. Zum Chat zurückkehren und „weiter“ sagen. Anschliessend
 **Ideen aktualisieren**. Der Agent exportiert die ausgewählten Phrasen für Performance Creator.
+Unter **So entstand diese Melodie** lassen sich Vorlagen, Operationen, Eingaben
+und angewendete Sperren aufklappen; fehlende frühere Aufzeichnungen sind markiert.
 
 **Français :** Écoutez les idées, choisissez **Garder/Favori**, puis enregistrez vos
 commentaires et passages protégés. Revenez au chat et dites « continuer », puis
 actualisez les idées. L'agent exporte les phrases acceptées pour Performance Creator.
+**Comment cette mélodie a été créée** présente les sources, opérations, entrées
+et protections appliquées ; les lacunes historiques sont signalées.
 
 **Español:** Escucha las ideas, elige **Conservar/Favorito** y guarda los comentarios
 y pasajes protegidos. Vuelve al chat y di «continuar»; después actualiza las ideas.
 El agente exporta las frases aceptadas para Performance Creator.
+**Cómo se creó esta melodía** muestra fuentes, operaciones, entradas y bloqueos
+aplicados; las lagunas del historial se indican explícitamente.

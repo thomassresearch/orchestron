@@ -11,8 +11,9 @@ from . import session
 from .generators import OPERATIONS
 from .orchestron_export import export_score
 from .preview import render
-from .score import CompositionError, assemble
+from .score import CompositionError, assemble, qn
 from .server import make_server
+from .trace import material, resolve
 
 
 def render_candidates(directory: Path, ids: list[str], soundfont: str | None = None) -> None:
@@ -67,6 +68,9 @@ def parser() -> argparse.ArgumentParser:
     show = sub.add_parser("show", help="Read one complete candidate, including its score.")
     show.add_argument("directory", type=Path)
     show.add_argument("id")
+    trace = sub.add_parser("trace", help="Read the complete creation history of a candidate.")
+    trace.add_argument("directory", type=Path)
+    trace.add_argument("id")
     review = sub.add_parser("review", help="Record the user's selection, feedback and melody locks.")
     review.add_argument("directory", type=Path)
     review.add_argument("id")
@@ -99,6 +103,7 @@ def parser() -> argparse.ArgumentParser:
     imported.add_argument("directory", type=Path)
     imported.add_argument("score", type=Path)
     imported.add_argument("--from", dest="parent_id", help="Accepted parent; verifies and inherits its melody locks.")
+    imported.add_argument("--trace", type=Path, help="Creation record from Recorder.finish(score).")
     undo = sub.add_parser("undo", help="Restore the previous session revision.")
     undo.add_argument("directory", type=Path)
     return result
@@ -124,11 +129,14 @@ def run(args) -> dict:
         return {
             **state,
             "candidates": {
-                k: {key: value for key, value in v.items() if key != "score"} for k, v in state["candidates"].items()
+                k: {key: value for key, value in v.items() if key not in ("score", "trace")}
+                for k, v in state["candidates"].items()
             },
         }
     if args.command == "show":
         return session.candidate(session.load(directory), args.id)
+    if args.command == "trace":
+        return resolve(session.load(directory), [args.id])
     if args.command == "review":
         locks = []
         for value in args.lock:
@@ -142,7 +150,12 @@ def run(args) -> dict:
         state = session.undo(directory)
         return {"revision": state["revision"], "candidates": list(state["candidates"])}
     if args.command == "import-score":
-        identity = session.import_candidate(directory, session.read_json(args.score), args.parent_id)
+        identity = session.import_candidate(
+            directory,
+            session.read_json(args.score),
+            args.parent_id,
+            session.read_json(args.trace) if args.trace else None,
+        )
         render_candidates(directory, [identity])
         return {"candidate": identity}
     if args.command in ("serve", "render"):
@@ -178,6 +191,15 @@ def run(args) -> dict:
             "session_revision": state["revision"],
             "recipes": [{k: item[k] for k in ("id", "seed", "parents", "kind", "review")} for item in selected],
         }
+        history = resolve(state, args.ids)
+        history["result"] = material(score)
+        position = qn("0")
+        for item in selected:
+            history["assembly"].append(
+                {"candidate_id": item["id"], "onset_qn": str(position), "duration_qn": item["score"]["length_qn"]}
+            )
+            position += qn(item["score"]["length_qn"])
+        score["provenance"]["creation_history"] = history
         lowered = export_score(score)
         output = args.output.resolve()
         if output.exists():

@@ -27,6 +27,11 @@ saved together by **Save selection**. Changes remain visibly unsaved until then.
 Use **Refresh ideas** after the agent generates another round. Older rounds remain
 available. A stale browser cannot overwrite a newer review: refresh and reapply it.
 
+Expand **How this melody was created** to follow all recorded parents and musical
+operations. Each step exposes parameters and input/output material. Applied locks
+are historical; the card's saved review controls future development. Older records
+show explicit gaps. Download the history JSON or use `trace SESSION ID`.
+
 The agent waits while the user listens. The user returns to chat with “continue”.
 No background automation is created and no page action resumes the agent by itself.
 
@@ -37,6 +42,7 @@ Read the actual returned candidate IDs; the following ID is illustrative:
 ```bash
 uv run --locked orchestron_compose status /tmp/my-sketch
 uv run --locked orchestron_compose show /tmp/my-sketch r1-12345678
+uv run --locked orchestron_compose trace /tmp/my-sketch r1-12345678
 uv run --locked orchestron_compose review /tmp/my-sketch r1-12345678 \
   --decision favourite --feedback "Keep the opening; vary the ending" --lock 0:4
 uv run --locked orchestron_compose generate /tmp/my-sketch \
@@ -69,6 +75,12 @@ silence. The CLI does not interpret feedback prose. `--fresh` explicitly
 requests unrelated starters. Seeds reproduce music, while IDs identify immutable
 candidate instances. Duplicate variants are omitted, so a round can be smaller
 than the requested count.
+
+For custom revisions, [capture creation history](creation_history.md) as the
+script runs and import with `--trace FILE`. Declare all contributing candidates
+and roles, including accepted rhythm sources. `--from` still identifies the
+primary parent whose locks must be preserved. Imports without records remain
+possible but cannot explain unrecorded operations.
 
 ```bash
 uv run --locked orchestron_compose generate /tmp/my-sketch \

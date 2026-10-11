@@ -43,6 +43,14 @@ def test_http_review_survives_reload_and_rejects_stale_or_cross_origin_writes(tm
         assert request("POST", "/api/review", body, headers)[0] == 200
         loaded = json.loads(request("GET", "/api/session")[1])
         assert loaded["candidates"][identity]["review"]["feedback"] == "More space"
+        assert "trace" not in loaded["candidates"][identity]
+        trace_status, payload = request("GET", f"/api/trace/{identity}")
+        assert trace_status == 200
+        history = json.loads(payload)
+        assert history["roots"] == [identity]
+        assert history["nodes"][0]["steps"][0]["function"] == "orchestron.new_phrase"
+        assert request("GET", "/trace.js")[0] == 200
+        assert request("GET", "/api/trace/missing")[0] == 400
         assert loaded["revision"] == 2
         assert request("POST", "/api/review", body, headers)[0] == 409
         assert request("POST", "/api/review", body, {**headers, "Origin": "https://example.org"})[0] == 403

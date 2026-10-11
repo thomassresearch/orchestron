@@ -92,7 +92,7 @@ Removing a rack instrument also removes its dedicated inserts and connections; r
 
 For optional instrument, composition and performance creation with a coding agent, see the [Agent Tooling Appendix](documentation/appendix/appendix.md) and its creator skills and command-line utilities.
 
-Explore melodic ideas with [Composition Creator](documentation/appendix/composition_creator_skill.md): listen to candidate phrases, select favourites, leave feedback and lock passages you want to preserve. Develop accepted ideas into a song, then hand its machine-readable score to Performance Creator for instruments, routing and saving. The local audition page supports EN/DE/FR/ES and works without a running Orchestron backend.
+Explore melodic ideas with [Composition Creator](documentation/appendix/composition_creator_skill.md): listen to candidate phrases, select favourites, leave feedback and lock passages you want to preserve. Expand each candidate's creation history to see the recorded arvo calls, inputs, combined sources and protected passages through earlier versions. Develop accepted ideas into a song, then hand its machine-readable score to Performance Creator for instruments, routing and saving. The local audition page supports EN/DE/FR/ES and works without a running Orchestron backend.
 
 ![Composition audition page with three playable melodies and saved selection controls](screenshots/composition_audition.png)
 

@@ -11,6 +11,16 @@ from urllib.parse import unquote, urlsplit
 
 from . import session
 from .score import CompositionError
+from .trace import resolve
+
+
+def public_state(directory):
+    state = session.load(directory)
+    # Full histories are fetched on demand, independently of playback/review state.
+    for item in state["candidates"].values():
+        item.pop("trace", None)
+        item["score"].pop("provenance", None)
+    return state
 
 
 def asset_path(name: str) -> Path:
@@ -59,11 +69,13 @@ def make_server(directory: Path, port: int = 0) -> ThreadingHTTPServer:
                     self.reply(200, body, "text/html; charset=utf-8")
                 elif path == "/favicon.ico":
                     self.reply(204, b"", "image/x-icon")
-                elif path in ("/audition.js", "/audition.css"):
+                elif path in ("/audition.js", "/audition.css", "/trace.js"):
                     target = asset_path(path[1:])
                     self.reply(200, target.read_bytes(), "text/javascript" if path.endswith(".js") else "text/css")
                 elif path == "/api/session":
-                    self.json_reply(200, session.load(directory))
+                    self.json_reply(200, public_state(directory))
+                elif path.startswith("/api/trace/"):
+                    self.json_reply(200, resolve(session.load(directory), [path[len("/api/trace/") :]]))
                 elif path.startswith("/media/"):
                     pieces = path.split("/")
                     if len(pieces) != 4 or pieces[3] not in (
@@ -81,7 +93,9 @@ def make_server(directory: Path, port: int = 0) -> ThreadingHTTPServer:
                     )
                 else:
                     self.json_reply(404, {"error": "Not found."})
-            except (CompositionError, FileNotFoundError):
+            except CompositionError as exc:
+                self.json_reply(400 if path.startswith("/api/trace/") else 404, {"error": str(exc)})
+            except FileNotFoundError:
                 self.json_reply(404, {"error": "Preview unavailable. Render this candidate with the composition CLI."})
 
         def do_POST(self):
@@ -100,7 +114,7 @@ def make_server(directory: Path, port: int = 0) -> ThreadingHTTPServer:
                 body = json.loads(self.rfile.read(size))
                 if not isinstance(body, dict) or type(body.get("revision")) is not int:
                     raise CompositionError("A review needs the current session revision.")
-                state = session.review(
+                session.review(
                     directory,
                     body["id"],
                     body["decision"],
@@ -108,7 +122,7 @@ def make_server(directory: Path, port: int = 0) -> ThreadingHTTPServer:
                     body.get("locks", []),
                     body["revision"],
                 )
-                self.json_reply(200, state)
+                self.json_reply(200, public_state(directory))
             except (CompositionError, KeyError, ValueError, TypeError) as exc:
                 self.json_reply(409 if "session changed" in str(exc).lower() else 400, {"error": str(exc)})
 
