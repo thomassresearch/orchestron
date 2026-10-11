@@ -1102,6 +1102,136 @@
     "icon_filename": "moogladder.svg"
   },
   {
+    "name": "compress2",
+    "category": "dynamics",
+    "description": "Compressor, limiter, expander and gate with an audio sidechain and dBFS thresholds.",
+    "documentation_markdown": "### `compress2`\n\nCompressor, limiter, expander and gate with an audio sidechain and dBFS thresholds.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/compress2.html)",
+    "documentation_url": "https://csound.com/docs/manual/compress2.html",
+    "inputs": [
+      {
+        "id": "aasig",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio signal to process."
+      },
+      {
+        "id": "acsig",
+        "name": "Sidechain",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio signal driving the peak detector. Connect the source here too for ordinary compression."
+      },
+      {
+        "id": "kthresh",
+        "name": "GateThreshold",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": -90,
+        "description": "Gate threshold in dB relative to 0dbfs."
+      },
+      {
+        "id": "kloknee",
+        "name": "LowKnee",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": -52,
+        "description": "Lower knee breakpoint in dBFS."
+      },
+      {
+        "id": "khiknee",
+        "name": "HighKnee",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": -30,
+        "description": "Upper knee breakpoint in dBFS. Equal knee values give a hard knee."
+      },
+      {
+        "id": "kratio",
+        "name": "Ratio",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 3,
+        "description": "Compression ratio; 1 is neutral and values below 1 expand."
+      },
+      {
+        "id": "katt",
+        "name": "Attack",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0.01,
+        "description": "Peak detector attack time in seconds."
+      },
+      {
+        "id": "krel",
+        "name": "Release",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0.1,
+        "description": "Peak detector release time in seconds."
+      },
+      {
+        "id": "ilook",
+        "name": "Lookahead",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.05,
+        "description": "Lookahead time in seconds; introduces the same amount of audio delay."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "ar",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Processed audio signal."
+      }
+    ],
+    "template": "{ar} compress2 {aasig}, {acsig}, {kthresh}, {kloknee}, {khiknee}, {kratio}, {katt}, {krel}, {ilook}",
+    "tags": [
+      "dynamics",
+      "compressor",
+      "limiter",
+      "expander",
+      "gate",
+      "sidechain",
+      "ducking"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
     "name": "dam",
     "category": "dynamics",
     "description": "Dynamic amplitude processor (downward compressor/noise suppressor).",
@@ -2937,6 +3067,99 @@
     "tags": [
       "filter",
       "formant"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "pareq",
+    "category": "filter",
+    "description": "Parametric equalizer with peaking, low-shelf and high-shelf modes.",
+    "documentation_markdown": "### `pareq`\n\nParametric equalizer with peaking, low-shelf and high-shelf modes.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/pareq.html)",
+    "documentation_url": "https://csound.com/docs/manual/pareq.html",
+    "inputs": [
+      {
+        "id": "asig",
+        "name": "aIn",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Audio signal to equalize."
+      },
+      {
+        "id": "kc",
+        "name": "Frequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1000,
+        "description": "Center frequency for peaking, or corner frequency for shelving, in Hz."
+      },
+      {
+        "id": "kv",
+        "name": "Gain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Linear gain: 1 is neutral, below 1 cuts, above 1 boosts. This is not a dB value."
+      },
+      {
+        "id": "kq",
+        "name": "Q",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0.70710678,
+        "description": "Filter Q; sqrt(0.5) gives no resonance."
+      },
+      {
+        "id": "imode",
+        "name": "Mode",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "0 = peaking, 1 = low shelf, 2 = high shelf."
+      },
+      {
+        "id": "iskip",
+        "name": "SkipInit",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "0 initializes filter state; nonzero retains it."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "ares",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Equalized audio signal."
+      }
+    ],
+    "template": "{ares} pareq {asig}, {kc}, {kv}, {kq}, {imode}, {iskip}",
+    "tags": [
+      "filter",
+      "eq",
+      "equalizer",
+      "parametric",
+      "peaking",
+      "shelf"
     ],
     "icon_filename": "moogladder.svg"
   },
@@ -8310,6 +8533,118 @@
     "tags": [
       "sound",
       "source"
+    ],
+    "icon_filename": "oscili.svg"
+  },
+  {
+    "name": "hsboscil",
+    "category": "oscillator",
+    "description": "Oscillator with independent cyclic tonality and octave brightness controls.",
+    "documentation_markdown": "### `hsboscil`\n\nOscillator with independent cyclic tonality and octave brightness controls.\n\n**Reference**\n- [Csound opcode manual](https://csound.com/docs/manual/hsboscil.html)",
+    "documentation_url": "https://csound.com/docs/manual/hsboscil.html",
+    "inputs": [
+      {
+        "id": "kamp",
+        "name": "Amplitude",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0.2,
+        "description": "Output amplitude."
+      },
+      {
+        "id": "ktone",
+        "name": "Tonality",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0,
+        "description": "Cyclic pitch offset in octaves relative to the base frequency; wraps every octave."
+      },
+      {
+        "id": "kbrite",
+        "name": "Brightness",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0,
+        "description": "Spectral position in octaves relative to the base frequency; fractional and negative values are allowed."
+      },
+      {
+        "id": "ibasfreq",
+        "name": "BaseFrequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 220,
+        "description": "Base frequency in Hz."
+      },
+      {
+        "id": "iwfn",
+        "name": "WaveformTable",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Waveform table number, normally a sine. Defaults to the built-in sine table 1; accepts GEN ift."
+      },
+      {
+        "id": "ioctfn",
+        "name": "OctaveTable",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Required octave-weighting table number. Connect GEN ift, for example GEN19 with normalization off and arguments 1, 0.5, 270, 0.5."
+      },
+      {
+        "id": "ioctcnt",
+        "name": "Octaves",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 3,
+        "description": "Number of blended octaves, 2 to 10; default 3."
+      },
+      {
+        "id": "iphs",
+        "name": "Phase",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Initial phase, normally 0 to 1; -1 skips initialization. Default 0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "ares",
+        "name": "aOut",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Synthesized audio signal."
+      }
+    ],
+    "template": "{ares} hsboscil {kamp}, {ktone}, {kbrite}, {ibasfreq}, {iwfn}, {ioctfn}, {ioctcnt}, {iphs}",
+    "tags": [
+      "sound",
+      "source",
+      "oscillator",
+      "tonality",
+      "brightness",
+      "risset",
+      "shepard"
     ],
     "icon_filename": "oscili.svg"
   },

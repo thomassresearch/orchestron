@@ -48,6 +48,40 @@ from backend.app.services.sequencer_timing_migration import migrate_sequencer_ti
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
+def test_opcodes_include_compress2_pareq_hsboscil_manual_signatures(tmp_path: Path) -> None:
+    expected = {
+        "compress2": ("dynamics", "ar", [
+            ("aasig", "a", None), ("acsig", "a", None), ("kthresh", "k", -90),
+            ("kloknee", "k", -52), ("khiknee", "k", -30), ("kratio", "k", 3),
+            ("katt", "k", 0.01), ("krel", "k", 0.1), ("ilook", "i", 0.05),
+        ]),
+        "pareq": ("filter", "ares", [
+            ("asig", "a", None), ("kc", "k", 1000), ("kv", "k", 1),
+            ("kq", "k", 0.70710678), ("imode", "i", 0), ("iskip", "i", 0),
+        ]),
+        "hsboscil": ("oscillator", "ares", [
+            ("kamp", "k", 0.2), ("ktone", "k", 0), ("kbrite", "k", 0),
+            ("ibasfreq", "i", 220), ("iwfn", "i", 1), ("ioctfn", "i", None),
+            ("ioctcnt", "i", 3), ("iphs", "i", 0),
+        ]),
+    }
+    with _client(tmp_path) as client:
+        response = client.get("/api/opcodes")
+        assert response.status_code == 200
+        by_name = {item["name"]: item for item in response.json()}
+        for name, (category, output, inputs) in expected.items():
+            opcode = by_name[name]
+            assert client.get(f"/api/opcodes/{name}").json() == opcode
+            assert opcode["category"] == category
+            assert opcode["documentation_url"] == f"https://csound.com/docs/manual/{name}.html"
+            assert opcode["documentation_url"] in opcode["documentation_markdown"]
+            assert [(p["id"], p["signal_type"], p["default"]) for p in opcode["inputs"]] == inputs
+            assert [(p["id"], p["signal_type"]) for p in opcode["outputs"]] == [(output, "a")]
+            for port in opcode["inputs"]:
+                assert port["required"] is (port["id"] not in {"imode", "iskip", "ioctcnt", "iphs"})
+                assert port["accepted_signal_types"] == (["k", "i"] if port["signal_type"] == "k" else [])
+
+
 def test_opcodes_include_zdf_and_zfilter_manual_signatures(tmp_path: Path) -> None:
     expected = {
         "zdf_1pole": (["ain", "xcf", "kmode", "istor"], ["aout"]),
@@ -2459,6 +2493,7 @@ def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event
     assert "-d -W -f -o Offline_Export.wav" in csd and "-m0" not in csd
     assert "fixed coefficients" in readme and "csound -m0 Offline_Export.csd" in readme
     assert "suppresses warning-level messages" in readme
+    assert ("; Measure 1 | 00:00" in csd) == (event_source == "score")
 
 
 def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
@@ -2605,6 +2640,44 @@ def test_performance_csd_score_export_inlines_score_and_rewrites_midi_opcodes(tm
 
             warnings = archive.read("Offline_Export/WARNINGS.txt").decode("utf-8")
             assert "approximates ampmidi node 'amp'" in warnings
+
+
+@pytest.mark.parametrize("tempo, beats_per_measure, start_step, end_step, headers", [
+    (120, 4, 0, 96, ["; Measure 1 | 00:00", "; Measure 2 | 00:02", "; Measure 3 | 00:04"]),
+    (80, 3, 0, 72, ["; Measure 1 | 00:00", "; Measure 2 | 00:02", "; Measure 3 | 00:04"]),
+    (90, 5, 88, 168, ["; Measure 3 | 00:00", "; Measure 4 | 00:02", "; Measure 5 | 00:06"]),
+])
+def test_performance_csd_score_export_separates_master_measures(
+    tmp_path: Path, tempo, beats_per_measure, start_step, end_step, headers,
+) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "score"
+    config = payload["sequencerConfig"]
+    config["timing"].update(tempo_bpm=tempo, meter_numerator=beats_per_measure)
+    config.update(playback_start_step=start_step, playback_end_step=end_step)
+    # Local meter and speed must not determine the master measure annotations.
+    config["tracks"][0]["timing"].update(meter_numerator=7, meter_denominator=8, beat_unit="meter",
+                                          beat_rate_numerator=3, beat_rate_denominator=2)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+    assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+    score = csd.split("<CsScore>\n", 1)[1].split("</CsScore>", 1)[0]
+    assert [line for line in score.splitlines() if line.startswith("; Measure")] == headers
+    event_times = []
+    current_measure = None
+    start_seconds = start_step / 8 * 60 / tempo
+    for line in score.splitlines():
+        if line.startswith("; Measure"):
+            assert f"\n\n{line}\ni " in score
+            current_measure = int(line.split()[2])
+        elif line.startswith("i "):
+            time = float(line.split()[2])
+            event_times.append(time)
+            assert current_measure == int((start_seconds + time + 0.5 / 48000) / (beats_per_measure * 60 / tempo)) + 1
+    assert event_times == sorted(event_times)
+    assert "i 1 " in score and "i 9000 " in score
 
 
 def test_performance_csd_midi_export_seeds_enabled_midi_controller_values(tmp_path: Path) -> None:

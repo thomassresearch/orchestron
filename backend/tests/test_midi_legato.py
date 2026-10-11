@@ -10,6 +10,7 @@ from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.models.audio import AudioGraph, MixerState
 from backend.app.models.patch import NodeInstance
+from backend.app.models.session import SessionSequencerTimingConfig
 from backend.app.services.compiler_common import CompilationError, PatchInstrumentTarget
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
@@ -247,7 +248,8 @@ def test_score_export_preserves_chord_priority_and_collectors(tmp_path):
     events = [CapturedMidiEvent(t, bytes(m), i) for i, (t, m) in enumerate(data)]
     exporter = PerformanceExportService(compiler_service=None, gen_asset_service=None)
     lines, warnings = exporter._build_score_lines(
-        events=events, targets=targets, duration_seconds=0.6, manifest=artifact.manifest
+        events=events, targets=targets, duration_seconds=0.6, manifest=artifact.manifest,
+        timing=SessionSequencerTimingConfig(),
     )
     assert not warnings
     _, score_trace = render_trace(artifact, "\n".join(lines))

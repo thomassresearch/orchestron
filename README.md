@@ -36,6 +36,8 @@ Use [`midi_legato`](documentation/instrument_design/midi_legato.md) for monophon
 
 Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_design/opcode_catalog_and_documentation.md#zdf-and-custom-iir-filters): modulate cutoff and resonance at audio rate, use simultaneous filter outputs, or supply custom IIR coefficients.
 
+Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
+
 Hover over an instrument's description in Instrument Design to read the full text in a tooltip.
 
 Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to hear an unfinished patch on its own or in the context of a performance before saving it. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
@@ -104,7 +106,7 @@ The interface and integrated help are available in **English, German, French, an
 
 *Help stays close to the task, with explanations of the editor and its controls in your chosen language.*
 
-Save instruments and performances to your library, or export native bundles to back them up and share them with another Orchestron user. Sample assets travel with ZIP bundles. Native imports validate the bundle before confirmation and save the selected instruments, performance, and new audio assets together; cancelling leaves the library and audio storage unchanged. You can also export an instrument as a Csound `.csd` file, or export an arranged performance as a Csound render package using MIDI or an embedded score. Each performance render package includes instructions for producing an audio file.
+Save instruments and performances to your library, or export native bundles to back them up and share them with another Orchestron user. Sample assets travel with ZIP bundles. Native imports validate the bundle before confirmation and save the selected instruments, performance, and new audio assets together; cancelling leaves the library and audio storage unchanged. You can also export an instrument as a Csound `.csd` file, or export an arranged performance as a Csound render package using MIDI or an embedded score. Score exports group events by master measure, with measure/timestamp comments and blank lines between groups. Each performance render package includes instructions for producing an audio file.
 
 Both performance CSD modes optimize offline rendering of the saved mix while preserving musical controller automation and effect tails.
 

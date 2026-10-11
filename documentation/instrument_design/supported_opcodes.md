@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **186** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **189** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -20,16 +20,16 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | control_flow | 2 |
 | delay | 11 |
 | distortion | 4 |
-| dynamics | 2 |
+| dynamics | 3 |
 | envelope | 12 |
-| filter | 26 |
+| filter | 27 |
 | fm | 17 |
 | math | 3 |
 | midi | 8 |
 | mixer | 3 |
 | modulation | 10 |
 | noise | 3 |
-| oscillator | 19 |
+| oscillator | 20 |
 | output | 1 |
 | physical_modeling | 30 |
 | reverb | 4 |
@@ -96,6 +96,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| compress2 | 9 (a, a, k, k, k, k, k, k, i) | 1 (a) | Compressor, limiter, expander and gate with an audio sidechain and dBFS thresholds. |
 | dam | 6 (a, k, i, i, i, i) | 1 (a) | Dynamic amplitude processor (downward compressor/noise suppressor). |
 | limit | 3 (a, k, k) | 1 (a) | Hard clamp limiter. |
 
@@ -134,6 +135,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | moogladder | 3 (a, k, k) | 1 (a) | Moog ladder low-pass filter. |
 | moogladder2 | 3 (a, k, k) | 1 (a) | Nonlinear Moog-style ladder filter with audio-rate modulation support. |
 | moogvcf | 5 (a, k, k, i, i) | 1 (a) | Moog ladder voltage-controlled filter emulation. |
+| pareq | 6 (a, k, k, k, i, i) | 1 (a) | Parametric equalizer with peaking, low-shelf and high-shelf modes. |
 | resonx | 6 (a, k, k, i, i, i) | 1 (a) | Multi-layer resonant band-pass filter. |
 | rezzy | 5 (a, k, k, i, i) | 1 (a) | Resonant low-pass or high-pass filter. |
 | skf | 5 (a, k, k, i, i) | 1 (a) | Sallen-Key low-pass or high-pass filter. |
@@ -235,6 +237,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | grain2 | 9 (k, k, k, i, k, i, i, i, i) | 1 (a) | Easy-to-use granular synthesis texture generator. |
 | grain3 | 13 (k, k, k, k, k, k, i, k, i, k, k, i, i) | 1 (a) | Granular oscillator with independent frequency and phase modulation controls. |
 | granule | 22 (k, i, i, i, i, i, i, i, i, i, k, i, k, i, i, i, i, i, i, i, i, i) | 1 (a) | Multi-voice granular processor with independent gap and grain-size controls. |
+| hsboscil | 8 (k, k, k, i, i, i, i, i) | 1 (a) | Oscillator with independent cyclic tonality and octave brightness controls. |
 | moog | 9 (k, k, k, k, k, k, i, i, i) | 1 (a) | Mini-Moog style synthesizer model source. |
 | oscil3 | 4 (k, k, i, i) | 1 (a) | Cubic-interpolating oscillator with low distortion. |
 | oscili | 3 (k, k, i) | 1 (a) | Classic interpolating oscillator. |

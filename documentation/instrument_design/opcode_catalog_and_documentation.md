@@ -97,6 +97,18 @@ Supply exactly `im + in` coefficients. The editor supports 1–51 numerator coef
 
 ![ZDF catalog and custom IIR coefficient control](../../screenshots/instrument_zdf_filters.png)
 
+## Compression, Equalization and Cyclic Tonality
+
+- [`compress2`](https://csound.com/docs/manual/compress2.html), in **dynamics**, processes `aasig` using peak detection on the separate `acsig` sidechain. Connect the same source to both for ordinary compression, or a different source for ducking. Gate and knee levels use dBFS. Editor defaults are -90 dB gate, -52/-30 dB knees, ratio 3, attack 0.01 s, release 0.1 s and lookahead 0.05 s. Lookahead adds audio latency. The detector and ratio controls accept control or init rate; lookahead is init rate.
+- [`pareq`](https://csound.com/docs/manual/pareq.html), in **filter**, offers **Mode** 0 = peaking, 1 = low shelf, 2 = high shelf. **Gain** is linear: 1 is neutral, less than 1 cuts, greater than 1 boosts. Frequency, gain and Q accept control or init rate; their editor defaults are 1000 Hz, 1 and approximately 0.7071. Optional init-rate **SkipInit** defaults to 0; setting it alone retains peaking mode.
+- [`hsboscil`](https://csound.com/docs/manual/hsboscil.html), in **oscillator**, separates cyclic **Tonality** from **Brightness**, both measured in octaves relative to **BaseFrequency** (initially 220 Hz). Ramp tonality with fixed brightness for a Risset glissando. Amplitude, tonality and brightness accept control or init rate. **Octaves** is an optional init-rate count from 2 to 10, default 3; **Phase** defaults to 0, with -1 skipping initialization.
+
+`hsboscil` needs two function tables. **WaveformTable** defaults to the built-in sine table 1. **OctaveTable** must be supplied: add a **GEN** node with routine **19**, normalization disabled, table size **1024**, and arguments **1, 0.5, 270, 0.5**; connect its `ift` output to **OctaveTable**. Connect a second GEN node to **WaveformTable** for a custom waveform. Table numbers use init-rate ports, matching GEN's `ift` output. They are distinct from the `f` signals used by spectral nodes.
+
+Each node produces mono audio; connect its output to both `outs` inputs for centered stereo. The `?` help describes all ports in English, German, French and Spanish. Prefilled required parameters are editor starting values; optional parameters retain Csound defaults.
+
+![compress2, pareq and hsboscil nodes with their audio, control and table inputs](../../screenshots/instrument_compress2_pareq_hsboscil.jpg)
+
 ## STK Instruments
 
 Search for `stk` to find the 27 Synthesis Toolkit instruments in the `physical_modeling`, `fm`, and `oscillator` categories. They include strings, winds, percussion, voices, organs, and electric pianos. Each node produces one mono audio signal; connect it to both `outs` inputs for centered stereo output.

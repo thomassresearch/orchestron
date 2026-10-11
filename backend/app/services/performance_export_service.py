@@ -16,6 +16,8 @@ from backend.app.models.export import (
     PerformanceExportPayload,
 )
 from backend.app.models.patch import EngineConfig, PatchDocument, PatchGraph
+from backend.app.models.sequencer_constants import TRANSPORT_STEPS_PER_BEAT
+from backend.app.models.session import SessionSequencerTimingConfig
 from backend.app.services.compiler_service import CompilerService, PatchInstrumentTarget
 from backend.app.services.compiler_common import CompilationProfile
 from backend.app.services.compiler_orchestra import OrchestraEmitter, SCORE_CONTROLLER_ARRAY_NAME
@@ -230,6 +232,8 @@ class PerformanceExportService:
                 events=captured_events,
                 targets=targets,
                 duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
+                timing=request.sequencer_config.timing,
+                playback_start_step=request.sequencer_config.playback_start_step,
             )
             warnings.extend(score_warnings)
             csd = self._build_offline_score_csd(
@@ -725,6 +729,8 @@ class PerformanceExportService:
         events: list[CapturedMidiEvent],
         targets: list[PatchInstrumentTarget],
         duration_seconds: float,
+        timing: SessionSequencerTimingConfig,
+        playback_start_step: int = 0,
         manifest: dict | None = None,
         allow_continuous: bool = False,
     ) -> tuple[list[str], list[str]]:
@@ -739,29 +745,52 @@ class PerformanceExportService:
         controller_events = self._score_controller_events(events)
         setter_duration = 1.0 / float(OFFLINE_RENDER_SR)
         lines = ["f 1 0 16384 10 1"]
+        timed_lines: list[tuple[float, str]] = []
 
         for event in controller_events:
             index = OrchestraEmitter.score_controller_index(event.midi_channel, event.controller_number)
-            lines.append(
+            timed_lines.append((
+                event.time_seconds,
                 "i "
                 f"{self._format_score_instrument_ref(OrchestraEmitter.score_controller_instrument_ref())} "
                 f"{self._format_score_number(event.time_seconds)} "
                 f"{self._format_score_number(setter_duration)} "
-                f"{index} {event.value}"
-            )
+                f"{index} {event.value}",
+            ))
 
         legato_refs = {manifest["noteInstrumentReferences"][identity]
                        for identity in manifest.get("legatoInstanceIds", [])} if manifest else set()
         for event in note_events:
             phrase_fields = f" {event.sequence + 1} {event.midi_channel}" if event.instrument_ref in legato_refs else ""
-            lines.append(
+            timed_lines.append((
+                event.start_seconds,
                 "i "
                 f"{self._format_score_instrument_ref(event.instrument_ref)} "
                 f"{self._format_score_number(event.start_seconds)} "
                 f"{self._format_score_number(event.duration_seconds)} "
-                f"{event.note} {event.velocity}{phrase_fields}"
-            )
+                f"{event.note} {event.velocity}{phrase_fields}",
+            ))
 
+        # Master bars use quarter-note transport beats, like the arranger ruler;
+        # local track meters, subdivisions and speed ratios do not change them.
+        beat_seconds = 60.0 / timing.tempo_bpm
+        measure_seconds = timing.meter_numerator * beat_seconds
+        start_seconds = playback_start_step / TRANSPORT_STEPS_PER_BEAT * beat_seconds
+        previous_measure = None
+        # Stable sorting retains controller ordering and puts setters before notes
+        # at the same time, while grouping all score statements chronologically.
+        for time_seconds, line in sorted(timed_lines, key=lambda item: item[0]):
+            # Captured attacks are rounded to samples. Tolerate half a sample so
+            # an exact bar boundary cannot fall into the preceding measure.
+            measure = int((start_seconds + time_seconds + 0.5 / OFFLINE_RENDER_SR) / measure_seconds)
+            if measure != previous_measure:
+                elapsed_seconds = int(max(0.0, measure * measure_seconds - start_seconds) + 1e-9)
+                minutes, seconds = divmod(elapsed_seconds, 60)
+                lines.extend(["", f"; Measure {measure + 1} | {minutes:02d}:{seconds:02d}"])
+                previous_measure = measure
+            lines.append(line)
+
+        lines.append("")
         lines.append(f"f 0 {self._format_duration(duration_seconds)}")
         return lines, warnings
 
@@ -1090,6 +1119,7 @@ class PerformanceExportService:
                 "Render steps:",
                 f"1. Extract the ZIP and change into the bundled '{bundle_directory_name}/' directory.",
                 "2. Render with Csound using the inline score embedded in the CSD.",
+                "Score comments mark master measures and their start times (MM:SS, elapsed from the export start).",
                 "",
                 "Exact command line:",
                 f"csound -d -W -f -o {output_wave_name} {csd_file_name}",

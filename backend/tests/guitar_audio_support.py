@@ -16,6 +16,7 @@ from backend.app.models.audio import AudioGraph, AudioRoute
 from backend.app.services.compiler_common import CompilationProfile, PatchInstrumentTarget
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
+from backend.app.models.session import SessionSequencerTimingConfig
 from backend.app.services.performance_export_service import CapturedMidiEvent, PerformanceExportService
 
 
@@ -86,6 +87,7 @@ def render(artifact, targets, events, seconds, *, mode="score", trace=False, con
         lines, warnings = exporter._build_score_lines(
             events=[CapturedMidiEvent(t, msg, i) for i, (t, msg) in enumerate(events)],
             targets=targets, duration_seconds=seconds, manifest=artifact.manifest,
+            timing=SessionSequencerTimingConfig(),
         )
         assert not warnings, warnings
         score = "\n".join(lines) + f"\nf 0 {seconds + 1}"

@@ -8133,5 +8133,197 @@
         "spanish": "Salida de audio filtrada."
       }
     }
+  },
+  "compress2": {
+    "description": {
+      "english": "Dynamics processor with a peak-detecting sidechain. Use the same audio source on both inputs for compression, or a separate source for ducking. Thresholds use dBFS; lookahead adds latency.",
+      "german": "Dynamikprozessor mit Spitzenpegelerkennung im Sidechain. Für Kompression dieselbe Audioquelle an beide Eingänge anschließen, für Ducking eine separate Steuerquelle verwenden. Schwellenwerte sind in dBFS; Lookahead erzeugt Latenz.",
+      "french": "Processeur de dynamique avec détection des crêtes par une entrée latérale. Utilisez la même source aux deux entrées pour la compression, ou une source distincte pour le ducking. Les seuils sont en dBFS ; l’anticipation ajoute de la latence.",
+      "spanish": "Procesador de dinámica con detección de picos mediante una entrada lateral. Use la misma fuente en ambas entradas para compresión, o una fuente independiente para ducking. Los umbrales usan dBFS; la anticipación añade latencia."
+    },
+    "inputs": {
+      "aasig": {
+        "english": "Audio signal to process.",
+        "german": "Zu bearbeitendes Audiosignal.",
+        "french": "Signal audio à traiter.",
+        "spanish": "Señal de audio que se procesará."
+      },
+      "acsig": {
+        "english": "Audio sidechain for peak detection. Connect the main source here too for ordinary compression.",
+        "german": "Audio-Sidechain zur Spitzenpegelerkennung. Für normale Kompression auch die Hauptquelle hier anschließen.",
+        "french": "Entrée audio latérale pour la détection des crêtes. Connectez aussi la source principale ici pour une compression classique.",
+        "spanish": "Entrada lateral de audio para detectar picos. Conecte también aquí la fuente principal para compresión convencional."
+      },
+      "kthresh": {
+        "english": "Gate threshold in dBFS; starts at -90.",
+        "german": "Gate-Schwelle in dBFS; Startwert -90.",
+        "french": "Seuil de porte en dBFS ; valeur initiale -90.",
+        "spanish": "Umbral de puerta en dBFS; valor inicial -90."
+      },
+      "kloknee": {
+        "english": "Lower knee breakpoint in dBFS; starts at -52.",
+        "german": "Unterer Kennlinienknick in dBFS; Startwert -52.",
+        "french": "Point inférieur du coude en dBFS ; valeur initiale -52.",
+        "spanish": "Punto inferior de la rodilla en dBFS; valor inicial -52."
+      },
+      "khiknee": {
+        "english": "Upper knee breakpoint in dBFS; starts at -30. Equal knee values give a hard knee.",
+        "german": "Oberer Kennlinienknick in dBFS; Startwert -30. Gleiche Knickwerte ergeben ein Hard Knee.",
+        "french": "Point supérieur du coude en dBFS ; valeur initiale -30. Des valeurs identiques donnent un coude dur.",
+        "spanish": "Punto superior de la rodilla en dBFS; valor inicial -30. Valores iguales producen una rodilla dura."
+      },
+      "kratio": {
+        "english": "Compression ratio: 1 is neutral; below 1 expands. Starts at 3.",
+        "german": "Kompressionsverhältnis: 1 ist neutral; unter 1 wird expandiert. Startwert 3.",
+        "french": "Rapport de compression : 1 est neutre ; une valeur inférieure à 1 produit une expansion. Valeur initiale 3.",
+        "spanish": "Relación de compresión: 1 es neutro; por debajo de 1 expande. Valor inicial 3."
+      },
+      "katt": {
+        "english": "Peak detector attack time in seconds.",
+        "german": "Ansprechzeit des Spitzendetektors in Sekunden.",
+        "french": "Temps d’attaque du détecteur de crêtes en secondes.",
+        "spanish": "Tiempo de ataque del detector de picos en segundos."
+      },
+      "krel": {
+        "english": "Peak detector release time in seconds.",
+        "german": "Abklingzeit des Spitzendetektors in Sekunden.",
+        "french": "Temps de relâchement du détecteur de crêtes en secondes.",
+        "spanish": "Tiempo de liberación del detector de picos en segundos."
+      },
+      "ilook": {
+        "english": "Lookahead in seconds, adding the same audio delay. Starts at 0.05 seconds.",
+        "german": "Lookahead in Sekunden; verzögert das Audio um denselben Betrag. Startwert 0.05 Sekunden.",
+        "french": "Anticipation en secondes, ajoutant le même retard audio. Valeur initiale 0.05 seconde.",
+        "spanish": "Anticipación en segundos, que añade el mismo retardo al audio. Valor inicial 0.05 segundos."
+      }
+    },
+    "outputs": {
+      "ar": {
+        "english": "Processed audio signal.",
+        "german": "Bearbeitetes Audiosignal.",
+        "french": "Signal audio traité.",
+        "spanish": "Señal de audio procesada."
+      }
+    }
+  },
+  "pareq": {
+    "description": {
+      "english": "Parametric equalizer with peaking, low-shelf and high-shelf modes. Frequency, linear gain and Q can change during a note.",
+      "german": "Parametrischer Equalizer mit Glocken-, Tiefen-Shelf- und Höhen-Shelf-Modus. Frequenz, lineare Verstärkung und Q können sich während einer Note ändern.",
+      "french": "Égaliseur paramétrique avec modes en cloche, plateau grave et plateau aigu. La fréquence, le gain linéaire et Q peuvent varier pendant une note.",
+      "spanish": "Ecualizador paramétrico con modos de campana, estante de graves y estante de agudos. La frecuencia, la ganancia lineal y Q pueden cambiar durante una nota."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Audio signal to equalize.",
+        "german": "Zu entzerrendes Audiosignal.",
+        "french": "Signal audio à égaliser.",
+        "spanish": "Señal de audio que se ecualizará."
+      },
+      "kc": {
+        "english": "Center frequency for peaking, or corner frequency for shelving, in Hz.",
+        "german": "Mittenfrequenz im Glockenmodus oder Eckfrequenz im Shelf-Modus, in Hz.",
+        "french": "Fréquence centrale en mode cloche ou fréquence de transition en mode plateau, en Hz.",
+        "spanish": "Frecuencia central en modo campana o frecuencia de transición en modo estante, en Hz."
+      },
+      "kv": {
+        "english": "Linear gain, not dB: 1 is neutral, below 1 cuts, above 1 boosts.",
+        "german": "Lineare Verstärkung, nicht dB: 1 ist neutral, unter 1 wird abgesenkt, über 1 angehoben.",
+        "french": "Gain linéaire, pas en dB : 1 est neutre, moins de 1 atténue, plus de 1 amplifie.",
+        "spanish": "Ganancia lineal, no dB: 1 es neutro, menos de 1 atenúa y más de 1 realza."
+      },
+      "kq": {
+        "english": "Filter Q; sqrt(0.5), approximately 0.7071, gives no resonance.",
+        "german": "Filtergüte Q; sqrt(0.5), etwa 0.7071, ergibt keine Resonanz.",
+        "french": "Facteur Q du filtre ; sqrt(0.5), environ 0.7071, ne produit pas de résonance.",
+        "spanish": "Factor Q del filtro; sqrt(0.5), aproximadamente 0.7071, no produce resonancia."
+      },
+      "imode": {
+        "english": "0 = peaking, 1 = low shelf, 2 = high shelf. Default 0.",
+        "german": "0 = Glocke, 1 = Tiefen-Shelf, 2 = Höhen-Shelf. Standard 0.",
+        "french": "0 = cloche, 1 = plateau grave, 2 = plateau aigu. Par défaut 0.",
+        "spanish": "0 = campana, 1 = estante de graves, 2 = estante de agudos. Predeterminado 0."
+      },
+      "iskip": {
+        "english": "0 initializes filter state; nonzero retains it. Default 0.",
+        "german": "0 initialisiert den Filterzustand; ein Wert ungleich 0 behält ihn bei. Standard 0.",
+        "french": "0 initialise l’état du filtre ; une valeur non nulle le conserve. Par défaut 0.",
+        "spanish": "0 inicializa el estado del filtro; un valor distinto de cero lo conserva. Predeterminado 0."
+      }
+    },
+    "outputs": {
+      "ares": {
+        "english": "Equalized audio signal.",
+        "german": "Entzerrtes Audiosignal.",
+        "french": "Signal audio égalisé.",
+        "spanish": "Señal de audio ecualizada."
+      }
+    }
+  },
+  "hsboscil": {
+    "description": {
+      "english": "Oscillator with cyclic tonality and independent brightness relative to a base frequency. Ramp tonality while holding brightness constant for a Risset glissando. Requires a waveform table and an octave-weighting table.",
+      "german": "Oszillator mit zyklischer Tonalität und unabhängiger Helligkeit relativ zu einer Grundfrequenz. Eine Tonalitätsrampe bei konstanter Helligkeit erzeugt ein Risset-Glissando. Benötigt eine Wellenform- und eine Oktavgewichtungstabelle.",
+      "french": "Oscillateur à tonalité cyclique et brillance indépendante par rapport à une fréquence de base. Une rampe de tonalité à brillance constante produit un glissando de Risset. Nécessite une table de forme d’onde et une table de pondération des octaves.",
+      "spanish": "Oscilador con tonalidad cíclica y brillo independiente respecto a una frecuencia base. Una rampa de tonalidad con brillo constante produce un glissando de Risset. Requiere una tabla de onda y otra de ponderación de octavas."
+    },
+    "inputs": {
+      "kamp": {
+        "english": "Output amplitude.",
+        "german": "Ausgangsamplitude.",
+        "french": "Amplitude de sortie.",
+        "spanish": "Amplitud de salida."
+      },
+      "ktone": {
+        "english": "Cyclic pitch offset in octaves; 0 to 1 spans one octave. Values above 1 wrap.",
+        "german": "Zyklischer Tonhöhenversatz in Oktaven; 0 bis 1 umfasst eine Oktave. Werte über 1 werden zyklisch zurückgeführt.",
+        "french": "Décalage cyclique de hauteur en octaves ; 0 à 1 couvre une octave. Les valeurs supérieures à 1 sont ramenées au cycle.",
+        "spanish": "Desplazamiento cíclico de tono en octavas; de 0 a 1 cubre una octava. Los valores superiores a 1 vuelven al ciclo."
+      },
+      "kbrite": {
+        "english": "Brightness in octaves relative to the base: 0 = base, 1 = octave above, -2 = two below. Fractional values are allowed.",
+        "german": "Helligkeit in Oktaven relativ zur Basis: 0 = Basis, 1 = Oktave darüber, -2 = zwei darunter. Bruchwerte sind erlaubt.",
+        "french": "Brillance en octaves par rapport à la base : 0 = base, 1 = octave au-dessus, -2 = deux en dessous. Les valeurs fractionnaires sont admises.",
+        "spanish": "Brillo en octavas respecto a la base: 0 = base, 1 = octava superior, -2 = dos inferiores. Admite valores fraccionarios."
+      },
+      "ibasfreq": {
+        "english": "Base frequency in Hz.",
+        "german": "Grundfrequenz in Hz.",
+        "french": "Fréquence de base en Hz.",
+        "spanish": "Frecuencia base en Hz."
+      },
+      "iwfn": {
+        "english": "Waveform table number. Defaults to built-in sine table 1; connect GEN ift for a custom waveform.",
+        "german": "Wellenform-Tabellennummer. Standard ist die eingebaute Sinustabelle 1; für eigene Wellenformen GEN ift anschließen.",
+        "french": "Numéro de table de forme d’onde. Utilise par défaut la table sinusoïdale intégrée 1 ; connectez GEN ift pour une forme personnalisée.",
+        "spanish": "Número de tabla de onda. Usa la tabla sinusoidal integrada 1 por defecto; conecte GEN ift para una onda personalizada."
+      },
+      "ioctfn": {
+        "english": "Required octave-weighting table. Connect GEN ift: routine 19, normalization off, size 1024, arguments 1, 0.5, 270, 0.5.",
+        "german": "Erforderliche Oktavgewichtungstabelle. GEN ift anschließen: Routine 19, Normalisierung aus, Größe 1024, Argumente 1, 0.5, 270, 0.5.",
+        "french": "Table de pondération des octaves obligatoire. Connectez GEN ift : routine 19, normalisation désactivée, taille 1024, arguments 1, 0.5, 270, 0.5.",
+        "spanish": "Tabla obligatoria de ponderación de octavas. Conecte GEN ift: rutina 19, normalización desactivada, tamaño 1024, argumentos 1, 0.5, 270, 0.5."
+      },
+      "ioctcnt": {
+        "english": "Number of blended octaves: 2 to 10. Default 3.",
+        "german": "Anzahl gemischter Oktaven: 2 bis 10. Standard 3.",
+        "french": "Nombre d’octaves mélangées : 2 à 10. Par défaut 3.",
+        "spanish": "Número de octavas mezcladas: de 2 a 10. Predeterminado 3."
+      },
+      "iphs": {
+        "english": "Initial phase, normally 0 to 1; -1 skips initialization. Default 0.",
+        "german": "Anfangsphase, normalerweise 0 bis 1; -1 überspringt die Initialisierung. Standard 0.",
+        "french": "Phase initiale, normalement de 0 à 1 ; -1 ignore l’initialisation. Par défaut 0.",
+        "spanish": "Fase inicial, normalmente de 0 a 1; -1 omite la inicialización. Predeterminado 0."
+      }
+    },
+    "outputs": {
+      "ares": {
+        "english": "Synthesized audio signal.",
+        "german": "Synthetisiertes Audiosignal.",
+        "french": "Signal audio synthétisé.",
+        "spanish": "Señal de audio sintetizada."
+      }
+    }
   }
 }

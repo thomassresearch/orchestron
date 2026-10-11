@@ -501,6 +501,130 @@ def test_stereo_reverbs_compile_with_manual_argument_order(opcode_name: str, exp
     )
 
 
+def _compress2_pareq_hsboscil_patch(name: str, params: dict | None = None) -> PatchDocument:
+    nodes = []
+    connections = []
+    layout = {}
+    if name == "hsboscil":
+        nodes = [NodeInstance(id="wave", opcode="GEN"), NodeInstance(id="window", opcode="GEN")]
+        layout = {"gen_nodes": {
+            "wave": {"routineNumber": 10, "harmonicAmplitudes": [1], "tableSize": 1024},
+            "window": {"routineNumber": 19, "normalize": False, "tableSize": 1024,
+                       "rawArgs": [1, 0.5, 270, 0.5]},
+        }}
+        connections = [Connection(from_node_id=node, from_port_id="ift", to_node_id="target", to_port_id=port)
+                       for node, port in [("wave", "iwfn"), ("window", "ioctfn")]]
+    else:
+        nodes = [NodeInstance(id="source", opcode="oscili", params={"amp": 0.2, "freq": 440})]
+        connections = [Connection(from_node_id="source", from_port_id="asig", to_node_id="target",
+                                  to_port_id="aasig" if name == "compress2" else "asig")]
+        if name == "compress2":
+            nodes.append(NodeInstance(id="sidechain", opcode="oscili", params={"amp": 0.1, "freq": 220}))
+            connections.append(Connection(from_node_id="sidechain", from_port_id="asig",
+                                          to_node_id="target", to_port_id="acsig"))
+    nodes.extend([NodeInstance(id="target", opcode=name, params=params or {}), NodeInstance(id="out", opcode="outs")])
+    connections.extend(Connection(from_node_id="target", from_port_id="ar" if name == "compress2" else "ares",
+                                  to_node_id="out", to_port_id=channel) for channel in ("left", "right"))
+    return PatchDocument(name=f"{name} test", graph=PatchGraph(nodes=nodes, connections=connections, ui_layout=layout))
+
+
+@pytest.mark.parametrize(("name", "params", "expected"), [
+    ("compress2", {}, "a_source_asig_1, a_sidechain_asig_2, -90, -52, -30, 3, 0.01, 0.1, 0.05"),
+    ("compress2", {"kthresh": -80, "kloknee": -24, "khiknee": -12, "kratio": 4,
+                   "katt": 0.02, "krel": 0.2, "ilook": 0.01},
+     "a_source_asig_1, a_sidechain_asig_2, -80, -24, -12, 4, 0.02, 0.2, 0.01"),
+    ("pareq", {}, "a_source_asig_1, 1000, 1, 0.70710678, 0, 0"),
+    ("pareq", {"iskip": 1}, "a_source_asig_1, 1000, 1, 0.70710678, 0, 1"),
+    ("pareq", {"kc": 500, "kv": 0.5, "kq": 1, "imode": 2}, "a_source_asig_1, 500, 0.5, 1, 2, 0"),
+    ("hsboscil", {}, "0.2, 0, 0, 220, i_wave_ift_1, i_window_ift_2, 3, 0"),
+    ("hsboscil", {"iphs": 0.25}, "0.2, 0, 0, 220, i_wave_ift_1, i_window_ift_2, 3, 0.25"),
+    ("hsboscil", {"kamp": 0.1, "ktone": 0.5, "kbrite": -1, "ibasfreq": 110, "ioctcnt": 5, "iphs": -1},
+     "0.1, 0.5, -1, 110, i_wave_ift_1, i_window_ift_2, 5, -1"),
+])
+def test_compress2_pareq_hsboscil_argument_order_and_optional_defaults(name, params, expected) -> None:
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        _compress2_pareq_hsboscil_patch(name, params), midi_input="0", rtmidi_module="alsaseq",
+    )
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if f" {name} " in line)
+    assert line.split(f" {name} ", 1)[1] == expected
+    assert "__VS_OPTIONAL_OMIT__" not in artifact.orc
+    if name == "hsboscil":
+        assert "ftgen 0, 0, 1024, -19, 1, 0.5, 270, 0.5" in artifact.orc
+
+
+@pytest.mark.parametrize("source_rate", ["a", "k", "i", "S"])
+@pytest.mark.parametrize(("name", "port", "accepted"), [
+    ("compress2", "aasig", "a"), ("compress2", "acsig", "a"),
+    *[("compress2", port, "ki") for port in ["kthresh", "kloknee", "khiknee", "kratio", "katt", "krel"]],
+    ("compress2", "ilook", "i"), ("pareq", "asig", "a"),
+    *[("pareq", port, "ki") for port in ["kc", "kv", "kq"]],
+    ("pareq", "imode", "i"), ("pareq", "iskip", "i"),
+    *[("hsboscil", port, "ki") for port in ["kamp", "ktone", "kbrite"]],
+    *[("hsboscil", port, "i") for port in ["ibasfreq", "iwfn", "ioctfn", "ioctcnt", "iphs"]],
+])
+def test_compress2_pareq_hsboscil_connected_rates(name, port, accepted, source_rate) -> None:
+    patch = _compress2_pareq_hsboscil_patch(name)
+    patch.graph.nodes.insert(0, NodeInstance(id="mod", opcode=f"const_{source_rate.lower()}",
+                                           params={"value": "signal" if source_rate == "S" else 1}))
+    patch.graph.connections = [c for c in patch.graph.connections if (c.to_node_id, c.to_port_id) != ("target", port)]
+    patch.graph.connections.append(Connection(from_node_id="mod", from_port_id=f"{source_rate.lower()}out",
+                                              to_node_id="target", to_port_id=port))
+    compiler = CompilerService(OpcodeService("/static/icons"))
+    if source_rate not in accepted:
+        with pytest.raises(CompilationError) as error:
+            compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+        assert any("Signal type mismatch" in item for item in error.value.diagnostics)
+    else:
+        artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+        line = next(line for line in orc_code_lines(artifact.orc) if f" {name} " in line)
+        assert f"{source_rate}_mod_{source_rate.lower()}out_1" in line
+
+
+@pytest.mark.parametrize(("name", "port"), [
+    ("compress2", "aasig"), ("compress2", "acsig"), ("pareq", "asig"), ("hsboscil", "ioctfn"),
+])
+def test_compress2_pareq_hsboscil_require_audio_and_octave_table(name, port) -> None:
+    patch = _compress2_pareq_hsboscil_patch(name)
+    patch.graph.connections = [c for c in patch.graph.connections if (c.to_node_id, c.to_port_id) != ("target", port)]
+    with pytest.raises(CompilationError) as error:
+        CompilerService(OpcodeService("/static/icons")).compile_patch(patch, midi_input="0", rtmidi_module="alsaseq")
+    assert any(port in item and "target" in item for item in error.value.diagnostics)
+
+
+@pytest.mark.parametrize(("name", "params"), [
+    ("compress2", {}), ("pareq", {}), ("pareq", {"imode": 1}), ("pareq", {"imode": 2}),
+    ("hsboscil", {}), ("hsboscil", {"ioctcnt": 2, "iphs": 0.25}), ("hsboscil", {"ioctcnt": 10}),
+])
+def test_compress2_pareq_hsboscil_native_audio(name, params, tmp_path) -> None:
+    import shutil
+    import subprocess
+    import wave
+
+    import numpy as np
+
+    csound = shutil.which("csound")
+    if not csound:
+        pytest.skip("Csound executable is unavailable")
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        _compress2_pareq_hsboscil_patch(name, params), midi_input="0", rtmidi_module="alsaseq",
+    )
+    path = tmp_path / "opcode.csd"
+    path.write_text("\n".join([
+        "<CsoundSynthesizer>", "<CsOptions>", "-d -m0 -W -s -o opcode.wav", "</CsOptions>",
+        "<CsInstruments>", artifact.orc, "</CsInstruments>", "<CsScore>",
+        "f 1 0 16384 10 1", "i 1 0 0.3", "e", "</CsScore>", "</CsoundSynthesizer>",
+    ]))
+    result = subprocess.run([csound, path.name], cwd=tmp_path, capture_output=True, timeout=30)
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
+    with wave.open(str(tmp_path / "opcode.wav"), "rb") as audio:
+        assert audio.getnchannels() == 2
+        samples = np.frombuffer(audio.readframes(audio.getnframes()), dtype="<i2").reshape(-1, 2)
+    # Ignore lookahead/startup, then require audible, unclipped output on both channels.
+    steady = samples[-4800:].astype(float) / 32768
+    assert np.all(np.sqrt(np.mean(steady ** 2, axis=0)) > 0.001)
+    assert np.max(np.abs(steady)) < 0.99
+
+
 def _atone_patch(name: str, params: dict | None = None) -> PatchDocument:
     rate = "k" if name == "atonek" else "a"
     nodes = [

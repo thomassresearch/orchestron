@@ -9,6 +9,25 @@ from backend.app.services.opcode_service import OpcodeService
 from backend.tests.stk_test_support import STK_CONTROLLERS
 
 
+@pytest.mark.parametrize("name", ["compress2", "pareq", "hsboscil"])
+def test_compress2_pareq_hsboscil_have_icons_and_complete_localized_help(name: str) -> None:
+    root = Path(__file__).resolve().parents[2]
+    opcode = OpcodeService(icon_prefix="/static/icons").get_opcode(name)
+    assert opcode is not None
+    assert (root / "backend/app" / opcode.icon.lstrip("/")).is_file()
+    details = json.loads((root / "frontend/src/lib/opcodeDocDetails.json").read_text())[name]
+    assert set(details["inputs"]) == {port.id for port in opcode.inputs}
+    assert set(details["outputs"]) == {port.id for port in opcode.outputs}
+    for text in [details["description"], *details["inputs"].values(), *details["outputs"].values()]:
+        assert set(text) == {"english", "german", "french", "spanish"}
+        assert all(value.strip() for value in text.values())
+        assert all(text[lang] != text["english"] for lang in ("german", "french", "spanish"))
+    if name == "pareq":
+        assert "0 =" in details["inputs"]["imode"]["english"]
+    elif name == "hsboscil":
+        assert "GEN" in details["inputs"]["ioctfn"]["english"]
+
+
 @pytest.mark.parametrize("name", [
     "zdf_1pole", "zdf_1pole_mode", "zdf_2pole", "zdf_2pole_mode", "zdf_ladder", "zfilter2",
 ])
