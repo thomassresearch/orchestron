@@ -7,14 +7,14 @@ Build connections with [audio routing](effect_routing.md), then set the scalar m
 From this skill's directory, after discovering the actual binding IDs:
 
 ```bash
-uv run orchestron_cli --json edit mixer list
-uv run orchestron_cli --json edit mixer strip set --binding lead --gain-db -6 --balance 0.25
-uv run orchestron_cli --json edit mixer strip set --binding reverb --gain-db -12
-uv run orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
-uv run orchestron_cli --json edit mixer strip set --binding lead --mute
-uv run orchestron_cli --json edit mixer strip set --binding lead --no-mute --solo
-uv run orchestron_cli --json edit mixer strip set --binding lead --no-solo
-uv run orchestron_cli --json edit mixer strip set --binding lead --gain-db silence
+uv run --locked orchestron_cli --json edit mixer list
+uv run --locked orchestron_cli --json edit mixer strip set --binding lead --gain-db -6 --balance 0.25
+uv run --locked orchestron_cli --json edit mixer strip set --binding reverb --gain-db -12
+uv run --locked orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
+uv run --locked orchestron_cli --json edit mixer strip set --binding lead --mute
+uv run --locked orchestron_cli --json edit mixer strip set --binding lead --no-mute --solo
+uv run --locked orchestron_cli --json edit mixer strip set --binding lead --no-solo
+uv run --locked orchestron_cli --json edit mixer strip set --binding lead --gain-db silence
 ```
 
 Only specified fields change. `silence` stores `gainDb: null`; restore an audible level with another `--gain-db` value. Strip gain spans -60 to +12 dB and balance spans -1 to +1. New strips start at 0 dB, centered, unmuted and unsoloed. Master supports gain/balance/mute but no solo. Mixer gain changes audio, not MIDI note velocity.
@@ -26,15 +26,15 @@ Returns have ordinary strip controls. An instrument strip processes summed voice
 Each exact channel connection has a route ID. Discover both IDs for a stereo send:
 
 ```bash
-uv run orchestron_cli --json edit routes list --target reverb
+uv run --locked orchestron_cli --json edit routes list --target reverb
 ```
 
 The listing includes `kind`, `sourceStage`, `targetStage` and `send: {gainDb, tap}`. Use only IDs whose kind is `send`. Substitute the two actual IDs for `LEFT_ROUTE_ID` and `RIGHT_ROUTE_ID` below:
 
 ```bash
-uv run orchestron_cli --json edit mixer send set --route LEFT_ROUTE_ID --route RIGHT_ROUTE_ID --gain-db -12 --tap post
-uv run orchestron_cli --json edit mixer send set --route LEFT_ROUTE_ID --route RIGHT_ROUTE_ID --tap pre
-uv run orchestron_cli --json edit mixer send set --route LEFT_ROUTE_ID --route RIGHT_ROUTE_ID --gain-db silence
+uv run --locked orchestron_cli --json edit mixer send set --route LEFT_ROUTE_ID --route RIGHT_ROUTE_ID --gain-db -12 --tap post
+uv run --locked orchestron_cli --json edit mixer send set --route LEFT_ROUTE_ID --route RIGHT_ROUTE_ID --tap pre
+uv run --locked orchestron_cli --json edit mixer send set --route LEFT_ROUTE_ID --route RIGHT_ROUTE_ID --gain-db silence
 ```
 
 All selected routes are checked before saving; an invalid ID or value leaves the draft unchanged. A repeated `--route` makes the stereo update atomic. New sends start silent and post-fader. Send gain spans -60 to +6 dB, plus exact silence. Changing only the tap preserves the amount.
@@ -49,9 +49,9 @@ Mute blocks outgoing paths including pre-fader sends. Multiple solos are possibl
 ## Save and live updates
 
 ```bash
-uv run orchestron_cli --json edit validate
-uv run orchestron_cli --json edit commit
-uv run orchestron_cli --json edit push-runtime
+uv run --locked orchestron_cli --json edit validate
+uv run --locked orchestron_cli --json edit commit
+uv run --locked orchestron_cli --json edit push-runtime
 ```
 
 Mixer-only updates use the existing `/sessions/{id}/mixer` endpoint without recompilation or transport reset. Route/rack/patch-definition changes require runtime rebuild. Effect parameter overrides are separate from mixer settings; continuous effects need a rack restart to adopt new I-rate values. See [performance controllers](performance_controllers.md).
@@ -74,7 +74,7 @@ There is no speaker instance, and Master consumes no rack slot. Its saved `inser
 Inspect a user's copy without changing it:
 
 ```bash
-uv run orchestron_cli --json performances get "TB303 Demo"
+uv run --locked orchestron_cli --json performances get "TB303 Demo"
 ```
 
 The response is under `result.config`. Map `instruments[].id` to `patchName`, then inspect `audioGraph.routes` and `mixer`; never assume the demo's UUIDs exist in another library. Its levels and compressor settings are mix-specific examples, not defaults for other music. Its delay has no exposed performance-controller knobs in this snapshot; the compressor exposes Rise, Fall, Upper, Lower and Threshold. Discover current node IDs/ranges before changing them.

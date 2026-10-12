@@ -9,12 +9,12 @@ The patch must already contain the controls. `GET /patches` includes ordered `pe
 From this skill's directory, with a staged edit session:
 
 ```bash
-uv run orchestron_cli --json edit instruments list
-uv run orchestron_cli --json edit performance-controllers list --binding bass
-uv run orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.04
-uv run orchestron_cli --json edit performance-controllers set --binding bass --node drive --value 2.5
-uv run orchestron_cli --json edit validate
-uv run orchestron_cli --json edit commit
+uv run --locked orchestron_cli --json edit instruments list
+uv run --locked orchestron_cli --json edit performance-controllers list --binding bass
+uv run --locked orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.04
+uv run --locked orchestron_cli --json edit performance-controllers set --binding bass --node drive --value 2.5
+uv run --locked orchestron_cli --json edit validate
+uv run --locked orchestron_cli --json edit commit
 ```
 
 Use actual binding IDs and controller node IDs from discovery. The example assumes `bass`, `attack`, and `drive` exist. `list` reports each definition's effective `value` and `overridden` status. `set` modifies only the chosen instance's staged override and rejects unknown IDs, nonfinite values, invalid definitions, and values outside the range. It does not change the patch or contact the live runtime. `edit commit` saves the staged performance through the backend, corresponding to the GUI's Save Performance workflow.
@@ -22,9 +22,9 @@ Use actual binding IDs and controller node IDs from discovery. The example assum
 To return to a patch default:
 
 ```bash
-uv run orchestron_cli --json edit performance-controllers reset --binding bass --node attack
-uv run orchestron_cli --json edit validate
-uv run orchestron_cli --json edit commit
+uv run --locked orchestron_cli --json edit performance-controllers reset --binding bass --node attack
+uv run --locked orchestron_cli --json edit validate
+uv run --locked orchestron_cli --json edit commit
 ```
 
 Reset removes the override key; setting a value equal to the default keeps an explicit override. Until reset, explicit settings remain authoritative when the patch default changes. Reset can also remove a stale override for a deleted node. It preserves other controls on the instance.
@@ -56,9 +56,9 @@ The CLI reads performance versions 1–19 and saves version 19 while retaining r
 Effect parameters are separate from the return fader and send amounts documented in [mixer controls](mixer.md). For a discovered effect binding:
 
 ```bash
-uv run orchestron_cli --json edit performance-controllers list --binding compressor
+uv run --locked orchestron_cli --json edit performance-controllers list --binding compressor
 # Replace NODE_ID with an actual discovered node, and use its reported range:
-uv run orchestron_cli --json edit performance-controllers set --binding compressor --node NODE_ID --value 0.04
+uv run --locked orchestron_cli --json edit performance-controllers set --binding compressor --node NODE_ID --value 0.04
 ```
 
 The Compressor Effect in the inspected TB303 Demo exposes Rise, Fall, Upper, Lower and Threshold. These labels and their units/ranges come from that patch; do not assume conventional compressor parameters or reuse its UUIDs for another library. Reverb and delay patches may expose different controls or none at all. If no suitable control exists, mixer commands can still change the send/return level, but cannot tune the effect algorithm.
@@ -70,8 +70,8 @@ Continuous effects keep initialized values until rack restart. Validate and comm
 For an existing attached runtime whose rack and patch definitions are unchanged:
 
 ```bash
-uv run orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.08
-uv run orchestron_cli --json edit push-runtime
+uv run --locked orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.08
+uv run --locked orchestron_cli --json edit push-runtime
 ```
 
 `push-runtime` serially sends changed complete override maps through:

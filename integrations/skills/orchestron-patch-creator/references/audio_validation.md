@@ -7,27 +7,30 @@ Use this after creating a playable instrument and after its final sound correcti
 From this skill's directory:
 
 ```bash
-uv run --extra audio python scripts/render_spectrograms.py audition.wav --out-dir spectrograms
+uv run --locked --extra audio python scripts/render_spectrograms.py audition.wav --out-dir spectrograms
 ```
 
 From the VisualCSound repository root:
 
 ```bash
-uv run --project integrations/skills/orchestron-patch-creator --extra audio python \
+uv run --locked --project integrations/skills/orchestron-patch-creator --extra audio python \
   integrations/skills/orchestron-patch-creator/scripts/render_spectrograms.py \
   examples/instruments/edm_techno_psy/auditions/psy_rotor_bass.wav \
   --out-dir /tmp/orchestron-spectrograms --n-fft 4096
 ```
 
-From anywhere, using the installed global skill and an absolute audio path:
+From anywhere, using the installed skill and an absolute audio path. Set
+`ORCHESTRON_PATCH_SKILL` to the directory containing this skill's `SKILL.md`;
+plugin and standalone installations may use different locations:
 
 ```bash
-uv run --project "$HOME/.codex/skills/orchestron-patch-creator" --extra audio python \
-  "$HOME/.codex/skills/orchestron-patch-creator/scripts/render_spectrograms.py" \
+ORCHESTRON_PATCH_SKILL="/absolute/path/to/orchestron-patch-creator"
+uv run --locked --project "$ORCHESTRON_PATCH_SKILL" --extra audio python \
+  "$ORCHESTRON_PATCH_SKILL/scripts/render_spectrograms.py" \
   /absolute/path/to/audition.wav --out-dir /tmp/orchestron-spectrograms
 ```
 
-If skills are installed under a custom Codex home, substitute that skill directory. The global invocation does not require the VisualCSound checkout. `uv` installs the optional `audio` extra (NumPy, SoundFile, librosa and Matplotlib); normal patch CLI use does not require it. Use `--locked` with `uv run` when reproducing the checked-in dependency versions. No GUI or display server is required.
+The installed invocation does not require the VisualCSound checkout. `uv` installs the optional `audio` extra (NumPy, SoundFile, librosa and Matplotlib); normal patch CLI use does not require it. `--locked` preserves the checked-in dependency versions. No GUI or display server is required.
 
 The script prints absolute paths to `<audio-stem>.mel.png` and `<audio-stem>.stft.png`. Each image has one panel per channel, sharing time, frequency and color limits. The original sample rate and channel signals are preserved; there is no downmix, resampling, trimming or amplitude normalization. WAV, including floating-point WAV, and other formats readable by [SoundFile](https://python-soundfile.readthedocs.io/en/latest/) are accepted. Input audio is never modified. Existing PNGs with the same names in the output directory are replaced; use separate output directories for auditions that share a filename.
 
@@ -62,10 +65,10 @@ Report what was rendered, numerically measured, visually inspected and listened 
 
 ## Utility Verification
 
-From the skill directory, run its existing CLI tests and synthetic audio regression tests together:
+From the skill directory in a repository checkout, run its existing CLI tests and synthetic audio regression tests together. Tests are excluded from the plugin ZIP:
 
 ```bash
-uv run --extra audio python -m unittest discover -s tests -v
+uv run --locked --extra audio python -m unittest discover -s tests -v
 ```
 
 The audio tests cover frequency placement, fixed-reference level changes, stereo separation, sweeps, delayed decay, silence, short clips, PNG output and invalid input. Without the optional audio extra those tests are explicitly skipped; run with the extra to validate changes to this utility.

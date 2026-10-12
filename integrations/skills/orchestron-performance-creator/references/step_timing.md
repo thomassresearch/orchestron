@@ -18,19 +18,19 @@ Timing is supported by melodic and drummer sequencers. Controller sequencers, pi
 Start a staged edit with `edit begin --performance PERFORMANCE_ID`, or create tracks in a new edit session. Discover IDs instead of guessing from device names:
 
 ```bash
-uv run orchestron_cli --json edit sequencers list
+uv run --locked orchestron_cli --json edit sequencers list
 ```
 
 The result lists track IDs/types, pad numbers and lengths, and drum row IDs/MIDI keys. In the following examples, replace `voice-1`, `drum-1` and the drum row ID with values from that result:
 
 ```bash
-uv run orchestron_cli --json edit step-timing list --track voice-1 --pad 1
-uv run orchestron_cli --json edit step-timing set --track voice-1 --pad 1 --step 3 --step 11 --percent -20
-uv run orchestron_cli --json edit step-timing list --track voice-1 --pad 1 --step 3 --step 11
+uv run --locked orchestron_cli --json edit step-timing list --track voice-1 --pad 1
+uv run --locked orchestron_cli --json edit step-timing set --track voice-1 --pad 1 --step 3 --step 11 --percent -20
+uv run --locked orchestron_cli --json edit step-timing list --track voice-1 --pad 1 --step 3 --step 11
 
-uv run orchestron_cli --json edit step-timing list --track drum-1 --pad 1 --key 38
-uv run orchestron_cli --json edit step-timing set --track drum-1 --pad 1 --key 38 --step 4 --step 12 --percent 15
-uv run orchestron_cli --json edit step-timing reset --track drum-1 --pad 1 --row drum-row-2 --step 4
+uv run --locked orchestron_cli --json edit step-timing list --track drum-1 --pad 1 --key 38
+uv run --locked orchestron_cli --json edit step-timing set --track drum-1 --pad 1 --key 38 --step 4 --step 12 --percent 15
+uv run --locked orchestron_cli --json edit step-timing reset --track drum-1 --pad 1 --row drum-row-2 --step 4
 ```
 
 Pads are **1-based** (`1..8` or `P1..P8`). Steps are **0-based**, like `s0` and score `at_step`: `--step 3` means the fourth visible cell. Indices must be inside the selected pad's current pattern length. `--track` and `--pad` are always explicit, including for inactive pads.
@@ -42,10 +42,10 @@ Edits preserve note content, HOLD, velocity and activation. An offset on a rest 
 After verifying the result:
 
 ```bash
-uv run orchestron_cli --json edit validate
-uv run orchestron_cli --json edit commit
+uv run --locked orchestron_cli --json edit validate
+uv run --locked orchestron_cli --json edit commit
 # When attached to a matching live runtime:
-uv run orchestron_cli --json edit push-runtime
+uv run --locked orchestron_cli --json edit push-runtime
 ```
 
 Validation, commit and runtime operations use the existing backend workflow. Timing changes require a runtime push, not a rack rebuild. Never edit SQLite or patch the staged JSON manually just to change timing.
@@ -117,7 +117,7 @@ The CLI writes performance config v19 and reads v1–19. Persisted steps/cells u
 
 Performance configurations write v19. The CLI migrates v1–16 before normalization, including /8 pad/rest lengths and saved arranger history. Session requests explicitly send `beat_unit: "meter"`; omitted API values retain legacy quarter-beat interpretation. Subdivision accepts 1, 2, 3, 4, 6, 8; melodic/drum lengths accept 1–16 and controller lengths 1–32, with a strict 128-step limit. Rest tokens include -32. Global BPM remains quarter-note based; /8 local beats last half a quarter. Millisecond offsets include the denominator and playback-speed ratio. Native bundle envelopes are unchanged.
 
-For twelve triplet steps over one 4/4 bar, set `lengthBeats: 4`, timing `meterNumerator: 4`, `meterDenominator: 4`, `stepsPerBeat: 3`, and speed numerator/denominator 1/1. A 6/8 bar uses length 6 and spans three shared quarter beats. See the [multilingual timing guide](../../../../documentation/performance/sequencer_timing.md).
+For twelve triplet steps over one 4/4 bar, set `lengthBeats: 4`, timing `meterNumerator: 4`, `meterDenominator: 4`, `stepsPerBeat: 3`, and speed numerator/denominator 1/1. A 6/8 bar uses length 6 and spans three shared quarter beats. See the [multilingual timing guide](https://github.com/thomassresearch/orchestron/blob/main/documentation/performance/sequencer_timing.md).
 
 YAML/JSON score tracks can now set the same values through snake-case `timing`
 fields, for example `timing: {meter_numerator: 4, meter_denominator: 4,

@@ -24,7 +24,7 @@ C3:7    -> C3:dom7
 Prefer explicit colon form in generated commands:
 
 ```bash
-uv run orchestron_cli edit add-melodic \
+uv run --locked orchestron_cli edit add-melodic \
   --channel 2 \
   --steps "s0=C3:min7/4s s4=F3:dom7/4s s8=Bb2:maj7/4s s12=G2:dom7/4s"
 ```
@@ -40,7 +40,7 @@ Token rules:
 Grid example:
 
 ```bash
-uv run orchestron_cli edit add-melodic \
+uv run --locked orchestron_cli edit add-melodic \
   --channel 2 \
   --grid-pattern "C3:min7 _ _ _ F3:dom7 _ _ _ Bb2:maj7 _ _ _ G2:dom7 _ _ _"
 ```
@@ -48,7 +48,7 @@ uv run orchestron_cli edit add-melodic \
 Pattern-pad example:
 
 ```bash
-uv run orchestron_cli edit add-melodic \
+uv run --locked orchestron_cli edit add-melodic \
   --channel 2 \
   --pad 1 \
   --grid-pattern "C3 . . ." \

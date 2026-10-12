@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "orchestron",
+  "version": "0.1.0",
+  "description": "Compose and audition music, design instruments, and create Orchestron performances with three skills and their locked Python CLI projects."
+}

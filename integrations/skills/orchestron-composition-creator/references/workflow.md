@@ -1,9 +1,10 @@
 # Interactive composition workflow
 
 The following commands run from this skill's directory. Use an absolute session
-path so the same session can be resumed from any working directory. From the
-repository root, prefix the command with
-`uv run --locked --project integrations/skills/orchestron-composition-creator`.
+path so the same session can be resumed from any working directory. From another
+directory, add `--project "/absolute/path/to/this-skill"` to `uv run --locked`,
+using the directory containing this skill's `SKILL.md`. During repository
+development, that directory is `integrations/skills/orchestron-composition-creator`.
 
 ## Explore and listen
 

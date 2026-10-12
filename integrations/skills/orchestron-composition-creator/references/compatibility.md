@@ -32,14 +32,14 @@ its own UI and named candidate preview files. Stop it after use.
 
 ## Verification
 
-From the repository root:
+From the repository root (these development tests are excluded from the plugin ZIP):
 
 ```bash
 uv run --locked --project integrations/skills/orchestron-composition-creator \
   --group dev pytest integrations/skills/orchestron-composition-creator/tests
 uv run --locked --project integrations/skills/orchestron-composition-creator \
   --group dev ruff check integrations/skills/orchestron-composition-creator
-uv run --extra dev pytest integrations/skills/orchestron-performance-creator/tests
+uv run --locked --extra dev pytest integrations/skills/orchestron-performance-creator/tests
 ```
 
 The HTTP test needs permission to open a local loopback socket. Cross-skill

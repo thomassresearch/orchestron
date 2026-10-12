@@ -40,9 +40,9 @@ performance_controllers:
 Save as `customizable-lead.yaml`, then run the skill CLI:
 
 ```bash
-uv run orchestron_patch_cli --json spec validate customizable-lead.yaml
-uv run orchestron_patch_cli --json graph render customizable-lead.yaml --out customizable-lead.graph.json
-uv run orchestron_patch_cli --json patch create customizable-lead.yaml --compile
+uv run --locked orchestron_patch_cli --json spec validate customizable-lead.yaml
+uv run --locked orchestron_patch_cli --json graph render customizable-lead.yaml --out customizable-lead.graph.json
+uv run --locked orchestron_patch_cli --json patch create customizable-lead.yaml --compile
 ```
 
 `id` is the new stable node ID; it must be unique in the generated graph. `target` names an existing input. Render the base spec to discover target IDs when needed. Each entry replaces inbound connections and the literal parameter at that target, then connects the new node's `iout`. Existing generated constants may remain unused. Definitions retain list order in the graph and rack. The final Stereo Output pair remains last. Input formulas are applied afterward, so a formula at the target can intentionally scale the controller connection.

@@ -7,12 +7,12 @@ Use ratchets for drum rolls within one local step. Counts are **1–8**; one hit
 Start an edit session and create a groove with `edit add-drummer`, or load an existing performance. Discover the actual track and row IDs with `edit sequencers list`. Run these commands from the skill directory, replacing `drum-1` with the discovered ID:
 
 ```bash
-uv run orchestron_cli --json edit sequencers list
-uv run orchestron_cli --json edit ratchets list --track drum-1 --pad 1
-uv run orchestron_cli --json edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --step 12 --count 4 --end-velocity 40
-uv run orchestron_cli --json edit ratchets list --track drum-1 --pad 1 --key 38 --step 4 --step 12
-uv run orchestron_cli --json edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --count 8 --constant
-uv run orchestron_cli --json edit ratchets reset --track drum-1 --pad 1 --key 38 --step 12
+uv run --locked orchestron_cli --json edit sequencers list
+uv run --locked orchestron_cli --json edit ratchets list --track drum-1 --pad 1
+uv run --locked orchestron_cli --json edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --step 12 --count 4 --end-velocity 40
+uv run --locked orchestron_cli --json edit ratchets list --track drum-1 --pad 1 --key 38 --step 4 --step 12
+uv run --locked orchestron_cli --json edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --count 8 --constant
+uv run --locked orchestron_cli --json edit ratchets reset --track drum-1 --pad 1 --key 38 --step 12
 ```
 
 - Pads are **1-based** (`1..8` or `P1..P8`); steps are **zero-based** and must fit the selected pad's current length.

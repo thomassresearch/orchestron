@@ -5,10 +5,10 @@ Use this preset when the requested mix calls for shared reverb followed by bus c
 From this skill's directory, after adding the source instruments:
 
 ```bash
-uv run orchestron_cli --json edit add-standard-effects --send-gain-db -12
-uv run orchestron_cli --json edit routes list
-uv run orchestron_cli --json edit mixer list
-uv run orchestron_cli --json edit validate
+uv run --locked orchestron_cli --json edit add-standard-effects --send-gain-db -12
+uv run --locked orchestron_cli --json edit routes list
+uv run --locked orchestron_cli --json edit mixer list
+uv run --locked orchestron_cli --json edit validate
 ```
 
 The preset requires existing continuous reverb and compressor patches. Discover their actual names/IDs; defaults resolve “reverb effect” and “compressor effect” case-insensitively. Override with `--reverb-patch` and `--compressor-patch`.

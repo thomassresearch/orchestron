@@ -26,19 +26,19 @@ Supported formula elements:
 List supported operands:
 
 ```bash
-uv run orchestron_cli --json patches formulas operands
+uv run --locked orchestron_cli --json patches formulas operands
 ```
 
 List configured formulas on a patch:
 
 ```bash
-uv run orchestron_cli --json patches formulas list "Lead Patch"
+uv run --locked orchestron_cli --json patches formulas list "Lead Patch"
 ```
 
 Scale a single existing input connection:
 
 ```bash
-uv run orchestron_cli --json patches formulas set "Lead Patch" \
+uv run --locked orchestron_cli --json patches formulas set "Lead Patch" \
   --target filter.xcf \
   --expression "0.1 * in1"
 ```
@@ -48,7 +48,7 @@ When `--input` is omitted, current inbound connections to `--target` are bound a
 Use explicit bindings when token names or order matter:
 
 ```bash
-uv run orchestron_cli --json patches formulas set "Lead Patch" \
+uv run --locked orchestron_cli --json patches formulas set "Lead Patch" \
   --target mixer.a \
   --input dry=osc.aout \
   --input wet=delay.aout \
@@ -60,7 +60,7 @@ The source side of every `--input TOKEN=NODE.PORT` binding must already be conne
 Constant formulas are valid:
 
 ```bash
-uv run orchestron_cli --json patches formulas set "Lead Patch" \
+uv run --locked orchestron_cli --json patches formulas set "Lead Patch" \
   --target osc.xamp \
   --expression "0.75"
 ```
@@ -68,7 +68,7 @@ uv run orchestron_cli --json patches formulas set "Lead Patch" \
 Clear a formula:
 
 ```bash
-uv run orchestron_cli --json patches formulas clear "Lead Patch" --target filter.xcf
+uv run --locked orchestron_cli --json patches formulas clear "Lead Patch" --target filter.xcf
 ```
 
 Performance workflow:

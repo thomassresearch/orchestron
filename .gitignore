@@ -41,3 +41,5 @@ examples/instruments/*/
 examples/instruments/tube_overdrive/
 examples/instruments/electric_guitar/
 examples/instruments/cure_guitar_fx/
+
+/integrations/plugin-dist/

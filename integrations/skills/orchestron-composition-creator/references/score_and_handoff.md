@@ -86,9 +86,9 @@ backend health, discover/create suitable instruments, start a staged performance
 bind channels and connect outputs to Master. Then, from its directory:
 
 ```bash
-uv run orchestron_cli --json edit apply-score /absolute/path/orchestron-score.json
-uv run orchestron_cli --json edit validate
-uv run orchestron_cli --json edit commit
+uv run --locked orchestron_cli --json edit apply-score /absolute/path/orchestron-score.json
+uv run --locked orchestron_cli --json edit validate
+uv run --locked orchestron_cli --json edit commit
 ```
 
 Apply once: this command appends tracks. Use a new staged draft when importing

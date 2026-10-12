@@ -9,13 +9,13 @@ At 120 BPM, 4/4, Subdivision 4 and speed 1×, one step lasts 125 ms. A three-not
 Discover exact melodic track IDs with `edit sequencers list`; IDs below are examples. Pads are **1–8** or **P1–P8**. Steps are **zero-based** and must be inside the selected pad's current step count. Repeat `--step` to select several; repeated indices are deduplicated. `list` without `--step` reads all visible steps in that pad.
 
 ```bash
-uv run orchestron_cli --json edit sequencers list
-uv run orchestron_cli --json edit strum list --track voice-1 --pad 1
-uv run orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 0 --step 4 --direction up --spread 40
-uv run orchestron_cli --json edit strum set --track voice-1 --pad P2 --step 0 --direction down --spread 100
-uv run orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 4 --spread 65
-uv run orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 4 --direction off
-uv run orchestron_cli --json edit strum reset --track voice-1 --pad 1 --step 0 --step 4
+uv run --locked orchestron_cli --json edit sequencers list
+uv run --locked orchestron_cli --json edit strum list --track voice-1 --pad 1
+uv run --locked orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 0 --step 4 --direction up --spread 40
+uv run --locked orchestron_cli --json edit strum set --track voice-1 --pad P2 --step 0 --direction down --spread 100
+uv run --locked orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 4 --spread 65
+uv run --locked orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 4 --direction off
+uv run --locked orchestron_cli --json edit strum reset --track voice-1 --pad 1 --step 0 --step 4
 ```
 
 `set` requires `--direction`, `--spread`, or both; an omitted setting retains its value. `--spread-percent` is an alias for `--spread`. Set both on a new chord to make the strum audible: defaults are off/0. Direction `off` retains the spread; `reset` restores **off and 0%**. Mutations require explicit track, pad and steps. These commands accept melodic tracks only; drum rolls use [ratchets](step_ratchets.md), while repeating note patterns use [arpeggiators](harmony_arpeggiation.md).

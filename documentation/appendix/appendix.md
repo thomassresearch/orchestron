@@ -20,4 +20,13 @@ A skill is a directory containing a `SKILL.md` instruction file, supporting refe
 
 Explicitly asking an agent to read the file does not require a product-specific skill installation. Automatic skill discovery and shortcut invocation depend on the agent; the prompts in the following chapters use ordinary language and repository paths.
 
+For Codex plugin installation, run `make -C integrations` from the repository
+root to package all three skills. The versioned ZIP appears in
+`integrations/plugin-dist/`. It includes skill sources, preview assets, and
+dependency lockfiles; `uv` installs the Python dependencies on first use.
+See the [plugin build and installation guide](https://github.com/thomassresearch/orchestron/blob/main/integrations/README.md#build-the-plugin-zip).
+Installed skills resolve commands from their own directory; keep musical work
+and edit sessions outside the plugin. After verifying the plugin, remove
+duplicate standalone skill installations while retaining the repository sources.
+
 The utilities use `uv` and require Python 3.13. Library operations, compilation, performance validation and live sessions need a reachable Orchestron backend, normally `http://localhost:8000/api`. Run the backend using the normal setup procedure (`make run` from the repository root), or provide an existing server's URL. Local patch-spec validation and graph generation can run without the backend. Composition generation, audition and score export also run locally without the backend. The utilities access the library through the API, not by editing SQLite directly.

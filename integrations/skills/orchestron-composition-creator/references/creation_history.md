@@ -131,7 +131,7 @@ browser.
 
 ## Verification
 
-From the repository root:
+From the repository root (these development tests are excluded from the plugin ZIP):
 
 ```bash
 uv run --locked --project integrations/skills/orchestron-composition-creator \

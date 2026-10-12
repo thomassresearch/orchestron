@@ -16,13 +16,19 @@ or authoring custom material; it covers the recorder and portable ancestry.
 
 ## Entry point
 
-From this skill directory:
+Resolve this skill's directory from the location of this `SKILL.md`, whether it is
+in a plugin installation, a standalone installation, or a repository checkout.
+Python 3.13 and `uv` are required; first use installs the locked dependencies.
+From that directory:
 
 ```bash
 uv run --locked orchestron_compose --help
 ```
 
-From the repository root:
+From another working directory, add `--project "/absolute/path/to/this-skill"`
+to `uv run --locked` and use absolute session paths outside the skill package.
+
+Repository development example, from the repository root:
 
 ```bash
 uv run --locked --project integrations/skills/orchestron-composition-creator \

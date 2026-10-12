@@ -9,31 +9,42 @@ Use this skill to create or edit Orchestron performances through the skill-local
 
 ## CLI Entry Point
 
-From this skill's directory (the installed skill or `integrations/skills/orchestron-performance-creator/`):
+Resolve this skill's directory from the location of this `SKILL.md`, whether it is
+in a plugin installation, a standalone installation, or a repository checkout.
+Python 3.13 and `uv` are required; first use installs the locked dependencies.
+From that directory:
 
 ```bash
-uv run orchestron_cli --api-url http://localhost:8000/api -h
+uv run --locked orchestron_cli --api-url http://localhost:8000/api -h
 ```
 
-From the repository root, either use the skill project explicitly:
+From another working directory, add `--project "/absolute/path/to/this-skill"`
+to `uv run --locked`. Prefer running from the user's music working directory:
+the CLI stores edit sessions in `.orchestron/` relative to the working directory.
+When running from the installed skill directory, pass
+`--session-file /absolute/path/to/work/edit-session.json` on every edit command.
+Keep authored scores outside the installed skill and use absolute score paths.
+
+Repository development example, from the repository root:
 
 ```bash
-uv run --project integrations/skills/orchestron-performance-creator orchestron_cli --json health
+uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json health
 ```
 
 or use the thin wrapper:
 
 ```bash
-uv run python integrations/skills/orchestron-performance-creator/scripts/orchestron_cli.py --json health
+uv run --locked --project integrations/skills/orchestron-performance-creator \
+  python integrations/skills/orchestron-performance-creator/scripts/orchestron_cli.py --json health
 ```
 
 Use `--json` for agent-readable output (`{"ok":true,"result":...}`) and structured `error.retry` hints:
 
 ```bash
-uv run orchestron_cli --json health
+uv run --locked orchestron_cli --json health
 ```
 
-If the backend is not running, ask the user whether to start it with `make run` or use the correct `--api-url`.
+If the backend is not running, ask for the correct `--api-url` or whether to start it with `make run` from an available Orchestron repository checkout. The plugin contains the client tools, not the backend application.
 
 ## Workflow
 
@@ -56,31 +67,31 @@ If the backend is not running, ask the user whether to start it with `make run` 
 ## Core Commands
 
 ```bash
-uv run orchestron_cli --json patches list
-uv run orchestron_cli --json patches formulas set "Lead Patch" --target filter.xcf --expression "0.1 * in1"
-uv run orchestron_cli --json performances list
-uv run orchestron_cli --json edit begin --new --name "Agent Sketch"
-uv run orchestron_cli --json edit add-instrument --patch "TB303" --channel 2 --binding-id bass
-uv run orchestron_cli --json edit instruments list
-uv run orchestron_cli --json edit performance-controllers list --binding bass
+uv run --locked orchestron_cli --json patches list
+uv run --locked orchestron_cli --json patches formulas set "Lead Patch" --target filter.xcf --expression "0.1 * in1"
+uv run --locked orchestron_cli --json performances list
+uv run --locked orchestron_cli --json edit begin --new --name "Agent Sketch"
+uv run --locked orchestron_cli --json edit add-instrument --patch "TB303" --channel 2 --binding-id bass
+uv run --locked orchestron_cli --json edit instruments list
+uv run --locked orchestron_cli --json edit performance-controllers list --binding bass
 # Use an actual node ID reported by the preceding command:
-uv run orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.04
-uv run orchestron_cli --json edit performance-controllers reset --binding bass --node attack
+uv run --locked orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.04
+uv run --locked orchestron_cli --json edit performance-controllers reset --binding bass --node attack
 # Optional preset, after confirming the reverb/compressor patches exist:
-uv run orchestron_cli --json edit add-standard-effects --send-gain-db -12
-uv run orchestron_cli --json edit routes list
-uv run orchestron_cli --json edit mixer list
-uv run orchestron_cli --json edit mixer strip set --binding bass --gain-db -6
-uv run orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
-uv run orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
-uv run orchestron_cli --json edit sequencers list
+uv run --locked orchestron_cli --json edit add-standard-effects --send-gain-db -12
+uv run --locked orchestron_cli --json edit routes list
+uv run --locked orchestron_cli --json edit mixer list
+uv run --locked orchestron_cli --json edit mixer strip set --binding bass --gain-db -6
+uv run --locked orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
+uv run --locked orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
+uv run --locked orchestron_cli --json edit sequencers list
 # Replace voice-1 with the melodic track ID reported above:
-uv run orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 0 --step 4 --direction up --spread 40
-uv run orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
-uv run orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
-uv run orchestron_cli --json edit validate
-uv run orchestron_cli --json edit commit
-uv run orchestron_cli --json edit create-runtime --start
+uv run --locked orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 0 --step 4 --direction up --spread 40
+uv run --locked orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
+uv run --locked orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
+uv run --locked orchestron_cli --json edit validate
+uv run --locked orchestron_cli --json edit commit
+uv run --locked orchestron_cli --json edit create-runtime --start
 ```
 
 Pattern-pad and pad-loop CLI syntax:

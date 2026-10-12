@@ -9,25 +9,33 @@ Use this skill to create or update Orchestron Instrument Design patches, which a
 
 ## CLI Entry Point
 
-From `integrations/skills/orchestron-patch-creator/`:
+Resolve this skill's directory from the location of this `SKILL.md`, whether it is
+in a plugin installation, a standalone installation, or a repository checkout.
+Python 3.13 and `uv` are required; first use installs the locked dependencies.
+From that directory:
 
 ```bash
-uv run orchestron_patch_cli --api-url http://localhost:8000/api -h
+uv run --locked orchestron_patch_cli --api-url http://localhost:8000/api -h
 ```
 
-From the repository root:
+From another working directory, add `--project "/absolute/path/to/this-skill"`
+to `uv run --locked`. Keep authored specs and audio outside the installed skill;
+use absolute input/output paths when running from its directory.
+
+Repository development example, from the repository root:
 
 ```bash
-uv run --project integrations/skills/orchestron-patch-creator orchestron_patch_cli --json health
+uv run --locked --project integrations/skills/orchestron-patch-creator orchestron_patch_cli --json health
 ```
 
 or use the thin wrapper:
 
 ```bash
-uv run python integrations/skills/orchestron-patch-creator/scripts/orchestron_patch_cli.py --json health
+uv run --locked --project integrations/skills/orchestron-patch-creator \
+  python integrations/skills/orchestron-patch-creator/scripts/orchestron_patch_cli.py --json health
 ```
 
-Use `--json` for agent-readable output and retry hints. If the backend is not running, ask the user whether to start it with `make run` or pass the correct `--api-url`.
+Use `--json` for agent-readable output and retry hints. If the backend is not running, ask for the correct `--api-url` or whether to start it with `make run` from an available Orchestron repository checkout. The plugin contains the client tools, not the backend application.
 
 ## Workflow
 
@@ -47,18 +55,18 @@ Use `--json` for agent-readable output and retry hints. If the backend is not ru
 9. Run `patch create` or `patch update`; use `--compile` unless the patch is intentionally incomplete and saved as a template.
 10. For a completed playable instrument, finish with [audio and spectrogram validation](references/audio_validation.md): render representative notes and tails, complete numerical and controller checks, then generate and **open both Mel and log-STFT spectrograms** as the last test. Inspect the images before reporting verification; repeat after any sound correction.
 
-The optional audio utility runs from the skill directory with `uv run --extra audio python scripts/render_spectrograms.py audition.wav --out-dir spectrograms`. It analyzes an existing recording without requiring the backend. See the validation reference for repository/global commands, analysis settings, and interpretation.
+The optional audio utility runs from the skill directory with `uv run --locked --extra audio python scripts/render_spectrograms.py audition.wav --out-dir spectrograms`. It analyzes an existing recording without requiring the backend. See the validation reference for repository/global commands, analysis settings, and interpretation.
 
 ## Core Commands
 
 ```bash
-uv run orchestron_patch_cli --json templates list
-uv run orchestron_patch_cli --json spec validate patch.yaml
-uv run orchestron_patch_cli --json graph render patch.yaml --out patch.graph.json
-uv run orchestron_patch_cli --json patch list
-uv run orchestron_patch_cli --json patch create patch.yaml --name "Evolving FM Pad" --compile
-uv run orchestron_patch_cli --json patch update PATCH_ID patch.yaml --compile
-uv run orchestron_patch_cli --json patch compile PATCH_ID
+uv run --locked orchestron_patch_cli --json templates list
+uv run --locked orchestron_patch_cli --json spec validate patch.yaml
+uv run --locked orchestron_patch_cli --json graph render patch.yaml --out patch.graph.json
+uv run --locked orchestron_patch_cli --json patch list
+uv run --locked orchestron_patch_cli --json patch create patch.yaml --name "Evolving FM Pad" --compile
+uv run --locked orchestron_patch_cli --json patch update PATCH_ID patch.yaml --compile
+uv run --locked orchestron_patch_cli --json patch compile PATCH_ID
 ```
 
 ## Required Graph Principles

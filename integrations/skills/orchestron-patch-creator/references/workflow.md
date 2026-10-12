@@ -28,7 +28,7 @@ For settings the user wants to tune per performance, add `performance_controller
 Run:
 
 ```bash
-uv run orchestron_patch_cli --json spec validate patch.yaml
+uv run --locked orchestron_patch_cli --json spec validate patch.yaml
 ```
 
 This checks supported families/opcodes and local graph invariants: `cpsmidi`, `ampmidi` with `const_i` scale `1.0`, `madsr` with I-rate constant/controller ADSR inputs, valid controller configurations, mono-to-stereo `pan2`, and a final Stereo Output block with two connected, named outlets and the main stereo mapping. Backend compile preflight also checks controller target ports and signal compatibility.
@@ -38,7 +38,7 @@ This checks supported families/opcodes and local graph invariants: `cpsmidi`, `a
 Run:
 
 ```bash
-uv run orchestron_patch_cli --json graph render patch.yaml --out patch.graph.json
+uv run --locked orchestron_patch_cli --json graph render patch.yaml --out patch.graph.json
 ```
 
 Inspect node IDs and connections if the resulting patch might be complex or if compile diagnostics mention missing ports.
@@ -50,8 +50,8 @@ This is also the safest way to author input formulas: render once, identify the 
 Run create/update with compile preflight:
 
 ```bash
-uv run orchestron_patch_cli --json patch create patch.yaml --compile
-uv run orchestron_patch_cli --json patch update PATCH_ID patch.yaml --compile
+uv run --locked orchestron_patch_cli --json patch create patch.yaml --compile
+uv run --locked orchestron_patch_cli --json patch update PATCH_ID patch.yaml --compile
 ```
 
 Compile preflight creates a temporary patch, compiles it through a temporary session, cleans it up, and only then writes the final patch. If the backend is not running, ask the user whether to start it with `make run`.
