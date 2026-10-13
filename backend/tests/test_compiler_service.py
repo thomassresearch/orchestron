@@ -979,3 +979,77 @@ def test_waveguide_helper_absent_without_waveguide():
     artifact = CompilerService(OpcodeService('/static/icons')).compile_patch(
         load_patch_fixture('steel_string_guitar_polyphonic'),midi_input='0',rtmidi_module='none')
     assert 'opcode vcs_waveguide_string' not in artifact.orc
+
+
+@pytest.mark.parametrize("mode", ["ftgen", "ftgenonce"])
+@pytest.mark.parametrize("normalize", [True, False])
+def test_gen19_structured_partials_compile_in_csound_order(mode, normalize) -> None:
+    patch = _compress2_pareq_hsboscil_patch("hsboscil")
+    patch.graph.ui_layout["gen_nodes"]["window"] = {
+        "routineNumber": 19, "mode": mode, "normalize": normalize, "tableSize": 1025,
+        "startTime": 2,
+        "gen19Partials": [
+            {"partial": 0.5, "strength": -2, "phase": 270, "offset": 2},
+            {"partial": 3, "strength": 0.25, "phase": -90, "offset": -0.5},
+        ],
+        "rawArgs": [1, 1, 0, 0],
+    }
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        patch, midi_input="0", rtmidi_module="alsaseq",
+    )
+    line = next(line.strip() for line in orc_code_lines(artifact.orc) if "i_window_ift" in line and f" {mode} " in line)
+    assert line.endswith(f"{mode} 0, {2 if mode == 'ftgen' else 0}, 1025, {19 if normalize else -19}, 0.5, -2, 270, 2, 3, 0.25, -90, -0.5")
+
+
+@pytest.mark.parametrize(("config", "tail"), [
+    ({}, "1, 1, 0, 0"),
+    ({"rawArgs": [1, 0.5, 270, 0.5]}, "1, 0.5, 270, 0.5"),
+    ({"rawArgsText": "1, 1/2, 270, 0.5", "gen19Partials": None}, "1, 1/2, 270, 0.5"),
+    ({"rawArgsText": "1, expr:1/2, 270, 0.5", "gen19Partials": None}, "1, 1/2, 270, 0.5"),
+])
+def test_gen19_defaults_and_legacy_raw_args(config, tail) -> None:
+    patch = _compress2_pareq_hsboscil_patch("hsboscil")
+    patch.graph.ui_layout["gen_nodes"]["window"] = {"routineNumber": 19, "tableSize": 1024, **config}
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        patch, midi_input="0", rtmidi_module="alsaseq",
+    )
+    assert any(line.strip().endswith(f"ftgen 0, 0, 1024, 19, {tail}") for line in orc_code_lines(artifact.orc))
+
+
+@pytest.mark.parametrize("mode", ["ftgen", "ftgenonce"])
+@pytest.mark.parametrize(("normalize", "expected"), [(False, [3, 1, 3, 5]), (True, [0.6, 0.2, 0.6, 1])])
+def test_gen19_native_table_values(mode, normalize, expected, tmp_path) -> None:
+    import re
+    import shutil
+    import subprocess
+
+    csound = shutil.which("csound")
+    if not csound:
+        pytest.skip("Csound executable is unavailable")
+    patch = _compress2_pareq_hsboscil_patch("hsboscil")
+    patch.graph.ui_layout["gen_nodes"]["window"] = {
+        "routineNumber": 19, "mode": mode, "tableSize": 1024, "normalize": normalize,
+        "gen19Partials": [
+            {"partial": 1, "strength": -2, "phase": 0, "offset": 2},
+            {"partial": 0.5, "strength": 0, "phase": 90, "offset": 1},
+        ],
+    }
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        patch, midi_input="0", rtmidi_module="alsaseq",
+    )
+    table_line = next(line.strip() for line in orc_code_lines(artifact.orc) if "i_window_ift" in line and f" {mode} " in line)
+    table_var = table_line.split()[0]
+    path = tmp_path / "gen19.csd"
+    path.write_text("\n".join([
+        "<CsoundSynthesizer>", "<CsOptions>", "-n -d -m0", "</CsOptions>",
+        "<CsInstruments>", "sr = 48000", "ksmps = 1", "nchnls = 1", "0dbfs = 1", "instr 1",
+        table_line,
+        *[f'iV{i} table {i * 256}, {table_var}' for i in range(4)],
+        'prints "GEN19_VALUES %.6f %.6f %.6f %.6f\\n", iV0, iV1, iV2, iV3',
+        "endin", "</CsInstruments>", "<CsScore>", "i 1 0 0.01", "e", "</CsScore>", "</CsoundSynthesizer>",
+    ]))
+    result = subprocess.run([csound, str(path)], capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    match = re.search(r"GEN19_VALUES ([\d. -]+)", result.stdout + result.stderr)
+    assert match, result.stderr
+    assert [float(value) for value in match[1].split()] == pytest.approx(expected)

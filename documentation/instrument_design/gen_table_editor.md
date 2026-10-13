@@ -40,6 +40,7 @@ You can choose from structured editors for common routines and a named routine o
 - `GEN10` - Harmonic Sine Partials
 - `GEN11` - Harmonic Cosine Partials
 - `GEN17` - Step Table From x/y Pairs
+- `GEN19` - Sinusoidal Partials with DC Offset
 - `GEN20` - Window / Distribution Function
 - `GENpadsynth` (named routine)
 - Custom routine number / raw arguments
@@ -64,8 +65,19 @@ The backend validates GEN table settings before storage and again before Csound 
 | `GEN07` | Segments | Start value + repeated length/value rows |
 | `GEN08` | Cubic spline segments | Start value + repeated length/value rows |
 | `GEN17` | Step table from x/y pairs | x/y pairs (editable list) |
+| `GEN19` | Sinusoidal partials with independent phase and DC offset | repeated partial number / strength / phase / offset rows |
 | `GEN20` | Window / distribution | window type, max, optional parameter (for selected windows) |
 | `GEN01` | Load audio file into table | uploaded asset, skip time, format, channel |
+
+## GEN19: Sinusoidal Partials with DC Offset
+
+Choose **GEN19** and add a row for each sinusoid. Each row emits four arguments in order: **Partial number**, **Strength**, **Phase (°)**, **DC offset**. Partial numbers are positive frequency ratios, including fractions; strengths may be negative. The offset is added after strength scaling. Phase uses degrees.
+
+The initial row is `1, 1, 0, 0`. For an `hsboscil` octave window, use `1, 0.5, 270, 0.5`, table size `1024`, and disable normalization. Use a power-of-two table size or that size plus one. Up to 128 partials fit the 512-argument limit. Both `ftgen` and `ftgenonce` support these rows; **Normalize table** selects `19` or `-19`.
+
+Existing GEN19 patches with raw arguments keep their raw editor and values on save/reload. Structured rows take precedence if a configuration also contains old raw arguments. See the [Csound GEN19 reference](https://csound.com/docs/manual/GEN19.html).
+
+![GEN19 partial rows and generated Csound line](../../screenshots/instrument_gen_editor_gen19.png)
 
 ## `GENpadsynth` (Named Routine)
 

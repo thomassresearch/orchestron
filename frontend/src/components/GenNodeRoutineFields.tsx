@@ -1,8 +1,10 @@
 import type { Dispatch, JSX, SetStateAction } from "react";
+import { useEffect, useState } from "react";
 
 import { AssetUploadCard } from "./AssetUploadCard";
 import {
   MAX_GEN_ARGUMENT_COUNT,
+  MAX_GEN19_PARTIAL_COUNT,
   MAX_GEN_RAW_ARGS_TEXT_LENGTH,
   type GenNodeConfig,
   type GenRoutineEditorKind
@@ -22,6 +24,11 @@ export type GenRoutineFieldsCopy = {
   lh: string;
   rMultiplier: string;
   gen17Hint: string;
+  partialNumber: string;
+  partialStrength: string;
+  partialPhase: string;
+  partialOffset: string;
+  gen19Hint: string;
   xyPairs: string;
   windowType: string;
   max: string;
@@ -382,6 +389,98 @@ function Gen17RoutineFields({
   );
 }
 
+function Gen19NumberInput({ value, label, positive, onChange }: {
+  value: number;
+  label: string;
+  positive: boolean;
+  onChange: (value: number) => void;
+}): JSX.Element {
+  const [text, setText] = useState(String(value));
+  useEffect(() => setText(String(value)), [value]);
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      aria-label={label}
+      value={text}
+      onChange={(event) => {
+        const next = event.target.value;
+        setText(next);
+        const parsed = Number(next);
+        if (next.trim() && Number.isFinite(parsed) && (!positive || parsed > 0)) onChange(parsed);
+      }}
+      onBlur={() => setText(String(value))}
+      className="w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 font-mono text-xs text-slate-100 outline-none focus:ring focus:ring-cyan-400/30"
+    />
+  );
+}
+
+function Gen19RoutineFields({ copy, draft, setDraft }: {
+  copy: GenRoutineFieldsCopy;
+  draft: GenNodeConfig;
+  setDraft: Dispatch<SetStateAction<GenNodeConfig>>;
+}): JSX.Element {
+  const rows = draft.gen19Partials;
+  if (rows === null) {
+    return <RawArgumentsRoutineFields copy={copy} draft={draft} setDraft={setDraft} />;
+  }
+  const columns = [
+    ["partial", copy.partialNumber],
+    ["strength", copy.partialStrength],
+    ["phase", copy.partialPhase],
+    ["offset", copy.partialOffset]
+  ] as const;
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-400">{copy.gen19Hint}</p>
+      {rows.map((row, index) => (
+        <div key={index} className="flex items-end gap-2">
+          {columns.map(([field, label]) => (
+            <label key={field} className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="text-[11px] text-slate-400">{label}</span>
+              <Gen19NumberInput
+                label={`${label} ${index + 1}`}
+                value={row[field]}
+                positive={field === "partial"}
+                onChange={(value) => {
+                  setDraft((current) => ({
+                    ...current,
+                    gen19Partials: current.gen19Partials?.map((partial, rowIndex) =>
+                      rowIndex === index ? { ...partial, [field]: value } : partial
+                    ) ?? null
+                  }));
+                }}
+              />
+            </label>
+          ))}
+          <button
+            type="button"
+            disabled={rows.length <= 1}
+            title={rows.length <= 1 ? copy.keepAtLeastOneEntry : copy.removeRow}
+            aria-label={`${copy.removeRow} ${index + 1}`}
+            onClick={() => setDraft((current) => ({
+              ...current,
+              gen19Partials: current.gen19Partials?.filter((_, rowIndex) => rowIndex !== index) ?? null
+            }))}
+            className="rounded-md border border-rose-700/70 px-2 py-1.5 text-xs text-rose-200 disabled:opacity-40"
+          >{copy.deleteShort}</button>
+        </div>
+      ))}
+      <button
+        type="button"
+        disabled={rows.length >= MAX_GEN19_PARTIAL_COUNT}
+        onClick={() => setDraft((current) => ({
+          ...current,
+          gen19Partials: current.gen19Partials && current.gen19Partials.length < MAX_GEN19_PARTIAL_COUNT
+            ? [...current.gen19Partials, { partial: current.gen19Partials.length + 1, strength: 0, phase: 0, offset: 0 }]
+            : current.gen19Partials
+        }))}
+        className="rounded-md border border-cyan-600/70 px-2 py-1 text-xs text-cyan-200 disabled:opacity-40"
+      >{copy.add}</button>
+    </div>
+  );
+}
+
 function Gen20RoutineFields({
   copy,
   draft,
@@ -626,6 +725,8 @@ export function GenNodeRoutineFields({
       {routineKind === "gen7" ? <Gen7RoutineFields copy={copy} draft={draft} setDraft={setDraft} /> : null}
 
       {routineKind === "gen17" ? <Gen17RoutineFields copy={copy} draft={draft} setDraft={setDraft} /> : null}
+
+      {routineKind === "gen19" ? <Gen19RoutineFields copy={copy} draft={draft} setDraft={setDraft} /> : null}
 
       {routineKind === "gen20" ? (
         <Gen20RoutineFields

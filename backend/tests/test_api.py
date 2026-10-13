@@ -7849,3 +7849,54 @@ def test_strum_survives_performance_app_state_and_native_bundle(tmp_path: Path, 
             headers={'Content-Type': 'application/octet-stream', 'X-File-Name': f'strum.orch.{archive_format}'})
         assert imported.status_code == 200
         assert imported.json()['performance']['config']['sequencer'] == config['sequencer']
+
+
+@pytest.mark.parametrize("mode", ["ftgen", "ftgenonce"])
+def test_gen19_opcode_patch_round_trip_and_compile(tmp_path: Path, mode: str) -> None:
+    rows = [{"partial": 0.5, "strength": -2, "phase": 270, "offset": 2}]
+    config = {"routineNumber": 19, "mode": mode, "tableSize": 1024, "normalize": False, "gen19Partials": rows}
+    with _client(tmp_path) as client:
+        opcode = client.get("/api/opcodes/GEN").json()
+        assert opcode["inputs"] == []
+        assert opcode["outputs"][0]["id"] == "ift"
+        assert opcode["outputs"][0]["signal_type"] == "i"
+        assert opcode["documentation_url"].endswith("ScoreGenRef.html")
+        assert "GEN19.html" in opcode["documentation_markdown"]
+        created = client.post("/api/patches", json=_gen_meta_patch_payload(config))
+        assert created.status_code == 201, created.text
+        restored = client.get(f"/api/patches/{created.json()['id']}").json()
+        assert restored["graph"]["ui_layout"]["gen_nodes"]["g1"] == config
+        session = client.post("/api/sessions", json={"patch_id": created.json()["id"]}).json()
+        compiled = client.post(f"/api/sessions/{session['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        assert any(line.strip().endswith(f"{mode} 0, 0, 1024, -19, 0.5, -2, 270, 2") for line in orc_code_lines(compiled.json()["orc"]))
+
+
+@pytest.mark.parametrize("overrides", [
+    {"gen19Partials": []},
+    {"gen19Partials": [{"partial": 0, "strength": 1, "phase": 0, "offset": 0}]},
+    {"gen19Partials": [{"partial": -1, "strength": 1, "phase": 0, "offset": 0}]},
+    {"gen19Partials": [{"partial": 1, "strength": "nan", "phase": 0, "offset": 0}]},
+    {"gen19Partials": [{"partial": 1, "strength": 1, "phase": 0}]},
+    {"gen19Partials": [{"partial": 1, "strength": 1, "phase": 0, "offset": 0}] * 129},
+    {"tableSize": 1000},
+])
+def test_gen19_opcode_rejects_invalid_config_before_storage(tmp_path: Path, overrides) -> None:
+    config = {"routineNumber": 19, "tableSize": 1024, **overrides}
+    with _client(tmp_path) as client:
+        response = client.post("/api/patches", json=_gen_meta_patch_payload(config))
+        assert response.status_code == 422, response.text
+
+
+def test_gen19_opcode_allows_128_partials(tmp_path: Path) -> None:
+    config = {"routineNumber": 19, "tableSize": 1025, "gen19Partials": [
+        {"partial": i + 0.5, "strength": 0.1, "phase": 0, "offset": 0} for i in range(128)
+    ]}
+    with _client(tmp_path) as client:
+        created = client.post("/api/patches", json=_gen_meta_patch_payload(config))
+        assert created.status_code == 201, created.text
+        session = client.post("/api/sessions", json={"patch_id": created.json()["id"]}).json()
+        compiled = client.post(f"/api/sessions/{session['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        line = next(line for line in orc_code_lines(compiled.json()["orc"]) if " ftgen " in line)
+        assert len(line.split(",")) == 4 + MAX_GEN_ARGUMENT_COUNT

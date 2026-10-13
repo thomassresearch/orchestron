@@ -8325,5 +8325,22 @@
         "spanish": "Señal de audio sintetizada."
       }
     }
+  },
+  "GEN": {
+    "description": {
+      "english": "Internal table generator with a dedicated editor for ftgen/ftgenonce. GEN19 rows specify partial number, strength, phase in degrees and DC offset. Fractional positive partial numbers and negative strengths are supported. Offsets are added after strength scaling; normalization rescales the composite table. Use a power-of-two size, optionally plus one. Existing raw GEN19 arguments remain editable. See [GEN19](https://csound.com/docs/manual/GEN19.html).",
+      "german": "Interner Tabellengenerator mit eigenem Editor für ftgen/ftgenonce. GEN19-Zeilen enthalten Teiltonnummer, Stärke, Phase in Grad und Gleichanteil. Positive gebrochene Teiltonnummern und negative Stärken sind möglich. Gleichanteile werden nach der Skalierung addiert; die Normalisierung skaliert die gesamte Tabelle. Größe: Zweierpotenz, optional plus eins. Bestehende rohe GEN19-Argumente bleiben bearbeitbar. Siehe [GEN19](https://csound.com/docs/manual/GEN19.html).",
+      "french": "Générateur de tables interne avec un éditeur dédié à ftgen/ftgenonce. Les lignes GEN19 définissent le numéro de partielle, l’amplitude, la phase en degrés et le décalage continu. Les numéros positifs fractionnaires et les amplitudes négatives sont acceptés. Les décalages sont ajoutés après la mise à l’échelle ; la normalisation redimensionne la table composée. Taille : puissance de deux, éventuellement plus un. Les anciens arguments bruts GEN19 restent modifiables. Voir [GEN19](https://csound.com/docs/manual/GEN19.html).",
+      "spanish": "Generador interno de tablas con un editor dedicado a ftgen/ftgenonce. Las filas GEN19 especifican número de parcial, amplitud, fase en grados y desplazamiento DC. Admite números positivos fraccionarios y amplitudes negativas. Los desplazamientos se suman después de escalar la amplitud; la normalización escala la tabla compuesta. Tamaño: potencia de dos, opcionalmente más uno. Los argumentos raw existentes de GEN19 siguen siendo editables. Véase [GEN19](https://csound.com/docs/manual/GEN19.html)."
+    },
+    "inputs": {},
+    "outputs": {
+      "ift": {
+        "english": "Generated function-table number at init rate. Connect to an oscillator or another table-number input.",
+        "german": "Nummer der erzeugten Funktionstabelle mit Init-Rate. Mit einem Oszillator oder einem anderen Tabellennummer-Eingang verbinden.",
+        "french": "Numéro de la table générée au taux d’initialisation. À connecter à un oscillateur ou à une autre entrée de numéro de table.",
+        "spanish": "Número de la tabla generada a tasa de inicialización. Conectar a un oscilador o a otra entrada de número de tabla."
+      }
+    }
   }
 }

@@ -697,6 +697,17 @@ class OrchestraEmitter:
                 return [0, 0, max(1, config.table_size - 1), 1]
             return points
 
+        if routine_number == 19:
+            if config.gen19_partials is not None:
+                return [
+                    value
+                    for partial in config.gen19_partials
+                    for value in (partial.partial, partial.strength, partial.phase, partial.offset)
+                ]
+            # Older patches used the custom/raw editor for GEN19.
+            if not config.raw_args and not config.raw_arg_tokens:
+                return [1, 1, 0, 0]
+
         if routine_number == 20:
             fields = config.model_fields_set
             window_type = config.gen20_window_type if "gen20_window_type" in fields else config.window_type
@@ -1030,6 +1041,8 @@ class OrchestraEmitter:
         token = value.strip()
         if token == "":
             return ""
+        if token.startswith("expr:"):
+            return token
 
         if (token.startswith('"') and token.endswith('"')) or (token.startswith("'") and token.endswith("'")):
             return token[1:-1]

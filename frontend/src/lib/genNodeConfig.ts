@@ -3,6 +3,7 @@ import type { JsonObject, JsonValue } from "../types";
 export const GEN_NODES_LAYOUT_KEY = "gen_nodes";
 export const MAX_GEN_TABLE_SIZE = 4194304;
 export const MAX_GEN_ARGUMENT_COUNT = 512;
+export const MAX_GEN19_PARTIAL_COUNT = MAX_GEN_ARGUMENT_COUNT / 4;
 export const MAX_GEN_RAW_ARGS_TEXT_LENGTH = 8192;
 
 export type GenNodeMode = "ftgen" | "ftgenonce";
@@ -25,6 +26,13 @@ export interface GenXYPoint {
   y: number;
 }
 
+export interface Gen19Partial {
+  partial: number;
+  strength: number;
+  phase: number;
+  offset: number;
+}
+
 export interface GenNodeConfig {
   mode: GenNodeMode;
   tableNumber: number;
@@ -41,6 +49,7 @@ export interface GenNodeConfig {
   segmentStartValue: number;
   segments: GenSegmentPoint[];
   gen17Pairs: GenXYPoint[];
+  gen19Partials: Gen19Partial[] | null;
   gen20WindowType: number;
   gen20Max: number;
   gen20Opt: number;
@@ -61,7 +70,7 @@ export interface GenNodePreview {
 
 type GenNodeConfigMap = Record<string, GenNodeConfig>;
 
-export type GenRoutineEditorKind = "gen10" | "gen11" | "gen2" | "gen7" | "gen17" | "gen20" | "gen1" | "raw";
+export type GenRoutineEditorKind = "gen10" | "gen11" | "gen2" | "gen7" | "gen17" | "gen19" | "gen20" | "gen1" | "raw";
 
 export interface GenRoutineOption {
   value: number;
@@ -106,6 +115,12 @@ export const GEN_ROUTINE_OPTIONS: GenRoutineOption[] = [
     label: "GEN17 - Step Table From x/y Pairs",
     kind: "gen17",
     description: "Specify x/y point pairs for stepped lookup mappings (often used unnormalized)."
+  },
+  {
+    value: 19,
+    label: "GEN19 - Sinusoidal Partials with DC Offset",
+    kind: "gen19",
+    description: "Set each partial's number, strength, phase in degrees, and DC offset."
   },
   {
     value: 20,
@@ -271,6 +286,7 @@ export function defaultGenNodeConfig(): GenNodeConfig {
       { x: 0, y: 0 },
       { x: 127, y: 127 }
     ],
+    gen19Partials: [{ partial: 1, strength: 1, phase: 0, offset: 0 }],
     gen20WindowType: 1,
     gen20Max: 1,
     gen20Opt: 0.5,
@@ -296,6 +312,21 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
     routineNumber = defaults.routineNumber;
   }
   const routineName = normalizeRoutineName(raw.routineName);
+  // Preserve custom GEN19 arguments from patches authored before the row editor existed.
+  const rawArgsText = routineNumber === 19 && Array.isArray(raw.rawArgs) && raw.rawArgs.length > 0
+    ? raw.rawArgs.map((value) => typeof value === "boolean" ? Number(value) : String(value)).join(", ")
+    : typeof raw.rawArgsText === "string" ? raw.rawArgsText : "";
+  const gen19Partials = raw.gen19Partials === null ||
+    (raw.gen19Partials === undefined && routineNumber === 19 && rawArgsText.trim())
+    ? null
+    : Array.isArray(raw.gen19Partials) && raw.gen19Partials.length > 0
+      ? raw.gen19Partials.filter(isRecord).slice(0, MAX_GEN19_PARTIAL_COUNT).map((row) => ({
+          partial: toNumber(row.partial, 1),
+          strength: toNumber(row.strength, 1),
+          phase: toNumber(row.phase, 0),
+          offset: toNumber(row.offset, 0)
+        }))
+      : defaults.gen19Partials;
 
   return {
     mode,
@@ -313,6 +344,7 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
     segmentStartValue: toNumber(raw.segmentStartValue, defaults.segmentStartValue),
     segments: parseSegmentList(raw.segments, defaults.segments),
     gen17Pairs: parseXYPointList(raw.gen17Pairs, defaults.gen17Pairs),
+    gen19Partials,
     gen20WindowType: Math.max(1, toInt(raw.gen20WindowType, defaults.gen20WindowType)),
     gen20Max: toNumber(raw.gen20Max, defaults.gen20Max),
     gen20Opt: toNumber(raw.gen20Opt, defaults.gen20Opt),
@@ -321,7 +353,7 @@ export function normalizeGenNodeConfig(raw: unknown): GenNodeConfig {
     sampleSkipTime: toNumber(raw.sampleSkipTime, defaults.sampleSkipTime),
     sampleFormat: toInt(raw.sampleFormat, defaults.sampleFormat),
     sampleChannel: toInt(raw.sampleChannel, defaults.sampleChannel),
-    rawArgsText: typeof raw.rawArgsText === "string" ? raw.rawArgsText.slice(0, MAX_GEN_RAW_ARGS_TEXT_LENGTH) : ""
+    rawArgsText: rawArgsText.slice(0, MAX_GEN_RAW_ARGS_TEXT_LENGTH)
   };
 }
 
@@ -390,6 +422,7 @@ function genNodeConfigToJson(config: GenNodeConfig): JsonValue {
     segmentStartValue: config.segmentStartValue,
     segments: config.segments.map((point) => ({ length: point.length, value: point.value })),
     gen17Pairs: config.gen17Pairs.map((point) => ({ x: point.x, y: point.y })),
+    gen19Partials: config.gen19Partials?.map((partial) => ({ ...partial })) ?? null,
     gen20WindowType: config.gen20WindowType,
     gen20Max: config.gen20Max,
     gen20Opt: config.gen20Opt,
@@ -428,7 +461,7 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
     return rawTokens.map((token) => {
       const isQuoted =
         (token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"));
-      if (isQuoted) {
+      if (isQuoted || token.startsWith("expr:")) {
         return token;
       }
       if (/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(token) || /^[-+]?\d+$/.test(token)) {
@@ -468,6 +501,12 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
     }
     return flattened;
   }
+  if (routineNumber === 19 && config.gen19Partials !== null) {
+    return config.gen19Partials.flatMap((row) => [row.partial, row.strength, row.phase, row.offset].map(String));
+  }
+  if (routineNumber === 19 && !config.rawArgsText.trim()) {
+    return ["1", "1", "0", "0"];
+  }
   if (routineNumber === 20) {
     const windowType = Math.max(1, Math.round(config.gen20WindowType));
     const args = [String(windowType), String(config.gen20Max)];
@@ -489,7 +528,7 @@ function previewArgsForConfig(config: GenNodeConfig): string[] {
   return rawTokens.map((token) => {
     const isQuoted =
       (token.startsWith('"') && token.endsWith('"')) || (token.startsWith("'") && token.endsWith("'"));
-    if (isQuoted) {
+    if (isQuoted || token.startsWith("expr:")) {
       return token;
     }
     if (/^[-+]?(?:\d+\.?\d*|\.\d+)$/.test(token) || /^[-+]?\d+$/.test(token)) {

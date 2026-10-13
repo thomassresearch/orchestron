@@ -28,6 +28,7 @@ GEN_NODES_LAYOUT_KEY = "gen_nodes"
 DEFAULT_GEN_TABLE_SIZE = 16_384
 MAX_GEN_TABLE_SIZE = 4_194_304
 MAX_GEN_ARGUMENT_COUNT = 512
+MAX_GEN19_PARTIAL_COUNT = MAX_GEN_ARGUMENT_COUNT // 4
 MAX_GEN_RAW_ARGS_TEXT_LENGTH = 8_192
 MAX_GEN_RAW_ARG_TOKEN_LENGTH = 512
 
@@ -151,6 +152,21 @@ class GenXYPoint(BaseModel):
         return number
 
 
+class Gen19Partial(BaseModel):
+    partial: float | int = Field(gt=0)
+    strength: float | int
+    phase: float | int
+    offset: float | int
+
+    @field_validator("partial", "strength", "phase", "offset", mode="before")
+    @classmethod
+    def coerce_number(cls, value: object) -> float | int:
+        number = _gen_number(value, default=None)
+        if number is None:
+            raise ValueError("GEN19 partials require finite numeric fields.")
+        return number
+
+
 class GenNodeConfig(BaseModel):
     mode: Literal["ftgen", "ftgenonce"] = "ftgen"
     table_number: int = Field(default=0, alias="tableNumber")
@@ -170,6 +186,9 @@ class GenNodeConfig(BaseModel):
     segments: list[GenSegmentPoint] = Field(default_factory=list)
     gen17_pairs: list[GenXYPoint] = Field(default_factory=list, alias="gen17Pairs")
     pairs: list[GenXYPoint] = Field(default_factory=list)
+    gen19_partials: list[Gen19Partial] | None = Field(
+        default=None, alias="gen19Partials", min_length=1, max_length=MAX_GEN19_PARTIAL_COUNT
+    )
     gen20_window_type: int = Field(default=1, alias="gen20WindowType")
     window_type: int = Field(default=1, alias="windowType")
     gen20_max: float | int = Field(default=1, alias="gen20Max")
@@ -303,6 +322,10 @@ class GenNodeConfig(BaseModel):
         if self.table_size == 0 and not self.is_gen01_routine:
             routine_label = f"GEN{self.routine_name}" if self.routine_name else f"GEN{self.routine_number}"
             raise ValueError(f"GEN tableSize cannot be 0 for {routine_label}.")
+        if self.routine_number == 19 and not self.routine_name:
+            size = self.table_size
+            if size & (size - 1) and (size - 1) & (size - 2):
+                raise ValueError("GEN19 tableSize must be a power of two or a power of two plus one.")
 
         raw_tokens = self.raw_arg_tokens
         if len(raw_tokens) > MAX_GEN_ARGUMENT_COUNT:

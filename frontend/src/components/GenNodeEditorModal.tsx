@@ -42,6 +42,11 @@ type GenEditorCopy = {
   lh: string;
   rMultiplier: string;
   gen17Hint: string;
+  partialNumber: string;
+  partialStrength: string;
+  partialPhase: string;
+  partialOffset: string;
+  gen19Hint: string;
   xyPairs: string;
   windowType: string;
   max: string;
@@ -111,6 +116,11 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     lh: "lh (lowest harmonic)",
     rMultiplier: "r (multiplier)",
     gen17Hint: "Enter ascending x/y pairs. GEN17 commonly uses negative generator mode (disable normalization) for raw mappings.",
+    partialNumber: "Partial number",
+    partialStrength: "Strength",
+    partialPhase: "Phase (°)",
+    partialOffset: "DC offset",
+    gen19Hint: "Partial numbers must be positive; fractional values and negative strengths are allowed. Offsets are added after strength scaling. Use a power-of-two table size, optionally plus one.",
     xyPairs: "x/y Pairs",
     windowType: "Window Type",
     max: "max",
@@ -161,6 +171,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "GEN10 - Harmonic Sine Partials",
       11: "GEN11 - Harmonic Cosine Partials",
       17: "GEN17 - Step Table From x/y Pairs",
+      19: "GEN19 - Sinusoidal Partials with DC Offset",
       20: "GEN20 - Window / Distribution Function"
     },
     routineDescriptions: {
@@ -171,6 +182,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "Enter harmonic amplitudes (1st, 2nd, 3rd partial, ...).",
       11: "Specify number of harmonics, lowest harmonic, and harmonic multiplier.",
       17: "Specify x/y point pairs for stepped lookup mappings (often used unnormalized).",
+      19: "Set each partial’s number, strength, phase in degrees, and DC offset.",
       20: "Generate a window or distribution by window type, max value, and optional parameter."
     },
     gen20WindowLabels: {
@@ -216,6 +228,11 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     rMultiplier: "r (Multiplikator)",
     gen17Hint:
       "Aufsteigende x/y-Paare eingeben. GEN17 verwendet oft negativen Generator-Modus (Normalisierung deaktivieren) fuer rohe Mappings.",
+    partialNumber: "Teiltonnummer",
+    partialStrength: "Stärke",
+    partialPhase: "Phase (°)",
+    partialOffset: "Gleichanteil",
+    gen19Hint: "Teiltonnummern müssen positiv sein; Bruchteile und negative Stärken sind erlaubt. Gleichanteile werden nach der Skalierung addiert. Tabellengröße: Zweierpotenz, optional plus eins.",
     xyPairs: "x/y-Paare",
     windowType: "Fenstertyp",
     max: "max",
@@ -268,6 +285,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "GEN10 - Harmonische Sinus-Teiltone",
       11: "GEN11 - Harmonische Kosinus-Teiltone",
       17: "GEN17 - Stufentabelle aus x/y-Paaren",
+      19: "GEN19 - Sinus-Teiltöne mit Gleichanteil",
       20: "GEN20 - Fenster / Verteilungsfunktion"
     },
     routineDescriptions: {
@@ -278,6 +296,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "Trage harmonische Amplituden ein (1., 2., 3. Partial, ...).",
       11: "Anzahl Harmonische, niedrigste Harmonische und Harmonik-Multiplikator festlegen.",
       17: "x/y-Paare fuer gestufte Lookup-Mappings festlegen (oft unnormalisiert).",
+      19: "Teiltonnummer, Stärke, Phase in Grad und Gleichanteil je Teilton einstellen.",
       20: "Fenster/Verteilung ueber Fenstertyp, Maximalwert und optionalen Parameter erzeugen."
     },
     gen20WindowLabels: {
@@ -323,6 +342,11 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     rMultiplier: "r (multiplicateur)",
     gen17Hint:
       "Saisissez des paires x/y croissantes. GEN17 utilise souvent un mode generateur negatif (normalisation desactivee) pour des mappings bruts.",
+    partialNumber: "Numéro de partielle",
+    partialStrength: "Amplitude",
+    partialPhase: "Phase (°)",
+    partialOffset: "Décalage continu",
+    gen19Hint: "Les numéros de partielles doivent être positifs ; les fractions et amplitudes négatives sont admises. Les décalages sont ajoutés après la mise à l’échelle. Taille : puissance de deux, éventuellement plus un.",
     xyPairs: "Paires x/y",
     windowType: "Type de fenetre",
     max: "max",
@@ -375,6 +399,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "GEN10 - Partielles sinus harmoniques",
       11: "GEN11 - Partielles cosinus harmoniques",
       17: "GEN17 - Table par paires x/y",
+      19: "GEN19 - Partielles sinus avec décalage continu",
       20: "GEN20 - Fonction fenetre / distribution"
     },
     routineDescriptions: {
@@ -385,6 +410,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "Saisissez les amplitudes harmoniques (1re, 2e, 3e partielle, ...).",
       11: "Definir nombre d'harmoniques, plus basse harmonique et multiplicateur harmonique.",
       17: "Definir des paires x/y pour des mappings lookup par paliers (souvent non normalises).",
+      19: "Réglez le numéro, l’amplitude, la phase en degrés et le décalage continu de chaque partielle.",
       20: "Generer une fenetre/distribution par type de fenetre, valeur max et parametre optionnel."
     },
     gen20WindowLabels: {
@@ -430,6 +456,11 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
     rMultiplier: "r (multiplicador)",
     gen17Hint:
       "Introduce pares x/y ascendentes. GEN17 suele usar modo de generador negativo (desactivar normalizacion) para mapeos crudos.",
+    partialNumber: "Número de parcial",
+    partialStrength: "Amplitud",
+    partialPhase: "Fase (°)",
+    partialOffset: "Desplazamiento DC",
+    gen19Hint: "Los números de parcial deben ser positivos; se permiten fracciones y amplitudes negativas. Los desplazamientos se suman después de escalar la amplitud. Tamaño: potencia de dos, opcionalmente más uno.",
     xyPairs: "Pares x/y",
     windowType: "Tipo de ventana",
     max: "max",
@@ -482,6 +513,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "GEN10 - Parciales seno armonicos",
       11: "GEN11 - Parciales coseno armonicos",
       17: "GEN17 - Tabla escalonada por pares x/y",
+      19: "GEN19 - Parciales seno con desplazamiento DC",
       20: "GEN20 - Funcion de ventana / distribucion"
     },
     routineDescriptions: {
@@ -492,6 +524,7 @@ const GEN_EDITOR_COPY: Record<GuiLanguage, GenEditorCopy> = {
       10: "Introduce amplitudes armonicas (1er, 2do, 3er parcial, ...).",
       11: "Especifica numero de armonicos, armonico mas bajo y multiplicador armonico.",
       17: "Especifica pares x/y para mapeos escalonados de lookup (a menudo sin normalizar).",
+      19: "Ajusta el número, la amplitud, la fase en grados y el desplazamiento DC de cada parcial.",
       20: "Genera una ventana/distribucion por tipo de ventana, valor maximo y parametro opcional."
     },
     gen20WindowLabels: {
@@ -814,6 +847,11 @@ export function GenNodeEditorModal({ nodeId, guiLanguage, initialConfig, onClose
 
             <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3 text-xs text-slate-400">
               <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{copy.notes}</div>
+              {draft.routineNumber === 19 && !selectedNamedRoutine && (
+                <a href="https://csound.com/docs/manual/GEN19.html" target="_blank" rel="noreferrer" className="mb-2 block text-cyan-300 underline">
+                  Csound GEN19
+                </a>
+              )}
               <div>{copy.gen01Note}</div>
               <div className="mt-2">{copy.ftgenonceNote}</div>
             </div>

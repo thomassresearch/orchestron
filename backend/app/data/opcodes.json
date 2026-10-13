@@ -11789,8 +11789,8 @@
   {
     "name": "GEN",
     "category": "tables",
-    "description": "Routine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce from a specialized editor.",
-    "documentation_markdown": "### `GEN`\n\nRoutine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce from a specialized editor.\n\n**Reference**\n- [Csound opcode overview](https://csound.com/docs/manual/ScoreGenRef.html)",
+    "description": "Routine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce from a specialized editor, including GEN19 sinusoidal partials with phase and DC offset.",
+    "documentation_markdown": "### `GEN`\n\nRoutine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce from a specialized editor, including GEN19 sinusoidal partials with phase and DC offset.\n\n**Reference**\n- [Csound GEN routines](https://csound.com/docs/manual/ScoreGenRef.html)\n- [GEN19](https://csound.com/docs/manual/GEN19.html)",
     "documentation_url": "https://csound.com/docs/manual/ScoreGenRef.html",
     "inputs": [],
     "outputs": [
@@ -11809,7 +11809,8 @@
       "source",
       "tables",
       "gen",
-      "meta"
+      "meta",
+      "gen19"
     ],
     "icon_filename": "ftgen.svg"
   },

@@ -205,3 +205,17 @@ def test_physical_guitar_catalog_help(name):
     else:
         assert [p.signal_type.value for p in spec.inputs] == ['a'] + ['i'] * 8 + ['k']
         assert [p.id for p in spec.outputs] == ['astring', 'abridge']
+
+
+def test_gen_meta_opcode_documents_gen19_in_all_languages() -> None:
+    root = Path(__file__).resolve().parents[2]
+    opcode = OpcodeService("/static/icons").get_opcode("GEN")
+    assert opcode.documentation_url == "https://csound.com/docs/manual/ScoreGenRef.html"
+    assert "GEN19.html" in opcode.documentation_markdown
+    assert "gen19" in opcode.tags
+    details = json.loads((root / "frontend/src/lib/opcodeDocDetails.json").read_text())["GEN"]
+    assert details["inputs"] == {}
+    assert set(details["outputs"]) == {"ift"}
+    for language in ("english", "german", "french", "spanish"):
+        assert "GEN19.html" in details["description"][language]
+        assert details["outputs"]["ift"][language]

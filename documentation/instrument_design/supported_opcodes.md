@@ -332,7 +332,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
-| GEN | - | 1 (i) | Routine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce from a specialized editor. |
+| GEN | - | 1 (i) | Routine-aware function table generator (meta-opcode) that renders ftgen/ftgenonce from a specialized editor, including GEN19 sinusoidal partials with phase and DC offset. |
 | ftgen | 12 (i, i, i, i, i, i, i, i, i, i, i, i) | 1 (i) | Create a function table at init time using a GEN routine. |
 | ftgenonce | 12 (i, i, i, i, i, i, i, i, i, i, i, i) | 1 (i) | Generate a function table once and reuse it across instances. |
 | vco2init | 6 (i, i, i, i, i, i) | 1 (i) | Precompute band-limited wavetable sets for vco2 oscillators. |

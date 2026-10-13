@@ -38,6 +38,8 @@ Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_desi
 
 Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
 
+Build composite waveforms with the [GEN19 table editor](documentation/instrument_design/gen_table_editor.md#gen19-sinusoidal-partials-with-dc-offset), setting each partial’s frequency ratio, strength, phase and DC offset.
+
 Hover over an instrument's description in Instrument Design to read the full text in a tooltip.
 
 Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to hear an unfinished patch on its own or in the context of a performance before saving it. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
