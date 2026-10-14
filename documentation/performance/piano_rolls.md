@@ -36,11 +36,13 @@ A piano roll only sends notes when:
 Each piano roll has:
 
 - `MIDI Channel` (`1..16`)
+- `Velocity` (`0..127`)
 - `Scale`
 - `Mode`
-- `Velocity` (`0..127`)
 - `Autochord` (off by default)
 - `Chord notes` (`3`, `4`, or `5`, default `3`; available when Autochord is on)
+
+MIDI Channel and Velocity are grouped together, with a small gap before Scale, Mode, Autochord, and Chord notes. All labels appear above their controls; the Autochord checkbox matches the height of the adjacent selectors.
 
 Each MIDI-driven rack instrument requires a unique MIDI channel. Set the piano roll to the channel of the instrument you want to play.
 

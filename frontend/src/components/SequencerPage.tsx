@@ -2998,6 +2998,7 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
     onPianoRollNoteOn,
     onPianoRollNoteOff,
   } = context;
+  const pianoRollSelectClass = `${controlFieldClass} h-5 !py-0`;
   const runningSequencerTheories = useMemo<RunningSequencerTheory[]>(
     () => {
       const enabledTracks = sequencer.tracks.filter((track) => track.enabled);
@@ -3080,18 +3081,31 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
               </button>
             </div>
 
-            <div className="mb-2 flex flex-wrap items-end gap-2">
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.midiChannel}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={16}
-                  value={roll.midiChannel}
-                  onChange={(event) => onPianoRollMidiChannelChange(roll.id, Number(event.target.value))}
-                  className={`${controlFieldClass} w-24`}
-                />
-              </label>
+            <div className="mb-2 flex flex-wrap items-start gap-2">
+              <div className="mr-2 flex items-end gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className={controlLabelClass}>{ui.midiChannel}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={16}
+                    value={roll.midiChannel}
+                    onChange={(event) => onPianoRollMidiChannelChange(roll.id, Number(event.target.value))}
+                    className={`${controlFieldClass} w-24`}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className={controlLabelClass}>{ui.velocity}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={127}
+                    value={roll.velocity}
+                    onChange={(event) => onPianoRollVelocityChange(roll.id, Number(event.target.value))}
+                    className={`${controlFieldClass} w-24`}
+                  />
+                </label>
+              </div>
               <label className="flex min-w-[180px] flex-col gap-1">
                 <span className={controlLabelClass}>{ui.scale}</span>
                 <select
@@ -3103,7 +3117,7 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
                       onPianoRollScaleChange(roll.id, selected.root, selected.type);
                     }
                   }}
-                  className={controlFieldClass}
+                  className={pianoRollSelectClass}
                 >
                   {followsMixedScale ? (
                     <option value={MIXED_SELECT_VALUE} disabled>
@@ -3123,7 +3137,7 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
                   value={effectiveModeValue}
                   disabled={followSummary !== null}
                   onChange={(event) => onPianoRollModeChange(roll.id, event.target.value as SequencerMode)}
-                  className={controlFieldClass}
+                  className={pianoRollSelectClass}
                 >
                   {followsMixedMode ? (
                     <option value={MIXED_SELECT_VALUE} disabled>
@@ -3137,14 +3151,14 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
                   ))}
                 </select>
               </label>
-              <label className="flex items-center gap-2 pb-1.5 text-xs text-slate-200">
+              <label className="flex flex-col gap-1">
+                <span className={controlLabelClass}>{ui.autoChord}</span>
                 <input
                   type="checkbox"
                   checked={roll.autoChordEnabled}
                   onChange={event => onPianoRollAutoChordEnabledChange(roll.id, event.target.checked)}
-                  className="accent-accent"
+                  className="h-5 w-5 accent-accent"
                 />
-                {ui.autoChord}
               </label>
               <label className="flex flex-col gap-1">
                 <span className={controlLabelClass}>{ui.chordNotes}</span>
@@ -3152,21 +3166,10 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
                   value={roll.autoChordSize}
                   disabled={!roll.autoChordEnabled}
                   onChange={event => onPianoRollAutoChordSizeChange(roll.id, Number(event.target.value))}
-                  className={`${controlFieldClass} w-24 disabled:opacity-45`}
+                  className={`${pianoRollSelectClass} w-24 disabled:opacity-45`}
                 >
                   {[3, 4, 5].map(size => <option key={size} value={size}>{size}</option>)}
                 </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className={controlLabelClass}>{ui.velocity}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={127}
-                  value={roll.velocity}
-                  onChange={(event) => onPianoRollVelocityChange(roll.id, Number(event.target.value))}
-                  className={`${controlFieldClass} w-24`}
-                />
               </label>
             </div>
 

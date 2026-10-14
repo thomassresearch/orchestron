@@ -84,7 +84,7 @@ Performance descriptions show three lines with automatic wrapping. Scroll vertic
 
 Load instruments into the Perform rack, assign MIDI channels, and play from the on-screen keyboards or an external MIDI source. Scale highlighting provides harmonic guidance while you improvise. Enable **Autochord** on a piano roll to play 3-, 4-, or 5-note chords by stacking every other highlighted note above the pressed key. In mixed scales it uses their common notes; keys outside the highlighted set remain single notes. Manual MIDI controls and controller sequencers can each send to your chosen MIDI channels, with all 16 selected by default (OMNI). Assignable MIDI controls let you adjust sounds as you play; instruments can also expose their own [performance controls](documentation/performance/performance_controllers.md) for settings such as envelope times or distortion.
 
-![Piano roll Autochord controls with five sounding chord tones](screenshots/perform_piano_roll_autochord.jpg)
+![Piano roll with grouped MIDI Channel and Velocity fields, aligned scale and autochord controls, and five sounding chord tones](screenshots/perform_piano_roll_autochord.jpg)
 
 *Play a melody with harmonic guidance and reach for MIDI controls beneath the keyboard.*
 
