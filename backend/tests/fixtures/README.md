@@ -12,6 +12,11 @@ their own in-memory copy.
 - `analog_drumkit.patch.json` is a fixed copy of the five-voice analog drumkit
   supplied when this fixture was added. Backend audio regressions and frontend
   template tests share this snapshot.
+- `analog_drumkit_library_original.patch.json` preserves the later five-voice
+  library instrument, including its four controllers and stereo output gain.
+  `analog_drumkit_breakbeat.patch.json` freezes its 17-voice extension. Paired
+  renders verify unchanged original sounds, GM assignments, velocity, tails,
+  stereo output and all fifteen added performance controllers.
 - `drumset.patch.json` is the original three-voice Switch patch used for note-off
   tails, polyphony, MIDI/score equivalence and bundle regressions.
 - `velocity_if.patch.json` is the original velocity-switched sine/saw patch used

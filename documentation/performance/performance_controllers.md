@@ -40,6 +40,17 @@ The [Tube Overdrive example](../instrument_design/tube_overdrive.md) exposes Dri
 retains its own settings; restart the rack after changing these continuous-effect
 controls.
 
+The [Analog Drumkit](../../examples/instruments/analog_drumkit/README.md) has shared
+**BD snappiness** for notes 35/36, shared **Hi-hat tuning** for 42/46, and **Snare
+tuning** for 38. Each defaults to **1**, preserving the original sound. Side stick
+37, clap 39, electric snare 40, toms 41/43/45/47/48/50, crash 49, ride 51 and
+tambourine 54 each have one individual characteristic control. The original four
+library controls and their saved overrides remain valid. New notes adopt changes.
+
+![Analog Drumkit with its preserved controls and new snappiness, tuning, decay and brightness controls](../../screenshots/analog_drumkit_breakbeat_controls.png)
+
+![Lower controls including individual tom tuning and tambourine decay](../../screenshots/analog_drumkit_breakbeat_controls_lower.png)
+
 ## Save, Reload, and Export
 
 Untouched controls follow the patch default. After a value changes, an explicit instance override remains until reset, including when it is subsequently set to the current default. App state retains edits immediately through the existing persistence workflow; Save Performance is required to update a saved performance. Native JSON/ZIP bundles and both CSD (MIDI) and CSD (SCORE) exports preserve instance values. The CSD contains its initial settings and runs without a controller client. These controls do not send MIDI CC and do not become MIDI automation.

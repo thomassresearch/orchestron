@@ -37,6 +37,11 @@ and a WAV render with two warm passages within the industrial groove.
 
 ## Import an instrument (Instrument Design -> Import)
 
+[Analog Drumkit](instruments/analog_drumkit/README.md) includes 17 GM-mapped voices
+and per-instance controls for breakbeats. Its original kicks, snare and hi-hats
+retain their sound at the new controls' defaults; the guide lists all note
+numbers, control ranges, synthesis details and reproduction commands.
+
 [Tube Overdrive](instruments/tube_overdrive/README.md) is a warm stereo continuous
 effect with Drive, Tone and Output performance controls. It is supplied alongside
 the original Overdrive, with an editable graph and reproducible audio comparisons.

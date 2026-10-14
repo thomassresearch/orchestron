@@ -19,6 +19,11 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
+The [Analog Drumkit](examples/instruments/analog_drumkit/README.md) provides 17
+sample-free percussion voices for breakbeats, with General MIDI note assignments,
+shared kick snappiness and hi-hat tuning, snare tuning, and individual controls
+for its side stick, clap, electric snare, six toms, crash, ride and tambourine.
+
 Build a sound from the inside out. In **Instrument Design**, connect Csound building blocks, called opcodes, into a patch: an oscillator makes a tone, an envelope shapes its attack and decay, a filter changes its colour, and modulation brings it into motion. Follow the connections to see how each part contributes to the result.
 
 Start with a playable instrument, a drumset, an audio effect, an audio output patch, or an empty canvas. Turn a promising experiment into a reusable template, keep several instruments open in tabs, and return to unfinished ideas later.

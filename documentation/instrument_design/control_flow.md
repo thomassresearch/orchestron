@@ -26,7 +26,7 @@ Drag the **Case Result title or unused body** to resize a branch in both dimensi
 
 ### Play the Drumset template
 
-Choose **New from template → Drumset**. Notes **36**, **38**, and **42** play kick, snare, and hi-hat; all other notes select Default Silence. The kick uses a falling-pitch sine, the snare combines filtered noise and tone, and the hi-hat uses high-pass-filtered noise. Velocity scales finite amplitude envelopes. Branch-local `xtratim` preserves their decays after short MIDI notes. Audition offers a **Test MIDI note** field; for this template it starts at 36. Save, assign the patch to a MIDI channel in Perform, and route its named Stereo Output to the mixer destination. Send 36, 38 and 42 together to play all three sounds.
+Choose **New from template → Drumset** for 17 analog percussion voices: **35/36** kicks, **37** side stick, **38** snare, **39** clap, **40** electric snare, **41/43/45/47/48/50** toms, **42/46** closed/open hi-hat, **49** crash, **51** ride and **54** tambourine. Other notes select Default Silence. Velocity scales finite envelopes; branch-local `xtratim` preserves tails after short note-offs. Shared BD snappiness, shared hi-hat tuning and snare tuning default to **1**, preserving the previous sounds. Each added voice has one characteristic control. Save, assign a MIDI channel in Perform and route Stereo Output through the mixer. Controls affect newly started notes.
 
 Processing after the block runs **once per voice**. Put effects in the performance mixer when they should process the **sum of the whole kit**. The [velocity-dependent If example](../../backend/tests/fixtures/patches/velocity_if.patch.json) uses `ampmidi` and If to choose sine or saw timbre by velocity; it requires no separate layering subsystem.
 

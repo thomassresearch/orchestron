@@ -1,7 +1,7 @@
 {
   "sourcePatchId": "979b006c-d2a5-47c1-836c-9f3f30453ddf",
   "name": "Analog Drumkit",
-  "description": "Five velocity-sensitive analog synthesis voices selected by MIDI notnum through Switch. MIDI notenum 35: Bass drum (pitch-swept sine + click); 36: Bass drum distorted (saturated sine + click); 46: Hi-hat open (700 ms); 42: Hi-hat closed (85 ms); 38: Snare (two sine resonances + filtered noise). Hats use six inharmonic square oscillators plus noise. One-shot decays survive short MIDI note-offs. Silent default; stereo output; no samples. GM bass-drum slot 36 is used for the distorted variation.",
+  "description": "17 velocity-sensitive, sample-free analog percussion voices. GM notes: 35 kick, 36 distorted kick, 37 side stick, 38 snare, 39 clap, 40 electric snare, 41/43/45/47/48/50 low-to-high toms, 42 closed hat, 46 open hat, 49 crash, 51 ride, 54 tambourine. Existing sounds and settings retained. BD snappiness, shared hat tuning and snare tuning default to 1 (original sound). Each added voice has its own characteristic control. Finite one-shot tails survive short note-offs; unmapped notes are silent. Stereo output.",
   "isTemplate": false,
   "alwaysOn": false,
   "instrumentType": "percussion",
@@ -56,7 +56,7 @@
         },
         "position": {
           "x": 450,
-          "y": 1600
+          "y": 1748.23
         }
       },
       {
@@ -73,7 +73,7 @@
         },
         "position": {
           "x": 450,
-          "y": 1940
+          "y": 2088.23
         }
       },
       {
@@ -88,7 +88,7 @@
         },
         "position": {
           "x": 445.5895531667337,
-          "y": 2320.906144302553
+          "y": 2469.136144302553
         }
       },
       {
@@ -96,14 +96,13 @@
         "opcode": "expseg",
         "params": {
           "ia": 165,
-          "idur1": 0.026,
           "ib": 57,
           "idur2": 0.2,
           "ic": 46
         },
         "position": {
           "x": 671.6489811783968,
-          "y": 1463.3902604307725
+          "y": 1611.6202604307725
         }
       },
       {
@@ -115,7 +114,7 @@
         },
         "position": {
           "x": 1050.9559716904664,
-          "y": 2299.838538237288
+          "y": 2448.068538237288
         }
       },
       {
@@ -128,7 +127,7 @@
         },
         "position": {
           "x": 667.7946321969434,
-          "y": 2040.9657828528398
+          "y": 2189.19578285284
         }
       },
       {
@@ -139,7 +138,7 @@
         },
         "position": {
           "x": 1002.1583132844457,
-          "y": 1988.400327606624
+          "y": 2136.6303276066237
         }
       },
       {
@@ -151,7 +150,7 @@
         },
         "position": {
           "x": 1252.2383705750512,
-          "y": 1954.8656517489496
+          "y": 2103.0956517489494
         }
       },
       {
@@ -160,7 +159,7 @@
         "params": {},
         "position": {
           "x": 1513.3882548699826,
-          "y": 2164.1703158747214
+          "y": 2312.4003158747214
         }
       },
       {
@@ -169,7 +168,7 @@
         "params": {},
         "position": {
           "x": 1271.7129504231928,
-          "y": 1617.3597587600536
+          "y": 1765.5897587600537
         }
       },
       {
@@ -180,7 +179,7 @@
         },
         "position": {
           "x": 1770.5614842700102,
-          "y": 2060.9409082097404
+          "y": 2209.1709082097404
         }
       },
       {
@@ -189,7 +188,7 @@
         "params": {},
         "position": {
           "x": 2075.868194032939,
-          "y": 2758.5061443025534
+          "y": 2906.736144302553
         }
       },
       {
@@ -200,7 +199,7 @@
         },
         "position": {
           "x": 450,
-          "y": 3019.7561443025534
+          "y": 3167.986144302553
         }
       },
       {
@@ -217,7 +216,7 @@
         },
         "position": {
           "x": 450,
-          "y": 3359.7561443025534
+          "y": 3507.986144302553
         }
       },
       {
@@ -232,7 +231,7 @@
         },
         "position": {
           "x": 450,
-          "y": 3699.7561443025534
+          "y": 3847.986144302553
         }
       },
       {
@@ -240,14 +239,13 @@
         "opcode": "expseg",
         "params": {
           "ia": 190,
-          "idur1": 0.026,
           "ib": 57,
           "idur2": 0.2,
           "ic": 49
         },
         "position": {
           "x": 780,
-          "y": 3019.7561443025534
+          "y": 3167.986144302553
         }
       },
       {
@@ -259,7 +257,7 @@
         },
         "position": {
           "x": 889.2845405946014,
-          "y": 3496.4001550420103
+          "y": 3644.63015504201
         }
       },
       {
@@ -272,7 +270,7 @@
         },
         "position": {
           "x": 823.2100423061574,
-          "y": 3885.5952680287123
+          "y": 4033.825268028712
         }
       },
       {
@@ -283,7 +281,7 @@
         },
         "position": {
           "x": 1030.34230032038,
-          "y": 3019.7561443025534
+          "y": 3167.986144302553
         }
       },
       {
@@ -295,7 +293,7 @@
         },
         "position": {
           "x": 1231.6364022096473,
-          "y": 3481.2128374637923
+          "y": 3629.442837463792
         }
       },
       {
@@ -304,7 +302,7 @@
         "params": {},
         "position": {
           "x": 1299.8459699165942,
-          "y": 3738.1806012085062
+          "y": 3886.410601208506
         }
       },
       {
@@ -319,7 +317,7 @@
         },
         "position": {
           "x": 1428.5291767725564,
-          "y": 3043.6352733202148
+          "y": 3191.8652733202143
         }
       },
       {
@@ -330,7 +328,7 @@
         },
         "position": {
           "x": 1567.2872533984835,
-          "y": 3408.9764558943643
+          "y": 3557.206455894364
         }
       },
       {
@@ -341,7 +339,7 @@
         },
         "position": {
           "x": 1551.8988341421934,
-          "y": 3682.8901173149065
+          "y": 3831.120117314906
         }
       },
       {
@@ -350,7 +348,7 @@
         "params": {},
         "position": {
           "x": 1771.0074920806692,
-          "y": 3262.6898127543004
+          "y": 3410.9198127543
         }
       },
       {
@@ -361,7 +359,7 @@
         },
         "position": {
           "x": 1805.265572842321,
-          "y": 3674.1699983469807
+          "y": 3822.3999983469803
         }
       },
       {
@@ -370,7 +368,7 @@
         "params": {},
         "position": {
           "x": 2104.4918881996778,
-          "y": 4324.273522319162
+          "y": 4472.503522319162
         }
       },
       {
@@ -381,7 +379,7 @@
         },
         "position": {
           "x": 450,
-          "y": 4606.703522319162
+          "y": 4754.933522319162
         }
       },
       {
@@ -398,7 +396,7 @@
         },
         "position": {
           "x": 450,
-          "y": 4946.703522319162
+          "y": 5094.933522319162
         }
       },
       {
@@ -413,7 +411,7 @@
         },
         "position": {
           "x": 450,
-          "y": 5286.703522319162
+          "y": 5434.933522319162
         }
       },
       {
@@ -421,14 +419,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 205.3,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.137
         },
         "position": {
           "x": 780,
-          "y": 4606.703522319162
+          "y": 4754.933522319162
         }
       },
       {
@@ -436,14 +433,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 304.4,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.274
         },
         "position": {
           "x": 780,
-          "y": 4946.703522319162
+          "y": 5094.933522319162
         }
       },
       {
@@ -451,14 +447,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 369.6,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.41100000000000003
         },
         "position": {
           "x": 780,
-          "y": 5286.703522319162
+          "y": 5434.933522319162
         }
       },
       {
@@ -466,14 +461,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 522.7,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.548
         },
         "position": {
           "x": 1110,
-          "y": 4606.703522319162
+          "y": 4754.933522319162
         }
       },
       {
@@ -481,14 +475,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 540.5,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.685
         },
         "position": {
           "x": 1110,
-          "y": 4946.703522319162
+          "y": 5094.933522319162
         }
       },
       {
@@ -496,14 +489,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 800,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.8220000000000001
         },
         "position": {
           "x": 1110,
-          "y": 5286.703522319162
+          "y": 5434.933522319162
         }
       },
       {
@@ -515,29 +507,25 @@
         },
         "position": {
           "x": 1440,
-          "y": 4606.703522319162
+          "y": 4754.933522319162
         }
       },
       {
         "id": "hihat_open_highpass",
         "opcode": "butterhp",
-        "params": {
-          "xfreq": 6500
-        },
+        "params": {},
         "position": {
           "x": 1440,
-          "y": 4946.703522319162
+          "y": 5094.933522319162
         }
       },
       {
         "id": "hihat_open_lowpass",
         "opcode": "butterlp",
-        "params": {
-          "xfreq": 12500
-        },
+        "params": {},
         "position": {
           "x": 1440,
-          "y": 5286.703522319162
+          "y": 5434.933522319162
         }
       },
       {
@@ -546,7 +534,7 @@
         "params": {},
         "position": {
           "x": 1770,
-          "y": 4606.703522319162
+          "y": 4754.933522319162
         }
       },
       {
@@ -557,7 +545,7 @@
         },
         "position": {
           "x": 1829.2019979006873,
-          "y": 4946.349486450914
+          "y": 5094.5794864509135
         }
       },
       {
@@ -566,7 +554,7 @@
         "params": {},
         "position": {
           "x": 2138.0832914277385,
-          "y": 5724.303522319163
+          "y": 5872.533522319162
         }
       },
       {
@@ -577,7 +565,7 @@
         },
         "position": {
           "x": 450,
-          "y": 5985.553522319163
+          "y": 6133.783522319162
         }
       },
       {
@@ -594,7 +582,7 @@
         },
         "position": {
           "x": 450,
-          "y": 6325.553522319163
+          "y": 6473.783522319162
         }
       },
       {
@@ -609,7 +597,7 @@
         },
         "position": {
           "x": 450,
-          "y": 6665.553522319163
+          "y": 6813.783522319162
         }
       },
       {
@@ -617,14 +605,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 205.3,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.137
         },
         "position": {
           "x": 780,
-          "y": 5985.553522319163
+          "y": 6133.783522319162
         }
       },
       {
@@ -632,14 +619,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 304.4,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.274
         },
         "position": {
           "x": 780,
-          "y": 6325.553522319163
+          "y": 6473.783522319162
         }
       },
       {
@@ -647,14 +633,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 369.6,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.41100000000000003
         },
         "position": {
           "x": 780,
-          "y": 6665.553522319163
+          "y": 6813.783522319162
         }
       },
       {
@@ -662,14 +647,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 522.7,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.548
         },
         "position": {
           "x": 1110,
-          "y": 5985.553522319163
+          "y": 6133.783522319162
         }
       },
       {
@@ -677,14 +661,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 540.5,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.685
         },
         "position": {
           "x": 1110,
-          "y": 6325.553522319163
+          "y": 6473.783522319162
         }
       },
       {
@@ -692,14 +675,13 @@
         "opcode": "vco2",
         "params": {
           "kamp": 0.16,
-          "kcps": 800,
           "imode": 2,
           "kpw": 0.5,
           "kphs": 0.8220000000000001
         },
         "position": {
           "x": 1110,
-          "y": 6665.553522319163
+          "y": 6813.783522319162
         }
       },
       {
@@ -711,29 +693,25 @@
         },
         "position": {
           "x": 1347.6506438585466,
-          "y": 5985.553522319163
+          "y": 6133.783522319162
         }
       },
       {
         "id": "hihat_closed_highpass",
         "opcode": "butterhp",
-        "params": {
-          "xfreq": 6500
-        },
+        "params": {},
         "position": {
           "x": 1440,
-          "y": 6325.553522319163
+          "y": 6473.783522319162
         }
       },
       {
         "id": "hihat_closed_lowpass",
         "opcode": "butterlp",
-        "params": {
-          "xfreq": 12500
-        },
+        "params": {},
         "position": {
           "x": 1710.7954349546144,
-          "y": 6357.908354027013
+          "y": 6506.138354027013
         }
       },
       {
@@ -742,7 +720,7 @@
         "params": {},
         "position": {
           "x": 1739.4509049957023,
-          "y": 6167.251930633862
+          "y": 6315.481930633861
         }
       },
       {
@@ -753,7 +731,7 @@
         },
         "position": {
           "x": 2011.9025077407678,
-          "y": 6459.415084164748
+          "y": 6607.6450841647475
         }
       },
       {
@@ -762,7 +740,7 @@
         "params": {},
         "position": {
           "x": 2240.945712673794,
-          "y": 7103.153522319163
+          "y": 7251.383522319163
         }
       },
       {
@@ -773,7 +751,7 @@
         },
         "position": {
           "x": 450,
-          "y": 7364.403522319163
+          "y": 7512.633522319163
         }
       },
       {
@@ -790,7 +768,7 @@
         },
         "position": {
           "x": 465.2475447664349,
-          "y": 7549.887867956432
+          "y": 7698.117867956432
         }
       },
       {
@@ -805,7 +783,7 @@
         },
         "position": {
           "x": 469.08793384574165,
-          "y": 7933.566293125609
+          "y": 8081.796293125609
         }
       },
       {
@@ -818,7 +796,7 @@
         },
         "position": {
           "x": 780,
-          "y": 7364.403522319163
+          "y": 7512.633522319163
         }
       },
       {
@@ -831,7 +809,7 @@
         },
         "position": {
           "x": 728.7608088309375,
-          "y": 7802.987510106554
+          "y": 7951.217510106553
         }
       },
       {
@@ -842,19 +820,18 @@
         },
         "position": {
           "x": 1358.6686263483475,
-          "y": 7505.488923549577
+          "y": 7653.718923549576
         }
       },
       {
         "id": "snare_overtone",
         "opcode": "oscili",
         "params": {
-          "freq": 330,
           "ifn": -1
         },
         "position": {
           "x": 1110,
-          "y": 7364.403522319163
+          "y": 7512.633522319163
         }
       },
       {
@@ -866,29 +843,25 @@
         },
         "position": {
           "x": 1022.9911849219573,
-          "y": 7885.285847954509
+          "y": 8033.515847954509
         }
       },
       {
         "id": "snare_highpass",
         "opcode": "butterhp",
-        "params": {
-          "xfreq": 1100
-        },
+        "params": {},
         "position": {
           "x": 1286.1118423258947,
-          "y": 7706.983337446514
+          "y": 7855.213337446514
         }
       },
       {
         "id": "snare_lowpass",
         "opcode": "butterlp",
-        "params": {
-          "xfreq": 8500
-        },
+        "params": {},
         "position": {
           "x": 1603.7865936244946,
-          "y": 7815.241197798025
+          "y": 7963.471197798024
         }
       },
       {
@@ -897,7 +870,7 @@
         "params": {},
         "position": {
           "x": 1794.4439095882635,
-          "y": 7488.261624449432
+          "y": 7636.491624449432
         }
       },
       {
@@ -906,7 +879,7 @@
         "params": {},
         "position": {
           "x": 1647.681040679383,
-          "y": 8033.896457822498
+          "y": 8182.126457822497
         }
       },
       {
@@ -917,7 +890,7 @@
         },
         "position": {
           "x": 2129.964468889767,
-          "y": 7817.317408144025
+          "y": 7965.547408144024
         }
       },
       {
@@ -926,7 +899,7 @@
         "params": {},
         "position": {
           "x": 2409.9948394585263,
-          "y": 8371.166293125612
+          "y": 8519.396293125612
         }
       },
       {
@@ -935,7 +908,7 @@
         "params": {},
         "position": {
           "x": 2411.2080082061143,
-          "y": 8820.424699227138
+          "y": 34494.02840610153
         }
       },
       {
@@ -950,7 +923,7 @@
         },
         "position": {
           "x": 1014.6782822247765,
-          "y": 3269.984114789523
+          "y": 3418.2141147895227
         }
       },
       {
@@ -965,7 +938,7 @@
         },
         "position": {
           "x": 1012.9557663767985,
-          "y": 3362.7765555287574
+          "y": 3511.006555528757
         }
       },
       {
@@ -980,7 +953,7 @@
         },
         "position": {
           "x": 744.9832728335882,
-          "y": 2597.2213954256636
+          "y": 2745.4513954256636
         }
       },
       {
@@ -995,7 +968,2232 @@
         },
         "position": {
           "x": 649.3257139392845,
-          "y": 3736.0904415322425
+          "y": 3884.320441532242
+        }
+      },
+      {
+        "id": "bd_snappiness",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "BD snappiness",
+          "min": 0.25,
+          "max": 2,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 1720
+        }
+      },
+      {
+        "id": "hihat_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Hi-hat tuning",
+          "min": 0.7,
+          "max": 1.3,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 2050
+        }
+      },
+      {
+        "id": "snare_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Snare tuning",
+          "min": 0.65,
+          "max": 1.5,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 2380
+        }
+      },
+      {
+        "id": "side_stick_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Side stick tuning",
+          "min": 0.65,
+          "max": 1.5,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 2710
+        }
+      },
+      {
+        "id": "side_stick_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.105
+        },
+        "position": {
+          "x": 450,
+          "y": 12000
+        }
+      },
+      {
+        "id": "side_stick_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.066,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 12000
+        }
+      },
+      {
+        "id": "side_stick_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.0225,
+          "ib": 0.16,
+          "idur2": 0.0525,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 12000
+        }
+      },
+      {
+        "id": "side_stick_mode_0",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.7,
+          "ifn": -1
+        },
+        "position": {
+          "x": 1530,
+          "y": 12000
+        }
+      },
+      {
+        "id": "side_stick_mode_1",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.3,
+          "ifn": -1
+        },
+        "position": {
+          "x": 1890,
+          "y": 12000
+        }
+      },
+      {
+        "id": "side_stick_mode_2",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.18,
+          "ifn": -1
+        },
+        "position": {
+          "x": 450,
+          "y": 12400
+        }
+      },
+      {
+        "id": "side_stick_noise",
+        "opcode": "noise",
+        "params": {
+          "amp": 0.18,
+          "beta": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 12400
+        }
+      },
+      {
+        "id": "side_stick_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 1500
+        },
+        "position": {
+          "x": 1170,
+          "y": 12400
+        }
+      },
+      {
+        "id": "side_stick_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 8000
+        },
+        "position": {
+          "x": 1530,
+          "y": 12400
+        }
+      },
+      {
+        "id": "side_stick_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 12400
+        }
+      },
+      {
+        "id": "side_stick_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5
+        },
+        "position": {
+          "x": 450,
+          "y": 12800
+        }
+      },
+      {
+        "id": "side_stick_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 13054.15
+        }
+      },
+      {
+        "id": "clap_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Clap decay (s)",
+          "min": 0.07,
+          "max": 0.45,
+          "default": 0.18,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 3040
+        }
+      },
+      {
+        "id": "hand_clap_tail",
+        "opcode": "xtratim",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 13908.24
+        }
+      },
+      {
+        "id": "hand_clap_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 13908.24
+        }
+      },
+      {
+        "id": "hand_clap_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "ib": 0.16,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 13908.24
+        }
+      },
+      {
+        "id": "hand_clap_burst_0",
+        "opcode": "expseg",
+        "params": {
+          "ia": 0.0001,
+          "idur1": 0.0005,
+          "ib": 0.0001,
+          "idur2": 0.0007,
+          "ic": 1,
+          "idur3": 0.006,
+          "id": 0.0001
+        },
+        "position": {
+          "x": 1530,
+          "y": 13908.24
+        }
+      },
+      {
+        "id": "hand_clap_burst_1",
+        "opcode": "expseg",
+        "params": {
+          "ia": 0.0001,
+          "idur1": 0.0105,
+          "ib": 0.0001,
+          "idur2": 0.0007,
+          "ic": 1,
+          "idur3": 0.006,
+          "id": 0.0001
+        },
+        "position": {
+          "x": 1890,
+          "y": 13908.24
+        }
+      },
+      {
+        "id": "hand_clap_burst_2",
+        "opcode": "expseg",
+        "params": {
+          "ia": 0.0001,
+          "idur1": 0.021,
+          "ib": 0.0001,
+          "idur2": 0.0007,
+          "ic": 1,
+          "idur3": 0.006,
+          "id": 0.0001
+        },
+        "position": {
+          "x": 450,
+          "y": 14308.24
+        }
+      },
+      {
+        "id": "hand_clap_diffuse",
+        "opcode": "expseg",
+        "params": {
+          "ia": 0.0001,
+          "idur1": 0.028,
+          "ib": 0.0001,
+          "idur2": 0.001,
+          "ic": 0.65,
+          "id": 0.0001
+        },
+        "position": {
+          "x": 810,
+          "y": 14308.24
+        }
+      },
+      {
+        "id": "hand_clap_bursts",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1170,
+          "y": 14308.24
+        }
+      },
+      {
+        "id": "hand_clap_noise",
+        "opcode": "noise",
+        "params": {
+          "amp": 1,
+          "beta": 0
+        },
+        "position": {
+          "x": 1530,
+          "y": 14308.24
+        }
+      },
+      {
+        "id": "hand_clap_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 850
+        },
+        "position": {
+          "x": 1890,
+          "y": 14308.24
+        }
+      },
+      {
+        "id": "hand_clap_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 7800
+        },
+        "position": {
+          "x": 450,
+          "y": 14708.24
+        }
+      },
+      {
+        "id": "hand_clap_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 810,
+          "y": 14708.24
+        }
+      },
+      {
+        "id": "hand_clap_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5
+        },
+        "position": {
+          "x": 1170,
+          "y": 14708.24
+        }
+      },
+      {
+        "id": "hand_clap_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 14962.39
+        }
+      },
+      {
+        "id": "electric_snare_snap",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Electric snare snap",
+          "min": 0.25,
+          "max": 2,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 3370
+        }
+      },
+      {
+        "id": "electric_snare_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.27
+        },
+        "position": {
+          "x": 450,
+          "y": 15816.48
+        }
+      },
+      {
+        "id": "electric_snare_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.23099999999999998,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 15816.48
+        }
+      },
+      {
+        "id": "electric_snare_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.072,
+          "ib": 0.16,
+          "idur2": 0.16799999999999998,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 15816.48
+        }
+      },
+      {
+        "id": "electric_snare_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1.65,
+          "idur1": 0.012,
+          "ib": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": 15816.48
+        }
+      },
+      {
+        "id": "electric_snare_body",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.65,
+          "ifn": -1
+        },
+        "position": {
+          "x": 1890,
+          "y": 15816.48
+        }
+      },
+      {
+        "id": "electric_snare_ring",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.22,
+          "ifn": -1,
+          "freq": 390
+        },
+        "position": {
+          "x": 450,
+          "y": 16216.48
+        }
+      },
+      {
+        "id": "electric_snare_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 16216.48
+        }
+      },
+      {
+        "id": "electric_snare_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 1800
+        },
+        "position": {
+          "x": 1170,
+          "y": 16216.48
+        }
+      },
+      {
+        "id": "electric_snare_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 10000
+        },
+        "position": {
+          "x": 1530,
+          "y": 16216.48
+        }
+      },
+      {
+        "id": "electric_snare_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 16216.48
+        }
+      },
+      {
+        "id": "electric_snare_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5
+        },
+        "position": {
+          "x": 450,
+          "y": 16616.48
+        }
+      },
+      {
+        "id": "electric_snare_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 16870.63
+        }
+      },
+      {
+        "id": "tom_41_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Low floor tom tuning",
+          "min": 0.7,
+          "max": 1.4,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 3700
+        }
+      },
+      {
+        "id": "tom_41_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.51
+        },
+        "position": {
+          "x": 450,
+          "y": 17724.71
+        }
+      },
+      {
+        "id": "tom_41_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.471,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 17724.71
+        }
+      },
+      {
+        "id": "tom_41_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.144,
+          "ib": 0.16,
+          "idur2": 0.33599999999999997,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 17724.71
+        }
+      },
+      {
+        "id": "tom_41_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1.48,
+          "idur1": 0.018,
+          "ib": 1.04,
+          "idur2": 0.12,
+          "ic": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": 17724.71
+        }
+      },
+      {
+        "id": "tom_41_strike",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.018,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 1890,
+          "y": 17724.71
+        }
+      },
+      {
+        "id": "tom_41_body",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.85,
+          "ifn": -1
+        },
+        "position": {
+          "x": 450,
+          "y": 18124.71
+        }
+      },
+      {
+        "id": "tom_41_ring",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.2,
+          "ifn": -1
+        },
+        "position": {
+          "x": 810,
+          "y": 18124.71
+        }
+      },
+      {
+        "id": "tom_41_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1170,
+          "y": 18124.71
+        }
+      },
+      {
+        "id": "tom_41_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 700
+        },
+        "position": {
+          "x": 1530,
+          "y": 18124.71
+        }
+      },
+      {
+        "id": "tom_41_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 6000
+        },
+        "position": {
+          "x": 1890,
+          "y": 18124.71
+        }
+      },
+      {
+        "id": "tom_41_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 18524.71
+        }
+      },
+      {
+        "id": "tom_41_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.38
+        },
+        "position": {
+          "x": 810,
+          "y": 18524.71
+        }
+      },
+      {
+        "id": "tom_41_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 18778.86
+        }
+      },
+      {
+        "id": "tom_43_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "High floor tom tuning",
+          "min": 0.7,
+          "max": 1.4,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 4030
+        }
+      },
+      {
+        "id": "tom_43_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.45999999999999996
+        },
+        "position": {
+          "x": 450,
+          "y": 19632.95
+        }
+      },
+      {
+        "id": "tom_43_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.421,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 19632.95
+        }
+      },
+      {
+        "id": "tom_43_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.129,
+          "ib": 0.16,
+          "idur2": 0.301,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 19632.95
+        }
+      },
+      {
+        "id": "tom_43_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1.48,
+          "idur1": 0.018,
+          "ib": 1.04,
+          "idur2": 0.12,
+          "ic": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": 19632.95
+        }
+      },
+      {
+        "id": "tom_43_strike",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.018,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 1890,
+          "y": 19632.95
+        }
+      },
+      {
+        "id": "tom_43_body",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.85,
+          "ifn": -1
+        },
+        "position": {
+          "x": 450,
+          "y": 20032.95
+        }
+      },
+      {
+        "id": "tom_43_ring",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.2,
+          "ifn": -1
+        },
+        "position": {
+          "x": 810,
+          "y": 20032.95
+        }
+      },
+      {
+        "id": "tom_43_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1170,
+          "y": 20032.95
+        }
+      },
+      {
+        "id": "tom_43_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 700
+        },
+        "position": {
+          "x": 1530,
+          "y": 20032.95
+        }
+      },
+      {
+        "id": "tom_43_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 6000
+        },
+        "position": {
+          "x": 1890,
+          "y": 20032.95
+        }
+      },
+      {
+        "id": "tom_43_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 20432.95
+        }
+      },
+      {
+        "id": "tom_43_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.43333333333333335
+        },
+        "position": {
+          "x": 810,
+          "y": 20432.95
+        }
+      },
+      {
+        "id": "tom_43_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 20687.100000000002
+        }
+      },
+      {
+        "id": "tom_45_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Low tom tuning",
+          "min": 0.7,
+          "max": 1.4,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 4360
+        }
+      },
+      {
+        "id": "tom_45_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.41000000000000003
+        },
+        "position": {
+          "x": 450,
+          "y": 21541.190000000002
+        }
+      },
+      {
+        "id": "tom_45_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.371,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 21541.190000000002
+        }
+      },
+      {
+        "id": "tom_45_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.11399999999999999,
+          "ib": 0.16,
+          "idur2": 0.26599999999999996,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 21541.190000000002
+        }
+      },
+      {
+        "id": "tom_45_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1.48,
+          "idur1": 0.018,
+          "ib": 1.04,
+          "idur2": 0.12,
+          "ic": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": 21541.190000000002
+        }
+      },
+      {
+        "id": "tom_45_strike",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.018,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 1890,
+          "y": 21541.190000000002
+        }
+      },
+      {
+        "id": "tom_45_body",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.85,
+          "ifn": -1
+        },
+        "position": {
+          "x": 450,
+          "y": 21941.190000000002
+        }
+      },
+      {
+        "id": "tom_45_ring",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.2,
+          "ifn": -1
+        },
+        "position": {
+          "x": 810,
+          "y": 21941.190000000002
+        }
+      },
+      {
+        "id": "tom_45_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1170,
+          "y": 21941.190000000002
+        }
+      },
+      {
+        "id": "tom_45_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 700
+        },
+        "position": {
+          "x": 1530,
+          "y": 21941.190000000002
+        }
+      },
+      {
+        "id": "tom_45_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 6000
+        },
+        "position": {
+          "x": 1890,
+          "y": 21941.190000000002
+        }
+      },
+      {
+        "id": "tom_45_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 22341.190000000002
+        }
+      },
+      {
+        "id": "tom_45_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.4866666666666667
+        },
+        "position": {
+          "x": 810,
+          "y": 22341.190000000002
+        }
+      },
+      {
+        "id": "tom_45_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 22595.340000000004
+        }
+      },
+      {
+        "id": "tom_47_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Low-mid tom tuning",
+          "min": 0.7,
+          "max": 1.4,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 4690
+        }
+      },
+      {
+        "id": "tom_47_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.37
+        },
+        "position": {
+          "x": 450,
+          "y": 23449.420000000002
+        }
+      },
+      {
+        "id": "tom_47_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.331,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 23449.420000000002
+        }
+      },
+      {
+        "id": "tom_47_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.10200000000000001,
+          "ib": 0.16,
+          "idur2": 0.238,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 23449.420000000002
+        }
+      },
+      {
+        "id": "tom_47_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1.48,
+          "idur1": 0.018,
+          "ib": 1.04,
+          "idur2": 0.12,
+          "ic": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": 23449.420000000002
+        }
+      },
+      {
+        "id": "tom_47_strike",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.018,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 1890,
+          "y": 23449.420000000002
+        }
+      },
+      {
+        "id": "tom_47_body",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.85,
+          "ifn": -1
+        },
+        "position": {
+          "x": 450,
+          "y": 23849.420000000002
+        }
+      },
+      {
+        "id": "tom_47_ring",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.2,
+          "ifn": -1
+        },
+        "position": {
+          "x": 810,
+          "y": 23849.420000000002
+        }
+      },
+      {
+        "id": "tom_47_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1170,
+          "y": 23849.420000000002
+        }
+      },
+      {
+        "id": "tom_47_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 700
+        },
+        "position": {
+          "x": 1530,
+          "y": 23849.420000000002
+        }
+      },
+      {
+        "id": "tom_47_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 6000
+        },
+        "position": {
+          "x": 1890,
+          "y": 23849.420000000002
+        }
+      },
+      {
+        "id": "tom_47_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 24249.420000000002
+        }
+      },
+      {
+        "id": "tom_47_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.54
+        },
+        "position": {
+          "x": 810,
+          "y": 24249.420000000002
+        }
+      },
+      {
+        "id": "tom_47_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 24503.570000000003
+        }
+      },
+      {
+        "id": "tom_48_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "High-mid tom tuning",
+          "min": 0.7,
+          "max": 1.4,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 5020
+        }
+      },
+      {
+        "id": "tom_48_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.32999999999999996
+        },
+        "position": {
+          "x": 450,
+          "y": 25357.670000000006
+        }
+      },
+      {
+        "id": "tom_48_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.291,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 25357.670000000006
+        }
+      },
+      {
+        "id": "tom_48_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.09,
+          "ib": 0.16,
+          "idur2": 0.21,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 25357.670000000006
+        }
+      },
+      {
+        "id": "tom_48_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1.48,
+          "idur1": 0.018,
+          "ib": 1.04,
+          "idur2": 0.12,
+          "ic": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": 25357.670000000006
+        }
+      },
+      {
+        "id": "tom_48_strike",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.018,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 1890,
+          "y": 25357.670000000006
+        }
+      },
+      {
+        "id": "tom_48_body",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.85,
+          "ifn": -1
+        },
+        "position": {
+          "x": 450,
+          "y": 25757.670000000006
+        }
+      },
+      {
+        "id": "tom_48_ring",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.2,
+          "ifn": -1
+        },
+        "position": {
+          "x": 810,
+          "y": 25757.670000000006
+        }
+      },
+      {
+        "id": "tom_48_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1170,
+          "y": 25757.670000000006
+        }
+      },
+      {
+        "id": "tom_48_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 700
+        },
+        "position": {
+          "x": 1530,
+          "y": 25757.670000000006
+        }
+      },
+      {
+        "id": "tom_48_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 6000
+        },
+        "position": {
+          "x": 1890,
+          "y": 25757.670000000006
+        }
+      },
+      {
+        "id": "tom_48_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 26157.670000000006
+        }
+      },
+      {
+        "id": "tom_48_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5666666666666667
+        },
+        "position": {
+          "x": 810,
+          "y": 26157.670000000006
+        }
+      },
+      {
+        "id": "tom_48_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 26411.820000000007
+        }
+      },
+      {
+        "id": "tom_50_tuning",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "High tom tuning",
+          "min": 0.7,
+          "max": 1.4,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 5350
+        }
+      },
+      {
+        "id": "tom_50_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 0.29000000000000004
+        },
+        "position": {
+          "x": 450,
+          "y": 27265.900000000005
+        }
+      },
+      {
+        "id": "tom_50_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 0.251,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 27265.900000000005
+        }
+      },
+      {
+        "id": "tom_50_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.078,
+          "ib": 0.16,
+          "idur2": 0.182,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 27265.900000000005
+        }
+      },
+      {
+        "id": "tom_50_pitch",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1.48,
+          "idur1": 0.018,
+          "ib": 1.04,
+          "idur2": 0.12,
+          "ic": 1
+        },
+        "position": {
+          "x": 1530,
+          "y": 27265.900000000005
+        }
+      },
+      {
+        "id": "tom_50_strike",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.018,
+          "ib": 0.0001
+        },
+        "position": {
+          "x": 1890,
+          "y": 27265.900000000005
+        }
+      },
+      {
+        "id": "tom_50_body",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.85,
+          "ifn": -1
+        },
+        "position": {
+          "x": 450,
+          "y": 27665.900000000005
+        }
+      },
+      {
+        "id": "tom_50_ring",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.2,
+          "ifn": -1
+        },
+        "position": {
+          "x": 810,
+          "y": 27665.900000000005
+        }
+      },
+      {
+        "id": "tom_50_noise",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 1170,
+          "y": 27665.900000000005
+        }
+      },
+      {
+        "id": "tom_50_noise_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 700
+        },
+        "position": {
+          "x": 1530,
+          "y": 27665.900000000005
+        }
+      },
+      {
+        "id": "tom_50_noise_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 6000
+        },
+        "position": {
+          "x": 1890,
+          "y": 27665.900000000005
+        }
+      },
+      {
+        "id": "tom_50_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 28065.900000000005
+        }
+      },
+      {
+        "id": "tom_50_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.62
+        },
+        "position": {
+          "x": 810,
+          "y": 28065.900000000005
+        }
+      },
+      {
+        "id": "tom_50_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 28320.050000000007
+        }
+      },
+      {
+        "id": "crash_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Crash decay (s)",
+          "min": 0.35,
+          "max": 2.6,
+          "default": 1.4,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 5680
+        }
+      },
+      {
+        "id": "crash_tail",
+        "opcode": "xtratim",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 29174.140000000007
+        }
+      },
+      {
+        "id": "crash_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 29174.140000000007
+        }
+      },
+      {
+        "id": "crash_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "ib": 0.16,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 29174.140000000007
+        }
+      },
+      {
+        "id": "crash_metal_0",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 317,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.137
+        },
+        "position": {
+          "x": 1530,
+          "y": 29174.140000000007
+        }
+      },
+      {
+        "id": "crash_metal_1",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 491,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.274
+        },
+        "position": {
+          "x": 1890,
+          "y": 29174.140000000007
+        }
+      },
+      {
+        "id": "crash_metal_2",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 683,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.41100000000000003
+        },
+        "position": {
+          "x": 450,
+          "y": 29574.140000000007
+        }
+      },
+      {
+        "id": "crash_metal_3",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 997,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.548
+        },
+        "position": {
+          "x": 810,
+          "y": 29574.140000000007
+        }
+      },
+      {
+        "id": "crash_metal_4",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 1471,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.685
+        },
+        "position": {
+          "x": 1170,
+          "y": 29574.140000000007
+        }
+      },
+      {
+        "id": "crash_metal_5",
+        "opcode": "vco2",
+        "params": {
+          "kamp": 0.16,
+          "kcps": 2017,
+          "imode": 2,
+          "kpw": 0.5,
+          "kphs": 0.8220000000000001
+        },
+        "position": {
+          "x": 1530,
+          "y": 29574.140000000007
+        }
+      },
+      {
+        "id": "crash_air",
+        "opcode": "noise",
+        "params": {
+          "amp": 0.55,
+          "beta": 0
+        },
+        "position": {
+          "x": 1890,
+          "y": 29574.140000000007
+        }
+      },
+      {
+        "id": "crash_air_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 1800
+        },
+        "position": {
+          "x": 450,
+          "y": 29974.140000000007
+        }
+      },
+      {
+        "id": "crash_air_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 14500
+        },
+        "position": {
+          "x": 810,
+          "y": 29974.140000000007
+        }
+      },
+      {
+        "id": "crash_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 1800
+        },
+        "position": {
+          "x": 1170,
+          "y": 29974.140000000007
+        }
+      },
+      {
+        "id": "crash_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 14500
+        },
+        "position": {
+          "x": 1530,
+          "y": 29974.140000000007
+        }
+      },
+      {
+        "id": "crash_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 29974.140000000007
+        }
+      },
+      {
+        "id": "crash_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.4
+        },
+        "position": {
+          "x": 450,
+          "y": 30374.140000000007
+        }
+      },
+      {
+        "id": "crash_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 30628.290000000008
+        }
+      },
+      {
+        "id": "ride_brightness",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Ride brightness",
+          "min": 0.5,
+          "max": 1.5,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 6010
+        }
+      },
+      {
+        "id": "ride_tail",
+        "opcode": "xtratim",
+        "params": {
+          "iextradur": 1.1300000000000001
+        },
+        "position": {
+          "x": 450,
+          "y": 31082.39000000001
+        }
+      },
+      {
+        "id": "ride_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "idur2": 1.0910000000000002,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 31082.39000000001
+        }
+      },
+      {
+        "id": "ride_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.33,
+          "ib": 0.16,
+          "idur2": 0.77,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 31082.39000000001
+        }
+      },
+      {
+        "id": "ride_mode_0",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.35,
+          "ifn": -1,
+          "freq": 570
+        },
+        "position": {
+          "x": 1530,
+          "y": 31082.39000000001
+        }
+      },
+      {
+        "id": "ride_mode_1",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.28,
+          "ifn": -1,
+          "freq": 845
+        },
+        "position": {
+          "x": 1890,
+          "y": 31082.39000000001
+        }
+      },
+      {
+        "id": "ride_mode_2",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.24,
+          "ifn": -1,
+          "freq": 1193
+        },
+        "position": {
+          "x": 450,
+          "y": 31482.39000000001
+        }
+      },
+      {
+        "id": "ride_mode_3",
+        "opcode": "oscili",
+        "params": {
+          "ifn": -1,
+          "freq": 1697
+        },
+        "position": {
+          "x": 810,
+          "y": 31482.39000000001
+        }
+      },
+      {
+        "id": "ride_mode_4",
+        "opcode": "oscili",
+        "params": {
+          "ifn": -1,
+          "freq": 2389
+        },
+        "position": {
+          "x": 1170,
+          "y": 31482.39000000001
+        }
+      },
+      {
+        "id": "ride_mode_5",
+        "opcode": "oscili",
+        "params": {
+          "ifn": -1,
+          "freq": 3571
+        },
+        "position": {
+          "x": 1530,
+          "y": 31482.39000000001
+        }
+      },
+      {
+        "id": "ride_mode_6",
+        "opcode": "oscili",
+        "params": {
+          "ifn": -1,
+          "freq": 5417
+        },
+        "position": {
+          "x": 1890,
+          "y": 31482.39000000001
+        }
+      },
+      {
+        "id": "ride_air",
+        "opcode": "noise",
+        "params": {
+          "amp": 0.13,
+          "beta": 0
+        },
+        "position": {
+          "x": 450,
+          "y": 31882.39000000001
+        }
+      },
+      {
+        "id": "ride_air_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 3200
+        },
+        "position": {
+          "x": 810,
+          "y": 31882.39000000001
+        }
+      },
+      {
+        "id": "ride_air_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 12000
+        },
+        "position": {
+          "x": 1170,
+          "y": 31882.39000000001
+        }
+      },
+      {
+        "id": "ride_filter",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 1530,
+          "y": 31882.39000000001
+        }
+      },
+      {
+        "id": "ride_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 31882.39000000001
+        }
+      },
+      {
+        "id": "ride_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.62
+        },
+        "position": {
+          "x": 450,
+          "y": 32282.39000000001
+        }
+      },
+      {
+        "id": "ride_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 32536.54000000001
+        }
+      },
+      {
+        "id": "tambourine_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tambourine decay (s)",
+          "min": 0.07,
+          "max": 0.55,
+          "default": 0.22,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1100,
+          "y": 6340
+        }
+      },
+      {
+        "id": "tambourine_tail",
+        "opcode": "xtratim",
+        "params": {},
+        "position": {
+          "x": 450,
+          "y": 32990.62000000001
+        }
+      },
+      {
+        "id": "tambourine_gate",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.001,
+          "ib": 1,
+          "ic": 1,
+          "idur3": 0.008,
+          "id": 0
+        },
+        "position": {
+          "x": 810,
+          "y": 32990.62000000001
+        }
+      },
+      {
+        "id": "tambourine_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "ib": 0.16,
+          "ic": 0.0001
+        },
+        "position": {
+          "x": 1170,
+          "y": 32990.62000000001
+        }
+      },
+      {
+        "id": "tambourine_jingle_0",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.13,
+          "ifn": -1,
+          "freq": 2300
+        },
+        "position": {
+          "x": 1530,
+          "y": 32990.62000000001
+        }
+      },
+      {
+        "id": "tambourine_jingle_1",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.13,
+          "ifn": -1,
+          "freq": 2873
+        },
+        "position": {
+          "x": 1890,
+          "y": 32990.62000000001
+        }
+      },
+      {
+        "id": "tambourine_jingle_2",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.13,
+          "ifn": -1,
+          "freq": 3511
+        },
+        "position": {
+          "x": 450,
+          "y": 33390.62000000001
+        }
+      },
+      {
+        "id": "tambourine_jingle_3",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.13,
+          "ifn": -1,
+          "freq": 4259
+        },
+        "position": {
+          "x": 810,
+          "y": 33390.62000000001
+        }
+      },
+      {
+        "id": "tambourine_jingle_4",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.13,
+          "ifn": -1,
+          "freq": 5171
+        },
+        "position": {
+          "x": 1170,
+          "y": 33390.62000000001
+        }
+      },
+      {
+        "id": "tambourine_jingle_5",
+        "opcode": "oscili",
+        "params": {
+          "amp": 0.13,
+          "ifn": -1,
+          "freq": 6271
+        },
+        "position": {
+          "x": 1530,
+          "y": 33390.62000000001
+        }
+      },
+      {
+        "id": "tambourine_air",
+        "opcode": "noise",
+        "params": {
+          "amp": 0.6,
+          "beta": 0
+        },
+        "position": {
+          "x": 1890,
+          "y": 33390.62000000001
+        }
+      },
+      {
+        "id": "tambourine_air_hp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 3500
+        },
+        "position": {
+          "x": 450,
+          "y": 33790.62000000001
+        }
+      },
+      {
+        "id": "tambourine_air_lp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 13500
+        },
+        "position": {
+          "x": 810,
+          "y": 33790.62000000001
+        }
+      },
+      {
+        "id": "tambourine_amplitude",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1170,
+          "y": 33790.62000000001
+        }
+      },
+      {
+        "id": "tambourine_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.55
+        },
+        "position": {
+          "x": 1530,
+          "y": 33790.62000000001
+        }
+      },
+      {
+        "id": "tambourine_result",
+        "opcode": "CaseResult",
+        "params": {},
+        "position": {
+          "x": 1890,
+          "y": 34044.77000000001
         }
       },
       {
@@ -1027,12 +3225,6 @@
         "from_port_id": "kenv",
         "to_node_id": "bass_drum_tone",
         "to_port_id": "freq"
-      },
-      {
-        "from_node_id": "bass_drum_click_env",
-        "from_port_id": "kenv",
-        "to_node_id": "bass_drum_click",
-        "to_port_id": "amp"
       },
       {
         "from_node_id": "bass_drum_click",
@@ -1093,12 +3285,6 @@
         "from_port_id": "kenv",
         "to_node_id": "bass_drum_distorted_tone",
         "to_port_id": "freq"
-      },
-      {
-        "from_node_id": "bass_drum_distorted_click_env",
-        "from_port_id": "kenv",
-        "to_node_id": "bass_drum_distorted_click",
-        "to_port_id": "amp"
       },
       {
         "from_node_id": "bass_drum_distorted_click",
@@ -1341,12 +3527,6 @@
         "to_port_id": "right"
       },
       {
-        "from_node_id": "snare_pitch",
-        "from_port_id": "kenv",
-        "to_node_id": "snare_body",
-        "to_port_id": "freq"
-      },
-      {
         "from_node_id": "snare_body_decay",
         "from_port_id": "kenv",
         "to_node_id": "snare_body",
@@ -1501,17 +3681,1372 @@
         "from_port_id": "iout",
         "to_node_id": "bass_drum_distorted_tone",
         "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "bass_drum_click_env",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_click",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "bd_snappiness",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_click",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "bd_snappiness",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_pitch",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "bass_drum_distorted_click_env",
+        "from_port_id": "kenv",
+        "to_node_id": "bass_drum_distorted_click",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "bd_snappiness",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_distorted_click",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "bd_snappiness",
+        "from_port_id": "iout",
+        "to_node_id": "bass_drum_distorted_pitch",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_metal_1",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_metal_2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_metal_3",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_metal_4",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_metal_5",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_metal_6",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_highpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_open_lowpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_metal_1",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_metal_2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_metal_3",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_metal_4",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_metal_5",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_metal_6",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_highpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "hihat_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "hihat_closed_lowpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "snare_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "snare_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "snare_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "snare_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "snare_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "snare_overtone",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "snare_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "snare_highpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "snare_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "snare_lowpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "side_stick_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "side_stick_mode_0",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "side_stick_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "side_stick_mode_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "side_stick_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "side_stick_mode_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "side_stick_noise",
+        "from_port_id": "aout",
+        "to_node_id": "side_stick_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "side_stick_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "side_stick_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "side_stick_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "side_stick_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "side_stick_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "side_stick_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "side_stick_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "side_stick_mode_0",
+        "from_port_id": "asig",
+        "to_node_id": "side_stick_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "side_stick_mode_1",
+        "from_port_id": "asig",
+        "to_node_id": "side_stick_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "side_stick_mode_2",
+        "from_port_id": "asig",
+        "to_node_id": "side_stick_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "side_stick_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "side_stick_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "side_stick_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "side_stick_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "side_stick_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "side_stick_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "side_stick_pan",
+        "from_port_id": "aright",
+        "to_node_id": "side_stick_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "clap_decay",
+        "from_port_id": "iout",
+        "to_node_id": "hand_clap_tail",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "clap_decay",
+        "from_port_id": "iout",
+        "to_node_id": "hand_clap_gate",
+        "to_port_id": "idur2"
+      },
+      {
+        "from_node_id": "clap_decay",
+        "from_port_id": "iout",
+        "to_node_id": "hand_clap_envelope",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "clap_decay",
+        "from_port_id": "iout",
+        "to_node_id": "hand_clap_envelope",
+        "to_port_id": "idur2"
+      },
+      {
+        "from_node_id": "clap_decay",
+        "from_port_id": "iout",
+        "to_node_id": "hand_clap_diffuse",
+        "to_port_id": "idur3"
+      },
+      {
+        "from_node_id": "hand_clap_burst_0",
+        "from_port_id": "kenv",
+        "to_node_id": "hand_clap_bursts",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hand_clap_burst_1",
+        "from_port_id": "kenv",
+        "to_node_id": "hand_clap_bursts",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hand_clap_burst_2",
+        "from_port_id": "kenv",
+        "to_node_id": "hand_clap_bursts",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hand_clap_diffuse",
+        "from_port_id": "kenv",
+        "to_node_id": "hand_clap_bursts",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hand_clap_noise",
+        "from_port_id": "aout",
+        "to_node_id": "hand_clap_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hand_clap_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "hand_clap_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hand_clap_bursts",
+        "from_port_id": "kout",
+        "to_node_id": "hand_clap_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hand_clap_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "hand_clap_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "hand_clap_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hand_clap_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "hand_clap_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hand_clap_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "hand_clap_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hand_clap_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "hand_clap_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "hand_clap_pan",
+        "from_port_id": "aright",
+        "to_node_id": "hand_clap_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "electric_snare_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "electric_snare_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "electric_snare_noise",
+        "from_port_id": "aout",
+        "to_node_id": "electric_snare_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "electric_snare_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "electric_snare_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "electric_snare_snap",
+        "from_port_id": "iout",
+        "to_node_id": "electric_snare_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "electric_snare_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "electric_snare_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "electric_snare_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "electric_snare_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "electric_snare_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "electric_snare_body",
+        "from_port_id": "asig",
+        "to_node_id": "electric_snare_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "electric_snare_ring",
+        "from_port_id": "asig",
+        "to_node_id": "electric_snare_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "electric_snare_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "electric_snare_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "electric_snare_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "electric_snare_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "electric_snare_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "electric_snare_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "electric_snare_pan",
+        "from_port_id": "aright",
+        "to_node_id": "electric_snare_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "tom_41_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_41_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_41_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_41_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_41_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_41_ring",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_41_noise",
+        "from_port_id": "aout",
+        "to_node_id": "tom_41_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_41_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_41_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_41_strike",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_41_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "tom_41_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_41_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_41_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_41_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "tom_41_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_41_body",
+        "from_port_id": "asig",
+        "to_node_id": "tom_41_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_41_ring",
+        "from_port_id": "asig",
+        "to_node_id": "tom_41_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_41_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_41_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_41_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "tom_41_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_41_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "tom_41_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "tom_41_pan",
+        "from_port_id": "aright",
+        "to_node_id": "tom_41_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "tom_43_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_43_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_43_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_43_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_43_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_43_ring",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_43_noise",
+        "from_port_id": "aout",
+        "to_node_id": "tom_43_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_43_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_43_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_43_strike",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_43_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "tom_43_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_43_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_43_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_43_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "tom_43_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_43_body",
+        "from_port_id": "asig",
+        "to_node_id": "tom_43_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_43_ring",
+        "from_port_id": "asig",
+        "to_node_id": "tom_43_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_43_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_43_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_43_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "tom_43_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_43_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "tom_43_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "tom_43_pan",
+        "from_port_id": "aright",
+        "to_node_id": "tom_43_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "tom_45_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_45_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_45_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_45_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_45_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_45_ring",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_45_noise",
+        "from_port_id": "aout",
+        "to_node_id": "tom_45_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_45_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_45_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_45_strike",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_45_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "tom_45_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_45_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_45_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_45_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "tom_45_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_45_body",
+        "from_port_id": "asig",
+        "to_node_id": "tom_45_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_45_ring",
+        "from_port_id": "asig",
+        "to_node_id": "tom_45_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_45_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_45_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_45_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "tom_45_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_45_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "tom_45_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "tom_45_pan",
+        "from_port_id": "aright",
+        "to_node_id": "tom_45_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "tom_47_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_47_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_47_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_47_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_47_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_47_ring",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_47_noise",
+        "from_port_id": "aout",
+        "to_node_id": "tom_47_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_47_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_47_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_47_strike",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_47_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "tom_47_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_47_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_47_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_47_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "tom_47_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_47_body",
+        "from_port_id": "asig",
+        "to_node_id": "tom_47_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_47_ring",
+        "from_port_id": "asig",
+        "to_node_id": "tom_47_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_47_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_47_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_47_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "tom_47_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_47_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "tom_47_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "tom_47_pan",
+        "from_port_id": "aright",
+        "to_node_id": "tom_47_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "tom_48_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_48_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_48_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_48_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_48_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_48_ring",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_48_noise",
+        "from_port_id": "aout",
+        "to_node_id": "tom_48_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_48_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_48_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_48_strike",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_48_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "tom_48_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_48_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_48_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_48_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "tom_48_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_48_body",
+        "from_port_id": "asig",
+        "to_node_id": "tom_48_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_48_ring",
+        "from_port_id": "asig",
+        "to_node_id": "tom_48_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_48_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_48_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_48_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "tom_48_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_48_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "tom_48_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "tom_48_pan",
+        "from_port_id": "aright",
+        "to_node_id": "tom_48_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "tom_50_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_50_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_50_pitch",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_50_body",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_50_tuning",
+        "from_port_id": "iout",
+        "to_node_id": "tom_50_ring",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "tom_50_noise",
+        "from_port_id": "aout",
+        "to_node_id": "tom_50_noise_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_50_noise_hp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_50_noise_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_50_strike",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_50_noise",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "tom_50_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_50_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_50_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "tom_50_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "tom_50_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tom_50_body",
+        "from_port_id": "asig",
+        "to_node_id": "tom_50_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_50_ring",
+        "from_port_id": "asig",
+        "to_node_id": "tom_50_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_50_noise_lp",
+        "from_port_id": "aout",
+        "to_node_id": "tom_50_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_50_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "tom_50_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tom_50_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "tom_50_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "tom_50_pan",
+        "from_port_id": "aright",
+        "to_node_id": "tom_50_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "crash_decay",
+        "from_port_id": "iout",
+        "to_node_id": "crash_tail",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "crash_decay",
+        "from_port_id": "iout",
+        "to_node_id": "crash_gate",
+        "to_port_id": "idur2"
+      },
+      {
+        "from_node_id": "crash_decay",
+        "from_port_id": "iout",
+        "to_node_id": "crash_envelope",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "crash_decay",
+        "from_port_id": "iout",
+        "to_node_id": "crash_envelope",
+        "to_port_id": "idur2"
+      },
+      {
+        "from_node_id": "crash_air",
+        "from_port_id": "aout",
+        "to_node_id": "crash_air_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_air_hp",
+        "from_port_id": "aout",
+        "to_node_id": "crash_air_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_metal_0",
+        "from_port_id": "asig",
+        "to_node_id": "crash_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_metal_1",
+        "from_port_id": "asig",
+        "to_node_id": "crash_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_metal_2",
+        "from_port_id": "asig",
+        "to_node_id": "crash_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_metal_3",
+        "from_port_id": "asig",
+        "to_node_id": "crash_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_metal_4",
+        "from_port_id": "asig",
+        "to_node_id": "crash_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_metal_5",
+        "from_port_id": "asig",
+        "to_node_id": "crash_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_air_lp",
+        "from_port_id": "aout",
+        "to_node_id": "crash_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_hp",
+        "from_port_id": "aout",
+        "to_node_id": "crash_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "crash_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "crash_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "crash_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "crash_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "crash_lp",
+        "from_port_id": "aout",
+        "to_node_id": "crash_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "crash_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "crash_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "crash_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "crash_pan",
+        "from_port_id": "aright",
+        "to_node_id": "crash_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "ride_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "ride_mode_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ride_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "ride_mode_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ride_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "ride_mode_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ride_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "ride_mode_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ride_air",
+        "from_port_id": "aout",
+        "to_node_id": "ride_air_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_air_hp",
+        "from_port_id": "aout",
+        "to_node_id": "ride_air_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_mode_0",
+        "from_port_id": "asig",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_mode_1",
+        "from_port_id": "asig",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_mode_2",
+        "from_port_id": "asig",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_mode_3",
+        "from_port_id": "asig",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_mode_4",
+        "from_port_id": "asig",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_mode_5",
+        "from_port_id": "asig",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_mode_6",
+        "from_port_id": "asig",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_air_lp",
+        "from_port_id": "aout",
+        "to_node_id": "ride_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "ride_filter",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "ride_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "ride_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ride_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "ride_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "ride_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ride_filter",
+        "from_port_id": "aout",
+        "to_node_id": "ride_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "ride_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ride_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "ride_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "ride_pan",
+        "from_port_id": "aright",
+        "to_node_id": "ride_result",
+        "to_port_id": "right"
+      },
+      {
+        "from_node_id": "tambourine_decay",
+        "from_port_id": "iout",
+        "to_node_id": "tambourine_tail",
+        "to_port_id": "iextradur"
+      },
+      {
+        "from_node_id": "tambourine_decay",
+        "from_port_id": "iout",
+        "to_node_id": "tambourine_gate",
+        "to_port_id": "idur2"
+      },
+      {
+        "from_node_id": "tambourine_decay",
+        "from_port_id": "iout",
+        "to_node_id": "tambourine_envelope",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "tambourine_decay",
+        "from_port_id": "iout",
+        "to_node_id": "tambourine_envelope",
+        "to_port_id": "idur2"
+      },
+      {
+        "from_node_id": "tambourine_air",
+        "from_port_id": "aout",
+        "to_node_id": "tambourine_air_hp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_air_hp",
+        "from_port_id": "aout",
+        "to_node_id": "tambourine_air_lp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "tambourine_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tambourine_gate",
+        "from_port_id": "kenv",
+        "to_node_id": "tambourine_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "tambourine_amplitude",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tambourine_jingle_0",
+        "from_port_id": "asig",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_jingle_1",
+        "from_port_id": "asig",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_jingle_2",
+        "from_port_id": "asig",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_jingle_3",
+        "from_port_id": "asig",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_jingle_4",
+        "from_port_id": "asig",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_jingle_5",
+        "from_port_id": "asig",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_air_lp",
+        "from_port_id": "aout",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "tambourine_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tambourine_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "tambourine_result",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "tambourine_pan",
+        "from_port_id": "aright",
+        "to_node_id": "tambourine_result",
+        "to_port_id": "right"
       }
     ],
     "ui_layout": {
       "input_formulas": {
         "bass_drum_click::amp": {
-          "expression": "click * 0.14",
+          "expression": "click * 0.14 * snap",
           "inputs": [
             {
               "token": "click",
               "from_node_id": "bass_drum_click_env",
               "from_port_id": "kenv"
+            },
+            {
+              "token": "snap",
+              "from_node_id": "bd_snappiness",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -1551,12 +5086,17 @@
           ]
         },
         "bass_drum_distorted_click::amp": {
-          "expression": "click * 0.14",
+          "expression": "click * 0.14 * snap",
           "inputs": [
             {
               "token": "click",
               "from_node_id": "bass_drum_distorted_click_env",
               "from_port_id": "kenv"
+            },
+            {
+              "token": "snap",
+              "from_node_id": "bd_snappiness",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -1864,6 +5404,1316 @@
               "from_port_id": "right"
             }
           ]
+        },
+        "bass_drum_pitch::idur1": {
+          "expression": "0.026 / snap",
+          "inputs": [
+            {
+              "token": "snap",
+              "from_node_id": "bd_snappiness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "bass_drum_distorted_pitch::idur1": {
+          "expression": "0.026 / snap",
+          "inputs": [
+            {
+              "token": "snap",
+              "from_node_id": "bd_snappiness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_metal_1::kcps": {
+          "expression": "205.3 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_metal_2::kcps": {
+          "expression": "304.4 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_metal_3::kcps": {
+          "expression": "369.6 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_metal_4::kcps": {
+          "expression": "522.7 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_metal_5::kcps": {
+          "expression": "540.5 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_metal_6::kcps": {
+          "expression": "800 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_highpass::xfreq": {
+          "expression": "6500 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_open_lowpass::xfreq": {
+          "expression": "12500 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_metal_1::kcps": {
+          "expression": "205.3 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_metal_2::kcps": {
+          "expression": "304.4 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_metal_3::kcps": {
+          "expression": "369.6 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_metal_4::kcps": {
+          "expression": "522.7 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_metal_5::kcps": {
+          "expression": "540.5 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_metal_6::kcps": {
+          "expression": "800 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_highpass::xfreq": {
+          "expression": "6500 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hihat_closed_lowpass::xfreq": {
+          "expression": "12500 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "hihat_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "snare_body::freq": {
+          "expression": "pitch * tuning",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "snare_pitch",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "tuning",
+              "from_node_id": "snare_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "snare_overtone::freq": {
+          "expression": "330 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "snare_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "snare_highpass::xfreq": {
+          "expression": "1100 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "snare_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "snare_lowpass::xfreq": {
+          "expression": "8500 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "snare_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "side_stick_mode_0::freq": {
+          "expression": "1650 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "side_stick_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "side_stick_mode_1::freq": {
+          "expression": "2378 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "side_stick_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "side_stick_mode_2::freq": {
+          "expression": "3211 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "side_stick_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "side_stick_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.21",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "side_stick_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "side_stick_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "side_stick_pan::asig": {
+          "expression": "(s0 + s1 + s2 + s3) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "side_stick_mode_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "side_stick_mode_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "side_stick_mode_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s3",
+              "from_node_id": "side_stick_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "side_stick_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "hand_clap_tail::iextradur": {
+          "expression": "decay + 0.03",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "clap_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hand_clap_gate::idur2": {
+          "expression": "decay - 0.009",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "clap_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hand_clap_envelope::idur1": {
+          "expression": "decay * 0.3",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "clap_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hand_clap_envelope::idur2": {
+          "expression": "decay * 0.7",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "clap_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hand_clap_diffuse::idur3": {
+          "expression": "decay - 0.029",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "clap_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hand_clap_bursts::a": {
+          "expression": "b0 + b1 + b2 + tail",
+          "inputs": [
+            {
+              "token": "b0",
+              "from_node_id": "hand_clap_burst_0",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "b1",
+              "from_node_id": "hand_clap_burst_1",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "b2",
+              "from_node_id": "hand_clap_burst_2",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "tail",
+              "from_node_id": "hand_clap_diffuse",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "hand_clap_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.31",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "hand_clap_bursts",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "hand_clap_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "hand_clap_pan::asig": {
+          "expression": "(s0) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "hand_clap_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "hand_clap_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "electric_snare_body::freq": {
+          "expression": "195 * motion",
+          "inputs": [
+            {
+              "token": "motion",
+              "from_node_id": "electric_snare_pitch",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "electric_snare_noise::amp": {
+          "expression": "0.7 * snap",
+          "inputs": [
+            {
+              "token": "snap",
+              "from_node_id": "electric_snare_snap",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "electric_snare_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.22",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "electric_snare_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "electric_snare_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "electric_snare_pan::asig": {
+          "expression": "(s0 + s1 + s2) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "electric_snare_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "electric_snare_ring",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "electric_snare_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "electric_snare_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tom_41_body::freq": {
+          "expression": "82 * tuning * motion",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_41_tuning",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "tom_41_pitch",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_41_ring::freq": {
+          "expression": "130.38 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_41_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tom_41_noise::amp": {
+          "expression": "strike * 0.20",
+          "inputs": [
+            {
+              "token": "strike",
+              "from_node_id": "tom_41_strike",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_41_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.23",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tom_41_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "tom_41_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "tom_41_pan::asig": {
+          "expression": "(s0 + s1 + s2) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "tom_41_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "tom_41_ring",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "tom_41_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "tom_41_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tom_43_body::freq": {
+          "expression": "98 * tuning * motion",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_43_tuning",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "tom_43_pitch",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_43_ring::freq": {
+          "expression": "155.82000000000002 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_43_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tom_43_noise::amp": {
+          "expression": "strike * 0.20",
+          "inputs": [
+            {
+              "token": "strike",
+              "from_node_id": "tom_43_strike",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_43_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.23",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tom_43_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "tom_43_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "tom_43_pan::asig": {
+          "expression": "(s0 + s1 + s2) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "tom_43_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "tom_43_ring",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "tom_43_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "tom_43_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tom_45_body::freq": {
+          "expression": "123 * tuning * motion",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_45_tuning",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "tom_45_pitch",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_45_ring::freq": {
+          "expression": "195.57000000000002 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_45_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tom_45_noise::amp": {
+          "expression": "strike * 0.20",
+          "inputs": [
+            {
+              "token": "strike",
+              "from_node_id": "tom_45_strike",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_45_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.23",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tom_45_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "tom_45_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "tom_45_pan::asig": {
+          "expression": "(s0 + s1 + s2) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "tom_45_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "tom_45_ring",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "tom_45_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "tom_45_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tom_47_body::freq": {
+          "expression": "147 * tuning * motion",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_47_tuning",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "tom_47_pitch",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_47_ring::freq": {
+          "expression": "233.73000000000002 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_47_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tom_47_noise::amp": {
+          "expression": "strike * 0.20",
+          "inputs": [
+            {
+              "token": "strike",
+              "from_node_id": "tom_47_strike",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_47_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.23",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tom_47_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "tom_47_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "tom_47_pan::asig": {
+          "expression": "(s0 + s1 + s2) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "tom_47_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "tom_47_ring",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "tom_47_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "tom_47_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tom_48_body::freq": {
+          "expression": "175 * tuning * motion",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_48_tuning",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "tom_48_pitch",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_48_ring::freq": {
+          "expression": "278.25 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_48_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tom_48_noise::amp": {
+          "expression": "strike * 0.20",
+          "inputs": [
+            {
+              "token": "strike",
+              "from_node_id": "tom_48_strike",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_48_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.23",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tom_48_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "tom_48_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "tom_48_pan::asig": {
+          "expression": "(s0 + s1 + s2) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "tom_48_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "tom_48_ring",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "tom_48_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "tom_48_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tom_50_body::freq": {
+          "expression": "220 * tuning * motion",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_50_tuning",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "tom_50_pitch",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_50_ring::freq": {
+          "expression": "349.8 * tuning",
+          "inputs": [
+            {
+              "token": "tuning",
+              "from_node_id": "tom_50_tuning",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tom_50_noise::amp": {
+          "expression": "strike * 0.20",
+          "inputs": [
+            {
+              "token": "strike",
+              "from_node_id": "tom_50_strike",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tom_50_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.23",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tom_50_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "tom_50_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "tom_50_pan::asig": {
+          "expression": "(s0 + s1 + s2) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "tom_50_body",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "tom_50_ring",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "tom_50_noise_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "tom_50_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "crash_tail::iextradur": {
+          "expression": "decay + 0.03",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "crash_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "crash_gate::idur2": {
+          "expression": "decay - 0.009",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "crash_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "crash_envelope::idur1": {
+          "expression": "decay * 0.3",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "crash_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "crash_envelope::idur2": {
+          "expression": "decay * 0.7",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "crash_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "crash_hp::asig": {
+          "expression": "s0 + s1 + s2 + s3 + s4 + s5 + s6",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "crash_metal_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "crash_metal_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "crash_metal_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s3",
+              "from_node_id": "crash_metal_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s4",
+              "from_node_id": "crash_metal_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s5",
+              "from_node_id": "crash_metal_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s6",
+              "from_node_id": "crash_air_lp",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "crash_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.28",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "crash_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "crash_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "crash_pan::asig": {
+          "expression": "(s0) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "crash_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "crash_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "ride_mode_3::amp": {
+          "expression": "0.2 * brightness",
+          "inputs": [
+            {
+              "token": "brightness",
+              "from_node_id": "ride_brightness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ride_mode_4::amp": {
+          "expression": "0.16 * brightness",
+          "inputs": [
+            {
+              "token": "brightness",
+              "from_node_id": "ride_brightness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ride_mode_5::amp": {
+          "expression": "0.12 * brightness",
+          "inputs": [
+            {
+              "token": "brightness",
+              "from_node_id": "ride_brightness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ride_mode_6::amp": {
+          "expression": "0.08 * brightness",
+          "inputs": [
+            {
+              "token": "brightness",
+              "from_node_id": "ride_brightness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ride_filter::asig": {
+          "expression": "s0 + s1 + s2 + s3 + s4 + s5 + s6 + s7",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "ride_mode_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "ride_mode_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "ride_mode_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s3",
+              "from_node_id": "ride_mode_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s4",
+              "from_node_id": "ride_mode_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s5",
+              "from_node_id": "ride_mode_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s6",
+              "from_node_id": "ride_mode_6",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s7",
+              "from_node_id": "ride_air_lp",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "ride_filter::xfreq": {
+          "expression": "8000 * brightness",
+          "inputs": [
+            {
+              "token": "brightness",
+              "from_node_id": "ride_brightness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ride_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.2",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "ride_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "ride_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "ride_pan::asig": {
+          "expression": "(s0) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "ride_filter",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "ride_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "tambourine_tail::iextradur": {
+          "expression": "decay + 0.03",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tambourine_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tambourine_gate::idur2": {
+          "expression": "decay - 0.009",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tambourine_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tambourine_envelope::idur1": {
+          "expression": "decay * 0.3",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tambourine_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tambourine_envelope::idur2": {
+          "expression": "decay * 0.7",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tambourine_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tambourine_amplitude::ksig": {
+          "expression": "decay * gate * velocity * 0.24",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "tambourine_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "gate",
+              "from_node_id": "tambourine_gate",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "tambourine_pan::asig": {
+          "expression": "(s0 + s1 + s2 + s3 + s4 + s5 + s6) * amplitude",
+          "inputs": [
+            {
+              "token": "s0",
+              "from_node_id": "tambourine_jingle_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s1",
+              "from_node_id": "tambourine_jingle_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s2",
+              "from_node_id": "tambourine_jingle_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s3",
+              "from_node_id": "tambourine_jingle_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s4",
+              "from_node_id": "tambourine_jingle_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s5",
+              "from_node_id": "tambourine_jingle_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "s6",
+              "from_node_id": "tambourine_air_lp",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "tambourine_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
         }
       },
       "control_flow_blocks": {
@@ -1908,9 +6758,57 @@
             "width": 2213.9948394585263,
             "height": 1236.0127708064492
           },
+          "side_stick": {
+            "width": 1694,
+            "height": 4502.753706874388
+          },
+          "hand_clap": {
+            "width": 1694,
+            "height": 1876.2399999999998
+          },
+          "electric_snare": {
+            "width": 1694,
+            "height": 1876.2400000000016
+          },
+          "tom_41": {
+            "width": 1694,
+            "height": 1876.2299999999996
+          },
+          "tom_43": {
+            "width": 1694,
+            "height": 1876.2400000000016
+          },
+          "tom_45": {
+            "width": 1694,
+            "height": 1876.2400000000016
+          },
+          "tom_47": {
+            "width": 1694,
+            "height": 1876.2299999999996
+          },
+          "tom_48": {
+            "width": 1694,
+            "height": 1876.2500000000036
+          },
+          "tom_50": {
+            "width": 1694,
+            "height": 1876.2299999999996
+          },
+          "crash": {
+            "width": 1694,
+            "height": 2276.2400000000016
+          },
+          "ride": {
+            "width": 1694,
+            "height": 1876.2500000000036
+          },
+          "tambourine": {
+            "width": 1694,
+            "height": 1476.2299999999996
+          },
           "default": {
             "width": 2215.2080082061143,
-            "height": 322.6984061015264
+            "height": 322.6984061015246
           }
         }
       }
@@ -2067,6 +6965,279 @@
               "snare_result"
             ],
             "result_node_id": "snare_result",
+            "silence": false
+          },
+          {
+            "id": "side_stick",
+            "name": "Side stick",
+            "value": 37,
+            "node_ids": [
+              "side_stick_tail",
+              "side_stick_gate",
+              "side_stick_envelope",
+              "side_stick_mode_0",
+              "side_stick_mode_1",
+              "side_stick_mode_2",
+              "side_stick_noise",
+              "side_stick_noise_hp",
+              "side_stick_noise_lp",
+              "side_stick_amplitude",
+              "side_stick_pan",
+              "side_stick_result"
+            ],
+            "result_node_id": "side_stick_result",
+            "silence": false
+          },
+          {
+            "id": "hand_clap",
+            "name": "Hand clap",
+            "value": 39,
+            "node_ids": [
+              "hand_clap_tail",
+              "hand_clap_gate",
+              "hand_clap_envelope",
+              "hand_clap_burst_0",
+              "hand_clap_burst_1",
+              "hand_clap_burst_2",
+              "hand_clap_diffuse",
+              "hand_clap_bursts",
+              "hand_clap_noise",
+              "hand_clap_noise_hp",
+              "hand_clap_noise_lp",
+              "hand_clap_amplitude",
+              "hand_clap_pan",
+              "hand_clap_result"
+            ],
+            "result_node_id": "hand_clap_result",
+            "silence": false
+          },
+          {
+            "id": "electric_snare",
+            "name": "Electric snare",
+            "value": 40,
+            "node_ids": [
+              "electric_snare_tail",
+              "electric_snare_gate",
+              "electric_snare_envelope",
+              "electric_snare_pitch",
+              "electric_snare_body",
+              "electric_snare_ring",
+              "electric_snare_noise",
+              "electric_snare_noise_hp",
+              "electric_snare_noise_lp",
+              "electric_snare_amplitude",
+              "electric_snare_pan",
+              "electric_snare_result"
+            ],
+            "result_node_id": "electric_snare_result",
+            "silence": false
+          },
+          {
+            "id": "tom_41",
+            "name": "Low floor tom",
+            "value": 41,
+            "node_ids": [
+              "tom_41_tail",
+              "tom_41_gate",
+              "tom_41_envelope",
+              "tom_41_pitch",
+              "tom_41_strike",
+              "tom_41_body",
+              "tom_41_ring",
+              "tom_41_noise",
+              "tom_41_noise_hp",
+              "tom_41_noise_lp",
+              "tom_41_amplitude",
+              "tom_41_pan",
+              "tom_41_result"
+            ],
+            "result_node_id": "tom_41_result",
+            "silence": false
+          },
+          {
+            "id": "tom_43",
+            "name": "High floor tom",
+            "value": 43,
+            "node_ids": [
+              "tom_43_tail",
+              "tom_43_gate",
+              "tom_43_envelope",
+              "tom_43_pitch",
+              "tom_43_strike",
+              "tom_43_body",
+              "tom_43_ring",
+              "tom_43_noise",
+              "tom_43_noise_hp",
+              "tom_43_noise_lp",
+              "tom_43_amplitude",
+              "tom_43_pan",
+              "tom_43_result"
+            ],
+            "result_node_id": "tom_43_result",
+            "silence": false
+          },
+          {
+            "id": "tom_45",
+            "name": "Low tom",
+            "value": 45,
+            "node_ids": [
+              "tom_45_tail",
+              "tom_45_gate",
+              "tom_45_envelope",
+              "tom_45_pitch",
+              "tom_45_strike",
+              "tom_45_body",
+              "tom_45_ring",
+              "tom_45_noise",
+              "tom_45_noise_hp",
+              "tom_45_noise_lp",
+              "tom_45_amplitude",
+              "tom_45_pan",
+              "tom_45_result"
+            ],
+            "result_node_id": "tom_45_result",
+            "silence": false
+          },
+          {
+            "id": "tom_47",
+            "name": "Low-mid tom",
+            "value": 47,
+            "node_ids": [
+              "tom_47_tail",
+              "tom_47_gate",
+              "tom_47_envelope",
+              "tom_47_pitch",
+              "tom_47_strike",
+              "tom_47_body",
+              "tom_47_ring",
+              "tom_47_noise",
+              "tom_47_noise_hp",
+              "tom_47_noise_lp",
+              "tom_47_amplitude",
+              "tom_47_pan",
+              "tom_47_result"
+            ],
+            "result_node_id": "tom_47_result",
+            "silence": false
+          },
+          {
+            "id": "tom_48",
+            "name": "High-mid tom",
+            "value": 48,
+            "node_ids": [
+              "tom_48_tail",
+              "tom_48_gate",
+              "tom_48_envelope",
+              "tom_48_pitch",
+              "tom_48_strike",
+              "tom_48_body",
+              "tom_48_ring",
+              "tom_48_noise",
+              "tom_48_noise_hp",
+              "tom_48_noise_lp",
+              "tom_48_amplitude",
+              "tom_48_pan",
+              "tom_48_result"
+            ],
+            "result_node_id": "tom_48_result",
+            "silence": false
+          },
+          {
+            "id": "tom_50",
+            "name": "High tom",
+            "value": 50,
+            "node_ids": [
+              "tom_50_tail",
+              "tom_50_gate",
+              "tom_50_envelope",
+              "tom_50_pitch",
+              "tom_50_strike",
+              "tom_50_body",
+              "tom_50_ring",
+              "tom_50_noise",
+              "tom_50_noise_hp",
+              "tom_50_noise_lp",
+              "tom_50_amplitude",
+              "tom_50_pan",
+              "tom_50_result"
+            ],
+            "result_node_id": "tom_50_result",
+            "silence": false
+          },
+          {
+            "id": "crash",
+            "name": "Crash cymbal 1",
+            "value": 49,
+            "node_ids": [
+              "crash_tail",
+              "crash_gate",
+              "crash_envelope",
+              "crash_metal_0",
+              "crash_metal_1",
+              "crash_metal_2",
+              "crash_metal_3",
+              "crash_metal_4",
+              "crash_metal_5",
+              "crash_air",
+              "crash_air_hp",
+              "crash_air_lp",
+              "crash_hp",
+              "crash_lp",
+              "crash_amplitude",
+              "crash_pan",
+              "crash_result"
+            ],
+            "result_node_id": "crash_result",
+            "silence": false
+          },
+          {
+            "id": "ride",
+            "name": "Ride cymbal 1",
+            "value": 51,
+            "node_ids": [
+              "ride_tail",
+              "ride_gate",
+              "ride_envelope",
+              "ride_mode_0",
+              "ride_mode_1",
+              "ride_mode_2",
+              "ride_mode_3",
+              "ride_mode_4",
+              "ride_mode_5",
+              "ride_mode_6",
+              "ride_air",
+              "ride_air_hp",
+              "ride_air_lp",
+              "ride_filter",
+              "ride_amplitude",
+              "ride_pan",
+              "ride_result"
+            ],
+            "result_node_id": "ride_result",
+            "silence": false
+          },
+          {
+            "id": "tambourine",
+            "name": "Tambourine",
+            "value": 54,
+            "node_ids": [
+              "tambourine_tail",
+              "tambourine_gate",
+              "tambourine_envelope",
+              "tambourine_jingle_0",
+              "tambourine_jingle_1",
+              "tambourine_jingle_2",
+              "tambourine_jingle_3",
+              "tambourine_jingle_4",
+              "tambourine_jingle_5",
+              "tambourine_air",
+              "tambourine_air_hp",
+              "tambourine_air_lp",
+              "tambourine_amplitude",
+              "tambourine_pan",
+              "tambourine_result"
+            ],
+            "result_node_id": "tambourine_result",
             "silence": false
           },
           {
