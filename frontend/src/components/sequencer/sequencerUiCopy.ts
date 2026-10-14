@@ -12,6 +12,9 @@ export type SequencerUiCopy = {
   midiChannelLabel: (channel: number) => string;
   midiChannelsHint: string;
   midiChannelsRequired: string;
+  autoChord: string;
+  chordNotes: string;
+  autoChordHint: string;
   keyboardInfo: string;
   scrollKeyboardLeft: string;
   scrollKeyboardRight: string;
@@ -234,6 +237,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     midiChannelLabel: (channel) => `MIDI channel ${channel}`,
     midiChannelsHint: "Send to the checked channels. All 16 checked means OMNI. At least one channel must remain checked.",
     midiChannelsRequired: "At least one MIDI channel must remain checked.",
+    autoChord: "Autochord",
+    chordNotes: "Chord notes",
+    autoChordHint: "Stack every other highlighted note. In mixed scales, intervals may differ from thirds.",
     keyboardInfo: "8 octaves keyboard (C0..B7).",
     scrollKeyboardLeft: "Scroll keyboard left",
     scrollKeyboardRight: "Scroll keyboard right",
@@ -430,6 +436,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     midiChannelLabel: (channel) => `MIDI-Kanal ${channel}`,
     midiChannelsHint: "An die ausgewählten Kanäle senden. Alle 16 ausgewählt bedeutet OMNI. Mindestens ein Kanal muss ausgewählt bleiben.",
     midiChannelsRequired: "Mindestens ein MIDI-Kanal muss ausgewählt bleiben.",
+    autoChord: "Autoakkord",
+    chordNotes: "Akkordtöne",
+    autoChordHint: "Jeden zweiten markierten Ton schichten. Bei gemischten Skalen können die Intervalle von Terzen abweichen.",
     keyboardInfo: "8-Oktaven-Tastatur (C0..B7).",
     scrollKeyboardLeft: "Tastatur nach links scrollen",
     scrollKeyboardRight: "Tastatur nach rechts scrollen",
@@ -627,6 +636,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     midiChannelLabel: (channel) => `Canal MIDI ${channel}`,
     midiChannelsHint: "Envoyer aux canaux cochés. Les 16 canaux cochés correspondent à OMNI. Au moins un canal doit rester coché.",
     midiChannelsRequired: "Au moins un canal MIDI doit rester coché.",
+    autoChord: "Accord automatique",
+    chordNotes: "Notes de l’accord",
+    autoChordHint: "Empiler une note sur deux parmi les notes surlignées. En gammes mixtes, les intervalles peuvent différer des tierces.",
     keyboardInfo: "Clavier 8 octaves (C0..B7).",
     scrollKeyboardLeft: "Defiler clavier a gauche",
     scrollKeyboardRight: "Defiler clavier a droite",
@@ -824,6 +836,9 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     midiChannelLabel: (channel) => `Canal MIDI ${channel}`,
     midiChannelsHint: "Enviar a los canales marcados. Los 16 canales marcados equivalen a OMNI. Al menos un canal debe permanecer marcado.",
     midiChannelsRequired: "Al menos un canal MIDI debe permanecer marcado.",
+    autoChord: "Acorde automático",
+    chordNotes: "Notas del acorde",
+    autoChordHint: "Apilar una de cada dos notas resaltadas. Con escalas mixtas, los intervalos pueden diferir de terceras.",
     keyboardInfo: "Teclado de 8 octavas (C0..B7).",
     scrollKeyboardLeft: "Desplazar teclado a la izquierda",
     scrollKeyboardRight: "Desplazar teclado a la derecha",

@@ -609,6 +609,7 @@ def test_performance_crud_round_trips_config_payload(tmp_path: Path) -> None:
 def test_performance_device_names_survive_storage_and_json_bundle(tmp_path: Path, legacy: bool) -> None:
     fixture = json.loads((Path(__file__).parent / "fixtures/performances/device_names.json").read_text())
     config = fixture["config"]
+    config["sequencer"]["pianoRolls"][0].update(autoChordEnabled=True, autoChordSize=4)
     if legacy:
         for kind, name in fixture["legacyNames"].items():
             config["sequencer"][kind][0]["name"] = name
@@ -2280,6 +2281,7 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
 
     fixture = json.loads((Path(__file__).parent / "fixtures/performances/device_names.json").read_text())
     payload["performance"]["config"] = fixture["config"]
+    payload["performance"]["config"]["sequencer"]["pianoRolls"][0].update(autoChordEnabled=True, autoChordSize=5)
     if legacy:
         for kind, name in fixture["legacyNames"].items():
             payload["performance"]["config"]["sequencer"][kind][0]["name"] = name
@@ -7900,3 +7902,15 @@ def test_gen19_opcode_allows_128_partials(tmp_path: Path) -> None:
         assert compiled.status_code == 200, compiled.text
         line = next(line for line in orc_code_lines(compiled.json()["orc"]) if " ftgen " in line)
         assert len(line.split(",")) == 4 + MAX_GEN_ARGUMENT_COUNT
+
+
+@pytest.mark.parametrize("size", [3, 4, 5])
+def test_piano_roll_autochord_app_state_round_trip(tmp_path: Path, size: int) -> None:
+    state = {"version": 3, "sequencer": {"pianoRolls": [
+        {"id": "piano-1", "autoChordEnabled": True, "autoChordSize": size},
+        {"id": "piano-2", "autoChordEnabled": False, "autoChordSize": 5},
+    ]}}
+    with _client(tmp_path) as client:
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        loaded = client.get("/api/app-state").json()["state"]
+        assert loaded["sequencer"]["pianoRolls"] == state["sequencer"]["pianoRolls"]

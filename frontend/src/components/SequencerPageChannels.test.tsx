@@ -13,7 +13,8 @@ function Page() {
   const { sequencer, setMidiControllerTargetChannels, setControllerSequencerTargetChannels } = useAppStore();
   return <SequencerPage collapsedPanels={INITIAL_PANEL_COLLAPSE_STATE} onPanelCollapsedChange={() => {}}
     instrumentActions={actions()} transportActions={actions()} melodicTrackActions={actions()} drummerTrackActions={actions()}
-    pianoRollActions={actions()} arpeggiatorActions={actions()} performanceActions={actions()}
+    pianoRollActions={actions({ onPianoRollAutoChordEnabledChange: useAppStore.getState().setPianoRollAutoChordEnabled,
+      onPianoRollAutoChordSizeChange: useAppStore.getState().setPianoRollAutoChordSize })} arpeggiatorActions={actions()} performanceActions={actions()}
     midiControllerActions={actions({ onMidiControllerTargetChannelsChange: setMidiControllerTargetChannels })}
     controllerSequencerActions={actions({ onControllerSequencerTargetChannelsChange: setControllerSequencerTargetChannels })}
     data={{ guiLanguage: "english", patches: [], performances: [], instrumentBindings: [], sequencer,
@@ -47,4 +48,16 @@ it("wires both selectors independently, checks all channels by default, and prot
   expect(last.disabled).toBe(false);
   last.focus();
   expect(document.activeElement).toBe(last);
+});
+
+
+it("wires autochord controls and retains the selected size when switched off", () => {
+  render(<Page />);
+  const toggle = screen.getByRole("checkbox", { name: "Autochord" });
+  const size = screen.getByRole("combobox", { name: "Chord notes" }) as HTMLSelectElement;
+  expect(size.disabled).toBe(true); expect(size.value).toBe("3");
+  fireEvent.click(toggle); expect(size.disabled).toBe(false);
+  fireEvent.change(size, { target: { value: "5" } });
+  expect(useAppStore.getState().sequencer.pianoRolls[0]).toMatchObject({ autoChordEnabled: true, autoChordSize: 5 });
+  fireEvent.click(toggle); expect(size.disabled).toBe(true); expect(size.value).toBe("5");
 });

@@ -408,6 +408,8 @@ function useSequencerPageContext({
     onPianoRollEnabledChange,
     onPianoRollMidiChannelChange,
     onPianoRollVelocityChange,
+    onPianoRollAutoChordEnabledChange,
+    onPianoRollAutoChordSizeChange,
     onPianoRollScaleChange,
     onPianoRollModeChange,
     onPianoRollNoteOn,
@@ -732,6 +734,8 @@ function useSequencerPageContext({
     onPianoRollScaleChange,
     onPianoRollModeChange,
     onPianoRollVelocityChange,
+    onPianoRollAutoChordEnabledChange,
+    onPianoRollAutoChordSizeChange,
     onPianoRollNoteOn,
     onPianoRollNoteOff,
     onMidiControllerNumberChange,
@@ -2989,6 +2993,8 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
     onPianoRollModeChange,
     modeOptions,
     onPianoRollVelocityChange,
+    onPianoRollAutoChordEnabledChange,
+    onPianoRollAutoChordSizeChange,
     onPianoRollNoteOn,
     onPianoRollNoteOff,
   } = context;
@@ -3131,6 +3137,26 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
                   ))}
                 </select>
               </label>
+              <label className="flex items-center gap-2 pb-1.5 text-xs text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={roll.autoChordEnabled}
+                  onChange={event => onPianoRollAutoChordEnabledChange(roll.id, event.target.checked)}
+                  className="accent-accent"
+                />
+                {ui.autoChord}
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className={controlLabelClass}>{ui.chordNotes}</span>
+                <select
+                  value={roll.autoChordSize}
+                  disabled={!roll.autoChordEnabled}
+                  onChange={event => onPianoRollAutoChordSizeChange(roll.id, Number(event.target.value))}
+                  className={`${controlFieldClass} w-24 disabled:opacity-45`}
+                >
+                  {[3, 4, 5].map(size => <option key={size} value={size}>{size}</option>)}
+                </select>
+              </label>
               <label className="flex flex-col gap-1">
                 <span className={controlLabelClass}>{ui.velocity}</span>
                 <input
@@ -3146,6 +3172,7 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
 
             <div className="mb-2 text-[11px] text-slate-500">
               {ui.inScaleHighlightInfo(effectiveScaleLabel, effectiveModeLabel)}
+              {roll.autoChordEnabled && <span className="ml-2">{ui.autoChordHint}</span>}
             </div>
 
             <div className="max-w-full">

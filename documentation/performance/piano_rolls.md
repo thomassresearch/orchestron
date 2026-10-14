@@ -38,8 +38,27 @@ Each piano roll has:
 - `MIDI Channel` (`1..16`)
 - `Scale`
 - `Mode`
+- `Velocity` (`0..127`)
+- `Autochord` (off by default)
+- `Chord notes` (`3`, `4`, or `5`, default `3`; available when Autochord is on)
 
 Each MIDI-driven rack instrument requires a unique MIDI channel. Set the piano roll to the channel of the instrument you want to play.
+
+## Autochord
+
+Enable **Autochord** to extend a highlighted key into an ascending chord. **Chord notes** counts the pressed note, so in C major pressing C4 plays:
+
+| Chord notes | Sounding notes |
+| --- | --- |
+| 3 | C4–E4–G4 |
+| 4 | C4–E4–G4–B4 |
+| 5 | C4–E4–G4–B4–D5 |
+
+The chord starts on the key you press and stacks every other highlighted note, continuing into higher octaves. It follows the same scale/mode as the keyboard. In **mixed** mode, it uses only notes common to the active scales; the resulting intervals may differ from thirds. For example, C major and G major share C, D, E, G, A, B, so pressing C4 with three notes plays C4–E4–A4. Sparse intersections can produce octave-spaced voicings. Keys outside the highlighted set still play single notes.
+
+All chord notes use the keyboard's MIDI channel and velocity, and visible sounding keys light up together. Release ends the chord; notes shared with another held chord stay on until their last held key releases. Changing scale, mode, channel, size, or the toggle affects the next press without altering held chords. Upper voices may extend beyond the visible keyboard, but notes above MIDI 127 are omitted.
+
+Each piano roll retains its own toggle and size through Save/Load, Clone, autosave, and native JSON/ZIP export/import. Turning Autochord off retains the chosen size. Older performances default to off/3. These controls apply to the on-screen keyboard; live gestures are not recorded into sequencers or offline CSD exports.
 
 ## Scale/Mode Following Behavior During Live Playback
 
@@ -66,7 +85,7 @@ This is especially helpful when multiple tracks create potentially conflicting h
 
 The piano keyboard spans:
 
-- `C1 .. B7` (84 notes)
+- `C0 .. B7` (96 notes)
 
 UI behavior:
 
@@ -90,7 +109,7 @@ In mixed-theory situations, a key can show combined degree labels (for example `
 - Release sends `note_off`
 - Works for both white and black keys
 
-The UI tracks held notes and clears them if the piano roll becomes inactive or the session stops.
+The UI tracks held notes and releases them on pointer cancellation, lost capture, panel collapse, keyboard removal, or when the piano roll or instrument engine stops.
 
 ## Practical Use Cases
 
@@ -99,6 +118,12 @@ The UI tracks held notes and clears them if the piano roll becomes inactive or t
 - Performing harmonically guided lines while melodic sequencers define the key center
 
 ## Screenshots
+
+<p align="center">
+  <img src="../../screenshots/perform_piano_roll_autochord.jpg" alt="Piano roll Autochord controls and sounding chord tones" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Autochord with five notes selected and the generated chord highlighted.</em></p>
+
 
 <p align="center">
   <img src="../../screenshots/perform_piano_roll_mixed_highlighting.png" alt="Piano roll mixed highlighting" width="1100" style="max-width: 100%; height: auto;" />

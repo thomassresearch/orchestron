@@ -145,15 +145,17 @@ it("retains nested Mixer expansion and forms but omits closed diagnostics constr
   expect((within(details("Audio routing")).getAllByRole("combobox")[0] as HTMLSelectElement).value).toBe("binding-collapse-test");
 });
 
-it("releases manually held piano notes once when the keyboard collapses", () => {
+it.each([false, true])("releases held piano notes once when the keyboard collapses (autochord %s)", autoChord => {
+  const roll = useAppStore.getState().sequencer.pianoRolls[0];
+  useAppStore.getState().setPianoRollAutoChordEnabled(roll.id, autoChord);
   const { container } = render(<StrictMode><Page /></StrictMode>);
   togglePanel("Piano Rolls");
-  const key = container.querySelector(".overflow-x-auto.pb-1 button");
+  const key = [...container.querySelectorAll(".overflow-x-auto.pb-1 button")].find(button => button.textContent?.includes("("));
   expect(key).toBeTruthy();
   fireEvent.pointerDown(key!, { pointerId: 9, pointerType: "touch", button: 0 });
   expect(noop).toHaveBeenCalled();
   noop.mockClear(); togglePanel("Piano Rolls");
-  expect(noop).toHaveBeenCalledTimes(1);
+  expect(noop).toHaveBeenCalledTimes(autoChord ? 3 : 1);
   expect(noop.mock.calls[0]).toHaveLength(3);
   expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(true);
 });

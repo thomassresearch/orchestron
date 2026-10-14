@@ -1,3 +1,4 @@
+import { normalizePianoRollChordSize } from "../lib/pianoRollChord";
 import { validateArrangementEdit } from "../lib/arrangementEditing";
 import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { mergedSequencerState, playbackValues } from "../lib/mergedSequencerState";
@@ -66,6 +67,8 @@ export type PerformanceControlStoreActions = Pick<
   | "setPianoRollEnabled"
   | "setPianoRollMidiChannel"
   | "setPianoRollVelocity"
+  | "setPianoRollAutoChordEnabled"
+  | "setPianoRollAutoChordSize"
   | "setPianoRollScale"
   | "setPianoRollMode"
   | "addMidiController"
@@ -188,6 +191,20 @@ export function createPerformanceControlStoreActions(
           )
         }
       });
+    },
+
+    setPianoRollAutoChordEnabled: (rollId, enabled) => {
+      set(state => ({ sequencer: { ...state.sequencer,
+        pianoRolls: state.sequencer.pianoRolls.map(roll =>
+          roll.id === rollId ? { ...roll, autoChordEnabled: enabled } : roll)
+      } }));
+    },
+
+    setPianoRollAutoChordSize: (rollId, size) => {
+      set(state => ({ sequencer: { ...state.sequencer,
+        pianoRolls: state.sequencer.pianoRolls.map(roll =>
+          roll.id === rollId ? { ...roll, autoChordSize: normalizePianoRollChordSize(size) } : roll)
+      } }));
     },
 
     setPianoRollScale: (rollId, scaleRoot, scaleType) => {

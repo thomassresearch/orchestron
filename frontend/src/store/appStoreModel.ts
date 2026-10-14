@@ -1,3 +1,4 @@
+import { normalizePianoRollChordSize } from "../lib/pianoRollChord";
 import { normalizeStrumDirection, normalizeStrumSpread } from "../lib/sequencerStrum";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { emptyArrangerHistory, readArrangerHistory, type ArrangerHistory } from "./arrangerHistory";
@@ -1159,6 +1160,8 @@ export function defaultPianoRoll(index = 1, midiChannel = 2): PianoRollState {
   return {
     id: `piano-${index}`,
     name: `Piano Roll ${index}`,
+    autoChordEnabled: false,
+    autoChordSize: 3,
     midiChannel: channel,
     velocity: 110,
     scaleRoot: "C",
@@ -1936,6 +1939,8 @@ export function normalizePianoRollState(raw: unknown, index: number): PianoRollS
   }
 
   const roll = raw as Record<string, unknown>;
+  const autoChordEnabled = roll.autoChordEnabled === true;
+  const autoChordSize = normalizePianoRollChordSize(roll.autoChordSize);
   const id = typeof roll.id === "string" && roll.id.length > 0 ? roll.id : fallback.id;
   const name = typeof roll.name === "string" && roll.name.trim().length > 0 ? roll.name : fallback.name;
   const midiChannel =
@@ -1952,6 +1957,8 @@ export function normalizePianoRollState(raw: unknown, index: number): PianoRollS
     name,
     midiChannel,
     velocity,
+    autoChordEnabled,
+    autoChordSize,
     scaleRoot,
     scaleType,
     mode,
@@ -3044,6 +3051,8 @@ export function buildSequencerConfigSnapshot(
         name: roll.name.trim().length > 0 ? roll.name : `Piano Roll ${index + 1}`,
         midiChannel: clampInt(roll.midiChannel, 1, 16),
         velocity: normalizePianoRollVelocity(roll.velocity),
+        autoChordEnabled: roll.autoChordEnabled === true,
+        autoChordSize: normalizePianoRollChordSize(roll.autoChordSize),
         scaleRoot: normalizeSequencerScaleRoot(roll.scaleRoot),
         scaleType: normalizeSequencerScaleType(roll.scaleType),
         mode: normalizeSequencerMode(roll.mode),

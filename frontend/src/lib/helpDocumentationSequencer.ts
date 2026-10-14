@@ -726,7 +726,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - A piano roll only sends notes when its own lane is enabled and the instrument engine is running; its Start control can bring up the engine without starting the arranger transport.
 - Use the MIDI channel to target one rack instrument. Each MIDI-driven rack instrument requires a unique channel.
-- The on-screen keyboard spans \`C1..B7\` and uses pointer press/release gestures for note on/off.
+- The on-screen keyboard spans \`C0..B7\` and uses pointer press/release gestures for note on/off.
 
 ### Scale Guidance
 
@@ -737,7 +737,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - Eine Piano Roll sendet nur dann Noten, wenn ihre eigene Spur aktiviert ist und die Instrument-Engine laeuft; ihr Start-Button kann die Engine starten, ohne den Arranger-Transport zu starten.
 - Ueber den MIDI-Kanal wird ein Rack-Instrument angesteuert. Jedes MIDI-gesteuerte Rack-Instrument braucht einen eigenen Kanal.
-- Die Onscreen-Tastatur reicht von \`C1..B7\` und nutzt Pointer-Press/Release fuer Note On/Off.
+- Die Onscreen-Tastatur reicht von \`C0..B7\` und nutzt Pointer-Press/Release fuer Note On/Off.
 
 ### Skalenfuehrung
 
@@ -748,7 +748,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - Un piano roll n'envoie des notes que si sa propre voie est active et que le moteur instrument tourne ; son bouton Start peut lancer le moteur sans lancer le transport arrangeur.
 - Utilisez le canal MIDI pour viser un instrument du rack. Chaque instrument pilote par MIDI doit avoir son propre canal.
-- Le clavier a l'ecran couvre \`C1..B7\` et utilise des gestes de pression/relachement du pointeur pour les note on/off.
+- Le clavier a l'ecran couvre \`C0..B7\` et utilise des gestes de pression/relachement du pointeur pour les note on/off.
 
 ### Guidage tonal
 
@@ -759,7 +759,7 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 
 - Un piano roll solo envia notas cuando su propia pista esta activada y el motor de instrumentos esta en marcha; su control Start puede iniciar el motor sin iniciar el transporte del arreglador.
 - Usa el canal MIDI para apuntar a un instrumento del rack. Cada instrumento controlado por MIDI necesita un canal propio.
-- El teclado en pantalla cubre \`C1..B7\` y utiliza gestos de pulsar/soltar con el puntero para note on/off.
+- El teclado en pantalla cubre \`C0..B7\` y utiliza gestos de pulsar/soltar con el puntero para note on/off.
 
 ### Guia tonal
 
@@ -923,4 +923,39 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
   for (const id of ["sequencer_tracks", "sequencer_track_editor"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + melodicStrumHelp[language];
   }
+}
+
+
+const pianoRollAutoChordHelp = {
+  english: `### Autochord
+
+Enable **Autochord** and choose **Chord notes**: 3, 4, or 5 including the pressed key. In C major, C4 plays C4–E4–G4, C4–E4–G4–B4, or C4–E4–G4–B4–D5. The default is off with 3 notes selected.
+
+Chords stack every other highlighted note from the pressed key, following the keyboard's scale/mode. Mixed scales use their common notes, so intervals may differ from thirds (C major plus G major gives C4–E4–A4). Unhighlighted keys remain single notes. Notes beyond MIDI 127 are omitted; higher voices can extend beyond the visible keyboard.
+
+Visible chord tones light up and share the keyboard's channel and velocity. Release ends the chord; shared notes stay on while another chord holds them. Settings changes affect subsequent presses. Collapse, removal, and Stop release held notes. Each keyboard's settings survive Save/Load, Clone, autosave and native JSON/ZIP. Turning off retains the size. This applies to the on-screen keyboard; gestures are not recorded into sequences or offline exports.`,
+  german: `### Autoakkord
+
+**Autoakkord** aktivieren und **Akkordtöne** wählen: 3, 4 oder 5 einschließlich der gedrückten Taste. In C-Dur spielt C4 die Töne C4–E4–G4, C4–E4–G4–B4 oder C4–E4–G4–B4–D5 (internationale Notennamen). Standard ist aus mit 3 Tönen.
+
+Ab der gedrückten Taste wird jeder zweite markierte Ton der aktuellen Skala und des Modus geschichtet. Gemischte Skalen verwenden ihre gemeinsamen Töne; die Intervalle können daher von Terzen abweichen (C-Dur plus G-Dur ergibt C4–E4–A4). Unmarkierte Tasten bleiben Einzeltöne. Töne über MIDI 127 entfallen; Oberstimmen können außerhalb der sichtbaren Tastatur liegen.
+
+Sichtbare Akkordtöne leuchten auf und verwenden Kanal und Velocity der Tastatur. Loslassen beendet den Akkord; gemeinsam gehaltene Töne klingen bis zum letzten Loslassen weiter. Einstellungsänderungen gelten ab dem nächsten Anschlag. Einklappen, Entfernen und Stop geben gehaltene Töne frei. Jede Tastatur speichert ihre Einstellungen mit Speichern/Laden, Klonen, Autosave und nativem JSON/ZIP. Ausschalten behält die Tonanzahl bei. Dies gilt für die Bildschirmtastatur; Gesten werden nicht in Sequenzen oder Offline-Exporte aufgenommen.`,
+  french: `### Accord automatique
+
+Activez **Accord automatique** et choisissez **Notes de l’accord** : 3, 4 ou 5, touche pressée comprise. En do majeur, C4 joue C4–E4–G4, C4–E4–G4–B4 ou C4–E4–G4–B4–D5 (notation internationale). Par défaut, la fonction est désactivée avec 3 notes sélectionnées.
+
+L'accord empile une note sur deux parmi les notes surlignées, depuis la touche pressée, selon la gamme et le mode du clavier. Les gammes mixtes utilisent leurs notes communes ; les intervalles peuvent donc différer des tierces (do majeur et sol majeur donnent C4–E4–A4). Les touches non surlignées restent des notes simples. Les notes au-delà de MIDI 127 sont omises ; les voix supérieures peuvent dépasser le clavier visible.
+
+Les notes visibles de l'accord s'allument et partagent le canal et la vélocité du clavier. Relâcher termine l'accord ; les notes communes restent actives tant qu'un autre accord les tient. Les réglages s'appliquent aux pressions suivantes. Réduire, supprimer ou arrêter libère les notes. Chaque clavier conserve ses réglages après enregistrement/chargement, clonage, sauvegarde automatique et JSON/ZIP natif. Désactiver conserve le nombre de notes. La fonction concerne le clavier à l'écran ; les gestes ne sont pas enregistrés dans les séquences ou exports hors ligne.`,
+  spanish: `### Acorde automático
+
+Activa **Acorde automático** y elige **Notas del acorde**: 3, 4 o 5, incluida la tecla pulsada. En do mayor, C4 toca C4–E4–G4, C4–E4–G4–B4 o C4–E4–G4–B4–D5 (notación internacional). Por defecto está desactivado con 3 notas seleccionadas.
+
+El acorde apila una de cada dos notas resaltadas desde la tecla pulsada, según la escala y el modo del teclado. Las escalas mixtas usan sus notas comunes, por lo que los intervalos pueden diferir de terceras (do mayor y sol mayor dan C4–E4–A4). Las teclas no resaltadas siguen tocando notas individuales. Se omiten las notas superiores a MIDI 127; las voces altas pueden superar el teclado visible.
+
+Las notas visibles del acorde se iluminan y comparten canal y velocidad. Soltar termina el acorde; las notas comunes siguen sonando mientras otro acorde las mantenga. Los cambios se aplican a las siguientes pulsaciones. Contraer, eliminar o detener libera las notas. Cada teclado conserva sus ajustes al guardar/cargar, clonar, guardar automáticamente y exportar/importar JSON/ZIP nativo. Desactivar conserva el tamaño. Se aplica al teclado en pantalla; los gestos no se graban en secuencias ni exportaciones sin conexión.`
+};
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  sequencerHelpDocuments.sequencer_piano_rolls[language].markdown += "\n\n" + pianoRollAutoChordHelp[language];
 }

@@ -234,6 +234,8 @@ export default function App() {
   const setPianoRollEnabled = useAppStore((state) => state.setPianoRollEnabled);
   const setPianoRollMidiChannel = useAppStore((state) => state.setPianoRollMidiChannel);
   const setPianoRollVelocity = useAppStore((state) => state.setPianoRollVelocity);
+  const setPianoRollAutoChordEnabled = useAppStore((state) => state.setPianoRollAutoChordEnabled);
+  const setPianoRollAutoChordSize = useAppStore((state) => state.setPianoRollAutoChordSize);
   const setPianoRollScale = useAppStore((state) => state.setPianoRollScale);
   const setPianoRollMode = useAppStore((state) => state.setPianoRollMode);
   const addMidiController = useAppStore((state) => state.addMidiController);
@@ -1569,6 +1571,8 @@ export default function App() {
     onPianoRollEnabledChange,
     onPianoRollMidiChannelChange: setPianoRollMidiChannel,
     onPianoRollVelocityChange: setPianoRollVelocity,
+    onPianoRollAutoChordEnabledChange: setPianoRollAutoChordEnabled,
+    onPianoRollAutoChordSizeChange: setPianoRollAutoChordSize,
     onPianoRollScaleChange: setPianoRollScale,
     onPianoRollModeChange: setPianoRollMode,
     onPianoRollNoteOn: onPianoRollNoteOn,

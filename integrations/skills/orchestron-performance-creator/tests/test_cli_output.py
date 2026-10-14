@@ -832,3 +832,17 @@ def test_drummer_ratchets_survive_cli_normalization_and_runtime_conversion():
         'note': 36, 'hold': False, 'velocity': 100, 'timing_offset_percent': 0,
         'ratchets': 4, 'ratchet_end_velocity': 40}
     assert runtime['tracks'][0]['timing']['meter_denominator'] == 8
+
+
+@pytest.mark.parametrize("size", [3, 4, 5])
+def test_piano_roll_autochord_survives_cli_normalization_and_edit_session(tmp_path, size):
+    config = orchestron_cli.empty_performance_config()
+    rolls = [{"id": "piano-1", "autoChordEnabled": True, "autoChordSize": size},
+             {"id": "piano-2", "autoChordEnabled": False, "autoChordSize": 5}]
+    config["sequencer"]["pianoRolls"] = rolls
+    normalized = normalize_performance_config(copy.deepcopy(config), [])
+    assert normalized["version"] == 19
+    assert normalized["sequencer"]["pianoRolls"] == rolls
+    session_file = tmp_path / "autochord.json"
+    orchestron_cli.save_edit_session(session_file, {"config": normalized})
+    assert orchestron_cli.load_edit_session(session_file)["config"]["sequencer"]["pianoRolls"] == rolls

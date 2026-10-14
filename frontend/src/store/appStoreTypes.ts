@@ -245,6 +245,8 @@ export interface AppStore {
   setPianoRollEnabled: (rollId: string, enabled: boolean) => void;
   setPianoRollMidiChannel: (rollId: string, channel: number) => void;
   setPianoRollVelocity: (rollId: string, velocity: number) => void;
+  setPianoRollAutoChordEnabled: (rollId: string, enabled: boolean) => void;
+  setPianoRollAutoChordSize: (rollId: string, size: number) => void;
   setPianoRollScale: (
     rollId: string,
     scaleRoot: SequencerScaleRoot,

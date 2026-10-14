@@ -315,6 +315,8 @@ export interface PianoRollState {
   scaleRoot: SequencerScaleRoot;
   scaleType: SequencerScaleType;
   mode: SequencerMode;
+  autoChordEnabled: boolean;
+  autoChordSize: 3 | 4 | 5;
   enabled: boolean;
 }
 
@@ -621,6 +623,8 @@ export interface SequencerConfigSnapshot {
       queuedEnabled: boolean | null;
     }>;
     pianoRolls: Array<{
+      autoChordEnabled?: boolean;
+      autoChordSize?: 3 | 4 | 5;
       id: string;
       name: string;
       midiChannel: number;

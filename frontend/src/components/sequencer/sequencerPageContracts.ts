@@ -147,6 +147,8 @@ export interface SequencerPagePianoRollActions {
   onPianoRollEnabledChange: (rollId: string, enabled: boolean) => void;
   onPianoRollMidiChannelChange: (rollId: string, channel: number) => void;
   onPianoRollVelocityChange: (rollId: string, velocity: number) => void;
+  onPianoRollAutoChordEnabledChange: (rollId: string, enabled: boolean) => void;
+  onPianoRollAutoChordSizeChange: (rollId: string, size: number) => void;
   onPianoRollScaleChange: (rollId: string, scaleRoot: SequencerScaleRoot, scaleType: SequencerScaleType) => void;
   onPianoRollModeChange: (rollId: string, mode: SequencerMode) => void;
   onPianoRollNoteOn: (rollId: string, note: number, channel: number, velocity: number) => void;

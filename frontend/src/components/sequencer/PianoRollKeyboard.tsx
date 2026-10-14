@@ -1,3 +1,4 @@
+import { pianoRollChordNotes } from "../../lib/pianoRollChord";
 import { useRetainedScroll } from "./PerformanceEditorState";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
@@ -362,7 +363,10 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
   }, [pianoRollNotes, pianoRollOptionsByNote]);
 
   const [activePianoNotes, setActivePianoNotes] = useState<Record<number, true>>({});
-  const pianoPointerNotesRef = useRef<Record<number, { note: number; channel: number }>>({});
+  const pianoPointerNotesRef = useRef<Record<number, { notes: number[]; channel: number }>>({});
+  const heldPianoNotesRef = useRef(new Map<string, { note: number; channel: number; count: number }>());
+  const noteOffRef = useRef(onNoteOff);
+  noteOffRef.current = onNoteOff;
   const pianoKeyboardViewportRef = useRef<HTMLDivElement | null>(null);
   const saveScroll = useRetainedScroll(pianoKeyboardViewportRef, `device:${roll.id}`, "keyboardScroll");
   const scrollTimer = useRef<number | null>(null);
@@ -415,64 +419,55 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
     [updatePianoScrollState]
   );
 
-  const setPianoNoteActive = useCallback((note: number, active: boolean) => {
-    if (active) {
-      setActivePianoNotes((previous) => {
-        if (previous[note]) {
-          return previous;
-        }
-        return { ...previous, [note]: true };
-      });
-      return;
-    }
-
-    setActivePianoNotes((previous) => {
-      if (!previous[note]) {
-        return previous;
-      }
-      const next = { ...previous };
-      delete next[note];
-      return next;
-    });
+  const updateActivePianoNotes = useCallback(() => {
+    setActivePianoNotes(Object.fromEntries(
+      [...heldPianoNotesRef.current.values()].map(held => [held.note, true])
+    ));
   }, []);
 
   const releasePianoPointer = useCallback(
     (pointerId: number) => {
-      const held = pianoPointerNotesRef.current[pointerId];
-      if (!held) {
-        return;
-      }
-
+      const pointer = pianoPointerNotesRef.current[pointerId];
+      if (!pointer) return;
       delete pianoPointerNotesRef.current[pointerId];
-      onNoteOff(roll.id, held.note, held.channel);
-      setPianoNoteActive(held.note, false);
+      for (const note of pointer.notes) {
+        const key = `${pointer.channel}:${note}`;
+        const held = heldPianoNotesRef.current.get(key);
+        if (held && --held.count === 0) {
+          heldPianoNotesRef.current.delete(key);
+          noteOffRef.current(roll.id, note, pointer.channel);
+        }
+      }
+      updateActivePianoNotes();
     },
-    [onNoteOff, roll.id, setPianoNoteActive]
+    [roll.id, updateActivePianoNotes]
   );
 
   const handlePianoPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>, note: number) => {
-      if (event.button !== 0) {
-        return;
-      }
-      if (!interactive) {
-        return;
-      }
-
+      if (event.button !== 0 || !interactive) return;
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
+      releasePianoPointer(event.pointerId);
       const channel = roll.midiChannel;
-      const existing = pianoPointerNotesRef.current[event.pointerId];
-      if (existing) {
-        onNoteOff(roll.id, existing.note, existing.channel);
-        setPianoNoteActive(existing.note, false);
+      const notes = roll.autoChordEnabled
+        ? pianoRollChordNotes(note, roll.autoChordSize, effectiveTheories)
+        : [note];
+      pianoPointerNotesRef.current[event.pointerId] = { notes, channel };
+      for (const chordNote of notes) {
+        const key = `${channel}:${chordNote}`;
+        const held = heldPianoNotesRef.current.get(key);
+        if (held) {
+          held.count++;
+        } else {
+          heldPianoNotesRef.current.set(key, { note: chordNote, channel, count: 1 });
+          onNoteOn(roll.id, chordNote, channel, roll.velocity);
+        }
       }
-
-      pianoPointerNotesRef.current[event.pointerId] = { note, channel };
-      onNoteOn(roll.id, note, channel, roll.velocity);
-      setPianoNoteActive(note, true);
+      updateActivePianoNotes();
     },
-    [interactive, onNoteOff, onNoteOn, roll.id, roll.midiChannel, roll.velocity, setPianoNoteActive]
+    [interactive, effectiveTheories, onNoteOn, roll.id, roll.midiChannel, roll.velocity,
+      roll.autoChordEnabled, roll.autoChordSize, releasePianoPointer, updateActivePianoNotes]
   );
 
   const handlePianoPointerUp = useCallback(
@@ -489,28 +484,22 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
     [releasePianoPointer]
   );
 
-  useEffect(() => {
-    if (interactive) {
-      return;
+  const releaseAllPianoNotes = useCallback(() => {
+    for (const held of heldPianoNotesRef.current.values()) {
+      noteOffRef.current(roll.id, held.note, held.channel);
     }
-
-    for (const held of Object.values(pianoPointerNotesRef.current)) {
-      onNoteOff(roll.id, held.note, held.channel);
-    }
+    heldPianoNotesRef.current.clear();
     pianoPointerNotesRef.current = {};
-    setActivePianoNotes({});
-  }, [interactive, onNoteOff, roll.id]);
-
-  const noteOffRef = useRef(onNoteOff);
-  noteOffRef.current = onNoteOff;
-  useEffect(() => {
-    return () => {
-      for (const held of Object.values(pianoPointerNotesRef.current)) {
-        noteOffRef.current(roll.id, held.note, held.channel);
-      }
-      pianoPointerNotesRef.current = {};
-    };
   }, [roll.id]);
+
+  useEffect(() => {
+    if (!interactive) {
+      releaseAllPianoNotes();
+      setActivePianoNotes({});
+    }
+  }, [interactive, releaseAllPianoNotes]);
+
+  useEffect(() => releaseAllPianoNotes, [releaseAllPianoNotes]);
 
   return (
     <div className="relative rounded-xl border border-slate-700 bg-slate-950/70 p-2.5">
@@ -563,6 +552,8 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
                   key={`piano-white-${roll.id}-${key.note}`}
                   type="button"
                   disabled={!interactive}
+                  aria-label={key.label}
+                  aria-pressed={isActive}
                   onPointerDown={(event) => handlePianoPointerDown(event, key.note)}
                   onPointerUp={handlePianoPointerUp}
                   onPointerCancel={handlePianoPointerCancel}
@@ -599,6 +590,8 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
                   key={`piano-black-${roll.id}-${key.note}`}
                   type="button"
                   disabled={!interactive}
+                  aria-label={key.label}
+                  aria-pressed={isActive}
                   onPointerDown={(event) => handlePianoPointerDown(event, key.note)}
                   onPointerUp={handlePianoPointerUp}
                   onPointerCancel={handlePianoPointerCancel}
