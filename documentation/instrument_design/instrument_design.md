@@ -28,6 +28,7 @@ Patches have an editable Instrument Type. Load Patch browses collapsed type grou
 - [Instrument Import / Export and CSD Export](instrument_import_export.md)
 - [Physical Steel-String Guitar](steel_string_waveguide.md)
 - [Tube Overdrive](tube_overdrive.md)
+- [Stereo Delay](stereo_delay.md)
 - [Supported Opcodes](supported_opcodes.md)
 
 ## Recommended Workflow

@@ -40,6 +40,10 @@ The [Tube Overdrive example](../instrument_design/tube_overdrive.md) exposes Dri
 retains its own settings; restart the rack after changing these continuous-effect
 controls.
 
+[Stereo Delay](../instrument_design/stereo_delay.md) exposes Tempo (BPM), Beats,
+Feedback and Stereo. At its defaults, echoes repeat every two seconds. Set Tempo
+manually and restart the rack to apply changed settings.
+
 The [Analog Drumkit](../../examples/instruments/analog_drumkit/README.md) has shared
 **BD snappiness** for notes 35/36, shared **Hi-hat tuning** for 42/46, and **Snare
 tuning** for 38. Each defaults to **1**, preserving the original sound. Side stick
@@ -50,6 +54,25 @@ library controls and their saved overrides remain valid. New notes adopt changes
 ![Analog Drumkit with its preserved controls and new snappiness, tuning, decay and brightness controls](../../screenshots/analog_drumkit_breakbeat_controls.png)
 
 ![Lower controls including individual tom tuning and tambourine decay](../../screenshots/analog_drumkit_breakbeat_controls_lower.png)
+
+## Stereo Chorus Depth
+
+[Download Stereo Chorus](../../examples/instruments/Stereo_Chorus.orch.instrument.json)
+and add it as a mixer insert. **Amount** controls all twelve LFO amplitudes from
+`0.001` to `0.1` seconds (default `0.02`); **LFO Frequency Multiplier** ranges from
+`0.1` to `10` (default `1`). Both controls use logarithmic scales and require a
+rack restart. Existing controller IDs and performance overrides are preserved.
+
+Each tap uses `base delay + Amount + LFO`, with a 250 ms buffer. Since the LFO
+swings between negative and positive Amount, taps remain between 14 and 230.5 ms
+at the supplied 48 kHz / 32-sample settings. Larger Amount values increase both
+modulation depth and wet delay, producing a more pronounced modulated-delay sound.
+The dry stereo mix and feedback remain unchanged.
+
+Earlier copies that use only `base delay + LFO` with a 50 ms buffer are unsafe
+with large Amount values. Update the instrument and restart the rack to clear
+invalid delay-buffer contents. Merely enlarging the buffer does not prevent
+negative tap times.
 
 ## Save, Reload, and Export
 

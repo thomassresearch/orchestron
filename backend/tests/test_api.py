@@ -7730,31 +7730,39 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
             assert ' mode ' in csd
 
 
-def test_tube_overdrive_native_roundtrip_and_instance_controls(tmp_path):
+@pytest.mark.parametrize("fixture,values,defaults", [
+    ("tube_overdrive", {"tube_drive_db": 18, "tube_tone_hz": 4000, "tube_output_db": -6},
+     {"tube_drive_db": 12, "tube_tone_hz": 6500, "tube_output_db": -3}),
+    ("stereo_delay", {"sd_tempo": 137, "sd_beats": 1.375, "sd_feedback": 0.9, "sd_stereo": 1},
+     {"sd_tempo": 120, "sd_beats": 4, "sd_feedback": 0.5, "sd_stereo": 0.5}),
+    ("stereo_chorus", {"chorus_rate_multiplier": 10, "0712c97b-afbc-400f-8282-6e5508ed10fd": 0.1},
+     {"chorus_rate_multiplier": 1, "0712c97b-afbc-400f-8282-6e5508ed10fd": 0.02}),
+])
+def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixture, values, defaults):
     """The example fixture remains a stereo continuous insert through native import."""
     from backend.app.models.export import ExportedPatchDefinition
     from backend.tests.csound_test_support import load_patch_fixture
 
-    patch = load_patch_fixture("tube_overdrive")
+    patch = load_patch_fixture(fixture)
+    filename = f"{fixture}.orch.instrument.json"
     definition = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={"id"}))
     payload = definition.model_dump(mode="json", by_alias=True)
     with _client(tmp_path) as client:
         exported = client.post("/api/bundles/export/patch", json=payload)
         assert exported.status_code == 200, exported.text
         preview = client.post("/api/bundles/import/expand?preview=true", content=exported.content,
-                              headers={"X-File-Name": "Tube_Overdrive.orch.instrument.json"})
+                              headers={"X-File-Name": filename})
         assert preview.status_code == 200, preview.text
         assert preview.json()["graph"] == payload["graph"]
         plan = {"patches": [{"id": "tube-import", "sourcePatchId": patch.id,
                              "type": "create", "name": patch.name}]}
         imported = client.post("/api/bundles/import/commit",
-                               files={"bundle": ("Tube_Overdrive.orch.instrument.json", exported.content)},
+                               files={"bundle": (filename, exported.content)},
                                data={"plan": json.dumps(plan)})
         assert imported.status_code == 200, imported.text
         restored = client.get("/api/patches/tube-import").json()
         assert restored["always_on"] and restored["instrument_type"] == "continuous"
         assert restored["graph"] == payload["graph"]
-        values = {"tube_drive_db": 18, "tube_tone_hz": 4000, "tube_output_db": -6}
         session = client.post("/api/sessions", json={"instruments": [
             {"id": "tube", "patch_id": "tube-import", "midi_channel": 0, "performance_controller_values": values},
         ]})
@@ -7763,9 +7771,62 @@ def test_tube_overdrive_native_roundtrip_and_instance_controls(tmp_path):
         assert compiled.status_code == 200, compiled.text
         bindings = compiled.json()["manifest"]["performanceControllers"]["tube"]
         assert {key: item["value"] for key, item in bindings.items()} == values
-        assert {key: item["default"] for key, item in bindings.items()} == {
-            "tube_drive_db": 12, "tube_tone_hz": 6500, "tube_output_db": -3,
-        }
+        assert {key: item["default"] for key, item in bindings.items()} == defaults
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_stereo_delay_create_save_and_performance_exports(tmp_path, event_source):
+    import re
+
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tools.stereo_delay_audio import insert_graph, probe_source
+
+    patch = load_patch_fixture("stereo_delay")
+    values = dict(sd_tempo=137, sd_beats=1.375, sd_feedback=0.9, sd_stereo=1)
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    performance = payload["performanceExport"]
+    performance["patch_definitions"] = [
+        ExportedPatchDefinition(sourcePatchId=p.id, **p.model_dump(exclude={"id"})).model_dump(mode="json", by_alias=True)
+        for p in (probe_source(), patch)
+    ]
+    config = dict(version=19, instruments=[
+        dict(id="source", patchId="stereo-delay-probe", midiChannel=0),
+        dict(id="delay", patchId=patch.id, midiChannel=0, performanceControllerValues=values),
+    ], audioGraph=insert_graph().model_dump(mode="json", by_alias=True))
+    performance["performance"]["config"] = config
+    with _client(tmp_path) as client:
+        created = client.post("/api/patches", json=patch.model_dump(mode="json", exclude={"id", "created_at", "updated_at"}))
+        assert created.status_code == 201, created.text
+        restored = client.get(f'/api/patches/{created.json()["id"]}').json()
+        assert restored["instrument_type"] == "continuous" and restored["always_on"]
+        assert restored["graph"] == patch.graph.model_dump(mode="json", by_alias=True)
+        listed = next(p for p in client.get("/api/patches").json() if p["id"] == restored["id"])
+        assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == [
+            ("Tempo (BPM)", 40, 180, 120), ("Beats", 1, 16, 4), ("Feedback", 0, 0.9, 0.5), ("Stereo", 0, 1, 0.5),
+        ]
+        saved = client.post("/api/performances", json=dict(name="Delay controls", config=config))
+        assert saved.status_code == 201, saved.text
+        assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"] == config
+        native = client.post("/api/bundles/export/performance", json=performance)
+        assert native.status_code == 200, native.text
+        expanded = client.post("/api/bundles/import/expand?preview=true", content=native.content,
+                               headers={"X-File-Name": "delay.orch.performance.json"})
+        assert expanded.status_code == 200, expanded.text
+        assert expanded.json()["performance"]["config"]["instruments"][1]["performanceControllerValues"] == values
+        exported = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert exported.status_code == 200, exported.text
+        with zipfile.ZipFile(BytesIO(exported.content)) as archive:
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+        assert "ksmps = 1" in csd
+        assert " flanger " in csd and " delay " in csd
+        initial_values = {channel: float(value) for value, channel in
+                          re.findall(r'chnset ([\d.]+), "(__vcs_perf_[^"]+)"', csd)}
+        for identity, value in values.items():
+            channel = re.search(rf'i_{identity}_iout_\d+ chnget "([^"]+)"', csd)
+            assert channel is not None
+            assert initial_values[channel[1]] == value
 
 
 @pytest.mark.parametrize('field,value', [

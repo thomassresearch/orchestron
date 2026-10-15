@@ -1,0 +1,723 @@
+{
+  "name": "Stereo Delay",
+  "description": "Tempo-synced stereo delay with unity dry signal. Tempo (40–180 BPM, default 120), Beats (1–16, default 4): echo interval = 60 * Beats / Tempo seconds. Feedback (0–0.9, default 0.5) scales every echo; zero is dry only. Stereo (0–1, default 0.5) blends preserved stereo with alternating mono-average echoes, first left, then right. Use as an insert. Set tempo manually; restart the rack after changing controls. Dry plus echoes can exceed full scale.",
+  "is_template": false,
+  "always_on": true,
+  "instrument_type": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "sd_tempo",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tempo (BPM)",
+          "min": 40,
+          "max": 180,
+          "default": 120,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -350.0
+        }
+      },
+      {
+        "id": "sd_beats",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Beats",
+          "min": 1,
+          "max": 16,
+          "default": 4,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -350.0
+        }
+      },
+      {
+        "id": "sd_feedback",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Feedback",
+          "min": 0,
+          "max": 0.9,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -350.0
+        }
+      },
+      {
+        "id": "sd_stereo",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Stereo",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1080.0,
+          "y": -350.0
+        }
+      },
+      {
+        "id": "sd_feedback_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 720.0,
+          "y": -40.0
+        }
+      },
+      {
+        "id": "sd_stereo_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1440.0,
+          "y": -40.0
+        }
+      },
+      {
+        "id": "sd_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "sd_seed_left",
+        "opcode": "delay",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "sd_even_left",
+        "opcode": "flanger",
+        "params": {},
+        "position": {
+          "x": 720.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "sd_odd_left",
+        "opcode": "delay",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 1080.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "sd_mix_left",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1440.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "sd_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sd_seed_right",
+        "opcode": "delay",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sd_even_right",
+        "opcode": "flanger",
+        "params": {},
+        "position": {
+          "x": 720.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sd_odd_right",
+        "opcode": "delay",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 1080.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sd_mix_right",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1440.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sd_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1800.0,
+          "y": 270.0
+        }
+      },
+      {
+        "id": "sd_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1800.0,
+          "y": 700.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "sd_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "sd_feedback_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sd_stereo",
+        "from_port_id": "iout",
+        "to_node_id": "sd_stereo_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sd_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "sd_seed_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_seed_left",
+        "from_port_id": "aout",
+        "to_node_id": "sd_even_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_beats",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sd_tempo",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sd_beats",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_left",
+        "to_port_id": "imaxd"
+      },
+      {
+        "from_node_id": "sd_tempo",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_left",
+        "to_port_id": "imaxd"
+      },
+      {
+        "from_node_id": "sd_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_left",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "sd_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "sd_odd_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_even_left",
+        "from_port_id": "aout",
+        "to_node_id": "sd_odd_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_feedback_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sd_odd_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_beats",
+        "from_port_id": "iout",
+        "to_node_id": "sd_odd_left",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "sd_tempo",
+        "from_port_id": "iout",
+        "to_node_id": "sd_odd_left",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "sd_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "sd_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sd_odd_left",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_even_left",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_odd_right",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_feedback_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_stereo_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "sd_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "sd_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "sd_seed_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_seed_right",
+        "from_port_id": "aout",
+        "to_node_id": "sd_even_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_beats",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sd_tempo",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sd_beats",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_right",
+        "to_port_id": "imaxd"
+      },
+      {
+        "from_node_id": "sd_tempo",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_right",
+        "to_port_id": "imaxd"
+      },
+      {
+        "from_node_id": "sd_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "sd_even_right",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "sd_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "sd_odd_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_even_right",
+        "from_port_id": "aout",
+        "to_node_id": "sd_odd_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_feedback_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sd_odd_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sd_beats",
+        "from_port_id": "iout",
+        "to_node_id": "sd_odd_right",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "sd_tempo",
+        "from_port_id": "iout",
+        "to_node_id": "sd_odd_right",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "sd_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "sd_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sd_odd_right",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_even_right",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_even_left",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_feedback_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_stereo_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sd_mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sd_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "sd_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "sd_seed_left::idlt": {
+          "expression": "1 / sr",
+          "inputs": []
+        },
+        "sd_even_left::adel": {
+          "expression": "2 * (floor(sr * 60 * beats / tempo + 0.5) / sr) - 1 / sr",
+          "inputs": [
+            {
+              "token": "beats",
+              "from_node_id": "sd_beats",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tempo",
+              "from_node_id": "sd_tempo",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_even_left::imaxd": {
+          "expression": "2 * (floor(sr * 60 * beats / tempo + 0.5) / sr) + 64 / sr",
+          "inputs": [
+            {
+              "token": "beats",
+              "from_node_id": "sd_beats",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tempo",
+              "from_node_id": "sd_tempo",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_even_left::kfeedback": {
+          "expression": "feedback * feedback",
+          "inputs": [
+            {
+              "token": "feedback",
+              "from_node_id": "sd_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_odd_left::asig": {
+          "expression": "(dry + even * gain * gain) * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "sd_in_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "even",
+              "from_node_id": "sd_even_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sd_feedback_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sd_odd_left::idlt": {
+          "expression": "floor(sr * 60 * beats / tempo + 0.5) / sr",
+          "inputs": [
+            {
+              "token": "beats",
+              "from_node_id": "sd_beats",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tempo",
+              "from_node_id": "sd_tempo",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_mix_left::b": {
+          "expression": "(1 - width) * (odd + gain * gain * even) + width * (odd + other) / 2",
+          "inputs": [
+            {
+              "token": "odd",
+              "from_node_id": "sd_odd_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "even",
+              "from_node_id": "sd_even_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "other",
+              "from_node_id": "sd_odd_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sd_feedback_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "width",
+              "from_node_id": "sd_stereo_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sd_seed_right::idlt": {
+          "expression": "1 / sr",
+          "inputs": []
+        },
+        "sd_even_right::adel": {
+          "expression": "2 * (floor(sr * 60 * beats / tempo + 0.5) / sr) - 1 / sr",
+          "inputs": [
+            {
+              "token": "beats",
+              "from_node_id": "sd_beats",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tempo",
+              "from_node_id": "sd_tempo",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_even_right::imaxd": {
+          "expression": "2 * (floor(sr * 60 * beats / tempo + 0.5) / sr) + 64 / sr",
+          "inputs": [
+            {
+              "token": "beats",
+              "from_node_id": "sd_beats",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tempo",
+              "from_node_id": "sd_tempo",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_even_right::kfeedback": {
+          "expression": "feedback * feedback",
+          "inputs": [
+            {
+              "token": "feedback",
+              "from_node_id": "sd_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_odd_right::asig": {
+          "expression": "(dry + even * gain * gain) * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "sd_in_right",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "even",
+              "from_node_id": "sd_even_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sd_feedback_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sd_odd_right::idlt": {
+          "expression": "floor(sr * 60 * beats / tempo + 0.5) / sr",
+          "inputs": [
+            {
+              "token": "beats",
+              "from_node_id": "sd_beats",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tempo",
+              "from_node_id": "sd_tempo",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sd_mix_right::b": {
+          "expression": "(1 - width) * (odd + gain * gain * even) + width * gain * gain * (even + other) / 2",
+          "inputs": [
+            {
+              "token": "odd",
+              "from_node_id": "sd_odd_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "even",
+              "from_node_id": "sd_even_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "other",
+              "from_node_id": "sd_even_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sd_feedback_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "width",
+              "from_node_id": "sd_stereo_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "sd_input": true,
+        "sd_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "sd_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "sd_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "sd_input",
+      "mainOutput": "sd_output",
+      "guided": false
+    },
+    "control_flow": {}
+  },
+  "id": "stereo-delay-v1"
+}

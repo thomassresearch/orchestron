@@ -152,6 +152,14 @@ You can also [import example instruments](examples/instruments/) or [load an exa
 saturation as a continuous mixer insert, with per-instance Drive, Tone and Output
 controls. Restart the rack to apply changed settings.
 
+[Stereo Delay](documentation/instrument_design/stereo_delay.md) adds repeating
+echoes with manual Tempo and Beats controls, Feedback and adjustable left/right
+alternation. Its continuous insert preserves the original stereo signal.
+
+[Stereo Chorus](documentation/performance/performance_controllers.md#stereo-chorus-depth)
+provides twelve modulated delay taps with adjustable LFO rate and depth. Its Amount
+control supports 1–100 ms modulation; larger values also lengthen the wet delays.
+
 The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
 includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
 with a waveguide string model, velocity-sensitive plucking and finger/plectrum,

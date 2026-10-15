@@ -1,7 +1,7 @@
 {
   "sourcePatchId": "3a1a3e13-4dbe-491c-8834-e5a13626a686",
   "name": "Stereo Chorus",
-  "description": "Continuous stereo chorus based on Delay Effect: six cubic-interpolated taps per output channel, 12 independent audio-rate sine LFOs (0.101\u20130.299 Hz). 14\u201330.5 ms base delays, 1.4\u20133.6 ms modulation, 8% normalized feedback. 60% dry / 40% chorus; use as an insert. The wet path shares an averaged L/R input buffer; the dry path preserves stereo. LFO Frequency Multiplier: 0.1\u201310, logarithmic, default 1. Restart the rack after changing it.",
+  "description": "Continuous stereo chorus with twelve audio-rate sine LFOs. Amount (0.001\u20130.1 s, default 0.02) controls every LFO amplitude; each tap uses base + Amount + LFO, keeping delays between 14 and 230.5 ms inside a 250 ms buffer. LFO Frequency Multiplier (0.1\u201310, default 1). Wet taps share averaged stereo input and 8% normalized feedback; dry channels retain the existing 10% mix. Large Amount values produce longer modulated delays. Restart the rack after changing controls.",
   "isTemplate": false,
   "alwaysOn": true,
   "instrumentType": "continuous",
@@ -12,7 +12,7 @@
         "id": "chorus_00_buffer",
         "opcode": "delayr",
         "params": {
-          "idlt": 0.05,
+          "idlt": 0.25,
           "iskip": 0
         },
         "position": {
@@ -88,8 +88,8 @@
           "iphs": 0.34
         },
         "position": {
-          "x": 400,
-          "y": 480
+          "x": 397.991568522244,
+          "y": 478.6063944848224
         }
       },
       {
@@ -327,14 +327,29 @@
         }
       },
       {
+        "id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.001,
+          "max": 0.1,
+          "default": 0.02,
+          "scale": "logarithmic",
+          "label": "Amount"
+        },
+        "position": {
+          "x": -140.9941218694423,
+          "y": 742.9659673088706
+        }
+      },
+      {
         "id": "input_left",
         "opcode": "inleta",
         "params": {
           "sname": "left"
         },
         "position": {
-          "x": -78.16435984301552,
-          "y": 399.60669736880345
+          "x": -477.2435780541117,
+          "y": 450.66669714505986
         }
       },
       {
@@ -344,8 +359,8 @@
           "sname": "right"
         },
         "position": {
-          "x": -78.16435984301552,
-          "y": 579.6066973688035
+          "x": -477.2435780541117,
+          "y": 630.6666971450597
         }
       },
       {
@@ -695,6 +710,150 @@
         "from_port_id": "aout",
         "to_node_id": "output_right",
         "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_1",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_2",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_3",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_4",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_5",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_6",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_1",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_2",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_3",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_4",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_5",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_6",
+        "to_port_id": "xdlt"
       }
     ],
     "ui_layout": {
@@ -710,12 +869,17 @@
           ]
         },
         "left_tap_1::xdlt": {
-          "expression": "0.014 + wave",
+          "expression": "0.014 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "left_lfo_1",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -730,12 +894,17 @@
           ]
         },
         "left_tap_2::xdlt": {
-          "expression": "0.017 + wave",
+          "expression": "0.017 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "left_lfo_2",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -750,12 +919,17 @@
           ]
         },
         "left_tap_3::xdlt": {
-          "expression": "0.02 + wave",
+          "expression": "0.02 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "left_lfo_3",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -770,12 +944,17 @@
           ]
         },
         "left_tap_4::xdlt": {
-          "expression": "0.023 + wave",
+          "expression": "0.023 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "left_lfo_4",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -790,12 +969,17 @@
           ]
         },
         "left_tap_5::xdlt": {
-          "expression": "0.026 + wave",
+          "expression": "0.026 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "left_lfo_5",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -810,12 +994,17 @@
           ]
         },
         "left_tap_6::xdlt": {
-          "expression": "0.029 + wave",
+          "expression": "0.029 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "left_lfo_6",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -875,12 +1064,17 @@
           ]
         },
         "right_tap_1::xdlt": {
-          "expression": "0.0155 + wave",
+          "expression": "0.0155 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "right_lfo_1",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -895,12 +1089,17 @@
           ]
         },
         "right_tap_2::xdlt": {
-          "expression": "0.0185 + wave",
+          "expression": "0.0185 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "right_lfo_2",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -915,12 +1114,17 @@
           ]
         },
         "right_tap_3::xdlt": {
-          "expression": "0.0215 + wave",
+          "expression": "0.0215 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "right_lfo_3",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -935,12 +1139,17 @@
           ]
         },
         "right_tap_4::xdlt": {
-          "expression": "0.0245 + wave",
+          "expression": "0.0245 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "right_lfo_4",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -955,12 +1164,17 @@
           ]
         },
         "right_tap_5::xdlt": {
-          "expression": "0.0275 + wave",
+          "expression": "0.0275 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "right_lfo_5",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -975,12 +1189,17 @@
           ]
         },
         "right_tap_6::xdlt": {
-          "expression": "0.0305 + wave",
+          "expression": "0.0305 + amount + wave",
           "inputs": [
             {
               "token": "wave",
               "from_node_id": "right_lfo_6",
               "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
             }
           ]
         },

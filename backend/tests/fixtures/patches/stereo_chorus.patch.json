@@ -1,0 +1,1373 @@
+{
+  "name": "Stereo Chorus",
+  "description": "Continuous stereo chorus with twelve audio-rate sine LFOs. Amount (0.001–0.1 s, default 0.02) controls every LFO amplitude; each tap uses base + Amount + LFO, keeping delays between 14 and 230.5 ms inside a 250 ms buffer. LFO Frequency Multiplier (0.1–10, default 1). Wet taps share averaged stereo input and 8% normalized feedback; dry channels retain the existing 10% mix. Large Amount values produce longer modulated delays. Restart the rack after changing controls.",
+  "is_template": false,
+  "always_on": true,
+  "instrument_type": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "chorus_00_buffer",
+        "opcode": "delayr",
+        "params": {
+          "idlt": 0.25,
+          "iskip": 0
+        },
+        "position": {
+          "x": 0.0,
+          "y": -380.0
+        }
+      },
+      {
+        "id": "chorus_rate_multiplier",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 10,
+          "default": 1,
+          "scale": "logarithmic",
+          "label": "LFO Frequency Multiplier"
+        },
+        "position": {
+          "x": -74.40075620295083,
+          "y": -23.106139287683902
+        }
+      },
+      {
+        "id": "left_lfo_1",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0014,
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 400.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "left_tap_1",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "left_lfo_2",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0018,
+          "ifn": -1,
+          "iphs": 0.17
+        },
+        "position": {
+          "x": 400.0,
+          "y": 240.0
+        }
+      },
+      {
+        "id": "left_tap_2",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 240.0
+        }
+      },
+      {
+        "id": "left_lfo_3",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0022,
+          "ifn": -1,
+          "iphs": 0.34
+        },
+        "position": {
+          "x": 397.991568522244,
+          "y": 478.6063944848224
+        }
+      },
+      {
+        "id": "left_tap_3",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 480.0
+        }
+      },
+      {
+        "id": "left_lfo_4",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0026,
+          "ifn": -1,
+          "iphs": 0.51
+        },
+        "position": {
+          "x": 400.0,
+          "y": 720.0
+        }
+      },
+      {
+        "id": "left_tap_4",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 720.0
+        }
+      },
+      {
+        "id": "left_lfo_5",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.003,
+          "ifn": -1,
+          "iphs": 0.68
+        },
+        "position": {
+          "x": 400.0,
+          "y": 960.0
+        }
+      },
+      {
+        "id": "left_tap_5",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 960.0
+        }
+      },
+      {
+        "id": "left_lfo_6",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0034,
+          "ifn": -1,
+          "iphs": 0.85
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1200.0
+        }
+      },
+      {
+        "id": "left_tap_6",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 1200.0
+        }
+      },
+      {
+        "id": "mix_left",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1505.925713113467,
+          "y": 1035.5554506228295
+        }
+      },
+      {
+        "id": "right_lfo_1",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0016,
+          "ifn": -1,
+          "iphs": 0.09
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1500.0
+        }
+      },
+      {
+        "id": "right_tap_1",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 1500.0
+        }
+      },
+      {
+        "id": "right_lfo_2",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.002,
+          "ifn": -1,
+          "iphs": 0.26
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1740.0
+        }
+      },
+      {
+        "id": "right_tap_2",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 1740.0
+        }
+      },
+      {
+        "id": "right_lfo_3",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0024,
+          "ifn": -1,
+          "iphs": 0.43
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1980.0
+        }
+      },
+      {
+        "id": "right_tap_3",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 1980.0
+        }
+      },
+      {
+        "id": "right_lfo_4",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0028,
+          "ifn": -1,
+          "iphs": 0.6
+        },
+        "position": {
+          "x": 400.0,
+          "y": 2220.0
+        }
+      },
+      {
+        "id": "right_tap_4",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 2220.0
+        }
+      },
+      {
+        "id": "right_lfo_5",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0032,
+          "ifn": -1,
+          "iphs": 0.77
+        },
+        "position": {
+          "x": 400.0,
+          "y": 2460.0
+        }
+      },
+      {
+        "id": "right_tap_5",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 2460.0
+        }
+      },
+      {
+        "id": "right_lfo_6",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 0.0036,
+          "ifn": -1,
+          "iphs": 0.94
+        },
+        "position": {
+          "x": 400.0,
+          "y": 2700.0
+        }
+      },
+      {
+        "id": "right_tap_6",
+        "opcode": "deltap3",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 2700.0
+        }
+      },
+      {
+        "id": "mix_right",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1510.1969191801634,
+          "y": 1559.8113764441848
+        }
+      },
+      {
+        "id": "chorus_write",
+        "opcode": "delayw",
+        "params": {},
+        "position": {
+          "x": 1374.0960563570525,
+          "y": -286.2790083907364
+        }
+      },
+      {
+        "id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.001,
+          "max": 0.1,
+          "default": 0.02,
+          "scale": "logarithmic",
+          "label": "Amount"
+        },
+        "position": {
+          "x": -140.9941218694423,
+          "y": 742.9659673088706
+        }
+      },
+      {
+        "id": "input_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": -477.2435780541117,
+          "y": 450.66669714505986
+        }
+      },
+      {
+        "id": "input_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": -477.2435780541117,
+          "y": 630.6666971450597
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1905.7455971391646,
+          "y": 1196.731195487808
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1905.7455971391646,
+          "y": 1376.731195487808
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "left_lfo_1",
+        "from_port_id": "asig",
+        "to_node_id": "left_tap_1",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "left_lfo_2",
+        "from_port_id": "asig",
+        "to_node_id": "left_tap_2",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "left_lfo_3",
+        "from_port_id": "asig",
+        "to_node_id": "left_tap_3",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_4",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "left_lfo_4",
+        "from_port_id": "asig",
+        "to_node_id": "left_tap_4",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_5",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "left_lfo_5",
+        "from_port_id": "asig",
+        "to_node_id": "left_tap_5",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_6",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "left_lfo_6",
+        "from_port_id": "asig",
+        "to_node_id": "left_tap_6",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "left_tap_1",
+        "from_port_id": "aout",
+        "to_node_id": "mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "left_tap_2",
+        "from_port_id": "aout",
+        "to_node_id": "mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "left_tap_3",
+        "from_port_id": "aout",
+        "to_node_id": "mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "left_tap_4",
+        "from_port_id": "aout",
+        "to_node_id": "mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "left_tap_5",
+        "from_port_id": "aout",
+        "to_node_id": "mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "left_tap_6",
+        "from_port_id": "aout",
+        "to_node_id": "mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "input_left",
+        "from_port_id": "asignal",
+        "to_node_id": "mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "right_lfo_1",
+        "from_port_id": "asig",
+        "to_node_id": "right_tap_1",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "right_lfo_2",
+        "from_port_id": "asig",
+        "to_node_id": "right_tap_2",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "right_lfo_3",
+        "from_port_id": "asig",
+        "to_node_id": "right_tap_3",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_4",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "right_lfo_4",
+        "from_port_id": "asig",
+        "to_node_id": "right_tap_4",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_5",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "right_lfo_5",
+        "from_port_id": "asig",
+        "to_node_id": "right_tap_5",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "chorus_rate_multiplier",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_6",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "right_lfo_6",
+        "from_port_id": "asig",
+        "to_node_id": "right_tap_6",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "right_tap_1",
+        "from_port_id": "aout",
+        "to_node_id": "mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "right_tap_2",
+        "from_port_id": "aout",
+        "to_node_id": "mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "right_tap_3",
+        "from_port_id": "aout",
+        "to_node_id": "mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "right_tap_4",
+        "from_port_id": "aout",
+        "to_node_id": "mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "right_tap_5",
+        "from_port_id": "aout",
+        "to_node_id": "mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "right_tap_6",
+        "from_port_id": "aout",
+        "to_node_id": "mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "input_right",
+        "from_port_id": "asignal",
+        "to_node_id": "mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "input_left",
+        "from_port_id": "asignal",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "input_right",
+        "from_port_id": "asignal",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "left_tap_1",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "left_tap_2",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "left_tap_3",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "left_tap_4",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "left_tap_5",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "left_tap_6",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "right_tap_1",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "right_tap_2",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "right_tap_3",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "right_tap_4",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "right_tap_5",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "right_tap_6",
+        "from_port_id": "aout",
+        "to_node_id": "chorus_write",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_lfo_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_4",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_5",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_6",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_1",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_2",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_3",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_4",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_5",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "left_tap_6",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_1",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_2",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_lfo_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_3",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_4",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_5",
+        "to_port_id": "xdlt"
+      },
+      {
+        "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+        "from_port_id": "iout",
+        "to_node_id": "right_tap_6",
+        "to_port_id": "xdlt"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "left_lfo_1::freq": {
+          "expression": "rate * 0.101",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_tap_1::xdlt": {
+          "expression": "0.014 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "left_lfo_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_lfo_2::freq": {
+          "expression": "rate * 0.139",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_tap_2::xdlt": {
+          "expression": "0.017 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "left_lfo_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_lfo_3::freq": {
+          "expression": "rate * 0.173",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_tap_3::xdlt": {
+          "expression": "0.02 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "left_lfo_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_lfo_4::freq": {
+          "expression": "rate * 0.211",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_tap_4::xdlt": {
+          "expression": "0.023 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "left_lfo_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_lfo_5::freq": {
+          "expression": "rate * 0.251",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_tap_5::xdlt": {
+          "expression": "0.026 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "left_lfo_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_lfo_6::freq": {
+          "expression": "rate * 0.283",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "left_tap_6::xdlt": {
+          "expression": "0.029 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "left_lfo_6",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "mix_left::a": {
+          "expression": "0.8 * 0.92 * (tap1 + tap2 + tap3 + tap4 + tap5 + tap6) / 4",
+          "inputs": [
+            {
+              "token": "tap1",
+              "from_node_id": "left_tap_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap2",
+              "from_node_id": "left_tap_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap3",
+              "from_node_id": "left_tap_3",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap4",
+              "from_node_id": "left_tap_4",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap5",
+              "from_node_id": "left_tap_5",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap6",
+              "from_node_id": "left_tap_6",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "mix_left::b": {
+          "expression": "0.1 * dry",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "input_left",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "right_lfo_1::freq": {
+          "expression": "rate * 0.113",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_tap_1::xdlt": {
+          "expression": "0.0155 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "right_lfo_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_lfo_2::freq": {
+          "expression": "rate * 0.151",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_tap_2::xdlt": {
+          "expression": "0.0185 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "right_lfo_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_lfo_3::freq": {
+          "expression": "rate * 0.191",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_tap_3::xdlt": {
+          "expression": "0.0215 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "right_lfo_3",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_lfo_4::freq": {
+          "expression": "rate * 0.229",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_tap_4::xdlt": {
+          "expression": "0.0245 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "right_lfo_4",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_lfo_5::freq": {
+          "expression": "rate * 0.269",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_tap_5::xdlt": {
+          "expression": "0.0275 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "right_lfo_5",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_lfo_6::freq": {
+          "expression": "rate * 0.299",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "chorus_rate_multiplier",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "right_tap_6::xdlt": {
+          "expression": "0.0305 + amount + wave",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "right_lfo_6",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "0712c97b-afbc-400f-8282-6e5508ed10fd",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "mix_right::a": {
+          "expression": "0.8 * 0.92 * (tap1 + tap2 + tap3 + tap4 + tap5 + tap6) / 4",
+          "inputs": [
+            {
+              "token": "tap1",
+              "from_node_id": "right_tap_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap2",
+              "from_node_id": "right_tap_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap3",
+              "from_node_id": "right_tap_3",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap4",
+              "from_node_id": "right_tap_4",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap5",
+              "from_node_id": "right_tap_5",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tap6",
+              "from_node_id": "right_tap_6",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "mix_right::b": {
+          "expression": "0.1 * dry",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "input_right",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "chorus_write::asig": {
+          "expression": "0.5 * (left + right) + 0.08 * (left1 + left2 + left3 + left4 + left5 + left6 + right1 + right2 + right3 + right4 + right5 + right6) / 12",
+          "inputs": [
+            {
+              "token": "left",
+              "from_node_id": "input_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "right",
+              "from_node_id": "input_right",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "left1",
+              "from_node_id": "left_tap_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "left2",
+              "from_node_id": "left_tap_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "left3",
+              "from_node_id": "left_tap_3",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "left4",
+              "from_node_id": "left_tap_4",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "left5",
+              "from_node_id": "left_tap_5",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "left6",
+              "from_node_id": "left_tap_6",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "right1",
+              "from_node_id": "right_tap_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "right2",
+              "from_node_id": "right_tap_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "right3",
+              "from_node_id": "right_tap_3",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "right4",
+              "from_node_id": "right_tap_4",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "right5",
+              "from_node_id": "right_tap_5",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "right6",
+              "from_node_id": "right_tap_6",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "main-input": true,
+        "main-output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "main-input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "main-input",
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  },
+  "id": "3a1a3e13-4dbe-491c-8834-e5a13626a686"
+}

@@ -9,6 +9,15 @@ their own in-memory copy.
   live/offline rendering and native import/export. Its audio harness accepts a
   patch document and never loads examples from tests.
 
+- `stereo_delay.patch.json` freezes the continuous stereo delay with four performance
+  controls. Sample-level tests cover dry preservation, echo timing/decay, stereo
+  blending, overlapping input, fractional Beats, live/offline rendering and native
+  persistence/export. The harness accepts a patch document, never an example import.
+
+- `stereo_chorus.patch.json` preserves both controller IDs and the repaired variable
+  LFO depth: twelve taps use base + Amount + LFO inside a 250 ms buffer. Tests cover
+  silence, controller extremes, stereo dry gain and stable feedback at live/offline rates.
+
 - `analog_drumkit.patch.json` is a fixed copy of the five-voice analog drumkit
   supplied when this fixture was added. Backend audio regressions and frontend
   template tests share this snapshot.
