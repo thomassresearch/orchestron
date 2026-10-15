@@ -43,6 +43,10 @@ Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_desi
 
 Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
 
+The [Parametric Equalizer](documentation/instrument_design/parametric_equalizer.md)
+provides seven stereo bands from 63 Hz to 16 kHz, with linear −20 to +20 dB
+performance controls and neutral 0 dB defaults.
+
 Build composite waveforms with the [GEN19 table editor](documentation/instrument_design/gen_table_editor.md#gen19-sinusoidal-partials-with-dc-offset), setting each partial’s frequency ratio, strength, phase and DC offset.
 
 Hover over an instrument's description in Instrument Design to read the full text in a tooltip.

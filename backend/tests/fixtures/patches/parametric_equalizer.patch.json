@@ -1,0 +1,1127 @@
+{
+  "name": "Parametric Equalizer",
+  "description": "Seven-band stereo parametric equalizer: 63, 160, 400 Hz, 1, 2.5, 6.3 and 16 kHz. Linear gain controls: -20 to +20 dB, default 0 dB; ampdb converts to amplitude. Cascaded peaking filters, nominal Q 1.05 with gain compensation for symmetric boost/cut. Unity at neutral. Continuous insert: restart the rack after changing controls. Allow mixer headroom when boosting.",
+  "is_template": false,
+  "always_on": true,
+  "instrument_type": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+        "opcode": "perf_controller",
+        "params": {
+          "min": -20,
+          "max": 20,
+          "default": 0,
+          "scale": "linear",
+          "label": "63 Hz (dB)"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "39b6e5d1-96fc-4e39-be41-06f8b4aae181",
+        "opcode": "const_i",
+        "params": {
+          "value": 63
+        },
+        "position": {
+          "x": 0.0,
+          "y": 185.0
+        }
+      },
+      {
+        "id": "fa196f1a-efcc-4469-a21e-d5e0f0881b1b",
+        "opcode": "pareq",
+        "params": {
+          "kc": 63,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 0.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "7cb2ae93-0239-48dd-ac83-f712e43945c6",
+        "opcode": "pareq",
+        "params": {
+          "kc": 63,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 0.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "eq_160_gain_db",
+        "opcode": "perf_controller",
+        "params": {
+          "min": -20,
+          "max": 20,
+          "default": 0,
+          "scale": "linear",
+          "label": "160 Hz (dB)"
+        },
+        "position": {
+          "x": 340.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "eq_160_hz",
+        "opcode": "const_i",
+        "params": {
+          "value": 160
+        },
+        "position": {
+          "x": 340.0,
+          "y": 185.0
+        }
+      },
+      {
+        "id": "eq_160_left",
+        "opcode": "pareq",
+        "params": {
+          "kc": 160,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 340.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "eq_160_right",
+        "opcode": "pareq",
+        "params": {
+          "kc": 160,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 340.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+        "opcode": "perf_controller",
+        "params": {
+          "min": -20,
+          "max": 20,
+          "default": 0,
+          "scale": "linear",
+          "label": "400 Hz (dB)"
+        },
+        "position": {
+          "x": 680.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "2ddcb719-d475-4827-9c7d-ed00ef84f444",
+        "opcode": "const_i",
+        "params": {
+          "value": 400
+        },
+        "position": {
+          "x": 680.0,
+          "y": 185.0
+        }
+      },
+      {
+        "id": "05383763-9072-456a-a494-14b651938d3f",
+        "opcode": "pareq",
+        "params": {
+          "kc": 400,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 680.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "45af38c6-fd45-46f3-a525-bf0654bc16f5",
+        "opcode": "pareq",
+        "params": {
+          "kc": 400,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 680.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "377a004c-dd56-4042-b647-29f60bc7880a",
+        "opcode": "perf_controller",
+        "params": {
+          "min": -20,
+          "max": 20,
+          "default": 0,
+          "scale": "linear",
+          "label": "1 kHz (dB)"
+        },
+        "position": {
+          "x": 1020.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "f4220aa9-d2f0-47ac-a311-83a91729a713",
+        "opcode": "const_i",
+        "params": {
+          "value": 1000
+        },
+        "position": {
+          "x": 1020.0,
+          "y": 185.0
+        }
+      },
+      {
+        "id": "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567",
+        "opcode": "pareq",
+        "params": {
+          "kc": 1000,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1020.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "7d5b71b2-e423-4c3c-98f8-cc7d60fba496",
+        "opcode": "pareq",
+        "params": {
+          "kc": 1000,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1020.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "eq_2500_gain_db",
+        "opcode": "perf_controller",
+        "params": {
+          "min": -20,
+          "max": 20,
+          "default": 0,
+          "scale": "linear",
+          "label": "2.5 kHz (dB)"
+        },
+        "position": {
+          "x": 1360.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "eq_2500_hz",
+        "opcode": "const_i",
+        "params": {
+          "value": 2500
+        },
+        "position": {
+          "x": 1360.0,
+          "y": 185.0
+        }
+      },
+      {
+        "id": "eq_2500_left",
+        "opcode": "pareq",
+        "params": {
+          "kc": 2500,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1360.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "eq_2500_right",
+        "opcode": "pareq",
+        "params": {
+          "kc": 2500,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1360.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "eq_6300_gain_db",
+        "opcode": "perf_controller",
+        "params": {
+          "min": -20,
+          "max": 20,
+          "default": 0,
+          "scale": "linear",
+          "label": "6.3 kHz (dB)"
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "eq_6300_hz",
+        "opcode": "const_i",
+        "params": {
+          "value": 6300
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 185.0
+        }
+      },
+      {
+        "id": "eq_6300_left",
+        "opcode": "pareq",
+        "params": {
+          "kc": 6300,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1700.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "eq_6300_right",
+        "opcode": "pareq",
+        "params": {
+          "kc": 6300,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "eq_16000_gain_db",
+        "opcode": "perf_controller",
+        "params": {
+          "min": -20,
+          "max": 20,
+          "default": 0,
+          "scale": "linear",
+          "label": "16 kHz (dB)"
+        },
+        "position": {
+          "x": 2040.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "eq_16000_hz",
+        "opcode": "const_i",
+        "params": {
+          "value": 16000
+        },
+        "position": {
+          "x": 2040.0,
+          "y": 185.0
+        }
+      },
+      {
+        "id": "eq_16000_left",
+        "opcode": "pareq",
+        "params": {
+          "kc": 16000,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 2040.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "eq_16000_right",
+        "opcode": "pareq",
+        "params": {
+          "kc": 16000,
+          "kv": 1,
+          "kq": 1.05,
+          "imode": 0,
+          "iskip": 0
+        },
+        "position": {
+          "x": 2040.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "input-left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": -390.0,
+          "y": -180.0
+        }
+      },
+      {
+        "id": "output-left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2420.0,
+          "y": -180.0
+        }
+      },
+      {
+        "id": "input-right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": -390.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output-right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2420.0,
+          "y": 0.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "input-left",
+        "from_port_id": "asignal",
+        "to_node_id": "fa196f1a-efcc-4469-a21e-d5e0f0881b1b",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "39b6e5d1-96fc-4e39-be41-06f8b4aae181",
+        "from_port_id": "iout",
+        "to_node_id": "fa196f1a-efcc-4469-a21e-d5e0f0881b1b",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+        "from_port_id": "iout",
+        "to_node_id": "fa196f1a-efcc-4469-a21e-d5e0f0881b1b",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+        "from_port_id": "iout",
+        "to_node_id": "fa196f1a-efcc-4469-a21e-d5e0f0881b1b",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "input-right",
+        "from_port_id": "asignal",
+        "to_node_id": "7cb2ae93-0239-48dd-ac83-f712e43945c6",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "39b6e5d1-96fc-4e39-be41-06f8b4aae181",
+        "from_port_id": "iout",
+        "to_node_id": "7cb2ae93-0239-48dd-ac83-f712e43945c6",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+        "from_port_id": "iout",
+        "to_node_id": "7cb2ae93-0239-48dd-ac83-f712e43945c6",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+        "from_port_id": "iout",
+        "to_node_id": "7cb2ae93-0239-48dd-ac83-f712e43945c6",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "fa196f1a-efcc-4469-a21e-d5e0f0881b1b",
+        "from_port_id": "ares",
+        "to_node_id": "eq_160_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_160_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_160_left",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_160_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_160_left",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_160_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_160_left",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "7cb2ae93-0239-48dd-ac83-f712e43945c6",
+        "from_port_id": "ares",
+        "to_node_id": "eq_160_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_160_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_160_right",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_160_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_160_right",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_160_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_160_right",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "eq_160_left",
+        "from_port_id": "ares",
+        "to_node_id": "05383763-9072-456a-a494-14b651938d3f",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "2ddcb719-d475-4827-9c7d-ed00ef84f444",
+        "from_port_id": "iout",
+        "to_node_id": "05383763-9072-456a-a494-14b651938d3f",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+        "from_port_id": "iout",
+        "to_node_id": "05383763-9072-456a-a494-14b651938d3f",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+        "from_port_id": "iout",
+        "to_node_id": "05383763-9072-456a-a494-14b651938d3f",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "eq_160_right",
+        "from_port_id": "ares",
+        "to_node_id": "45af38c6-fd45-46f3-a525-bf0654bc16f5",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "2ddcb719-d475-4827-9c7d-ed00ef84f444",
+        "from_port_id": "iout",
+        "to_node_id": "45af38c6-fd45-46f3-a525-bf0654bc16f5",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+        "from_port_id": "iout",
+        "to_node_id": "45af38c6-fd45-46f3-a525-bf0654bc16f5",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+        "from_port_id": "iout",
+        "to_node_id": "45af38c6-fd45-46f3-a525-bf0654bc16f5",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "05383763-9072-456a-a494-14b651938d3f",
+        "from_port_id": "ares",
+        "to_node_id": "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "f4220aa9-d2f0-47ac-a311-83a91729a713",
+        "from_port_id": "iout",
+        "to_node_id": "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+        "from_port_id": "iout",
+        "to_node_id": "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+        "from_port_id": "iout",
+        "to_node_id": "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "45af38c6-fd45-46f3-a525-bf0654bc16f5",
+        "from_port_id": "ares",
+        "to_node_id": "7d5b71b2-e423-4c3c-98f8-cc7d60fba496",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "f4220aa9-d2f0-47ac-a311-83a91729a713",
+        "from_port_id": "iout",
+        "to_node_id": "7d5b71b2-e423-4c3c-98f8-cc7d60fba496",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+        "from_port_id": "iout",
+        "to_node_id": "7d5b71b2-e423-4c3c-98f8-cc7d60fba496",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+        "from_port_id": "iout",
+        "to_node_id": "7d5b71b2-e423-4c3c-98f8-cc7d60fba496",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567",
+        "from_port_id": "ares",
+        "to_node_id": "eq_2500_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_2500_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_2500_left",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_2500_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_2500_left",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_2500_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_2500_left",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "7d5b71b2-e423-4c3c-98f8-cc7d60fba496",
+        "from_port_id": "ares",
+        "to_node_id": "eq_2500_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_2500_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_2500_right",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_2500_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_2500_right",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_2500_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_2500_right",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "eq_2500_left",
+        "from_port_id": "ares",
+        "to_node_id": "eq_6300_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_6300_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_6300_left",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_6300_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_6300_left",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_6300_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_6300_left",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "eq_2500_right",
+        "from_port_id": "ares",
+        "to_node_id": "eq_6300_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_6300_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_6300_right",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_6300_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_6300_right",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_6300_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_6300_right",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "eq_6300_left",
+        "from_port_id": "ares",
+        "to_node_id": "eq_16000_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_16000_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_16000_left",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_16000_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_16000_left",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_16000_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_16000_left",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "eq_6300_right",
+        "from_port_id": "ares",
+        "to_node_id": "eq_16000_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "eq_16000_hz",
+        "from_port_id": "iout",
+        "to_node_id": "eq_16000_right",
+        "to_port_id": "kc"
+      },
+      {
+        "from_node_id": "eq_16000_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_16000_right",
+        "to_port_id": "kv"
+      },
+      {
+        "from_node_id": "eq_16000_gain_db",
+        "from_port_id": "iout",
+        "to_node_id": "eq_16000_right",
+        "to_port_id": "kq"
+      },
+      {
+        "from_node_id": "eq_16000_left",
+        "from_port_id": "ares",
+        "to_node_id": "output-left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "eq_16000_right",
+        "from_port_id": "ares",
+        "to_node_id": "output-right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "fa196f1a-efcc-4469-a21e-d5e0f0881b1b::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "fa196f1a-efcc-4469-a21e-d5e0f0881b1b::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "7cb2ae93-0239-48dd-ac83-f712e43945c6::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "7cb2ae93-0239-48dd-ac83-f712e43945c6::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "d4c20b81-8b7c-4312-91b6-8997156f2ca2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_160_left::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_160_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_160_left::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_160_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_160_right::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_160_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_160_right::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_160_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "05383763-9072-456a-a494-14b651938d3f::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "05383763-9072-456a-a494-14b651938d3f::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "45af38c6-fd45-46f3-a525-bf0654bc16f5::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "45af38c6-fd45-46f3-a525-bf0654bc16f5::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "cded9f16-e830-42d7-964f-d9bce78a3cd8",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "3a4409dd-bec4-4dd9-ae8e-f48a0ba75567::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "7d5b71b2-e423-4c3c-98f8-cc7d60fba496::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "7d5b71b2-e423-4c3c-98f8-cc7d60fba496::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "377a004c-dd56-4042-b647-29f60bc7880a",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_2500_left::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_2500_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_2500_left::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_2500_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_2500_right::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_2500_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_2500_right::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_2500_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_6300_left::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_6300_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_6300_left::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_6300_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_6300_right::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_6300_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_6300_right::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_6300_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_16000_left::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_16000_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_16000_left::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_16000_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_16000_right::kv": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_16000_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "eq_16000_right::kq": {
+          "expression": "1.05 * ampdb(db / 2)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "eq_16000_gain_db",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "main-input": true,
+        "main-output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "main-input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "main-input",
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  },
+  "id": "8d9a8ca4-7983-431c-8a64-ff6c161731d2"
+}

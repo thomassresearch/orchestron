@@ -4,6 +4,12 @@ Instrument patches used by tests live in `patches/`. Load a fresh `PatchDocument
 with `backend.tests.csound_test_support.load_patch_fixture` so tests can modify
 their own in-memory copy.
 
+- `parametric_equalizer_original.patch.json` preserves the original three-band
+  parallel-sum fault. `parametric_equalizer.patch.json` freezes its seven-band
+  stereo cascade with linear dB controls and symmetric gain-compensated Q.
+  Tests cover neutral unity, measured complex frequency response against an
+  independent RBJ oracle, stereo isolation, extremes and persistence/exports.
+
 - `tube_overdrive.patch.json` is an independent stereo insert snapshot for silence,
   asymmetry, drive/tone/output response, DC removal, headroom, stereo isolation,
   live/offline rendering and native import/export. Its audio harness accepts a

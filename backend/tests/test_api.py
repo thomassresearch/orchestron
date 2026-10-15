@@ -7737,6 +7737,13 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
      {"sd_tempo": 120, "sd_beats": 4, "sd_feedback": 0.5, "sd_stereo": 0.5}),
     ("stereo_chorus", {"chorus_rate_multiplier": 10, "0712c97b-afbc-400f-8282-6e5508ed10fd": 0.1},
      {"chorus_rate_multiplier": 1, "0712c97b-afbc-400f-8282-6e5508ed10fd": 0.02}),
+    ("parametric_equalizer",
+     {"d4c20b81-8b7c-4312-91b6-8997156f2ca2": -20, "eq_160_gain_db": 6,
+      "cded9f16-e830-42d7-964f-d9bce78a3cd8": -4, "377a004c-dd56-4042-b647-29f60bc7880a": 20,
+      "eq_2500_gain_db": 0, "eq_6300_gain_db": -8, "eq_16000_gain_db": 12},
+     {"d4c20b81-8b7c-4312-91b6-8997156f2ca2": 0, "eq_160_gain_db": 0,
+      "cded9f16-e830-42d7-964f-d9bce78a3cd8": 0, "377a004c-dd56-4042-b647-29f60bc7880a": 0,
+      "eq_2500_gain_db": 0, "eq_6300_gain_db": 0, "eq_16000_gain_db": 0}),
 ])
 def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixture, values, defaults):
     """The example fixture remains a stereo continuous insert through native import."""
@@ -7775,15 +7782,24 @@ def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixt
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-def test_stereo_delay_create_save_and_performance_exports(tmp_path, event_source):
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer"])
+def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
     from backend.app.models.export import ExportedPatchDefinition
     from backend.tests.csound_test_support import load_patch_fixture
     from backend.tools.stereo_delay_audio import insert_graph, probe_source
 
-    patch = load_patch_fixture("stereo_delay")
-    values = dict(sd_tempo=137, sd_beats=1.375, sd_feedback=0.9, sd_stereo=1)
+    patch = load_patch_fixture(fixture)
+    if fixture == "stereo_delay":
+        values = dict(sd_tempo=137, sd_beats=1.375, sd_feedback=0.9, sd_stereo=1)
+        controls = [("Tempo (BPM)", 40, 180, 120), ("Beats", 1, 16, 4),
+                    ("Feedback", 0, 0.9, 0.5), ("Stereo", 0, 1, 0.5)]
+    else:
+        identities = [n.id for n in patch.graph.nodes if n.opcode == "perf_controller"]
+        values = dict(zip(identities, [-20, 6, -4, 20, 0, -8, 12]))
+        controls = [(label + " (dB)", -20, 20, 0)
+                    for label in ["63 Hz", "160 Hz", "400 Hz", "1 kHz", "2.5 kHz", "6.3 kHz", "16 kHz"]]
     payload = _performance_csd_export_payload()
     payload["eventSource"] = event_source
     performance = payload["performanceExport"]
@@ -7803,9 +7819,8 @@ def test_stereo_delay_create_save_and_performance_exports(tmp_path, event_source
         assert restored["instrument_type"] == "continuous" and restored["always_on"]
         assert restored["graph"] == patch.graph.model_dump(mode="json", by_alias=True)
         listed = next(p for p in client.get("/api/patches").json() if p["id"] == restored["id"])
-        assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == [
-            ("Tempo (BPM)", 40, 180, 120), ("Beats", 1, 16, 4), ("Feedback", 0, 0.9, 0.5), ("Stereo", 0, 1, 0.5),
-        ]
+        assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == controls
+        assert all(c["scale"] == "linear" for c in listed["performance_controllers"])
         saved = client.post("/api/performances", json=dict(name="Delay controls", config=config))
         assert saved.status_code == 201, saved.text
         assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"] == config
@@ -7820,11 +7835,16 @@ def test_stereo_delay_create_save_and_performance_exports(tmp_path, event_source
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         assert "ksmps = 1" in csd
-        assert " flanger " in csd and " delay " in csd
+        if fixture == "stereo_delay":
+            assert " flanger " in csd and " delay " in csd
+        else:
+            assert csd.count(" pareq ") == 14
+            assert csd.count("ampdb(") == 28
         initial_values = {channel: float(value) for value, channel in
-                          re.findall(r'chnset ([\d.]+), "(__vcs_perf_[^"]+)"', csd)}
+                          re.findall(r'chnset (-?[\d.]+), "(__vcs_perf_[^"]+)"', csd)}
         for identity, value in values.items():
-            channel = re.search(rf'i_{identity}_iout_\d+ chnget "([^"]+)"', csd)
+            safe_identity = identity.replace("-", "_")
+            channel = re.search(rf'i_{safe_identity}_iout_\d+ chnget "([^"]+)"', csd)
             assert channel is not None
             assert initial_values[channel[1]] == value
 

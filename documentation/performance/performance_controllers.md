@@ -44,6 +44,11 @@ controls.
 Feedback and Stereo. At its defaults, echoes repeat every two seconds. Set Tempo
 manually and restart the rack to apply changed settings.
 
+[Parametric Equalizer](../instrument_design/parametric_equalizer.md) provides seven
+gain controls at 63 Hz, 160 Hz, 400 Hz, 1 kHz, 2.5 kHz, 6.3 kHz and 16 kHz.
+All use a linear −20 to +20 dB range with 0 dB defaults. The graph converts dB
+to amplitude for each filter; restart the rack after changing settings.
+
 The [Analog Drumkit](../../examples/instruments/analog_drumkit/README.md) has shared
 **BD snappiness** for notes 35/36, shared **Hi-hat tuning** for 42/46, and **Snare
 tuning** for 38. Each defaults to **1**, preserving the original sound. Side stick
