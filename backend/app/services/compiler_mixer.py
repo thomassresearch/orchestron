@@ -83,11 +83,11 @@ def normalize_audio_inputs(targets, graph, mixer, levels):
     return legacy_audio_graph(targets), MixerState(strips=strips, sends=mixer.sends)
 
 
-def _reachable(start: str, adjacency: dict[str, list[str]]) -> set[str]:
+def _reachable(start: str, adjacency: dict[str, list[str]], *, blocked: set[str] | None = None) -> set[str]:
     seen, todo = set(), [start]
     while todo:
         current = todo.pop()
-        if current not in seen:
+        if current not in seen and (blocked is None or current not in blocked):
             seen.add(current)
             todo.extend(adjacency.get(current, []))
     return seen
@@ -285,8 +285,18 @@ class ResolvedMixerGraph:
                         message=f"{target.patch.name}: no connected audio source.",
                     )
                 )
-            if any(r.source_id == identity and r.target_id == OUTPUT for r in self.routes) and any(
-                r.source_id == identity and r.target_id != OUTPUT for r in self.routes
+            outgoing = [r for r in self.routes if r.source_id == identity]
+            direct_outputs: dict[str, set[str]] = defaultdict(set)
+            for route in outgoing:
+                if route.target_id == OUTPUT:
+                    direct_outputs[route.source_stage].add("route:" + route.id)
+            # A serial insert ultimately uses its owner's direct output routes.
+            # Block each stage's whole stereo exit when looking for another path;
+            # raw bypasses and separate routed exits must still be reported.
+            if any(
+                OUTPUT in _reachable("route:" + r.id, adjacency, blocked=direct_routes)
+                for direct_routes in direct_outputs.values()
+                for r in outgoing if r.target_id != OUTPUT
             ):
                 self.diagnostics.append(
                     AudioDiagnostic(

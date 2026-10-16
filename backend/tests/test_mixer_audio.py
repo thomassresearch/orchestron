@@ -10,7 +10,7 @@ from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.models.audio import AudioGraph, AudioRoute, MixerState, MixerStrip
 from backend.app.models.patch import Connection, EngineConfig, NodeInstance, PatchDocument, PatchGraph
 from backend.app.services.compiler_common import CompilationProfile, PatchInstrumentTarget
-from backend.app.services.compiler_mixer import channel
+from backend.app.services.compiler_mixer import ResolvedMixerGraph, channel
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 
@@ -134,6 +134,88 @@ def route(identity, source_id, target_id="$output", source_port="left", target_p
     return AudioRoute(
         id=identity, sourceId=source_id, sourcePort=source_port, targetId=target_id, targetPort=target_port, **kwargs
     )
+
+
+@pytest.mark.parametrize("owner", ["$master", "source"])
+@pytest.mark.parametrize("insert_count", [1, 2])
+def test_serial_inserts_do_not_report_parallel_output(owner, insert_count):
+    targets = [source(direct=False)] + [effect(f"insert-{i}") for i in range(insert_count)]
+    owner_port = "$direct.left" if owner == "$master" else "left"
+    routes = ([route("feed", "source", "$master")] if owner == "$master"
+              else [route("output", "source")])
+    routes.append(route("insert-in", owner, "insert-0", owner_port, kind="insert", sourceStage="raw"))
+    for i in range(1, insert_count):
+        routes.append(route(f"chain-{i}", f"insert-{i-1}", f"insert-{i}", kind="insert"))
+    routes.append(route("insert-out", f"insert-{insert_count-1}", owner,
+                        target_port=owner_port, targetStage="strip", kind="insert"))
+    resolved = ResolvedMixerGraph(targets, AudioGraph(
+        masterId="$master" if owner == "$master" else None,
+        insertOwners={f"insert-{i}": owner for i in range(insert_count)}, routes=routes,
+    ))
+    assert not any(d.code == "parallel_output" for d in resolved.diagnostics)
+
+
+@pytest.mark.parametrize("source_stage", ["raw", "strip"])
+@pytest.mark.parametrize("kind", ["send", "custom", "insert"])
+def test_master_parallel_branch_is_reported_even_with_an_insert(source_stage, kind):
+    graph = AudioGraph(masterId="$master", insertOwners={"insert": "$master"}, routes=[
+        route("feed", "source", "$master"),
+        route("insert-in", "$master", "insert", "$direct.left", sourceStage="raw", kind="insert"),
+        route("insert-out", "insert", "$master", target_port="$direct.left", targetStage="strip", kind="insert"),
+        route("parallel", "$master", "parallel", "$direct.left", sourceStage=source_stage, kind=kind),
+        route("parallel-output", "parallel"),
+    ])
+    resolved = ResolvedMixerGraph([source(direct=False), effect("insert"), effect("parallel")], graph)
+    assert [(d.instance_id, d.code) for d in resolved.diagnostics if d.code == "parallel_output"] == [
+        ("$master", "parallel_output"),
+    ]
+
+
+def test_insert_output_split_between_owner_return_and_output_remains_parallel():
+    graph = AudioGraph(masterId="$master", insertOwners={"insert": "$master"}, routes=[
+        route("feed", "source", "$master"),
+        route("insert-in", "$master", "insert", "$direct.left", sourceStage="raw", kind="insert"),
+        route("insert-out", "insert", "$master", target_port="$direct.left", targetStage="strip", kind="insert"),
+        route("bypass", "insert"),
+    ])
+    resolved = ResolvedMixerGraph([source(direct=False), effect("insert")], graph)
+    assert {d.instance_id for d in resolved.diagnostics if d.code == "parallel_output"} == {"$master", "insert"}
+
+
+def test_raw_master_bypass_alongside_inserted_strip_output_is_reported():
+    graph = AudioGraph(masterId="$master", insertOwners={"insert": "$master"}, routes=[
+        route("feed", "source", "$master"),
+        route("insert-in", "$master", "insert", "$direct.left", sourceStage="raw", kind="insert"),
+        route("insert-out", "insert", "$master", target_port="$direct.left", targetStage="strip", kind="insert"),
+        route("raw-bypass", "$master", source_port="$direct.left", sourceStage="raw"),
+    ])
+    resolved = ResolvedMixerGraph([source(direct=False), effect("insert")], graph)
+    assert any(d.instance_id == "$master" and d.code == "parallel_output" for d in resolved.diagnostics)
+
+
+def test_insert_return_to_another_port_does_not_hide_a_parallel_exit():
+    target = source()
+    target.patch.graph.nodes.append(NodeInstance(id="wet", opcode="outleta", params={"sname": "wet"}))
+    target.patch.graph.connections.append(
+        Connection(from_node_id="signal", from_port_id="aout", to_node_id="wet", to_port_id="asignal")
+    )
+    graph = AudioGraph(masterId="$master", insertOwners={"insert": "source"}, routes=[
+        route("insert-in", "source", "insert", "$direct.left", sourceStage="raw", kind="insert"),
+        route("insert-out", "insert", "source", target_port="wet", targetStage="strip", kind="insert"),
+        route("wet-output", "source", "$master", "wet"),
+    ])
+    resolved = ResolvedMixerGraph([target, effect("insert")], graph)
+    assert any(d.instance_id == "source" and d.code == "parallel_output" for d in resolved.diagnostics)
+
+
+@pytest.mark.parametrize("return_connected", [False, True])
+def test_direct_source_branch_warns_only_when_it_also_reaches_output(return_connected):
+    routes = [route("branch", "source", "effect", "$direct.left")]
+    if return_connected:
+        routes.append(route("return", "effect"))
+    resolved = ResolvedMixerGraph([source(), effect()], AudioGraph(routes=routes))
+    assert any(d.instance_id == "source" and d.code == "parallel_output"
+               for d in resolved.diagnostics) == return_connected
 
 
 @pytest.mark.parametrize("tap, expected", [("pre", 0.4), ("post", 0.2)])

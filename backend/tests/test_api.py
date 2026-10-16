@@ -2498,6 +2498,68 @@ def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event
     assert ("; Measure 1 | 00:00" in csd) == (event_source == "score")
 
 
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+@pytest.mark.parametrize("parallel_output", [False, True])
+def test_master_insert_diagnostics_in_validation_and_csd_export(
+    tmp_path: Path, event_source: str, parallel_output: bool,
+) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    source_patch = _audio_outlet_only_source_patch_payload(name="Source")
+    insert_patch = _always_on_effect_with_outlets_patch_payload(name="Insert")
+    insert_patch["graph"]["nodes"] = [n for n in insert_patch["graph"]["nodes"] if n["id"] != "outs"]
+    insert_patch["graph"]["connections"] = [
+        c for c in insert_patch["graph"]["connections"] if c["to_node_id"] != "outs"
+    ]
+    routes = []
+    for side in ("left", "right"):
+        routes.extend([
+            {"id": f"feed-{side}", "sourceId": "source", "sourcePort": side,
+             "targetId": "$master", "targetPort": side, "kind": "main"},
+            {"id": f"insert-in-{side}", "sourceId": "$master", "sourcePort": f"$direct.{side}",
+             "sourceStage": "raw", "targetId": "first", "targetPort": side, "kind": "insert"},
+            {"id": f"chain-{side}", "sourceId": "first", "sourcePort": side,
+             "targetId": "last", "targetPort": side, "kind": "insert"},
+            {"id": f"insert-out-{side}", "sourceId": "last", "sourcePort": side,
+             "targetId": "$master", "targetPort": f"$direct.{side}", "targetStage": "strip", "kind": "insert"},
+        ])
+        if parallel_output:
+            routes.append({"id": f"bypass-{side}", "sourceId": "last", "sourcePort": side,
+                           "targetId": "$output", "targetPort": side, "kind": "main"})
+    graph = {"masterId": "$master", "insertOwners": {"first": "$master", "last": "$master"}, "routes": routes}
+    with _client(tmp_path) as client:
+        assignments, definitions = [], []
+        for identity, patch, midi_channel in [("source", source_patch, 1), ("first", insert_patch, 0), ("last", insert_patch, 0)]:
+            response = client.post("/api/patches", json=patch)
+            assert response.status_code == 201, response.text
+            patch_id = response.json()["id"]
+            assignments.append({"id": identity, "patch_id": patch_id, "midi_channel": midi_channel})
+            definitions.append({"sourcePatchId": patch_id, **patch})
+        validation = client.post("/api/sessions/validate-instruments", json={
+            "instruments": assignments, "audio_graph": graph,
+        })
+        assert validation.status_code == 200, validation.text
+        assert validation.json()["valid"] is True
+        expected_instances = {"$master", "last"} if parallel_output else set()
+        assert {d["instanceId"] for d in validation.json()["diagnostics"]
+                if d["code"] == "parallel_output"} == expected_instances
+        exported = payload["performanceExport"]
+        exported["patch_definitions"] = definitions
+        exported["performance"]["config"].update(
+            version=19, audioGraph=graph, mixer={"strips": {}, "sends": {}},
+            instruments=[{"id": a["id"], "patchId": a["patch_id"], "midiChannel": a["midi_channel"]}
+                         for a in assignments],
+        )
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            warnings_file = "Offline_Export/WARNINGS.txt"
+            if parallel_output:
+                assert "Master: direct and routed output paths are both present." in archive.read(warnings_file).decode()
+            else:
+                assert warnings_file not in archive.namelist()
+
+
 def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
     asset_dir = tmp_path / "gen_audio_assets"
     asset_dir.mkdir(parents=True, exist_ok=True)

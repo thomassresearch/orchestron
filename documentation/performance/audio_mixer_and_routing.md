@@ -96,9 +96,11 @@ Invalid insert assignments appear in red, including an insert whose processor or
 | Feedback cycle | Remove a connection that feeds a processing path back into itself. Playback and CSD export remain blocked until genuine cycles are resolved. |
 | Connect an audio output / Select an audio source | Follow the source to an output sink; route audio into effects that require inputs. |
 | Complete stereo mapping / Unused ports | Check both channel mappings and the declared audio groups. These structural warnings do not prove a patch is silent. |
-| Review parallel output paths | Check whether both direct and processed copies intentionally reach the output. |
+| Review parallel output paths | Check whether both direct and processed copies intentionally reach the output. Serial insert chains, including Master inserts, do not trigger this warning. |
 | Muted or silent path | Clear Mute or raise a fader/send from silence; also check active solos and whether the source is producing notes/audio. |
 | CLIP | Reduce gain along the contributing paths. No limiter is applied automatically. |
+
+The same routing diagnostics appear in CSD exports. A serial insert feeds back into its owner's strip before reaching Audio Output. A parallel-output warning means the other branch can reach Audio Output through a separate exit, such as a shared effect return or an additional output from an insert processor.
 
 <p align="center">
   <img src="../../screenshots/perform_routing_diagnostics_silent_path.png" alt="Routing diagnostics identifying a muted Sine Lead path" width="760" style="max-width: 100%; height: auto;" />
