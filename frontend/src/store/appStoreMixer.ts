@@ -3,6 +3,7 @@ import type { StoreApi } from "zustand";
 import { api } from "../api/client";
 import { MASTER, defaultStrip, emptyAudioGraph, emptyMixer, newRoute, mainPorts } from "../lib/audioRouting";
 import { audioCopy } from "../lib/audioCopy";
+import { canBypassInsert } from "../lib/insertRouting";
 import type { MixerState } from "../types";
 import type { AppStore } from "./appStoreTypes";
 
@@ -58,6 +59,8 @@ export function createMixerActions(set: StoreApi<AppStore>["setState"], get: Sto
     },
     setMixerStrip: (id, update) => {
       const state = get();
+      const binding = state.sequencerInstruments.find((item) => item.id === id);
+      if (update.bypass && !canBypassInsert(state.audioGraph, id, state.patches.find((patch) => patch.id === binding?.patchId))) return;
       set({ mixer: { ...state.mixer, strips: { ...state.mixer.strips, [id]: { ...defaultStrip(), ...state.mixer.strips[id], ...update } } } });
       schedule();
     },

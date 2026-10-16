@@ -91,3 +91,27 @@ it("uses the shared removal action for the insert × button", () => {
   expect(state.sequencerInstruments.map(b => b.id)).toEqual(["source"]);
   expect(state.audioGraph).toEqual(emptyAudioGraph());
 });
+
+it("offers live bypass only on continuous inserts and preserves the routing graph", async () => {
+  const graph = wireInsertChain(emptyAudioGraph(), bindings, [source, effect], "source", ["insert"]);
+  const flush = vi.fn().mockResolvedValue(undefined);
+  useAppStore.setState({ audioGraph: graph, activeSessionState: "running", flushMixer: flush });
+  render(<PerformMixer onStop={() => undefined} />);
+  const details = screen.getByText("Inserts · 1").closest("details")!;
+  details.open = true; fireEvent(details, new Event("toggle"));
+  const toggle = within(details).getByRole("button", { name: `${effect.name} Bypass` });
+  expect((toggle as HTMLButtonElement).disabled).toBe(false);
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+  expect(screen.getAllByRole("button", { name: /Bypass/ })).toHaveLength(1);
+  expect((within(details).getByRole("button", { name: "×" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(toggle);
+  expect(useAppStore.getState().mixer.strips.insert.bypass).toBe(true);
+  expect(useAppStore.getState().audioGraph).toBe(graph);
+  expect(useAppStore.getState().activeSessionState).toBe("running");
+  expect(within(details).getByText("Bypassed")).toBeTruthy();
+  expect(flush).toHaveBeenCalledOnce();
+  fireEvent.click(toggle);
+  expect(useAppStore.getState().mixer.strips.insert.bypass).toBe(false);
+  act(() => useAppStore.setState({ patches: [source, { ...effect, always_on: false }] }));
+  expect(screen.queryByRole("button", { name: /Bypass/ })).toBeNull();
+});

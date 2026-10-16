@@ -1,12 +1,12 @@
 import { EditorDetails, EditorScope, RetainedScroll, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { MixerKnob } from "./MixerKnob";
 import { SEQUENCER_UI_COPY } from "./sequencer/sequencerUiCopy";
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { api } from "../api/client";
 import { audioCopy } from "../lib/audioCopy";
 import { groupRackInstruments, type RackInstrumentBindingRow } from "../lib/rackOrdering";
 import { MASTER, masterEndpoint, audioGraphDiagnostics, defaultStrip, mainPorts, newRoute, outputPorts, suggestedInterface } from "../lib/audioRouting";
-import { insertChain, wireInsertChain } from "../lib/insertRouting";
+import { canBypassInsert, insertChain, wireInsertChain } from "../lib/insertRouting";
 import { meterSnapshot, subscribeMeters } from "../lib/mixerRuntime";
 import { buildSequencerConfigSnapshot, normalizeSessionInstrumentAssignments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
@@ -163,6 +163,35 @@ function MixerBody({ onStop }: { onStop: () => void }) {
       applyGraph({ ...current.audioGraph, routes: [...current.audioGraph.routes.filter((r) => !(r.sourceId === id && r.kind === "main")), ...ports.map((sourcePort, i) => newRoute({ sourceId: id, sourcePort, targetId: masterId, targetPort: inputs[i], kind: "main", sourceStage: "strip", targetStage: "input" }))] });
     } catch (e) { setError(String(e)); }
   };
+  const insertRows = (owner: string, ancestors: string[] = []): ReactNode => {
+    if (ancestors.includes(owner)) return null;
+    const chain = insertChain(graph, owner);
+    const processors = chain ?? Object.keys(graph.insertOwners).filter((id) => graph.insertOwners[id] === owner);
+    return processors.map((processorId, i) => {
+      const patch = byId.get(processorId);
+      const bypassed = mixer.strips[processorId]?.bypass ?? false;
+      const eligible = canBypassInsert(graph, processorId, patch);
+      return <div key={processorId} className="my-2 rounded border border-slate-700 p-1.5">
+        <div className="flex items-center gap-1">
+          <button className="min-w-0 flex-1 truncate text-left" title={name(processorId)} onClick={() => open(processorId)}>{name(processorId)}</button>
+          <button disabled={running || !chain || !i} className={button} onClick={() => {
+            if (!chain) return;
+            const next = [...chain]; [next[i - 1], next[i]] = [next[i], next[i - 1]];
+            applyGraph(wireInsertChain(graph, bindings, patches, owner, next));
+          }}>↑</button>
+          <button disabled={running} className={button} onClick={() => useAppStore.getState().removeSequencerInstrument(processorId)}>×</button>
+        </div>
+        {patch?.always_on && <div className="mt-1 flex flex-wrap items-center justify-between gap-1">
+          <button className={`${button} ${bypassed ? "border-amber-500 bg-amber-950 text-amber-200" : ""}`}
+            aria-label={`${name(processorId)} ${t("bypass")}`} aria-pressed={bypassed} disabled={!eligible}
+            title={t(eligible ? "bypassHelp" : "bypassMapping")}
+            onClick={() => { setStrip(processorId, { bypass: !bypassed }); flush(); }}>{t("bypass")}</button>
+          <span className={`text-[10px] ${bypassed ? "text-amber-200" : "text-emerald-300"}`}>{t(bypassed ? "insertBypassed" : "insertActive")}</span>
+        </div>}
+        {insertRows(processorId, [...ancestors, owner])}
+      </div>;
+    });
+  };
   const strip = (id: string, row?: RackInstrumentBindingRow) => {
     const state = mixer.strips[id] ?? defaultStrip(); const patch = byId.get(id); const master = id === MASTER;
     const assignment = row ? `${SEQUENCER_UI_COPY[language].patch(row.index + 1)} · ${patch?.always_on ? t("continuous") : `${t("midiChannelShort")} ${row.binding.midiChannel}`}` : undefined;
@@ -177,7 +206,7 @@ function MixerBody({ onStop }: { onStop: () => void }) {
         <input aria-label={`${name(id)} ${t("balance")} value`} className={`${field} my-1 w-20 self-center text-center`} type="number" min={-1} max={1} step={0.01} value={state.balance} onChange={(e) => setStrip(id, { balance: Math.max(-1, Math.min(1, Number(e.target.value))) })} onBlur={flush} /></label>
       <Gain value={state.gainDb} label={t("gain")} vertical language={language} onChange={(gainDb) => setStrip(id, { gainDb })} onFinal={flush} />
       <div className="my-3 flex justify-center gap-2"><button className={`${button} ${state.mute ? "bg-rose-800" : ""}`} aria-pressed={state.mute} onClick={() => { setStrip(id, { mute: !state.mute }); flush(); }}>{t("mute")}</button>{!master && <button className={`${button} ${state.solo ? "bg-amber-700" : ""}`} aria-pressed={state.solo} onClick={() => { setStrip(id, { solo: !state.solo }); flush(); }}>{t("solo")}</button>}</div>
-      <EditorDetails owner={`binding:${id}`} field="inserts" className="text-xs" summary={<>{t("inserts")} · {chain?.length ?? t("custom")}</>}>{() => <>{chain?.map((processorId, i) => <div key={processorId} className="my-1 flex items-center gap-1"><button className="truncate" onClick={() => open(processorId)}>{name(processorId)}</button><button disabled={running || !i} className={button} onClick={() => { const next = [...chain];[next[i - 1], next[i]] = [next[i], next[i - 1]]; applyGraph(wireInsertChain(graph, bindings, patches, id, next)); }}>↑</button><button disabled={running} className={button} onClick={() => useAppStore.getState().removeSequencerInstrument(processorId)}>×</button></div>)}</>}</EditorDetails>
+      <EditorDetails owner={`binding:${id}`} field="inserts" className="text-xs" summary={<>{t("inserts")} · {chain?.length ?? t("custom")}</>}>{() => <>{insertRows(id)}</>}</EditorDetails>
       {groups.filter((rs) => rs[0].sourceId === id && rs[0].kind === "send").map((routes) => <div key={routes[0].id} className="mt-2 border-t border-slate-700 pt-2"><span className="text-xs">{t("send")} → {name(routes[0].targetId)}</span><Gain language={language} value={mixer.sends[routes[0].id]?.gainDb ?? null} max={6} label={t("gain")} onChange={(gainDb) => setSend(routes.map((r) => r.id), { gainDb })} onFinal={flush} /><select className={`${field} mt-1 w-full`} value={mixer.sends[routes[0].id]?.tap ?? "post"} onChange={(e) => { setSend(routes.map((r) => r.id), { tap: e.target.value as "pre" | "post" }); flush(); }}><option value="pre">{t("pre")}</option><option value="post">{t("post")}</option></select></div>)}
       <EditorDetails owner={`binding:${id}`} field="additional" className="mt-2 text-[10px]" summary={<>{t("additional")}</>}>{() => <>{patch?.audio_interface?.groups.filter((g) => g.direction === "output").map((g) => <div key={g.id}>{g.name}: {g.ports.join(" / ")}</div>)}<div>{outputPorts(patch).join(" / ")}</div></>}</EditorDetails>
       {!master && <button className={`${button} mt-2`} onClick={() => { select(id); open(id); }}>{t("edit")}</button>}

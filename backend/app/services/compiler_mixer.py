@@ -31,6 +31,7 @@ from backend.app.services.orc_metadata import format_csd_comment_value, instrume
 from backend.app.services.internal_master import MASTER, internal_master_target
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines
 from backend.app.services.compiler_waveguide import waveguide_header
+from backend.app.services.insert_bypass import bypass_ports
 
 
 OUTPUT = "$output"
@@ -94,7 +95,7 @@ def _reachable(start: str, adjacency: dict[str, list[str]], *, blocked: set[str]
 
 
 class ResolvedMixerGraph:
-    def __init__(self, targets, graph: AudioGraph):
+    def __init__(self, targets, graph: AudioGraph, *, live_bypass=True):
         self.targets = targets
         self.graph = graph
         self.by_id = {t.assignment_id: t for t in targets}
@@ -106,6 +107,12 @@ class ResolvedMixerGraph:
             raise CompilationError(["Rack instances cannot use reserved audio endpoint IDs."])
         if graph.master_id == MASTER:
             self.by_id[MASTER] = internal_master_target()
+        self.live_bypass = live_bypass
+        self.bypass_ports = {
+            identity: ports for identity, target in self.by_id.items()
+            if identity in graph.insert_owners and target.always_on
+            and (ports := bypass_ports(target.patch.graph))
+        }
         self.raw_ports: dict[str, dict[str, list[str]]] = {}
         self.direct_ports: dict[str, dict[str, tuple[str, str]]] = {}
         self.sides: dict[str, dict[str, str]] = {}
@@ -117,6 +124,8 @@ class ResolvedMixerGraph:
         self.routes = list(graph.routes)
         errors = []
         for identity, target in self.by_id.items():
+            if self.raw_stage(identity) != f"patch:{identity}":
+                self.edges.append((f"patch:{identity}", self.raw_stage(identity)))
             names = audio_port_names(target.patch.graph, opcode="outleta")
             if any(
                 name.startswith("__vcs_") for name in [*names, *audio_port_names(target.patch.graph, opcode="inleta")]
@@ -161,7 +170,7 @@ class ResolvedMixerGraph:
                     r.target_id == identity and r.target_stage == "strip" and r.target_port == name for r in self.routes
                 )
                 if not replaced:
-                    self.edges.append((f"patch:{identity}", f"strip:{identity}"))
+                    self.edges.append((self.raw_stage(identity), f"strip:{identity}"))
             for side in ("left", "right"):
                 name = f"$direct.{side}"
                 redirected = any(
@@ -196,7 +205,7 @@ class ResolvedMixerGraph:
                 )
                 if route.target_port not in ports:
                     errors.append(f"Route '{route.id}' references missing destination port '{route.target_port}'.")
-            source_stage = ("patch" if route.source_stage == "raw" else "strip") + ":" + route.source_id
+            source_stage = self.raw_stage(route.source_id) if route.source_stage == "raw" else "strip:" + route.source_id
             target_stage = (
                 OUTPUT
                 if route.target_id == OUTPUT
@@ -247,6 +256,7 @@ class ResolvedMixerGraph:
             OUTPUT,
             *("patch:" + i for i in self.by_id),
             *("strip:" + i for i in self.by_id),
+            *(self.raw_stage(i) for i in self.by_id),
             *("route:" + r.id for r in self.routes),
         }
         adjacency: dict[str, list[str]] = defaultdict(list)
@@ -345,6 +355,9 @@ class ResolvedMixerGraph:
                             )
                         )
 
+    def raw_stage(self, identity):
+        return ("bypass:" if self.live_bypass and identity in self.bypass_ports else "patch:") + identity
+
     def manifest(self) -> dict:
         return {
             "instanceIds": list(self.by_id),
@@ -355,8 +368,10 @@ class ResolvedMixerGraph:
             "sides": self.sides,
             "routePans": self.route_pans,
             "sidechainRoutes": self.sidechain_routes,
+            "bypassInstanceIds": list(self.bypass_ports),
             "instrumentReferences": {
                 identity: str(self.order.index("patch:" + identity) + 1) for identity in self.by_id
+                if "patch:" + identity in self.order
             },
             "meters": {
                 identity: {key: channel("meter", identity, key) for key in ("peakL", "peakR", "rmsL", "rmsR")}
@@ -385,6 +400,8 @@ def mixer_control_values(manifest: dict, mixer: MixerState) -> dict[str, float]:
             active_routes.update(_reachable(node, reverse))
     for identity in manifest["instanceIds"]:
         strip = mixer.strips.get(identity, MixerStrip())
+        if identity in manifest.get("bypassInstanceIds", []):
+            values[channel("strip", identity, "bypass")] = float(strip.bypass)
         values[channel("strip", identity, "gain")] = linear_gain(strip.gain_db)
         values[channel("strip", identity, "left")] = 1.0 - max(0.0, strip.balance)
         values[channel("strip", identity, "right")] = 1.0 + min(0.0, strip.balance)
@@ -402,6 +419,12 @@ def mixer_control_values(manifest: dict, mixer: MixerState) -> dict[str, float]:
             (math.cos(angle) if pan_side == "left" else math.sin(angle)) if pan_side else 1.0
         )
     return values
+
+
+def validate_mixer_bypasses(manifest, mixer):
+    invalid = {identity for identity, strip in mixer.strips.items() if strip.bypass} - set(manifest.get("bypassInstanceIds", []))
+    if invalid:
+        raise CompilationError(["Bypass requires a continuous insert with matching main input/output channels: " + ", ".join(sorted(invalid))])
 
 
 RAMP_OPCODE = """opcode vcs_mixer_ramp, a, ki
@@ -439,6 +462,8 @@ def _mixer_stage_comments(stage, resolved, mixer, names, manifest, routes_by_id)
     def gain(value):
         return "silence" if value is None else f"{value:g} dB"
 
+    if stage.startswith("bypass:"):
+        return ["; Live insert bypass: 20 ms crossfade; processor state continues running."]
     if stage.startswith("patch:"):
         identity = stage[6:]
         target = resolved.by_id[identity]
@@ -491,12 +516,15 @@ def compile_mixer_bundle(
     profile: CompilationProfile = CompilationProfile.LIVE,
 ):
     validate_target_channels(targets)
-    resolved = ResolvedMixerGraph(targets, graph)
-    manifest = resolved.manifest()
     live_mixer = profile == CompilationProfile.LIVE
+    resolved = ResolvedMixerGraph(targets, graph, live_bypass=live_mixer)
+    validate_mixer_bypasses(resolved.manifest(), mixer)
+    omitted = {identity for identity, strip in mixer.strips.items() if strip.bypass} if not live_mixer else set()
+    resolved.order = [stage for stage in resolved.order if stage not in {"patch:" + identity for identity in omitted}]
+    manifest = resolved.manifest()
     if not live_mixer:
         manifest["meters"] = {}
-    legato_ids = [identity for identity, target in resolved.by_id.items() if has_legato(target.patch)]
+    legato_ids = [identity for identity, target in resolved.by_id.items() if identity not in omitted and has_legato(target.patch)]
     listener_count = int(bool(legato_ids) and performance_input_mode != "score")
     legato_refs = {identity: str(index) for index, identity in enumerate(legato_ids, 1 + listener_count)}
     if legato_refs:
@@ -520,7 +548,7 @@ def compile_mixer_bundle(
         *([RAMP_OPCODE] if live_mixer else []),
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
-    header += waveguide_header(targets)
+    header += waveguide_header([target for target in targets if target.assignment_id not in omitted])
     if live_mixer:
         header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
     else:
@@ -545,8 +573,22 @@ def compile_mixer_bundle(
     bodies = {}
     sfloads = []
     warnings = [d.message for d in resolved.diagnostics]
+    bypass_connections = set()
 
     def connect(source, outlet, target, inlet):
+        if target.startswith("patch:") and target[6:] in omitted:
+            return
+        if source.startswith("patch:") and source[6:] in omitted:
+            identity = source[6:]
+            raw = next((name for name, originals in resolved.raw_ports[identity].items() if outlet in originals), None)
+            dry_input = resolved.bypass_ports[identity].get(raw)
+            for route in resolved.routes:
+                if route.target_id == identity and route.target_stage == "input" and route.target_port == dry_input:
+                    key = (identity, raw, route.id, target, inlet)
+                    if key not in bypass_connections:
+                        bypass_connections.add(key)
+                        connect("route:" + route.id, "out", target, inlet)
+            return
         header.append(f"connect {quote(names[source])}, {quote(outlet)}, {quote(names[target])}, {quote(inlet)}")
 
     def parameter(lines, identity, kind, field, variable):
@@ -578,7 +620,7 @@ def compile_mixer_bundle(
                 'a_left inleta "left"', 'a_right inleta "right"',
                 f"outleta {quote(left)}, a_left", f"outleta {quote(right)}, a_right",
             ]
-        else:
+        elif identity not in omitted:
             compiled = emitter.compile_instrument_lines(
                 target.patch,
                 graph_context=compile_graph_context(target.patch.graph, service._opcode_service),
@@ -596,6 +638,28 @@ def compile_mixer_bundle(
             header += compiled.global_header_lines
             sfloads += compiled.sfload_global_requests
             warnings += compiled.diagnostics
+        if live_mixer and identity in resolved.bypass_ports:
+            bypass_stage = resolved.raw_stage(identity)
+            bypass_lines = []
+            # Read all inlet buffers before publishing outlets. Interleaving
+            # inleta/outleta can clobber the sibling channel's bus buffer.
+            bypass_outlets = []
+            parameter(bypass_lines, identity, "strip", "bypass", "bypass")
+            for raw_name, originals in resolved.raw_ports[identity].items():
+                signal = port(raw_name)
+                for original in originals:
+                    connect(stage, original, bypass_stage, "wet_" + signal)
+                dry_input = resolved.bypass_ports[identity].get(raw_name)
+                for route in resolved.routes:
+                    if route.target_id == identity and route.target_stage == "input" and route.target_port == dry_input:
+                        connect("route:" + route.id, "out", bypass_stage, "dry_" + signal)
+                bypass_lines += [
+                    f'a_wet_{signal} inleta {quote("wet_" + signal)}',
+                    f'a_dry_{signal} inleta {quote("dry_" + signal)}',
+                    f'a_mix_{signal} = a_wet_{signal} * (1 - a_bypass) + a_dry_{signal} * a_bypass',
+                ]
+                bypass_outlets.append(f'outleta {quote(signal)}, a_mix_{signal}')
+            bodies[bypass_stage] = bypass_lines + bypass_outlets
         lines = ["k_meter metro 15"] if live_mixer else []
         for field in ("gain", "left", "right", "mute") if live_mixer else ("gain", "left", "right"):
             parameter(lines, identity, "strip", field, field)
@@ -619,8 +683,8 @@ def compile_mixer_bundle(
                 r.target_id == identity and r.target_stage == "strip" and r.target_port == raw_name
                 for r in resolved.routes
             ):
-                for original in originals:
-                    connect(stage, original, "strip:" + identity, inlet)
+                for original in [inlet] if resolved.raw_stage(identity) != stage else originals:
+                    connect(resolved.raw_stage(identity), original, "strip:" + identity, inlet)
             var = "a_" + inlet
             lines += [f"{var} inleta {quote(inlet)}"]
             side = resolved.sides[identity].get(raw_name)
@@ -642,8 +706,11 @@ def compile_mixer_bundle(
         stage = "route:" + route.id
         lines = []
         if route.source_stage == "raw":
-            for original in resolved.raw_ports[route.source_id][route.source_port]:
-                connect("patch:" + route.source_id, original, stage, "pre")
+            raw_stage = resolved.raw_stage(route.source_id)
+            originals = ([port(route.source_port)] if raw_stage.startswith("bypass:")
+                         else resolved.raw_ports[route.source_id][route.source_port])
+            for original in originals:
+                connect(raw_stage, original, stage, "pre")
             lines += ['a_signal inleta "pre"']
         else:
             for tap in ("pre", "post"):

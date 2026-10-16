@@ -72,3 +72,13 @@ describe("stereo blocks and inserts", () => {
     expect(insertChain(graph,"one")).toBeNull();
   });
 });
+
+it("preserves per-instance insert bypass in snapshots and rejects nonboolean values", () => {
+  const graph = wireInsertChain(emptyAudioGraph(), bindings, [source, effect], "one", ["two"]);
+  const mixer = { strips: { two: { ...defaultStrip(), bypass: true } }, sends: {} };
+  const snapshot = buildSequencerConfigSnapshot(useAppStore.getState().sequencer, bindings, graph, mixer);
+  const restored = parseSequencerConfigSnapshot(snapshot, [source, effect], null);
+  expect(restored.mixer.strips.two.bypass).toBe(true);
+  expect(restored.audioGraph).toEqual(graph);
+  expect(() => validateAudioState(graph, { ...mixer, strips: { two: { ...mixer.strips.two, bypass: "yes" as unknown as boolean } } })).toThrow("Invalid mixer strip");
+});

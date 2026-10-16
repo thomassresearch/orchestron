@@ -63,7 +63,11 @@ class CompilerService:
     ) -> CompileArtifact:
         if not targets:
             raise CompilationError(["At least one patch must be provided for compilation."])
+        bypassed = ({identity for identity, strip in mixer.strips.items() if strip.bypass}
+                    if profile == CompilationProfile.OFFLINE and audio_graph is not None and mixer else set())
         for target in targets:
+            if target.assignment_id in bypassed:
+                continue
             validate_legato(target.patch)
             if has_legato(target.patch) and target.always_on:
                 raise CompilationError(["midi_legato cannot be assigned as a continuous instrument."])
@@ -71,6 +75,7 @@ class CompilerService:
         controller_manifest = {
             target.assignment_id or f"instrument-{index}": controller_bindings(target, f"instrument-{index}")
             for index, target in enumerate(targets, start=1)
+            if target.assignment_id not in bypassed
         }
         controller_manifest = {key: value for key, value in controller_manifest.items() if value}
 

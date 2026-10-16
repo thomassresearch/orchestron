@@ -53,6 +53,7 @@ class MixerStrip(AudioModel):
     balance: float = Field(default=0.0, ge=-1, le=1)
     mute: bool = False
     solo: bool = False
+    bypass: bool = False
 
     @field_validator("gain_db", "balance")
     @classmethod

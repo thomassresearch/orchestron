@@ -30,7 +30,7 @@ A performance export includes:
 - Custom names for all six performance device types. Existing names are preserved on import; the GUI applies its name validation only when renaming a device.
 - Sequencer/drummer-sequencer/arpeggiator/piano-roll/controller/controller-sequencer configuration snapshot
 - Instrument assignments with stable instance IDs
-- Explicit audio routes, internal Master settings, insert ownership, strip gain/balance/mute/solo, and send level/pre-post settings
+- Explicit audio routes, internal Master settings, insert ownership and bypass states, strip gain/balance/mute/solo, and send level/pre-post settings
 - Referenced patch definitions for the instruments currently assigned in the performance rack
 - Patch names (included in the snapshot for easier remapping on import)
 
@@ -49,6 +49,7 @@ Both modes select instruments by device assignment and mixer routing:
 - Include rack instances whose MIDI channel is assigned to a melodic sequencer, drummer sequencer, piano-roll keyboard or arpeggiator output. An arpeggiator input alone is not an instrument assignment.
 - Device assignments count even when the device is stopped, disabled or has an empty pattern. Selection does not depend on whether a note happens during the exported arrangement.
 - Include continuous (`always on`) instruments referenced by mixer routes, internal Master settings or insert ownership. Continuous generators with implicit direct audio output are also included.
+- Bypassed continuous inserts contribute no effect synthesis or initialization in either CSD mode. Their inputs connect to downstream consumers, preserving active effects and required mixer controls. Assets exclusive to bypassed effects are omitted; shared assets remain when an active instance needs them. Native bundles retain the full patches and bypass state for later reactivation.
 - Omit other rack instances, routes and mixer controls belonging to those omitted instances, and assets used exclusively by omitted patches. Native `Export` still preserves the complete rack.
 
 Each CSD starts with a comment header containing the performance title, description and creation timestamp, followed by an Orchestron attribution, a short summary of Orchestron's visual instrument design, performance devices, audio routing and portable Csound export features, plus the project GitHub link. Each exported instrument also has CSD comments containing its name, description, rack instance ID and Csound reference. Multiline descriptions remain comments on every line. Routing comments identify source/destination instruments and ports, raw/strip stages, insert ownership, Master processing, direct paths that bypass Master, pre/post-fader taps, and initial gain, balance, mute and solo settings. Mixer instruments are emitted in signal-flow order.

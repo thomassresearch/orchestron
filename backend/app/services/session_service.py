@@ -299,6 +299,11 @@ class SessionService:
 
     @staticmethod
     def _validate_mixer_keys(manifest, mixer):
+        from backend.app.services.compiler_mixer import validate_mixer_bypasses
+        try:
+            validate_mixer_bypasses(manifest, mixer)
+        except CompilationError as error:
+            raise HTTPException(status_code=422, detail={"diagnostics": error.diagnostics}) from error
         if set(mixer.strips) - set(manifest["instanceIds"]) or set(mixer.sends) - set(manifest["routeIds"]):
             raise HTTPException(status_code=422, detail="Mixer controls reference an unknown instance or route.")
 

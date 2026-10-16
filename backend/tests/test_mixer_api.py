@@ -29,6 +29,7 @@ def test_mixer_partial_updates_revisions_and_restart_initialization(tmp_path):
             "balance": 0.25,
             "mute": False,
             "solo": True,
+            "bypass": False,
         }
         assert client.put(url, json={"revision": 0, "strips": {"source": {"mute": True}}}).status_code == 409
         assert client.get(url).json() == result.json()

@@ -48,7 +48,7 @@ export function validateAudioState(graph: AudioGraph, mixer: MixerState): void {
   }
   if (!object(mixer) || !object(mixer.strips) || !object(mixer.sends) || Object.keys(mixer.strips).filter(id => id !== MASTER).length > 64 || Object.keys(mixer.sends).length > 1024) throw new Error("Invalid mixer state");
   const gain = (value: unknown, max: number) => value === null || (typeof value === "number" && Number.isFinite(value) && value >= -60 && value <= max);
-  for (const strip of Object.values(mixer.strips)) if (!object(strip) || !gain(strip.gainDb, 12) || !Number.isFinite(strip.balance) || Math.abs(strip.balance) > 1 || typeof strip.mute !== "boolean" || typeof strip.solo !== "boolean") throw new Error("Invalid mixer strip");
+  for (const strip of Object.values(mixer.strips)) if (!object(strip) || !gain(strip.gainDb, 12) || !Number.isFinite(strip.balance) || Math.abs(strip.balance) > 1 || typeof strip.mute !== "boolean" || typeof strip.solo !== "boolean" || (strip.bypass !== undefined && typeof strip.bypass !== "boolean")) throw new Error("Invalid mixer strip");
   for (const send of Object.values(mixer.sends)) if (!object(send) || !gain(send.gainDb, 6) || !["pre", "post"].includes(send.tap)) throw new Error("Invalid mixer send");
 }
 export function migrateAudio(bindings: SequencerInstrumentBinding[], patches: PatchListItem[], graph?: AudioGraph, mixer?: MixerState) {

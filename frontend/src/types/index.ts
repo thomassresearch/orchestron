@@ -90,7 +90,7 @@ export interface AudioRoute {
   kind: "main" | "send" | "insert" | "custom"; sourceStage: "raw" | "strip"; targetStage: "input" | "strip";
 }
 export interface AudioGraph { routes: AudioRoute[]; masterId: string | null; insertOwners: Record<string, string>; }
-export interface MixerStrip { gainDb: number | null; balance: number; mute: boolean; solo: boolean; }
+export interface MixerStrip { gainDb: number | null; balance: number; mute: boolean; solo: boolean; bypass?: boolean; }
 export interface MixerSend { gainDb: number | null; tap: "pre" | "post"; }
 export interface MixerState { strips: Record<string, MixerStrip>; sends: Record<string, MixerSend>; }
 export interface MixerResponse { mixer: MixerState; revision: number; }

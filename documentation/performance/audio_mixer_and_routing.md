@@ -42,6 +42,23 @@ Removing an instrument from the rack also removes its dedicated inserts, includi
 
 A **return** is a continuous rack instance that can receive sends from several sources and has its own mixer strip. Add it with **Add Instrument**, connect its output to Master, then add sends from the source strips. For a parallel reverb/delay arrangement, design the return patch to output the desired wet signal; the starter pass-through would merely add another copy of the dry signal.
 
+### Compare inserts with Bypass
+
+Open **Inserts** on the owning mixer strip. Each continuous insert has a **Bypass** button and an **Active** or **Bypassed** label. You can switch while instruments are running. Reordering and removing inserts still require stopping playback. The same controls appear for nested inserts and for inserts with custom routing.
+
+Bypass passes that effect’s main input to its main output, using the declared channel order. A 20 ms crossfade suppresses abrupt transitions. The selected effect’s output, including its tails, fades out; downstream effects keep processing and can retain their own tails. The bypassed processor keeps receiving audio and running internally, so reactivation retains its current state. Live bypass does not reduce CPU use.
+
+For example, bypassing Distortion in `Instrument → EQ → Distortion → Reverb` lets Reverb receive the EQ output directly. Other inserts, including inserts nested inside the bypassed processor, retain their own states. Strip gain/balance and mute/solo still apply. Additional effect outputs have no dry substitute and fade to silence. Bypass requires matching main input/output channel counts; an incompatible mapping disables the button. Bypass does not infer or compensate a patch’s internal processing latency.
+
+The control is available only on continuous instances assigned as inserts, not on standalone generators, shared returns or note instruments. New inserts default to Active. Each instance’s state survives Save/Load, Clone, autosave and native JSON/ZIP bundles without changing its library patch. Match listening levels when comparing effects that change volume.
+
+Both **CSD (MIDI)** and **CSD (SCORE)** omit bypassed effect synthesis, initialization, performance-controller channels and assets used only by those effects. Incoming audio connects directly to downstream consumers; necessary strip and route controls remain. Exported CSDs contain no live bypass crossfade stage. Native exports retain all effect definitions so they can be reactivated after import.
+
+<p align="center">
+  <img src="../../screenshots/perform_insert_bypass.png" alt="Mixer insert chain with an active effect and a bypassed effect" width="900" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Each insert has its own Bypass control and explicit state. The remaining chain stays active.</em></p>
+
 ### Add a stereo send
 
 1. Stop the engine. Add the saved effect as a rack instance and use its **Route through Master** button to connect its main output.
@@ -114,7 +131,7 @@ The same routing diagnostics appear in CSD exports. A serial insert feeds back i
 
 ## Persistence and compatibility
 
-Current performance saves use configuration version 18 and read versions 1–18. They retain the internal Master introduced in version 14, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. App state version 3 reads versions 1–3 and saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
+Current performance saves use configuration version 19 and read versions 1–19. Optional per-strip `bypass` defaults to false for older saves. They retain the internal Master introduced in version 14, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. App state version 3 reads versions 1–3 and saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
 
 Versions 1–10 convert old Level values using `20 * log10(level / 10)`, including continuous effects. Missing Level means 0 dB. Legacy inlet selection is resolved once and saved explicitly. Level no longer scales MIDI velocity; velocity-sensitive patches can therefore change timbre after migration. Authored note velocities remain unchanged.
 

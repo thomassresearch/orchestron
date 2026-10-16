@@ -8057,3 +8057,63 @@ def test_piano_roll_autochord_app_state_round_trip(tmp_path: Path, size: int) ->
         assert client.put("/api/app-state", json={"state": state}).status_code == 200
         loaded = client.get("/api/app-state").json()["state"]
         assert loaded["sequencer"]["pianoRolls"] == state["sequencer"]["pianoRolls"]
+
+
+def test_insert_bypass_live_updates_and_performance_native_app_state_round_trips(tmp_path: Path) -> None:
+    from backend.tests.test_insert_bypass import export_payload
+
+    exported = export_payload()["performanceExport"]
+    config = exported["performance"]["config"]
+    with _client(tmp_path) as client:
+        for definition, binding in zip(exported["patch_definitions"], config["instruments"], strict=True):
+            patch = client.post("/api/patches", json={"name": definition["name"], "graph": definition["graph"],
+                                                   "always_on": definition.get("alwaysOn", False)})
+            assert patch.status_code == 201, patch.text
+            binding["patchId"] = patch.json()["id"]
+            definition["sourcePatchId"] = binding["patchId"]
+        created = client.post("/api/sessions", json={
+            "instruments": [{"id": b["id"], "patch_id": b["patchId"], "midi_channel": b["midiChannel"]}
+                            for b in config["instruments"]],
+            "audio_graph": config["audioGraph"], "mixer": config["mixer"],
+        })
+        assert created.status_code == 201, created.text
+        sid = created.json()["session_id"]
+        assert client.post(f"/api/sessions/{sid}/start").status_code == 200
+        url = f"/api/sessions/{sid}/mixer"
+        assert client.get(url).json()["mixer"]["strips"]["first"]["bypass"] is True
+        result = client.put(url, json={"revision": 0, "strips": {"first": {"bypass": False}}})
+        assert result.status_code == 200, result.text
+        assert result.json()["mixer"]["strips"]["first"]["bypass"] is False
+        assert client.get(f"/api/sessions/{sid}").json()["state"] == "running"
+        for identity in ("source", "$master"):
+            invalid = client.put(url, json={"strips": {identity: {"bypass": True}}})
+            assert invalid.status_code == 422, invalid.text
+        assert client.get(url).json() == result.json()
+        stale = client.put(url, json={"revision": 0, "strips": {"first": {"bypass": True}}})
+        assert stale.status_code == 409
+        with client.websocket_connect(f"/ws/sessions/{sid}/browser-clock") as ws:
+            ws.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                          "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert ws.receive_json()["type"] == "stream_config"
+            ws.send_json({"type": "mixer_update", "request_id": "bypass", "controls": {
+                "revision": 1, "strips": {"first": {"bypass": True}}}})
+            ack = ws.receive_json()
+            assert ack["type"] == "mixer_ack", ack
+            assert ack["mixer"]["strips"]["first"]["bypass"] is True
+        saved = client.post("/api/performances", json={"name": "Bypass comparison", "config": config})
+        assert saved.status_code == 201, saved.text
+        restored = client.get("/api/performances/" + saved.json()["id"]).json()["config"]
+        assert restored["mixer"]["strips"]["first"]["bypass"] is True
+        state = {"version": 3, "sequencerInstruments": config["instruments"],
+                 "audioGraph": config["audioGraph"], "mixer": config["mixer"]}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["mixer"]["strips"]["first"]["bypass"] is True
+        native = client.post("/api/bundles/export/performance", json=exported)
+        assert native.status_code == 200, native.text
+        imported = client.post("/api/bundles/import/expand", content=native.content,
+                               headers={"X-File-Name": "bypass.orch.json"})
+        assert imported.status_code == 200, imported.text
+        expanded = imported.json()
+        assert expanded["performance"]["config"]["mixer"]["strips"]["first"]["bypass"] is True
+        assert len(expanded["patch_definitions"]) == 3
+        assert any(node["opcode"] == "a_mul" for node in expanded["patch_definitions"][1]["graph"]["nodes"])

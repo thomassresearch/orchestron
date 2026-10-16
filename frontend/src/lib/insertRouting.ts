@@ -1,6 +1,11 @@
 import { MASTER, masterEndpoint, mainPorts, newRoute } from "./audioRouting";
 import type { AudioGraph, MixerState, PatchListItem, SequencerInstrumentBinding } from "../types";
 
+export function canBypassInsert(graph: AudioGraph, id: string, patch?: PatchListItem): boolean {
+  return !!graph.insertOwners[id] && !!patch?.always_on && mainPorts(patch, "input").length > 0 &&
+    mainPorts(patch, "input").length === mainPorts(patch, "output").length;
+}
+
 export function insertChain(graph: AudioGraph, owner: string): string[] | null {
   const owned = Object.keys(graph.insertOwners).filter((id) => graph.insertOwners[id] === owner);
   if (!owned.length) return [];

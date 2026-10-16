@@ -2,6 +2,7 @@
 
 from backend.app.models.export import PerformanceCsdExportRequest, PerformanceExportPayload
 from backend.app.services.compiler_mixer import token
+from backend.app.services.insert_bypass import routing_only_graph
 
 
 def _device_channels(request: PerformanceCsdExportRequest) -> set[int]:
@@ -104,9 +105,21 @@ def select_performance_csd_instruments(request: PerformanceCsdExportRequest) -> 
     )
     selected_config = config.model_copy(update={"instruments": instruments, "audio_graph": graph, "mixer": mixer})
     patch_ids = {item.patch_id for item in instruments}
+    # Bypassed inserts need only their port declarations for offline wiring.
+    # Preserve a shared definition when another instance still processes audio.
+    active_patch_ids = {
+        item.patch_id for item in instruments
+        if not (graph and item.id in graph.insert_owners and definitions.get(item.patch_id)
+                and definitions[item.patch_id].always_on and mixer.strips.get(item.id)
+                and mixer.strips[item.id].bypass)
+    }
+    selected_definitions = [
+        patch if patch.source_patch_id in active_patch_ids else patch.model_copy(update={"graph": routing_only_graph(patch.graph)})
+        for patch in exported.patch_definitions if patch.source_patch_id in patch_ids
+    ]
     return exported.model_copy(
         update={
             "performance": exported.performance.model_copy(update={"config": selected_config}),
-            "patch_definitions": [patch for patch in exported.patch_definitions if patch.source_patch_id in patch_ids],
+            "patch_definitions": selected_definitions,
         }
     )

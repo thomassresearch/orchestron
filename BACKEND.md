@@ -974,3 +974,11 @@ sorting of equal-time events cannot change last-note priority. Ordinary patches
 retain their original compilation path. Runtime source cancellation balances
 previously deferred shared-pitch note-offs when the last source releases, so no
 collector remains stranded. No phrase state enters saved performance data.
+
+### Live insert bypass
+
+`MixerStrip.bypass` is an optional boolean (default false), preserved by performance/app-state and native bundle serialization. Session validation and mixer updates accept enabled bypass only for continuous instances in `audioGraph.insertOwners` with matching main input/output channel counts. Updates use existing revision checks and render-block control delivery.
+
+`compiler_mixer` inserts a 20 ms linear wet/dry crossfade after each eligible live effect's raw output. Input routes also feed its dry inputs; all effect processing continues. Main channels map by declared group order, falling back to existing port order; auxiliary outputs fade to silence. Nested inserts retain their own bypass state. No inferred latency compensation is applied.
+
+Offline selection replaces bypass-only definitions with port metadata before asset resolution. Shared definitions stay intact if an active instance needs them. Offline lowering omits the bypassed patch body, global synthesis setup, controllers and alwayson statement, and directly connects incoming route outputs to consumers. Existing strip/route stages preserve custom branches, nested inserts, mute/solo, sends and gain. No bypass crossfade or extra pass-through instrument is emitted. See [user workflow](documentation/performance/audio_mixer_and_routing.md#compare-inserts-with-bypass).
