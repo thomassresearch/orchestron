@@ -24,6 +24,11 @@ their own in-memory copy.
   LFO depth: twelve taps use base + Amount + LFO inside a 250 ms buffer. Tests cover
   silence, controller extremes, stereo dry gain and stable feedback at live/offline rates.
 
+- `stereo_flanger.patch.json` freezes the six-control continuous stereo flanger.
+  Tests measure signed feedback against an impulse oracle, audio-rate fractional
+  delay sweeps, dry bypass, channel isolation, extremes and decay, plus native
+  round trips, saved instance settings and both CSD export modes.
+
 - `analog_drumkit.patch.json` is a fixed copy of the five-voice analog drumkit
   supplied when this fixture was added. Backend audio regressions and frontend
   template tests share this snapshot.

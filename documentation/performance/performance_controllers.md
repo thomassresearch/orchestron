@@ -44,6 +44,11 @@ controls.
 Feedback and Stereo. At its defaults, echoes repeat every two seconds. Set Tempo
 manually and restart the rack to apply changed settings.
 
+[Stereo Flanger](../instrument_design/stereo_flanger.md) provides Rate, Delay,
+Depth, Feedback, Stereo Phase and Mix. It preserves separate left/right paths,
+supports positive and negative feedback, and can provide a wet-only send return.
+Restart the rack after changing its six per-instance settings.
+
 [Parametric Equalizer](../instrument_design/parametric_equalizer.md) provides seven
 gain controls at 63 Hz, 160 Hz, 400 Hz, 1 kHz, 2.5 kHz, 6.3 kHz and 16 kHz.
 All use a linear −20 to +20 dB range with 0 dB defaults. The graph converts dB

@@ -7799,6 +7799,9 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
      {"sd_tempo": 120, "sd_beats": 4, "sd_feedback": 0.5, "sd_stereo": 0.5}),
     ("stereo_chorus", {"chorus_rate_multiplier": 10, "0712c97b-afbc-400f-8282-6e5508ed10fd": 0.1},
      {"chorus_rate_multiplier": 1, "0712c97b-afbc-400f-8282-6e5508ed10fd": 0.02}),
+    ("stereo_flanger",
+     {"sf_rate": 5, "sf_delay": 0.2, "sf_depth": 5, "sf_feedback": -0.9, "sf_phase": 180, "sf_mix": 1},
+     {"sf_rate": 0.25, "sf_delay": 1, "sf_depth": 2, "sf_feedback": 0.5, "sf_phase": 90, "sf_mix": 0.5}),
     ("parametric_equalizer",
      {"d4c20b81-8b7c-4312-91b6-8997156f2ca2": -20, "eq_160_gain_db": 6,
       "cded9f16-e830-42d7-964f-d9bce78a3cd8": -4, "377a004c-dd56-4042-b647-29f60bc7880a": 20,
@@ -7844,7 +7847,7 @@ def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixt
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer"])
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
@@ -7857,6 +7860,11 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         values = dict(sd_tempo=137, sd_beats=1.375, sd_feedback=0.9, sd_stereo=1)
         controls = [("Tempo (BPM)", 40, 180, 120), ("Beats", 1, 16, 4),
                     ("Feedback", 0, 0.9, 0.5), ("Stereo", 0, 1, 0.5)]
+    elif fixture == "stereo_flanger":
+        values = dict(sf_rate=5, sf_delay=0.2, sf_depth=5, sf_feedback=-0.9, sf_phase=180, sf_mix=1)
+        controls = [("Rate (Hz)", 0.02, 5, 0.25), ("Delay (ms)", 0.2, 5, 1),
+                    ("Depth (ms)", 0, 5, 2), ("Feedback", -0.9, 0.9, 0.5),
+                    ("Stereo Phase (deg)", 0, 180, 90), ("Mix", 0, 1, 0.5)]
     else:
         identities = [n.id for n in patch.graph.nodes if n.opcode == "perf_controller"]
         values = dict(zip(identities, [-20, 6, -4, 20, 0, -8, 12]))
@@ -7882,7 +7890,10 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         assert restored["graph"] == patch.graph.model_dump(mode="json", by_alias=True)
         listed = next(p for p in client.get("/api/patches").json() if p["id"] == restored["id"])
         assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == controls
-        assert all(c["scale"] == "linear" for c in listed["performance_controllers"])
+        assert [c["scale"] for c in listed["performance_controllers"]] == [
+            "logarithmic" if fixture == "stereo_flanger" and index == 0 else "linear"
+            for index in range(len(controls))
+        ]
         saved = client.post("/api/performances", json=dict(name="Delay controls", config=config))
         assert saved.status_code == 201, saved.text
         assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"] == config
@@ -7899,6 +7910,10 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         assert "ksmps = 1" in csd
         if fixture == "stereo_delay":
             assert " flanger " in csd and " delay " in csd
+        elif fixture == "stereo_flanger":
+            from backend.tests.csound_test_support import orc_code_lines
+            code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
+            assert code.count(" flanger ") == 2 and code.count(" poscil3 ") == 2
         else:
             assert csd.count(" pareq ") == 14
             assert csd.count("ampdb(") == 28

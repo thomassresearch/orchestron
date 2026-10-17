@@ -1,0 +1,615 @@
+{
+  "name": "Stereo Flanger",
+  "description": "Continuous stereo flanger with independent left/right audio paths. Rate (0.02–5 Hz, default 0.25), Delay (0.2–5 ms, default 1), Depth (0–5 ms, default 2), Feedback (-0.9–0.9, default 0.5), Stereo Phase (0–180 degrees, default 90), Mix (0–1, default 0.5). Delay sweeps from Delay to Delay + 2 * Depth; wet gain is compensated by 1 - abs(Feedback). Mix 0 is dry, 1 is wet only. Use as an insert, or set Mix to 1 for a send return. Restart the rack after changing controls.",
+  "is_template": false,
+  "always_on": true,
+  "instrument_type": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "sf_rate",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Rate (Hz)",
+          "min": 0.02,
+          "max": 5,
+          "default": 0.25,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "sf_delay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Delay (ms)",
+          "min": 0.2,
+          "max": 5,
+          "default": 1,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 320.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "sf_depth",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Depth (ms)",
+          "min": 0,
+          "max": 5,
+          "default": 2,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 640.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "sf_feedback",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Feedback",
+          "min": -0.9,
+          "max": 0.9,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 960.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "sf_phase",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Stereo Phase (deg)",
+          "min": 0,
+          "max": 180,
+          "default": 90,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1280.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "sf_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Mix",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1600.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "sf_bias",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 320.0,
+          "y": -50.0
+        }
+      },
+      {
+        "id": "sf_dry_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 960.0,
+          "y": -50.0
+        }
+      },
+      {
+        "id": "sf_wet_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1280.0,
+          "y": -50.0
+        }
+      },
+      {
+        "id": "sf_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "sf_lfo_left",
+        "opcode": "poscil3",
+        "params": {
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 320.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "sf_delay_left",
+        "opcode": "flanger",
+        "params": {
+          "imaxd": 0.02
+        },
+        "position": {
+          "x": 640.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "sf_mix_left",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1120.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "sf_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 750.0
+        }
+      },
+      {
+        "id": "sf_lfo_right",
+        "opcode": "poscil3",
+        "params": {
+          "ifn": -1
+        },
+        "position": {
+          "x": 320.0,
+          "y": 750.0
+        }
+      },
+      {
+        "id": "sf_delay_right",
+        "opcode": "flanger",
+        "params": {
+          "imaxd": 0.02
+        },
+        "position": {
+          "x": 640.0,
+          "y": 750.0
+        }
+      },
+      {
+        "id": "sf_mix_right",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1120.0,
+          "y": 750.0
+        }
+      },
+      {
+        "id": "sf_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1600.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "sf_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1600.0,
+          "y": 750.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "sf_delay",
+        "from_port_id": "iout",
+        "to_node_id": "sf_bias",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sf_depth",
+        "from_port_id": "iout",
+        "to_node_id": "sf_bias",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sf_mix",
+        "from_port_id": "iout",
+        "to_node_id": "sf_dry_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sf_mix",
+        "from_port_id": "iout",
+        "to_node_id": "sf_wet_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sf_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "sf_wet_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sf_depth",
+        "from_port_id": "iout",
+        "to_node_id": "sf_lfo_left",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "sf_rate",
+        "from_port_id": "iout",
+        "to_node_id": "sf_lfo_left",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "sf_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "sf_delay_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sf_bias",
+        "from_port_id": "aout",
+        "to_node_id": "sf_delay_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sf_lfo_left",
+        "from_port_id": "asig",
+        "to_node_id": "sf_delay_left",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sf_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "sf_delay_left",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "sf_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "sf_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sf_dry_gain",
+        "from_port_id": "aout",
+        "to_node_id": "sf_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sf_delay_left",
+        "from_port_id": "aout",
+        "to_node_id": "sf_mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sf_wet_gain",
+        "from_port_id": "aout",
+        "to_node_id": "sf_mix_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sf_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "sf_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "sf_depth",
+        "from_port_id": "iout",
+        "to_node_id": "sf_lfo_right",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "sf_rate",
+        "from_port_id": "iout",
+        "to_node_id": "sf_lfo_right",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "sf_phase",
+        "from_port_id": "iout",
+        "to_node_id": "sf_lfo_right",
+        "to_port_id": "iphs"
+      },
+      {
+        "from_node_id": "sf_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "sf_delay_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sf_bias",
+        "from_port_id": "aout",
+        "to_node_id": "sf_delay_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sf_lfo_right",
+        "from_port_id": "asig",
+        "to_node_id": "sf_delay_right",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sf_feedback",
+        "from_port_id": "iout",
+        "to_node_id": "sf_delay_right",
+        "to_port_id": "kfeedback"
+      },
+      {
+        "from_node_id": "sf_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "sf_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sf_dry_gain",
+        "from_port_id": "aout",
+        "to_node_id": "sf_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sf_delay_right",
+        "from_port_id": "aout",
+        "to_node_id": "sf_mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sf_wet_gain",
+        "from_port_id": "aout",
+        "to_node_id": "sf_mix_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "sf_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "sf_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "sf_bias::ksig": {
+          "expression": "(delay + depth) * 0.001",
+          "inputs": [
+            {
+              "token": "delay",
+              "from_node_id": "sf_delay",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "sf_depth",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sf_dry_gain::ksig": {
+          "expression": "1 - mix",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "sf_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sf_wet_gain::ksig": {
+          "expression": "mix * (1 - abs(feedback))",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "sf_mix",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "feedback",
+              "from_node_id": "sf_feedback",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sf_lfo_left::amp": {
+          "expression": "depth * 0.001",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "sf_depth",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sf_delay_left::adel": {
+          "expression": "bias + wave",
+          "inputs": [
+            {
+              "token": "bias",
+              "from_node_id": "sf_bias",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wave",
+              "from_node_id": "sf_lfo_left",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "sf_mix_left::a": {
+          "expression": "dry * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "sf_in_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sf_dry_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sf_mix_left::b": {
+          "expression": "wet * gain",
+          "inputs": [
+            {
+              "token": "wet",
+              "from_node_id": "sf_delay_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sf_wet_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sf_lfo_right::amp": {
+          "expression": "depth * 0.001",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "sf_depth",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sf_lfo_right::iphs": {
+          "expression": "phase / 360",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "sf_phase",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sf_delay_right::adel": {
+          "expression": "bias + wave",
+          "inputs": [
+            {
+              "token": "bias",
+              "from_node_id": "sf_bias",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wave",
+              "from_node_id": "sf_lfo_right",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "sf_mix_right::a": {
+          "expression": "dry * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "sf_in_right",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sf_dry_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sf_mix_right::b": {
+          "expression": "wet * gain",
+          "inputs": [
+            {
+              "token": "wet",
+              "from_node_id": "sf_delay_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sf_wet_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "sf_input": true,
+        "sf_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "sf_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "sf_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "sf_input",
+      "mainOutput": "sf_output",
+      "guided": false
+    },
+    "control_flow": {}
+  },
+  "id": "stereo-flanger-v1"
+}

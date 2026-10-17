@@ -29,6 +29,7 @@ Patches have an editable Instrument Type. Load Patch browses collapsed type grou
 - [Physical Steel-String Guitar](steel_string_waveguide.md)
 - [Tube Overdrive](tube_overdrive.md)
 - [Stereo Delay](stereo_delay.md)
+- [Stereo Flanger](stereo_flanger.md)
 - [Parametric Equalizer](parametric_equalizer.md)
 - [Supported Opcodes](supported_opcodes.md)
 

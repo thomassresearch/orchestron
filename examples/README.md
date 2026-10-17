@@ -46,6 +46,10 @@ numbers, control ranges, synthesis details and reproduction commands.
 effect with Drive, Tone and Output performance controls. It is supplied alongside
 the original Overdrive, with an editable graph and reproducible audio comparisons.
 
+[Stereo Flanger](instruments/stereo_flanger/README.md) is a continuous stereo
+effect with six performance controls, independent delay lines and signed feedback.
+Its example includes a native instrument, editable graph and reproducible previews.
+
 1. Open the **Instrument Design** tab.
 2. Click **Import**.
 3. Select a file from `examples/instruments/`.
