@@ -11307,6 +11307,92 @@
     "icon_filename": "oscili.svg"
   },
   {
+    "name": "pvscale",
+    "category": "spectral",
+    "description": "Transpose spectral audio by multiplying its frequencies by a ratio.",
+    "documentation_markdown": "### `pvscale`\n\nTranspose spectral audio by multiplying its frequencies by a ratio.\n\n**Reference**\n- [Csound pvscale](https://csound.com/docs/manual/pvscale.html)",
+    "documentation_url": "https://csound.com/docs/manual/pvscale.html",
+    "inputs": [
+      {
+        "id": "fsigin",
+        "name": "fIn",
+        "signal_type": "f",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "kscal",
+        "name": "PitchRatio",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": "Frequency multiplier: 1 is unison, 2 is one octave up, 0.5 is one octave down. Must be positive."
+      },
+      {
+        "id": "kkeepform",
+        "name": "KeepFormants",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 0,
+        "description": ""
+      },
+      {
+        "id": "kgain",
+        "name": "Gain",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 1,
+        "description": ""
+      },
+      {
+        "id": "kcoefs",
+        "name": "CepstrumCoefs",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": false,
+        "default": 80,
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "fsig",
+        "name": "fSig",
+        "signal_type": "f",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{fsig} pvscale {fsigin}, {kscal}, {kkeepform}, {kgain}, {kcoefs}",
+    "tags": [
+      "spectral",
+      "phase-vocoder",
+      "pitch",
+      "transpose",
+      "fsig"
+    ],
+    "icon_filename": "oscili.svg"
+  },
+  {
     "name": "pvsmooth",
     "category": "spectral",
     "description": "Smooth fsig amplitude and frequency trajectories with lowpass filtering.",

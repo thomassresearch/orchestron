@@ -77,3 +77,5 @@ that file or the `examples/` directory to exist.
 `patches/steel_string_waveguide.patch.json` is the independent physical-guitar snapshot.
 It covers local sample feedback, tuning, excitation, dispersion, decay, controllers,
 polyphony, instance isolation, native rendering and CSD export without reading examples.
+
+- `patches/stereo_widener.patch.json`, `patches/bit_crusher.patch.json`, and `patches/harmonizer.patch.json` are independent continuous-effect snapshots for DSP, persistence, controller, and export regression tests.

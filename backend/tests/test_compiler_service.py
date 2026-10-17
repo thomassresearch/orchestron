@@ -1053,3 +1053,27 @@ def test_gen19_native_table_values(mode, normalize, expected, tmp_path) -> None:
     match = re.search(r"GEN19_VALUES ([\d. -]+)", result.stdout + result.stderr)
     assert match, result.stderr
     assert [float(value) for value in match[1].split()] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize('params,tail', [
+    ({}, '1, 0, 1, 80'),
+    ({'kscal': 0.5}, '0.5, 0, 1, 80'),
+    ({'kscal': 2, 'kkeepform': 1, 'kgain': 0.5, 'kcoefs': 40}, '2, 1, 0.5, 40'),
+])
+def test_pvscale_argument_order_and_optional_defaults(params, tail):
+    patch = PatchDocument(name='Pitch test', graph=PatchGraph(nodes=[
+        NodeInstance(id='source', opcode='const_a', params={'value': 0}),
+        NodeInstance(id='analysis', opcode='pvsanal'),
+        NodeInstance(id='shift', opcode='pvscale', params=params),
+        NodeInstance(id='synth', opcode='pvsynth'),
+        NodeInstance(id='out', opcode='outs'),
+    ], connections=[
+        Connection(from_node_id='source', from_port_id='aout', to_node_id='analysis', to_port_id='ain'),
+        Connection(from_node_id='analysis', from_port_id='fsig', to_node_id='shift', to_port_id='fsigin'),
+        Connection(from_node_id='shift', from_port_id='fsig', to_node_id='synth', to_port_id='fsrc'),
+        *[Connection(from_node_id='synth', from_port_id='aout', to_node_id='out', to_port_id=side)
+          for side in ('left', 'right')],
+    ]))
+    compiled = CompilerService(OpcodeService('/static/icons')).compile_patch(patch, '0', 'none')
+    line = next(line for line in orc_code_lines(compiled.orc) if ' pvscale ' in line)
+    assert line.split(' pvscale ')[1].split(', ', 1)[1] == tail

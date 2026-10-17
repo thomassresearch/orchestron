@@ -8342,5 +8342,53 @@
         "spanish": "Número de la tabla generada a tasa de inicialización. Conectar a un oscilador o a otra entrada de número de tabla."
       }
     }
+  },
+  "pvscale": {
+    "description": {
+      "english": "Multiply phase-vocoder frequencies by a ratio to transpose pitch. Optional formant preservation adjusts output amplitudes.",
+      "german": "Multipliziert die Frequenzen eines Phasenvokoders mit einem Verhältnis zur Tonhöhentransposition. Die optionale Formanterhaltung passt die Ausgangsamplituden an.",
+      "french": "Multiplie les fréquences du vocodeur de phase par un rapport pour transposer la hauteur. La préservation facultative des formants ajuste les amplitudes de sortie.",
+      "spanish": "Multiplica las frecuencias del vocoder de fase por una relación para transponer el tono. La conservación opcional de formantes ajusta las amplitudes de salida."
+    },
+    "inputs": {
+      "fsigin": {
+        "english": "Input phase-vocoder stream.",
+        "german": "Eingangssignal des Phasenvokoders.",
+        "french": "Flux du vocodeur de phase en entrée.",
+        "spanish": "Flujo de entrada del vocoder de fase."
+      },
+      "kscal": {
+        "english": "scaling ratio.",
+        "german": "Skalierungsverhältnis.",
+        "french": "rapport d'échelle.",
+        "spanish": "relación de escala."
+      },
+      "kkeepform": {
+        "english": "attempt to keep input signal formants; 0: do not keep formants; 1: keep formants using a liftered cepstrum method; 2: keep formants by using a true envelope method (defaults to 0).",
+        "german": "Versuchen Sie, die Formanten des Eingangssignals beizubehalten. 0: Formanten nicht beibehalten; 1: Formanten mit einer Lifted-Cepstrum-Methode beibehalten; 2: Behalten Sie Formanten bei, indem Sie eine echte Hüllkurvenmethode verwenden (Standardwert ist 0).",
+        "french": "essayer de conserver les formants du signal d'entrée; 0: ne conserve pas les formants; 1: conserver les formants en utilisant la méthode du cepstre relevé; 2: conserve les formants en utilisant une véritable méthode d’enveloppe (par défaut: 0).",
+        "spanish": "intentar mantener los formantes de la señal de entrada; 0: no conservar formantes; 1: mantener los formantes usando un método de cepstrum elevado; 2: mantenga los formantes utilizando un método de envolvente verdadera (el valor predeterminado es 0)."
+      },
+      "kgain": {
+        "english": "amplitude scaling (defaults to 1).",
+        "german": "Amplitudenskalierung (Standardwert 1).",
+        "french": "mise à l’échelle de l’amplitude (par défaut: 1).",
+        "spanish": "escala de amplitud (el valor predeterminado es 1)."
+      },
+      "kcoefs": {
+        "english": "number of cepstrum coefs used in formant preservation (defaults to 80).",
+        "german": "Anzahl der Cepstrum-Koeffizienten, die bei der Formantenerhaltung verwendet werden (Standardwert ist 80).",
+        "french": "nombre de coefs de cepstre utilisés dans la préservation des formants (80 par défaut).",
+        "spanish": "número de coeficientes de cepstrum utilizados en la preservación de formantes (el valor predeterminado es 80)."
+      }
+    },
+    "outputs": {
+      "fsig": {
+        "english": "Output variable `fsig` from pvscale.",
+        "german": "Ausgabevariable „fsig“ von pvscale.",
+        "french": "Variable de sortie `fsig` de pvscale.",
+        "spanish": "Variable de salida `fsig` de pvscale."
+      }
+    }
   }
 }

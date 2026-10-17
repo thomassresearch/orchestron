@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **189** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **190** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -35,7 +35,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | reverb | 4 |
 | routing | 4 |
 | soundfont | 3 |
-| spectral | 8 |
+| spectral | 9 |
 | tables | 4 |
 | utility | 5 |
 
@@ -320,6 +320,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
 | pvsanal | 7 (a, i, i, i, i, i, i) | 1 (f) | Phase-vocoder analysis from an audio input to an fsig stream. |
+| pvscale | 5 (f, k, k, k, k) | 1 (f) | Transpose spectral audio by multiplying its frequencies by a ratio. |
 | pvshift | 6 (f, k, k, k, k, k) | 1 (f) | Shift fsig partial frequencies by a fixed amount in Hz. |
 | pvsmooth | 3 (f, k, k) | 1 (f) | Smooth fsig amplitude and frequency trajectories with lowpass filtering. |
 | pvsmorph | 4 (f, f, k, k) | 1 (f) | Morph between two fsig streams by amplitude and frequency interpolation. |

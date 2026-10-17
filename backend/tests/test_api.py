@@ -7802,6 +7802,12 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
     ("stereo_flanger",
      {"sf_rate": 5, "sf_delay": 0.2, "sf_depth": 5, "sf_feedback": -0.9, "sf_phase": 180, "sf_mix": 1},
      {"sf_rate": 0.25, "sf_delay": 1, "sf_depth": 2, "sf_feedback": 0.5, "sf_phase": 90, "sf_mix": 0.5}),
+    ("stereo_widener", {"sw_width": 2, "sw_mono": 1, "sw_delay": 30, "sw_output": 0},
+     {"sw_width": 1.5, "sw_mono": 0, "sw_delay": 12, "sw_output": -6}),
+    ("bit_crusher", {"bc_bits": 2, "bc_downsample": 64, "bc_drive": 24, "bc_mix": 0, "bc_output": -24},
+     {"bc_bits": 8, "bc_downsample": 4, "bc_drive": 0, "bc_mix": 1, "bc_output": -6}),
+    ("harmonizer", {"hz_interval1": -24, "hz_interval2": 24, "hz_level1": 0, "hz_level2": 1, "hz_mix": 1, "hz_output": 0},
+     {"hz_interval1": 7, "hz_interval2": 12, "hz_level1": 0.7, "hz_level2": 0.5, "hz_mix": 0.5, "hz_output": -6}),
     ("parametric_equalizer",
      {"d4c20b81-8b7c-4312-91b6-8997156f2ca2": -20, "eq_160_gain_db": 6,
       "cded9f16-e830-42d7-964f-d9bce78a3cd8": -4, "377a004c-dd56-4042-b647-29f60bc7880a": 20,
@@ -7847,7 +7853,7 @@ def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixt
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger"])
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
@@ -7865,6 +7871,19 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         controls = [("Rate (Hz)", 0.02, 5, 0.25), ("Delay (ms)", 0.2, 5, 1),
                     ("Depth (ms)", 0, 5, 2), ("Feedback", -0.9, 0.9, 0.5),
                     ("Stereo Phase (deg)", 0, 180, 90), ("Mix", 0, 1, 0.5)]
+    elif fixture == "stereo_widener":
+        values = dict(sw_width=2, sw_mono=1, sw_delay=30, sw_output=0)
+        controls = [("Width", 0, 2, 1.5), ("Mono Widening", 0, 1, 0),
+                    ("Delay (ms)", 1, 30, 12), ("Output (dB)", -24, 0, -6)]
+    elif fixture == "bit_crusher":
+        values = dict(bc_bits=2, bc_downsample=64, bc_drive=24, bc_mix=0, bc_output=-24)
+        controls = [("Bit Depth", 2, 16, 8), ("Downsample Factor", 1, 64, 4),
+                    ("Drive (dB)", 0, 24, 0), ("Mix", 0, 1, 1), ("Output (dB)", -24, 0, -6)]
+    elif fixture == "harmonizer":
+        values = dict(hz_interval1=-24, hz_interval2=24, hz_level1=0, hz_level2=1, hz_mix=1, hz_output=0)
+        controls = [("Voice 1 Interval (semitones)", -24, 24, 7), ("Voice 2 Interval (semitones)", -24, 24, 12),
+                    ("Voice 1 Level", 0, 1, 0.7), ("Voice 2 Level", 0, 1, 0.5),
+                    ("Mix", 0, 1, 0.5), ("Output (dB)", -24, 0, -6)]
     else:
         identities = [n.id for n in patch.graph.nodes if n.opcode == "perf_controller"]
         values = dict(zip(identities, [-20, 6, -4, 20, 0, -8, 12]))
@@ -7891,7 +7910,7 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         listed = next(p for p in client.get("/api/patches").json() if p["id"] == restored["id"])
         assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == controls
         assert [c["scale"] for c in listed["performance_controllers"]] == [
-            "logarithmic" if fixture == "stereo_flanger" and index == 0 else "linear"
+            "logarithmic" if (fixture == "stereo_flanger" and index == 0) or (fixture == "bit_crusher" and index == 1) else "linear"
             for index in range(len(controls))
         ]
         saved = client.post("/api/performances", json=dict(name="Delay controls", config=config))
@@ -7914,6 +7933,12 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
             from backend.tests.csound_test_support import orc_code_lines
             code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
             assert code.count(" flanger ") == 2 and code.count(" poscil3 ") == 2
+        elif fixture == "stereo_widener":
+            assert " delay " in csd
+        elif fixture == "bit_crusher":
+            assert csd.count(" fold ") == 2 and "floor(" in csd
+        elif fixture == "harmonizer":
+            assert csd.count(" pvscale ") == 4 and csd.count(" pvsynth ") == 4
         else:
             assert csd.count(" pareq ") == 14
             assert csd.count("ampdb(") == 28
@@ -8132,3 +8157,13 @@ def test_insert_bypass_live_updates_and_performance_native_app_state_round_trips
         assert expanded["performance"]["config"]["mixer"]["strips"]["first"]["bypass"] is True
         assert len(expanded["patch_definitions"]) == 3
         assert any(node["opcode"] == "a_mul" for node in expanded["patch_definitions"][1]["graph"]["nodes"])
+
+
+def test_pvscale_opcode_api_schema(tmp_path):
+    with _client(tmp_path) as client:
+        opcode = next(o for o in client.get('/api/opcodes').json() if o['name'] == 'pvscale')
+        assert opcode['documentation_url'] == 'https://csound.com/docs/manual/pvscale.html'
+        assert [(p['id'], p['signal_type'], p['required']) for p in opcode['inputs']] == [
+            ('fsigin', 'f', True), ('kscal', 'k', True), ('kkeepform', 'k', False),
+            ('kgain', 'k', False), ('kcoefs', 'k', False)]
+        assert opcode['outputs'][0]['signal_type'] == 'f'

@@ -1,0 +1,795 @@
+{
+  "sourcePatchId": "85ce7685-3eb0-476c-80d7-8d7d348327c4",
+  "name": "Harmonizer",
+  "description": "Two fixed spectral harmony voices, independently processing each stereo channel. Intervals round to semitones; no key detection or formant preservation. Dry and wet paths have 1536-sample latency (32 ms at 48 kHz), including Mix 0. Voice levels are normalized when their sum exceeds 1. Mix 1 is a wet send return. Restart the rack after changing performance controllers.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "hz_interval1",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Voice 1 Interval (semitones)",
+          "min": -24,
+          "max": 24,
+          "default": 7,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0,
+          "y": -500
+        }
+      },
+      {
+        "id": "hz_interval2",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Voice 2 Interval (semitones)",
+          "min": -24,
+          "max": 24,
+          "default": 12,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -41.83827806202379,
+          "y": -370.27930594075195
+        }
+      },
+      {
+        "id": "hz_level1",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Voice 1 Level",
+          "min": 0,
+          "max": 1,
+          "default": 0.7,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -119.2396706833714,
+          "y": -262.6243174094978
+        }
+      },
+      {
+        "id": "hz_level2",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Voice 2 Level",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -107.41259633946106,
+          "y": -161.28205194895645
+        }
+      },
+      {
+        "id": "hz_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Mix",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 393.117249423924,
+          "y": -372.61414872033066
+        }
+      },
+      {
+        "id": "hz_output",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -24,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 823.4360667878173,
+          "y": -369.8325150384869
+        }
+      },
+      {
+        "id": "hz_weight1",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 419.2956748759724,
+          "y": -173.8357997517391
+        }
+      },
+      {
+        "id": "hz_weight2",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 551.7525664253392,
+          "y": -5.518136780689915
+        }
+      },
+      {
+        "id": "hz_mix_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 748.1293822181108,
+          "y": -198.928153327335
+        }
+      },
+      {
+        "id": "hz_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 1228.8237505587172,
+          "y": -133.99214009652093
+        }
+      },
+      {
+        "id": "hz_analysis_left",
+        "opcode": "pvsanal",
+        "params": {
+          "ifftsize": 1024,
+          "ioverlap": 256,
+          "iwinsize": 1024,
+          "iwintype": 1
+        },
+        "position": {
+          "x": 367.2059992665156,
+          "y": 269.23097093645885
+        }
+      },
+      {
+        "id": "hz_shift1_left",
+        "opcode": "pvscale",
+        "params": {
+          "kkeepform": 0,
+          "kgain": 1,
+          "kcoefs": 80
+        },
+        "position": {
+          "x": 650,
+          "y": 200
+        }
+      },
+      {
+        "id": "hz_voice1_left",
+        "opcode": "pvsynth",
+        "params": {},
+        "position": {
+          "x": 950,
+          "y": 200
+        }
+      },
+      {
+        "id": "hz_shift2_left",
+        "opcode": "pvscale",
+        "params": {
+          "kkeepform": 0,
+          "kgain": 1,
+          "kcoefs": 80
+        },
+        "position": {
+          "x": 650,
+          "y": 500
+        }
+      },
+      {
+        "id": "hz_voice2_left",
+        "opcode": "pvsynth",
+        "params": {},
+        "position": {
+          "x": 950,
+          "y": 500
+        }
+      },
+      {
+        "id": "hz_dry_left",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 950,
+          "y": 50
+        }
+      },
+      {
+        "id": "hz_mix_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1720.640749916442,
+          "y": 65.53035102796687
+        }
+      },
+      {
+        "id": "hz_analysis_right",
+        "opcode": "pvsanal",
+        "params": {
+          "ifftsize": 1024,
+          "ioverlap": 256,
+          "iwinsize": 1024,
+          "iwintype": 1
+        },
+        "position": {
+          "x": 300,
+          "y": 1000
+        }
+      },
+      {
+        "id": "hz_shift1_right",
+        "opcode": "pvscale",
+        "params": {
+          "kkeepform": 0,
+          "kgain": 1,
+          "kcoefs": 80
+        },
+        "position": {
+          "x": 650,
+          "y": 1000
+        }
+      },
+      {
+        "id": "hz_voice1_right",
+        "opcode": "pvsynth",
+        "params": {},
+        "position": {
+          "x": 950,
+          "y": 1000
+        }
+      },
+      {
+        "id": "hz_shift2_right",
+        "opcode": "pvscale",
+        "params": {
+          "kkeepform": 0,
+          "kgain": 1,
+          "kcoefs": 80
+        },
+        "position": {
+          "x": 650,
+          "y": 1300
+        }
+      },
+      {
+        "id": "hz_voice2_right",
+        "opcode": "pvsynth",
+        "params": {},
+        "position": {
+          "x": 950,
+          "y": 1300
+        }
+      },
+      {
+        "id": "hz_dry_right",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 950,
+          "y": 850
+        }
+      },
+      {
+        "id": "hz_mix_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1639.4545191919551,
+          "y": 623.6867594148141
+        }
+      },
+      {
+        "id": "hz_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": -191.9038988277193,
+          "y": 194.66733439232024
+        }
+      },
+      {
+        "id": "hz_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": -191.9038988277193,
+          "y": 794.6673343923198
+        }
+      },
+      {
+        "id": "hz_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2000,
+          "y": 200
+        }
+      },
+      {
+        "id": "hz_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2000,
+          "y": 800
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "hz_level1",
+        "from_port_id": "iout",
+        "to_node_id": "hz_weight1",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hz_level2",
+        "from_port_id": "iout",
+        "to_node_id": "hz_weight1",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hz_level1",
+        "from_port_id": "iout",
+        "to_node_id": "hz_weight2",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hz_level2",
+        "from_port_id": "iout",
+        "to_node_id": "hz_weight2",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hz_mix",
+        "from_port_id": "iout",
+        "to_node_id": "hz_mix_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hz_output",
+        "from_port_id": "iout",
+        "to_node_id": "hz_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hz_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "hz_analysis_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "hz_analysis_left",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_shift1_left",
+        "to_port_id": "fsigin"
+      },
+      {
+        "from_node_id": "hz_interval1",
+        "from_port_id": "iout",
+        "to_node_id": "hz_shift1_left",
+        "to_port_id": "kscal"
+      },
+      {
+        "from_node_id": "hz_shift1_left",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_voice1_left",
+        "to_port_id": "fsrc"
+      },
+      {
+        "from_node_id": "hz_analysis_left",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_shift2_left",
+        "to_port_id": "fsigin"
+      },
+      {
+        "from_node_id": "hz_interval2",
+        "from_port_id": "iout",
+        "to_node_id": "hz_shift2_left",
+        "to_port_id": "kscal"
+      },
+      {
+        "from_node_id": "hz_shift2_left",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_voice2_left",
+        "to_port_id": "fsrc"
+      },
+      {
+        "from_node_id": "hz_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "hz_dry_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hz_dry_left",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_voice1_left",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_voice2_left",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_weight1",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_weight2",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_gain",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "hz_analysis_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "hz_analysis_right",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_shift1_right",
+        "to_port_id": "fsigin"
+      },
+      {
+        "from_node_id": "hz_interval1",
+        "from_port_id": "iout",
+        "to_node_id": "hz_shift1_right",
+        "to_port_id": "kscal"
+      },
+      {
+        "from_node_id": "hz_shift1_right",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_voice1_right",
+        "to_port_id": "fsrc"
+      },
+      {
+        "from_node_id": "hz_analysis_right",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_shift2_right",
+        "to_port_id": "fsigin"
+      },
+      {
+        "from_node_id": "hz_interval2",
+        "from_port_id": "iout",
+        "to_node_id": "hz_shift2_right",
+        "to_port_id": "kscal"
+      },
+      {
+        "from_node_id": "hz_shift2_right",
+        "from_port_id": "fsig",
+        "to_node_id": "hz_voice2_right",
+        "to_port_id": "fsrc"
+      },
+      {
+        "from_node_id": "hz_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "hz_dry_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "hz_dry_right",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_voice1_right",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_voice2_right",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_weight1",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_weight2",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_gain",
+        "from_port_id": "aout",
+        "to_node_id": "hz_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "hz_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "hz_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "hz_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "hz_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "hz_weight1::ksig": {
+          "expression": "a / ((1 + a + b + abs(1 - a - b)) / 2)",
+          "inputs": [
+            {
+              "token": "a",
+              "from_node_id": "hz_level1",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "b",
+              "from_node_id": "hz_level2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_weight2::ksig": {
+          "expression": "b / ((1 + a + b + abs(1 - a - b)) / 2)",
+          "inputs": [
+            {
+              "token": "a",
+              "from_node_id": "hz_level1",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "b",
+              "from_node_id": "hz_level2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_mix_audio::ksig": {
+          "expression": "mix",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "hz_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_gain::ksig": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "hz_output",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_shift1_left::kscal": {
+          "expression": "ampdb(6.020599913279624 * floor(interval + 0.5) / 12)",
+          "inputs": [
+            {
+              "token": "interval",
+              "from_node_id": "hz_interval1",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_shift2_left::kscal": {
+          "expression": "ampdb(6.020599913279624 * floor(interval + 0.5) / 12)",
+          "inputs": [
+            {
+              "token": "interval",
+              "from_node_id": "hz_interval2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_dry_left::idlt": {
+          "expression": "1536 / sr",
+          "inputs": []
+        },
+        "hz_mix_left::a": {
+          "expression": "(dry * (1 - mix) + (v1 * w1 + v2 * w2) * mix) * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "hz_dry_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "v1",
+              "from_node_id": "hz_voice1_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "v2",
+              "from_node_id": "hz_voice2_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "w1",
+              "from_node_id": "hz_weight1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "w2",
+              "from_node_id": "hz_weight2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "mix",
+              "from_node_id": "hz_mix_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "hz_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "hz_shift1_right::kscal": {
+          "expression": "ampdb(6.020599913279624 * floor(interval + 0.5) / 12)",
+          "inputs": [
+            {
+              "token": "interval",
+              "from_node_id": "hz_interval1",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_shift2_right::kscal": {
+          "expression": "ampdb(6.020599913279624 * floor(interval + 0.5) / 12)",
+          "inputs": [
+            {
+              "token": "interval",
+              "from_node_id": "hz_interval2",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "hz_dry_right::idlt": {
+          "expression": "1536 / sr",
+          "inputs": []
+        },
+        "hz_mix_right::a": {
+          "expression": "(dry * (1 - mix) + (v1 * w1 + v2 * w2) * mix) * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "hz_dry_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "v1",
+              "from_node_id": "hz_voice1_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "v2",
+              "from_node_id": "hz_voice2_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "w1",
+              "from_node_id": "hz_weight1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "w2",
+              "from_node_id": "hz_weight2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "mix",
+              "from_node_id": "hz_mix_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "hz_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "hz_input": true,
+        "hz_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "hz_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "hz_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "hz_input",
+      "mainOutput": "hz_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

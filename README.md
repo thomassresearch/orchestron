@@ -170,6 +170,8 @@ control supports 1–100 ms modulation; larger values also lengthen the wet dela
 comb filtering with Rate, Delay, Depth, Feedback, Stereo Phase and Mix controls.
 Its continuous stereo insert supports signed feedback and a wet-only send return.
 
+[Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls.
+
 The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
 includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
 with a waveguide string model, velocity-sensitive plucking and finger/plectrum,

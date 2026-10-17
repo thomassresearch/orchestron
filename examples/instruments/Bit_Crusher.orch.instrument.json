@@ -1,0 +1,684 @@
+{
+  "sourcePatchId": "a555146e-866b-4fc5-8c20-22893d9ea340",
+  "name": "Bit Crusher",
+  "description": "Independent stereo sample-rate reduction and signed bit quantization. Bit Depth rounds to an integer. Drive clips before reduction; aliasing is intentional. Mix 0 is dry before Output gain. No dither. Restart the rack after changing performance controllers.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "bc_bits",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Bit Depth",
+          "min": 2,
+          "max": 16,
+          "default": 8,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0,
+          "y": -500
+        }
+      },
+      {
+        "id": "bc_downsample",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Downsample Factor",
+          "min": 1,
+          "max": 64,
+          "default": 4,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 300,
+          "y": -500
+        }
+      },
+      {
+        "id": "bc_drive",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Drive (dB)",
+          "min": 0,
+          "max": 24,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 600,
+          "y": -500
+        }
+      },
+      {
+        "id": "bc_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Mix",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 900,
+          "y": -500
+        }
+      },
+      {
+        "id": "bc_output",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -24,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1200,
+          "y": -500
+        }
+      },
+      {
+        "id": "bc_drive_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 236.39604241884757,
+          "y": -97.12833554924819
+        }
+      },
+      {
+        "id": "bc_steps",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 480.75023414449697,
+          "y": -97.88403672049867
+        }
+      },
+      {
+        "id": "bc_mix_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 683.3897212171203,
+          "y": -101.34766708873002
+        }
+      },
+      {
+        "id": "bc_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 931.7743191894389,
+          "y": -96.1837090851851
+        }
+      },
+      {
+        "id": "bc_clip_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 337.96138883581557,
+          "y": 228.04281096315307
+        }
+      },
+      {
+        "id": "bc_hold_left",
+        "opcode": "fold",
+        "params": {},
+        "position": {
+          "x": 650,
+          "y": 200
+        }
+      },
+      {
+        "id": "bc_quant_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1000,
+          "y": 200
+        }
+      },
+      {
+        "id": "bc_limit_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1300,
+          "y": 200
+        }
+      },
+      {
+        "id": "bc_mix_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1650,
+          "y": 200
+        }
+      },
+      {
+        "id": "bc_clip_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 300,
+          "y": 800
+        }
+      },
+      {
+        "id": "bc_hold_right",
+        "opcode": "fold",
+        "params": {},
+        "position": {
+          "x": 650,
+          "y": 800
+        }
+      },
+      {
+        "id": "bc_quant_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1000,
+          "y": 800
+        }
+      },
+      {
+        "id": "bc_limit_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1300,
+          "y": 800
+        }
+      },
+      {
+        "id": "bc_mix_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1650,
+          "y": 800
+        }
+      },
+      {
+        "id": "bc_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0,
+          "y": 200
+        }
+      },
+      {
+        "id": "bc_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0,
+          "y": 800
+        }
+      },
+      {
+        "id": "bc_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2000,
+          "y": 200
+        }
+      },
+      {
+        "id": "bc_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2000,
+          "y": 800
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "bc_drive",
+        "from_port_id": "iout",
+        "to_node_id": "bc_drive_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bc_bits",
+        "from_port_id": "iout",
+        "to_node_id": "bc_steps",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bc_mix",
+        "from_port_id": "iout",
+        "to_node_id": "bc_mix_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bc_output",
+        "from_port_id": "iout",
+        "to_node_id": "bc_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "bc_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "bc_clip_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_drive_gain",
+        "from_port_id": "aout",
+        "to_node_id": "bc_clip_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_clip_left",
+        "from_port_id": "aout",
+        "to_node_id": "bc_hold_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bc_downsample",
+        "from_port_id": "iout",
+        "to_node_id": "bc_hold_left",
+        "to_port_id": "kincr"
+      },
+      {
+        "from_node_id": "bc_hold_left",
+        "from_port_id": "aout",
+        "to_node_id": "bc_quant_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_steps",
+        "from_port_id": "aout",
+        "to_node_id": "bc_quant_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_quant_left",
+        "from_port_id": "aout",
+        "to_node_id": "bc_limit_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_steps",
+        "from_port_id": "aout",
+        "to_node_id": "bc_limit_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "bc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_limit_left",
+        "from_port_id": "aout",
+        "to_node_id": "bc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "bc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_gain",
+        "from_port_id": "aout",
+        "to_node_id": "bc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "bc_clip_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_drive_gain",
+        "from_port_id": "aout",
+        "to_node_id": "bc_clip_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_clip_right",
+        "from_port_id": "aout",
+        "to_node_id": "bc_hold_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "bc_downsample",
+        "from_port_id": "iout",
+        "to_node_id": "bc_hold_right",
+        "to_port_id": "kincr"
+      },
+      {
+        "from_node_id": "bc_hold_right",
+        "from_port_id": "aout",
+        "to_node_id": "bc_quant_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_steps",
+        "from_port_id": "aout",
+        "to_node_id": "bc_quant_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_quant_right",
+        "from_port_id": "aout",
+        "to_node_id": "bc_limit_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_steps",
+        "from_port_id": "aout",
+        "to_node_id": "bc_limit_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "bc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_limit_right",
+        "from_port_id": "aout",
+        "to_node_id": "bc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_mix_audio",
+        "from_port_id": "aout",
+        "to_node_id": "bc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_gain",
+        "from_port_id": "aout",
+        "to_node_id": "bc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bc_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "bc_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "bc_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "bc_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "bc_drive_gain::ksig": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "bc_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "bc_steps::ksig": {
+          "expression": "floor(ampdb(6.020599913279624 * (floor(bits + 0.5) - 1)) + 0.5)",
+          "inputs": [
+            {
+              "token": "bits",
+              "from_node_id": "bc_bits",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "bc_mix_audio::ksig": {
+          "expression": "mix",
+          "inputs": [
+            {
+              "token": "mix",
+              "from_node_id": "bc_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "bc_gain::ksig": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "bc_output",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "bc_clip_left::a": {
+          "expression": "(abs(input * drive + 1) - abs(input * drive - 1)) / 2",
+          "inputs": [
+            {
+              "token": "input",
+              "from_node_id": "bc_in_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "drive",
+              "from_node_id": "bc_drive_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bc_quant_left::a": {
+          "expression": "floor(input * q + 0.5) / q",
+          "inputs": [
+            {
+              "token": "input",
+              "from_node_id": "bc_hold_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "q",
+              "from_node_id": "bc_steps",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bc_limit_left::a": {
+          "expression": "(input + 1 - 1 / q - abs(input - (1 - 1 / q))) / 2",
+          "inputs": [
+            {
+              "token": "input",
+              "from_node_id": "bc_quant_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "q",
+              "from_node_id": "bc_steps",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bc_mix_left::a": {
+          "expression": "(dry * (1 - mix) + wet * mix) * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "bc_in_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "bc_limit_left",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "mix",
+              "from_node_id": "bc_mix_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "bc_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bc_clip_right::a": {
+          "expression": "(abs(input * drive + 1) - abs(input * drive - 1)) / 2",
+          "inputs": [
+            {
+              "token": "input",
+              "from_node_id": "bc_in_right",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "drive",
+              "from_node_id": "bc_drive_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bc_quant_right::a": {
+          "expression": "floor(input * q + 0.5) / q",
+          "inputs": [
+            {
+              "token": "input",
+              "from_node_id": "bc_hold_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "q",
+              "from_node_id": "bc_steps",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bc_limit_right::a": {
+          "expression": "(input + 1 - 1 / q - abs(input - (1 - 1 / q))) / 2",
+          "inputs": [
+            {
+              "token": "input",
+              "from_node_id": "bc_quant_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "q",
+              "from_node_id": "bc_steps",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "bc_mix_right::a": {
+          "expression": "(dry * (1 - mix) + wet * mix) * gain",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "bc_in_right",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "bc_limit_right",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "mix",
+              "from_node_id": "bc_mix_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "bc_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "bc_input": true,
+        "bc_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "bc_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "bc_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "bc_input",
+      "mainOutput": "bc_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

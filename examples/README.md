@@ -50,6 +50,8 @@ the original Overdrive, with an editable graph and reproducible audio comparison
 effect with six performance controls, independent delay lines and signed feedback.
 Its example includes a native instrument, editable graph and reproducible previews.
 
+[Stereo Widener, Bit Crusher, and Harmonizer](instruments/continuous_effects/README.md): continuous stereo effects with configurable performance controls.
+
 1. Open the **Instrument Design** tab.
 2. Click **Import**.
 3. Select a file from `examples/instruments/`.

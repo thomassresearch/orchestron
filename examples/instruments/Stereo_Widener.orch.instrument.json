@@ -1,0 +1,530 @@
+{
+  "sourcePatchId": "d0854c7d-364c-4a29-84bf-89503841f13a",
+  "name": "Stereo Widener",
+  "description": "Mid/side width with optional mono widening. Synthetic side information cancels in mono. Width 1 and Mono Widening 0 preserve the stereo input before Output gain. Allow headroom at high width. Restart the rack after changing performance controllers.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "sw_width",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Width",
+          "min": 0,
+          "max": 2,
+          "default": 1.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0,
+          "y": -500
+        }
+      },
+      {
+        "id": "sw_mono",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Mono Widening",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 300,
+          "y": -500
+        }
+      },
+      {
+        "id": "sw_delay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Delay (ms)",
+          "min": 1,
+          "max": 30,
+          "default": 12,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 600,
+          "y": -500
+        }
+      },
+      {
+        "id": "sw_output",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -24,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 900,
+          "y": -500
+        }
+      },
+      {
+        "id": "sw_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0,
+          "y": 200
+        }
+      },
+      {
+        "id": "sw_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0,
+          "y": 800
+        }
+      },
+      {
+        "id": "sw_mid",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 500,
+          "y": 400
+        }
+      },
+      {
+        "id": "sw_side",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 500,
+          "y": 700
+        }
+      },
+      {
+        "id": "sw_delayed_mid",
+        "opcode": "delay",
+        "params": {},
+        "position": {
+          "x": 800,
+          "y": 200
+        }
+      },
+      {
+        "id": "sw_width_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 360,
+          "y": -100
+        }
+      },
+      {
+        "id": "sw_mono_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 400,
+          "y": -100
+        }
+      },
+      {
+        "id": "sw_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 440,
+          "y": -100
+        }
+      },
+      {
+        "id": "sw_spread",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1100,
+          "y": 400
+        }
+      },
+      {
+        "id": "sw_left",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1600,
+          "y": 200
+        }
+      },
+      {
+        "id": "sw_right",
+        "opcode": "mix2",
+        "params": {
+          "b": 0
+        },
+        "position": {
+          "x": 1600,
+          "y": 800
+        }
+      },
+      {
+        "id": "sw_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2000,
+          "y": 200
+        }
+      },
+      {
+        "id": "sw_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2000,
+          "y": 800
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "sw_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "sw_mid",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "sw_mid",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "sw_side",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "sw_side",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_mid",
+        "from_port_id": "aout",
+        "to_node_id": "sw_delayed_mid",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sw_delay",
+        "from_port_id": "iout",
+        "to_node_id": "sw_delayed_mid",
+        "to_port_id": "idlt"
+      },
+      {
+        "from_node_id": "sw_width",
+        "from_port_id": "iout",
+        "to_node_id": "sw_width_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sw_mono",
+        "from_port_id": "iout",
+        "to_node_id": "sw_mono_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sw_output",
+        "from_port_id": "iout",
+        "to_node_id": "sw_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "sw_side",
+        "from_port_id": "aout",
+        "to_node_id": "sw_spread",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_mono_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sw_spread",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_mid",
+        "from_port_id": "aout",
+        "to_node_id": "sw_spread",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_delayed_mid",
+        "from_port_id": "aout",
+        "to_node_id": "sw_spread",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_width_audio",
+        "from_port_id": "aout",
+        "to_node_id": "sw_spread",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_mid",
+        "from_port_id": "aout",
+        "to_node_id": "sw_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_spread",
+        "from_port_id": "aout",
+        "to_node_id": "sw_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_gain",
+        "from_port_id": "aout",
+        "to_node_id": "sw_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_mid",
+        "from_port_id": "aout",
+        "to_node_id": "sw_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_spread",
+        "from_port_id": "aout",
+        "to_node_id": "sw_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_gain",
+        "from_port_id": "aout",
+        "to_node_id": "sw_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sw_left",
+        "from_port_id": "aout",
+        "to_node_id": "sw_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "sw_right",
+        "from_port_id": "aout",
+        "to_node_id": "sw_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "sw_mid::a": {
+          "expression": "(left + right) / 2",
+          "inputs": [
+            {
+              "token": "left",
+              "from_node_id": "sw_in_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "right",
+              "from_node_id": "sw_in_right",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "sw_side::a": {
+          "expression": "(left - right) / 2",
+          "inputs": [
+            {
+              "token": "left",
+              "from_node_id": "sw_in_left",
+              "from_port_id": "asignal"
+            },
+            {
+              "token": "right",
+              "from_node_id": "sw_in_right",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "sw_delayed_mid::idlt": {
+          "expression": "time / 1000",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "sw_delay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sw_width_audio::ksig": {
+          "expression": "width",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "sw_width",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sw_mono_audio::ksig": {
+          "expression": "mono",
+          "inputs": [
+            {
+              "token": "mono",
+              "from_node_id": "sw_mono",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sw_gain::ksig": {
+          "expression": "ampdb(db)",
+          "inputs": [
+            {
+              "token": "db",
+              "from_node_id": "sw_output",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sw_spread::a": {
+          "expression": "(side + amount * (mid - delayed) / 2) * width",
+          "inputs": [
+            {
+              "token": "side",
+              "from_node_id": "sw_side",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "sw_mono_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "mid",
+              "from_node_id": "sw_mid",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "delayed",
+              "from_node_id": "sw_delayed_mid",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "width",
+              "from_node_id": "sw_width_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sw_left::a": {
+          "expression": "(mid + side) * gain",
+          "inputs": [
+            {
+              "token": "mid",
+              "from_node_id": "sw_mid",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "side",
+              "from_node_id": "sw_spread",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sw_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sw_right::a": {
+          "expression": "(mid - side) * gain",
+          "inputs": [
+            {
+              "token": "mid",
+              "from_node_id": "sw_mid",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "side",
+              "from_node_id": "sw_spread",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sw_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "sw_input": true,
+        "sw_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "sw_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "sw_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "sw_input",
+      "mainOutput": "sw_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

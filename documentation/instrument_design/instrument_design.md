@@ -30,6 +30,7 @@ Patches have an editable Instrument Type. Load Patch browses collapsed type grou
 - [Tube Overdrive](tube_overdrive.md)
 - [Stereo Delay](stereo_delay.md)
 - [Stereo Flanger](stereo_flanger.md)
+- [Stereo Widener, Bit Crusher, and Harmonizer](continuous_effects.md)
 - [Parametric Equalizer](parametric_equalizer.md)
 - [Supported Opcodes](supported_opcodes.md)
 
