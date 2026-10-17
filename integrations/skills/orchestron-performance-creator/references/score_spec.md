@@ -7,7 +7,7 @@ Composition Creator exports version 2. Both versions support event velocity and
 local track timing; v2 additionally rejects unknown melodic event fields,
 overlapping events in a voice, fractional step indices/durations, and events
 outside the active pad. These checks prevent silent loss during composition
-handoffs. The performance configuration stays v19, independently of score versions.
+handoffs. The performance configuration stays v20, independently of score versions.
 Score application is atomic: an invalid track leaves the staged performance unchanged.
 
 `edit apply-score` appends tracks. Apply a whole-song export once to a new staged

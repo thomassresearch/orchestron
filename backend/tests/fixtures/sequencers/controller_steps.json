@@ -1,0 +1,14 @@
+{
+  "timing": {"tempo_bpm": 120},
+  "playback_end_step": 32,
+  "controller_tracks": [{
+    "track_id": "cc-steps",
+    "controller_number": 74,
+    "controller_mode": "step",
+    "reset_value": 12,
+    "target_channels": [2, 5],
+    "timing": {"steps_per_beat": 4, "beat_unit": "meter"},
+    "length_beats": 2,
+    "pads": [{"pad_index": 0, "length_beats": 2, "steps": [null, 0, 64, 64, null, 127, null, null]}]
+  }]
+}

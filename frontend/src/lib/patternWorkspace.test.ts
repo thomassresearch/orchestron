@@ -120,7 +120,7 @@ it("deletes supergroups by expanding one level and highlights nested and repeate
 
 
 it("uses controller curve content and arpeggiator playable attacks for pad styling", () => {
-  const cc = { lengthBeats: 4 as const, stepCount: 16, keypoints: [{ id: "a", position: 0, value: 0 }, { id: "b", position: 1, value: 0 }] };
+  const cc = { lengthBeats: 4 as const, stepCount: 16, steps: [] as (number | null)[], keypoints: [{ id: "a", position: 0, value: 0 }, { id: "b", position: 1, value: 0 }] };
   expect(controllerPadHasContent(cc)).toBe(false);
   cc.keypoints[0].value = 64;
   expect(controllerPadHasContent(cc)).toBe(true);

@@ -264,6 +264,9 @@ export interface AppStore {
   addControllerSequencer: () => void;
   removeControllerSequencer: (controllerSequencerId: string) => void;
   setControllerSequencerEnabled: (controllerSequencerId: string, enabled: boolean) => void;
+  setControllerSequencerMode: (id: string, mode: "curve" | "step") => void;
+  setControllerSequencerResetValue: (id: string, value: number) => void;
+  setControllerSequencerStep: (id: string, step: number, value: number | null) => void;
   setControllerSequencerNumber: (controllerSequencerId: string, controllerNumber: number) => void;
   setControllerSequencerTargetChannels: (id: string, channels: number[]) => void;
   setControllerSequencerActivePad: (controllerSequencerId: string, padIndex: number) => void;

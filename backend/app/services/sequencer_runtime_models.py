@@ -115,6 +115,10 @@ class ControllerSequencerTrackRuntime:
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
     last_value: int | None = None
+    controller_mode: str = "curve"
+    reset_value: int = 0
+    step_active: bool = False
+    step_last_subunit: int | None = None
 
 
 @dataclass(slots=True)

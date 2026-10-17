@@ -2,7 +2,7 @@ import type { StoreApi } from "zustand";
 import type { PadLoopPatternState, SequencerState } from "../types";
 import type { ArrangementLaneKind } from "../lib/arrangementRange";
 import { validateArrangementEdit } from "../lib/arrangementEditing";
-import { normalizePadLoopPatternForState, normalizeSequencerState } from "./appStoreModel";
+import { normalizeControllerSteps, normalizePadLoopPatternForState, normalizeSequencerState } from "./appStoreModel";
 import { sequencerEditAccess } from "./sequencerEdits";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
 import type { AppStore } from "./appStoreTypes";
@@ -123,7 +123,24 @@ export function readArrangerHistory(raw: unknown, state: SequencerState): { arra
   try {
     if (!record(raw) || raw.version !== 1 || !Array.isArray(raw.entries) || raw.entries.length > ARRANGER_HISTORY_LIMIT ||
       !Number.isInteger(raw.cursor) || Number(raw.cursor) < 0 || Number(raw.cursor) > raw.entries.length || !Array.isArray(raw.basis)) throw new Error("Invalid history.");
-    for (const entry of raw.entries) {
+    // Pre-v20 controller pad snapshots lack steps. Apply the same additive
+    // default as the performance before comparing/replaying their history.
+    raw = structuredClone(raw);
+    const saved = raw as Record<string, unknown>;
+    const addSteps = (values: unknown) => {
+      if (!record(values) || !record(values.pads)) return;
+      for (const pad of Object.values(values.pads)) {
+        if (record(pad) && pad.steps === undefined) pad.steps = normalizeControllerSteps(undefined);
+      }
+    };
+    for (const basis of saved.basis as unknown[]) if (record(basis) && basis.kind === "controller") addSteps(basis);
+    for (const entry of saved.entries as unknown[]) {
+      if (!record(entry) || !Array.isArray(entry.changes)) continue;
+      for (const change of entry.changes) if (record(change) && change.kind === "controller") {
+        addSteps(change.before); addSteps(change.after);
+      }
+    }
+    for (const entry of saved.entries as unknown[]) {
       if (!record(entry) || !arrangerActionCodes.includes(entry.action as ArrangerActionCode) || !Array.isArray(entry.labels) ||
         entry.labels.length > 64 || entry.labels.some(label => typeof label !== "string" || label.length > 256) ||
         !Array.isArray(entry.changes) || !entry.changes.length || entry.changes.length > 64) throw new Error("Invalid history entry.");

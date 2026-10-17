@@ -833,10 +833,19 @@ export function defaultControllerSequencerKeypoints(): ControllerSequencerKeypoi
   ]);
 }
 
+export function normalizeControllerSteps(raw: unknown): (number | null)[] {
+  const values = Array.isArray(raw) ? raw : [];
+  return Array.from({ length: 128 }, (_, index) => {
+    const value = values[index];
+    return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 127 ? value : null;
+  });
+}
+
 export function cloneControllerSequencerPad(pad: ControllerSequencerPadState): ControllerSequencerPadState {
   return {
     lengthBeats: normalizeControllerSequencerLengthBeats(pad.lengthBeats),
     stepCount: normalizeTransportStepCount(pad.stepCount),
+    steps: normalizeControllerSteps(pad.steps),
     keypoints: normalizeControllerCurveKeypoints(pad.keypoints)
   };
 }
@@ -849,6 +858,7 @@ export function defaultControllerSequencerPad(
   return {
     lengthBeats: normalizedLengthBeats,
     stepCount: resolvedControllerPadStepCount(normalizedLengthBeats, timing),
+    steps: normalizeControllerSteps(undefined),
     keypoints: defaultControllerSequencerKeypoints()
   };
 }
@@ -882,6 +892,7 @@ export function normalizeControllerSequencerPadState(
   return {
     lengthBeats,
     stepCount: fallback.stepCount,
+    steps: normalizeControllerSteps(pad.steps),
     keypoints: keypoints.length > 0 ? keypoints : normalizeControllerCurveKeypoints(fallback.keypoints)
   };
 }
@@ -892,6 +903,7 @@ export function fallbackControllerSequencerPadStateForSequencer(
   return {
     lengthBeats: normalizeControllerSequencerLengthBeats(controllerSequencer.lengthBeats),
     stepCount: normalizeTransportStepCount(controllerSequencer.stepCount),
+    steps: normalizeControllerSteps(undefined),
     keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
   };
 }
@@ -1196,6 +1208,8 @@ export function defaultControllerSequencer(
   return {
     id: `cc-seq-${index}`,
     name: `Controller Sequencer ${index}`,
+    controllerMode: "curve",
+    resetValue: 0,
     controllerNumber: clampInt(index - 1, 0, 127),
     targetChannels: normalizeControllerTargetChannels(undefined),
     timing: normalizeSequencerTiming(timing),
@@ -1395,6 +1409,7 @@ export function normalizeControllerSequencerState(
     pads[0] = {
       lengthBeats,
       stepCount: resolvedControllerPadStepCount(lengthBeats, controllerTiming),
+      steps: normalizeControllerSteps(controllerSequencer.steps),
       keypoints
     };
   }
@@ -1410,6 +1425,8 @@ export function normalizeControllerSequencerState(
     id,
     name,
     controllerNumber,
+    controllerMode: (controllerSequencer.controllerMode ?? controllerSequencer.controller_mode) === "step" ? "step" : "curve",
+    resetValue: normalizeControllerValue(controllerSequencer.resetValue ?? controllerSequencer.reset_value),
     targetChannels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
     timing: controllerTiming,
     lengthBeats: activePadState.lengthBeats,
@@ -2946,7 +2963,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 19,
+    version: 20,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -3073,6 +3090,8 @@ export function buildSequencerConfigSnapshot(
             ? controllerSequencer.name
             : `Controller Sequencer ${index + 1}`,
         controllerNumber: normalizeControllerNumber(controllerSequencer.controllerNumber),
+        controllerMode: controllerSequencer.controllerMode,
+        resetValue: normalizeControllerValue(controllerSequencer.resetValue),
         targetChannels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
         timing: normalizeSequencerTiming(controllerSequencer.timing),
         lengthBeats: normalizeControllerSequencerLengthBeats(controllerSequencer.lengthBeats),
@@ -3091,12 +3110,14 @@ export function buildSequencerConfigSnapshot(
               ? {
                   lengthBeats: normalizeControllerSequencerLengthBeats(controllerSequencer.lengthBeats),
                   stepCount: normalizeTransportStepCount(controllerSequencer.stepCount),
+                  steps: normalizeControllerSteps(undefined),
                   keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
                 }
               : defaultControllerSequencerPad());
           return {
             lengthBeats: normalizeControllerSequencerLengthBeats(sourcePad.lengthBeats),
             stepCount: normalizeTransportStepCount(sourcePad.stepCount),
+            steps: normalizeControllerSteps(sourcePad.steps),
             keypoints: normalizeControllerCurveKeypoints(sourcePad.keypoints).map((keypoint, keypointIndex) => ({
               id: keypoint.id.length > 0 ? keypoint.id : `kp-${padIndex + 1}-${keypointIndex + 1}`,
               position: clampControllerCurvePosition(keypoint.position),
@@ -3165,7 +3186,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 16 &&
     payload.version !== 17 &&
     payload.version !== 18 &&
-    payload.version !== 19
+    payload.version !== 19 &&
+    payload.version !== 20
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

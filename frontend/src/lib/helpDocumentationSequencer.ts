@@ -1,3 +1,4 @@
+import { controllerStepHelp } from "./helpDocumentationControllerSteps";
 import { drummerRatchetHelp } from "./helpDocumentationDrummerRatchets";
 import { melodicStrumHelp } from "./helpDocumentationMelodicStrum";
 import { sequencerTimingHelp } from "./helpDocumentationSequencerTiming";
@@ -310,7 +311,7 @@ Secuenciador por pasos estilo caja de ritmos para teclas MIDI fijas.
 
 Click the pen beside the device name to rename it. Save/Enter applies; Cancel/Escape discards. Clicking elsewhere does not save. Names must be nonempty, use at most 65 Unicode characters, contain no HTML or angle brackets, and be unique across all six device types in the performance (ignoring case and surrounding whitespace). Names retain their capitalization and survive save/load and JSON/ZIP export/import. Existing imported names remain intact until renamed.
 
-Automate a MIDI CC value over time with a curve.
+Automate a MIDI CC value with a curve or a grid of optional integer steps.
 
 - Start/stop this controller sequencer independently while the arranger is stopped (Play starts the instrument engine when needed).
 - Set the MIDI controller number (\`0..127\`).
@@ -324,7 +325,7 @@ Automate a MIDI CC value over time with a curve.
 
 Zum Umbenennen auf den Stift neben dem Gerätenamen klicken. Speichern/Enter übernimmt, Abbrechen/Escape verwirft den Entwurf. Ein Klick außerhalb speichert nicht. Namen dürfen nicht leer sein, höchstens 65 Unicode-Zeichen enthalten und weder HTML noch spitze Klammern verwenden. Sie müssen über alle sechs Gerätetypen der Performance eindeutig sein; Groß-/Kleinschreibung und äußere Leerzeichen werden dabei ignoriert. Die Schreibweise bleibt erhalten, auch beim Speichern/Laden und JSON/ZIP-Export/Import. Vorhandene importierte Namen bleiben bis zum Umbenennen erhalten.
 
-Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
+Automatisiert einen MIDI-CC-Wert mit einer Kurve oder einem Raster optionaler Ganzzahlschritte.
 
 - Diesen Controller-Sequencer separat starten/stoppen, waehrend der Arranger gestoppt ist (Play startet die Instrument-Engine bei Bedarf).
 - MIDI-Controller-Nummer (\`0..127\`) festlegen.
@@ -338,7 +339,7 @@ Automatisiert einen MIDI-CC-Wert über die Zeit mit einer Kurve.
 
 Cliquez sur le stylo à droite du nom pour le modifier. Enregistrer/Entrée applique ; Annuler/Échap abandonne. Cliquer ailleurs ne sauvegarde pas. Le nom doit être non vide, comporter au maximum 65 caractères Unicode, sans HTML ni chevrons, et être unique parmi les six types d’appareils de la performance, sans tenir compte de la casse ni des espaces aux extrémités. La casse est conservée, ainsi que les noms lors de l’enregistrement, du chargement et de l’export/import JSON/ZIP. Les noms importés existants restent intacts jusqu’à leur modification.
 
-Automatise une valeur MIDI CC dans le temps avec une courbe.
+Automatise une valeur MIDI CC avec une courbe ou une grille de pas entiers facultatifs.
 
 - Démarrer/arrêter ce séquenceur contrôleur indépendamment pendant que l'arrangeur est arrêté (Play démarre le moteur audio si nécessaire).
 - Définir le numéro de contrôleur MIDI (\`0..127\`).
@@ -353,7 +354,7 @@ Automatise une valeur MIDI CC dans le temps avec une courbe.
 
 Haz clic en el lápiz a la derecha del nombre para editarlo. Guardar/Enter aplica; Cancelar/Escape descarta. Hacer clic fuera no guarda. El nombre no puede estar vacío, debe tener como máximo 65 caracteres Unicode, no puede contener HTML ni corchetes angulares y debe ser único entre los seis tipos de dispositivos de la performance, sin distinguir mayúsculas ni espacios en los extremos. Se conservan las mayúsculas y los nombres al guardar, cargar y exportar/importar JSON/ZIP. Los nombres importados existentes se mantienen hasta que se renombren.
 
-Automatiza un valor MIDI CC en el tiempo mediante una curva.
+Automatiza un valor MIDI CC con una curva o una cuadrícula de pasos enteros opcionales.
 
 - Inicia/detiene este secuenciador controlador de forma independiente mientras el arreglador está detenido (Play inicia el motor de audio cuando es necesario).
 - Define el número de controlador MIDI (\`0..127\`).
@@ -841,22 +842,22 @@ const controllerChannelHelp = {
 
 Check the channels that receive this device's CC messages. All 16 are checked by default (OMNI), including when loading older performances. At least one must remain checked. Selections are saved and included in native JSON/ZIP and both CSD exports.
 
-Controller sequencers show 1–16 beside Clear Steps in one scrolling row; the selection applies to all pads. Channel edits follow the 80 ms live-edit path without resetting transport or queued pads. Manual controllers show 1–8 above 9–16 at the top right; changing channels while enabled immediately sends the current value to the new selection. Removed channels retain their last value.`,
+Controller sequencers show 1–16 beside Clear Steps in one scrolling row; the selection applies to all pads. Channel edits follow the 80 ms live-edit path without resetting transport or queued pads. Manual controllers show 1–8 above 9–16 at the top right; changing channels while enabled immediately sends the current value to the new selection. In manual controllers and Curve Mode, removed channels retain their last value.`,
   german: `### MIDI-Kanäle
 
 Die Kanäle auswählen, die CC-Nachrichten dieses Geräts empfangen sollen. Standardmäßig sind alle 16 ausgewählt (OMNI), auch beim Laden älterer Performances. Mindestens einer muss ausgewählt bleiben. Die Auswahl wird gespeichert und in native JSON/ZIP- sowie beide CSD-Exporte übernommen.
 
-Controller-Sequencer zeigen 1–16 neben „Steps loeschen“ in einer horizontal scrollbaren Zeile; die Auswahl gilt für alle Pads. Kanaländerungen folgen dem 80-ms-Live-Edit-Ablauf ohne Transport oder vorgemerkte Pads zurückzusetzen. Manuelle Controller zeigen oben rechts 1–8 über 9–16; bei aktivem Controller wird der aktuelle Wert sofort an die neue Auswahl gesendet. Abgewählte Kanäle behalten ihren letzten Wert.`,
+Controller-Sequencer zeigen 1–16 neben „Steps loeschen“ in einer horizontal scrollbaren Zeile; die Auswahl gilt für alle Pads. Kanaländerungen folgen dem 80-ms-Live-Edit-Ablauf ohne Transport oder vorgemerkte Pads zurückzusetzen. Manuelle Controller zeigen oben rechts 1–8 über 9–16; bei aktivem Controller wird der aktuelle Wert sofort an die neue Auswahl gesendet. Bei manuellen Controllern und im Kurvenmodus behalten abgewählte Kanäle ihren letzten Wert.`,
   french: `### Canaux MIDI
 
 Cochez les canaux qui reçoivent les messages CC de cet appareil. Les 16 sont cochés par défaut (OMNI), y compris au chargement des anciennes performances. Au moins un doit rester coché. La sélection est enregistrée et incluse dans les exports natifs JSON/ZIP et les deux exports CSD.
 
-Les séquenceurs contrôleur affichent 1–16 près de « Effacer pas », sur une ligne à défilement horizontal ; la sélection s'applique à tous les pads. Les changements suivent le délai de 80 ms sans réinitialiser le transport ni les pads en attente. Les contrôleurs manuels affichent 1–8 au-dessus de 9–16 en haut à droite ; changer les canaux pendant leur activation envoie immédiatement la valeur actuelle à la nouvelle sélection. Les canaux décochés conservent leur dernière valeur.`,
+Les séquenceurs contrôleur affichent 1–16 près de « Effacer pas », sur une ligne à défilement horizontal ; la sélection s'applique à tous les pads. Les changements suivent le délai de 80 ms sans réinitialiser le transport ni les pads en attente. Les contrôleurs manuels affichent 1–8 au-dessus de 9–16 en haut à droite ; changer les canaux pendant leur activation envoie immédiatement la valeur actuelle à la nouvelle sélection. Pour les contrôleurs manuels et le Mode courbe, les canaux décochés conservent leur dernière valeur.`,
   spanish: `### Canales MIDI
 
 Marca los canales que reciben los mensajes CC de este dispositivo. Los 16 están marcados por defecto (OMNI), también al cargar performances antiguas. Al menos uno debe permanecer marcado. La selección se guarda y se incluye en los exports nativos JSON/ZIP y en ambos exports CSD.
 
-Los secuenciadores controladores muestran 1–16 junto a « Limpiar pasos » en una fila con desplazamiento horizontal; la selección se aplica a todos los pads. Los cambios siguen el flujo de edición de 80 ms sin reiniciar el transporte ni los pads en cola. Los controladores manuales muestran 1–8 sobre 9–16 arriba a la derecha; cambiar los canales mientras están activados envía el valor actual inmediatamente a la nueva selección. Los canales desmarcados conservan su último valor.`
+Los secuenciadores controladores muestran 1–16 junto a « Limpiar pasos » en una fila con desplazamiento horizontal; la selección se aplica a todos los pads. Los cambios siguen el flujo de edición de 80 ms sin reiniciar el transporte ni los pads en cola. Los controladores manuales muestran 1–8 sobre 9–16 arriba a la derecha; cambiar los canales mientras están activados envía el valor actual inmediatamente a la nueva selección. En los controladores manuales y Modo curva, los canales desmarcados conservan su último valor.`
 };
 
 for (const language of ["english", "german", "french", "spanish"] as const) {
@@ -958,4 +959,8 @@ Las notas visibles del acorde se iluminan y comparten canal y velocidad. Soltar 
 };
 for (const language of ["english", "german", "french", "spanish"] as const) {
   sequencerHelpDocuments.sequencer_piano_rolls[language].markdown += "\n\n" + pianoRollAutoChordHelp[language];
+}
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  sequencerHelpDocuments.sequencer_controller_sequencer[language].markdown += "\n\n" + controllerStepHelp[language];
 }

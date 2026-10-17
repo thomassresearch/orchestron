@@ -408,6 +408,7 @@ class SessionControllerSequencerPadConfig(BaseModel):
     pad_index: int = Field(ge=0, le=7)
     length_beats: ControllerSequencerPadLengthBeats | None = None
     keypoints: list[SessionControllerSequencerKeypointConfig] = Field(default_factory=list, max_length=256)
+    steps: list[Annotated[int, Field(strict=True, ge=0, le=127)] | None] = Field(default_factory=list, max_length=128)
 
 
 class SessionSequencerTrackConfig(BaseModel):
@@ -456,6 +457,8 @@ class SessionSequencerTrackConfig(BaseModel):
 class SessionControllerSequencerTrackConfig(BaseModel):
     track_id: str = Field(min_length=1, max_length=256)
     controller_number: int = Field(ge=0, le=127)
+    controller_mode: Literal["curve", "step"] = "curve"
+    reset_value: int = Field(default=0, strict=True, ge=0, le=127)
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     length_beats: ControllerSequencerPadLengthBeats = 4
     active_pad: int = Field(default=0, ge=0, le=7)

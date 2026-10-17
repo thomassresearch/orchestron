@@ -1,3 +1,4 @@
+import { ControllerSequencerStepEditor, controllerModeCopy } from "./sequencer/ControllerSequencerStepEditor";
 import { MelodicStepProperties, melodicStepCopy } from "./sequencer/MelodicStepProperties";
 import { DrummerRatchetControl, drummerRatchetCopy, drummerCellDescription } from "./sequencer/DrummerRatchetControl";
 import { BeatGroupHeaders, SequencerTimingControls } from "./sequencer/SequencerTimingControls";
@@ -428,6 +429,9 @@ function useSequencerPageContext({
     onRemoveControllerSequencer,
     onControllerSequencerEnabledChange,
     onControllerSequencerNumberChange,
+    onControllerSequencerModeChange,
+    onControllerSequencerResetValueChange,
+    onControllerSequencerStepChange,
     onControllerSequencerTargetChannelsChange,
     onControllerSequencerMeterNumeratorChange,
     onControllerSequencerMeterDenominatorChange,
@@ -708,6 +712,9 @@ function useSequencerPageContext({
     onControllerSequencerClearSteps,
     onRemoveControllerSequencer,
     onControllerSequencerNumberChange,
+    onControllerSequencerModeChange,
+    onControllerSequencerResetValueChange,
+    onControllerSequencerStepChange,
     onControllerSequencerTargetChannelsChange,
     onControllerSequencerMeterNumeratorChange,
     onControllerSequencerMeterDenominatorChange,
@@ -2752,6 +2759,9 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
     canRemovePerformDevice,
     controlLabelClass,
     onControllerSequencerNumberChange,
+    onControllerSequencerModeChange,
+    onControllerSequencerResetValueChange,
+    onControllerSequencerStepChange,
     onControllerSequencerTargetChannelsChange,
     controlFieldClass,
     onControllerSequencerMeterNumeratorChange,
@@ -2837,6 +2847,24 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
 
             <div className="mb-2 grid gap-3 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
             <div className="flex flex-wrap content-start items-end gap-2">
+              <div className="flex flex-col gap-1">
+                <span className={controlLabelClass}>{controllerModeCopy[guiLanguage].mode}</span>
+                <div role="group" aria-label={controllerModeCopy[guiLanguage].mode} className="flex rounded-md border border-slate-600 p-0.5">
+                  {(["curve", "step"] as const).map(mode => <button key={mode} type="button"
+                    aria-pressed={controllerSequencer.controllerMode === mode}
+                    onClick={() => onControllerSequencerModeChange?.(controllerSequencer.id, mode)}
+                    className={`rounded px-2 py-1 text-xs ${controllerSequencer.controllerMode === mode ? "bg-cyan-500/20 text-cyan-100" : "text-slate-400 hover:text-slate-100"}`}>
+                    {controllerModeCopy[guiLanguage][mode]}
+                  </button>)}
+                </div>
+              </div>
+              {controllerSequencer.controllerMode === "step" && <label className="flex flex-col gap-1" title={controllerModeCopy[guiLanguage].resetHint}>
+                <span className={controlLabelClass}>{controllerModeCopy[guiLanguage].reset}</span>
+                <input type="number" min={0} max={127} step={1} value={controllerSequencer.resetValue}
+                  onChange={event => onControllerSequencerResetValueChange?.(controllerSequencer.id, Number(event.target.value))}
+                  className={`${controlFieldClass} w-24`} />
+              </label>}
+
               <label className="flex min-w-[120px] flex-col gap-1">
                 <span className={controlLabelClass}>{ui.controllerNumber}</span>
                 <input
@@ -2866,7 +2894,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
             <div className="min-w-0 space-y-2">
               <PerformanceAuditionControls compact id={controllerSequencer.id} language={guiLanguage} editingPad={controllerSequencer.activePad} playingPad={playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad} queuedPad={controllerSequencer.queuedPad} playing={sequencer.isPlaying && controllerSequencer.enabled} item={{ type: "pad", padIndex: controllerSequencer.activePad }} manualLaunch={controllerSequencer.padLoopEnabled ? undefined : () => { onControllerSequencerPadPress(controllerSequencer.id, controllerSequencer.activePad); if (!sequencer.isPlaying || !controllerSequencer.enabled) onControllerSequencerEnabledChange(controllerSequencer.id, true); }} />
               <PatternWorkspace track={controllerSequencer} language={guiLanguage}
-                padHasContent={index => controllerPadHasContent(controllerSequencer.pads[index])}
+                padHasContent={index => controllerPadHasContent(controllerSequencer.pads[index], controllerSequencer.controllerMode)}
                 onSourceChange={enabled => onControllerSequencerPadLoopEnabledChange(controllerSequencer.id, enabled)}
                 onPatternChange={pattern => onControllerSequencerPadLoopPatternChange(controllerSequencer.id, pattern)} />
             </div>
@@ -2879,7 +2907,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                   const pad = controllerSequencer.pads[padIndex] ?? null;
                   const isActive = controllerSequencer.activePad === padIndex;
                   const isQueued = controllerSequencer.queuedPad === padIndex;
-                  const padHasContent = controllerPadHasContent(pad ?? undefined);
+                  const padHasContent = controllerPadHasContent(pad ?? undefined, controllerSequencer.controllerMode);
                   return (
                     <div key={`${controllerSequencer.id}-pad-${padIndex}`} className="flex min-w-0 items-stretch gap-1">
                     <button
@@ -2924,7 +2952,11 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               </div>
             </div>
 
-            <ControllerSequencerCurveEditor
+            {controllerSequencer.controllerMode === "step" ? <ControllerSequencerStepEditor
+              track={controllerSequencer} language={guiLanguage}
+              transportSubunit={controllerSequencerIsRunning && playingPad === controllerSequencer.activePad ? sequencerTransportSubunit : null}
+              onChange={(step, value) => onControllerSequencerStepChange?.(controllerSequencer.id, step, value)}
+            /> : <ControllerSequencerCurveEditor
               ui={ui}
               controllerSequencer={controllerSequencer}
               playbackTransport={
@@ -2945,7 +2977,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               onPointRemove={(keypointId) =>
                 onControllerSequencerKeypointRemove(controllerSequencer.id, keypointId)
               }
-            />
+            />}
           </article>
         );
       })}

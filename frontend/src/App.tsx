@@ -242,6 +242,9 @@ export default function App() {
   const removeMidiController = useAppStore((state) => state.removeMidiController);
   const addControllerSequencer = useAppStore((state) => state.addControllerSequencer);
   const removeControllerSequencer = useAppStore((state) => state.removeControllerSequencer);
+  const setControllerSequencerMode = useAppStore((state) => state.setControllerSequencerMode);
+  const setControllerSequencerResetValue = useAppStore((state) => state.setControllerSequencerResetValue);
+  const setControllerSequencerStep = useAppStore((state) => state.setControllerSequencerStep);
   const setControllerSequencerNumber = useAppStore((state) => state.setControllerSequencerNumber);
   const setControllerSequencerTargetChannels = useAppStore((state) => state.setControllerSequencerTargetChannels);
   const setControllerSequencerActivePad = useAppStore((state) => state.setControllerSequencerActivePad);
@@ -431,6 +434,8 @@ export default function App() {
         return {
           track_id: controllerSequencer.id,
           controller_number: controllerSequencer.controllerNumber,
+          controller_mode: controllerSequencer.controllerMode,
+          reset_value: controllerSequencer.resetValue,
           target_channels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
           timing: {
             tempo_bpm: controllerSequencer.timing.tempoBPM,
@@ -451,6 +456,7 @@ export default function App() {
           pads: controllerSequencer.pads.map((pad, padIndex) => ({
             pad_index: padIndex,
             length_beats: pad.lengthBeats,
+            steps: pad.steps,
             keypoints: pad.keypoints.map((keypoint) => ({
               position: keypoint.position,
               value: keypoint.value
@@ -1590,6 +1596,9 @@ export default function App() {
     onAddControllerSequencer: addControllerSequencer,
     onRemoveControllerSequencer: removeControllerSequencer,
     onControllerSequencerEnabledChange,
+    onControllerSequencerModeChange: setControllerSequencerMode,
+    onControllerSequencerResetValueChange: setControllerSequencerResetValue,
+    onControllerSequencerStepChange: setControllerSequencerStep,
     onControllerSequencerNumberChange: setControllerSequencerNumber,
     onControllerSequencerTargetChannelsChange: setControllerSequencerTargetChannels,
     onControllerSequencerMeterNumeratorChange: setControllerSequencerMeterNumerator,

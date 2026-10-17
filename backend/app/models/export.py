@@ -83,7 +83,7 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 class ExportPerformanceConfig(BaseModel):
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=19)
+    version: int = Field(default=1, ge=1, le=20)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -585,8 +585,13 @@ def _controller_pad_events(
     *,
     length_beats: int,
     timing: SessionSequencerTimingConfig,
+    controller_mode: str = "curve",
 ) -> tuple[tuple[int, int], ...]:
     transport_subunit_count = _transport_subunits_for_length(length_beats, timing)
+    if controller_mode == "step":
+        count = length_beats * timing.steps_per_beat
+        return tuple((index * transport_subunit_count // count, value)
+                     for index, value in enumerate((pad.steps if pad else [])[:count]) if value is not None)
     normalized_keypoints = _normalize_controller_keypoints([] if pad is None else pad.keypoints)
     events: list[tuple[int, int]] = []
 
@@ -625,7 +630,8 @@ def _estimate_controller_track_events(
         return 0
 
     pads = _pad_by_index(track.pads)
-    event_count = 0
+    # Start and stop each seed one value, including entirely empty step pads.
+    event_count = 2 * len(target_channels) if track.controller_mode == "step" else 0
     last_value: int | None = None
     segments, _sequence_end_subunit = _iter_track_token_segments(
         track,
@@ -636,7 +642,7 @@ def _estimate_controller_track_events(
             continue
         pad = pads.get(token)
         length_beats = _pad_length_beats(track, token)
-        for offset_subunit, value in _controller_pad_events(pad, length_beats=length_beats, timing=track.timing):
+        for offset_subunit, value in _controller_pad_events(pad, length_beats=length_beats, timing=track.timing, controller_mode=track.controller_mode):
             event_subunit = segment_start + offset_subunit
             if event_subunit >= segment_end:
                 break
@@ -645,7 +651,7 @@ def _estimate_controller_track_events(
                 continue
             if event_subunit >= playback_end_subunit:
                 break
-            if value == last_value:
+            if track.controller_mode == "curve" and value == last_value:
                 continue
             last_value = value
             event_count += len(target_channels)

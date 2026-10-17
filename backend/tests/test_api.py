@@ -8167,3 +8167,42 @@ def test_pvscale_opcode_api_schema(tmp_path):
             ('fsigin', 'f', True), ('kscal', 'k', True), ('kkeepform', 'k', False),
             ('kgain', 'k', False), ('kcoefs', 'k', False)]
         assert opcode['outputs'][0]['signal_type'] == 'f'
+
+
+@pytest.mark.parametrize("field,value", [("steps", [128]), ("steps", [-1]), ("steps", [1.5]),
+    ("steps", [True]), ("steps", ["7"]), ("steps", [None] * 129),
+    ("reset_value", -1), ("reset_value", 128), ("reset_value", True), ("controller_mode", "unknown")])
+def test_controller_step_api_rejects_invalid_values(tmp_path: Path, field, value) -> None:
+    track = {"track_id": "steps", "controller_number": 74, "controller_mode": "step", "pads": [{"pad_index": 0}]}
+    (track["pads"][0] if field == "steps" else track)[field] = value
+    with _client(tmp_path) as client:
+        response = client.put("/api/sessions/validation/sequencer/config", json={"controller_tracks": [track]})
+        assert response.status_code == 422
+
+
+@pytest.mark.parametrize("source", ["midi", "score"])
+def test_controller_step_csd_exports_preserve_repetitions_and_resets(tmp_path: Path, source) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "midiFile" if source == "midi" else source
+    payload["performanceExport"]["performance"]["config"]["version"] = 20
+    track = payload["sequencerConfig"]["controller_tracks"][0]
+    track.update(controller_mode="step", reset_value=12, target_channels=[1, 4])
+    track["pads"][0]["steps"] = [None, 0, 64, 64]
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        if source == "midi":
+            midi = archive.read("Offline_Export/Offline_Export.mid")
+            events = [(tick, message) for tick, message in _midi_messages_with_absolute_ticks(midi)
+                      if message.type == "control_change" and message.control == 1]
+            for channel in (0, 3):
+                assert [message.value for _, message in events if message.channel == channel] == [12, 0, 64, 64, 12]
+            assert events[-1][0] > events[-3][0]
+        else:
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+            lines = [line.split() for line in csd.splitlines() if line.startswith("i 9000 ")]
+            for channel in (1, 4):
+                from backend.app.services.compiler_orchestra import OrchestraEmitter
+                index = OrchestraEmitter.score_controller_index(channel, 1)
+                assert [int(parts[5]) for parts in lines if int(parts[4]) == index] == [12, 0, 64, 64, 12]

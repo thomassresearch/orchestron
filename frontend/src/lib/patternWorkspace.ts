@@ -41,7 +41,8 @@ export function drummerPadHasSound(pad?: DrummerSequencerPadState): boolean {
   return !!pad?.rows.some(row => row.steps.slice(0, pad.stepCount).some(cell => cell.active && cell.velocity > 0));
 }
 
-export function controllerPadHasContent(pad?: ControllerSequencerPadState): boolean {
+export function controllerPadHasContent(pad?: ControllerSequencerPadState, mode: "curve" | "step" = "curve"): boolean {
+  if (mode === "step") return !!pad?.steps?.slice(0, pad.stepCount).some(value => value !== null);
   return !!pad && (pad.keypoints.length > 2 || pad.keypoints.some(point => point.value !== 0));
 }
 

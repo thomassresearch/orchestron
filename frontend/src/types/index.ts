@@ -419,13 +419,18 @@ export interface ControllerSequencerKeypoint {
   value: number; // MIDI CC 0..127
 }
 
+export type ControllerSequencerMode = "curve" | "step";
+
 export interface ControllerSequencerPadState {
+  steps: (number | null)[];
   lengthBeats: ControllerSequencerPadLengthBeats;
   stepCount: number;
   keypoints: ControllerSequencerKeypoint[];
 }
 
 export interface ControllerSequencerState {
+  controllerMode: ControllerSequencerMode;
+  resetValue: number;
   id: string;
   name: string;
   controllerNumber: number;
@@ -548,7 +553,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -643,6 +648,8 @@ export interface SequencerConfigSnapshot {
       enabled: boolean;
     }>;
     controllerSequencers: Array<{
+      controllerMode?: ControllerSequencerMode;
+      resetValue?: number;
       id: string;
       name: string;
       controllerNumber: number;
@@ -793,6 +800,7 @@ export interface SessionControllerSequencerKeypointConfig {
 }
 
 export interface SessionControllerSequencerPadConfig {
+  steps?: (number | null)[];
   pad_index: number;
   length_beats?: ControllerSequencerPadLengthBeats;
   keypoints: SessionControllerSequencerKeypointConfig[];
@@ -820,6 +828,8 @@ export interface SessionSequencerTrackConfig {
 }
 
 export interface SessionControllerSequencerTrackConfig {
+  controller_mode?: ControllerSequencerMode;
+  reset_value?: number;
   track_id: string;
   controller_number: number;
   timing: SessionSequencerTimingConfig;

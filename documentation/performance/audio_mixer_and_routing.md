@@ -131,7 +131,7 @@ The same routing diagnostics appear in CSD exports. A serial insert feeds back i
 
 ## Persistence and compatibility
 
-Current performance saves use configuration version 19 and read versions 1–19. Optional per-strip `bypass` defaults to false for older saves. They retain the internal Master introduced in version 14, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. App state version 3 reads versions 1–3 and saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
+Current performance saves use configuration version 20 and read versions 1–20. Optional per-strip `bypass` defaults to false for older saves. They retain the internal Master introduced in version 14, with stable instance IDs, explicit routes, mixer strips, sends and insert ownership. App state version 3 reads versions 1–3 and saves this same model. Save/Load, Clone and native JSON/ZIP bundles preserve the current settings. Mixer automation recording is not included.
 
 Versions 1–10 convert old Level values using `20 * log10(level / 10)`, including continuous effects. Missing Level means 0 dB. Legacy inlet selection is resolved once and saved explicitly. Level no longer scales MIDI velocity; velocity-sensitive patches can therefore change timbre after migration. Authored note velocities remain unchanged.
 

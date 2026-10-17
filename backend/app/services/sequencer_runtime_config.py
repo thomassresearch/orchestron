@@ -76,11 +76,25 @@ def _compile_controller_pad_runtime(
     *,
     length_beats: int,
     timing: SequencerTimingRuntime,
+    controller_mode: str = "curve",
+    steps: list[int | None] | None = None,
 ) -> ControllerSequencerPadRuntime:
     step_count = _step_count_for_length(length_beats, timing)
     transport_subunit_count = _transport_subunit_count_for_length(length_beats, timing)
+    if controller_mode == "step":
+        return _compiled_controller_steps(tuple((steps or [])[:step_count]), length_beats, step_count, transport_subunit_count)
     normalized_keypoints = _normalize_controller_keypoints(keypoints)
     return _compiled_controller_pad(normalized_keypoints, length_beats, step_count, transport_subunit_count)
+
+
+@lru_cache(maxsize=512)
+def _compiled_controller_steps(
+    steps: tuple[int | None, ...], length_beats: int, step_count: int, transport_subunit_count: int,
+) -> ControllerSequencerPadRuntime:
+    events = tuple(ControllerSequencerEventRuntime(index * transport_subunit_count // step_count, value)
+                   for index, value in enumerate(steps) if value is not None)
+    return ControllerSequencerPadRuntime(length_beats, step_count, transport_subunit_count,
+                                         events, tuple(event.offset_subunit for event in events))
 
 
 @lru_cache(maxsize=512)
@@ -326,7 +340,8 @@ def compile_sequencer_runtime_config(
         track_transport_subunit_count = _transport_subunit_count_for_length(track_length_beats, track_timing)
         supplied_indexes = {pad.pad_index for pad in track_request.pads}
         pads = {
-            index: _compile_controller_pad_runtime([], length_beats=track_length_beats, timing=track_timing)
+            index: _compile_controller_pad_runtime([], length_beats=track_length_beats, timing=track_timing,
+                                                   controller_mode=track_request.controller_mode)
             for index in range(DEFAULT_PAD_COUNT)
             if index not in supplied_indexes
         }
@@ -340,6 +355,8 @@ def compile_sequencer_runtime_config(
                 pad.keypoints,
                 length_beats=pad_length_beats,
                 timing=track_timing,
+                controller_mode=track_request.controller_mode,
+                steps=pad.steps,
             )
 
         active_pad = track_request.active_pad if track_request.active_pad in pads else 0
@@ -347,6 +364,8 @@ def compile_sequencer_runtime_config(
         controller_tracks[track_request.track_id] = ControllerSequencerTrackRuntime(
             track_id=track_request.track_id,
             controller_number=track_request.controller_number,
+            controller_mode=track_request.controller_mode,
+            reset_value=track_request.reset_value,
             target_channels=_normalize_controller_target_channels(
                 track_request.target_channels,
                 controller_default_channels,

@@ -46,6 +46,7 @@ import {
   normalizeControllerNumber,
   normalizeControllerSequencerLengthBeats,
   normalizeControllerValue,
+  normalizeControllerSteps,
   normalizePadIndex,
   normalizePadLoopPatternForState,
   normalizeStepNote,
@@ -81,6 +82,9 @@ export type PerformanceControlStoreActions = Pick<
   | "removeControllerSequencer"
   | "setControllerSequencerEnabled"
   | "setControllerSequencerNumber"
+  | "setControllerSequencerMode"
+  | "setControllerSequencerResetValue"
+  | "setControllerSequencerStep"
   | "setControllerSequencerTargetChannels"
   | "setControllerSequencerActivePad"
   | "setControllerSequencerQueuedPad"
@@ -434,6 +438,30 @@ export function createPerformanceControlStoreActions(
       });
     },
 
+    setControllerSequencerMode: (id, controllerMode) => {
+      if (controllerMode !== "curve" && controllerMode !== "step") return;
+      set({ sequencer: { ...get().sequencer, controllerSequencers: get().sequencer.controllerSequencers.map(track =>
+        track.id === id ? { ...track, controllerMode } : track) } });
+    },
+    setControllerSequencerResetValue: (id, resetValue) => {
+      if (!Number.isInteger(resetValue) || resetValue < 0 || resetValue > 127) return;
+      set({ sequencer: { ...get().sequencer, controllerSequencers: get().sequencer.controllerSequencers.map(track =>
+        track.id === id ? { ...track, resetValue } : track) } });
+    },
+    setControllerSequencerStep: (id, step, value) => {
+      if (!Number.isInteger(step) || step < 0 || step >= 128 ||
+          (value !== null && (!Number.isInteger(value) || value < 0 || value > 127))) return;
+      set({ sequencer: { ...get().sequencer, controllerSequencers: get().sequencer.controllerSequencers.map(track => {
+        if (track.id !== id || step >= track.stepCount) return track;
+        return { ...track, pads: track.pads.map((pad, index) => {
+          if (index !== track.activePad) return pad;
+          const steps = normalizeControllerSteps(pad.steps);
+          steps[step] = value;
+          return { ...pad, steps };
+        }) };
+      }) } });
+    },
+
     setControllerSequencerNumber: (controllerSequencerId, controllerNumber) => {
       const normalizedNumber = normalizeControllerNumber(controllerNumber);
       const sequencer = get().sequencer;
@@ -545,6 +573,10 @@ export function createPerformanceControlStoreActions(
             const activePad = normalizePadIndex(controllerSequencer.activePad);
             const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
             const sourcePad = pads[activePad] ?? fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
+            if (controllerSequencer.controllerMode === "step") {
+              pads[activePad] = { ...sourcePad, steps: normalizeControllerSteps(undefined) };
+              return { ...controllerSequencer, pads };
+            }
             const nextKeypoints = defaultControllerSequencerKeypoints();
             pads[activePad] = {
               ...sourcePad,

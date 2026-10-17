@@ -22,7 +22,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 19
+CURRENT_CONFIG_VERSION = 20
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16, 32}
@@ -1464,6 +1464,7 @@ def default_controller_pad(*, length_beats: int, timing: dict[str, Any]) -> dict
         "lengthBeats": length_beats,
         "stepCount": step_count,
         "keypoints": parse_curve("flat"),
+        "steps": normalize_controller_steps(None),
     }
 
 
@@ -1509,6 +1510,12 @@ def normalize_controller_target_channels(value: Any) -> list[int]:
     return channels or list(range(1, 17))
 
 
+def normalize_controller_steps(raw: Any) -> list[int | None]:
+    values = raw if isinstance(raw, list) else []
+    return [value if type(value) is int and 0 <= value <= 127 else None
+            for value in (values[:128] + [None] * 128)[:128]]
+
+
 def ensure_sequencer(config: dict[str, Any]) -> dict[str, Any]:
     sequencer = config.setdefault("sequencer", {})
     timing = sequencer.setdefault("timing", default_timing())
@@ -1526,6 +1533,15 @@ def ensure_sequencer(config: dict[str, Any]) -> dict[str, Any]:
         for controller in sequencer[kind]:
             if isinstance(controller, dict):
                 controller["targetChannels"] = normalize_controller_target_channels(controller.get("targetChannels"))
+    for controller in sequencer["controllerSequencers"]:
+        if not isinstance(controller, dict):
+            continue
+        controller["controllerMode"] = "step" if controller.get("controllerMode") == "step" else "curve"
+        reset = controller.get("resetValue", 0)
+        controller["resetValue"] = max(0, min(127, reset)) if type(reset) is int else 0
+        for pad in controller.get("pads", []):
+            if isinstance(pad, dict):
+                pad["steps"] = normalize_controller_steps(pad.get("steps"))
     sequencer.setdefault("arpeggiators", [])
     sequencer.setdefault("arpeggiatorPresets", [])
     return sequencer
@@ -2950,6 +2966,7 @@ def configured_controller_pad(definition: dict[str, Any], *, timing: dict[str, A
         "lengthBeats": length_beats,
         "stepCount": step_count,
         "keypoints": parse_curve(str(definition.get("curve", "slow_sweep"))),
+        "steps": normalize_controller_steps(definition.get("steps")),
     }
 
 
@@ -2996,6 +3013,8 @@ def add_controller_sequencer_to_config(
         "id": next_track_id(tracks, "cc-seq"),
         "name": name or f"Controller Sequencer {len(tracks) + 1}",
         "controllerNumber": controller_number,
+        "controllerMode": "curve",
+        "resetValue": 0,
         "targetChannels": list(range(1, 17)),
         "timing": timing,
         "lengthBeats": active_pad_state["lengthBeats"],
@@ -4075,6 +4094,8 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
             {
                 "track_id": ctrl.get("id", "cc-seq-1"),
                 "controller_number": int(ctrl.get("controllerNumber", 0)),
+                "controller_mode": ctrl.get("controllerMode", "curve"),
+                "reset_value": ctrl.get("resetValue", 0),
                 "target_channels": normalize_controller_target_channels(ctrl.get("targetChannels")),
                 "timing": timing_to_runtime(ctrl_timing),
                 "length_beats": int(ctrl.get("lengthBeats", 4)),
@@ -4088,6 +4109,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                     {
                         "pad_index": index,
                         "length_beats": int(pad.get("lengthBeats", ctrl.get("lengthBeats", 4))),
+                        "steps": normalize_controller_steps(pad.get("steps")),
                         "keypoints": [
                             {"position": float(point.get("position", 0.0)), "value": int(point.get("value", 0))}
                             for point in pad.get("keypoints", [])

@@ -165,6 +165,9 @@ export interface SequencerPageMidiControllerActions {
 }
 
 export interface SequencerPageControllerSequencerActions {
+  onControllerSequencerModeChange?: (id: string, mode: "curve" | "step") => void;
+  onControllerSequencerResetValueChange?: (id: string, value: number) => void;
+  onControllerSequencerStepChange?: (id: string, step: number, value: number | null) => void;
   onAddControllerSequencer: () => void;
   onRemoveControllerSequencer: (controllerSequencerId: string) => void;
   onControllerSequencerEnabledChange: (controllerSequencerId: string, enabled: boolean) => void;

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from backend.app.models.session import SessionDeviceTransportRequest
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 from backend.app.services.sequencer_runtime_models import SequencerTrackRuntime
+from backend.app.services import sequencer_controller as _controllers
 
 if TYPE_CHECKING:
     from backend.app.services.sequencer_runtime import SessionSequencerRuntime
@@ -138,7 +139,9 @@ class SequencerSourceTransport:
             self.runtime._last_timed_attack.pop(track.track_id, None)
             track.queued_enabled = None
         else:
-            track.last_value = None
+            track.step_last_subunit = None
+            if track.controller_mode == "curve":
+                track.last_value = None
         track.queued_pad = None
 
     def set_playing(self, track, playing: bool, pad: int | None = None):
@@ -156,6 +159,11 @@ class SequencerSourceTransport:
             self.manual_pads[track.track_id] = track.active_pad if pad is None else pad
             track.configured_active_pad = self.manual_pads[track.track_id]
         self.locate(track, self.runtime._absolute_subunit)
+        if not isinstance(track, SequencerTrackRuntime):
+            if playing:
+                _controllers.restart_step_controller(self.runtime, track)
+            else:
+                _controllers.stop_step_controller(self.runtime, track)
 
     def router_song(self, reset: bool = True):
         callback = getattr(self.runtime._midi_service, "source_song_transport", None)
@@ -221,7 +229,7 @@ class SequencerSourceTransport:
         self.router_song()
         self.runtime._reset_render_event_cursor_locked(self.runtime._ensure_config())
 
-    def reposition(self):
+    def reposition(self, *, reset_controllers: bool = True):
         runtime = self.runtime
         for identity, track in self.tracks().items():
             if not self.is_arrangement(track):
@@ -236,11 +244,15 @@ class SequencerSourceTransport:
                 elif state.get("sequence"):
                     runtime._position_prepared_track(track, 0)
                     track.phase_offset_subunit += runtime._absolute_subunit
+                    if reset_controllers and not isinstance(track, SequencerTrackRuntime):
+                        _controllers.restart_step_controller(runtime, track)
                 continue
             if identity not in self.playing:
                 continue
             self.release(track)
             self.locate(track, runtime._absolute_subunit)
+            if reset_controllers and not isinstance(track, SequencerTrackRuntime):
+                _controllers.restart_step_controller(runtime, track)
             self.pending_starts.add(identity)
         runtime._audition_status_tracks.update(self.tracks())
 
@@ -252,7 +264,7 @@ class SequencerSourceTransport:
         if loop:
             self.origin = at - start
             self.cursor = start
-            self.reposition()
+            self.reposition(reset_controllers=False)
         else:
             self.cursor = end
             self.arrangement_running = self.arranger_active = False

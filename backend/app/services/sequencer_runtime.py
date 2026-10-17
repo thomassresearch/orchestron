@@ -20,6 +20,7 @@ from backend.app.models.session import (
     SessionSequencerTrackStatus,
 )
 from backend.app.services.arpeggiator_runtime import MidiSourceContext
+from backend.app.services import sequencer_controller as _controllers
 from backend.app.services.preview_commands import PreviewCommands
 from backend.app.services.sequencer_source_transport import SequencerSourceTransport
 from backend.app.services.sequencer_strum import StrumState, refresh_strum_releases
@@ -204,6 +205,7 @@ class SessionSequencerRuntime:
                         track.queued_pad = None
             self._reposition_changed_sync_tracks(next_config, changed_note_tracks)
             self._release_reconfigured_track_notes_locked(previous, next_config)
+            _controllers.reconcile_step_controllers(self, previous, next_config)
             self._config = next_config
             if previous is None:
                 self._absolute_subunit = self._normalize_stopped_absolute_subunit_locked(self._absolute_subunit, next_config)
@@ -218,6 +220,7 @@ class SessionSequencerRuntime:
             if self.sources.active and not device_command:
                 self.sources.advance(self._absolute_subunit)
             if self._running and not next_config.playback_loop and self._absolute_subunit >= next_config.playback_end_subunit:
+                _controllers.stop_step_controllers(self)
                 self._running = False
                 self._stop_event.set()
                 self._send_all_notes_off_locked()
@@ -567,6 +570,8 @@ class SessionSequencerRuntime:
             if previous.get("sequence") and track.track_id in self._auditions:
                 self._position_prepared_track(track, max(0, at - boundary))
                 track.phase_offset_subunit += boundary
+        elif isinstance(track, ControllerSequencerTrackRuntime):
+            _controllers.restart_step_controller(self, track)
 
     def _apply_audition_command(self, track, at: int) -> bool:
         state = self._auditions.get(track.track_id)
@@ -597,6 +602,8 @@ class SessionSequencerRuntime:
             if action == "stop":
                 track.enabled = False
             del self._auditions[track.track_id]
+        if isinstance(track, ControllerSequencerTrackRuntime):
+            _controllers.restart_step_controller(self, track)
         return True
 
     def clear_auditions(self, *, stop: bool = False) -> None:
@@ -724,6 +731,7 @@ class SessionSequencerRuntime:
     def stop(self) -> SessionSequencerStatus:
         thread: threading.Thread | None = None
         with self._lock:
+            _controllers.stop_step_controllers(self)
             self.clear_auditions(stop=True)
             if self.sources.active:
                 self.sources.stop()
@@ -863,6 +871,7 @@ class SessionSequencerRuntime:
         transport_subunit: int,
         track_ids: set[str] | None = None,
     ) -> None:
+        _controllers.perform_step_controllers(self, config, transport_subunit, track_ids=track_ids)
         self._perform_note_events_locked(config, transport_subunit, track_ids=track_ids)
 
         for track in config.controller_tracks.values():
@@ -1008,6 +1017,7 @@ class SessionSequencerRuntime:
             switch_payloads.extend(self._advance_controller_tracks_for_next_subunit_locked(config, next_subunit))
             if next_subunit >= config.playback_end_subunit:
                 self._absolute_subunit = config.playback_end_subunit
+                _controllers.stop_step_controllers(self)
                 self.clear_auditions(stop=True)
                 self._running = False
                 self._stop_event.set()
@@ -1363,6 +1373,7 @@ class SessionSequencerRuntime:
         self,
         config: SequencerRuntimeConfig,
         next_subunit: int,
+        delivery_delay_seconds: float | None = None,
     ) -> list[dict[str, str | int | float | bool | None]]:
         switch_payloads: list[dict[str, str | int | float | bool | None]] = []
         _, next_cycle = self._transport_position_locked(config, next_subunit)
@@ -1399,10 +1410,12 @@ class SessionSequencerRuntime:
                 manual_switch_applied=manual_pad_switch_applied,
             )
             if stop_track_on_loop_end:
+                _controllers.stop_step_controller(self, track, delay=delivery_delay_seconds)
                 track.enabled = False
                 track.sequence_ended = True
                 track.queued_pad = None
-                track.last_value = None
+                if track.controller_mode == "curve":
+                    track.last_value = None
                 continue
 
             if next_pad_from_loop is not None:
@@ -1497,7 +1510,9 @@ class SessionSequencerRuntime:
         track.phase_offset_subunit = 0
         track.pad_loop_position = None
         track.sequence_ended = False
-        track.last_value = None
+        track.step_last_subunit = None
+        if track.controller_mode == "curve":
+            track.last_value = None
         if track.enabled:
             self._reset_pad_loop_for_start_locked(track)
 
@@ -1515,7 +1530,7 @@ class SessionSequencerRuntime:
         track: ControllerSequencerTrackRuntime,
         transport_subunit: int,
     ) -> int | None:
-        if not track.enabled or self._controller_pause_token_active(track):
+        if track.controller_mode == "step" or not track.enabled or self._controller_pause_token_active(track):
             return None
         pad_runtime = self._active_pad_runtime(track)
         if not isinstance(pad_runtime, ControllerSequencerPadRuntime) or not pad_runtime.event_offsets:
@@ -1657,6 +1672,9 @@ class SessionSequencerRuntime:
         self._timed_notes.clear()
         self._last_timed_attack.clear()
         self._apply_absolute_subunit_locked(config, normalized_target)
+        if self._running:
+            for track in config.controller_tracks.values():
+                _controllers.restart_step_controller(self, track)
         self._render_subunit_remainder = 0.0
         self._reset_render_event_cursor_locked(config)
         return self._status_locked()
@@ -1689,6 +1707,7 @@ class SessionSequencerRuntime:
                 if scheduled_time is None
                 else max(0.0, scheduled_time - self._clock())
             )
+            _controllers.perform_step_controllers(self, config, transport_subunit, delay=event_delivery_delay_seconds)
             self._perform_note_events_locked(config, transport_subunit, event_delivery_delay_seconds)
 
             for track in config.controller_tracks.values():
@@ -1759,9 +1778,11 @@ class SessionSequencerRuntime:
                     release_notes=True,
                     delivery_delay_seconds=boundary_delivery_delay_seconds,
                 )
-                switch_payloads.extend(self._advance_controller_tracks_for_next_subunit_locked(config, next_subunit))
+                switch_payloads.extend(self._advance_controller_tracks_for_next_subunit_locked(
+                    config, next_subunit, boundary_delivery_delay_seconds))
                 if next_subunit >= config.playback_end_subunit:
                     self._absolute_subunit = config.playback_end_subunit
+                    _controllers.stop_step_controllers(self, delay=boundary_delivery_delay_seconds)
                     self.clear_auditions(stop=True)
                     self._running = False
                     self._stop_event.set()

@@ -12,7 +12,7 @@ it("preserves inactive strums, hidden steps, copies and v19 round trips, then cl
   store.copySequencerTrackStepSettings(id, 1, id, 100);
   store.setSequencerTrackStepChord(id, 1, "none"); store.setSequencerTrackStepNote(id, 1, null);
   const snapshot = store.buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(19);
+  expect(snapshot.version).toBe(20);
   const restored = parseSequencerConfigSnapshot(JSON.parse(JSON.stringify(snapshot)), [], null);
   expect(restored.sequencer.tracks[0].pads[0].steps[1]).toMatchObject({ note: null, chord: "none", strumDirection: "down", strumSpreadPercent: 100 });
   expect(restored.sequencer.tracks[0].pads[0].steps[100]).toMatchObject({ note: 60, chord: "maj", timingOffsetPercent: -20, strumDirection: "down", strumSpreadPercent: 100 });
