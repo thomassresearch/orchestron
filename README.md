@@ -158,6 +158,8 @@ guide for compiler setup and [playback implementation selection](BACKEND.md#comp
 
 You can also [import example instruments](examples/instruments/) or [load an example performance](examples/performances/). The [examples guide](examples/README.md) explains both routes.
 
+The [Standard Effects](documentation/performance/standard_effects.md) section at the end of the Performance chapter collects the supplied effect guides.
+
 [Tube Overdrive](documentation/instrument_design/tube_overdrive.md) adds warm stereo
 saturation as a continuous mixer insert, with per-instance Drive, Tone and Output
 controls. Restart the rack to apply changed settings.

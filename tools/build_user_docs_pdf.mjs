@@ -168,7 +168,23 @@ function isLocalMarkdownLink(target) {
   return withoutHash.toLowerCase().endsWith(".md");
 }
 
-function collectMarkdownFiles(entryFile, documentationRoot) {
+function getLinkedMarkdownFiles(file, documentationRoot) {
+  const markdown = fs.readFileSync(file, "utf8");
+  return parseMarkdownLinkTargets(markdown)
+    .filter(isLocalMarkdownLink)
+    .map((link) => path.resolve(path.dirname(file), link.split("#")[0]))
+    .filter((resolved) => {
+      const relative = path.relative(documentationRoot, resolved);
+      return fs.existsSync(resolved) && relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
+    });
+}
+
+function getStandardEffectsFiles(documentationRoot) {
+  const index = path.join(documentationRoot, "performance", "standard_effects.md");
+  return fs.existsSync(index) ? [index, ...new Set(getLinkedMarkdownFiles(index, documentationRoot))] : [];
+}
+
+function collectMarkdownFiles(entryFile, documentationRoot, standardEffectsFiles = []) {
   const files = [];
   const visited = new Set();
   const deferredAppendices = new Set();
@@ -187,21 +203,7 @@ function collectMarkdownFiles(entryFile, documentationRoot) {
     visited.add(normalized);
     files.push(normalized);
 
-    const markdown = fs.readFileSync(normalized, "utf8");
-    const links = parseMarkdownLinkTargets(markdown);
-    for (const link of links) {
-      if (!isLocalMarkdownLink(link)) {
-        continue;
-      }
-      const targetWithoutHash = link.split("#")[0];
-      const resolved = path.resolve(path.dirname(normalized), targetWithoutHash);
-      if (!fs.existsSync(resolved)) {
-        continue;
-      }
-      const relativeToDocs = path.relative(documentationRoot, resolved);
-      if (relativeToDocs.startsWith("..") || path.isAbsolute(relativeToDocs) || relativeToDocs === "") {
-        continue;
-      }
+    for (const resolved of getLinkedMarkdownFiles(normalized, documentationRoot)) {
       visit(resolved, includeAppendices);
     }
   }
@@ -218,7 +220,21 @@ function collectMarkdownFiles(entryFile, documentationRoot) {
     }
   }
   // References found only in the appendix still belong before the appendix itself.
-  return [...files.filter((file) => !isAppendix(file)), ...files.filter(isAppendix)];
+  const content = files.filter((file) => !isAppendix(file));
+  // Cross-links must not pull effect guides out of their final Performance subsection.
+  // Keep their published Markdown paths; the Standard Effects index owns their order.
+  if (visited.has(standardEffectsFiles[0])) {
+    const effects = new Set(standardEffectsFiles);
+    const remaining = content.filter((file) => !effects.has(file));
+    const performanceChapter = remaining.indexOf(path.join(documentationRoot, "performance", "performance.md"));
+    const nextChapter = performanceChapter < 0 ? -1 : remaining.findIndex(
+      (file, index) => index > performanceChapter && getTocLevel(file, entryFile, documentationRoot) === 1
+    );
+    remaining.splice(nextChapter < 0 ? remaining.length : nextChapter, 0,
+      ...standardEffectsFiles.filter((file) => visited.has(file)));
+    return [...remaining, ...files.filter(isAppendix)];
+  }
+  return [...content, ...files.filter(isAppendix)];
 }
 
 function parseHtmlAttributes(fragment) {
@@ -632,11 +648,14 @@ function getFirstHeadingText(blocks, fallbackTitle) {
   return heading ? heading.text : fallbackTitle;
 }
 
-function getTocLevel(filePath, entryFile, documentationRoot) {
+function getTocLevel(filePath, entryFile, documentationRoot, standardEffectsFiles = []) {
   const normalizedFile = path.normalize(filePath);
   const normalizedEntry = path.normalize(entryFile);
   if (normalizedFile === normalizedEntry) {
     return 1;
+  }
+  if (standardEffectsFiles.indexOf(normalizedFile) > 0) {
+    return 3;
   }
 
   const relative = path.relative(documentationRoot, normalizedFile).replaceAll(path.sep, "/");
@@ -824,7 +843,11 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
       .toc-entry.level-2 .toc-title-wrap {
         padding-left: 15pt;
       }
-      .toc-entry.level-2 .toc-title {
+      .toc-entry.level-3 .toc-title-wrap {
+        padding-left: 30pt;
+      }
+      .toc-entry.level-2 .toc-title,
+      .toc-entry.level-3 .toc-title {
         font-size: 15px;
       }
       .toc-page-wrap {
@@ -843,7 +866,8 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
       .toc-entry.level-1 .toc-page {
         font-weight: 700;
       }
-      .toc-entry.level-2 .toc-page {
+      .toc-entry.level-2 .toc-page,
+      .toc-entry.level-3 .toc-page {
         font-size: 15px;
       }
       .toc-leader {
@@ -855,7 +879,8 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
         letter-spacing: 0.02em;
         white-space: pre;
       }
-      .toc-entry.level-2 .toc-leader {
+      .toc-entry.level-2 .toc-leader,
+      .toc-entry.level-3 .toc-leader {
         font-size: 15px;
       }
       .doc-section {
@@ -1245,7 +1270,8 @@ function main() {
     throw new Error("wkhtmltopdf is required but not available on PATH.");
   }
 
-  const markdownFiles = collectMarkdownFiles(entryFile, docsRoot);
+  const standardEffectsFiles = getStandardEffectsFiles(docsRoot);
+  const markdownFiles = collectMarkdownFiles(entryFile, docsRoot, standardEffectsFiles);
   const anchorsByFile = new Map();
   for (const file of markdownFiles) {
     const relative = path.relative(repoRoot, file).replaceAll(path.sep, "/");
@@ -1267,7 +1293,7 @@ function main() {
       file,
       title,
       anchor: sectionAnchor,
-      tocLevel: getTocLevel(file, entryFile, docsRoot),
+      tocLevel: getTocLevel(file, entryFile, docsRoot, standardEffectsFiles),
       sectionHtml
     });
   }

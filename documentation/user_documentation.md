@@ -53,6 +53,7 @@ The animation describes the existing native Csound runtime. See [clock ownership
 - [MIDI Controllers](performance/midi_controllers.md)
 - [Performance Import / Export](performance/performance_import_export.md)
 - [Live Status and Safety Controls](performance/live_status_and_safety_controls.md)
+- [Standard Effects](performance/standard_effects.md)
 
 ## [Configuration](configuration/configuration.md)
 

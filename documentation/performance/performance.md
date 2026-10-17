@@ -66,6 +66,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - [MIDI Controllers](midi_controllers.md)
 - [Performance Import / Export](performance_import_export.md)
 - [Live Status and Safety Controls](live_status_and_safety_controls.md)
+- [Standard Effects](standard_effects.md)
 
 ## Important Concept: Patch vs Performance
 

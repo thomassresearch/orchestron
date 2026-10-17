@@ -27,12 +27,9 @@ Patches have an editable Instrument Type. Load Patch browses collapsed type grou
 - [Runtime Panel and Compilation Workflow](runtime_panel_and_compilation.md)
 - [Instrument Import / Export and CSD Export](instrument_import_export.md)
 - [Physical Steel-String Guitar](steel_string_waveguide.md)
-- [Tube Overdrive](tube_overdrive.md)
-- [Stereo Delay](stereo_delay.md)
-- [Stereo Flanger](stereo_flanger.md)
-- [Stereo Widener, Bit Crusher, and Harmonizer](continuous_effects.md)
-- [Parametric Equalizer](parametric_equalizer.md)
 - [Supported Opcodes](supported_opcodes.md)
+
+For the supplied stereo effects and their performance controls, see [Standard Effects](../performance/standard_effects.md) at the end of the Performance chapter.
 
 ## Recommended Workflow
 

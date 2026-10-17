@@ -1,6 +1,6 @@
 # Stereo Flanger
 
-**Navigation:** [Instrument Design](instrument_design.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](stereo_delay.md) | [Next](parametric_equalizer.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
 
 [Download Stereo Flanger](../../examples/instruments/Stereo_Flanger.orch.instrument.json)
 and import it with **Instrument Design → Import**. This continuous effect mixes

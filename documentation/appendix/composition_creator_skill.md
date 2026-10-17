@@ -104,23 +104,3 @@ Performance Creator's score format and native performance bundles are unchanged.
 maps the score's channels, sets routing and mixer levels, applies the score,
 validates and saves the performance. These score files are not native Orchestron
 bundles and should not be passed to the application's Import dialog.
-
-## Kurzablauf · Résumé · Resumen
-
-**Deutsch:** Ideen anhören, **Behalten/Favorit** wählen, Feedback und geschützte
-Melodieabschnitte speichern. Zum Chat zurückkehren und „weiter“ sagen. Anschliessend
-**Ideen aktualisieren**. Der Agent exportiert die ausgewählten Phrasen für Performance Creator.
-Unter **So entstand diese Melodie** lassen sich Vorlagen, Operationen, Eingaben
-und angewendete Sperren aufklappen; fehlende frühere Aufzeichnungen sind markiert.
-
-**Français :** Écoutez les idées, choisissez **Garder/Favori**, puis enregistrez vos
-commentaires et passages protégés. Revenez au chat et dites « continuer », puis
-actualisez les idées. L'agent exporte les phrases acceptées pour Performance Creator.
-**Comment cette mélodie a été créée** présente les sources, opérations, entrées
-et protections appliquées ; les lacunes historiques sont signalées.
-
-**Español:** Escucha las ideas, elige **Conservar/Favorito** y guarda los comentarios
-y pasajes protegidos. Vuelve al chat y di «continuar»; después actualiza las ideas.
-El agente exporta las frases aceptadas para Performance Creator.
-**Cómo se creó esta melodía** muestra fuentes, operaciones, entradas y bloqueos
-aplicados; las lagunas del historial se indican explícitamente.

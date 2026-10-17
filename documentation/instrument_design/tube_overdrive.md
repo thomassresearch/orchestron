@@ -1,6 +1,6 @@
 # Tube Overdrive
 
-**Navigation:** [Instrument Design](instrument_design.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](../performance/standard_effects.md) | [Next](stereo_delay.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
 
 [Download Tube Overdrive](../../examples/instruments/Tube_Overdrive.orch.instrument.json)
 and import it using **Instrument Design → Import**. This separate continuous

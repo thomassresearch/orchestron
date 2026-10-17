@@ -1,6 +1,6 @@
 # Granular Capture: Stutter, Freeze and Grains
 
-**Navigation:** [Up](instrument_design.md) | [Continuous effects](continuous_effects.md) | [Controller sequencers](../performance/controller_sequencers.md)
+**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](continuous_effects.md) | [Next](../configuration/configuration.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
 
 **Granular Capture** is one continuous stereo effect with Stutter and Granular playback and a shared Freeze control. Add it as a mixer insert, feed its grouped stereo input, and route its grouped output onward. It records incoming audio continuously, even while playing a frozen snapshot. The two channels keep separate samples and share capture timing and grain positions.
 

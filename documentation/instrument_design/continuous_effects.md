@@ -1,6 +1,6 @@
 # Stereo Widener, Bit Crusher, and Harmonizer
 
-**Navigation:** [Up](instrument_design.md) | [Performance controllers](../performance/performance_controllers.md) | [Mixer routing](../performance/audio_mixer_and_routing.md)
+**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](parametric_equalizer.md) | [Next](granular_capture.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
 
 These three continuous instruments process incoming stereo audio without MIDI notes. Add an instrument to the rack and use its grouped Stereo Input and Stereo Output as a mixer insert. Each instance has its own performance settings; **restart the rack after changing a controller**. The examples include editable graphs and native instrument files.
 

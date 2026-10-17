@@ -1,6 +1,6 @@
 # Stereo Delay
 
-**Navigation:** [Instrument Design](instrument_design.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](tube_overdrive.md) | [Next](stereo_flanger.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
 
 [Download Stereo Delay](../../examples/instruments/Stereo_Delay.orch.instrument.json)
 and import it using **Instrument Design → Import**. This continuous stereo effect

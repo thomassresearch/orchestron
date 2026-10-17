@@ -1,6 +1,6 @@
 # Parametric Equalizer
 
-**Navigation:** [Instrument Design](instrument_design.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](stereo_flanger.md) | [Next](continuous_effects.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
 
 [Download Parametric Equalizer](../../examples/instruments/Parametric_Equalizer.orch.instrument.json)
 and import it using **Instrument Design → Import**. This continuous stereo effect
@@ -66,15 +66,3 @@ performances and reload open browser sessions after migration.
 
 See the [example and validation guide](../../examples/instruments/parametric_equalizer/README.md)
 for the preserved original graph, rebuild commands and audio checks.
-
-## Kurzinfo · Résumé · Resumen
-
-- **DE:** Sieben Bänder von 63 Hz bis 16 kHz, jeweils −20 bis +20 dB auf linearer
-  Skala; 0 dB ist neutral. Als Insert verwenden. Nach Änderungen das Rack neu
-  starten und die Performance speichern. Bei Anhebungen ausreichend Pegelreserve lassen.
-- **FR:** Sept bandes de 63 Hz à 16 kHz, chacune de −20 à +20 dB sur une échelle
-  linéaire ; 0 dB est neutre. Utiliser en insert. Redémarrer le rack après les
-  changements et enregistrer la performance. Prévoir une marge de niveau lors des amplifications.
-- **ES:** Siete bandas de 63 Hz a 16 kHz, cada una de −20 a +20 dB en escala
-  lineal; 0 dB es neutro. Usar como inserto. Reiniciar el rack después de cambiar
-  los controles y guardar la interpretación. Dejar margen de nivel al realzar bandas.

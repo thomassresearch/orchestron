@@ -1,6 +1,6 @@
 # Live Status 
 
-**Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](../configuration/configuration.md)
+**Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](standard_effects.md)
 
 The Perform page includes several status for live operation.
 
@@ -73,7 +73,7 @@ See [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_
 </p>
 <p align="center"><em>Footer status bar with playhead/cycle/MIDI input.</em></p>
 
-**Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](../configuration/configuration.md)
+**Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](standard_effects.md)
 
 
 ## Definition audition

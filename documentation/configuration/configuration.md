@@ -1,6 +1,6 @@
 # Configuration
 
-**Navigation:** [Up](../user_documentation.md) | [Prev](../performance/live_status_and_safety_controls.md) | [Next](gui_language_and_integrated_help.md)
+**Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/granular_capture.md) | [Next](gui_language_and_integrated_help.md)
 
 The Configuration chapter covers both UI-visible settings and practical runtime/deployment behaviors that affect how Orchestron is used.
 
@@ -38,4 +38,4 @@ Both are important for successful use.
 </p>
 <p align="center"><em>Configuration page overview of engine settings. The dedicated Browser-Clock Latency chapter shows the browser-clock-specific tuning section in detail.</em></p>
 
-**Navigation:** [Up](../user_documentation.md) | [Prev](../performance/live_status_and_safety_controls.md) | [Next](gui_language_and_integrated_help.md)
+**Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/granular_capture.md) | [Next](gui_language_and_integrated_help.md)
