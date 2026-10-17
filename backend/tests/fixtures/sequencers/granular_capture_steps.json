@@ -1,0 +1,10 @@
+{
+  "timing": {"tempo_bpm": 120},
+  "playback_end_step": 32,
+  "controller_tracks": [
+    {"track_id": "capture-stutter", "controller_number": 20, "controller_mode": "step", "reset_value": 0, "target_channels": [16], "timing": {"steps_per_beat": 4}, "length_beats": 4, "pads": [{"pad_index": 0, "steps": [null, null, 127, null, null, null, 0]}]},
+    {"track_id": "capture-freeze", "controller_number": 21, "controller_mode": "step", "reset_value": 0, "target_channels": [16], "timing": {"steps_per_beat": 4}, "length_beats": 4, "pads": [{"pad_index": 0, "steps": [null, null, null, null, null, null, null, null, 127, null, null, null, null, null, 0]}]},
+    {"track_id": "capture-trigger", "controller_number": 22, "controller_mode": "step", "reset_value": 0, "target_channels": [16], "timing": {"steps_per_beat": 4}, "length_beats": 4, "pads": [{"pad_index": 0, "steps": [null, null, null, null, null, null, null, null, null, null, null, null, 127, 0]}]},
+    {"track_id": "capture-grains", "controller_number": 23, "controller_mode": "step", "reset_value": 0, "target_channels": [16], "timing": {"steps_per_beat": 4}, "length_beats": 4, "pads": [{"pad_index": 0, "steps": [null, null, null, null, null, null, null, null, null, null, 127, null, null, null, null, 0]}]}
+  ]
+}

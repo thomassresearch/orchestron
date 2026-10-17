@@ -86,3 +86,7 @@ Performance bundle snapshots persist:
 Offline performance CSD export uses the same compiler path as live sessions. Always-on instruments are started with `alwayson`; no score `i` event is emitted for them.
 
 The exported CSD score still contains a finite `f 0 <duration>` line. The duration is the MIDI playback range plus the existing release tail buffer, so routed effects such as reverbs and flangers can decay after the last MIDI event.
+
+## MIDI-controlled capture effects
+
+[Granular Capture](documentation/instrument_design/granular_capture.md) remains continuous with assignment channel 0. Its `ctrl7` nodes read explicit per-instance channel/CC settings. The `stereo_capture` UDO owns bounded sample-local stereo history, snapshots and grains. Both compiler paths include its helpers once; SCORE exports rewrite explicit-channel readers. Switch state remains MIDI runtime state, not persisted buffer data.

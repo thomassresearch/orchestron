@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **190** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **192** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -18,14 +18,14 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | analysis | 2 |
 | constants | 5 |
 | control_flow | 2 |
-| delay | 11 |
+| delay | 12 |
 | distortion | 4 |
 | dynamics | 3 |
 | envelope | 12 |
 | filter | 27 |
 | fm | 17 |
 | math | 3 |
-| midi | 8 |
+| midi | 9 |
 | mixer | 3 |
 | modulation | 10 |
 | noise | 3 |
@@ -79,6 +79,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | deltap | 1 (k) | 1 (a) | Read a delay tap using linear interpolation. |
 | deltap3 | 1 (k) | 1 (a) | Read a delay tap using cubic interpolation. |
 | flanger | 4 (a, k, k, i) | 1 (a) | Flanger effect with delay modulation and feedback. |
+| stereo_capture | 13 (a, a, k, k, k, k, i, i, i, i, i, i, i) | 2 (a, a) | Orchestron stereo stutter, freeze and granular processor. |
 | vcomb | 6 (a, k, k, i, i, i) | 1 (a) | Variable-time comb reverb with controllable loop time. |
 | vdelay3 | 4 (a, k, i, i) | 1 (a) | Variable delay line with cubic interpolation. |
 | vdelayxs | 6 (a, a, a, i, i, i) | 2 (a, a) | Stereo variable delay with high-quality sinc interpolation. |
@@ -183,6 +184,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| ctrl7 | 5 (i, i, k, k, i) | 1 (k) | Explicit-channel MIDI CC reader, including continuous instruments. |
 | ampmidi | 2 (i, i) | 1 (i) | Generate init-rate amplitude from MIDI note velocity. |
 | ampmidicurve | 3 (k, k, k) | 1 (k) | Map MIDI velocity to gain using dynamic range and curve exponent. |
 | ampmidid | 2 (k, i) | 1 (k) | Map MIDI velocity to amplitude using a decibel range. |

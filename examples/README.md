@@ -70,3 +70,5 @@ During import, the app can also import included patch definitions and handle nam
 is a sample-free polyphonic guitar with editable excitation and twelve body modes,
 plus pluck-position, palm-mute and natural-variation controls. Its folder contains
 the builder, raw and native patches, dry previews and matched-level comparisons.
+
+- [Granular Capture](instruments/granular_capture/README.md): continuous stereo stutter, freeze and grains with step-sequenced MIDI switches.

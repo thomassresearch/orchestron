@@ -518,6 +518,20 @@ class OrchestraEmitter:
                 )
                 return f"{env['iamp']} = (tablei(p5 / 128, {ifn}, 1) * ({iscal}))"
             return f"{env['iamp']} = ((p5 / 128) * ({iscal}))"
+        if opcode == "ctrl7":
+            channel = f"int(limit({env['ichan']}, 1, 16))"
+            controller = f"int(limit({env['ictlno']}, 0, 127))"
+            value = f"({SCORE_CONTROLLER_ARRAY_NAME}[({channel} - 1) * 128 + {controller}] / 127)"
+            def scaled(expression: str) -> str:
+                return f"{env['kout']} = ({env['kmin']}) + {expression} * (({env['kmax']}) - ({env['kmin']}))"
+
+            table = env.get("ifn", OPTIONAL_OMIT_MARKER)
+            if table and table != OPTIONAL_OMIT_MARKER:
+                # An i-rate branch skips table opcode initialization for ifn=0.
+                # A ternary still initializes table(…, 0), deleting the instrument.
+                return "\n".join([f"if ({table}) == 0 then", scaled(value), "else",
+                                  scaled(f"table({value}, {table}, 1)"), "endif"])
+            return scaled(value)
         if opcode == "midictrl":
             if score_midi_channel <= 0:
                 raise CompilationError(

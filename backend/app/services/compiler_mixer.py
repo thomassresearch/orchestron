@@ -31,6 +31,7 @@ from backend.app.services.orc_metadata import format_csd_comment_value, instrume
 from backend.app.services.internal_master import MASTER, internal_master_target
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines
 from backend.app.services.compiler_waveguide import waveguide_header
+from backend.app.services.compiler_granular import granular_header
 from backend.app.services.insert_bypass import bypass_ports
 
 
@@ -549,6 +550,7 @@ def compile_mixer_bundle(
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
     header += waveguide_header([target for target in targets if target.assignment_id not in omitted])
+    header += granular_header([target for target in targets if target.assignment_id not in omitted])
     if live_mixer:
         header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
     else:

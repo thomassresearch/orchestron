@@ -59,3 +59,5 @@ The graph uses a 1024-sample Hann analysis window and FFT, with a 256-sample hop
 Native exports are in `examples/instruments/`: `Stereo_Widener.orch.instrument.json`, `Bit_Crusher.orch.instrument.json`, and `Harmonizer.orch.instrument.json`.
 
 See the [example README](../../examples/instruments/continuous_effects/README.md) for builders and validation commands. Auditions compare mono chords, stereo pitches, and transient noise at defaults and controller endpoints. Tests use independent fixtures. Audio and measurements are written under `output/continuous-effects/`.
+
+See [Granular Capture](granular_capture.md) for live MIDI-controlled stutter, freeze and granular playback.

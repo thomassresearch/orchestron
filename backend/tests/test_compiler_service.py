@@ -1077,3 +1077,47 @@ def test_pvscale_argument_order_and_optional_defaults(params, tail):
     compiled = CompilerService(OpcodeService('/static/icons')).compile_patch(patch, '0', 'none')
     line = next(line for line in orc_code_lines(compiled.orc) if ' pvscale ' in line)
     assert line.split(' pvscale ')[1].split(', ', 1)[1] == tail
+
+
+@pytest.mark.parametrize('mixer', [False, True])
+@pytest.mark.parametrize('mode', ['midi', 'score'])
+def test_capture_helpers_are_instance_local_and_emitted_once(mixer, mode):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    from backend.app.models.audio import AudioGraph, AudioRoute
+    patch = load_patch_fixture('granular_capture')
+    targets = [PatchInstrumentTarget(patch=patch, midi_channel=0, always_on=True, assignment_id=f'g{i}',
+                                    performance_controller_values={'gc_channel': i + 2}) for i in range(2)]
+    routes = [AudioRoute(id=f'r{i}{side}', sourceId=f'g{i}', sourcePort=side,
+                        targetId='$output', targetPort=side) for i in range(2) for side in ['left', 'right']]
+    artifact = CompilerService(OpcodeService('/static/icons')).compile_patch_bundle(
+        targets, midi_input='0', rtmidi_module='none', performance_input_mode=mode,
+        audio_graph=AudioGraph(routes=routes) if mixer else None)
+    assert artifact.orc.count('opcode vcs_stereo_capture,') == 1
+    assert artifact.orc.count('opcode vcs_capture_read,') == 1
+    assert artifact.orc.count(' ftgentmp ') == 4
+    assert not any(line.strip().startswith('seed ') for line in artifact.orc.splitlines())
+    controls = artifact.manifest['performanceControllers']
+    assert controls['g0']['gc_channel']['value'] == 2
+    assert controls['g1']['gc_channel']['value'] == 3
+    assert controls['g0']['gc_channel']['channel'] != controls['g1']['gc_channel']['channel']
+
+
+@pytest.mark.parametrize('table', [None, 0, 7])
+@pytest.mark.parametrize('mode', ['midi', 'score'])
+def test_ctrl7_optional_table_and_continuous_score_channel(table, mode):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tools.stereo_delay_audio import compile_probe
+    patch = load_patch_fixture('granular_capture')
+    reader = next(n for n in patch.graph.nodes if n.id == 'gc_midi_freeze')
+    if table is not None:
+        reader.params['ifn'] = table
+    orc = compile_probe(patch, mode=mode).orc
+    lines = [line for line in orc.splitlines() if 'k_gc_midi_freeze_kout_' in line]
+    if mode == 'midi':
+        line = next(line for line in lines if ' ctrl7 ' in line)
+        assert line.endswith(', 0, 127' + (f', {table}' if table is not None else ''))
+    else:
+        line = next(line for line in lines if 'gk_vcs_score_cc' in line)
+        assert 'int(limit(' in line
+        assert any('table(' in candidate for candidate in lines) == (table is not None)

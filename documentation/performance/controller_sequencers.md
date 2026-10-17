@@ -78,6 +78,8 @@ A seek during playback sends Reset Value, then continues from the new position w
 
 Entering Step Mode while running initializes Reset Value. Leaving it resets the old step output before the curve takes over. Editing Reset Value takes effect on the next reset. Reset messages obey lane mute/solo, and only address the selected CC/channel pairs; no automatic “Reset All Controllers” message is sent. Sources sharing a CC/channel still use last-message-wins behavior.
 
+See [Granular Capture](../instrument_design/granular_capture.md) for a complete four-lane stutter, freeze, capture and granular step pattern.
+
 ## Curve Editor Interactions
 
 The curve editor is an interactive graph view (spline-based curve display and sampling).

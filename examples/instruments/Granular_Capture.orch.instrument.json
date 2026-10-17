@@ -1,0 +1,620 @@
+{
+  "sourcePatchId": "5080b0f6-6ad8-4987-980f-596560efd620",
+  "name": "Granular Capture",
+  "description": "Stereo stutter/freeze and granular playback. MIDI channel 16: CC20 Stutter, CC21 Freeze, CC22 Capture, CC23 Granular. Switches use 0=off and 127=on. Capture needs a 0 between triggers. All switches off passes dry. Reset all four CCs to 0 on sequencer stop. Freeze holds audio indefinitely until released; rack restart clears the buffer. Restart the rack after changing performance controllers.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "gc_channel",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "MIDI Control Channel",
+          "min": 1,
+          "max": 16,
+          "default": 16,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_cc_stutter",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Stutter CC",
+          "min": 0,
+          "max": 95,
+          "default": 20,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 300,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_cc_freeze",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Freeze CC",
+          "min": 0,
+          "max": 95,
+          "default": 21,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 600,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_cc_capture",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Capture CC",
+          "min": 0,
+          "max": 95,
+          "default": 22,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 900,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_cc_granular",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Granular CC",
+          "min": 0,
+          "max": 95,
+          "default": 23,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1200,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_slice",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Slice (ms)",
+          "min": 20,
+          "max": 1000,
+          "default": 125,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1500,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_grain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grain Size (ms)",
+          "min": 5,
+          "max": 200,
+          "default": 50,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1800,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_density",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grains / Second",
+          "min": 1,
+          "max": 80,
+          "default": 40,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 2100,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_pitch",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grain Pitch (semitones)",
+          "min": -24,
+          "max": 24,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 2400,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_spread",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Position Spread",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 2700,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Mix",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 3000,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_output",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -24,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 3300,
+          "y": -500
+        }
+      },
+      {
+        "id": "gc_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0,
+          "y": 200
+        }
+      },
+      {
+        "id": "gc_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0,
+          "y": 800
+        }
+      },
+      {
+        "id": "gc_processor",
+        "opcode": "stereo_capture",
+        "params": {},
+        "position": {
+          "x": 1300,
+          "y": 500
+        }
+      },
+      {
+        "id": "gc_midi_stutter",
+        "opcode": "ctrl7",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "gc_midi_freeze",
+        "opcode": "ctrl7",
+        "params": {},
+        "position": {
+          "x": 320,
+          "y": 0
+        }
+      },
+      {
+        "id": "gc_midi_capture",
+        "opcode": "ctrl7",
+        "params": {},
+        "position": {
+          "x": 640,
+          "y": 0
+        }
+      },
+      {
+        "id": "gc_midi_granular",
+        "opcode": "ctrl7",
+        "params": {},
+        "position": {
+          "x": 960,
+          "y": 0
+        }
+      },
+      {
+        "id": "gc_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2000,
+          "y": 200
+        }
+      },
+      {
+        "id": "gc_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2000,
+          "y": 800
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "gc_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "gc_processor",
+        "to_port_id": "aleft"
+      },
+      {
+        "from_node_id": "gc_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "gc_processor",
+        "to_port_id": "aright"
+      },
+      {
+        "from_node_id": "gc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_stutter",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "gc_cc_stutter",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_stutter",
+        "to_port_id": "ictlno"
+      },
+      {
+        "from_node_id": "gc_midi_stutter",
+        "from_port_id": "kout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "kstutter"
+      },
+      {
+        "from_node_id": "gc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_freeze",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "gc_cc_freeze",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_freeze",
+        "to_port_id": "ictlno"
+      },
+      {
+        "from_node_id": "gc_midi_freeze",
+        "from_port_id": "kout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "kfreeze"
+      },
+      {
+        "from_node_id": "gc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_capture",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "gc_cc_capture",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_capture",
+        "to_port_id": "ictlno"
+      },
+      {
+        "from_node_id": "gc_midi_capture",
+        "from_port_id": "kout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "kcapture"
+      },
+      {
+        "from_node_id": "gc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_granular",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "gc_cc_granular",
+        "from_port_id": "iout",
+        "to_node_id": "gc_midi_granular",
+        "to_port_id": "ictlno"
+      },
+      {
+        "from_node_id": "gc_midi_granular",
+        "from_port_id": "kout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "kgranular"
+      },
+      {
+        "from_node_id": "gc_slice",
+        "from_port_id": "iout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "islice"
+      },
+      {
+        "from_node_id": "gc_grain",
+        "from_port_id": "iout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "igrain"
+      },
+      {
+        "from_node_id": "gc_density",
+        "from_port_id": "iout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "idensity"
+      },
+      {
+        "from_node_id": "gc_pitch",
+        "from_port_id": "iout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "ipitch"
+      },
+      {
+        "from_node_id": "gc_spread",
+        "from_port_id": "iout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "ispread"
+      },
+      {
+        "from_node_id": "gc_mix",
+        "from_port_id": "iout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "imix"
+      },
+      {
+        "from_node_id": "gc_output",
+        "from_port_id": "iout",
+        "to_node_id": "gc_processor",
+        "to_port_id": "igain"
+      },
+      {
+        "from_node_id": "gc_processor",
+        "from_port_id": "aleftout",
+        "to_node_id": "gc_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "gc_processor",
+        "from_port_id": "arightout",
+        "to_node_id": "gc_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "gc_midi_stutter::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "gc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_midi_stutter::ictlno": {
+          "expression": "floor(cc + 0.5)",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "gc_cc_stutter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_midi_freeze::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "gc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_midi_freeze::ictlno": {
+          "expression": "floor(cc + 0.5)",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "gc_cc_freeze",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_midi_capture::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "gc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_midi_capture::ictlno": {
+          "expression": "floor(cc + 0.5)",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "gc_cc_capture",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_midi_granular::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "gc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_midi_granular::ictlno": {
+          "expression": "floor(cc + 0.5)",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "gc_cc_granular",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_processor::islice": {
+          "expression": "value / 1000",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gc_slice",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_processor::igrain": {
+          "expression": "value / 1000",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gc_grain",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_processor::idensity": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gc_density",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_processor::ipitch": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gc_pitch",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_processor::ispread": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gc_spread",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_processor::imix": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gc_mix",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gc_processor::igain": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gc_output",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "gc_input": true,
+        "gc_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "gc_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "gc_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "gc_input",
+      "mainOutput": "gc_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

@@ -81,3 +81,5 @@ polyphony, instance isolation, native rendering and CSD export without reading e
 - `patches/stereo_widener.patch.json`, `patches/bit_crusher.patch.json`, and `patches/harmonizer.patch.json` are independent continuous-effect snapshots for DSP, persistence, controller, and export regression tests.
 
 `sequencers/controller_steps.json` defines sparse controller steps, repeated values, explicit zero, reset initialization and selected MIDI channels for frontend/backend regression tests.
+
+`patches/granular_capture.patch.json` and `sequencers/granular_capture_steps.json` independently cover MIDI-controlled capture, looping, granular DSP, step resets, native round trips and both CSD exports.

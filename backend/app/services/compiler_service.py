@@ -20,6 +20,7 @@ from backend.app.services.performance_controller_service import controller_bindi
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines, validate_legato
 from backend.app.services.compiler_waveguide import waveguide_header
+from backend.app.services.compiler_granular import granular_header
 
 
 class CompilerService:
@@ -109,6 +110,7 @@ class CompilerService:
             "",
         ]
         orc_lines.extend(waveguide_header(targets))
+        orc_lines.extend(granular_header(targets))
         if legato_targets:
             orc_lines.extend([LEGATO_OPCODES, ""])
             for index, target in legato_targets.items():

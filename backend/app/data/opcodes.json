@@ -16898,5 +16898,210 @@
       "body"
     ],
     "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "stereo_capture",
+    "category": "delay",
+    "description": "Orchestron stereo stutter, freeze and granular capture processor.",
+    "documentation_markdown": "Instance-local two-second history and snapshot buffers. Stereo timing is linked; audio channels stay separate. Capture is edge-triggered. All switches off returns dry. Five-millisecond transitions and loop seams; sixteen Hann-windowed grains maximum. Restart clears buffers. See the Granular Capture guide.",
+    "documentation_url": "https://github.com/thomassresearch/orchestron/blob/main/documentation/instrument_design/granular_capture.md",
+    "inputs": [
+      {
+        "id": "aleft",
+        "name": "aleft",
+        "signal_type": "a",
+        "required": true,
+        "default": 0,
+        "description": "Left input"
+      },
+      {
+        "id": "aright",
+        "name": "aright",
+        "signal_type": "a",
+        "required": true,
+        "default": 0,
+        "description": "Right input"
+      },
+      {
+        "id": "kstutter",
+        "name": "kstutter",
+        "signal_type": "k",
+        "required": true,
+        "default": 0,
+        "description": "Stutter: 64–127 holds a repeating snapshot; 0–63 releases."
+      },
+      {
+        "id": "kfreeze",
+        "name": "kfreeze",
+        "signal_type": "k",
+        "required": true,
+        "default": 0,
+        "description": "Freeze: rising edge captures; high holds the snapshot."
+      },
+      {
+        "id": "kcapture",
+        "name": "kcapture",
+        "signal_type": "k",
+        "required": true,
+        "default": 0,
+        "description": "Capture: rising edge above 63 replaces the snapshot, including while frozen."
+      },
+      {
+        "id": "kgranular",
+        "name": "kgranular",
+        "signal_type": "k",
+        "required": true,
+        "default": 0,
+        "description": "Granular: 64–127 enables grains; 0–63 selects looping playback."
+      },
+      {
+        "id": "islice",
+        "name": "islice",
+        "signal_type": "i",
+        "required": true,
+        "default": 0.125,
+        "description": "Captured slice in seconds, clamped to 0.02–1."
+      },
+      {
+        "id": "igrain",
+        "name": "igrain",
+        "signal_type": "i",
+        "required": true,
+        "default": 0.05,
+        "description": "Hann grain duration in seconds, 0.005–0.2."
+      },
+      {
+        "id": "idensity",
+        "name": "idensity",
+        "signal_type": "i",
+        "required": true,
+        "default": 40,
+        "description": "Grains per second, 1–80; at most 16 active grains."
+      },
+      {
+        "id": "ipitch",
+        "name": "ipitch",
+        "signal_type": "i",
+        "required": true,
+        "default": 0,
+        "description": "Granular transposition in semitones, -24–24."
+      },
+      {
+        "id": "ispread",
+        "name": "ispread",
+        "signal_type": "i",
+        "required": true,
+        "default": 0.5,
+        "description": "Random start-position spread, 0–1."
+      },
+      {
+        "id": "imix",
+        "name": "imix",
+        "signal_type": "i",
+        "required": true,
+        "default": 1,
+        "description": "Dry/wet mix, 0–1; inactive switches pass dry."
+      },
+      {
+        "id": "igain",
+        "name": "igain",
+        "signal_type": "i",
+        "required": true,
+        "default": -6,
+        "description": "Output gain in dB, -24–0."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aleftout",
+        "name": "aleftout",
+        "signal_type": "a",
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "arightout",
+        "name": "arightout",
+        "signal_type": "a",
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{aleftout}, {arightout} vcs_stereo_capture {aleft}, {aright}, {kstutter}, {kfreeze}, {kcapture}, {kgranular}, {islice}, {igrain}, {idensity}, {ipitch}, {ispread}, {imix}, {igain}",
+    "tags": [
+      "stutter",
+      "freeze",
+      "granular",
+      "stereo",
+      "virtual"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "ctrl7",
+    "category": "midi",
+    "description": "Read a 7-bit MIDI controller on an explicit channel, including continuous instruments.",
+    "documentation_markdown": "K-rate ctrl7 with explicit MIDI channel 1–16 and controller 0–127. No MIDI note activation is required. Optional normalized table mapping. SCORE exports read the same channel/controller array; per-instance performance settings can select channel and CC. This reader does not initialize or reset shared MIDI state.",
+    "documentation_url": "https://csound.com/docs/manual/ctrl7.html",
+    "inputs": [
+      {
+        "id": "ichan",
+        "name": "ichan",
+        "signal_type": "i",
+        "required": true,
+        "default": 1,
+        "description": "MIDI channel, 1–16."
+      },
+      {
+        "id": "ictlno",
+        "name": "ictlno",
+        "signal_type": "i",
+        "required": true,
+        "default": 20,
+        "description": "MIDI controller, 0–127."
+      },
+      {
+        "id": "kmin",
+        "name": "kmin",
+        "signal_type": "k",
+        "required": true,
+        "default": 0,
+        "description": "Minimum output."
+      },
+      {
+        "id": "kmax",
+        "name": "kmax",
+        "signal_type": "k",
+        "required": true,
+        "default": 127,
+        "description": "Maximum output."
+      },
+      {
+        "id": "ifn",
+        "name": "ifn",
+        "signal_type": "i",
+        "required": false,
+        "default": null,
+        "description": "Optional normalized lookup table."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "kout",
+        "name": "kout",
+        "signal_type": "k",
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{kout} ctrl7 {ichan}, {ictlno}, {kmin}, {kmax}, {ifn}",
+    "tags": [
+      "midi",
+      "controller"
+    ],
+    "icon_filename": "midictrl.svg"
   }
 ]

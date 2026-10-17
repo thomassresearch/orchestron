@@ -8390,5 +8390,155 @@
         "spanish": "Variable de salida `fsig` de pvscale."
       }
     }
+  },
+  "ctrl7": {
+    "description": {
+      "english": "Allows a floating-point 7-bit MIDI signal scaled with a minimum and a maximum range.",
+      "german": "Ermöglicht ein Gleitkomma-7-Bit-MIDI-Signal, skaliert mit einem minimalen und einem maximalen Bereich.",
+      "french": "Permet un signal MIDI 7 bits à virgule flottante mis à l'échelle avec une plage minimale et maximale.",
+      "spanish": "Permite una señal MIDI de 7 bits en coma flotante escalada con un rango mínimo y máximo."
+    },
+    "inputs": {
+      "ichan": {
+        "english": "MIDI channel (1-16)",
+        "german": "MIDI-Kanal (1-16)",
+        "french": "Canal MIDI (1-16)",
+        "spanish": "Canal MIDI (1-16)"
+      },
+      "ictlno": {
+        "english": "MIDI controller number (0-127)",
+        "german": "MIDI-Controller-Nummer (0-127)",
+        "french": "Numéro de contrôleur MIDI (0-127)",
+        "spanish": "Número de controlador MIDI (0-127)"
+      },
+      "kmin": {
+        "english": "user-defined minimum floating-point value of output",
+        "german": "Benutzerdefinierter minimaler Gleitkommawert der Ausgabe",
+        "french": "valeur à virgule flottante minimale définie par l'utilisateur pour la sortie",
+        "spanish": "valor mínimo de punto flotante de salida definido por el usuario"
+      },
+      "kmax": {
+        "english": "user-defined maximum floating-point value of output",
+        "german": "Benutzerdefinierter maximaler Gleitkommawert der Ausgabe",
+        "french": "valeur à virgule flottante maximale définie par l'utilisateur de la sortie",
+        "spanish": "valor máximo de punto flotante de salida definido por el usuario"
+      },
+      "ifn": {
+        "english": "table to be read when indexing is required. Table must be normalized. Output is scaled according to imax and imin val.",
+        "german": "Tabelle, die gelesen werden soll, wenn eine Indizierung erforderlich ist. Die Tabelle muss normalisiert sein. Die Ausgabe wird nach imax- und imin-Wert skaliert.",
+        "french": "table à lire lorsqu'une indexation est requise. Le tableau doit être normalisé. La sortie est mise à l'échelle en fonction de imax et imin val.",
+        "spanish": "tabla que se leerá cuando se requiera indexación. La tabla debe estar normalizada. La salida se escala según imax e imin val."
+      }
+    },
+    "outputs": {
+      "kout": {
+        "english": "K-rate scaled controller value.",
+        "german": "Skalierter Controllerwert mit Kontrollrate.",
+        "french": "Valeur de contrôleur mise à l’échelle au taux de contrôle.",
+        "spanish": "Valor del controlador escalado a frecuencia de control."
+      }
+    }
+  },
+  "stereo_capture": {
+    "description": {
+      "english": "Orchestron stereo stutter, freeze and granular processor. Private two-second history and snapshot buffers, 5 ms transitions and bounded grain gain. All switches off passes dry; restart clears buffers.",
+      "german": "Orchestron-Stereoprozessor für Stutter, Freeze und granulare Wiedergabe. Eigene Zweissekundenpuffer, 5-ms-Übergänge und begrenzter Kornpegel. Alle Schalter aus: Direktsignal; Neustart leert die Puffer.",
+      "french": "Processeur stéréo Orchestron pour stutter, gel et lecture granulaire. Tampons privés de deux secondes, transitions de 5 ms et gain borné. Tous les commutateurs désactivés : signal direct ; le redémarrage vide les tampons.",
+      "spanish": "Procesador estéreo Orchestron de stutter, congelación y reproducción granular. Búferes privados de dos segundos, transiciones de 5 ms y ganancia limitada. Con todos los interruptores apagados pasa el audio directo; reiniciar vacía los búferes."
+    },
+    "inputs": {
+      "aleft": {
+        "english": "Left audio input.",
+        "german": "Linker Audioeingang.",
+        "french": "Entrée audio gauche.",
+        "spanish": "Entrada de audio izquierda."
+      },
+      "aright": {
+        "english": "Right audio input.",
+        "german": "Rechter Audioeingang.",
+        "french": "Entrée audio droite.",
+        "spanish": "Entrada de audio derecha."
+      },
+      "kstutter": {
+        "english": "64–127 captures and repeats a slice; 0–63 releases. Freeze retains its snapshot.",
+        "german": "64–127 nimmt einen Ausschnitt auf und wiederholt ihn; 0–63 beendet Stutter. Freeze behält seine Aufnahme.",
+        "french": "64–127 capture et répète un fragment ; 0–63 désactive Stutter. Freeze conserve sa capture.",
+        "spanish": "64–127 captura y repite un fragmento; 0–63 desactiva Stutter. Freeze conserva su captura."
+      },
+      "kfreeze": {
+        "english": "Rising above 63 captures and holds audio. Release resumes live input unless Stutter remains on.",
+        "german": "Beim Anstieg über 63 wird Audio aufgenommen und gehalten. Loslassen setzt den Live-Eingang fort, sofern Stutter aus ist.",
+        "french": "Le passage au-dessus de 63 capture et maintient le son. Relâcher reprend le signal direct si Stutter est désactivé.",
+        "spanish": "Al superar 63 captura y mantiene el audio. Al soltar vuelve a la entrada en vivo si Stutter está desactivado."
+      },
+      "kcapture": {
+        "english": "A rising edge above 63 replaces the snapshot, even while frozen. Send 0 between triggers.",
+        "german": "Eine steigende Flanke über 63 ersetzt die Aufnahme, auch bei Freeze. Zwischen Auslösungen 0 senden.",
+        "french": "Un front montant au-dessus de 63 remplace la capture, même gelée. Envoyer 0 entre les déclenchements.",
+        "spanish": "Un flanco ascendente por encima de 63 reemplaza la captura, incluso congelada. Enviar 0 entre disparos."
+      },
+      "kgranular": {
+        "english": "64–127 enables granular playback; 0–63 selects the stutter loop or dry input.",
+        "german": "64–127 aktiviert granulare Wiedergabe; 0–63 wählt die Stutter-Schleife oder den Direkteingang.",
+        "french": "64–127 active la lecture granulaire ; 0–63 sélectionne la boucle ou le signal direct.",
+        "spanish": "64–127 activa la reproducción granular; 0–63 selecciona el bucle o la entrada directa."
+      },
+      "islice": {
+        "english": "Loop period in seconds, 0.02–1. Captures an extra 5 ms for the seam.",
+        "german": "Schleifenperiode in Sekunden, 0,02–1. Nimmt zusätzlich 5 ms für die Überblendung auf.",
+        "french": "Période de boucle en secondes, 0,02–1. Capture 5 ms supplémentaires pour le fondu.",
+        "spanish": "Periodo del bucle en segundos, 0,02–1. Captura 5 ms adicionales para el fundido."
+      },
+      "igrain": {
+        "english": "Hann-windowed grain duration, 0.005–0.2 seconds.",
+        "german": "Korndauer mit Hann-Fenster, 0,005–0,2 Sekunden.",
+        "french": "Durée des grains avec fenêtre de Hann, 0,005–0,2 seconde.",
+        "spanish": "Duración de los granos con ventana Hann, 0,005–0,2 segundos."
+      },
+      "idensity": {
+        "english": "1–80 grains per second; at most 16 active grains.",
+        "german": "1–80 Körner pro Sekunde; höchstens 16 aktive Körner.",
+        "french": "1–80 grains par seconde ; 16 grains actifs au maximum.",
+        "spanish": "1–80 granos por segundo; un máximo de 16 granos activos."
+      },
+      "ipitch": {
+        "english": "Granular pitch, -24–24 semitones. Fractional values are allowed.",
+        "german": "Granulare Tonhöhe, -24–24 Halbtöne. Zwischenwerte sind erlaubt.",
+        "french": "Hauteur granulaire, -24–24 demi-tons. Les fractions sont permises.",
+        "spanish": "Tono granular, -24–24 semitonos. Se permiten valores fraccionarios."
+      },
+      "ispread": {
+        "english": "Random grain start spread, 0–1, with shared stereo timing.",
+        "german": "Zufällige Streuung der Kornstartposition, 0–1, mit gemeinsamem Stereo-Timing.",
+        "french": "Dispersion aléatoire du départ des grains, 0–1, avec synchronisation stéréo.",
+        "spanish": "Dispersión aleatoria del inicio de los granos, 0–1, con sincronización estéreo."
+      },
+      "imix": {
+        "english": "Dry/wet mix, 0–1. Zero preserves dry audio at output gain.",
+        "german": "Direkt-/Effektmischung, 0–1. Null erhält das Direktsignal mit Ausgangspegel.",
+        "french": "Mélange direct/effet, 0–1. Zéro conserve le signal direct avec le gain de sortie.",
+        "spanish": "Mezcla directa/efecto, 0–1. Cero conserva el audio directo con la ganancia de salida."
+      },
+      "igain": {
+        "english": "Output gain, -24–0 dB.",
+        "german": "Ausgangsverstärkung, -24–0 dB.",
+        "french": "Gain de sortie, -24–0 dB.",
+        "spanish": "Ganancia de salida, -24–0 dB."
+      }
+    },
+    "outputs": {
+      "aleftout": {
+        "english": "Left output.",
+        "german": "Linker Ausgang.",
+        "french": "Sortie gauche.",
+        "spanish": "Salida izquierda."
+      },
+      "arightout": {
+        "english": "Right output.",
+        "german": "Rechter Ausgang.",
+        "french": "Sortie droite.",
+        "spanish": "Salida derecha."
+      }
+    }
   }
 }

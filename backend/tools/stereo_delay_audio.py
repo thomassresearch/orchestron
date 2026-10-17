@@ -63,7 +63,7 @@ def compile_probe(patch, *, values=None, ksmps=32, mode="midi"):
     )
 
 
-def render_probe(artifact, source, seconds):
+def render_probe(artifact, source, seconds, *, score_events="", midi_file=None):
     """Return stereo float samples; file input deliberately has no looping."""
     with TemporaryDirectory(prefix="orchestron-stereo-delay-") as temporary:
         path = Path(temporary) / "input.wav"
@@ -76,8 +76,9 @@ def render_probe(artifact, source, seconds):
                                 lambda m: f"{m[1]}{replacement}{m[2]} = a_probe_wav_{side}", orc)
             if count != 1:
                 raise RuntimeError(f"Expected one {side} probe source constant, found {count}")
-        csd = (f"<CsoundSynthesizer>\n<CsOptions>\n-n -d -m0\n</CsOptions>\n<CsInstruments>\n{orc}\n"
-               f"</CsInstruments>\n<CsScore>\nf 0 {seconds + 0.1}\n</CsScore>\n</CsoundSynthesizer>")
+        midi_option = f'-F "{midi_file}"' if midi_file else ""
+        csd = (f"<CsoundSynthesizer>\n<CsOptions>\n-n -d -m0 {midi_option}\n</CsOptions>\n<CsInstruments>\n{orc}\n"
+               f"</CsInstruments>\n<CsScore>\nf 0 {seconds + 0.1}\n{score_events}\n</CsScore>\n</CsoundSynthesizer>")
         cs = load_ctcsound_module().Csound()
         try:
             if cs.compileCsdText(csd) != 0 or cs.start() != 0:

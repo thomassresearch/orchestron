@@ -7793,6 +7793,11 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
 
 
 @pytest.mark.parametrize("fixture,values,defaults", [
+    ("granular_capture",
+     {"gc_channel": 3, "gc_cc_stutter": 40, "gc_cc_freeze": 41, "gc_cc_capture": 42, "gc_cc_granular": 43,
+      "gc_slice": 250, "gc_grain": 100, "gc_density": 80, "gc_pitch": 12, "gc_spread": 1, "gc_mix": .5, "gc_output": -12},
+     {"gc_channel": 16, "gc_cc_stutter": 20, "gc_cc_freeze": 21, "gc_cc_capture": 22, "gc_cc_granular": 23,
+      "gc_slice": 125, "gc_grain": 50, "gc_density": 40, "gc_pitch": 0, "gc_spread": .5, "gc_mix": 1, "gc_output": -6}),
     ("tube_overdrive", {"tube_drive_db": 18, "tube_tone_hz": 4000, "tube_output_db": -6},
      {"tube_drive_db": 12, "tube_tone_hz": 6500, "tube_output_db": -3}),
     ("stereo_delay", {"sd_tempo": 137, "sd_beats": 1.375, "sd_feedback": 0.9, "sd_stereo": 1},
@@ -7853,7 +7858,7 @@ def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixt
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer"])
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
@@ -7862,7 +7867,12 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
     from backend.tools.stereo_delay_audio import insert_graph, probe_source
 
     patch = load_patch_fixture(fixture)
-    if fixture == "stereo_delay":
+    if fixture == "granular_capture":
+        values = {n.id: n.params["default"] for n in patch.graph.nodes if n.opcode == "perf_controller"}
+        values.update(gc_channel=3, gc_cc_freeze=41, gc_pitch=12)
+        controls = [(n.params['label'], n.params['min'], n.params['max'], n.params['default'])
+                    for n in patch.graph.nodes if n.opcode == 'perf_controller']
+    elif fixture == "stereo_delay":
         values = dict(sd_tempo=137, sd_beats=1.375, sd_feedback=0.9, sd_stereo=1)
         controls = [("Tempo (BPM)", 40, 180, 120), ("Beats", 1, 16, 4),
                     ("Feedback", 0, 0.9, 0.5), ("Stereo", 0, 1, 0.5)]
@@ -7927,7 +7937,12 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         assert "ksmps = 1" in csd
-        if fixture == "stereo_delay":
+        if fixture == "granular_capture":
+            assert csd.count("opcode vcs_stereo_capture,") == 1
+            assert (" ctrl7 " in csd) == (event_source == "midiFile")
+            if event_source == "score":
+                assert "gk_vcs_score_cc[(int(limit(" in csd
+        elif fixture == "stereo_delay":
             assert " flanger " in csd and " delay " in csd
         elif fixture == "stereo_flanger":
             from backend.tests.csound_test_support import orc_code_lines
@@ -8206,3 +8221,49 @@ def test_controller_step_csd_exports_preserve_repetitions_and_resets(tmp_path: P
                 from backend.app.services.compiler_orchestra import OrchestraEmitter
                 index = OrchestraEmitter.score_controller_index(channel, 1)
                 assert [int(parts[5]) for parts in lines if int(parts[4]) == index] == [12, 0, 64, 64, 12]
+
+
+def test_capture_and_ctrl7_opcode_api(tmp_path):
+    with _client(tmp_path) as client:
+        catalog = {o['name']: o for o in client.get('/api/opcodes').json()}
+        reader = catalog['ctrl7']
+        assert [p['signal_type'] for p in reader['inputs']] == ['i', 'i', 'k', 'k', 'i']
+        assert not reader['inputs'][-1]['required']
+        assert reader['documentation_url'] == 'https://csound.com/docs/manual/ctrl7.html'
+        capture = catalog['stereo_capture']
+        assert [p['id'] for p in capture['outputs']] == ['aleftout', 'arightout']
+        assert [p['signal_type'] for p in capture['inputs']] == ['a', 'a'] + ['k'] * 4 + ['i'] * 7
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_capture_step_export_reads_unassigned_control_channel_and_resets(tmp_path, event_source):
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tools.stereo_delay_audio import insert_graph, probe_source
+    patch = load_patch_fixture('granular_capture')
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    payload['performanceExport']['patch_definitions'] = [
+        ExportedPatchDefinition(sourcePatchId=p.id, **p.model_dump(exclude={'id'})).model_dump(mode='json', by_alias=True)
+        for p in (probe_source(), patch)]
+    payload['performanceExport']['performance']['config'] = dict(version=20, instruments=[
+        dict(id='source', patchId='stereo-delay-probe', midiChannel=0),
+        dict(id='delay', patchId=patch.id, midiChannel=0)], audioGraph=insert_graph().model_dump(mode='json', by_alias=True))
+    payload['sequencerConfig'] = json.loads((Path(__file__).parent / 'fixtures/sequencers/granular_capture_steps.json').read_text())
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+        assert 'opcode vcs_stereo_capture,' in csd
+        if event_source == 'midiFile':
+            messages = [m for _, m in _midi_messages_with_absolute_ticks(archive.read('Offline_Export/Offline_Export.mid'))
+                        if m.type == 'control_change']
+            for cc in (20, 21, 22, 23):
+                values = [m.value for m in messages if m.control == cc and m.channel == 15]
+                assert values[0] == values[-1] == 0 and 127 in values
+        else:
+            lines = [line.split() for line in csd.splitlines() if line.startswith('i 9000 ')]
+            for cc in (20, 21, 22, 23):
+                values = [int(parts[5]) for parts in lines if int(parts[4]) == 15*128 + cc]
+                assert values[0] == values[-1] == 0 and 127 in values
