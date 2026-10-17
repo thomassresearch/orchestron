@@ -1,3 +1,4 @@
+import { audioFeedbackDiagnostics } from "./audioFeedback";
 import type { AudioGraph, AudioInterface, AudioRoute, MixerState, MixerStrip, PatchListItem, SequencerInstrumentBinding } from "../types";
 
 export const MASTER = "$master";
@@ -93,7 +94,6 @@ export function audioGraphDiagnostics(bindings: SequencerInstrumentBinding[], pa
   const byId = new Map(bindings.map((b) => [b.id, patches.find((p) => p.id === b.patchId)]));
   byId.set(MASTER, masterEndpoint);
   const result: import("../types").AudioDiagnostic[] = [];
-  const edges: [string,string][] = [];
   for (const [processor, owner] of Object.entries(graph.insertOwners)) {
     const exists = (id: string) => id === MASTER ? graph.masterId === MASTER : !!byId.get(id);
     if (!exists(processor) || !exists(owner) || processor === owner) {
@@ -105,27 +105,32 @@ export function audioGraphDiagnostics(bindings: SequencerInstrumentBinding[], pa
     }
   }
   if (graph.masterId && graph.masterId !== MASTER && !byId.get(graph.masterId)) result.push({code:"missing_master",severity:"error",instanceId:graph.masterId,message:graph.masterId});
-  if (!graph.routes.some(r => r.targetId === MASTER && r.targetStage === "strip")) edges.push([`raw:${MASTER}`,`strip:${MASTER}`]);
   for (const binding of bindings) {
     const patch = byId.get(binding.id);
     if (!patch) result.push({code:"missing_patch",severity:"error",instanceId:binding.id,message:binding.patchId});
-    if (outputPorts(patch).some((p) => !graph.routes.some((r) => r.targetId === binding.id && r.targetStage === "strip" && r.targetPort === p))) edges.push([`raw:${binding.id}`,`strip:${binding.id}`]);
   }
   for (const route of graph.routes) {
     const source = byId.get(route.sourceId), target = byId.get(route.targetId);
     if (!source || !outputPorts(source).includes(route.sourcePort) || (route.targetId === "$output" ? !["left","right"].includes(route.targetPort) : !target || !(route.targetStage === "strip" ? outputPorts(target) : target.audio_inlet_names).includes(route.targetPort))) {
       result.push({code:"broken_route",severity:"error",instanceId:route.sourceId,routeId:route.id,message:`${route.sourcePort} → ${route.targetPort}`});
     }
-    edges.push([`${route.sourceStage}:${route.sourceId}`,`${route.targetStage === "input" ? "raw" : "strip"}:${route.targetId}`]);
   }
-  const visiting = new Set<string>(), done = new Set<string>();
-  const visit = (node: string): boolean => {
-    if (visiting.has(node)) return true;
-    if (done.has(node)) return false;
-    visiting.add(node);
-    const cycle = edges.filter(([from]) => from === node).some(([,to]) => visit(to));
-    visiting.delete(node); done.add(node); return cycle;
-  };
-  if ([...byId.keys()].some((id) => visit(`raw:${id}`))) result.push({code:"feedback",severity:"error",message:""});
+  result.push(...previewAudioFeedback(bindings, patches, graph));
   return result;
+}
+
+/** Visible mixer feedback stays current even while the general diagnostics panel is closed. */
+export function previewAudioFeedback(bindings: SequencerInstrumentBinding[], patches: PatchListItem[], graph: AudioGraph) {
+  const edges: [string, string][] = [];
+  const byId = new Map(bindings.map(b => [b.id, patches.find(p => p.id === b.patchId)]));
+  byId.set(MASTER, masterEndpoint);
+  for (const [id, patch] of byId) {
+    if (outputPorts(patch).some(port => !graph.routes.some(r => r.targetId === id && r.targetStage === "strip" && r.targetPort === port))) {
+      edges.push([`raw:${id}`, `strip:${id}`]);
+    }
+  }
+  for (const route of graph.routes) {
+    edges.push([`${route.sourceStage}:${route.sourceId}`, `${route.targetStage === "input" ? "raw" : "strip"}:${route.targetId}`]);
+  }
+  return audioFeedbackDiagnostics(bindings, patches, graph, edges);
 }

@@ -115,3 +115,60 @@ it("offers live bypass only on continuous inserts and preserves the routing grap
   act(() => useAppStore.setState({ patches: [source, { ...effect, always_on: false }] }));
   expect(screen.queryByRole("button", { name: /Bypass/ })).toBeNull();
 });
+
+function feedbackGraph() {
+  const graph = wireInsertChain(emptyAudioGraph(), bindings, [source, effect], "source", ["insert"]);
+  for (const port of ["left", "right"]) graph.routes.push({ id: `send-${port}`, sourceId: "source", sourcePort: port, targetId: "insert", targetPort: port, sourceStage: "strip", targetStage: "input", kind: "send" });
+  graph.routes.push({ id: "output", sourceId: "source", sourcePort: "left", targetId: "$master", targetPort: "left", sourceStage: "strip", targetStage: "input", kind: "main" });
+  return graph;
+}
+
+it.each([
+  ["english", "Show offending connections", "Closed routing path", "Only feedback connections"],
+  ["german", "Betroffene Verbindungen zeigen", "Geschlossener Routing-Pfad", "Nur Rückkopplungsverbindungen"],
+  ["french", "Afficher les connexions en cause", "Chemin de routage fermé", "Connexions de boucle uniquement"],
+  ["spanish", "Mostrar conexiones afectadas", "Ruta de audio cerrada", "Solo conexiones del bucle"]
+])("reveals the named stereo loop and filters highlighted routes in %s", (language, show, path, filter) => {
+  const graph = feedbackGraph();
+  useAppStore.setState({ guiLanguage: language as GuiLanguage, audioGraph: graph });
+  const { container } = render(<PerformMixer onStop={() => undefined} />);
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toContain(path);
+  expect(alert.textContent).toContain(source.name);
+  expect(alert.textContent).toContain(effect.name);
+  expect(alert.textContent).toContain("left / right → left / right");
+  expect(container.querySelector('[data-feedback-instance="source"]')).toBeTruthy();
+  expect(container.querySelector('[data-feedback-instance="$master"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: show }));
+  expect((screen.getByRole("checkbox", { name: filter }) as HTMLInputElement).checked).toBe(true);
+  const diagram = screen.getByRole("checkbox", { name: filter }).closest("details")!;
+  expect(diagram.querySelectorAll("[data-feedback-routes]")).toHaveLength(2);
+  expect(diagram.textContent).not.toContain(language === "spanish" ? "Máster" : "Master");
+  const highlighted = [...diagram.querySelectorAll("[data-feedback-routes]")].flatMap(node => node.getAttribute("data-feedback-routes")!.split(" "));
+  expect(highlighted).toContain("send-left");
+  expect(highlighted).toContain("send-right");
+  expect(highlighted).not.toContain("output");
+  act(() => useAppStore.setState({ audioGraph: { ...graph, routes: graph.routes.filter(r => r.id !== "send-left") } }));
+  expect(screen.getByRole("alert")).toBeTruthy();
+  act(() => useAppStore.setState({ audioGraph: { ...graph, routes: graph.routes.filter(r => !r.id.startsWith("send-")) } }));
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(container.querySelector("[data-feedback-routes], [data-feedback-instance], [data-feedback-route]")).toBeNull();
+  expect(diagram.textContent).toContain(language === "spanish" ? "Máster" : "Master"); // Clearing the loop restores all connections.
+});
+
+it("uses structured backend feedback and discards it after routing changes", async () => {
+  const { ApiError } = await import("../api/client");
+  const { audioGraphDiagnostics } = await import("../lib/audioRouting");
+  const graph = feedbackGraph();
+  const diagnostic = audioGraphDiagnostics(bindings, [source, effect], graph).find(d => d.code === "feedback")!;
+  diagnostic.routingPath![0].source.name = "Backend instrument name";
+  vi.spyOn(api, "validateAudio").mockRejectedValue(new ApiError(422, "Unprocessable Content", JSON.stringify({ detail: { diagnostics: ["Feedback detected"], audioDiagnostics: [diagnostic] } })));
+  useAppStore.setState({ audioGraph: graph });
+  render(<PerformMixer onStop={() => undefined} />);
+  expand("Routing diagnostics");
+  fireEvent.click(screen.getByRole("button", { name: "Check routing" }));
+  await screen.findByText("Backend instrument name");
+  act(() => useAppStore.setState({ audioGraph: { ...graph, routes: graph.routes.filter(r => !r.id.startsWith("send-")) } }));
+  expect(screen.queryByText("Backend instrument name")).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
+});

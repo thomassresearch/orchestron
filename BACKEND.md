@@ -975,6 +975,12 @@ retain their original compilation path. Runtime source cancellation balances
 previously deferred shared-pitch note-offs when the last source releases, so no
 collector remains stranded. No phrase state enters saved performance data.
 
+### Feedback-loop diagnostics
+
+`audio_feedback.py` finds strongly connected components in the resolved compiler stage graph after topological ordering fails. Only route nodes inside a cyclic component are reported, excluding downstream consumers left unresolved by the failed sort. Each component supplies all cyclic route/instance IDs and one deterministic closed path; parallel stereo routes are grouped by endpoints, stages and kind. Raw output and processed strip remain distinct, so ordinary insert returns are valid. Legacy effect routes use the same diagnostic builder with generated route IDs.
+
+`CompilationError.detail()` preserves the string `diagnostics` list and adds structured `audioDiagnostics` for feedback, consistently across session creation, validation, compilation and CSD export. The frontend preserves the structured body, renders a localized path, and recomputes visible mixer highlights after topology edits; stale backend results cannot reapply old highlights. See the [routing response contract](documentation/performance/audio_mixer_and_routing.md#control-api).
+
 ### Live insert bypass
 
 `MixerStrip.bypass` is an optional boolean (default false), preserved by performance/app-state and native bundle serialization. Session validation and mixer updates accept enabled bypass only for continuous instances in `audioGraph.insertOwners` with matching main input/output channel counts. Updates use existing revision checks and render-block control delivery.

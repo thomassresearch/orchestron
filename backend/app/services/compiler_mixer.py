@@ -22,6 +22,7 @@ from backend.app.models.audio import (
     legacy_gain,
 )
 from backend.app.models.session import CompileArtifact
+from backend.app.services.audio_feedback import FEEDBACK_MESSAGE, feedback_diagnostics
 from backend.app.services.audio_port_names import audio_port_names
 from backend.app.services.audio_routing_service import resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError, CompilationProfile
@@ -276,7 +277,8 @@ class ResolvedMixerGraph:
                 if not indegree[dest]:
                     heapq.heappush(ready, dest)
         if len(self.order) != len(stages):
-            raise CompilationError(["Effect routing would create an audio feedback loop."])
+            diagnostics = feedback_diagnostics(self.edges, self.routes, self.by_id, graph.insert_owners)
+            raise CompilationError([FEEDBACK_MESSAGE, *(d.message for d in diagnostics)], audio_diagnostics=diagnostics)
         self.adjacency = adjacency
         for identity, target in self.by_id.items():
             if OUTPUT not in _reachable("patch:" + identity, adjacency):

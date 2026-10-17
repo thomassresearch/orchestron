@@ -1,7 +1,7 @@
 import { withLaneOutput } from "../lib/laneOutput";
 import type { InstrumentType } from "../types";
 import type { SessionInstrumentAssignment } from "../types";
-import type { AudioGraph, MixerState, MixerResponse } from "../types";
+import type { AudioDiagnostic, AudioGraph, MixerState, MixerResponse } from "../types";
 import type {
   AppStateResponse,
   CompileResponse,
@@ -36,13 +36,24 @@ export class ApiError extends Error {
   status: number;
   statusText: string;
   body: string;
+  audioDiagnostics: AudioDiagnostic[];
 
   constructor(status: number, statusText: string, body: string) {
-    super(`API ${status} ${statusText}: ${body}`);
+    let message = body;
+    let audioDiagnostics: AudioDiagnostic[] = [];
+    try {
+      const detail = JSON.parse(body)?.detail;
+      if (Array.isArray(detail?.diagnostics) && detail.diagnostics.every((item: unknown) => typeof item === "string")) {
+        message = detail.diagnostics.join("\n");
+      }
+      if (Array.isArray(detail?.audioDiagnostics)) audioDiagnostics = detail.audioDiagnostics;
+    } catch { /* Keep non-JSON errors readable too. */ }
+    super(`API ${status} ${statusText}: ${message}`);
     this.name = "ApiError";
     this.status = status;
     this.statusText = statusText;
     this.body = body;
+    this.audioDiagnostics = audioDiagnostics;
   }
 }
 

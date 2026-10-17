@@ -82,3 +82,36 @@ it("preserves per-instance insert bypass in snapshots and rejects nonboolean val
   expect(restored.audioGraph).toEqual(graph);
   expect(() => validateAudioState(graph, { ...mixer, strips: { two: { ...mixer.strips.two, bypass: "yes" as unknown as boolean } } })).toThrow("Invalid mixer strip");
 });
+
+it("identifies stereo insert feedback, names the MIDI source, and excludes downstream routes", () => {
+  const graph = wireInsertChain(emptyAudioGraph(), bindings, [source, effect], "one", ["two"]);
+  expect(audioGraphDiagnostics(bindings, [source, effect], graph).filter(d => d.code === "feedback")).toEqual([]);
+  for (const [sourcePort, targetPort] of [["dryl", "left"], ["dryr", "right"]]) graph.routes.push({
+    id: `send-${sourcePort}`, sourceId: "one", sourcePort, targetId: "two", targetPort, kind: "send", sourceStage: "strip", targetStage: "input"
+  });
+  graph.routes.push({ id: "downstream", sourceId: "one", sourcePort: "dryl", targetId: MASTER, targetPort: "left", kind: "main", sourceStage: "strip", targetStage: "input" });
+  const diagnostics = audioGraphDiagnostics(bindings, [source, effect], graph).filter(d => d.code === "feedback");
+  expect(diagnostics).toHaveLength(1);
+  const diagnostic = diagnostics[0];
+  expect(diagnostic.routeIds).toHaveLength(4);
+  expect(diagnostic.routeIds).not.toContain("downstream");
+  expect(diagnostic.instanceIds).toEqual(["one", "two"]);
+  const send = diagnostic.routingPath!.find(step => step.kind === "send")!;
+  expect(send.source).toMatchObject({ id: "one", name: "Source", midiChannel: 1, stage: "strip", ports: ["dryl", "dryr"] });
+  expect(send.target).toMatchObject({ id: "two", stage: "input", ports: ["left", "right"], insertOwnerId: "one" });
+  expect(send.routeIds).toEqual(["send-dryl", "send-dryr"]);
+  expect(audioGraphDiagnostics(bindings, [source, effect], { ...graph, routes: [...graph.routes].reverse() })).toEqual(audioGraphDiagnostics(bindings, [source, effect], graph));
+  graph.routes = graph.routes.filter(r => r.id !== "send-dryl");
+  expect(audioGraphDiagnostics(bindings, [source, effect], graph).find(d => d.code === "feedback")?.routeIds).toContain("send-dryr");
+  graph.routes = graph.routes.filter(r => r.id !== "send-dryr");
+  expect(audioGraphDiagnostics(bindings, [source, effect], graph).some(d => d.code === "feedback")).toBe(false);
+});
+
+it("reports independent and overlapping loops without marking innocent exits", () => {
+  const b = ["a", "b", "c", "d"].map(id => ({ ...bindings[1], id }));
+  const graph = { ...emptyAudioGraph(), routes: [["aa", "a", "a"], ["ab", "a", "b"], ["ba", "b", "a"], ["cc", "c", "c"], ["exit", "b", "d"]].map(([id, sourceId, targetId]) => ({ id, sourceId, targetId, sourcePort: "left", targetPort: "left", kind: "custom" as const, sourceStage: "strip" as const, targetStage: "input" as const })) };
+  const diagnostics = audioGraphDiagnostics(b, [effect], graph).filter(d => d.code === "feedback");
+  expect(diagnostics.map(d => d.routeIds)).toEqual([["aa", "ab", "ba"], ["cc"]]);
+  expect(diagnostics[0].routingPath).toHaveLength(1);
+  expect(diagnostics[0].routingPath![0].source.id).toBe(diagnostics[0].routingPath![0].target.id);
+});

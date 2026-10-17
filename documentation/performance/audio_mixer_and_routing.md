@@ -106,11 +106,27 @@ Expand **Routing diagnostics** and click **Check routing** after editing connect
 
 Invalid insert assignments appear in red, including an insert whose processor or owning strip is missing, or which refers to itself. These errors are detected even when all visible connections to the deleted instance have already been removed. Backend validation failures appear directly beside **Check routing**. Previous check results are discarded after changes to the rack, patch definitions, routing or mixer settings; check again after editing.
 
+Feedback loops appear above the mixer strips as soon as their connections are present. Each path lists instrument and effect names, instance IDs (to distinguish repeated uses of a patch), MIDI channels, exact audio ports and processing stages. **Before inserts** is the instrument's raw output; **Processed strip** is its output after insert returns; **Input** feeds the effect's processing. Ordinary insert chains returning to their owner's strip are valid.
+
+Choose **Show offending connections** to open the routing diagram and enable **Only feedback connections**. Red borders and **Feedback loop** badges identify the affected strips, inserts, sends and route groups; the Destination matrix highlights the same connections. Expand **Exact channel mapping** to inspect or remove individual channel connections. Turn off the filter to inspect surrounding routes. Highlights update immediately after a routing edit, and all connections become visible again once the loop is gone.
+
+The display shows one closed path for each connected group of feedback loops and highlights every cyclic connection in that group. A group may contain additional overlapping loops. Unrelated incoming routes and downstream output routes are not highlighted. Break every remaining loop, including both stereo channels; muting, bypassing or lowering a send does not remove its processing dependency.
+
+For example, sending a lead's processed strip into its own Reverb insert closes **Lead → Reverb → Stereo Widener → Lead**. Use a separate shared Reverb instance with its own output return if that is the intended effect. The screenshot below uses a temporary copy of Effectomania's earlier routing.
+
+<p align="center">
+  <img src="../../screenshots/perform_feedback_loop_diagnostics.png" alt="Effectomania feedback path showing the channel 7 PWM Lead, Reverb and Stereo Widener with stereo port mappings" width="1000" style="max-width: 100%; height: auto;" />
+</p>
+
+<p align="center">
+  <img src="../../screenshots/perform_feedback_loop_connections.png" alt="Filtered routing diagram highlighting the six stereo connections in the feedback loop and the detailed backend error" width="1000" style="max-width: 100%; height: auto;" />
+</p>
+
 | Symptom or diagnostic | What to check |
 | --- | --- |
 | Repair route / Missing reference | Restore the referenced patch or repair the destination and exact port names in Destination matrix. |
 | Invalid insert ownership | Repair the insert assignment that refers to a missing instance or to itself. Removing audio connections alone does not repair an invalid insert assignment. |
-| Feedback cycle | Remove a connection that feeds a processing path back into itself. Playback and CSD export remain blocked until genuine cycles are resolved. |
+| Feedback cycle | Follow the named path and choose **Show offending connections**. Remove or redirect a connection on every affected channel. Playback and CSD export remain blocked until all cycles are resolved. |
 | Connect an audio output / Select an audio source | Follow the source to an output sink; route audio into effects that require inputs. |
 | Complete stereo mapping / Unused ports | Check both channel mappings and the declared audio groups. These structural warnings do not prove a patch is silent. |
 | Review parallel output paths | Check whether both direct and processed copies intentionally reach the output. Serial insert chains, including Master inserts, do not trigger this warning. |
@@ -140,6 +156,8 @@ Both performance CSD modes initialize the same routing, gain, balance, mute, sol
 ## Control API
 
 Session creation and validation accept `audio_graph` and `mixer`. `GET /api/sessions/{id}/mixer` returns desired values and revision; `PUT` accepts batched partial scalar updates and an optional expected revision. Stale revisions return 409. The active browser-clock controller can send the equivalent `mixer_update` message and receive `mixer_ack`/`mixer_error` replies. Updates are queued and applied at render-block boundaries. Meter frames carry engine sample timestamps and are delivered at most 15 times per second.
+
+Feedback failures return HTTP 422 with the existing `detail.diagnostics` string list plus `detail.audioDiagnostics`. Each structured feedback diagnostic contains `code: "feedback"`, all cyclic `routeIds` and `instanceIds`, and an ordered `routingPath`. Each path step contains `kind`, its grouped `routeIds`, and `source`/`target` endpoints with `id`, `name`, `midiChannel` (0 for continuous), `stage`, `ports`, and optional `insertOwnerId`. Stereo routes with the same endpoints, stages and kind are grouped. General validation errors keep the existing response format. Legacy routes receive generated diagnostic IDs; explicit mixer routes retain their authored IDs.
 
 `POST /api/sessions/preview` accepts a session plus inline draft patch definitions. It creates a transient runtime without saving drafts into the patch library. Normal stop/delete session operations clean it up.
 

@@ -104,12 +104,31 @@ class AudioGraph(AudioModel):
         return self
 
 
+class AudioRoutingEndpoint(AudioModel):
+    id: str
+    name: str
+    midi_channel: int = Field(alias="midiChannel")
+    stage: Literal["raw", "strip", "input"]
+    ports: list[str]
+    insert_owner_id: str | None = Field(default=None, alias="insertOwnerId")
+
+
+class AudioFeedbackStep(AudioModel):
+    source: AudioRoutingEndpoint
+    target: AudioRoutingEndpoint
+    kind: Literal["main", "send", "insert", "custom"]
+    route_ids: list[str] = Field(alias="routeIds")
+
+
 class AudioDiagnostic(AudioModel):
     code: str
     message: str
     severity: Literal["warning", "error"] = "warning"
     instance_id: str | None = Field(default=None, alias="instanceId")
     route_id: str | None = Field(default=None, alias="routeId")
+    route_ids: list[str] = Field(default_factory=list, alias="routeIds")
+    instance_ids: list[str] = Field(default_factory=list, alias="instanceIds")
+    routing_path: list[AudioFeedbackStep] = Field(default_factory=list, alias="routingPath")
 
 
 class MixerUpdate(AudioModel):

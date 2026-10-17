@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from backend.app.models.patch import Connection, NodeInstance, PatchDocument
 from backend.app.models.opcode import OpcodeSpec
+from backend.app.models.audio import AudioDiagnostic
 
 OPTIONAL_OMIT_MARKER = "__VS_OPTIONAL_OMIT__"
 INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
@@ -23,9 +24,16 @@ class CompilationProfile(StrEnum):
 
 
 class CompilationError(Exception):
-    def __init__(self, diagnostics: list[str]):
+    def __init__(self, diagnostics: list[str], *, audio_diagnostics: list[AudioDiagnostic] | None = None):
         self.diagnostics = diagnostics
+        self.audio_diagnostics = audio_diagnostics or []
         super().__init__("Patch compilation failed")
+
+    def detail(self) -> dict:
+        detail = {"diagnostics": self.diagnostics}
+        if self.audio_diagnostics:
+            detail["audioDiagnostics"] = [d.model_dump(by_alias=True, exclude_none=True) for d in self.audio_diagnostics]
+        return detail
 
 
 @dataclass(slots=True)

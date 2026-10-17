@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from backend.app.models.audio import AudioRoute
+from backend.app.services.audio_feedback import FEEDBACK_MESSAGE, feedback_diagnostics
 from backend.app.services.audio_port_names import audio_port_names
 from backend.app.services.compiler_common import CompilationError, PatchInstrumentTarget
 
@@ -33,7 +35,6 @@ def resolve_audio_routes(targets: list[PatchInstrumentTarget]) -> list[ResolvedA
         raise CompilationError(diagnostics)
 
     routes: list[ResolvedAudioRoute] = []
-    route_edges: list[tuple[str, str]] = []
     seen_routes: set[tuple[str, str, str]] = set()
 
     for target in targets:
@@ -62,7 +63,6 @@ def resolve_audio_routes(targets: list[PatchInstrumentTarget]) -> list[ResolvedA
                 target_inlets=target_inlets,
                 targets_by_assignment_id=targets_by_assignment_id,
                 routes=routes,
-                route_edges=route_edges,
                 seen_routes=seen_routes,
                 diagnostics=diagnostics,
             )
@@ -74,9 +74,6 @@ def resolve_audio_routes(targets: list[PatchInstrumentTarget]) -> list[ResolvedA
             source_target = targets_by_assignment_id.get(source_id)
             if not source_id:
                 diagnostics.append(f"Effect route target '{target_id}' contains an empty source assignment id.")
-                continue
-            if source_id == target_id:
-                diagnostics.append("Effect routing would create an audio feedback loop.")
                 continue
             if source_target is None:
                 diagnostics.append(
@@ -98,14 +95,13 @@ def resolve_audio_routes(targets: list[PatchInstrumentTarget]) -> list[ResolvedA
                     target_inlets=target_inlets,
                     targets_by_assignment_id=targets_by_assignment_id,
                     routes=routes,
-                    route_edges=route_edges,
                     seen_routes=seen_routes,
                     diagnostics=diagnostics,
                 )
 
     if diagnostics:
         raise CompilationError(diagnostics)
-    _validate_audio_route_graph(route_edges)
+    _validate_audio_route_graph(routes, targets_by_assignment_id)
     return routes
 
 
@@ -117,7 +113,6 @@ def _append_resolved_route(
     target_inlets: list[str],
     targets_by_assignment_id: dict[str, PatchInstrumentTarget],
     routes: list[ResolvedAudioRoute],
-    route_edges: list[tuple[str, str]],
     seen_routes: set[tuple[str, str, str]],
     diagnostics: list[str],
 ) -> None:
@@ -128,9 +123,6 @@ def _append_resolved_route(
         diagnostics.append(
             f"Effect route from source assignment '{source_id}' to target '{target_id}' contains an empty outlet label."
         )
-        return
-    if source_id == target_id:
-        diagnostics.append("Effect routing would create an audio feedback loop.")
         return
 
     source_target = targets_by_assignment_id.get(source_id)
@@ -157,7 +149,6 @@ def _append_resolved_route(
     if route_key in seen_routes:
         return
     seen_routes.add(route_key)
-    route_edges.append((source_id, target_id))
     routes.append(
         ResolvedAudioRoute(
             source_assignment_id=source_id,
@@ -209,27 +200,14 @@ def _stereo_side_for_source_port(source_lower: str, source_by_lower: dict[str, s
     return None
 
 
-def _validate_audio_route_graph(route_edges: list[tuple[str, str]]) -> None:
-    adjacency: dict[str, set[str]] = {}
-    for source_id, target_id in route_edges:
-        if source_id == target_id:
-            raise CompilationError(["Effect routing would create an audio feedback loop."])
-        adjacency.setdefault(source_id, set()).add(target_id)
-        adjacency.setdefault(target_id, set())
-
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(node_id: str) -> None:
-        if node_id in visited:
-            return
-        if node_id in visiting:
-            raise CompilationError(["Effect routing would create an audio feedback loop."])
-        visiting.add(node_id)
-        for next_id in adjacency.get(node_id, set()):
-            visit(next_id)
-        visiting.remove(node_id)
-        visited.add(node_id)
-
-    for node_id in adjacency:
-        visit(node_id)
+def _validate_audio_route_graph(routes: list[ResolvedAudioRoute], targets: dict[str, PatchInstrumentTarget]) -> None:
+    explicit = [AudioRoute(id=f"legacy_{index}", sourceId=r.source_assignment_id,
+                           sourcePort=r.source_port_name, targetId=r.target_assignment_id,
+                           targetPort=r.target_port_name) for index, r in enumerate(routes)]
+    edges = [("patch:" + identity, "strip:" + identity) for identity in targets]
+    for route in explicit:
+        edges.extend([("strip:" + route.source_id, "route:" + route.id),
+                      ("route:" + route.id, "patch:" + route.target_id)])
+    diagnostics = feedback_diagnostics(edges, explicit, targets)
+    if diagnostics:
+        raise CompilationError([FEEDBACK_MESSAGE, *(d.message for d in diagnostics)], audio_diagnostics=diagnostics)

@@ -122,7 +122,7 @@ class SessionInstrumentResolver:
         try:
             return resolve_audio_routes(targets)
         except CompilationError as error:
-            raise HTTPException(status_code=422, detail={"diagnostics": error.diagnostics}) from error
+            raise HTTPException(status_code=422, detail=error.detail()) from error
 
     def _runtime_patch(self, patch_id: str) -> PatchDocument:
         patch = self._patch_service.get_patch_document(patch_id)

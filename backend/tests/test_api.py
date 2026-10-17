@@ -2985,7 +2985,8 @@ def test_performance_csd_score_export_calls_routed_instruments_by_number(tmp_pat
             assert "f 0 2.5" in csd
 
 
-def test_performance_csd_export_rejects_always_on_effect_route_loop(tmp_path: Path) -> None:
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_performance_csd_export_rejects_always_on_effect_route_loop(tmp_path: Path, event_source: str) -> None:
     effect_a_payload = _always_on_effect_with_outlets_patch_payload(name="Export Effect A")
     effect_b_payload = _always_on_effect_with_outlets_patch_payload(name="Export Effect B")
     payload = {
@@ -3036,11 +3037,19 @@ def test_performance_csd_export_rejects_always_on_effect_route_loop(tmp_path: Pa
         "sequencerConfig": _performance_csd_export_payload()["sequencerConfig"],
     }
 
+    payload["eventSource"] = event_source
     with _client(tmp_path) as client:
         response = client.post("/api/bundles/export/performance-csd", json=payload)
         assert response.status_code == 422
         diagnostics = response.json()["detail"]["diagnostics"]
         assert "Effect routing would create an audio feedback loop." in diagnostics
+
+        feedback, = response.json()["detail"]["audioDiagnostics"]
+        assert feedback["instanceIds"] == ["fx-a", "fx-b"]
+        assert len(feedback["routingPath"]) == 2
+        assert "Export Effect A" in diagnostics[1]
+        assert "Export Effect B" in diagnostics[1]
+        assert all(step["source"]["ports"] == ["left"] for step in feedback["routingPath"])
 
 
 def test_performance_csd_export_rejects_empty_midi_performance(tmp_path: Path) -> None:
@@ -6245,6 +6254,12 @@ def test_always_on_effect_session_rejects_audio_route_loop(tmp_path: Path) -> No
         assert create_session.status_code == 422
         diagnostics = create_session.json()["detail"]["diagnostics"]
         assert "Effect routing would create an audio feedback loop." in diagnostics
+        feedback, = create_session.json()["detail"]["audioDiagnostics"]
+        assert "fx-a" in feedback["instanceIds"]
+        assert "fx-b" in feedback["instanceIds"]
+        assert all(step["source"]["ports"] == ["left"] for step in feedback["routingPath"])
+        assert "Effect A" in diagnostics[1]
+        assert "Effect B" in diagnostics[1]
         assert client.get("/api/sessions").json() == []
 
 
@@ -6285,6 +6300,12 @@ def test_always_on_effect_session_rejects_indirect_audio_route_loop(tmp_path: Pa
         assert create_session.status_code == 422
         diagnostics = create_session.json()["detail"]["diagnostics"]
         assert "Effect routing would create an audio feedback loop." in diagnostics
+        feedback, = create_session.json()["detail"]["audioDiagnostics"]
+        assert "fx-a" in feedback["instanceIds"]
+        assert "fx-b" in feedback["instanceIds"]
+        assert all(step["source"]["ports"] == ["left"] for step in feedback["routingPath"])
+        assert "Effect A" in diagnostics[1]
+        assert "Effect B" in diagnostics[1]
         assert client.get("/api/sessions").json() == []
 
 
@@ -8267,3 +8288,35 @@ def test_capture_step_export_reads_unassigned_control_channel_and_resets(tmp_pat
             for cc in (20, 21, 22, 23):
                 values = [int(parts[5]) for parts in lines if int(parts[4]) == 15*128 + cc]
                 assert values[0] == values[-1] == 0 and 127 in values
+
+
+@pytest.mark.parametrize("endpoint", ["/api/sessions", "/api/sessions/validate-instruments"])
+def test_explicit_feedback_error_includes_named_stereo_routing_path(tmp_path: Path, endpoint: str) -> None:
+    with _client(tmp_path) as client:
+        source = client.post("/api/patches", json=_audio_outlet_only_source_patch_payload(name="PWM Lead")).json()
+        effect = client.post("/api/patches", json=_always_on_effect_with_outlets_patch_payload(name="Reverb")).json()
+        routes = []
+        for port in ["left", "right"]:
+            routes.extend([
+                {"id": f"input-{port}", "sourceId": "lead", "sourcePort": port, "targetId": "hall", "targetPort": port, "kind": "insert", "sourceStage": "raw"},
+                {"id": f"return-{port}", "sourceId": "hall", "sourcePort": port, "targetId": "lead", "targetPort": port, "kind": "insert", "targetStage": "strip"},
+                {"id": f"send-{port}", "sourceId": "lead", "sourcePort": port, "targetId": "hall", "targetPort": port, "kind": "send"},
+            ])
+        response = client.post(endpoint, json={
+            "instruments": [{"id": "lead", "patch_id": source["id"], "midi_channel": 7}, {"id": "hall", "patch_id": effect["id"], "midi_channel": 0}],
+            "audio_graph": {"insertOwners": {"hall": "lead"}, "routes": routes},
+        })
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert "Effect routing would create an audio feedback loop." in detail["diagnostics"]
+        assert "PWM Lead" in detail["diagnostics"][1]
+        assert "MIDI Ch. 7" in detail["diagnostics"][1]
+        feedback, = detail["audioDiagnostics"]
+        assert feedback["instanceIds"] == ["hall", "lead"]
+        assert feedback["routeIds"] == ["return-left", "return-right", "send-left", "send-right"]
+        send = next(step for step in feedback["routingPath"] if step["kind"] == "send")
+        assert send["source"] == {"id": "lead", "name": "PWM Lead", "midiChannel": 7, "stage": "strip", "ports": ["left", "right"]}
+        assert send["target"]["insertOwnerId"] == "lead"
+        assert send["target"]["name"] == "Reverb"
+        assert send["routeIds"] == ["send-left", "send-right"]
+        assert client.get("/api/sessions").json() == []

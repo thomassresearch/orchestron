@@ -490,3 +490,79 @@ def test_sixty_four_instances_compile_without_consuming_midi_channels():
     assert len(set(artifact.manifest["instrumentReferences"].values())) == 64
     with engine(artifact) as cs:
         np.testing.assert_allclose(render(cs, 2)[-1], [12.8, 12.8], atol=1e-8)
+
+
+def test_feedback_diagnostic_names_stages_channels_and_only_cyclic_routes():
+    from backend.app.services.compiler_common import CompilationError
+
+    lead = source(direct=False, always_on=False)
+    lead.patch.name = 'PWM "Lead"'
+    lead.midi_channel = 7
+    targets = [lead, effect("reverb"), effect("width"), effect("downstream")]
+    # Two channel ports per stage, with a regular insert return and an added send.
+    for target in targets:
+        target.patch.graph.nodes.append(NodeInstance(id="right-out", opcode="outleta", params={"sname": "right"}))
+        if target.always_on:
+            target.patch.graph.nodes.append(NodeInstance(id="right-in", opcode="inleta", params={"sname": "right"}))
+    routes = []
+    for port in ["left", "right"]:
+        routes.extend([
+            route(f"input-{port}", "source", "reverb", port, port, sourceStage="raw", kind="insert"),
+            route(f"chain-{port}", "reverb", "width", port, port, kind="insert"),
+            route(f"return-{port}", "width", "source", port, port, targetStage="strip", kind="insert"),
+            route(f"send-{port}", "source", "reverb", port, port, kind="send"),
+            route(f"exit-{port}", "width", "downstream", port, port),
+        ])
+    graph = AudioGraph(insertOwners={"reverb": "source", "width": "source"}, routes=routes)
+    with pytest.raises(CompilationError) as caught:
+        ResolvedMixerGraph(targets, graph)
+    error = caught.value
+    diagnostic, = error.audio_diagnostics
+    assert diagnostic.instance_ids == ["reverb", "source", "width"]
+    assert set(diagnostic.route_ids) == {f"{kind}-{port}" for kind in ["chain", "return", "send"] for port in ["left", "right"]}
+    assert len(diagnostic.routing_path) == 3
+    send = next(s for s in diagnostic.routing_path if s.kind == "send")
+    assert send.source.name == 'PWM "Lead"'
+    assert send.source.midi_channel == 7
+    assert send.source.stage == "strip"
+    assert send.target.stage == "input"
+    assert send.target.insert_owner_id == "source"
+    assert send.source.ports == send.target.ports == ["left", "right"]
+    assert send.route_ids == ["send-left", "send-right"]
+    assert "MIDI Ch. 7" in error.diagnostics[1]
+    assert "left/right → left/right" in error.diagnostics[1]
+    assert error.detail()["audioDiagnostics"][0]["routingPath"][0]["routeIds"]
+    # Silence/bypass does not change the processing dependency graph.
+    with pytest.raises(CompilationError):
+        compile_audio(targets, graph, MixerState(strips={"source": MixerStrip(mute=True), "reverb": MixerStrip(bypass=True)}))
+    graph.routes = [r for r in graph.routes if r.id != "send-left"]
+    with pytest.raises(CompilationError) as caught:
+        ResolvedMixerGraph(targets, graph)
+    assert "send-right" in caught.value.audio_diagnostics[0].route_ids
+    graph.routes = [r for r in graph.routes if r.id != "send-right"]
+    ResolvedMixerGraph(targets, graph)  # The original insert chain is legal.
+
+
+def test_feedback_diagnostic_covers_separate_cycles_and_self_routing_deterministically():
+    from backend.app.services.compiler_common import CompilationError
+
+    routes = [route("ab", "a", "b"), route("ba", "b", "a"), route("aa", "a", "a"), route("cc", "c", "c"), route("exit", "b", "d")]
+    targets = [effect(name) for name in "abcd"]
+    results = []
+    for ordered in [routes, list(reversed(routes))]:
+        with pytest.raises(CompilationError) as caught:
+            ResolvedMixerGraph(targets, AudioGraph(routes=ordered))
+        results.append(caught.value.detail())
+    assert results[0] == results[1]
+    diagnostics = results[0]["audioDiagnostics"]
+    assert [d["routeIds"] for d in diagnostics] == [["aa", "ab", "ba"], ["cc"]]
+    assert diagnostics[0]["routingPath"][0]["source"]["id"] == diagnostics[0]["routingPath"][0]["target"]["id"] == "a"
+
+
+def test_feedback_component_detection_handles_maximum_route_depth():
+    from backend.app.services.audio_feedback import cyclic_components
+
+    edges = [(str(i), str(i + 1)) for i in range(2100)] + [("2100", "0"), ("2100", "downstream")]
+    component, = cyclic_components(edges)
+    assert len(component) == 2101
+    assert "downstream" not in component

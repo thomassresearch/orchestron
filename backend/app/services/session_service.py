@@ -144,7 +144,7 @@ class SessionService:
                 if graph is not None:
                     instruments = [i.model_copy(update={"effect_routes": [], "effect_source_ids": []}) for i in instruments]
             except CompilationError as exc:
-                raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+                raise HTTPException(status_code=422, detail=exc.detail()) from exc
             if request.audio_graph is not None:
                 if any(i.effect_routes or i.effect_source_ids for i in instruments):
                     raise HTTPException(status_code=422, detail="Do not combine legacy and explicit audio routing.")
@@ -152,7 +152,7 @@ class SessionService:
                     resolved = ResolvedMixerGraph([resolver.compile_target(i) for i in instruments], request.audio_graph)
                     self._validate_mixer_keys(resolved.manifest(), request.mixer)
                 except CompilationError as exc:
-                    raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+                    raise HTTPException(status_code=422, detail=exc.detail()) from exc
             else:
                 resolver.resolve_audio_routes(instruments)
 
@@ -216,7 +216,7 @@ class SessionService:
             if graph is not None:
                 instruments = [i.model_copy(update={"effect_routes": [], "effect_source_ids": []}) for i in instruments]
         except CompilationError as exc:
-            raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+            raise HTTPException(status_code=422, detail=exc.detail()) from exc
         if request.audio_graph is not None:
             if any(i.effect_routes or i.effect_source_ids for i in instruments):
                 raise HTTPException(status_code=422, detail="Do not combine legacy and explicit audio routing.")
@@ -224,7 +224,7 @@ class SessionService:
                 resolved = ResolvedMixerGraph([self._instrument_resolver.compile_target(i) for i in instruments], request.audio_graph)
                 self._validate_mixer_keys(resolved.manifest(), request.mixer)
             except CompilationError as exc:
-                raise HTTPException(status_code=422, detail={"diagnostics": exc.diagnostics}) from exc
+                raise HTTPException(status_code=422, detail=exc.detail()) from exc
             return SessionInstrumentValidationResponse(instruments=instruments,
                 audio_graph=request.audio_graph, diagnostics=resolved.diagnostics,
                 resolved_routes=[SessionResolvedEffectRoute(source_id=r.source_id, source_outlet=r.source_port,
@@ -303,7 +303,7 @@ class SessionService:
         try:
             validate_mixer_bypasses(manifest, mixer)
         except CompilationError as error:
-            raise HTTPException(status_code=422, detail={"diagnostics": error.diagnostics}) from error
+            raise HTTPException(status_code=422, detail=error.detail()) from error
         if set(mixer.strips) - set(manifest["instanceIds"]) or set(mixer.sends) - set(manifest["routeIds"]):
             raise HTTPException(status_code=422, detail="Mixer controls reference an unknown instance or route.")
 
@@ -350,7 +350,7 @@ class SessionService:
                 definitions = controller_definitions(target.patch.graph)
                 normalized = validate_controller_values(definitions, values)
             except CompilationError as error:
-                raise HTTPException(status_code=422, detail={"diagnostics": error.diagnostics}) from error
+                raise HTTPException(status_code=422, detail=error.detail()) from error
             if assignment.performance_controller_values == normalized:
                 return {"values": normalized}
             if runtime.state == SessionState.RUNNING:
@@ -396,7 +396,7 @@ class SessionService:
         except CompilationError as error:
             runtime.state = SessionState.ERROR
             await self._publish(runtime.session_id, "compile_failed", {"errors": " | ".join(error.diagnostics)})
-            raise HTTPException(status_code=422, detail={"diagnostics": error.diagnostics}) from error
+            raise HTTPException(status_code=422, detail=error.detail()) from error
 
         runtime.compile_artifact = artifact
         runtime.state = SessionState.COMPILED

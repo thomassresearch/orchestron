@@ -179,7 +179,7 @@ def export_performance_csd_bundle(
         raise HTTPException(status_code=400, detail=str(err)) from err
     except CompilationError as err:
         archive_file.close()
-        raise HTTPException(status_code=422, detail={"diagnostics": err.diagnostics}) from err
+        raise HTTPException(status_code=422, detail=err.detail()) from err
 
     except Exception:
         archive_file.close()

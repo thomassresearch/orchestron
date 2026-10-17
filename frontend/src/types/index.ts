@@ -94,7 +94,17 @@ export interface MixerStrip { gainDb: number | null; balance: number; mute: bool
 export interface MixerSend { gainDb: number | null; tap: "pre" | "post"; }
 export interface MixerState { strips: Record<string, MixerStrip>; sends: Record<string, MixerSend>; }
 export interface MixerResponse { mixer: MixerState; revision: number; }
-export interface AudioDiagnostic { code: string; message: string; severity: "warning" | "error"; instanceId?: string; routeId?: string; }
+export interface AudioRoutingEndpoint {
+  id: string; name: string; midiChannel: number; stage: "raw" | "strip" | "input";
+  ports: string[]; insertOwnerId?: string;
+}
+export interface AudioFeedbackStep {
+  source: AudioRoutingEndpoint; target: AudioRoutingEndpoint; kind: AudioRoute["kind"]; routeIds: string[];
+}
+export interface AudioDiagnostic {
+  code: string; message: string; severity: "warning" | "error"; instanceId?: string; routeId?: string;
+  routeIds?: string[]; instanceIds?: string[]; routingPath?: AudioFeedbackStep[];
+}
 
 export interface PatchGraph {
   control_flow?: Record<string, ControlFlowBlock>;

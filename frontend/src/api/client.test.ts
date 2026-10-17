@@ -23,3 +23,17 @@ describe("app-state persistence responses", () => {
     await expect(api.saveAppState({ version: 1 } as PersistedAppState)).rejects.toThrow("storage unavailable");
   });
 });
+
+describe("structured routing errors", () => {
+  it("keeps structured diagnostics and formats a readable error instead of JSON", async () => {
+    const { ApiError } = await import("./client");
+    const diagnostic = { code: "feedback", severity: "error", message: "Lead → Reverb → Lead", routeIds: ["send", "return"] };
+    const body = JSON.stringify({ detail: { diagnostics: ["Audio feedback loop.", diagnostic.message], audioDiagnostics: [diagnostic] } });
+    const error = new ApiError(422, "Unprocessable Content", body);
+    expect(error.message).toBe("API 422 Unprocessable Content: Audio feedback loop.\nLead → Reverb → Lead");
+    expect(error.audioDiagnostics).toEqual([diagnostic]);
+    expect(error.body).toBe(body);
+    expect(new ApiError(500, "Server Error", "unavailable").message).toContain("unavailable");
+    expect(new ApiError(422, "Invalid", '{"detail":[{"msg":"field required"}]}').audioDiagnostics).toEqual([]);
+  });
+});
