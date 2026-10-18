@@ -11,6 +11,12 @@ rhythm projection, accompaniment, continuation and lock restoration. Starters
 are seeded composition algorithms, not arvo calls. Environment versions describe
 installed packages; only recorded calls establish which functions were used.
 
+`compare-endings` records its requested/effective boundary, exact tail recipe,
+pitch targets and preserved opening. `compare-harmony` records both the supplied
+setting and resolved MIDI pitches. Both capture before/after parts, the accepted
+parent's review and inherited locks. These deterministic recipes are recorded as
+Orchestron operations, not arvo calls. Each comparison is one undoable round.
+
 Sources have roles such as `pitch`, `rhythm` or an author-defined contribution.
 Each includes the review and session revision used when the child was created.
 Later reviews do not rewrite that record. Shared ancestors appear once. The

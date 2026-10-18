@@ -67,7 +67,7 @@ the CLI reports this instead of silently removing locks.
 | `tintinnabuli` | Triadic companion pitches in the existing slots |
 | `continue` | Original phrase followed by a developed phrase; original notes stay intact |
 
-Built-in development deliberately preserves rhythmic slots, rests and harmony.
+The operations above deliberately preserve rhythmic slots, rests and harmony.
 To change rhythm, combine with an accepted `--rhythm-from ID` of equal duration.
 To apply nuanced feedback, read the candidate score, edit a new copy using the
 score contract, then `import-score --from ACCEPTED_ID` it as a new pending
@@ -76,6 +76,12 @@ silence. The CLI does not interpret feedback prose. `--fresh` explicitly
 requests unrelated starters. Seeds reproduce music, while IDs identify immutable
 candidate instances. Duplicate variants are omitted, so a round can be smaller
 than the requested count.
+
+For a controlled comparison, use `compare-endings SESSION --from ID --start 4`
+to protect the opening and create four pending endings. After selecting one, use
+`compare-harmony SESSION --from ID` for two settings of exactly the same melody.
+Both publish one atomic round and render previews. Read [motif comparisons](motif_comparisons.md)
+for the original study script, settings asset, recipe constraints and listening prompts.
 
 For custom revisions, [capture creation history](creation_history.md) as the
 script runs and import with `--trace FILE`. Declare all contributing candidates

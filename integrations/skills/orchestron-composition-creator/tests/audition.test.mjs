@@ -23,7 +23,7 @@ const history = {
     ]}
   ]
 };
-async function setup() {
+async function setup(item = candidate) {
   const dom = new JSDOM(asset("audition.html"), {url:"http://127.0.0.1:8123/",runScripts:"outside-only"});
   const {window} = dom, requests = [];
   window.structuredClone = structuredClone;
@@ -33,13 +33,30 @@ async function setup() {
     requests.push(url);
     return {ok:true,json:async()=>structuredClone(url.startsWith("/api/trace/") ? history : {
       revision:1,brief:{title:"Test",key:"D",mode:"dorian",tempo:108,meter:[6,8]},
-      rounds:[{ids:["hybrid"]}],candidates:{hybrid:candidate}
+      rounds:[{ids:["hybrid"]}],candidates:{hybrid:item}
     })};
   };
   window.eval(asset("trace.js")); window.eval(asset("audition.js"));
   await tick();
   return {dom,window,document:window.document,requests};
 }
+test("comparison cards have localized labels and retain their protected opening", async () => {
+  const kinds = ["ending_settled", "ending_suspended", "ending_peak", "ending_space", "harmony_1", "harmony_2"];
+  for (const kind of kinds) {
+    const {dom,window,document} = await setup({...candidate,kind,review:{...candidate.review,locks:[{start_qn:"0",end_qn:"4"}]}});
+    try {
+      const labels = [];
+      for (const language of ["en","de","fr","es"]) {
+        const select=document.querySelector("#language");select.value=language;select.dispatchEvent(new window.Event("change"));
+        const title=document.querySelector(".card h2").textContent;
+        assert.notEqual(title,kind);assert.ok(title.length > 0);labels.push(title);
+        assert.equal(document.querySelector("audio").getAttribute("aria-label"),title);
+        assert.equal(document.querySelector(".field input").value,"0:4");
+      }
+      assert.equal(new Set(labels).size,4);
+    } finally {dom.window.close();}
+  }
+});
 test("history loads on expansion without disrupting playback or unsaved reviews", async () => {
   const {dom,window,document,requests} = await setup();
   try {

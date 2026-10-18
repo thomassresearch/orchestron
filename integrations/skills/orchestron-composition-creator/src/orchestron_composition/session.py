@@ -13,8 +13,9 @@ import tempfile
 import uuid
 
 from .generators import develop, new_phrase, validate_brief
+from .comparisons import endings, harmonies
 from .orchestron_export import export_score
-from .score import CompositionError, end, qn, validate
+from .score import CompositionError, qn, validate, verify_melody_locks
 from .trace import Recorder, lock_context, material, resolve, source_snapshot, validate_trace
 
 
@@ -195,6 +196,48 @@ def generate(
     return ids
 
 
+def compare(
+    directory: Path, parent_id: str, *, start_qn: str | None = None,
+    settings: dict | None = None, part_id: str = "harmony",
+) -> list[str]:
+    """Publish a complete comparison as one revision, or leave the session untouched."""
+    if (start_qn is None) == (settings is None):
+        raise CompositionError("Choose either an ending boundary or harmonic settings.")
+    ids = []
+    with transaction(directory) as state:
+        parent = candidate(state, parent_id, accepted=True)
+        locks = copy.deepcopy(parent["review"]["locks"])
+        if start_qn is not None:
+            variants, locks = endings(parent["score"], state["brief"], start_qn, locks)
+            operation = "compare-endings"
+        else:
+            variants = harmonies(parent["score"], settings, part_id)
+            operation = "compare-harmony"
+        if len(state["candidates"]) + len(variants) > 128:
+            raise CompositionError("Comparison would exceed the session's 128-candidate limit.")
+        round_index = len(state["rounds"]) + 1
+        for kind, score, recorder in variants:
+            export_score(score)
+            verify_melody_locks(parent["score"], score, locks)
+            recorder.record(
+                "orchestron.verify_locks", "Verify and inherit the protected melody and silence.",
+                parameters=lock_context(parent["score"]["parts"][0]["events"], locks),
+                inputs=parent["score"]["parts"][0], output=score["parts"][0],
+            )
+            trace = recorder.finish(score, sources=[source_snapshot(parent, "pitch", state["revision"])])
+            validate_trace(trace, score)
+            identity = f"r{round_index}-{uuid.uuid4().hex[:8]}"
+            state["candidates"][identity] = {
+                "id": identity, "round": round_index, "kind": kind, "seed": None,
+                "parents": [parent_id], "score": score, "trace": trace,
+                "review": {"decision": "pending", "feedback": "", "locks": copy.deepcopy(locks)},
+            }
+            ids.append(identity)
+        resolve(state, ids)
+        state["rounds"].append({"ids": ids, "operation": operation})
+    return ids
+
+
 def import_candidate(directory: Path, score: dict, parent_id: str | None = None, trace: dict | None = None) -> str:
     validate(score)
     export_score(score)
@@ -238,18 +281,7 @@ def import_candidate(directory: Path, score: dict, parent_id: str | None = None,
         if supplied is None and isinstance(history, dict) and history.get("result") != material(score):
             creation["gap"] = "The imported material differs from the recorded export, or its result was not recorded."
         if parent:
-            for lock in locks:
-                start, stop = qn(lock["start_qn"]), qn(lock["end_qn"])
-
-                def protected_events(material):
-                    return sorted(
-                        (qn(e["onset_qn"]), qn(e["duration_qn"]), e["pitch_midi"], e["velocity"])
-                        for e in material["parts"][0]["events"]
-                        if qn(e["onset_qn"]) < stop and end(e) > start
-                    )
-
-                if stop > qn(score["length_qn"]) or protected_events(score) != protected_events(parent["score"]):
-                    raise CompositionError("The revision changes a locked melody passage, including its silence.")
+            verify_melody_locks(parent["score"], score, locks)
             recorder = Recorder()
             recorder.record(
                 "orchestron.verify_locks",

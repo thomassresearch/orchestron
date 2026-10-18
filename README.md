@@ -115,6 +115,11 @@ Transcribe a sung or hummed melody with the independent [Sung Melody Transcripti
 
 Explore melodic ideas with [Composition Creator](documentation/appendix/composition_creator_skill.md): listen to candidate phrases, select favourites, leave feedback and lock passages you want to preserve. Expand each candidate's creation history to see the recorded arvo calls, inputs, combined sources and protected passages through earlier versions. Develop accepted ideas into a song, then hand its machine-readable score to Performance Creator for instruments, routing and saving. The local audition page supports EN/DE/FR/ES and works without a running Orchestron backend.
 
+Keep a motif's opening and compare four purposeful endings: settled, suspended,
+higher-reaching and spacious. After choosing an ending, hear the same melody over
+two harmonic settings. An original two-bar study provides a playable starting point;
+each round waits for your selection. See the [guided comparison workflow](documentation/appendix/composition_creator_skill.md#compare-endings-and-harmonic-settings).
+
 ![Composition audition page with three playable melodies and saved selection controls](screenshots/composition_audition.png)
 
 ![Ratchet drums demo mixer with patch numbers and MIDI channels above World Drumkit and Flute, continuous effects and pinned Master](screenshots/perform_mixer_sends_inserts_master.png)

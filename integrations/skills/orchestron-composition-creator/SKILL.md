@@ -13,6 +13,9 @@ material or exporting. [Compatibility](references/compatibility.md) explains
 the bundled arvo fixes and preview dependencies.
 Read [creation history](references/creation_history.md) when explaining a candidate
 or authoring custom material; it covers the recorder and portable ancestry.
+For a promising opening with an unresolved ending or accompaniment, read
+[motif comparisons](references/motif_comparisons.md): preserve the opening, compare
+four purposeful endings, then compare two harmonic settings of the selected melody.
 
 ## Entry point
 
@@ -68,7 +71,9 @@ in the user's browser. Keep the process available while they audition.
    working; never infer an unrecorded operation from the resulting notes.
 5. Preserve locked passages. Locks are half-open quarter-note ranges on the
    **melody**; complete intersecting notes, their velocities, and silence inside
-   the ranges are protected. Harmony stays unchanged during development. Use
+   the ranges are protected. Ordinary development and `compare-endings` keep harmony
+   unchanged; `compare-harmony` explicitly changes one accompaniment part while
+   retaining the entire melody. Use
    `continue` for an appended answering phrase, or export an ordered list of
    accepted candidates to assemble larger form. Offer fresh ideas only when asked.
 6. Export the accepted order, including deliberate repetitions. Audition the
@@ -84,6 +89,9 @@ isorhythm, or additive/subtractive processes. Use arvo's tintinnabuli when its
 triadic relationship fits the brief. Control range and density; avoid adding
 layers to conceal an unconvincing motif. Compare melody alone and with harmony.
 The tool does not guarantee stylistic quality: listening decisions remain central.
+Before a comparison, state what must remain recognizable and which musical question
+the variants test. Record why the listener prefers a candidate. Separate immediate
+appeal, identity and emotional fit; recipe names are intentions, not quality scores.
 
 ## Handoff
 

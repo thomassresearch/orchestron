@@ -7,6 +7,7 @@ import pytest
 
 from orchestron.cli import orchestron_cli as cli
 from orchestron_composition.generators import new_phrase, validate_brief
+from orchestron_composition.comparisons import endings, harmonies
 from orchestron_composition.orchestron_export import export_score
 from orchestron_composition.score import CompositionError, assemble, event, qn
 
@@ -58,6 +59,20 @@ def test_polyphonic_triplets_rests_and_velocities_survive_real_importer():
     assert all(
         not isinstance(s["note"], list) for t in config["sequencer"]["tracks"] for p in t["pads"] for s in p["steps"]
     )
+
+
+def test_motif_comparisons_survive_real_performance_importer():
+    motif = json.loads((Path(__file__).parent / "fixtures/motif.json").read_text())
+    brief = validate_brief({"key": "A", "mode": "aeolian"})
+    variants, _ = endings(motif, brief, "4", [])
+    for _, score, _ in variants:
+        runtime_events(score)
+    settings = {"schema": "orchestron.harmony-comparison", "version": 1, "settings": [
+        {"label": "Tonic", "degrees": [1, 3, 5], "bass_degree": 1},
+        {"label": "Mediant", "degrees": [3, 5, 7], "bass_degree": 3},
+    ]}
+    for _, score, _ in harmonies(variants[0][1], settings, "harmony"):
+        runtime_events(score)
 
 
 @pytest.mark.parametrize("meter", [[4, 4], [6, 8]])

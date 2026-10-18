@@ -103,6 +103,21 @@ def event(pitch: int, start: Fraction, duration: Fraction, velocity: int = 88) -
     return {"pitch_midi": pitch, "onset_qn": str(start), "duration_qn": str(duration), "velocity": velocity}
 
 
+def verify_melody_locks(parent: dict, score: dict, locks: list[dict]) -> None:
+    for lock in locks:
+        start, stop = qn(lock["start_qn"]), qn(lock["end_qn"])
+
+        def protected_events(material):
+            return sorted(
+                (qn(e["onset_qn"]), qn(e["duration_qn"]), e["pitch_midi"], e["velocity"])
+                for e in material["parts"][0]["events"]
+                if qn(e["onset_qn"]) < stop and end(e) > start
+            )
+
+        if stop > qn(score["length_qn"]) or protected_events(score) != protected_events(parent):
+            raise CompositionError("The revision changes a locked melody passage, including its silence.")
+
+
 def to_music21(score: dict, *, solo: bool = False):
     from music21 import instrument, meter, note, stream, tempo
 

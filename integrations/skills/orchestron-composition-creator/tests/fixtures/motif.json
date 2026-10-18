@@ -1,0 +1,27 @@
+{
+  "schema": "orchestron.composition",
+  "version": 1,
+  "title": "Looking forward",
+  "tempo": 108,
+  "key": "A",
+  "mode": "aeolian",
+  "meter": [4, 4],
+  "length_qn": "8",
+  "parts": [
+    {"id": "lead", "name": "Melody", "channel": 1, "program": 0, "events": [
+      {"pitch_midi": 64, "onset_qn": "1/2", "duration_qn": "1/2", "velocity": 88},
+      {"pitch_midi": 64, "onset_qn": "3/2", "duration_qn": "1/2", "velocity": 88},
+      {"pitch_midi": 67, "onset_qn": "2", "duration_qn": "1", "velocity": 88},
+      {"pitch_midi": 69, "onset_qn": "3", "duration_qn": "1/2", "velocity": 88},
+      {"pitch_midi": 67, "onset_qn": "4", "duration_qn": "1", "velocity": 88},
+      {"pitch_midi": 65, "onset_qn": "5", "duration_qn": "1", "velocity": 88},
+      {"pitch_midi": 64, "onset_qn": "6", "duration_qn": "2", "velocity": 88}
+    ]},
+    {"id": "harmony", "name": "Harmony", "channel": 2, "program": 0, "events": [
+      {"pitch_midi": 45, "onset_qn": "0", "duration_qn": "8", "velocity": 54},
+      {"pitch_midi": 57, "onset_qn": "0", "duration_qn": "8", "velocity": 54},
+      {"pitch_midi": 60, "onset_qn": "0", "duration_qn": "8", "velocity": 54},
+      {"pitch_midi": 64, "onset_qn": "0", "duration_qn": "8", "velocity": 54}
+    ]}
+  ]
+}

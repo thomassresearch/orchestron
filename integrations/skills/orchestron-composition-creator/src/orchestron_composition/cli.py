@@ -12,7 +12,7 @@ from .generators import OPERATIONS
 from .orchestron_export import export_score
 from .preview import render
 from .score import CompositionError, assemble, qn
-from .server import make_server
+from .server import asset_path, make_server
 from .trace import material, resolve
 
 
@@ -63,6 +63,17 @@ def parser() -> argparse.ArgumentParser:
     generate.add_argument("--seed", type=int)
     generate.add_argument("--fresh", action="store_true")
     generate.add_argument("--soundfont")
+    endings = sub.add_parser("compare-endings", help="Keep the opening and compare four purposeful endings.")
+    endings.add_argument("directory", type=Path)
+    endings.add_argument("--from", dest="parent_id", required=True)
+    endings.add_argument("--start", required=True, help="Ending starts at this rational quarter-note position.")
+    endings.add_argument("--soundfont")
+    harmony = sub.add_parser("compare-harmony", help="Compare two harmonic settings of an accepted melody.")
+    harmony.add_argument("directory", type=Path)
+    harmony.add_argument("--from", dest="parent_id", required=True)
+    harmony.add_argument("--settings", type=Path, help="Harmony-comparison JSON; default is tonic versus mediant.")
+    harmony.add_argument("--part", default="harmony", help="Accompaniment part to replace or add.")
+    harmony.add_argument("--soundfont")
     status = sub.add_parser("status", help="Read candidates, feedback and locked ranges.")
     status.add_argument("directory", type=Path)
     show = sub.add_parser("show", help="Read one complete candidate, including its score.")
@@ -124,6 +135,16 @@ def run(args) -> dict:
         )
         render_candidates(directory, ids, args.soundfont)
         return {"candidates": ids, "next": "Run serve, listen, and wait for the user's selection."}
+    if args.command in ("compare-endings", "compare-harmony"):
+        if args.command == "compare-endings":
+            ids = session.compare(directory, args.parent_id, start_qn=args.start)
+        else:
+            settings = session.read_json(args.settings or asset_path("motif-study/harmonies.json"))
+            ids = session.compare(directory, args.parent_id, settings=settings, part_id=args.part)
+        render_candidates(directory, ids, args.soundfont)
+        state = session.load(directory)
+        return {"candidates": ids, "purposes": {i: state["candidates"][i]["kind"] for i in ids},
+                "next": "Refresh or serve, compare the candidates, and wait for the user's selection."}
     if args.command == "status":
         state = session.load(directory)
         return {

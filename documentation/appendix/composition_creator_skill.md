@@ -27,7 +27,7 @@ instrument eventually chosen in Orchestron.
 Mark **Keep**, **Favourite**, **Reject** or **Undecided**, add feedback, and click
 **Save selection**. To retain an opening, enter a melody lock such as `0:4` for the
 first four quarter notes. Multiple ranges use commas. Complete notes touching a
-locked range remain unchanged. Locks protect the melody; built-in development
+locked range remain unchanged. Locks protect the melody; ordinary development
 also leaves its existing harmony intact.
 
 Return to chat and say **“continue”**. The agent reads the saved selections and
@@ -40,6 +40,45 @@ Use **Refresh ideas** to see the next round. Earlier rounds, comments and choice
 remain available. The page works in English, German, French and Spanish. Unsaved
 changes are marked. A conflicting newer revision must be refreshed before saving.
 The session is stored locally and can be resumed after closing the page.
+
+## Compare Endings and Harmonic Settings
+
+When you like an opening but are unsure of its ending, ask the agent to preserve
+that opening and compare four alternatives: **Settled ending**, **Suspended ending**,
+**Higher peak** and **Spacious ending**. The first descends to a held tonic; the
+second holds scale degree two; the third reaches a new high point; the fourth
+arrives early and leaves silence. These are intentions to test by listening.
+
+![Four endings sharing a protected opening in the composition audition page](../../screenshots/composition_endings.png)
+
+The opening's notes, dynamics and rests stay fixed. A sustained note crossing the
+chosen boundary is retained whole. Existing locks also apply to the tail; a conflict
+stops the complete comparison without removing those locks. All four candidates
+are saved in one undoable round and wait for your selection. Compare melody alone
+and with harmony, then record what works and what you want to change.
+
+After you choose an ending, ask to compare two harmonic settings of it. The complete
+melody remains identical, while the selected accompaniment part changes. The
+default compares tonic and mediant triads with their bass notes; in the included
+A-minor study these are Am and C. Solo previews are identical. Use the mix previews
+to hear the difference, and keep listening levels consistent.
+
+![Two harmonic settings of the same selected melody](../../screenshots/composition_harmonies.png)
+
+For an original two-bar starting motif, run the study helper from the repository root:
+
+```bash
+uv run --locked --project integrations/skills/orchestron-composition-creator \
+  python integrations/skills/orchestron-composition-creator/scripts/start_motif_study.py \
+  /absolute/path/to/my-study
+```
+
+It imports and renders one pending seed, then waits for your choice. The agent uses
+`compare-endings SESSION --from ACCEPTED_ID --start 4`, followed after selection by
+`compare-harmony SESSION --from ACCEPTED_ENDING_ID`. Read the
+[comparison reference](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-composition-creator/references/motif_comparisons.md)
+for custom harmonic settings, exact timing limits and preservation guarantees.
+Export only the chosen setting; the alternatives are comparisons, not song sections.
 
 ## Follow a Melody's Creation
 
