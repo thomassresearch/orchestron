@@ -7878,6 +7878,42 @@ def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixt
         assert {key: item["default"] for key, item in bindings.items()} == defaults
 
 
+def test_tenor_saxophone_native_roundtrip_preserves_legato_and_controls(tmp_path):
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture("tenor_saxophone")
+    definition = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={"id"}))
+    payload = definition.model_dump(mode="json", by_alias=True)
+    values = dict(sax_tone=.3, sax_growl=.8, sax_squeal=0, sax_vibrato=1)
+    with _client(tmp_path) as client:
+        exported = client.post("/api/bundles/export/patch", json=payload)
+        assert exported.status_code == 200, exported.text
+        filename = "tenor.orch.instrument.json"
+        preview = client.post("/api/bundles/import/expand?preview=true", content=exported.content,
+                              headers={"X-File-Name": filename})
+        assert preview.status_code == 200, preview.text
+        assert preview.json()["graph"] == payload["graph"]
+        plan = {"patches": [{"id": "tenor-import", "sourcePatchId": patch.id, "type": "create", "name": patch.name}]}
+        imported = client.post("/api/bundles/import/commit", files={"bundle": (filename, exported.content)},
+                               data={"plan": json.dumps(plan)})
+        assert imported.status_code == 200, imported.text
+        restored = client.get("/api/patches/tenor-import").json()
+        assert restored["instrument_type"] == "melody" and not restored["always_on"] and not restored["is_template"]
+        assert restored["graph"] == payload["graph"]
+        session = client.post("/api/sessions", json={"instruments": [
+            {"id": "tenor", "patch_id": "tenor-import", "midi_channel": 1, "performance_controller_values": values},
+        ]})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f'/api/sessions/{session.json()["session_id"]}/compile')
+        assert compiled.status_code == 200, compiled.text
+        bindings = compiled.json()["manifest"]["performanceControllers"]["tenor"]
+        assert {key: item["value"] for key, item in bindings.items()} == values
+        assert {key: item["default"] for key, item in bindings.items()} == dict(
+            sax_tone=.5, sax_growl=.35, sax_squeal=.65, sax_vibrato=.2,
+        )
+
+
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
 @pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):

@@ -27,6 +27,11 @@ provides a monophonic lead with semitone-stepped legato and a matching polyphoni
 guitar for chords and sequenced strums. The guide includes native instruments,
 listening previews, finger/plectrum and tone controls, and reproduction commands.
 
+The [expressive tenor saxophone](instruments/tenor_saxophone/README.md) provides
+one legato reed voice, with velocity-controlled breath, growl and an overblown
+squeal at the top of the velocity range. Its guide includes the native instrument,
+four performance controls, dry WAV previews and reproducible validation.
+
 [The End of the Summer](performances/the_end_of_the_summer/README.md) is a six-minute
 dark-wave performance using Analog Drumkit and eight EBM / Dark Wave instruments.
 It includes an editable arrangement, native and Csound exports, a reproducible score,

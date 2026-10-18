@@ -33,6 +33,28 @@ Its default Slide half-time is 0.12 seconds so intermediate
 frets have more distinct dwell times. Reset an existing rack override to adopt
 this default.
 
+## Expressive tenor saxophone example
+
+[Tenor Saxophone — Expressive Legato](../../examples/instruments/tenor_saxophone/README.md)
+uses one continuous STK reed model with velocity-sensitive breath, reed response,
+filtering and loudness. Play concert A♭2–E5 (MIDI 44–76); there is no automatic
+tenor transposition. Route **Stereo Output → Master** in Perform.
+
+Velocities 1–95 cover normal playing, 96–114 progressively add growl, and 115–127
+blend in a sustained overblown octave squeal. Hard connected notes can provoke
+the squeal; softer notes and held-note fallback restore their own velocity.
+Gaps restart a 10–35 ms tongue contour followed by 80 ms settling; release is
+100 ms. Tone, Growl, Squeal and Vibrato are 0–1 performance controls, with defaults
+0.5, 0.35, 0.65 and 0.2. Zero Growl/Squeal disables its added effect. Knob changes
+apply at the next phrase, while note velocity remains live throughout legato.
+
+The native model fixes pitch at initialization, so period-synchronous delay
+readouts transpose the same reed signal for legato and overblowing. The readout
+can add up to two initial note periods of delay, and wide leaps can color the
+timbre. The graph stays editable using existing opcodes. Csound STK and its
+rawwave data are required and included in Orchestron's Docker image. The example
+guide includes native import instructions, control translations and WAV previews.
+
 ## Implementation references
 
 [Csound release](https://csound.com/docs/manual/release.html), [madsr](https://csound.com/docs/manual/madsr.html), [reinit](https://csound.com/docs/manual/reinit.html), [portk](https://csound.com/docs/manual/portk.html).

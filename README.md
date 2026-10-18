@@ -39,6 +39,10 @@ Start with a playable instrument, a drumset, an audio effect, an audio output pa
 
 Use [`midi_legato`](documentation/instrument_design/midi_legato.md) for monophonic instruments whose touching notes share a breath or envelope. Pitch changes immediately, velocity follows smoothly, and gaps start a new phrase.
 
+Play the [Expressive Tenor Saxophone](examples/instruments/tenor_saxophone/README.md)
+for a sample-free reed model with connected phrasing: soft velocities give breathy
+notes, harder playing adds growl, and velocities 115–127 bring out an overblown squeal.
+
 Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_design/opcode_catalog_and_documentation.md#zdf-and-custom-iir-filters): modulate cutoff and resonance at audio rate, use simultaneous filter outputs, or supply custom IIR coefficients.
 
 Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.

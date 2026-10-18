@@ -50,6 +50,10 @@ their own in-memory copy.
   are fixed acoustic-guitar snapshots for fret-step continuity, pluck velocity,
   controller response, independent chord voices and native audio/export tests.
   Their audio harness accepts patch documents and never reads developer examples.
+- `tenor_saxophone.patch.json` is the independent STK tenor snapshot for register
+  tuning, velocity-controlled overblowing, legato fallback, controller extremes,
+  stereo headroom, native bundles and live/MIDI/SCORE playback. Native audio tests
+  require the Csound STK plugin and `RAWWAVE_PATH` pointing to its rawwave data.
 
 The two flute/legato fixtures were recovered from Git revision `cd21a23^`, preserving
 the inputs for the existing audio assertions. Tests load the committed copies;
