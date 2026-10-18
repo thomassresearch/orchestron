@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sung Melody Transcription"
+  short_description: "Singing to MIDI with an auditable piano preview"
+  default_prompt: "Use $sung-melody-transcription to transcribe my sung melody and return a piano preview, MIDI, notes and an edit summary for review."

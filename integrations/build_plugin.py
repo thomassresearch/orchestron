@@ -77,6 +77,10 @@ def collect_files(root: Path) -> tuple[dict, dict[str, Path]]:
     license_path = root.parent / "LICENSE"
     check_path(license_path)
     files = {"plugin.json": manifest_path, "LICENSE": license_path}
+    assets_root = root / "assets"
+    if assets_root.exists() or assets_root.is_symlink():
+        for path in runtime_files(assets_root):
+            files[path.relative_to(root).as_posix()] = path
     skills_root = root / "skills"
     check_path(skills_root, directory=True)
     skills = [path for path in sorted(skills_root.iterdir()) if not excluded(path)]

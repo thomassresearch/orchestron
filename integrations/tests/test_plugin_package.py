@@ -33,6 +33,8 @@ class PluginPackageTests(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
 
     def test_runtime_payload_and_exclusions(self):
+        self.write(self.root / "assets" / "icon.png", "plugin icon")
+        self.write(self.root / "assets" / ".DS_Store")
         included = ["agents/openai.yaml", "references/usage.md", "assets/player.js", "scripts/run.py",
                     "src/vendor/LICENSE", "src/vendor/NOTICE.md"]
         for relative in included:
@@ -48,10 +50,11 @@ class PluginPackageTests(unittest.TestCase):
         with ZipFile(build_archive(self.root)) as bundle:
             self.assertIsNone(bundle.testzip())
             names = set(bundle.namelist())
-            expected = {"orchestron/plugin.json", "orchestron/LICENSE"}
+            expected = {"orchestron/plugin.json", "orchestron/LICENSE", "orchestron/assets/icon.png"}
             expected.update(f"orchestron/skills/demo/{relative}" for relative in
                             ["SKILL.md", "pyproject.toml", "uv.lock", "src/demo.py", *included])
             self.assertEqual(names, expected)
+            self.assertEqual(bundle.read("orchestron/assets/icon.png"), b"plugin icon")
             self.assertEqual(bundle.read("orchestron/skills/demo/src/vendor/LICENSE"), b"src/vendor/LICENSE")
 
     def test_missing_required_files(self):

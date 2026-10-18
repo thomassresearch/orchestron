@@ -1,6 +1,14 @@
 # Integrations
 
-This directory is the source root of the Orchestron plugin. Its three skills support instrument design, interactive composition, and performance creation. Continue developing them in `skills/`; the ZIP is generated from these sources.
+This directory is the source root of the Orchestron plugin. Its four skills support instrument design, interactive composition, sung-melody transcription, and performance creation. Continue developing them in `skills/`; the ZIP is generated from these sources.
+
+The [Sung Melody Transcription skill](skills/sung-melody-transcription/SKILL.md)
+is included in the plugin alongside the three creator skills. It converts
+singing/humming with optional claps to MIDI, note JSON and a FluidSynth piano
+preview, with retained pitch evidence and an editorial log. It uses no Orchestron
+API or native bundle format. See its [setup and commands](skills/sung-melody-transcription/references/workflow.md).
+Its previews use FluidSynth directly, without creating an Orchestron performance.
+Keep its model, SoundFont and transcription outputs outside the installed plugin.
 
 ## Build the plugin ZIP
 
@@ -14,15 +22,17 @@ Or run `make -C integrations` from the repository root. The build requires Make
 and Python 3.9 or newer, uses only the Python standard library, and needs no
 network or installed skill dependencies. Set `PYTHON=/path/to/python3` if needed.
 
-The output is `plugin-dist/orchestron-0.1.0.zip`; the filename comes from the
+The output is `plugin-dist/orchestron-0.1.1.zip`; the filename comes from the
 name and version in [`plugin.json`](plugin.json). Each build reports its path
 and compressed size. The archive contains one `orchestron/` directory with:
 
-- The portable plugin manifest and the repository license.
-- All three skills' `SKILL.md`, available agent metadata, Python sources,
+- The portable plugin manifest, the repository license, and plugin branding in `assets/`.
+  The bundled Orchestron icon is copied from `frontend/src/assets/orchestron-icon.png`
+  and used for both the plugin logo and composer icon.
+- All four skills' `SKILL.md`, available agent metadata, Python sources,
   CLI scripts, references, and assets, including the composition audition UI.
-- Each skill's `pyproject.toml` and committed `uv.lock`, plus the vendored arvo
-  license and attribution.
+- Each skill's `pyproject.toml` and committed `uv.lock`, plus the vendored arvo and RVC RMVPE
+  licenses and attribution.
 
 The builder includes those files explicitly and excludes tests, examples,
 development notes, environments, caches, bytecode, and generated distributions.
@@ -54,7 +64,9 @@ Patch and performance library operations need a running Orchestron backend,
 normally at `http://localhost:8000/api`; a different server can be selected with
 `--api-url`. Composition generation, audition, and score export run locally on
 macOS/Linux without a backend. Optional SoundFont rendering requires a locally
-installed FluidSynth and a user-supplied SoundFont.
+installed FluidSynth and a user-supplied SoundFont. Sung-melody transcription
+also runs without a backend and requires the external RMVPE checkpoint plus
+FluidSynth and a piano SoundFont for its preview.
 
 Have the agent locate each skill using its installed `SKILL.md` path and run
 `uv run --locked --project "/absolute/path/to/skill" ...` from a working
@@ -67,8 +79,9 @@ skill installations to avoid activating different copies. Preserve the source
 directories here, and rebuild/reinstall the plugin after source updates.
 
 The skills are [Patch Creator](skills/orchestron-patch-creator/SKILL.md),
-[Composition Creator](skills/orchestron-composition-creator/SKILL.md), and
-[Performance Creator](skills/orchestron-performance-creator/SKILL.md).
+[Composition Creator](skills/orchestron-composition-creator/SKILL.md),
+[Performance Creator](skills/orchestron-performance-creator/SKILL.md), and
+[Sung Melody Transcription](skills/sung-melody-transcription/SKILL.md).
 
 ## Orchestron Performance Creator Skill
 

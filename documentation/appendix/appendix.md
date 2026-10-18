@@ -6,6 +6,7 @@ These optional tools let a coding agent create instruments and performances from
 - [Orchestron Patch Creator Skill](patch_creator_skill.md) describes instrument and effect authoring.
 - [Orchestron Performance Creator Skill](performance_creator_skill.md) describes arranging and mixing with existing instruments.
 - [Orchestron Composition Creator Skill](composition_creator_skill.md) develops playable melodic candidates through listening, selection and refinement.
+- [Sung Melody Transcription Skill](sung_melody_transcription_skill.md) independently converts singing and optional claps to reviewable MIDI, note JSON and a piano preview.
 
 Detailed skill links open the repository sources so they are usable from the PDF as well. The example prompts refer to your local checkout.
 
@@ -21,7 +22,7 @@ A skill is a directory containing a `SKILL.md` instruction file, supporting refe
 Explicitly asking an agent to read the file does not require a product-specific skill installation. Automatic skill discovery and shortcut invocation depend on the agent; the prompts in the following chapters use ordinary language and repository paths.
 
 For Codex plugin installation, run `make -C integrations` from the repository
-root to package all three skills. The versioned ZIP appears in
+root to package all four skills. The versioned ZIP appears in
 `integrations/plugin-dist/`. It includes skill sources, preview assets, and
 dependency lockfiles; `uv` installs the Python dependencies on first use.
 See the [plugin build and installation guide](https://github.com/thomassresearch/orchestron/blob/main/integrations/README.md#build-the-plugin-zip).
