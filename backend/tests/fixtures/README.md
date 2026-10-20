@@ -44,6 +44,10 @@ their own in-memory copy.
   `analog_drumkit_breakbeat.patch.json` freezes its 17-voice extension. Paired
   renders verify unchanged original sounds, GM assignments, velocity, tails,
   stereo output and all fifteen added performance controllers.
+  `analog_drumkit_cymbals.patch.json` freezes the approved crash/ride revision;
+  the earlier 17-voice fixture remains the reference for sample-identical renders
+  of the other fifteen voices. Cymbal regressions cover spectral wash, short
+  gates, controller extremes, overlapping tails and native/API persistence.
 - `drumset.patch.json` is the original three-voice Switch patch used for note-off
   tails, polyphony, MIDI/score equivalence and bundle regressions.
 - `velocity_if.patch.json` is the original velocity-switched sine/saw patch used

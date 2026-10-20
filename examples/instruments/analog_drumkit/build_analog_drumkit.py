@@ -17,6 +17,7 @@ from backend.app.models.patch import PatchDocument
 from backend.app.services.compiler_common import PatchInstrumentTarget
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
+from cymbals import apply_approved_cymbals
 
 HERE = Path(__file__).resolve().parent
 TOMS = [
@@ -187,32 +188,9 @@ def extend(original):
         formula(prefix + "_noise.amp", "strike * 0.20", strike=prefix + "_strike.kenv")
         finish(v, signals, .23, pan=.38 + (note - 41) / 9 * .24)
 
-    crash = controller("crash_decay", "Crash decay (s)", .35, 2.6, 1.4)
-    v = voice("crash", "Crash cymbal 1", 49, 1.4, crash)
-    metal = []
-    for i, freq in enumerate((317, 491, 683, 997, 1471, 2017)):
-        key = node(f"crash_metal_{i}", "vco2", dict(kamp=.16, kcps=freq, imode=2, kpw=.5, kphs=.137 * (i + 1)))
-        metal.append(key + ".asig")
-    metal.append(noise("crash_air", .55, 1800, 14500))
-    node("crash_hp", "butterhp", dict(xfreq=1800))
-    formula("crash_hp.asig", " + ".join(f"s{i}" for i in range(len(metal))), **{f"s{i}": s for i, s in enumerate(metal)})
-    node("crash_lp", "butterlp", dict(xfreq=14500))
-    wire("crash_hp.aout", "crash_lp.asig")
-    finish(v, ["crash_lp.aout"], .28, .4)
-
-    ride = controller("ride_brightness", "Ride brightness", .5, 1.5)
-    v = voice("ride", "Ride cymbal 1", 51, 1.1)
-    signals = []
-    for i, (freq, amp) in enumerate(((570, .35), (845, .28), (1193, .24), (1697, .20), (2389, .16), (3571, .12), (5417, .08))):
-        key = f"ride_mode_{i}"
-        signals.append(sine(key, freq, amp))
-        if i >= 3:
-            formula(key + ".amp", f"{amp} * brightness", brightness=ride)
-    signals.append(noise("ride_air", .13, 3200, 12000))
-    node("ride_filter", "butterlp")
-    formula("ride_filter.asig", " + ".join(f"s{i}" for i in range(len(signals))), **{f"s{i}": s for i, s in enumerate(signals)})
-    formula("ride_filter.xfreq", "8000 * brightness", brightness=ride)
-    finish(v, ["ride_filter.aout"], .20, .62)
+    controller("crash_decay", "Crash decay (s)", .35, 2.6, 1.4)
+    controller("ride_brightness", "Ride brightness", .5, 1.5)
+    apply_approved_cymbals(graph)
 
     tamb = controller("tambourine_decay", "Tambourine decay (s)", .07, .55, .22)
     v = voice("tambourine", "Tambourine", 54, .22, tamb)
@@ -228,7 +206,8 @@ def extend(original):
         "17 velocity-sensitive, sample-free analog percussion voices. GM notes: "
         "35 kick, 36 distorted kick, 37 side stick, 38 snare, 39 clap, 40 electric snare, "
         "41/43/45/47/48/50 low-to-high toms, 42 closed hat, 46 open hat, 49 crash, 51 ride, 54 tambourine. "
-        "Existing sounds and settings retained. BD snappiness, shared hat tuning and snare tuning default to 1 (original sound). "
+        "Revised crash wash and ride shimmer; all other sounds and settings retained. "
+        "BD snappiness, shared hat tuning and snare tuning default to 1 (original sound). "
         "Each added voice has its own characteristic control. Finite one-shot tails survive short note-offs; unmapped notes are silent. Stereo output."
     )
     # Backend validation is authoritative for custom one-shot Switch graphs.
@@ -244,5 +223,19 @@ if __name__ == "__main__":
         (HERE / "analog_drumkit.original.patch.json", HERE.parent / "template/analog_drumkit.patch.json"),
     ]:
         result = extend(json.loads(source.read_text()))
+        if destination.exists():
+            # Retain saved placements of the unchanged voices when rebuilding.
+            previous = json.loads(destination.read_text())
+            positions = {n["id"]: n["position"] for n in previous["graph"]["nodes"]}
+            cymbal_ids = {
+                key for case in result["graph"]["control_flow"]["kit"]["cases"]
+                if case["value"] in (49, 51) for key in case["node_ids"]
+            }
+            for item in result["graph"]["nodes"]:
+                if item["id"] in positions and item["id"] not in cymbal_ids:
+                    item["position"] = positions[item["id"]]
+            for key, value in previous["graph"]["ui_layout"].items():
+                if key != "input_formulas":
+                    result["graph"]["ui_layout"][key] = value
         destination.write_text(json.dumps(result, indent=2) + "\n")
         print(f"{destination}: {len(result['graph']['nodes'])} nodes, 17 voices")

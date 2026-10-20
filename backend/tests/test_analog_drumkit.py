@@ -8,7 +8,7 @@ from backend.tools.analog_drumkit_audio import compile_kit, render
 
 @pytest.fixture(scope="module")
 def kit():
-    return load_patch_fixture("analog_drumkit_breakbeat")
+    return load_patch_fixture("analog_drumkit_cymbals")
 
 
 @pytest.fixture(scope="module")
@@ -72,3 +72,62 @@ def test_existing_controller_definitions_and_case_assignments_are_preserved(kit)
         35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 49, 50, 51, 54, None,
     }
     assert len(controllers) == 19
+
+
+@pytest.mark.parametrize("note", [35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 46, 47, 48, 50, 54])
+def test_cymbal_revision_preserves_every_other_voice(compiled, note):
+    previous = compile_kit(load_patch_fixture("analog_drumkit_breakbeat"))
+    events = [(.05, note, 40, .015), (.9, note, 127, .02)]
+    np.testing.assert_array_equal(render(compiled, events, 3), render(previous, events, 3))
+
+
+def test_cymbal_revision_preserves_all_controller_definitions(kit):
+    previous = load_patch_fixture("analog_drumkit_breakbeat")
+    assert {n.id: n.params for n in kit.graph.nodes if n.opcode == "perf_controller"} == {
+        n.id: n.params for n in previous.graph.nodes if n.opcode == "perf_controller"
+    }
+
+
+def _power_spectrum(audio, start, end):
+    mono = audio[round(start * 48000):round(end * 48000)].mean(axis=1)
+    frames = np.lib.stride_tricks.sliding_window_view(mono, 4096)[::512]
+    power = (abs(np.fft.rfft(frames * np.hanning(4096))) ** 2).mean(axis=0)
+    return np.fft.rfftfreq(4096, 1 / 48000), power
+
+
+def test_crash_tail_retains_broadband_wash(compiled):
+    audio = render(compiled, [(.1, 49, 100, .015)], 3)
+    frequencies, power = _power_spectrum(audio, .6, 1)
+    band = power[(frequencies >= 1500) & (frequencies <= 12000)]
+    flatness = np.exp(np.mean(np.log(band + 1e-30))) / np.mean(band)
+    # The rejected FM tail measured ~0.055 here; guard against that tonal collapse.
+    assert flatness > .35
+    assert np.sqrt(np.mean(audio[28800:43200] ** 2)) > .001
+
+
+def test_ride_has_high_frequency_wash(compiled):
+    audio = render(compiled, [(.1, 51, 100, .015)], 3)
+    frequencies, power = _power_spectrum(audio, .1, .6)
+    # The old seven-sine ride had only ~2% of its early energy above 4 kHz.
+    assert power[frequencies >= 4000].sum() / power.sum() > .5
+    assert power[frequencies < 1500].sum() / power.sum() < .1
+
+
+@pytest.mark.parametrize("note,control", [(49, "crash_decay"), (51, "ride_brightness")])
+@pytest.mark.parametrize("bound", ["min", "default", "max"])
+def test_cymbal_gate_independence_and_tail_at_control_extremes(kit, note, control, bound):
+    definition = next(n.params for n in kit.graph.nodes if n.id == control)
+    artifact = compile_kit(kit, {control: definition[bound]})
+    short = render(artifact, [(.1, note, 127, .015)], 4)
+    held = render(artifact, [(.1, note, 127, .8)], 4)
+    np.testing.assert_array_equal(short, held)
+    assert np.isfinite(short).all() and abs(short).max() < 1
+    assert abs(short[-4800:]).max() < 1e-7
+
+
+def test_layered_cymbal_retriggers_keep_headroom(kit):
+    artifact = compile_kit(kit, {"crash_decay": 2.6, "ride_brightness": 1.5})
+    events = [(.1 + i * .125, note, 127, .015) for i in range(16) for note in (49, 51)]
+    audio = render(artifact, events, 6)
+    assert np.isfinite(audio).all() and abs(audio).max() < 1
+    assert abs(audio[-4800:]).max() < 1e-7

@@ -48,6 +48,43 @@ from backend.app.services.sequencer_timing_migration import migrate_sequencer_ti
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
+def test_analog_drumkit_cymbal_update_persists_and_compiles(tmp_path: Path) -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    previous = load_patch_fixture("analog_drumkit_breakbeat")
+    revised = load_patch_fixture("analog_drumkit_cymbals")
+    with _client(tmp_path) as client:
+        created = client.post("/api/patches", json=previous.model_dump(mode="json"))
+        assert created.status_code == 201, created.text
+        patch_id = created.json()["id"]
+        updated = client.put(f"/api/patches/{patch_id}", json={
+            "graph": revised.graph.model_dump(mode="json", by_alias=True),
+            "instrument_type": "percussion",
+        })
+        assert updated.status_code == 200, updated.text
+        saved = client.get(f"/api/patches/{patch_id}").json()
+        assert saved["id"] == patch_id and saved["name"] == previous.name
+        assert saved["instrument_type"] == "percussion"
+        assert saved["graph"] == revised.graph.model_dump(mode="json", by_alias=True)
+        exported = client.post("/api/bundles/export/patch", json={**saved, "sourcePatchId": patch_id})
+        assert exported.status_code == 200, exported.text
+        restored = client.post("/api/bundles/import/expand?preview=true", content=exported.content,
+                               headers={"X-File-Name": "Analog_Drumkit.orch.instrument.json"})
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["graph"] == saved["graph"]
+        values = {"crash_decay": 2.6, "ride_brightness": .5}
+        session = client.post("/api/sessions", json={"instruments": [
+            {"id": "kit", "patch_id": patch_id, "midi_channel": 10,
+             "performance_controller_values": values},
+        ]})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        controls = compiled.json()["manifest"]["performanceControllers"]["kit"]
+        assert {key: controls[key]["value"] for key in values} == values
+        assert len(controls) == 19
+
+
 def test_opcodes_include_compress2_pareq_hsboscil_manual_signatures(tmp_path: Path) -> None:
     expected = {
         "compress2": ("dynamics", "ar", [

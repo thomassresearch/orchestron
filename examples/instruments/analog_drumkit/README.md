@@ -33,9 +33,15 @@ All added controls use logarithmic scales. BD snappiness increases click level
 and speeds the initial pitch fall; 1 reproduces the original attack. Hi-hat
 tuning scales both hats' metallic oscillators and filter frequencies. Snare
 tuning scales its body and noise filters. Electric snare snap adjusts the
-noise/body balance. Ride brightness changes upper partial levels and low-pass
+noise/body balance. Ride brightness changes wash/air levels and low-pass
 cutoff. The toms have individual tuning. The clap has three short bursts and a
 diffuse tail. All new voices have finite one-shot envelopes.
+
+The revised crash combines dense inharmonic FM with a broadband wash that
+outlasts its tonal layer, avoiding an exposed pitched tail. The ride combines
+metallic shimmer, a short stick/ping and a separate wash. Their approved graphs
+are preserved in `approved_cymbals.json`; the other fifteen voices and all
+nineteen controller definitions are unchanged.
 
 Controls are per rack instance and read when each note starts. Distort Pre,
 Distort Post, BD pitch and Dist BD pitch keep their IDs, ranges and defaults.
@@ -51,17 +57,22 @@ normalizing individual sounds.
 ## Reproduction and validation
 
 `build_analog_drumkit.py` extends the two preserved original files and validates
-both graphs with the backend compiler. It writes the native export and raw
+both graphs with the backend compiler, installing the approved cymbal branches
+from `approved_cymbals.json`. It writes the native export and raw
 starter without modifying the library. `update_library.py` uses the patch skill's
 API client and temporary compile preflight, then updates the original patch ID
-only with `--apply`. It refuses a library graph edited since the original snapshot.
+only with `--apply`. The original five-to-seventeen voice extension refuses a
+library graph edited since the original snapshot. For an existing 17-voice kit,
+`--cymbals-only` replaces only notes 49/51 and preserves the current engine
+settings, shared controls, output gain, other voices and their layout. Both
+modes back up the current patch and check for edits during preflight.
 
 ```sh
 .venv/bin/python examples/instruments/analog_drumkit/build_analog_drumkit.py
 uv run --extra dev --with soundfile --with librosa --with matplotlib python \
   examples/instruments/analog_drumkit/validate_audio.py /tmp/analog-drumkit-validation
 .venv/bin/python examples/instruments/analog_drumkit/update_library.py \
-  --out-dir /tmp/analog-drumkit-validation --apply
+  --out-dir /tmp/analog-drumkit-validation --cymbals-only --apply
 ```
 
 The audio suite checks exact original/default waveforms with seeded noise,
@@ -74,6 +85,16 @@ examples. The existing five-voice test fixture remains unchanged.
 After numerical checks, use the patch skill's `render_spectrograms.py` to generate
 and inspect both Mel and log-STFT images. All new voices remain editable as
 separate cases of the existing Switch in Instrument Design.
+
+## Cymbal revision — 20 October 2026
+
+The crash-v2 and ride-v1 auditions were approved by listening. The native export
+reproduces both approved renders sample-for-sample. The other fifteen voices
+remain sample-identical, including soft/hard hits with the raw starter's distinct
+gain and the library's saved engine settings. All controller IDs and ranges are
+preserved. Sixty targeted audio/API tests and both local and Docker frontend
+builds passed. The original five-voice snapshots and earlier regression fixtures
+remain available.
 
 ## Verified results — 14 October 2026
 

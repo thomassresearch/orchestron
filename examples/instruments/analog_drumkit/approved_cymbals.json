@@ -1,0 +1,1913 @@
+{
+  "cases": [
+    {
+      "id": "crash",
+      "name": "Crash cymbal 1",
+      "value": 49,
+      "node_ids": [
+        "crash_tail",
+        "crash_gate",
+        "crash_body_env",
+        "crash_wash_env",
+        "crash_fizz_env",
+        "crash_stick_env",
+        "crash_index_env",
+        "crash_mod1",
+        "crash_mod2",
+        "crash_metal",
+        "crash_metal_hp",
+        "crash_metal_lp",
+        "crash_noise",
+        "crash_wash_hp",
+        "crash_wash_lp",
+        "crash_air_hp",
+        "crash_air_lp",
+        "crash_stick_bp",
+        "crash_body_audio",
+        "crash_wash_env_audio",
+        "crash_fizz_audio",
+        "crash_strike_audio",
+        "crash_mix",
+        "crash_amplitude",
+        "crash_pan",
+        "crash_result",
+        "crash_mod3",
+        "crash_mod4"
+      ],
+      "result_node_id": "crash_result",
+      "silence": false
+    },
+    {
+      "id": "ride",
+      "name": "Ride cymbal 1",
+      "value": 51,
+      "node_ids": [
+        "ride_tail",
+        "ride_gate",
+        "ride_body_env",
+        "ride_wash_env",
+        "ride_fizz_env",
+        "ride_stick_env",
+        "ride_index_env",
+        "ride_mod1",
+        "ride_mod2",
+        "ride_metal",
+        "ride_metal_hp",
+        "ride_metal_lp",
+        "ride_noise",
+        "ride_wash_hp",
+        "ride_wash_lp",
+        "ride_air_hp",
+        "ride_air_lp",
+        "ride_stick_bp",
+        "ride_ping",
+        "ride_ping_env",
+        "ride_body_audio",
+        "ride_wash_env_audio",
+        "ride_fizz_audio",
+        "ride_strike_audio",
+        "ride_ping_env_audio",
+        "ride_brightness_audio",
+        "ride_mix",
+        "ride_amplitude",
+        "ride_pan",
+        "ride_result"
+      ],
+      "result_node_id": "ride_result",
+      "silence": false
+    }
+  ],
+  "nodes": [
+    {
+      "id": "crash_tail",
+      "opcode": "xtratim",
+      "params": {},
+      "position": {
+        "x": 450,
+        "y": 30000
+      }
+    },
+    {
+      "id": "crash_gate",
+      "opcode": "linseg",
+      "params": {
+        "ia": 0,
+        "idur1": 0.002,
+        "ib": 1,
+        "ic": 1,
+        "idur3": 0.01,
+        "id": 0
+      },
+      "position": {
+        "x": 810,
+        "y": 30000
+      }
+    },
+    {
+      "id": "crash_body_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "ib": 0.08,
+        "ic": 0.0001
+      },
+      "position": {
+        "x": 1170,
+        "y": 30000
+      }
+    },
+    {
+      "id": "crash_wash_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 0.4,
+        "ib": 1,
+        "ic": 0.12,
+        "id": 0.0001
+      },
+      "position": {
+        "x": 1530,
+        "y": 30000
+      }
+    },
+    {
+      "id": "crash_fizz_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 0.6,
+        "ib": 1,
+        "ic": 0.08,
+        "id": 0.0001
+      },
+      "position": {
+        "x": 1890,
+        "y": 30000
+      }
+    },
+    {
+      "id": "crash_stick_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "idur1": 0.045,
+        "ib": 0.0001
+      },
+      "position": {
+        "x": 450,
+        "y": 30400
+      }
+    },
+    {
+      "id": "crash_index_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "ib": 1,
+        "ic": 1
+      },
+      "position": {
+        "x": 810,
+        "y": 30400
+      }
+    },
+    {
+      "id": "crash_mod1",
+      "opcode": "oscil3",
+      "params": {
+        "freq": 421.3,
+        "ifn": -1,
+        "iphs": 0.17
+      },
+      "position": {
+        "x": 1170,
+        "y": 30400
+      }
+    },
+    {
+      "id": "crash_mod2",
+      "opcode": "oscil3",
+      "params": {
+        "freq": 617.7,
+        "ifn": -1,
+        "iphs": 0.41
+      },
+      "position": {
+        "x": 1530,
+        "y": 30400
+      }
+    },
+    {
+      "id": "crash_metal",
+      "opcode": "oscil3",
+      "params": {
+        "amp": 0.22,
+        "ifn": -1,
+        "iphs": 0.23
+      },
+      "position": {
+        "x": 1890,
+        "y": 30400
+      }
+    },
+    {
+      "id": "crash_metal_hp",
+      "opcode": "butterhp",
+      "params": {
+        "xfreq": 1800
+      },
+      "position": {
+        "x": 450,
+        "y": 30800
+      }
+    },
+    {
+      "id": "crash_metal_lp",
+      "opcode": "butterlp",
+      "params": {
+        "xfreq": 12500
+      },
+      "position": {
+        "x": 810,
+        "y": 30800
+      }
+    },
+    {
+      "id": "crash_noise",
+      "opcode": "noise",
+      "params": {
+        "amp": 1,
+        "beta": 0
+      },
+      "position": {
+        "x": 1170,
+        "y": 30800
+      }
+    },
+    {
+      "id": "crash_wash_hp",
+      "opcode": "butterhp",
+      "params": {
+        "xfreq": 1250
+      },
+      "position": {
+        "x": 1530,
+        "y": 30800
+      }
+    },
+    {
+      "id": "crash_wash_lp",
+      "opcode": "butterlp",
+      "params": {
+        "xfreq": 12500
+      },
+      "position": {
+        "x": 1890,
+        "y": 30800
+      }
+    },
+    {
+      "id": "crash_air_hp",
+      "opcode": "butterhp",
+      "params": {
+        "xfreq": 8200
+      },
+      "position": {
+        "x": 450,
+        "y": 31200
+      }
+    },
+    {
+      "id": "crash_air_lp",
+      "opcode": "butterlp",
+      "params": {
+        "xfreq": 15000
+      },
+      "position": {
+        "x": 810,
+        "y": 31200
+      }
+    },
+    {
+      "id": "crash_stick_bp",
+      "opcode": "butterbp",
+      "params": {
+        "xfreq": 3600,
+        "xband": 3400
+      },
+      "position": {
+        "x": 1170,
+        "y": 31200
+      }
+    },
+    {
+      "id": "crash_body_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 1530,
+        "y": 31200
+      }
+    },
+    {
+      "id": "crash_wash_env_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 1890,
+        "y": 31200
+      }
+    },
+    {
+      "id": "crash_fizz_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 450,
+        "y": 31600
+      }
+    },
+    {
+      "id": "crash_strike_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 810,
+        "y": 31600
+      }
+    },
+    {
+      "id": "crash_mix",
+      "opcode": "a_mul",
+      "params": {
+        "b": 1
+      },
+      "position": {
+        "x": 1170,
+        "y": 31600
+      }
+    },
+    {
+      "id": "crash_amplitude",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 1530,
+        "y": 31600
+      }
+    },
+    {
+      "id": "crash_pan",
+      "opcode": "pan2",
+      "params": {
+        "xp": 0.4
+      },
+      "position": {
+        "x": 1890,
+        "y": 31600
+      }
+    },
+    {
+      "id": "crash_result",
+      "opcode": "CaseResult",
+      "params": {},
+      "position": {
+        "x": 450,
+        "y": 32000
+      }
+    },
+    {
+      "id": "ride_tail",
+      "opcode": "xtratim",
+      "params": {
+        "iextradur": 1.3800000000000001
+      },
+      "position": {
+        "x": 450,
+        "y": 34000
+      }
+    },
+    {
+      "id": "ride_gate",
+      "opcode": "linseg",
+      "params": {
+        "ia": 0,
+        "idur1": 0.002,
+        "ib": 1,
+        "idur2": 1.338,
+        "ic": 1,
+        "idur3": 0.01,
+        "id": 0
+      },
+      "position": {
+        "x": 810,
+        "y": 34000
+      }
+    },
+    {
+      "id": "ride_body_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "idur1": 0.513,
+        "ib": 0.2,
+        "idur2": 0.8370000000000001,
+        "ic": 0.0001
+      },
+      "position": {
+        "x": 1170,
+        "y": 34000
+      }
+    },
+    {
+      "id": "ride_wash_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 0.14,
+        "idur1": 0.0243,
+        "ib": 1,
+        "idur2": 1.3257,
+        "ic": 0.0001
+      },
+      "position": {
+        "x": 1530,
+        "y": 34000
+      }
+    },
+    {
+      "id": "ride_fizz_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "idur1": 0.13365000000000002,
+        "ib": 0.12,
+        "idur2": 0.6088500000000001,
+        "ic": 0.0001
+      },
+      "position": {
+        "x": 1890,
+        "y": 34000
+      }
+    },
+    {
+      "id": "ride_stick_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "idur1": 0.045,
+        "ib": 0.0001
+      },
+      "position": {
+        "x": 450,
+        "y": 34400
+      }
+    },
+    {
+      "id": "ride_index_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "idur1": 0.405,
+        "ib": 0.6,
+        "idur2": 0.945,
+        "ic": 0.35
+      },
+      "position": {
+        "x": 810,
+        "y": 34400
+      }
+    },
+    {
+      "id": "ride_mod1",
+      "opcode": "oscil3",
+      "params": {
+        "freq": 887,
+        "ifn": -1,
+        "iphs": 0.17
+      },
+      "position": {
+        "x": 1170,
+        "y": 34400
+      }
+    },
+    {
+      "id": "ride_mod2",
+      "opcode": "oscil3",
+      "params": {
+        "freq": 1361,
+        "ifn": -1,
+        "iphs": 0.41
+      },
+      "position": {
+        "x": 1530,
+        "y": 34400
+      }
+    },
+    {
+      "id": "ride_metal",
+      "opcode": "oscil3",
+      "params": {
+        "amp": 0.17,
+        "ifn": -1,
+        "iphs": 0.23
+      },
+      "position": {
+        "x": 1890,
+        "y": 34400
+      }
+    },
+    {
+      "id": "ride_metal_hp",
+      "opcode": "butterhp",
+      "params": {
+        "xfreq": 2500
+      },
+      "position": {
+        "x": 450,
+        "y": 34800
+      }
+    },
+    {
+      "id": "ride_metal_lp",
+      "opcode": "butterlp",
+      "params": {
+        "xfreq": 12000
+      },
+      "position": {
+        "x": 810,
+        "y": 34800
+      }
+    },
+    {
+      "id": "ride_noise",
+      "opcode": "noise",
+      "params": {
+        "amp": 1,
+        "beta": 0
+      },
+      "position": {
+        "x": 1170,
+        "y": 34800
+      }
+    },
+    {
+      "id": "ride_wash_hp",
+      "opcode": "butterhp",
+      "params": {
+        "xfreq": 2800
+      },
+      "position": {
+        "x": 1530,
+        "y": 34800
+      }
+    },
+    {
+      "id": "ride_wash_lp",
+      "opcode": "butterlp",
+      "params": {},
+      "position": {
+        "x": 1890,
+        "y": 34800
+      }
+    },
+    {
+      "id": "ride_air_hp",
+      "opcode": "butterhp",
+      "params": {
+        "xfreq": 7500
+      },
+      "position": {
+        "x": 450,
+        "y": 35200
+      }
+    },
+    {
+      "id": "ride_air_lp",
+      "opcode": "butterlp",
+      "params": {
+        "xfreq": 14500
+      },
+      "position": {
+        "x": 810,
+        "y": 35200
+      }
+    },
+    {
+      "id": "ride_stick_bp",
+      "opcode": "butterbp",
+      "params": {
+        "xfreq": 3600,
+        "xband": 3400
+      },
+      "position": {
+        "x": 1170,
+        "y": 35200
+      }
+    },
+    {
+      "id": "ride_ping",
+      "opcode": "oscil3",
+      "params": {
+        "amp": 0.045,
+        "freq": 2389,
+        "ifn": -1,
+        "iphs": 0.31
+      },
+      "position": {
+        "x": 1530,
+        "y": 35200
+      }
+    },
+    {
+      "id": "ride_ping_env",
+      "opcode": "expseg",
+      "params": {
+        "ia": 1,
+        "idur1": 0.24,
+        "ib": 0.0001
+      },
+      "position": {
+        "x": 1890,
+        "y": 35200
+      }
+    },
+    {
+      "id": "ride_body_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 450,
+        "y": 35600
+      }
+    },
+    {
+      "id": "ride_wash_env_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 810,
+        "y": 35600
+      }
+    },
+    {
+      "id": "ride_fizz_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 1170,
+        "y": 35600
+      }
+    },
+    {
+      "id": "ride_strike_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 1530,
+        "y": 35600
+      }
+    },
+    {
+      "id": "ride_ping_env_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 1890,
+        "y": 35600
+      }
+    },
+    {
+      "id": "ride_brightness_audio",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 450,
+        "y": 36000
+      }
+    },
+    {
+      "id": "ride_mix",
+      "opcode": "a_mul",
+      "params": {
+        "b": 1
+      },
+      "position": {
+        "x": 810,
+        "y": 36000
+      }
+    },
+    {
+      "id": "ride_amplitude",
+      "opcode": "upsamp",
+      "params": {},
+      "position": {
+        "x": 1170,
+        "y": 36000
+      }
+    },
+    {
+      "id": "ride_pan",
+      "opcode": "pan2",
+      "params": {
+        "xp": 0.62
+      },
+      "position": {
+        "x": 1530,
+        "y": 36000
+      }
+    },
+    {
+      "id": "ride_result",
+      "opcode": "CaseResult",
+      "params": {},
+      "position": {
+        "x": 1890,
+        "y": 36000
+      }
+    },
+    {
+      "id": "crash_mod3",
+      "opcode": "oscil3",
+      "params": {
+        "freq": 1027.9,
+        "ifn": -1,
+        "iphs": 0.61
+      },
+      "position": {
+        "x": 810,
+        "y": 32000
+      }
+    },
+    {
+      "id": "crash_mod4",
+      "opcode": "oscil3",
+      "params": {
+        "freq": 1589.3,
+        "ifn": -1,
+        "iphs": 0.83
+      },
+      "position": {
+        "x": 1170,
+        "y": 32000
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_tail",
+      "to_port_id": "iextradur"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_gate",
+      "to_port_id": "idur2"
+    },
+    {
+      "from_node_id": "crash_metal",
+      "from_port_id": "asig",
+      "to_node_id": "crash_metal_hp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_metal_hp",
+      "from_port_id": "aout",
+      "to_node_id": "crash_metal_lp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_noise",
+      "from_port_id": "aout",
+      "to_node_id": "crash_wash_hp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_wash_hp",
+      "from_port_id": "aout",
+      "to_node_id": "crash_wash_lp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_noise",
+      "from_port_id": "aout",
+      "to_node_id": "crash_air_hp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_air_hp",
+      "from_port_id": "aout",
+      "to_node_id": "crash_air_lp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_noise",
+      "from_port_id": "aout",
+      "to_node_id": "crash_stick_bp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_body_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_body_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "crash_wash_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_wash_env_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "crash_fizz_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_fizz_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "crash_stick_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_strike_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "crash_metal_lp",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_body_audio",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_wash_lp",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_wash_env_audio",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_air_lp",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_fizz_audio",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_stick_bp",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_strike_audio",
+      "from_port_id": "aout",
+      "to_node_id": "crash_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "crash_gate",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_amplitude",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "velocity",
+      "from_port_id": "iamp",
+      "to_node_id": "crash_amplitude",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "crash_mix",
+      "from_port_id": "aout",
+      "to_node_id": "crash_pan",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_amplitude",
+      "from_port_id": "aout",
+      "to_node_id": "crash_pan",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "crash_pan",
+      "from_port_id": "aleft",
+      "to_node_id": "crash_result",
+      "to_port_id": "left"
+    },
+    {
+      "from_node_id": "crash_pan",
+      "from_port_id": "aright",
+      "to_node_id": "crash_result",
+      "to_port_id": "right"
+    },
+    {
+      "from_node_id": "ride_index_env",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_mod1",
+      "to_port_id": "amp"
+    },
+    {
+      "from_node_id": "ride_index_env",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_mod2",
+      "to_port_id": "amp"
+    },
+    {
+      "from_node_id": "ride_mod1",
+      "from_port_id": "asig",
+      "to_node_id": "ride_metal",
+      "to_port_id": "freq"
+    },
+    {
+      "from_node_id": "ride_mod2",
+      "from_port_id": "asig",
+      "to_node_id": "ride_metal",
+      "to_port_id": "freq"
+    },
+    {
+      "from_node_id": "ride_metal",
+      "from_port_id": "asig",
+      "to_node_id": "ride_metal_hp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_metal_hp",
+      "from_port_id": "aout",
+      "to_node_id": "ride_metal_lp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_noise",
+      "from_port_id": "aout",
+      "to_node_id": "ride_wash_hp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_wash_hp",
+      "from_port_id": "aout",
+      "to_node_id": "ride_wash_lp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_brightness",
+      "from_port_id": "iout",
+      "to_node_id": "ride_wash_lp",
+      "to_port_id": "xfreq"
+    },
+    {
+      "from_node_id": "ride_noise",
+      "from_port_id": "aout",
+      "to_node_id": "ride_air_hp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_air_hp",
+      "from_port_id": "aout",
+      "to_node_id": "ride_air_lp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_noise",
+      "from_port_id": "aout",
+      "to_node_id": "ride_stick_bp",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_body_env",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_body_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "ride_wash_env",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_wash_env_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "ride_fizz_env",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_fizz_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "ride_stick_env",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_strike_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "ride_ping_env",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_ping_env_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "ride_brightness",
+      "from_port_id": "iout",
+      "to_node_id": "ride_brightness_audio",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "ride_metal_lp",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_body_audio",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_wash_lp",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_wash_env_audio",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_air_lp",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_fizz_audio",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_stick_bp",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_strike_audio",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_ping",
+      "from_port_id": "asig",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_ping_env_audio",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_brightness_audio",
+      "from_port_id": "aout",
+      "to_node_id": "ride_mix",
+      "to_port_id": "a"
+    },
+    {
+      "from_node_id": "ride_gate",
+      "from_port_id": "kenv",
+      "to_node_id": "ride_amplitude",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "velocity",
+      "from_port_id": "iamp",
+      "to_node_id": "ride_amplitude",
+      "to_port_id": "ksig"
+    },
+    {
+      "from_node_id": "ride_mix",
+      "from_port_id": "aout",
+      "to_node_id": "ride_pan",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_amplitude",
+      "from_port_id": "aout",
+      "to_node_id": "ride_pan",
+      "to_port_id": "asig"
+    },
+    {
+      "from_node_id": "ride_pan",
+      "from_port_id": "aleft",
+      "to_node_id": "ride_result",
+      "to_port_id": "left"
+    },
+    {
+      "from_node_id": "ride_pan",
+      "from_port_id": "aright",
+      "to_node_id": "ride_result",
+      "to_port_id": "right"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_wash_env",
+      "to_port_id": "idur1"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_wash_env",
+      "to_port_id": "idur2"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_wash_env",
+      "to_port_id": "idur3"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_body_env",
+      "to_port_id": "idur1"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_body_env",
+      "to_port_id": "idur2"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_fizz_env",
+      "to_port_id": "idur1"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_fizz_env",
+      "to_port_id": "idur2"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_fizz_env",
+      "to_port_id": "idur3"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_index_env",
+      "to_port_id": "idur1"
+    },
+    {
+      "from_node_id": "crash_decay",
+      "from_port_id": "iout",
+      "to_node_id": "crash_index_env",
+      "to_port_id": "idur2"
+    },
+    {
+      "from_node_id": "crash_index_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_mod1",
+      "to_port_id": "amp"
+    },
+    {
+      "from_node_id": "crash_index_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_mod2",
+      "to_port_id": "amp"
+    },
+    {
+      "from_node_id": "crash_index_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_mod3",
+      "to_port_id": "amp"
+    },
+    {
+      "from_node_id": "crash_index_env",
+      "from_port_id": "kenv",
+      "to_node_id": "crash_mod4",
+      "to_port_id": "amp"
+    },
+    {
+      "from_node_id": "crash_mod1",
+      "from_port_id": "asig",
+      "to_node_id": "crash_metal",
+      "to_port_id": "freq"
+    },
+    {
+      "from_node_id": "crash_mod2",
+      "from_port_id": "asig",
+      "to_node_id": "crash_metal",
+      "to_port_id": "freq"
+    },
+    {
+      "from_node_id": "crash_mod3",
+      "from_port_id": "asig",
+      "to_node_id": "crash_metal",
+      "to_port_id": "freq"
+    },
+    {
+      "from_node_id": "crash_mod4",
+      "from_port_id": "asig",
+      "to_node_id": "crash_metal",
+      "to_port_id": "freq"
+    }
+  ],
+  "input_formulas": {
+    "crash_tail::iextradur": {
+      "expression": "decay + 0.03",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_gate::idur2": {
+      "expression": "decay - 0.012",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_body_env::idur1": {
+      "expression": "decay * 0.22",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_body_env::idur2": {
+      "expression": "decay * 0.43",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_wash_env::idur1": {
+      "expression": "decay * 0.008",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_wash_env::idur2": {
+      "expression": "decay * 0.392",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_fizz_env::idur1": {
+      "expression": "decay * 0.012",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_fizz_env::idur2": {
+      "expression": "decay * 0.188",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_index_env::idur1": {
+      "expression": "decay * 0.3",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_index_env::idur2": {
+      "expression": "decay * 0.7",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_mod1::amp": {
+      "expression": "shape * 1290",
+      "inputs": [
+        {
+          "token": "shape",
+          "from_node_id": "crash_index_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "crash_mod2::amp": {
+      "expression": "shape * 1680",
+      "inputs": [
+        {
+          "token": "shape",
+          "from_node_id": "crash_index_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "crash_metal::freq": {
+      "expression": "2767 + m1 + m2 + m3 + m4",
+      "inputs": [
+        {
+          "token": "m1",
+          "from_node_id": "crash_mod1",
+          "from_port_id": "asig"
+        },
+        {
+          "token": "m2",
+          "from_node_id": "crash_mod2",
+          "from_port_id": "asig"
+        },
+        {
+          "token": "m3",
+          "from_node_id": "crash_mod3",
+          "from_port_id": "asig"
+        },
+        {
+          "token": "m4",
+          "from_node_id": "crash_mod4",
+          "from_port_id": "asig"
+        }
+      ]
+    },
+    "crash_metal_hp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_metal",
+          "from_port_id": "asig"
+        }
+      ]
+    },
+    "crash_metal_lp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_metal_hp",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_wash_hp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_noise",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_wash_lp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_wash_hp",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_air_hp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_noise",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_air_lp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_air_hp",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_stick_bp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_noise",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_body_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "crash_body_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "crash_wash_env_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "crash_wash_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "crash_fizz_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "crash_fizz_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "crash_strike_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "crash_stick_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "crash_mix::a": {
+      "expression": "metal * body + wash * wash_env * 0.65 + air * fizz * 0.20 + stick * strike * 0.3",
+      "inputs": [
+        {
+          "token": "metal",
+          "from_node_id": "crash_metal_lp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "body",
+          "from_node_id": "crash_body_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "wash",
+          "from_node_id": "crash_wash_lp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "wash_env",
+          "from_node_id": "crash_wash_env_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "air",
+          "from_node_id": "crash_air_lp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "fizz",
+          "from_node_id": "crash_fizz_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "stick",
+          "from_node_id": "crash_stick_bp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "strike",
+          "from_node_id": "crash_strike_audio",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_amplitude::ksig": {
+      "expression": "gate * velocity * 0.23",
+      "inputs": [
+        {
+          "token": "gate",
+          "from_node_id": "crash_gate",
+          "from_port_id": "kenv"
+        },
+        {
+          "token": "velocity",
+          "from_node_id": "velocity",
+          "from_port_id": "iamp"
+        }
+      ]
+    },
+    "crash_pan::asig": {
+      "expression": "signal * amp",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "crash_mix",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "amp",
+          "from_node_id": "crash_amplitude",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "crash_result::left": {
+      "expression": "left",
+      "inputs": [
+        {
+          "token": "left",
+          "from_node_id": "crash_pan",
+          "from_port_id": "aleft"
+        }
+      ]
+    },
+    "crash_result::right": {
+      "expression": "right",
+      "inputs": [
+        {
+          "token": "right",
+          "from_node_id": "crash_pan",
+          "from_port_id": "aright"
+        }
+      ]
+    },
+    "ride_mod1::amp": {
+      "expression": "shape * 2900",
+      "inputs": [
+        {
+          "token": "shape",
+          "from_node_id": "ride_index_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "ride_mod2::amp": {
+      "expression": "shape * 2100",
+      "inputs": [
+        {
+          "token": "shape",
+          "from_node_id": "ride_index_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "ride_metal::freq": {
+      "expression": "4201 + m1 + m2",
+      "inputs": [
+        {
+          "token": "m1",
+          "from_node_id": "ride_mod1",
+          "from_port_id": "asig"
+        },
+        {
+          "token": "m2",
+          "from_node_id": "ride_mod2",
+          "from_port_id": "asig"
+        }
+      ]
+    },
+    "ride_metal_hp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_metal",
+          "from_port_id": "asig"
+        }
+      ]
+    },
+    "ride_metal_lp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_metal_hp",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_wash_hp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_noise",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_wash_lp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_wash_hp",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_wash_lp::xfreq": {
+      "expression": "7000 + 3000 * brightness",
+      "inputs": [
+        {
+          "token": "brightness",
+          "from_node_id": "ride_brightness",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "ride_air_hp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_noise",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_air_lp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_air_hp",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_stick_bp::asig": {
+      "expression": "signal",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_noise",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_body_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "ride_body_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "ride_wash_env_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "ride_wash_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "ride_fizz_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "ride_fizz_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "ride_strike_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "ride_stick_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "ride_ping_env_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "ride_ping_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "ride_brightness_audio::ksig": {
+      "expression": "value",
+      "inputs": [
+        {
+          "token": "value",
+          "from_node_id": "ride_brightness",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "ride_mix::a": {
+      "expression": "metal * body + wash * wash_env * 0.55 * brightness + air * fizz * 0.16 * brightness + stick * strike * 0.28 + ping * ping_env",
+      "inputs": [
+        {
+          "token": "metal",
+          "from_node_id": "ride_metal_lp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "body",
+          "from_node_id": "ride_body_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "wash",
+          "from_node_id": "ride_wash_lp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "wash_env",
+          "from_node_id": "ride_wash_env_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "air",
+          "from_node_id": "ride_air_lp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "fizz",
+          "from_node_id": "ride_fizz_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "stick",
+          "from_node_id": "ride_stick_bp",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "strike",
+          "from_node_id": "ride_strike_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "ping",
+          "from_node_id": "ride_ping",
+          "from_port_id": "asig"
+        },
+        {
+          "token": "ping_env",
+          "from_node_id": "ride_ping_env_audio",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "brightness",
+          "from_node_id": "ride_brightness_audio",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_amplitude::ksig": {
+      "expression": "gate * velocity * 0.27",
+      "inputs": [
+        {
+          "token": "gate",
+          "from_node_id": "ride_gate",
+          "from_port_id": "kenv"
+        },
+        {
+          "token": "velocity",
+          "from_node_id": "velocity",
+          "from_port_id": "iamp"
+        }
+      ]
+    },
+    "ride_pan::asig": {
+      "expression": "signal * amp",
+      "inputs": [
+        {
+          "token": "signal",
+          "from_node_id": "ride_mix",
+          "from_port_id": "aout"
+        },
+        {
+          "token": "amp",
+          "from_node_id": "ride_amplitude",
+          "from_port_id": "aout"
+        }
+      ]
+    },
+    "ride_result::left": {
+      "expression": "left",
+      "inputs": [
+        {
+          "token": "left",
+          "from_node_id": "ride_pan",
+          "from_port_id": "aleft"
+        }
+      ]
+    },
+    "ride_result::right": {
+      "expression": "right",
+      "inputs": [
+        {
+          "token": "right",
+          "from_node_id": "ride_pan",
+          "from_port_id": "aright"
+        }
+      ]
+    },
+    "crash_wash_env::idur3": {
+      "expression": "decay * 0.6",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_fizz_env::idur3": {
+      "expression": "decay * 0.45",
+      "inputs": [
+        {
+          "token": "decay",
+          "from_node_id": "crash_decay",
+          "from_port_id": "iout"
+        }
+      ]
+    },
+    "crash_mod3::amp": {
+      "expression": "shape * 1830",
+      "inputs": [
+        {
+          "token": "shape",
+          "from_node_id": "crash_index_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    },
+    "crash_mod4::amp": {
+      "expression": "shape * 2170",
+      "inputs": [
+        {
+          "token": "shape",
+          "from_node_id": "crash_index_env",
+          "from_port_id": "kenv"
+        }
+      ]
+    }
+  }
+}
