@@ -734,6 +734,10 @@ Sequencer-specific model details:
 - Controller pads also use 8 pads but allow lengths from `1..32` local meter beats.
 - Pad loop sequences accept either pad indexes `0..7` or pause tokens `-1`, `-2`, `-4`, `-8`, `-16`, `-32`.
 - Controller keypoints are normalized into a curve over `position` `0.0..1.0` and `value` `0..127`.
+- Explicit curve endpoint values are independent. A missing start defaults to zero;
+  a missing end defaults to the start value. Frontend normalization, live playback
+  and MIDI/SCORE exports preserve these rules. Endpoint snapping is a drag-only
+  editor aid (within 3 CC units; Shift bypasses it), never a persistence or API rule.
 - Empty `target_channels` on controller tracks fall back to the session instrument MIDI channels, or channel `1` if none are available.
 
 `SessionSequencerStartRequest`:

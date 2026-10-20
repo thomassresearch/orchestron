@@ -882,17 +882,7 @@ export function createPerformanceControlStoreActions(
               };
             });
 
-            const movedPoint = sourcePad.keypoints.find((keypoint) => keypoint.id === keypointId);
-            const movedIsBorder =
-              (movedPoint?.position ?? 0) <= 1e-6 || (movedPoint?.position ?? 0) >= 1 - 1e-6;
-            const linkedKeypoints = movedIsBorder
-              ? nextKeypoints.map((keypoint) =>
-                  keypoint.position <= 1e-6 || keypoint.position >= 1 - 1e-6
-                    ? { ...keypoint, value: normalizedValue }
-                    : keypoint
-                )
-              : nextKeypoints;
-            const normalizedKeypoints = normalizeControllerCurveKeypoints(linkedKeypoints);
+            const normalizedKeypoints = normalizeControllerCurveKeypoints(nextKeypoints);
             pads[activePad] = {
               ...sourcePad,
               keypoints: normalizedKeypoints
@@ -921,14 +911,8 @@ export function createPerformanceControlStoreActions(
             const activePad = normalizePadIndex(controllerSequencer.activePad);
             const pads = controllerSequencer.pads.map((pad) => cloneControllerSequencerPad(pad));
             const sourcePad = pads[activePad] ?? fallbackControllerSequencerPadStateForSequencer(controllerSequencer);
-            const target = sourcePad.keypoints.find((keypoint) => keypoint.id === keypointId);
-            const isBorderTarget =
-              (target?.position ?? 0) <= 1e-6 || (target?.position ?? 0) >= 1 - 1e-6;
             const nextKeypoints = sourcePad.keypoints.map((keypoint) => {
               if (keypoint.id === keypointId) {
-                return { ...keypoint, value: normalizedValue };
-              }
-              if (isBorderTarget && (keypoint.position <= 1e-6 || keypoint.position >= 1 - 1e-6)) {
                 return { ...keypoint, value: normalizedValue };
               }
               return keypoint;

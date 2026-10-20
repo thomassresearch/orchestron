@@ -93,6 +93,27 @@ Supported interactions:
 - Double-click an interior point to remove it
 - Endpoints are boundary anchors (positions remain at start/end of the curve)
 
+Start and end values are independent. While dragging either endpoint, it snaps to the
+opposite endpoint's value when the difference is **3 CC units or less**. An amber
+horizontal guide, endpoint rings and an **Endpoint snap** value label show the snap.
+Hold **Shift** to disable snapping; pressing or releasing Shift also works without
+moving the pointer during a drag. Only the dragged endpoint changes. Numeric entry
+stays exact and never snaps. Interior points do not snap to the endpoints.
+
+To build continuous automation across pads, match each pad's end value to the next
+pad's start: for example, **20 → 50**, then **50 → 90**. Match a pad's own endpoints
+when it should repeat without a value jump. Repeating a pad with different endpoint
+values deliberately returns to its start value. Matching endpoint values does not
+guarantee matching curve slopes.
+
+![Independent curve endpoints](../../screenshots/perform_controller_curve_independent.png)
+
+![Endpoint snapping with the amber guide and value indicator](../../screenshots/perform_controller_curve_snap.png)
+
+Save/load, native bundles and MIDI/SCORE exports retain independent endpoint values.
+Existing closed curves keep their shape; an omitted end point still defaults to the
+start value. Curve playback continues to send only changed CC values.
+
 ### Visual Playback Indicators (When Running)
 
 When the main transport is running and the controller sequencer is enabled, the editor shows:

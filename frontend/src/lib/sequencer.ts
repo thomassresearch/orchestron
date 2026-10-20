@@ -492,12 +492,9 @@ export function normalizeControllerCurveKeypoints(raw: ControllerSequencerKeypoi
     startPoint = { id: "kp-start", position: 0, value: 0 };
   }
   if (!endPoint) {
-    endPoint = { id: "kp-end", position: 1, value: 0 };
+    // Retain the historical closed-curve fallback when no end was authored.
+    endPoint = { id: "kp-end", position: 1, value: startPoint.value };
   }
-
-  const boundaryValue = clampControllerCurveValue(startPoint?.value ?? endPoint?.value ?? 0);
-  startPoint.value = boundaryValue;
-  endPoint.value = boundaryValue;
 
   return [startPoint, ...interior, endPoint];
 }

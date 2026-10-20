@@ -33,3 +33,12 @@ The Runtime panel capture shows an active browser-clock session, with no notes p
 ## Pending refresh: instrument types and patch search
 
 The Instrument Type selector replaces Activation. Request a refreshed `instrument_patch_toolbar_tabs_actions.png` plus captures of the collapsed Load Patch groups and a search with matching groups expanded. Existing toolbar captures show the earlier UI and remain until replacements are provided.
+
+## Controller curve endpoints
+
+`perform_controller_curve_independent.png` shows different start/end values.
+`perform_controller_curve_snap.png` shows the amber guide, endpoint rings and value
+label during a drag within three CC units. Captured from the actual curve editor
+in an isolated browser harness, using temporary test data without loading or
+saving a library performance. Browser checks also verified stationary Shift
+press/release and exact numeric entry. The harness was removed after capture.

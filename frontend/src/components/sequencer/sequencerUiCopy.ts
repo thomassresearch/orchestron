@@ -173,6 +173,7 @@ export type SequencerUiCopy = {
   curveRate: string;
   controllerSequencerWithIndex: (index: number) => string;
   curveEditorHint: string;
+  curveSnapIndicator: string;
   removeCurvePoint: string;
   clickDragHint: string;
   dragVelocity: (value: number) => string;
@@ -419,7 +420,8 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     controllerNumber: "Controller #",
     value: "Value",
     curveRate: "Curve Rate",
-    curveEditorHint: "click to add points, drag vertically, double-click a point to remove",
+    curveEditorHint: "Click to add, drag to move, double-click to remove. Endpoints snap within 3 CC units; hold Shift to disable.",
+    curveSnapIndicator: "Endpoint snap",
     removeCurvePoint: "Remove curve point",
     clickDragHint: "click + drag up/down",
     dragVelocity: (value) => `velocity: ${value}`,
@@ -619,7 +621,8 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     controllerNumber: "Controller #",
     value: "Wert",
     curveRate: "Kurvenrate",
-    curveEditorHint: "Klicken, um Punkte zu setzen; vertikal ziehen; Doppelklick entfernt",
+    curveEditorHint: "Klicken setzt Punkte, Ziehen bewegt, Doppelklick entfernt. Endpunkte rasten innerhalb von 3 CC-Einheiten ein; Shift deaktiviert das Einrasten.",
+    curveSnapIndicator: "Endpunkt eingerastet",
     removeCurvePoint: "Kurvenpunkt entfernen",
     clickDragHint: "klicken + nach oben/unten ziehen",
     dragVelocity: (value) => `velocity: ${value}`,
@@ -819,7 +822,8 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     controllerNumber: "Controleur #",
     value: "Valeur",
     curveRate: "Vitesse courbe",
-    curveEditorHint: "cliquer pour ajouter, glisser verticalement, double-clic pour supprimer",
+    curveEditorHint: "Cliquer pour ajouter, glisser pour déplacer, double-clic pour supprimer. Les extrémités s’alignent à 3 unités CC près ; maintenir Maj pour désactiver.",
+    curveSnapIndicator: "Extrémité alignée",
     removeCurvePoint: "Supprimer point de courbe",
     clickDragHint: "cliquer + glisser haut/bas",
     dragVelocity: (value) => `velocite: ${value}`,
@@ -1019,7 +1023,8 @@ export const SEQUENCER_UI_COPY: Record<GuiLanguage, SequencerUiCopy> = {
     controllerNumber: "Controlador #",
     value: "Valor",
     curveRate: "Ritmo curva",
-    curveEditorHint: "clic para agregar, arrastrar verticalmente, doble clic para quitar",
+    curveEditorHint: "Clic para añadir, arrastrar para mover, doble clic para quitar. Los extremos se ajustan a 3 unidades CC; mantener Mayús desactiva el ajuste.",
+    curveSnapIndicator: "Extremo ajustado",
     removeCurvePoint: "Quitar punto de curva",
     clickDragHint: "clic + arrastrar arriba/abajo",
     dragVelocity: (value) => `velocidad: ${value}`,

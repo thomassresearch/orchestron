@@ -8581,3 +8581,32 @@ def test_input_value_precedence_reset_and_native_roundtrip(tmp_path: Path) -> No
         result = compile_current()
         assert result.status_code == 422
         assert "Missing required input 'left'" in result.text
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_performance_exports_preserve_independent_curve_endpoints(tmp_path: Path, event_source: str) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    payload["sequencerConfig"]["playback_end_step"] = 16
+    track = payload["sequencerConfig"]["controller_tracks"][0]
+    track.update(controller_mode="curve", target_channels=[1], pad_loop_enabled=True,
+                 pad_loop_repeat=False, pad_loop_sequence=[0, 1])
+    track["pads"] = [{"pad_index": i, "length_beats": 1, "keypoints": [
+        {"position": 0, "value": start}, {"position": 1, "value": end}]
+    } for i, (start, end) in enumerate([(20, 50), (50, 90)])]
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+    assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        if event_source == "score":
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+            values = [int(line.split()[5]) for line in csd.splitlines()
+                      if line.startswith("i 9000 ") and line.split()[4] == "1"]
+        else:
+            values = [m.value for _, m in _midi_messages_with_absolute_ticks(
+                archive.read("Offline_Export/Offline_Export.mid"))
+                if m.type == "control_change" and m.channel == 0 and m.control == 1]
+    assert values[0] == 20 and values[-1] == 90 and 50 in values
+    assert values == sorted(values)
+    assert max(b - a for a, b in zip(values, values[1:])) == 1
+    assert len(values) <= 72

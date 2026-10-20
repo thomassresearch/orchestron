@@ -30,7 +30,7 @@ function controllerCurveYToValue(y: number, height: number): number {
 }
 
 interface ControllerSequencerCurveEditorProps {
-  ui: Pick<SequencerUiCopy, "curveEditorHint" | "removeCurvePoint">;
+  ui: Pick<SequencerUiCopy, "curveEditorHint" | "removeCurvePoint" | "curveSnapIndicator">;
   controllerSequencer: ControllerSequencerState;
   playbackTransport:
     | {
@@ -52,6 +52,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
   onPointRemove
 }: ControllerSequencerCurveEditorProps) {
   const [width, setWidth] = useState(960);
+  const [snapValue, setSnapValue] = useState<number | null>(null);
   const height = 150;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<
@@ -60,6 +61,8 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         keypointId: string;
         startClientX: number;
         startClientY: number;
+        clientX: number;
+        clientY: number;
         startPosition: number;
         startValue: number;
         dragging: boolean;
@@ -210,6 +213,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
       return;
     }
     dragRef.current = null;
+    setSnapValue(null);
   }, []);
 
   const handlePointPointerDown = useCallback(
@@ -228,6 +232,8 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         keypointId,
         startClientX: event.clientX,
         startClientY: event.clientY,
+        clientX: event.clientX,
+        clientY: event.clientY,
         startPosition: keypoint.position,
         startValue: keypoint.value,
         dragging: false
@@ -237,13 +243,15 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     [controllerSequencer.keypoints]
   );
 
-  const handlePointPointerMove = useCallback(
-    (event: ReactPointerEvent<SVGCircleElement>) => {
+  const updateDrag = useCallback(
+    (clientX: number, clientY: number, shiftKey: boolean) => {
       const dragState = dragRef.current;
-      if (!dragState || dragState.pointerId !== event.pointerId) {
+      if (!dragState) {
         return;
       }
-      const dragDistance = Math.hypot(event.clientX - dragState.startClientX, event.clientY - dragState.startClientY);
+      dragState.clientX = clientX;
+      dragState.clientY = clientY;
+      const dragDistance = Math.hypot(clientX - dragState.startClientX, clientY - dragState.startClientY);
       if (!dragState.dragging && dragDistance < 3) {
         return;
       }
@@ -253,7 +261,6 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
           dragging: true
         };
       }
-      event.preventDefault();
       const svg = svgRef.current;
       const rect = svg?.getBoundingClientRect();
       if (!rect || rect.width <= 0 || rect.height <= 0) {
@@ -267,10 +274,16 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
       const currentKeypoint = sortedKeypoints[keypointIndex];
       const isStart = currentKeypoint.position <= 1e-6;
       const isEnd = currentKeypoint.position >= 1 - 1e-6;
-      const deltaX = event.clientX - dragState.startClientX;
-      const deltaY = event.clientY - dragState.startClientY;
+      const deltaX = clientX - dragState.startClientX;
+      const deltaY = clientY - dragState.startClientY;
       let nextPosition = clampControllerCurveUiPosition(dragState.startPosition + deltaX / rect.width);
-      const nextValue = clampMidiControllerValue(dragState.startValue + (-deltaY / rect.height) * 127);
+      let nextValue = clampMidiControllerValue(dragState.startValue + (-deltaY / rect.height) * 127);
+      const opposite = isStart ? sortedKeypoints[sortedKeypoints.length - 1] : isEnd ? sortedKeypoints[0] : undefined;
+      const snapped = !shiftKey && opposite !== undefined && Math.abs(nextValue - opposite.value) <= 3;
+      if (snapped) {
+        nextValue = opposite.value;
+      }
+      setSnapValue(snapped ? nextValue : null);
 
       if (isStart) {
         nextPosition = 0;
@@ -289,6 +302,40 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     },
     [controllerSequencer.keypoints, onPointChange]
   );
+
+  const handlePointPointerMove = useCallback((event: ReactPointerEvent<SVGCircleElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    updateDrag(event.clientX, event.clientY, event.shiftKey);
+  }, [updateDrag]);
+
+  useEffect(() => {
+    // Recalculate from the unsnapped pointer position even if Shift changes while stationary.
+    const onShift = (event: KeyboardEvent) => {
+      const drag = dragRef.current;
+      if (event.key === "Shift" && drag?.dragging) {
+        updateDrag(drag.clientX, drag.clientY, event.type === "keydown");
+      }
+    };
+    const onBlur = () => {
+      if (dragRef.current) releaseDrag(dragRef.current.pointerId);
+    };
+    window.addEventListener("keydown", onShift);
+    window.addEventListener("keyup", onShift);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onShift);
+      window.removeEventListener("keyup", onShift);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [releaseDrag, updateDrag]);
+
+  useEffect(() => {
+    dragRef.current = null;
+    setSnapValue(null);
+  }, [controllerSequencer.id, controllerSequencer.activePad]);
 
   const handlePointPointerUp = useCallback(
     (event: ReactPointerEvent<SVGCircleElement>) => {
@@ -405,6 +452,16 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
           strokeLinejoin="round"
         />
 
+        {snapValue !== null ? (
+          <g pointerEvents="none" aria-hidden="true">
+            <line x1={0} x2={width}
+              y1={controllerCurveValueToY(snapValue, height)} y2={controllerCurveValueToY(snapValue, height)}
+              stroke="#fbbf24" strokeWidth={2} strokeDasharray="6 4" />
+            {[0, width].map(x => <circle key={x} cx={x} cy={controllerCurveValueToY(snapValue, height)}
+              r={8} fill="none" stroke="#fbbf24" strokeWidth={2} />)}
+          </g>
+        ) : null}
+
         {playbackT !== null && playbackValue !== null ? (
           <>
             <line
@@ -453,7 +510,12 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
           );
         })}
       </svg>
-      <div className="mt-2 text-[10px] text-slate-500">{ui.curveEditorHint}</div>
+      <div className="mt-2 flex flex-wrap justify-between gap-2 text-[10px] text-slate-500">
+        <span>{ui.curveEditorHint}</span>
+        {snapValue !== null ? <span role="status" className="font-medium text-amber-300">
+          {ui.curveSnapIndicator}: {snapValue}
+        </span> : null}
+      </div>
     </div>
   );
 }, areControllerSequencerCurveEditorPropsEqual);

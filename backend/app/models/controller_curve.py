@@ -35,12 +35,14 @@ def normalize_controller_keypoints(
     )
 
     start_point: tuple[float, int] | None = None
+    end_point: tuple[float, int] | None = None
     interior: list[tuple[float, int]] = []
     for position, value in normalized:
         if position <= epsilon:
             start_point = (0.0, value)
             continue
         if position >= 1.0 - epsilon:
+            end_point = (1.0, value)
             continue
         if interior and abs(interior[-1][0] - position) <= epsilon:
             interior[-1] = (position, value)
@@ -50,8 +52,10 @@ def normalize_controller_keypoints(
     if start_point is None:
         start_point = (0.0, 0)
 
-    boundary_value = clamp_controller_value(start_point[1])
-    return ((0.0, boundary_value), *interior, (1.0, boundary_value))
+    # Missing ends keep the historical closed-curve fallback; explicit ends are independent.
+    if end_point is None:
+        end_point = (1.0, start_point[1])
+    return (start_point, *interior, end_point)
 
 
 def _catmull_rom_1d(p0: float, p1: float, p2: float, p3: float, t: float) -> float:

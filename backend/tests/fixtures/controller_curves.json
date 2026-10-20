@@ -71,7 +71,7 @@
       },
       {
         "position": 1.0,
-        "value": 110
+        "value": 20
       }
     ],
     "length_beats": 4,
@@ -1505,7 +1505,7 @@
       },
       {
         "position": 1.0,
-        "value": 127
+        "value": 10
       }
     ],
     "length_beats": 2,
