@@ -277,7 +277,11 @@ export function projectAudioBlocks(graph: PatchGraph, labels: { input: string; o
     members.set(id, pair);
     pair.forEach((n, i) => hidden.set(n.id, { group: id, port: i ? "right" : "left" }));
     const opcode = `${labels[group.direction]} · ${group.name} (${group.ports.join(" / ")})`;
-    synthetic.push({ id, opcode, params: {}, position: pair[0].position });
+    const params: NodeInstance["params"] = {};
+    if (group.direction === "output") pair.forEach((node, i) => {
+      if (Object.prototype.hasOwnProperty.call(node.params, "asignal")) params[i ? "right" : "left"] = node.params.asignal;
+    });
+    synthetic.push({ id, opcode, params, position: pair[0].position });
     const ports = ["left", "right"].map((id, i) => ({ id, name: group.ports[i], signal_type: "a" as const, required: true, description: group.ports[i] }));
     specs.push({ name: opcode, category: "audio", description: group.ports.join(" / "), inputs: group.direction === "output" ? ports : [], outputs: group.direction === "input" ? ports : [], icon: opcodes.find((s) => s.name === opcodeFor(group.direction))?.icon ?? "", documentation_markdown: group.name, documentation_url: `https://csound.com/docs/manual/${opcodeFor(group.direction)}.html`, template: "", tags: [] });
   }
@@ -307,7 +311,15 @@ export function projectAudioBlocks(graph: PatchGraph, labels: { input: string; o
     restore(next: PatchGraph): PatchGraph {
       const nodes = next.nodes.flatMap((n) => {
         const pair = members.get(n.id); if (!pair) return [n];
-        return pair.map((original) => ({ ...original, position: { x: original.position.x + n.position.x - pair[0].position.x, y: original.position.y + n.position.y - pair[0].position.y } }));
+        return pair.map((original, i) => {
+          const params = { ...original.params };
+          if (original.opcode === "outleta") {
+            const side = i ? "right" : "left";
+            if (Object.prototype.hasOwnProperty.call(n.params, side)) params.asignal = n.params[side];
+            else delete params.asignal;
+          }
+          return { ...original, params, position: { x: original.position.x + n.position.x - pair[0].position.x, y: original.position.y + n.position.y - pair[0].position.y } };
+        });
       });
       const layout = mapFormulas(next.ui_layout, restoreConnection);
       return reconcileAudioGraph(graph, { ...next, nodes, ui_layout: layout, connections: [...graph.connections.filter((c) => !visible(c) && nodes.some((n) => n.id === c.to_node_id)), ...next.connections.map(restoreConnection)] });

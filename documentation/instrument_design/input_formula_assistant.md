@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](graph_editor.md) | [Next](gen_table_editor.md)
 
-The Input Formula Assistant lets you define exactly how incoming signals are combined on a single target input.
+The Input Formula Assistant shows the effective value of an input and lets you edit a constant or define how incoming signals are combined.
 
 ## When To Use It
 
@@ -17,7 +17,7 @@ Examples:
 It is also useful for advanced cases with only one or even zero connected inputs:
 
 - One input: reshape or scale the signal (`ceil(in1)`, `in1 * 0.5`)
-- Zero inputs: provide a constant expression (`0.25`, `ampdb(6)`) as a formula-driven value
+- Zero inputs: edit a stored constant (`650`, `-0.25`, `1e-7`) or provide an expression (`ampdb(6)`)
 
 ## How To Open It
 
@@ -25,6 +25,22 @@ It is also useful for advanced cases with only one or even zero connected inputs
 - The assistant opens for that exact target node + target input port.
 
 ## What The Assistant Shows
+
+### Effective Value and Source
+
+The initial field follows the compiler’s precedence:
+
+| Source | Initial contents | Bright-green socket |
+| --- | --- | --- |
+| Saved formula | Saved expression | Yes |
+| Connected signals | Connection token or sum | No |
+| Stored value | Stored constant | Yes |
+| Catalog default | Inherited default | No |
+| Unset | Empty field | No |
+
+A stored value overridden by a connection or formula appears separately as an **Inactive stored fallback**. The **After reset** line previews what will control the input once both saved layers are removed. Boolean constants are editable as their numeric equivalents, `0` and `1`.
+
+![Editing the saxophone body filter’s stored CenterFreq of 650, with the reset default shown separately](../../screenshots/instrument_stored_input_editor.png)
 
 ### Connected Inputs (Token Mapping)
 
@@ -74,16 +90,23 @@ If validation fails:
 
 - The formula text area border changes to an error style
 - A list of validation errors is shown
-- `Save Formula` is disabled
+- `Save input` is disabled
 
-## Save / Clear / Cancel
+## Save / Reset / Cancel
 
-- `Save Formula`: stores the expression and token bindings for that target input
-- `Clear Formula`: removes the saved formula for the target input
-- `Cancel` / `Close`: closes the dialog without changing the saved formula
+- **Save input** stores an unconnected finite numeric literal directly as the input’s value, removing any previous formula. Scientific notation is accepted for these constants. Arithmetic expressions and values entered on connected inputs use formula metadata and replace the obsolete stored value. The formula language itself is unchanged.
+- **Reset input** removes both the stored value and saved formula for this input. Connections stay in place; otherwise the catalog default applies, or the input becomes unset. A required input without a remaining source fails compilation with a missing-input diagnostic.
+- **Cancel** / **Close** discards dialog edits. Opening the dialog alone does not modify the patch.
+
+### Specialized Inputs
+
+`maxalloc.icount` accepts only a numeric literal. String inputs use literal text editing. Disconnect a literal-only or string input before editing its literal value. Stereo channel names remain managed by Stereo Input / Stereo Output configuration, and `zfilter2` coefficients retain their dedicated inline list editor. Stored values remain visible in socket tooltips and highlighting for these inputs too.
+
+Collapsed Stereo Output blocks preserve the values and formulas on their underlying left/right audio inputs. Collapsed control-flow captures retain their existing edit restrictions.
 
 ## What Happens During Compile
 
+- Inputs resolve in this order: saved formula → connected signals → stored value → catalog default → unset.
 - If multiple connections target one input and **no** formula is defined, Orchestron falls back to summing the inbound signals.
 - If a formula exists, the compiler resolves the token bindings and compiles the expression.
 - Formula validation also happens backend-side, so invalid formulas fail compile with diagnostics.

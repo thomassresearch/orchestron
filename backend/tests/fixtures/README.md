@@ -54,6 +54,10 @@ their own in-memory copy.
   tuning, velocity-controlled overblowing, legato fallback, controller extremes,
   stereo headroom, native bundles and live/MIDI/SCORE playback. Native audio tests
   require the Csound STK plugin and `RAWWAVE_PATH` pointing to its rawwave data.
+  `tenor_saxophone_original.patch.json` preserves the pre-tuning sound. Paired
+  normal-register renders measure harmonics 3–10 independently of gain and breath
+  noise; the revised fixture also covers soft-register tuning and sustained low,
+  middle and high notes. Tests never load the example builder or its baseline files.
 
 The two flute/legato fixtures were recovered from Git revision `cd21a23^`, preserving
 the inputs for the existing audio assertions. Tests load the committed copies;

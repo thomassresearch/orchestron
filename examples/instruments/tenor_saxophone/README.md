@@ -2,6 +2,9 @@
 
 [Tenor Saxophone — Expressive Legato](Tenor_Saxophone_Expressive_Legato.orch.instrument.json)
 is an editable, sample-free Melody instrument built around Csound's STK reed model.
+The balanced acoustic revision combines a stronger upper-harmonic spectrum with
+velocity-sensitive reed stiffness and breath pressure. Its four controls and
+playing gestures retain their original ranges and defaults.
 Import the native file in **Instrument Design → Import**, or select its name from
 the local library after publishing. In Perform, route **Stereo Output → Master**.
 The instrument is dry and centered, with equal left and right channels; add a
@@ -62,6 +65,12 @@ Conectar Stereo Output a Master.
 
 ## Listening previews
 
+- [Before tuning, level matched](auditions/comparison_before.wav) and
+  [after tuning, level matched](auditions/comparison_after.wav) play the same
+  7.2-second phrase. Each complete performance receives one constant gain so
+  both previews have equal RMS while preserving their internal dynamics.
+  [Before, original level](auditions/comparison_before_raw.wav) and
+  [after, original level](auditions/comparison_after_raw.wav) retain the measured levels.
 - [Velocity and overblowing](auditions/velocity.wav): A♭2, C4 and E5, each at
   velocities 32, 64, 96, 108, 115, 120 and 127. Notes start at 0.15 s, spaced 0.75 s.
 - [Legato phrase](auditions/legato_host.wav): connected notes, a hard accent,
@@ -88,8 +97,24 @@ output to the current legato pitch. A second readout of the **same reed** shifts
 it one octave up for the velocity-controlled squeal blend. Pressure and aperture
 also change with that blend. This is a modeled overblown sound, not an additional
 independently played note. The model's upper-register tuning is compensated
-before synthesis. Fixed broad resonances at 650 and 1,800 Hz shape the tenor body
-after transposition; the final high-pass removes DC and sub-bass.
+before synthesis. Single-layer, peak-normalized resonances at **850 Hz / 600 Hz
+bandwidth** and **2,400 Hz / 1,200 Hz bandwidth** shape the body and presence after
+transposition. Their input mix is `0.8 × reed + 0.3 × body + 1.5 × presence`;
+the final high-pass removes DC and sub-bass.
+
+The reed-model blow-position value is **46** (previously 50), with reed aperture
+25 and velocity-sensitive stiffness `116 − 10 × velocity`. Breath pressure is
+`86 + 6 × velocity` before the phrase and tongue envelopes, plus the small existing
+growl/squeal adjustments. Here velocity is the MIDI value divided by 128.
+More extreme blow positions were rejected because they weakened the fundamental
+or jumped registers after phrase restarts. Lower breath-noise levels and a lower
+output gain balance the stronger excitation and presence response. The original
+10–35 ms tongue attack and 100 ms release remain intact.
+
+The [comparison measurements](validation/audio.json) cover 21 normal notes across
+seven pitches and three velocities. Harmonics 3–10 are measured separately from
+inter-harmonic noise, so increased gain or added hiss cannot count as richer
+harmonics. These measurements describe spectral change, not perceived realism.
 
 The readout introduces up to two source periods of delay (about 19 ms at A♭2).
 Wide connected leaps can color the timbre. The resulting sound is a synthesized
@@ -106,7 +131,8 @@ MPLCONFIGDIR=/tmp/orchestron-sax-mpl integrations/skills/orchestron-patch-creato
 ```
 
 Open all eight generated Mel/log-STFT images, inspect them against their MIDI
-timings, then record `spectrograms_inspected: true` in `validation/audio.json`.
+timings, plus the four before/after comparison images, then record
+`spectrograms_inspected: true` in `validation/audio.json`.
 Publish with `.venv/bin/python examples/instruments/tenor_saxophone/build_saxophone.py publish`.
 The publisher requires the validated graph hash, runs compile preflight, saves
 through the API, reads back the result and checks a native import preview. Its
@@ -118,5 +144,8 @@ example folder.
 The [raw graph](Tenor_Saxophone_Expressive_Legato.patch.json),
 [audio measurements](validation/audio.json) and
 [library verification](validation/library.json) accompany the native export.
+The [original patch](baseline/original.patch.json) and
+[original validation report](baseline/original_validation.json) remain available
+for reproduction; the updated tests use separate versioned snapshots of both sounds.
 Listening was not performed by the agent; numerical measurements and inspected
 spectrograms do not establish subjective realism.

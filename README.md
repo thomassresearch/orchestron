@@ -40,8 +40,10 @@ Start with a playable instrument, a drumset, an audio effect, an audio output pa
 Use [`midi_legato`](documentation/instrument_design/midi_legato.md) for monophonic instruments whose touching notes share a breath or envelope. Pitch changes immediately, velocity follows smoothly, and gaps start a new phrase.
 
 Play the [Expressive Tenor Saxophone](examples/instruments/tenor_saxophone/README.md)
-for a sample-free reed model with connected phrasing: soft velocities give breathy
-notes, harder playing adds growl, and velocities 115–127 bring out an overblown squeal.
+for a sample-free reed model with connected phrasing, fuller upper harmonics and
+velocity-sensitive reed response. Soft velocities give breathy notes, harder playing
+adds growl, and velocities 115–127 bring out an overblown squeal. The example guide
+includes level-matched previews of the original and balanced acoustic revision.
 
 Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_design/opcode_catalog_and_documentation.md#zdf-and-custom-iir-filters): modulate cutoff and resonance at audio rate, use simultaneous filter outputs, or supply custom IIR coefficients.
 
@@ -54,6 +56,8 @@ performance controls and neutral 0 dB defaults.
 Build composite waveforms with the [GEN19 table editor](documentation/instrument_design/gen_table_editor.md#gen19-sinusoidal-partials-with-dc-offset), setting each partial’s frequency ratio, strength, phase and DC offset.
 
 Hover over an instrument's description in Instrument Design to read the full text in a tooltip.
+
+Bright-green input sockets reveal active stored values and formulas. Double-click any editable input—even without a cable—to inspect its value and source, edit it, or **Reset input** to the remaining connections or catalog default. See the [input value and formula guide](documentation/instrument_design/input_formula_assistant.md).
 
 Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to hear an unfinished patch on its own or in the context of a performance before saving it. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
 

@@ -40,6 +40,13 @@ uses one continuous STK reed model with velocity-sensitive breath, reed response
 filtering and loudness. Play concert A♭2–E5 (MIDI 44–76); there is no automatic
 tenor transposition. Route **Stereo Output → Master** in Perform.
 
+The balanced acoustic revision retunes the reed's blow position, aperture,
+stiffness and pressure together, then adds body at 850 Hz and presence at 2,400 Hz.
+Normal velocities have a richer upper-harmonic spectrum, with restrained breath
+noise and output gain compensated for the stronger excitation. The example guide
+provides level-matched before/after previews; the four controls keep their IDs,
+ranges and defaults so existing performance overrides remain valid.
+
 Velocities 1–95 cover normal playing, 96–114 progressively add growl, and 115–127
 blend in a sustained overblown octave squeal. Hard connected notes can provoke
 the squeal; softer notes and held-note fallback restore their own velocity.

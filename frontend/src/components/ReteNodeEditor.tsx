@@ -8,16 +8,14 @@ import { ConnectionPlugin, Presets as ConnectionPresets } from "rete-connection-
 import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 
 import {
-  formulaTargetKey,
   GRAPH_FORMULA_LITERAL_IDENTIFIERS,
   GRAPH_FORMULA_UNARY_FUNCTIONS,
   readInputFormulaMap,
-  setInputFormulaConfig,
   tokenizeGraphFormula,
-  validateGraphFormulaExpression,
-  type GraphFormulaToken,
-  type InputFormulaBinding
+  type GraphFormulaToken
 } from "../lib/graphFormula";
+import { resolveInputValue, resetInputValue, saveInputValue, validateInputValue, numericInputLiteral, type InputValueState } from "../lib/inputValue";
+import { describeInputValue, inputValueCopy } from "../lib/inputValueCopy";
 import { getGenNodeConfig, setGenNodeConfig, type GenNodeConfig } from "../lib/genNodeConfig";
 import { getSfloadNodeConfig, setSfloadNodeConfig, type SfloadNodeConfig } from "../lib/sfloadNodeConfig";
 import { getDraggedOpcodeName, hasDraggedOpcode, getActiveDraggedOpcode, clearDraggedOpcode } from "../lib/opcodeDragDrop";
@@ -29,7 +27,7 @@ import { PerformanceControllerEditor } from "./PerformanceControllerEditor";
 import { performanceControllerCopy } from "../lib/performanceControllerCopy";
 import { GenNodeEditorModal } from "./GenNodeEditorModal";
 import { SfloadNodeEditorModal } from "./SfloadNodeEditorModal";
-import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, SignalType } from "../types";
+import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, PortSpec, SignalType } from "../types";
 
 type EditorHandle = {
   destroy: () => void;
@@ -64,9 +62,6 @@ export interface ReteNodeEditorProps {
 type ReteEditorCopy = {
   coefficients: string;
   showDocumentation: string;
-  optionalInput: string;
-  optionalInputWithFormula: string;
-  inputWithFormula: string;
   deleteSelectedElements: string;
   selectElementsToDelete: string;
   zoomOut: string;
@@ -75,7 +70,6 @@ type ReteEditorCopy = {
   scrollGraphVertically: string;
   fitFullGraphInView: string;
   fit: string;
-  inputCombineFormula: string;
   inputFormulaAssistant: string;
   close: string;
   connectedInputs: string;
@@ -83,15 +77,11 @@ type ReteEditorCopy = {
   insertNumber: string;
   numberPlaceholder: string;
   add: string;
-  formula: string;
   formulaPlaceholder: string;
   tokenSelection: string;
   noTokensYet: string;
   deleteSelection: string;
-  clearFormula: string;
   cancel: string;
-  saveFormula: string;
-  atLeastTwoSignalsForFormula: string;
   sourceLabel: string;
   sourcePrefix: string;
   opcodePrefix: string;
@@ -104,16 +94,12 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     scrollGraphHorizontally: "Scroll graph horizontally",
     scrollGraphVertically: "Scroll graph vertically",
     showDocumentation: "Show documentation",
-    optionalInput: "Optional input",
-    optionalInputWithFormula: "Optional input. Double-click to edit combine formula.",
-    inputWithFormula: "Double-click to edit combine formula.",
     deleteSelectedElements: "Delete selected elements",
     selectElementsToDelete: "Select elements to delete",
     zoomOut: "Zoom out",
     zoomIn: "Zoom in",
     fitFullGraphInView: "Fit full graph in view",
     fit: "Fit",
-    inputCombineFormula: "Input combine formula",
     inputFormulaAssistant: "Input Formula Assistant",
     close: "Close",
     connectedInputs: "Connected Inputs",
@@ -121,15 +107,11 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     insertNumber: "Insert Number",
     numberPlaceholder: "e.g. 0.5",
     add: "Add",
-    formula: "Formula",
     formulaPlaceholder: "Example: in1 + (in2 * 0.5)",
     tokenSelection: "Token Selection (click to select range)",
     noTokensYet: "No tokens yet.",
     deleteSelection: "Delete Selection",
-    clearFormula: "Clear Formula",
     cancel: "Cancel",
-    saveFormula: "Save Formula",
-    atLeastTwoSignalsForFormula: "At least two connected signals are required to configure a combine formula.",
     sourceLabel: "Source node",
     sourcePrefix: "Source",
     opcodePrefix: "Opcode",
@@ -140,16 +122,12 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     scrollGraphHorizontally: "Graph horizontal scrollen",
     scrollGraphVertically: "Graph vertikal scrollen",
     showDocumentation: "Dokumentation anzeigen",
-    optionalInput: "Optionaler Eingang",
-    optionalInputWithFormula: "Optionaler Eingang. Doppelklick zum Bearbeiten der Kombinationsformel.",
-    inputWithFormula: "Doppelklick zum Bearbeiten der Kombinationsformel.",
     deleteSelectedElements: "Ausgewaehlte Elemente loeschen",
     selectElementsToDelete: "Elemente zum Loeschen auswaehlen",
     zoomOut: "Herauszoomen",
     zoomIn: "Hereinzoomen",
     fitFullGraphInView: "Gesamten Graph einpassen",
     fit: "Einpassen",
-    inputCombineFormula: "Eingangs-Kombinationsformel",
     inputFormulaAssistant: "Eingangs-Formelassistent",
     close: "Schliessen",
     connectedInputs: "Verbundene Eingaenge",
@@ -157,16 +135,11 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     insertNumber: "Zahl einfuegen",
     numberPlaceholder: "z.B. 0.5",
     add: "Hinzufuegen",
-    formula: "Formel",
     formulaPlaceholder: "Beispiel: in1 + (in2 * 0.5)",
     tokenSelection: "Token-Auswahl (klicken, um Bereich zu markieren)",
     noTokensYet: "Noch keine Tokens.",
     deleteSelection: "Auswahl loeschen",
-    clearFormula: "Formel loeschen",
     cancel: "Abbrechen",
-    saveFormula: "Formel speichern",
-    atLeastTwoSignalsForFormula:
-      "Mindestens zwei verbundene Signale sind fuer eine Kombinationsformel erforderlich.",
     sourceLabel: "Quell-Node",
     sourcePrefix: "Quelle",
     opcodePrefix: "Opcode",
@@ -177,16 +150,12 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     scrollGraphHorizontally: "Faire défiler le graphe horizontalement",
     scrollGraphVertically: "Faire défiler le graphe verticalement",
     showDocumentation: "Afficher la documentation",
-    optionalInput: "Entree optionnelle",
-    optionalInputWithFormula: "Entree optionnelle. Double-clic pour editer la formule de combinaison.",
-    inputWithFormula: "Double-clic pour editer la formule de combinaison.",
     deleteSelectedElements: "Supprimer les elements selectionnes",
     selectElementsToDelete: "Selectionnez des elements a supprimer",
     zoomOut: "Zoom arriere",
     zoomIn: "Zoom avant",
     fitFullGraphInView: "Adapter tout le graphe",
     fit: "Ajuster",
-    inputCombineFormula: "Formule de combinaison d'entree",
     inputFormulaAssistant: "Assistant de formule d'entree",
     close: "Fermer",
     connectedInputs: "Entrees connectees",
@@ -194,16 +163,11 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     insertNumber: "Inserer nombre",
     numberPlaceholder: "ex. 0.5",
     add: "Ajouter",
-    formula: "Formule",
     formulaPlaceholder: "Exemple: in1 + (in2 * 0.5)",
     tokenSelection: "Selection de tokens (cliquer pour selectionner une plage)",
     noTokensYet: "Aucun token pour le moment.",
     deleteSelection: "Supprimer la selection",
-    clearFormula: "Effacer formule",
     cancel: "Annuler",
-    saveFormula: "Enregistrer formule",
-    atLeastTwoSignalsForFormula:
-      "Au moins deux signaux connectes sont requis pour definir une formule de combinaison.",
     sourceLabel: "Noeud source",
     sourcePrefix: "Source",
     opcodePrefix: "Opcode",
@@ -214,16 +178,12 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     scrollGraphHorizontally: "Desplazar el grafo horizontalmente",
     scrollGraphVertically: "Desplazar el grafo verticalmente",
     showDocumentation: "Mostrar documentacion",
-    optionalInput: "Entrada opcional",
-    optionalInputWithFormula: "Entrada opcional. Doble clic para editar la formula de combinacion.",
-    inputWithFormula: "Doble clic para editar la formula de combinacion.",
     deleteSelectedElements: "Eliminar elementos seleccionados",
     selectElementsToDelete: "Selecciona elementos para eliminar",
     zoomOut: "Alejar zoom",
     zoomIn: "Acercar zoom",
     fitFullGraphInView: "Ajustar grafo completo",
     fit: "Ajustar",
-    inputCombineFormula: "Formula de combinacion de entrada",
     inputFormulaAssistant: "Asistente de formula de entrada",
     close: "Cerrar",
     connectedInputs: "Entradas conectadas",
@@ -231,16 +191,11 @@ const RETE_EDITOR_COPY: Record<GuiLanguage, ReteEditorCopy> = {
     insertNumber: "Insertar numero",
     numberPlaceholder: "p.ej. 0.5",
     add: "Agregar",
-    formula: "Formula",
     formulaPlaceholder: "Ejemplo: in1 + (in2 * 0.5)",
     tokenSelection: "Seleccion de tokens (clic para seleccionar rango)",
     noTokensYet: "Aun no hay tokens.",
     deleteSelection: "Eliminar seleccion",
-    clearFormula: "Limpiar formula",
     cancel: "Cancelar",
-    saveFormula: "Guardar formula",
-    atLeastTwoSignalsForFormula:
-      "Se requieren al menos dos senales conectadas para configurar una formula de combinacion.",
     sourceLabel: "Nodo fuente",
     sourcePrefix: "Fuente",
     opcodePrefix: "Opcode",
@@ -324,12 +279,12 @@ const CONSTANT_INPUT_CSS = `
 type SocketGlyphProps = {
   optional: boolean;
   title?: string;
-  hasConfiguredFormula?: boolean;
+  hasStoredValue?: boolean;
   onDoubleClick?: () => void;
 };
 
-function SocketGlyph({ optional, title, hasConfiguredFormula, onDoubleClick }: SocketGlyphProps) {
-  const showFormulaHighlight = hasConfiguredFormula === true;
+function SocketGlyph({ optional, title, hasStoredValue, onDoubleClick }: SocketGlyphProps) {
+  const showValueHighlight = hasStoredValue === true;
   return (
     <div
       style={{ borderRadius: "18px", padding: "6px" }}
@@ -347,19 +302,25 @@ function SocketGlyph({ optional, title, hasConfiguredFormula, onDoubleClick }: S
         style={{
           display: "inline-block",
           cursor: "pointer",
-          border: showFormulaHighlight ? "1px solid #dcfce7" : "1px solid #f8fafc",
+          border: showValueHighlight ? "1px solid #dcfce7" : "1px solid #f8fafc",
           borderRadius: "12px",
           width: "24px",
           height: "24px",
           verticalAlign: "middle",
           boxSizing: "border-box",
-          background: showFormulaHighlight ? "#22c55e" : optional ? "rgba(148, 163, 184, 0.35)" : "#96b38a",
-          opacity: showFormulaHighlight ? 1 : optional ? 0.62 : 1,
-          boxShadow: showFormulaHighlight ? "0 0 0 2px rgba(34, 197, 94, 0.35)" : "none"
+          background: showValueHighlight ? "#22c55e" : optional ? "rgba(148, 163, 184, 0.35)" : "#96b38a",
+          opacity: showValueHighlight ? 1 : optional ? 0.62 : 1,
+          boxShadow: showValueHighlight ? "0 0 0 2px rgba(34, 197, 94, 0.35)" : "none"
         }}
       />
     </div>
   );
+}
+
+function NonInteractiveConnection(props: any) {
+  return <span data-pseudo-connection style={{ pointerEvents: "none" }}>
+    <ReactPresets.classic.Connection {...props} styles={() => "pointer-events: none;"} />
+  </span>;
 }
 
 function socketForType(sockets: Record<SignalType, ClassicPreset.Socket>, type: SignalType) {
@@ -436,10 +397,6 @@ function graphStructureKey(graph: PatchGraph): string {
   return `${nodePart}|${connectionPart}|${JSON.stringify(graph.control_flow ?? {})}|${JSON.stringify(graph.ui_layout.control_flow_blocks ?? {})}`;
 }
 
-function sourceBindingKey(fromNodeId: string, fromPortId: string): string {
-  return `${fromNodeId}|${fromPortId}`;
-}
-
 interface FormulaEditorInput {
   token: string;
   fromNodeId: string;
@@ -449,6 +406,9 @@ interface FormulaEditorInput {
 }
 
 interface FormulaEditorState {
+  port: PortSpec;
+  valueState: InputValueState;
+  resetState: InputValueState;
   targetNodeId: string;
   targetNodeLabel: string;
   targetPortId: string;
@@ -467,14 +427,6 @@ interface GenEditorState {
 interface SfloadEditorState {
   nodeId: string;
   config: SfloadNodeConfig;
-}
-
-function nextAvailableToken(existing: Set<string>): string {
-  let index = 1;
-  while (existing.has(`in${index}`)) {
-    index += 1;
-  }
-  return `in${index}`;
 }
 
 function sourceLabelForConnection(
@@ -524,6 +476,7 @@ export function ReteNodeEditor({
   branchActions
 }: ReteNodeEditorProps) {
   const copy = RETE_EDITOR_COPY[guiLanguage];
+  const valueCopy = inputValueCopy(guiLanguage);
   const flowCopy = controlFlowCopy(guiLanguage);
   const resolvedGraphLabel = typeof graphLabel === "string" ? graphLabel.trim() : "";
   const resolvedGraphBadgeLabel = typeof graphBadgeLabel === "string" ? graphBadgeLabel.trim() : "";
@@ -557,13 +510,9 @@ export function ReteNodeEditor({
   // Graph projections recreate arrays during drags. Rebuild Rete only when port metadata changes.
   const opcodeKey = JSON.stringify(opcodes);
   const opcodeByName = useMemo(() => new Map((JSON.parse(opcodeKey) as OpcodeSpec[]).map((opcode) => [opcode.name, opcode])), [opcodeKey]);
-  const formulaKeysJson = JSON.stringify(Object.keys(readInputFormulaMap(graph.ui_layout)).sort());
-  const configuredFormulaTargetKeys = useMemo<string[]>(() => JSON.parse(formulaKeysJson), [formulaKeysJson]);
-  const configuredFormulaTargetKeySet = useMemo(
-    () => new Set(configuredFormulaTargetKeys),
-    [configuredFormulaTargetKeys]
-  );
-  const formulaSocketHighlightKey = configuredFormulaTargetKeys.join(";");
+  const inputPresentationKey = JSON.stringify(graph.nodes.map((node) => [node.id, node.params,
+    Object.entries(readInputFormulaMap(graph.ui_layout)).filter(([key]) => key.startsWith(`${node.id}::`))]));
+  const previousInputPresentation = useRef(new Map<string, string>());
 
   const updateGraph = useCallback(
     (updater: (current: PatchGraph) => PatchGraph) => {
@@ -583,78 +532,22 @@ export function ReteNodeEditor({
       }
 
       const targetSpec = opcodeByName.get(targetNode.opcode);
-      const targetPortLabel = targetSpec?.inputs.find((input) => input.id === targetPortId)?.name ?? targetPortId;
-      const targetNodeLabel = targetSpec?.name ?? targetNode.opcode;
-
-      const inboundConnections = graphState.connections.filter(
-        (connection) => connection.to_node_id === targetNodeId && connection.to_port_id === targetPortId
-      );
-
-      const formulaMap = readInputFormulaMap(graphState.ui_layout);
-      const targetKey = formulaTargetKey(targetNodeId, targetPortId);
-      const storedFormula = formulaMap[targetKey];
-
-      const availableBySource = new Map<string, Connection>();
-      for (const connection of inboundConnections) {
-        availableBySource.set(sourceBindingKey(connection.from_node_id, connection.from_port_id), connection);
-      }
-
-      const usedSources = new Set<string>();
-      const usedTokens = new Set<string>();
-      const inputs: FormulaEditorInput[] = [];
-
-      if (storedFormula?.inputs?.length) {
-        for (const binding of storedFormula.inputs) {
-          const sourceKey = sourceBindingKey(binding.from_node_id, binding.from_port_id);
-          const connection = availableBySource.get(sourceKey);
-          if (!connection || usedSources.has(sourceKey) || usedTokens.has(binding.token)) {
-            continue;
-          }
-          const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName, copy);
-          usedSources.add(sourceKey);
-          usedTokens.add(binding.token);
-          inputs.push({
-            token: binding.token,
-            fromNodeId: binding.from_node_id,
-            fromPortId: binding.from_port_id,
-            label: sourceLabel.label,
-            details: sourceLabel.details
-          });
-        }
-      }
-
-      for (const connection of inboundConnections) {
-        const sourceKey = sourceBindingKey(connection.from_node_id, connection.from_port_id);
-        if (usedSources.has(sourceKey)) {
-          continue;
-        }
-        const token = nextAvailableToken(usedTokens);
-        const sourceLabel = sourceLabelForConnection(connection, graphState, opcodeByName, copy);
-        usedSources.add(sourceKey);
-        usedTokens.add(token);
-        inputs.push({
-          token,
-          fromNodeId: connection.from_node_id,
-          fromPortId: connection.from_port_id,
-          label: sourceLabel.label,
-          details: sourceLabel.details
-        });
-      }
-
-      const defaultExpression = inputs.map((input) => input.token).join(" + ");
-      const expression = typeof storedFormula?.expression === "string" ? storedFormula.expression : defaultExpression;
-      const initialExpression = expression.trim().length > 0 ? expression : defaultExpression;
-
+      const port = targetSpec?.inputs.find((input) => input.id === targetPortId);
+      if (!port || presentationRef.current.readOnlyInputs?.has(`${targetNodeId}::${targetPortId}`)) return;
+      const valueState = resolveInputValue(graphState, targetNode, port);
+      if (valueState.mode === "managed" || valueState.mode === "coefficients") return;
+      const resetGraph = resetInputValue(graphState, targetNodeId, targetPortId);
+      const resetState = resolveInputValue(resetGraph, resetGraph.nodes.find((node) => node.id === targetNodeId)!, port);
+      const inputs = valueState.bindings.map((binding) => {
+        const source = sourceLabelForConnection({ ...binding, to_node_id: targetNodeId, to_port_id: targetPortId }, graphState, opcodeByName, copy);
+        return { token: binding.token, fromNodeId: binding.from_node_id, fromPortId: binding.from_port_id, ...source };
+      });
+      const initialExpression = valueState.expression;
       setFormulaNumberDraft("1");
       setFormulaEditor({
-        targetNodeId,
-        targetNodeLabel,
-        targetPortId,
-        targetPortLabel,
-        expression: initialExpression,
-        inputs,
-        selectionStart: initialExpression.length,
-        selectionEnd: initialExpression.length
+        targetNodeId, targetNodeLabel: targetSpec!.name, targetPortId, targetPortLabel: port.name,
+        port, valueState, resetState, expression: initialExpression, inputs,
+        selectionStart: initialExpression.length, selectionEnd: initialExpression.length
       });
 
       requestAnimationFrame(() => {
@@ -673,18 +566,16 @@ export function ReteNodeEditor({
     if (!formulaEditor) {
       return null;
     }
-    const tokenSet = new Set(formulaEditor.inputs.map((input) => input.token));
-    const baseValidation = validateGraphFormulaExpression(formulaEditor.expression, tokenSet);
-    return {
-      isValid: baseValidation.isValid,
-      errors: [...baseValidation.errors],
-      tokens: baseValidation.tokens
-    };
+    return validateInputValue(formulaEditor.valueState, formulaEditor.expression);
   }, [formulaEditor]);
 
   const formulaTokens = useMemo<GraphFormulaToken[]>(() => {
     if (!formulaEditor) {
       return [];
+    }
+    if (formulaEditor.valueState.mode !== "expression") return [];
+    if (!formulaEditor.inputs.length && numericInputLiteral(formulaEditor.expression) !== null) {
+      return [{ type: "number", value: formulaEditor.expression, start: 0, end: formulaEditor.expression.length }];
     }
     return tokenizeGraphFormula(formulaEditor.expression).tokens;
   }, [formulaEditor]);
@@ -788,31 +679,13 @@ export function ReteNodeEditor({
       return;
     }
 
-    const targetKey = formulaTargetKey(formulaEditor.targetNodeId, formulaEditor.targetPortId);
-    const bindings: InputFormulaBinding[] = formulaEditor.inputs.map((input) => ({
-      token: input.token,
-      from_node_id: input.fromNodeId,
-      from_port_id: input.fromPortId
-    }));
-    const expression = formulaEditor.expression.trim();
-
-    updateGraph((currentGraph) => ({
-      ...currentGraph,
-      ui_layout: setInputFormulaConfig(currentGraph.ui_layout, targetKey, { expression, inputs: bindings })
-    }));
+    updateGraph((currentGraph) => saveInputValue(currentGraph, formulaEditor.targetNodeId, formulaEditor.port, formulaEditor.expression));
     setFormulaEditor(null);
   }, [formulaEditor, formulaValidation?.isValid, updateGraph]);
 
-  const clearFormulaEditor = useCallback(() => {
-    if (!formulaEditor) {
-      return;
-    }
-
-    const targetKey = formulaTargetKey(formulaEditor.targetNodeId, formulaEditor.targetPortId);
-    updateGraph((currentGraph) => ({
-      ...currentGraph,
-      ui_layout: setInputFormulaConfig(currentGraph.ui_layout, targetKey, null)
-    }));
+  const resetFormulaEditor = useCallback(() => {
+    if (!formulaEditor) return;
+    updateGraph((currentGraph) => resetInputValue(currentGraph, formulaEditor.targetNodeId, formulaEditor.targetPortId));
     setFormulaEditor(null);
   }, [formulaEditor, updateGraph]);
 
@@ -1203,44 +1076,24 @@ export function ReteNodeEditor({
                 return <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />;
               };
             },
+            connection(context) {
+              return (context.payload as { isPseudo?: boolean }).isPseudo ? NonInteractiveConnection : ReactPresets.classic.Connection;
+            },
             socket(context) {
-              const optionalPorts = optionalInputPortsByReteNode.get(String(context.nodeId));
-              const isOptionalInput = context.side === "input" && Boolean(optionalPorts?.has(context.key));
-              const patchNodeId = reteToPatchRef.current.get(String(context.nodeId));
-              const readOnly = presentationRef.current.readOnlyInputs?.has(`${patchNodeId}::${context.key}`);
-              const coefficientList = context.key === "icoeffs" && graphRef.current.nodes.some(
-                (node) => node.id === patchNodeId && node.opcode === "zfilter2"
-              );
-              const hasFormulaAssistant = Boolean(patchNodeId && context.side === "input" && !readOnly && !coefficientList);
-              const hasConfiguredFormula =
-                context.side === "input" && patchNodeId
-                  ? configuredFormulaTargetKeySet.has(formulaTargetKey(patchNodeId, context.key))
-                  : false;
-              const socketTitle = coefficientList ? copy.coefficients : readOnly ? presentationRef.current.readOnlyInputLabel : hasFormulaAssistant
-                ? isOptionalInput
-                  ? copy.optionalInputWithFormula
-                  : copy.inputWithFormula
-                : isOptionalInput
-                  ? copy.optionalInput
-                  : undefined;
               return function StyledSocket() {
-                return (
-                  <SocketGlyph
-                    optional={isOptionalInput}
-                    title={socketTitle}
-                    hasConfiguredFormula={hasConfiguredFormula}
-                    onDoubleClick={
-                      hasFormulaAssistant
-                        ? () => {
-                            if (!patchNodeId) {
-                              return;
-                            }
-                            openFormulaEditor(patchNodeId, context.key);
-                          }
-                        : undefined
-                    }
-                  />
-                );
+                const optional = context.side === "input" && Boolean(optionalInputPortsByReteNode.get(String(context.nodeId))?.has(context.key));
+                const patchNodeId = reteToPatchRef.current.get(String(context.nodeId));
+                const node = graphRef.current.nodes.find((item) => item.id === patchNodeId);
+                const port = node && opcodeByName.get(node.opcode)?.inputs.find((input) => input.id === context.key);
+                const state = context.side === "input" && node && port ? resolveInputValue(graphRef.current, node, port) : undefined;
+                const readOnly = presentationRef.current.readOnlyInputs?.has(`${patchNodeId}::${context.key}`);
+                const labels = inputValueCopy(guiLanguage);
+                const help = readOnly ? presentationRef.current.readOnlyInputLabel : state?.mode === "managed" ? labels.managed
+                  : state?.mode === "coefficients" ? labels.coefficients : labels.edit;
+                const title = state ? `${describeInputValue(state, guiLanguage)}\n${help}` : undefined;
+                const editable = state && !readOnly && state.mode !== "managed" && state.mode !== "coefficients";
+                return <SocketGlyph optional={optional} title={title} hasStoredValue={state?.highlighted}
+                  onDoubleClick={editable ? () => { connection.drop(); openFormulaEditor(patchNodeId!, context.key); } : undefined} />;
               };
             }
           }
@@ -1729,7 +1582,6 @@ export function ReteNodeEditor({
     onSelectionChange,
     resolvedOpcodeHelpLabel,
     structureKey,
-    formulaSocketHighlightKey,
     viewportKey,
     syncZoomPercent,
     snapshotViewport,
@@ -1738,9 +1590,22 @@ export function ReteNodeEditor({
     openGenEditor,
     openSfloadEditor,
     opcodeByName,
-    configuredFormulaTargetKeySet,
     updateGraph
   ]);
+
+  // Refresh presentation only; parameter edits must not destroy the canvas or its selection.
+  useEffect(() => {
+    const formulas = readInputFormulaMap(graphRef.current.ui_layout);
+    const next = new Map(graphRef.current.nodes.map((node) => [node.id, JSON.stringify([node.params,
+      Object.entries(formulas).filter(([key]) => key.startsWith(`${node.id}::`))])]));
+    const previous = previousInputPresentation.current;
+    previousInputPresentation.current = next;
+    const area = areaRef.current;
+    if (!area || initializingRef.current) return;
+    for (const [reteId, patchId] of reteToPatchRef.current) {
+      if (previous.get(patchId) !== next.get(patchId)) void area.update("node", reteId);
+    }
+  }, [inputPresentationKey]);
 
   const nodeTitlesKey = JSON.stringify(nodeTitles ?? {});
   useEffect(() => {
@@ -1890,7 +1755,7 @@ export function ReteNodeEditor({
             onMouseDown={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label={copy.inputCombineFormula}
+            aria-label={valueCopy.title}
           >
             <header className="flex items-start justify-between gap-3 border-b border-slate-700 px-4 py-3">
               <div>
@@ -1908,8 +1773,15 @@ export function ReteNodeEditor({
               </button>
             </header>
 
-            <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 lg:grid-cols-[280px_1fr]">
-              <aside className="space-y-3">
+            <div className="space-y-1 border-b border-slate-700 px-4 py-3 text-sm" data-testid="input-value-source">
+              <p>{describeInputValue(formulaEditor.valueState, guiLanguage)}</p>
+              {formulaEditor.valueState.storedValue !== undefined && ["connections", "formula"].includes(formulaEditor.valueState.source) &&
+                <p className="text-slate-400">{valueCopy.fallback}: {String(formulaEditor.valueState.storedValue)}</p>}
+              <p className="text-slate-400">{valueCopy.afterReset}: {describeInputValue(formulaEditor.resetState, guiLanguage)}
+                {formulaEditor.resetState.source === "unset" && formulaEditor.port.required ? ` — ${valueCopy.required}` : ""}</p>
+            </div>
+            <div className={`grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto p-4 ${formulaEditor.valueState.mode === "expression" ? "lg:grid-cols-[280px_1fr]" : ""}`}>
+              {formulaEditor.valueState.mode === "expression" && <aside className="space-y-3">
                 <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{copy.connectedInputs}</div>
                   <div className="space-y-2">
@@ -1993,11 +1865,11 @@ export function ReteNodeEditor({
                     </button>
                   </div>
                 </div>
-              </aside>
+              </aside>}
 
               <section className="flex min-h-0 flex-col gap-3">
                 <label className="flex min-h-0 flex-1 flex-col gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{copy.formula}</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{formulaEditor.valueState.mode === "string" ? valueCopy.string : formulaEditor.valueState.mode === "number" ? valueCopy.number : valueCopy.value}</span>
                   <textarea
                     ref={formulaEditorTextareaRef}
                     value={formulaEditor.expression}
@@ -2029,11 +1901,11 @@ export function ReteNodeEditor({
                     className={`min-h-[180px] w-full rounded-lg border bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring ${
                       formulaValidation?.isValid ? "border-slate-600" : "border-rose-500/70"
                     }`}
-                    placeholder={copy.formulaPlaceholder}
+                    placeholder={formulaEditor.valueState.mode === "expression" ? copy.formulaPlaceholder : undefined}
                   />
                 </label>
 
-                <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
+                {formulaEditor.valueState.mode === "expression" && <div className="rounded-xl border border-slate-700 bg-slate-950/60 p-3">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                     {copy.tokenSelection}
                   </div>
@@ -2068,8 +1940,9 @@ export function ReteNodeEditor({
                       {copy.deleteSelection}
                     </button>
                   </div>
-                </div>
+                </div>}
 
+                {formulaValidation?.error && <p role="alert" className="text-sm text-rose-300">{formulaValidation.error === "number" ? valueCopy.numberError : valueCopy.connectedLiteral}</p>}
                 {!formulaValidation?.isValid && formulaValidation?.errors.length ? (
                   <div className="rounded-xl border border-rose-500/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">
                     {formulaValidation.errors.map((error, index) => (
@@ -2083,10 +1956,10 @@ export function ReteNodeEditor({
             <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-700 px-4 py-3">
               <button
                 type="button"
-                onClick={clearFormulaEditor}
+                onClick={resetFormulaEditor}
                 className="rounded-lg border border-amber-500/60 bg-amber-950/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200 transition hover:bg-amber-900/40"
               >
-                {copy.clearFormula}
+                {valueCopy.reset}
               </button>
               <div className="flex items-center gap-2">
                 <button
@@ -2102,7 +1975,7 @@ export function ReteNodeEditor({
                   onClick={saveFormulaEditor}
                   className="rounded-lg border border-accent/70 bg-accent/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/30 disabled:opacity-40"
                 >
-                  {copy.saveFormula}
+                  {valueCopy.save}
                 </button>
               </div>
             </footer>

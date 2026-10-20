@@ -337,6 +337,12 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
 - The delete action only removes explicitly selected nodes or cables; casual socket interaction is intentionally prevented from tearing down existing wiring.
 - Constant nodes expose inline value editing, so simple control or init values can be adjusted without opening another inspector.
 
+### Stored Values and Formulas
+
+Bright-green inputs have an active stored value or formula, including stored zero or a value equal to the catalog default. Hover to see the source and value. Double-click with zero, one or multiple connections to edit. The field follows: formula → connected signals → stored value → catalog default → unset. An overridden stored value is labelled as an inactive fallback.
+
+**Save input** stores unconnected numeric literals (including scientific notation) as values; arithmetic and connected expressions as formulas. **Reset input** removes both the formula and stored value, preserving cables. **After reset** previews the result. **Cancel** changes nothing. Literal-only inputs, text inputs, stereo names and coefficient lists retain their specialized editors and restrictions.
+
 ### Combining Multiple Signals On One Input
 
 If multiple signals are connected to the **same input** of an opcode:
@@ -361,6 +367,12 @@ If multiple signals are connected to the **same input** of an opcode:
 - Verbindungen sollten kompatiblen Port-Typen folgen, aber der Backend-Compiler bleibt die letzte Instanz fuer fehlende Eingänge, ungueltige Formeln und Compile-Fehler.
 - Die Delete-Aktion entfernt nur explizit ausgewaehlte Nodes oder Kabel; lockere Socket-Interaktionen sollen bestehendes Wiring bewusst nicht versehentlich zerreissen.
 - Constant-Nodes erlauben Inline-Wertbearbeitung, damit einfache Control- oder Init-Werte ohne zusaetzlichen Inspector angepasst werden koennen.
+
+### Gespeicherte Werte und Formeln
+
+Hellgrüne Eingänge haben einen aktiven gespeicherten Wert oder eine Formel, auch bei null oder einem Wert gleich dem Katalogstandard. Beim Überfahren erscheinen Quelle und Wert. Doppelklick öffnet den Editor mit null, einer oder mehreren Verbindungen. Es gilt: Formel → verbundene Signale → gespeicherter Wert → Katalogstandard → nicht gesetzt. Überschriebene Werte erscheinen als inaktive gespeicherte Ersatzwerte.
+
+**Eingang speichern** speichert unverbundene Zahlen (auch in wissenschaftlicher Schreibweise) als Werte, arithmetische und verbundene Ausdrücke als Formeln. **Eingang zurücksetzen** entfernt Formel und Wert und erhält die Kabel. **Nach dem Zurücksetzen** zeigt das Ergebnis vorab. **Abbrechen** ändert nichts. Eingänge für feste Zahlen, Texteingänge, Stereonamen und Koeffizientenlisten behalten ihre speziellen Editoren und Einschränkungen.
 
 ### Mehrere Signale auf demselben Eingang kombinieren
 
@@ -387,6 +399,12 @@ Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 - L'action de suppression ne retire que les nœuds ou cables explicitement selectionnes ; une interaction normale avec les sockets ne doit pas casser le cablage existant par accident.
 - Les nœuds constants exposent une edition inline des valeurs, ce qui permet d'ajuster des valeurs simples de controle ou d'init sans ouvrir un autre inspecteur.
 
+### Valeurs et formules enregistrées
+
+Les entrées vert vif ont une valeur ou une formule enregistrée active, y compris zéro ou une valeur égale à celle du catalogue. Survolez pour voir la source et la valeur. Double-cliquez avec zéro, une ou plusieurs connexions pour modifier. Priorité : formule → signaux connectés → valeur enregistrée → valeur par défaut du catalogue → non défini. Une valeur remplacée apparaît comme valeur de repli inactive.
+
+**Enregistrer l’entrée** stocke les nombres sans connexion (notation scientifique comprise) comme valeurs, et les expressions arithmétiques ou connectées comme formules. **Réinitialiser l’entrée** supprime formule et valeur, en conservant les câbles. **Après réinitialisation** indique le résultat à l’avance. **Annuler** ne change rien. Les entrées littérales, textes, noms stéréo et listes de coefficients conservent leurs éditeurs et restrictions spécifiques.
+
 ### Combiner plusieurs signaux sur la même entrée
 
 Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
@@ -411,6 +429,12 @@ Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 - Las conexiones deben seguir tipos de puerto compatibles, pero el compilador del backend sigue siendo la referencia final para entradas faltantes, formulas invalidas y errores de compilacion.
 - La accion de borrar solo elimina nodos o cables seleccionados de forma explicita; una interaccion casual con sockets no debe romper el cableado existente por accidente.
 - Los nodos constantes exponen edicion inline de valores para ajustar controles o valores init simples sin abrir otro inspector.
+
+### Valores y fórmulas guardados
+
+Las entradas de color verde brillante tienen un valor o fórmula guardado activo, incluido cero o un valor igual al predeterminado del catálogo. Pasa el cursor para ver la fuente y el valor. Haz doble clic con cero, una o varias conexiones para editar. Prioridad: fórmula → señales conectadas → valor guardado → valor predeterminado del catálogo → sin definir. Un valor reemplazado aparece como respaldo guardado inactivo.
+
+**Guardar entrada** guarda números sin conexión (incluida la notación científica) como valores, y expresiones aritméticas o conectadas como fórmulas. **Restablecer entrada** elimina fórmula y valor, conservando los cables. **Después de restablecer** muestra el resultado previsto. **Cancelar** no cambia nada. Las entradas literales, textos, nombres estéreo y listas de coeficientes mantienen sus editores y restricciones específicos.
 
 ### Combinar múltiples señales en la misma entrada
 

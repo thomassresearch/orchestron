@@ -17,6 +17,45 @@ def dump(path, value):
     path.write_text(json.dumps(value, indent=2) + "\n")
 
 
+def compare_baseline(work, patch, legato):
+    from backend.app.models.patch import PatchDocument
+    from backend.tests.saxophone_audio_support import (
+        compile_instruments, render, note_events, section, upper_harmonic_fraction, rms, db,
+    )
+    from build_saxophone import graph_hash
+
+    baseline = PatchDocument.model_validate_json((HERE / "baseline/original.patch.json").read_text())
+    notes = [(.15 + i * .8, note, velocity, .6)
+             for i, (note, velocity) in enumerate((n, v) for n in [44, 48, 55, 60, 67, 72, 76]
+                                                 for v in [64, 80, 96])]
+    report = {"notes": notes, "baseline_graph_sha256": graph_hash(baseline.graph.model_dump(mode="json"))}
+    for name, source in [("before", baseline), ("after", patch)]:
+        artifact, targets = compile_instruments([source], mode="host")
+        audio, _ = render(artifact, targets, note_events(notes), 17.5, mode="host")
+        np.save(work / f"spectrum_{name}.npy", audio)
+        rows = []
+        for start, note, velocity, _ in notes:
+            segment = section(audio, start + .3, start + .56)
+            rows.append(dict(note=note, velocity=velocity,
+                             upper_harmonic_fraction=upper_harmonic_fraction(segment, 440 * 2 ** ((note - 69) / 12))))
+        report[name] = rows
+    artifact, targets = compile_instruments([baseline], mode="host")
+    before, _ = render(artifact, targets, note_events(legato), 7.2, mode="host")
+    after = np.load(work / "legato_host.npy")
+    np.save(work / "comparison_before_raw.npy", before)
+    np.save(work / "comparison_after_raw.npy", after)
+    # One gain per complete performance retains musical dynamics. Keep both
+    # previews at the same RMS, with at least 3 dB peak headroom after matching.
+    target = min(10 ** (-23 / 20), *(0.65 * rms(a) / abs(a).max() for a in [before, after]))
+    gains = {}
+    for name, audio in [("before", before), ("after", after)]:
+        gain = target / rms(audio)
+        np.save(work / f"comparison_{name}.npy", audio * gain)
+        gains[name] = gain
+    report.update(preview_gain=gains, preview_rms_dbfs=db(target), listening_performed=False)
+    return report
+
+
 def render_auditions(work):
     from build_saxophone import CONTROLS, STEM, graph_hash
     from backend.app.models.patch import PatchDocument
@@ -78,7 +117,8 @@ def render_auditions(work):
     assert spread < 1, spread
     dump(HERE / "validation/render.json", dict(passed=True, graph_sha256=graph_hash(patch.graph.model_dump(mode="json")),
                                                auditions=reports, tuning=tuning, velocity_response=velocity_results,
-                                               input_mode_rms_spread_db=spread))
+                                               input_mode_rms_spread_db=spread,
+                                               comparison=compare_baseline(work, patch, legato)))
 
 
 def analyze(work):
@@ -99,12 +139,19 @@ def analyze(work):
         sf.write(auditions / (name + ".wav"), audio, 48000, subtype="FLOAT")
         images.extend(render_images(analyze_audio(audio, 48000, settings), settings,
                                     Path(name + ".wav"), HERE / "validation"))
+    for name in ["comparison_before", "comparison_after", "comparison_before_raw", "comparison_after_raw",
+                 "spectrum_before", "spectrum_after"]:
+        audio = np.load(work / (name + ".npy"))
+        sf.write(auditions / (name + ".wav"), audio, 48000, subtype="FLOAT")
+        if name in {"comparison_before", "comparison_after"}:
+            images.extend(render_images(analyze_audio(audio, 48000, settings), settings,
+                                        Path(name + ".wav"), HERE / "validation"))
     report.update(spectrograms_inspected=False, listening_performed=False,
                   controller_montage=[dict(name=r["name"], start=i * 2.5, end=(i + 1) * 2.5) for i, r in enumerate(controls)],
                   spectrogram_settings=dict(n_fft=4096, hop_length=256, fmax=14000, vmin=-100, vmax=0),
                   images=[str(p.relative_to(HERE)) for p in images])
     dump(HERE / "validation/audio.json", report)
-    print("Saved four WAV auditions and eight spectrograms; visual inspection pending.")
+    print("Saved auditions, raw/level-matched comparisons and twelve spectrograms; visual inspection pending.")
 
 
 if __name__ == "__main__":

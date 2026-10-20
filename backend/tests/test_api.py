@@ -8356,3 +8356,50 @@ def test_explicit_feedback_error_includes_named_stereo_routing_path(tmp_path: Pa
         assert send["target"]["name"] == "Reverb"
         assert send["routeIds"] == ["send-left", "send-right"]
         assert client.get("/api/sessions").json() == []
+
+
+def test_input_value_precedence_reset_and_native_roundtrip(tmp_path: Path) -> None:
+    """The input editor's two storage forms use the existing compiler and bundle contract."""
+    payload = _minimal_patch_payload(name="Input values")
+    graph = payload["graph"]
+    graph["nodes"] = [
+        {"id": "signal", "opcode": "const_a", "params": {"value": 0.1}},
+        {"id": "out", "opcode": "outs", "params": {"left": -1e-7, "right": False}},
+    ]
+    params = graph["nodes"][1]["params"]
+    with _client(tmp_path) as client:
+        created = client.post("/api/patches", json=payload)
+        assert created.status_code == 201
+        patch_id = created.json()["id"]
+        session = client.post("/api/sessions", json={"patch_id": patch_id}).json()["session_id"]
+
+        def compile_current():
+            saved = client.put(f"/api/patches/{patch_id}", json=payload)
+            assert saved.status_code == 200
+            return client.post(f"/api/sessions/{session}/compile")
+
+        result = compile_current()
+        assert result.status_code == 200
+        line = next(line.strip() for line in result.json()["orc"].splitlines() if line.strip().startswith("outs "))
+        assert [float(value) for value in line.removeprefix("outs ").split(",")] == [-1e-7, 0]
+        graph["connections"] = [{"from_node_id": "signal", "from_port_id": "aout", "to_node_id": "out", "to_port_id": "left"}]
+        assert "outs a_signal_aout_1, 0" in compile_current().json()["orc"]
+        graph["ui_layout"] = {"input_formulas": {"out::left": {"expression": "0.75", "inputs": []}}}
+        assert "outs 0.75, 0" in compile_current().json()["orc"]
+
+        saved = client.get(f"/api/patches/{patch_id}").json()
+        exported = client.post("/api/bundles/export/patch", json={**saved, "sourcePatchId": patch_id})
+        assert exported.status_code == 200
+        imported = client.post("/api/bundles/import/expand", content=exported.content,
+                               headers={"X-File-Name": "values.orch.instrument.json", "Content-Type": "application/json"})
+        assert imported.status_code == 200
+        assert imported.json()["graph"] == saved["graph"]
+
+        # Reset removes both stored layers but leaves the incoming cable intact.
+        del params["left"]
+        graph["ui_layout"] = {}
+        assert "outs a_signal_aout_1, 0" in compile_current().json()["orc"]
+        graph["connections"] = []
+        result = compile_current()
+        assert result.status_code == 422
+        assert "Missing required input 'left'" in result.text

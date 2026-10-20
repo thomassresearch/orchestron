@@ -38,9 +38,17 @@ Nodes are color-coded by category (for example generator, filter, MIDI, constant
 
 Optional inputs are visually distinct from required inputs.
 
-### Formula Highlight On Sockets
+### Stored Values and Formulas
 
-If an input socket has a saved Input Formula (combine formula), the socket is highlighted so you can immediately see custom combine logic exists.
+Bright-green input sockets have an active stored value or saved formula. Zero, false, and explicitly stored values equal to the catalog default count as stored values. A connection overriding a stored value is not highlighted unless it also has a formula. Inherited catalog defaults remain unhighlighted.
+
+Hover over an input to see its source and value. Double-click an input, with or without cables, to inspect or edit its effective value in the [Input Formula Assistant](input_formula_assistant.md). The dialog distinguishes **Stored value**, **Saved formula**, **Connected signals**, **Catalog default**, and **Unset**. Opening or cancelling it leaves the patch unchanged.
+
+**Reset input** removes both the saved formula and the stored value, preserving connections. The dialog previews the resulting connection, default, or unset state before you reset. Required inputs with no remaining source produce the existing compile diagnostic.
+
+![Green stored-value sockets on the saxophone’s two resonx filters; SkipInit inherits a catalog default](../../screenshots/instrument_stored_input_sockets.png)
+
+The two filters retain their stored CenterFreq, Bandwidth, Layers and ScaleMode values. SkipInit is unhighlighted because its zero comes from the catalog.
 
 ## Adding Nodes
 
@@ -137,7 +145,7 @@ See [If, Switch and Drumset](control_flow.md) for the complete workflow, scope r
 
 ## Stereo blocks and audio interfaces
 
-Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
+Stereo Input and Stereo Output are collapsible views of ordinary paired inleta/outleta nodes. Expand them to edit the underlying opcodes and connections. Exact port names, stored input values and input formulas survive collapsing, expansion, saving and export. Direct Audio Output (outs) stays distinct.
 
 Route an instrument’s Stereo Output through the performance mixer to Master for playback.
 

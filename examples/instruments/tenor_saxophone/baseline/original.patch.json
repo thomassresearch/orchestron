@@ -1,0 +1,1662 @@
+{
+  "name": "Tenor Saxophone — Expressive Legato",
+  "description": "Sample-free STK reed-model tenor saxophone, concert pitch Ab2–E5 (MIDI 44–76). One legato voice: touching notes share a breath; newest held note wins and releasing it returns to the previous note and velocity. Gaps tongue again. Velocity 1–95 plays normally, 96–114 adds growl, and 115–127 introduces sustained overblown octave squeal. Tone, Growl, Squeal and Vibrato are per-instance controls read at phrase start; zero Growl/Squeal disables that effect. Dry centered Stereo Output: route to Master. Requires Csound STK and its rawwave data. Period-synchronous readout preserves the reed across legato notes; wide leaps can color the timbre.",
+  "is_template": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 40.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 150.0
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.01
+        },
+        "position": {
+          "x": 40.0,
+          "y": 260.0
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.08
+        },
+        "position": {
+          "x": 40.0,
+          "y": 320.0
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 40.0,
+          "y": 380.0
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.1
+        },
+        "position": {
+          "x": 40.0,
+          "y": 440.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 340.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 460.0,
+          "y": 240.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 4050.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "sax_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -500.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "sax_growl",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Growl",
+          "min": 0,
+          "max": 1,
+          "default": 0.35,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -500.0,
+          "y": 240.0
+        }
+      },
+      {
+        "id": "sax_squeal",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Squeal",
+          "min": 0,
+          "max": 1,
+          "default": 0.65,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -500.0,
+          "y": 480.0
+        }
+      },
+      {
+        "id": "sax_vibrato",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Vibrato",
+          "min": 0,
+          "max": 1,
+          "default": 0.2,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -500.0,
+          "y": 720.0
+        }
+      },
+      {
+        "id": "sax_legato",
+        "opcode": "midi_legato",
+        "params": {},
+        "position": {
+          "x": 200.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "sax_voices",
+        "opcode": "maxalloc",
+        "params": {
+          "icount": 1
+        },
+        "position": {
+          "x": 200.0,
+          "y": -740.0
+        }
+      },
+      {
+        "id": "sax_tongue",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "ib": 1,
+          "idur2": 0.08,
+          "ic": 0.95
+        },
+        "position": {
+          "x": 200.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "sax_force",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 550.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "sax_overblow",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 550.0,
+          "y": -450.0
+        }
+      },
+      {
+        "id": "sax_squeal_mix",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 900.0,
+          "y": -450.0
+        }
+      },
+      {
+        "id": "sax_vibrato_bloom",
+        "opcode": "linseg",
+        "params": {
+          "ia": 0,
+          "idur1": 0.2,
+          "ib": 0,
+          "idur2": 0.35,
+          "ic": 1
+        },
+        "position": {
+          "x": 550.0,
+          "y": 300.0
+        }
+      },
+      {
+        "id": "sax_vibrato_wave",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "kcps": 5.6,
+          "itype": 0
+        },
+        "position": {
+          "x": 550.0,
+          "y": 600.0
+        }
+      },
+      {
+        "id": "sax_pitch",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 900.0,
+          "y": -750.0
+        }
+      },
+      {
+        "id": "sax_reed",
+        "opcode": "STKSaxofony",
+        "params": {
+          "iamplitude": 0.7,
+          "kv3": 50,
+          "kv5": 60
+        },
+        "position": {
+          "x": 1250.0,
+          "y": -100.0
+        }
+      },
+      {
+        "id": "sax_zero",
+        "opcode": "k_to_a",
+        "params": {
+          "kin": 0
+        },
+        "position": {
+          "x": 1250.0,
+          "y": -800.0
+        }
+      },
+      {
+        "id": "sax_normal_phase",
+        "opcode": "syncphasor",
+        "params": {
+          "iphs": 0.5
+        },
+        "position": {
+          "x": 1600.0,
+          "y": -900.0
+        }
+      },
+      {
+        "id": "sax_normal_offset",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1900.0,
+          "y": -900.0
+        }
+      },
+      {
+        "id": "sax_normal_tap_0",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 300
+        },
+        "position": {
+          "x": 2200.0,
+          "y": -900.0
+        }
+      },
+      {
+        "id": "sax_normal_tap_1",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 300
+        },
+        "position": {
+          "x": 2200.0,
+          "y": -670.0
+        }
+      },
+      {
+        "id": "sax_normal_mix",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2500.0,
+          "y": -900.0
+        }
+      },
+      {
+        "id": "sax_octave_phase",
+        "opcode": "syncphasor",
+        "params": {
+          "iphs": 0.5
+        },
+        "position": {
+          "x": 1600.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sax_octave_offset",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1900.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sax_octave_tap_0",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 300
+        },
+        "position": {
+          "x": 2200.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sax_octave_tap_1",
+        "opcode": "vdelay3",
+        "params": {
+          "imd": 300
+        },
+        "position": {
+          "x": 2200.0,
+          "y": 930.0
+        }
+      },
+      {
+        "id": "sax_octave_mix",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2500.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "sax_growl_wave",
+        "opcode": "oscili",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 1600.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "sax_growl_depth",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1900.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "sax_register_mix",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2500.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "sax_air",
+        "opcode": "noise",
+        "params": {
+          "beta": 0
+        },
+        "position": {
+          "x": 2200.0,
+          "y": 1400.0
+        }
+      },
+      {
+        "id": "sax_air_band",
+        "opcode": "butterbp",
+        "params": {
+          "xfreq": 1800,
+          "xband": 1800
+        },
+        "position": {
+          "x": 2500.0,
+          "y": 1400.0
+        }
+      },
+      {
+        "id": "sax_mix",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2850.0,
+          "y": -100.0
+        }
+      },
+      {
+        "id": "sax_body",
+        "opcode": "resonx",
+        "params": {
+          "xcf": 650,
+          "xbw": 750,
+          "inumlayer": 1,
+          "iscl": 1
+        },
+        "position": {
+          "x": 3153.0614587755645,
+          "y": 105.20828305470799
+        }
+      },
+      {
+        "id": "sax_presence",
+        "opcode": "resonx",
+        "params": {
+          "xcf": 1800,
+          "xbw": 1600,
+          "inumlayer": 1,
+          "iscl": 1
+        },
+        "position": {
+          "x": 3150.0,
+          "y": 450.0
+        }
+      },
+      {
+        "id": "sax_lowpass",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 3450.0,
+          "y": -100.0
+        }
+      },
+      {
+        "id": "sax_dc",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 65
+        },
+        "position": {
+          "x": 3750.0,
+          "y": -100.0
+        }
+      },
+      {
+        "id": "sax_output_gain",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 3750.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 4400.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 4400.0,
+          "y": 310.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "sax_tongue",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_tongue",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "sax_force",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "sax_overblow",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_overblow",
+        "from_port_id": "kout",
+        "to_node_id": "sax_squeal_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_squeal",
+        "from_port_id": "iout",
+        "to_node_id": "sax_squeal_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_pitch",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "sax_pitch",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_vibrato_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "sax_pitch",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_vibrato_wave",
+        "from_port_id": "kout",
+        "to_node_id": "sax_pitch",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_reed",
+        "to_port_id": "ifrequency"
+      },
+      {
+        "from_node_id": "sax_force",
+        "from_port_id": "kout",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv1"
+      },
+      {
+        "from_node_id": "sax_growl",
+        "from_port_id": "iout",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv1"
+      },
+      {
+        "from_node_id": "sax_squeal_mix",
+        "from_port_id": "kout",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv2"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv4"
+      },
+      {
+        "from_node_id": "sax_force",
+        "from_port_id": "kout",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv4"
+      },
+      {
+        "from_node_id": "sax_growl",
+        "from_port_id": "iout",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv4"
+      },
+      {
+        "from_node_id": "sax_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv6"
+      },
+      {
+        "from_node_id": "sax_vibrato_bloom",
+        "from_port_id": "kenv",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv6"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv7"
+      },
+      {
+        "from_node_id": "sax_squeal_mix",
+        "from_port_id": "kout",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv7"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv7"
+      },
+      {
+        "from_node_id": "sax_tongue",
+        "from_port_id": "kenv",
+        "to_node_id": "sax_reed",
+        "to_port_id": "kv7"
+      },
+      {
+        "from_node_id": "sax_zero",
+        "from_port_id": "aout",
+        "to_node_id": "sax_normal_phase",
+        "to_port_id": "asyncin"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_normal_phase",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "sax_pitch",
+        "from_port_id": "kout",
+        "to_node_id": "sax_normal_phase",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "sax_normal_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "sax_normal_offset",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_reed",
+        "from_port_id": "asignal",
+        "to_node_id": "sax_normal_tap_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_normal_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "sax_normal_tap_0",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_normal_tap_0",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sax_reed",
+        "from_port_id": "asignal",
+        "to_node_id": "sax_normal_tap_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_normal_offset",
+        "from_port_id": "aout",
+        "to_node_id": "sax_normal_tap_1",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_normal_tap_1",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sax_normal_tap_0",
+        "from_port_id": "aout",
+        "to_node_id": "sax_normal_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_normal_tap_1",
+        "from_port_id": "aout",
+        "to_node_id": "sax_normal_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_normal_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "sax_normal_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_zero",
+        "from_port_id": "aout",
+        "to_node_id": "sax_octave_phase",
+        "to_port_id": "asyncin"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_octave_phase",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "sax_pitch",
+        "from_port_id": "kout",
+        "to_node_id": "sax_octave_phase",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "sax_octave_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "sax_octave_offset",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_reed",
+        "from_port_id": "asignal",
+        "to_node_id": "sax_octave_tap_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_octave_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "sax_octave_tap_0",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_octave_tap_0",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sax_reed",
+        "from_port_id": "asignal",
+        "to_node_id": "sax_octave_tap_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_octave_offset",
+        "from_port_id": "aout",
+        "to_node_id": "sax_octave_tap_1",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_octave_tap_1",
+        "to_port_id": "adel"
+      },
+      {
+        "from_node_id": "sax_octave_tap_0",
+        "from_port_id": "aout",
+        "to_node_id": "sax_octave_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_octave_tap_1",
+        "from_port_id": "aout",
+        "to_node_id": "sax_octave_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_octave_phase",
+        "from_port_id": "aphase",
+        "to_node_id": "sax_octave_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kfreq",
+        "to_node_id": "sax_growl_wave",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "sax_force",
+        "from_port_id": "kout",
+        "to_node_id": "sax_growl_depth",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "sax_growl",
+        "from_port_id": "iout",
+        "to_node_id": "sax_growl_depth",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "sax_squeal_mix",
+        "from_port_id": "kout",
+        "to_node_id": "sax_register_mix",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "sax_air",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "sax_air",
+        "from_port_id": "aout",
+        "to_node_id": "sax_air_band",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_normal_mix",
+        "from_port_id": "aout",
+        "to_node_id": "sax_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_octave_mix",
+        "from_port_id": "aout",
+        "to_node_id": "sax_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_register_mix",
+        "from_port_id": "aout",
+        "to_node_id": "sax_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_growl_depth",
+        "from_port_id": "aout",
+        "to_node_id": "sax_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_growl_wave",
+        "from_port_id": "asig",
+        "to_node_id": "sax_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "sax_mix",
+        "from_port_id": "aout",
+        "to_node_id": "sax_body",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_mix",
+        "from_port_id": "aout",
+        "to_node_id": "sax_presence",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_mix",
+        "from_port_id": "aout",
+        "to_node_id": "sax_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_body",
+        "from_port_id": "aout",
+        "to_node_id": "sax_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_presence",
+        "from_port_id": "aout",
+        "to_node_id": "sax_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_tone",
+        "from_port_id": "iout",
+        "to_node_id": "sax_lowpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "sax_legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "sax_lowpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "sax_squeal_mix",
+        "from_port_id": "kout",
+        "to_node_id": "sax_lowpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "sax_lowpass",
+        "from_port_id": "aout",
+        "to_node_id": "sax_dc",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "sax_output_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "sax_dc",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_output_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "sax_air_band",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "sax_tongue::idur1": {
+          "expression": ".035 - .025 * vel * 128 / 127",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "amp_velocity_envelope::a": {
+          "expression": "vel * (.35 + .65 * vel) * tongue",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "tongue",
+              "from_node_id": "sax_tongue",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "sax_force::a": {
+          "expression": "(vel * 128 - 95 + abs(vel * 128 - 95)) / 64",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kvelocity"
+            }
+          ]
+        },
+        "sax_overblow::a": {
+          "expression": "(vel * 128 - 114 + abs(vel * 128 - 114)) / 26",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kvelocity"
+            }
+          ]
+        },
+        "sax_squeal_mix::a": {
+          "expression": "q * q * amount",
+          "inputs": [
+            {
+              "token": "q",
+              "from_node_id": "sax_overblow",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "sax_squeal",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sax_pitch::a": {
+          "expression": "hz * ampdb(.0752575 * vibrato * bloom * wave)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "sax_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "sax_vibrato_bloom",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "wave",
+              "from_node_id": "sax_vibrato_wave",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "sax_reed::ifrequency": {
+          "expression": "hz / (1 - hz / sr)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "sax_reed::kv1": {
+          "expression": "100 + .4 * force * growl",
+          "inputs": [
+            {
+              "token": "force",
+              "from_node_id": "sax_force",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "growl",
+              "from_node_id": "sax_growl",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sax_reed::kv2": {
+          "expression": "50 + .3 * squeal",
+          "inputs": [
+            {
+              "token": "squeal",
+              "from_node_id": "sax_squeal_mix",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "sax_reed::kv4": {
+          "expression": "2 + 3 * vel + 5 * force * growl",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "force",
+              "from_node_id": "sax_force",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "growl",
+              "from_node_id": "sax_growl",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sax_reed::kv6": {
+          "expression": "3 * vibrato * bloom",
+          "inputs": [
+            {
+              "token": "vibrato",
+              "from_node_id": "sax_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "bloom",
+              "from_node_id": "sax_vibrato_bloom",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "sax_reed::kv7": {
+          "expression": "(80 + 2 * vel + .5 * squeal) * env * tongue",
+          "inputs": [
+            {
+              "token": "vel",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "squeal",
+              "from_node_id": "sax_squeal_mix",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "tongue",
+              "from_node_id": "sax_tongue",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "sax_normal_phase::asyncin": {
+          "expression": "zero",
+          "inputs": [
+            {
+              "token": "zero",
+              "from_node_id": "sax_zero",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sax_normal_phase::xcps": {
+          "expression": "(source - 1 * destination) / 2",
+          "inputs": [
+            {
+              "token": "source",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "destination",
+              "from_node_id": "sax_pitch",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "sax_normal_offset::a": {
+          "expression": "phase + .5 - floor(phase + .5)",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "sax_normal_phase",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "sax_normal_tap_0::asig": {
+          "expression": "reed",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_reed",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "sax_normal_tap_0::adel": {
+          "expression": "2000 * phase / source",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "sax_normal_phase",
+              "from_port_id": "aphase"
+            },
+            {
+              "token": "source",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "sax_normal_tap_1::asig": {
+          "expression": "reed",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_reed",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "sax_normal_tap_1::adel": {
+          "expression": "2000 * phase / source",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "sax_normal_offset",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "source",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "sax_normal_mix::a": {
+          "expression": "first * (1 - abs(2 * phase - 1)) + second * abs(2 * phase - 1)",
+          "inputs": [
+            {
+              "token": "first",
+              "from_node_id": "sax_normal_tap_0",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "second",
+              "from_node_id": "sax_normal_tap_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "phase",
+              "from_node_id": "sax_normal_phase",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "sax_octave_phase::asyncin": {
+          "expression": "zero",
+          "inputs": [
+            {
+              "token": "zero",
+              "from_node_id": "sax_zero",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sax_octave_phase::xcps": {
+          "expression": "(source - 2 * destination) / 2",
+          "inputs": [
+            {
+              "token": "source",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "destination",
+              "from_node_id": "sax_pitch",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "sax_octave_offset::a": {
+          "expression": "phase + .5 - floor(phase + .5)",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "sax_octave_phase",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "sax_octave_tap_0::asig": {
+          "expression": "reed",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_reed",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "sax_octave_tap_0::adel": {
+          "expression": "2000 * phase / source",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "sax_octave_phase",
+              "from_port_id": "aphase"
+            },
+            {
+              "token": "source",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "sax_octave_tap_1::asig": {
+          "expression": "reed",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_reed",
+              "from_port_id": "asignal"
+            }
+          ]
+        },
+        "sax_octave_tap_1::adel": {
+          "expression": "2000 * phase / source",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "sax_octave_offset",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "source",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "sax_octave_mix::a": {
+          "expression": "first * (1 - abs(2 * phase - 1)) + second * abs(2 * phase - 1)",
+          "inputs": [
+            {
+              "token": "first",
+              "from_node_id": "sax_octave_tap_0",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "second",
+              "from_node_id": "sax_octave_tap_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "phase",
+              "from_node_id": "sax_octave_phase",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "sax_growl_wave::freq": {
+          "expression": "47 + .015 * pitch",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "sax_growl_depth::kin": {
+          "expression": ".5 * force * growl",
+          "inputs": [
+            {
+              "token": "force",
+              "from_node_id": "sax_force",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "growl",
+              "from_node_id": "sax_growl",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "sax_register_mix::kin": {
+          "expression": "squeal",
+          "inputs": [
+            {
+              "token": "squeal",
+              "from_node_id": "sax_squeal_mix",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "sax_air::amp": {
+          "expression": ".012 * amp",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "sax_air_band::asig": {
+          "expression": "air",
+          "inputs": [
+            {
+              "token": "air",
+              "from_node_id": "sax_air",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sax_mix::a": {
+          "expression": "(normal * (1 - squeal) + octave * squeal) * (1 + depth * wave)",
+          "inputs": [
+            {
+              "token": "normal",
+              "from_node_id": "sax_normal_mix",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "octave",
+              "from_node_id": "sax_octave_mix",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "squeal",
+              "from_node_id": "sax_register_mix",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "sax_growl_depth",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wave",
+              "from_node_id": "sax_growl_wave",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "sax_body::asig": {
+          "expression": "reed",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_mix",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sax_presence::asig": {
+          "expression": "reed",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_mix",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sax_lowpass::asig": {
+          "expression": "reed + .22 * body + .12 * presence",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_mix",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "body",
+              "from_node_id": "sax_body",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "presence",
+              "from_node_id": "sax_presence",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sax_lowpass::xfreq": {
+          "expression": "800 + 6200 * tone + 600 * vel + 2000 * squeal",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "sax_tone",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vel",
+              "from_node_id": "sax_legato",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "squeal",
+              "from_node_id": "sax_squeal_mix",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "sax_dc::asig": {
+          "expression": "reed",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_lowpass",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "sax_output_gain::kin": {
+          "expression": ".5 * amp",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "reed * gain + air",
+          "inputs": [
+            {
+              "token": "reed",
+              "from_node_id": "sax_dc",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "sax_output_gain",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "air",
+              "from_node_id": "sax_air_band",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 3000,
+      "ksmps": 16,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  },
+  "instrument_type": "melody"
+}

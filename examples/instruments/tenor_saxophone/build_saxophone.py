@@ -35,11 +35,12 @@ def graph_hash(graph):
     return hashlib.sha256(json.dumps(normalized_graph(graph), sort_keys=True).encode()).hexdigest()
 
 
-def build():
+def build(presentation_graph=None):
     payload = build_patch_payload({
         "name": NAME,
         "description": (
-            "Sample-free STK reed-model tenor saxophone, concert pitch Ab2–E5 (MIDI 44–76). "
+            "Balanced acoustic-style, sample-free STK tenor with a fuller reed spectrum and velocity-sensitive "
+            "excitation, concert pitch Ab2–E5 (MIDI 44–76). "
             "One legato voice: touching notes share a breath; newest held note wins and releasing it returns "
             "to the previous note and velocity. Gaps tongue again. Velocity 1–95 plays normally, 96–114 adds "
             "growl, and 115–127 introduces sustained overblown octave squeal. Tone, Growl, Squeal and Vibrato "
@@ -92,15 +93,18 @@ def build():
     node("sax_pitch", "k_mul", {"b": 1}, 900, -750)
     formula("sax_pitch.a", "hz * ampdb(.0752575 * vibrato * bloom * wave)", hz="sax_legato.kfreq",
             vibrato="sax_vibrato.iout", bloom="sax_vibrato_bloom.kenv", wave="sax_vibrato_wave.kout")
-    node("sax_reed", "STKSaxofony", {"iamplitude": .7, "kv3": 50, "kv5": 60}, 1250, -100)
+    # Moving closer to the bridge adds reed edge. More extreme positions readily
+    # jump registers; the aperture, stiffness and pressure below are tuned together.
+    node("sax_reed", "STKSaxofony", {"iamplitude": .7, "kv3": 46, "kv5": 60}, 1250, -100)
     # One sample of empirical bore correction compensates the native model's flat upper register.
     formula("sax_reed.ifrequency", "hz / (1 - hz / sr)", hz="pitch_cpsmidi.kfreq")
-    formula("sax_reed.kv1", "100 + .4 * force * growl", force="sax_force.kout", growl="sax_growl.iout")
-    formula("sax_reed.kv2", "50 + .3 * squeal", squeal="sax_squeal_mix.kout")
-    formula("sax_reed.kv4", "2 + 3 * vel + 5 * force * growl", vel="sax_legato.kvelocity",
+    formula("sax_reed.kv1", "116 - 10 * vel + .4 * force * growl", vel="sax_legato.kvelocity",
+            force="sax_force.kout", growl="sax_growl.iout")
+    formula("sax_reed.kv2", "25 + .3 * squeal", squeal="sax_squeal_mix.kout")
+    formula("sax_reed.kv4", "1.5 + 2 * vel + 5 * force * growl", vel="sax_legato.kvelocity",
             force="sax_force.kout", growl="sax_growl.iout")
     formula("sax_reed.kv6", "3 * vibrato * bloom", vibrato="sax_vibrato.iout", bloom="sax_vibrato_bloom.kenv")
-    formula("sax_reed.kv7", "(80 + 2 * vel + .5 * squeal) * env * tongue", vel="sax_legato.kvelocity",
+    formula("sax_reed.kv7", "(86 + 6 * vel + .5 * squeal) * env * tongue", vel="sax_legato.kvelocity",
             squeal="sax_squeal_mix.kout", env="amp_madsr.kenv", tongue="sax_tongue.kenv")
 
     # Two cubic delay taps one bore period apart, complementary triangular windows.
@@ -129,40 +133,51 @@ def build():
     node("sax_register_mix", "k_to_a", x=2500, y=350)
     formula("sax_register_mix.kin", "squeal", squeal="sax_squeal_mix.kout")
     node("sax_air", "noise", {"beta": 0}, 2200, 1400)
-    formula("sax_air.amp", ".012 * amp", amp="amp_velocity_envelope.kout")
+    formula("sax_air.amp", ".008 * amp", amp="amp_velocity_envelope.kout")
     node("sax_air_band", "butterbp", {"xfreq": 1800, "xband": 1800}, 2500, 1400)
     formula("sax_air_band.asig", "air", air="sax_air.aout")
     node("sax_mix", "a_mul", {"b": 1}, 2850, -100)
     formula("sax_mix.a", "(normal * (1 - squeal) + octave * squeal) * (1 + depth * wave)",
             normal="sax_normal_mix.aout", octave="sax_octave_mix.aout", squeal="sax_register_mix.aout",
             depth="sax_growl_depth.aout", wave="sax_growl_wave.asig")
-    node("sax_body", "resonx", {"xcf": 650, "xbw": 750, "inumlayer": 1, "iscl": 1}, 3150, 150)
+    node("sax_body", "resonx", {"xcf": 850, "xbw": 600, "inumlayer": 1, "iscl": 1}, 3150, 150)
     formula("sax_body.asig", "reed", reed="sax_mix.aout")
-    node("sax_presence", "resonx", {"xcf": 1800, "xbw": 1600, "inumlayer": 1, "iscl": 1}, 3150, 450)
+    node("sax_presence", "resonx", {"xcf": 2400, "xbw": 1200, "inumlayer": 1, "iscl": 1}, 3150, 450)
     formula("sax_presence.asig", "reed", reed="sax_mix.aout")
     node("sax_lowpass", "butterlp", x=3450, y=-100)
-    formula("sax_lowpass.asig", "reed + .22 * body + .12 * presence", reed="sax_mix.aout",
+    formula("sax_lowpass.asig", ".8 * reed + .3 * body + 1.5 * presence", reed="sax_mix.aout",
             body="sax_body.aout", presence="sax_presence.aout")
-    formula("sax_lowpass.xfreq", "800 + 6200 * tone + 600 * vel + 2000 * squeal", tone="sax_tone.iout",
+    formula("sax_lowpass.xfreq", "1000 + 6000 * tone + 1200 * vel + 1600 * squeal", tone="sax_tone.iout",
             vel="sax_legato.kvelocity", squeal="sax_squeal_mix.kout")
     node("sax_dc", "butterhp", {"xfreq": 65}, 3750, -100)
     formula("sax_dc.asig", "reed", reed="sax_lowpass.aout")
     node("sax_output_gain", "k_to_a", x=3750, y=350)
-    formula("sax_output_gain.kin", ".5 * amp", amp="amp_velocity_envelope.kout")
+    formula("sax_output_gain.kin", ".21 * amp", amp="amp_velocity_envelope.kout")
     formula("output_pan2.asig", "reed * gain + air", reed="sax_dc.aout", gain="sax_output_gain.aout",
             air="sax_air_band.aout")
     for n in nodes:
         if n["id"].startswith("output_"):
             n["position"]["x"] = 4050 if n["id"] == "output_pan2" else 4400
     graph["nodes"] = [n for n in nodes if n["opcode"] != "outleta"] + [n for n in nodes if n["opcode"] == "outleta"]
+    if presentation_graph is not None:
+        # Rebuilding the sound must not reset the user's canvas arrangement.
+        positions = {n["id"]: n["position"] for n in presentation_graph["nodes"]}
+        for n in graph["nodes"]:
+            if n["id"] in positions:
+                n["position"] = {axis: int(value) if isinstance(value, float) and value.is_integer() else value
+                                 for axis, value in positions[n["id"]].items()}
+        graph["ui_layout"].update({k: v for k, v in presentation_graph["ui_layout"].items()
+                                  if k != "input_formulas"})
     validate_graph_invariants(graph)
     PatchCreateRequest.model_validate(payload)
     return payload
 
 
 def main(action, api_url):
-    payload = build()
-    dump(HERE / f"{STEM}.patch.json", payload)
+    raw_path = HERE / f"{STEM}.patch.json"
+    presentation = json.loads(raw_path.read_text())["graph"] if raw_path.exists() else None
+    payload = build(presentation)
+    dump(raw_path, payload)
     if action == "build":
         return
     client = ApiClient(api_url, timeout=120)
@@ -195,6 +210,7 @@ def main(action, api_url):
     preview = client.post("/bundles/import/expand?preview=true", exported)
     assert normalized_graph(preview["graph"]) == normalized_graph(saved["graph"])
     dump(HERE / f"{STEM}.orch.instrument.json", exported)
+    dump(HERE.parent / f"{STEM}.orch.instrument.json", exported)
     dump(HERE / "validation/library.json", dict(saved_and_read_back=True, native_import_preview=True, **manifest))
     print(NAME, saved["id"])
 
