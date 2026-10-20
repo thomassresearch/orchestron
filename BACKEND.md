@@ -241,6 +241,16 @@ This is shared controller state, not an instance override. The supplied Stereo
 Moog Filter clamps its normalized readers to 0–1 before multiplying its I-rate
 cutoff and resonance settings.
 
+SCORE controller setters are compacted after offline capture, ordered by time and
+capture sequence, using the last emitted value per `(MIDI channel, CC)`. The first
+write and every time-zero write remain; changed values (including resets) keep
+their original times. The merged stream handles competing lanes across pad and
+rest boundaries. Note collection, panic/release handling, initial-state emission,
+MIDI-file output, live scheduling and event budgets still use the full capture.
+Compaction is disabled if an exported note-triggered patch contains `initc7`:
+its inputs may be expressions, and later note/legato initialization can overwrite
+shared state. Always-on initializers run at startup and remain safe to compact.
+
 - Uses `mido` when available.
 - Does not require `python-rtmidi` for the base install; if the native MIDI backend is unavailable, it falls back automatically and the Rust host bridge path still works.
 - Falls back to synthetic inputs when the host MIDI backend is unavailable.

@@ -8377,7 +8377,7 @@ def test_controller_step_api_rejects_invalid_values(tmp_path: Path, field, value
 
 
 @pytest.mark.parametrize("source", ["midi", "score"])
-def test_controller_step_csd_exports_preserve_repetitions_and_resets(tmp_path: Path, source) -> None:
+def test_controller_step_csd_exports_compact_score_only_and_preserve_resets(tmp_path: Path, source) -> None:
     payload = _performance_csd_export_payload()
     payload["eventSource"] = "midiFile" if source == "midi" else source
     payload["performanceExport"]["performance"]["config"]["version"] = 20
@@ -8401,7 +8401,73 @@ def test_controller_step_csd_exports_preserve_repetitions_and_resets(tmp_path: P
             for channel in (1, 4):
                 from backend.app.services.compiler_orchestra import OrchestraEmitter
                 index = OrchestraEmitter.score_controller_index(channel, 1)
-                assert [int(parts[5]) for parts in lines if int(parts[4]) == index] == [12, 0, 64, 64, 12]
+                assert [(float(parts[2]), int(parts[5])) for parts in lines if int(parts[4]) == index] == [
+                    (0, 12), (.125, 0), (.25, 64), (.5, 12),
+                ]
+
+
+def test_controller_step_score_retains_repeated_writes_with_note_initc7(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "score"
+    payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
+        "id": "init", "opcode": "initc7", "params": {"ichan": 1, "ictlno": 1, "ivalue": 1},
+    })
+    track = payload["sequencerConfig"]["controller_tracks"][0]
+    track.update(controller_mode="step", reset_value=12, target_channels=[1])
+    track["pads"][0]["steps"] = [None, 0, 64, 64]
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+    assert [int(line.split()[5]) for line in csd.splitlines() if line.startswith("i 9000 ")] == [12, 0, 64, 64, 12]
+
+
+def test_controller_step_score_compaction_preserves_overlapping_lanes_and_pad_changes(tmp_path: Path, monkeypatch) -> None:
+    import copy
+
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "score"
+    payload["midiControllers"] = [{"controllerNumber": 1, "value": 32, "targetChannels": [1, 4]}]
+    config = payload["sequencerConfig"]
+    config["playback_end_step"] = 16
+    first = config["controller_tracks"][0]
+    first.update(controller_mode="step", reset_value=12, target_channels=[1, 4],
+                 pad_loop_enabled=True, pad_loop_repeat=False, pad_loop_sequence=[0, 1])
+    first["pads"] = [dict(pad_index=0, length_beats=1, steps=[64, 64, None, 64]),
+                     dict(pad_index=1, length_beats=1, steps=[64, None, 0, 0])]
+    second = copy.deepcopy(first)
+    second.update(track_id="competing", reset_value=90, target_channels=[4])
+    second["pads"][0]["steps"] = [20, None, 20, None]
+    second["pads"][1]["steps"] = [20, 20, None, None]
+    config["controller_tracks"].append(second)
+    untouched = copy.deepcopy(payload)
+
+    def extract(response):
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+        rows = [line.split() for line in csd.splitlines() if line.startswith("i 9000 ")]
+        return csd, [(float(row[2]), int(row[4]), int(row[5])) for row in rows]
+
+    with _client(tmp_path) as client:
+        compact, actual = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+        collect = PerformanceExportService._score_controller_events
+        monkeypatch.setattr(PerformanceExportService, "_score_controller_events", staticmethod(
+            lambda events, **kw: collect(events, deduplicate=False),
+        ))
+        original, expected = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+    assert payload == untouched
+    assert len(actual) < len(expected)
+    before, after = {}, {}
+    for time in sorted({time for time, _, _ in expected}):
+        before.update((key, value) for t, key, value in expected if t == time)
+        after.update((key, value) for t, key, value in actual if t == time)
+        assert after == before
+    assert [row for row in actual if row[0] == 0] == [row for row in expected if row[0] == 0]
+    assert [line for line in compact.splitlines() if line.startswith(("i 1 ", "f 0 "))] == [
+        line for line in original.splitlines() if line.startswith(("i 1 ", "f 0 "))
+    ]
 
 
 def test_capture_and_ctrl7_opcode_api(tmp_path):

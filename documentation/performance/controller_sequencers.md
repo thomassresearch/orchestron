@@ -72,6 +72,8 @@ Play loops the displayed assembly and outlines its current pad, phrase or rest. 
 
 Enter a whole number from **0 to 127** in a cell. Press Enter or leave the cell to apply; Escape cancels. Delete the text to leave a cell empty. Empty cells send nothing and the receiver holds its previous value. Zero sends a real CC message, and repeated identical values each send again at their own step. Beat/bar groups and the highlighted playing step follow the device's own meter, subdivision and playback speed.
 
+Live playback and CSD (MIDI) retain those repeated messages. CSD (SCORE) can omit writes that leave the receiving channel/CC unchanged, preserving playback and all authored step data. Startup writes remain; exports with note-triggered `initc7` patches retain repeats. See [offline export](performance_import_export.md#offline-render-export-export-csd-midi--export-csd-score).
+
 **Reset Value** is sent for the chosen CC on the selected channels on start and stop, including finite endings. It is sent before the first step and notes at the start position. Starting in an empty part of the pattern waits for the next populated step. Choose a value appropriate to the controlled parameter: zero is the default, not a universal neutral setting for every CC.
 
 A seek during playback sends Reset Value, then continues from the new position without replaying earlier cells. A stopped seek sends nothing. Normal pad changes, loops and arrangement rests hold the last received value without resetting. Workspace/speaker previews initialize on entry and reset when restoring prior playback at its existing phase. Arranger controls leave independently running Manual pads alone.

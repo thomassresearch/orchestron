@@ -742,7 +742,15 @@ class PerformanceExportService:
                 "Enable at least one sequencer or arranger track targeting an assigned instrument."
             )
 
-        controller_events = self._score_controller_events(events)
+        # A note-triggered initc7 can overwrite shared CC state between captured
+        # messages (including via legato voice scheduling). Its channel/CC inputs
+        # can be expressions, so conservatively retain all writes in that case.
+        # Always-on initializers run at startup, whose writes are retained below.
+        deduplicate_controllers = not any(
+            not target.always_on and any(node.opcode == "initc7" for node in target.patch.graph.nodes)
+            for target in targets
+        )
+        controller_events = self._score_controller_events(events, deduplicate=deduplicate_controllers)
         setter_duration = 1.0 / float(OFFLINE_RENDER_SR)
         lines = ["f 1 0 16384 10 1"]
         timed_lines: list[tuple[float, str]] = []
@@ -877,28 +885,38 @@ class PerformanceExportService:
         )
 
     @staticmethod
-    def _score_controller_events(events: list[CapturedMidiEvent]) -> list[ScoreControllerEvent]:
+    def _score_controller_events(
+        events: list[CapturedMidiEvent], *, deduplicate: bool = True,
+    ) -> list[ScoreControllerEvent]:
         controller_events: list[ScoreControllerEvent] = []
-        for event in events:
+        last_values: dict[tuple[int, int], int] = {}
+        # Deduplicate after merging all sources, never per lane: another lane may
+        # have changed the same channel/CC since this lane's previous message.
+        for event in sorted(events, key=lambda item: (item.time_seconds, item.sequence)):
             message = event.message
             if len(message) < 3 or (message[0] & 0xF0) != 0xB0:
                 continue
             controller_number = int(message[1])
             if controller_number in {120, 123}:
                 continue
+            midi_channel = (message[0] & 0x0F) + 1
+            value = int(message[2])
+            key = (midi_channel, controller_number)
+            # Keep the first write even when it is zero. Retain every time-zero
+            # write so patch startup initialization is overridden as before.
+            if deduplicate and event.time_seconds > 0 and last_values.get(key) == value:
+                continue
+            last_values[key] = value
             controller_events.append(
                 ScoreControllerEvent(
                     time_seconds=event.time_seconds,
-                    midi_channel=(message[0] & 0x0F) + 1,
+                    midi_channel=midi_channel,
                     controller_number=controller_number,
-                    value=int(message[2]),
+                    value=value,
                     sequence=event.sequence,
                 )
             )
-        return sorted(
-            controller_events,
-            key=lambda item: (item.time_seconds, item.sequence),
-        )
+        return controller_events
 
     @staticmethod
     def _score_controller_initializer_lines(events: list[CapturedMidiEvent]) -> list[str]:
