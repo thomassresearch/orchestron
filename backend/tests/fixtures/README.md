@@ -1,5 +1,12 @@
 # Test fixtures
 
+`patches/ambient_rounded_sub.patch.json` and `patches/ambient_wavetable_cloud.patch.json`
+are independent Ambient Techno snapshots. Native DSP tests cover CC scaling and
+smoothing, explicit-channel isolation, note/release behavior, polyphony, tuning,
+stereo output, timbre changes and parameter extremes. API tests cover library and
+performance persistence, native bundles and both CSD export modes. They never
+import the authoring examples.
+
 Instrument patches used by tests live in `patches/`. Load a fresh `PatchDocument`
 with `backend.tests.csound_test_support.load_patch_fixture` so tests can modify
 their own in-memory copy.

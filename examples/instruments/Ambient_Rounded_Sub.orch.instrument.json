@@ -1,0 +1,1607 @@
+{
+  "sourcePatchId": "f7bea6b9-0b89-5793-a74c-34cf1d056847",
+  "name": "Ambient Rounded Sub",
+  "description": "Sine/triangle sub-bass with soft saturation, low-pass tone and optional amplitude pulse. Suggested MIDI 24\u201355. Polyphonic, dry and centered. Velocity-sensitive. Performance controls apply to new notes; MIDI controls affect held notes and releases. Control channel defaults to 16 (independent of note channel). CC24 Body, CC25 Tone (Hz), CC26 Warmth, CC27 Pulse Depth, CC28 Pulse Rate (Hz). CC0 preserves the base setting; higher values add intensity, with 30 ms smoothing. Use controller-sequencer Reset Value 0. Notes never reset CCs; instances sharing a control channel share automation. Route Stereo Output through the mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "bass",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 150.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 340.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 460.0,
+          "y": 240.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 1300.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "ars_body",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Body",
+          "min": 0,
+          "max": 0.5,
+          "default": 0.15,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1150.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "ars_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone (Hz)",
+          "min": 80,
+          "max": 2000,
+          "default": 280,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -865.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "ars_warmth",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Warmth",
+          "min": 0,
+          "max": 1,
+          "default": 0.15,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -580.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "ars_pulse_depth",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Pulse Depth",
+          "min": 0,
+          "max": 0.35,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -295.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "ars_pulse_rate",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Pulse Rate (Hz)",
+          "min": 0.02,
+          "max": 2,
+          "default": 0.15,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1150.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "ars_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack (s)",
+          "min": 0.005,
+          "max": 0.25,
+          "default": 0.02,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -865.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "ars_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Decay (s)",
+          "min": 0.03,
+          "max": 2,
+          "default": 0.3,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -580.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "ars_sustain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Sustain",
+          "min": 0,
+          "max": 1,
+          "default": 0.85,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -295.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "ars_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release (s)",
+          "min": 0.03,
+          "max": 3,
+          "default": 0.45,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1150.0,
+          "y": -720.0
+        }
+      },
+      {
+        "id": "ars_output",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -24,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -865.0,
+          "y": -720.0
+        }
+      },
+      {
+        "id": "ars_channel",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "MIDI Control Channel",
+          "min": 1,
+          "max": 16,
+          "default": 16,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -580.0,
+          "y": -720.0
+        }
+      },
+      {
+        "id": "ars_cc_body",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 24,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "ars_smooth_body",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "ars_effective_body",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "ars_cc_tone",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 25,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 260.0
+        }
+      },
+      {
+        "id": "ars_smooth_tone",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 260.0
+        }
+      },
+      {
+        "id": "ars_effective_tone",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 260.0
+        }
+      },
+      {
+        "id": "ars_cc_warmth",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 26,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "ars_smooth_warmth",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "ars_effective_warmth",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "ars_cc_pulse_depth",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 27,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 780.0
+        }
+      },
+      {
+        "id": "ars_smooth_pulse_depth",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 780.0
+        }
+      },
+      {
+        "id": "ars_effective_pulse_depth",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 780.0
+        }
+      },
+      {
+        "id": "ars_cc_pulse_rate",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 28,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "ars_smooth_pulse_rate",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "ars_effective_pulse_rate",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "ars_sine_table",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1000.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "ars_triangle_table",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1000.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "ars_sine",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 1400.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "ars_triangle",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 1400.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "ars_body_audio",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1400.0,
+          "y": 1000.0
+        }
+      },
+      {
+        "id": "ars_dry",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1750.0,
+          "y": 1000.0
+        }
+      },
+      {
+        "id": "ars_drive",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1400.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "ars_saturator",
+        "opcode": "tanh",
+        "params": {},
+        "position": {
+          "x": 1750.0,
+          "y": 100.0
+        }
+      },
+      {
+        "id": "ars_normalizer",
+        "opcode": "tanh",
+        "params": {},
+        "position": {
+          "x": 1750.0,
+          "y": 700.0
+        }
+      },
+      {
+        "id": "ars_warmth_audio",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2100.0,
+          "y": 1000.0
+        }
+      },
+      {
+        "id": "ars_lowpass",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 2100.0,
+          "y": 100.0
+        }
+      },
+      {
+        "id": "ars_pulse",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 2100.0,
+          "y": 650.0
+        }
+      },
+      {
+        "id": "ars_gain",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2450.0,
+          "y": 650.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1500.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1500.0,
+          "y": 310.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "ars_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "ars_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "ars_sustain",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "ars_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "ars_channel",
+        "from_port_id": "iout",
+        "to_node_id": "ars_cc_body",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "ars_cc_body",
+        "from_port_id": "kout",
+        "to_node_id": "ars_smooth_body",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ars_body",
+        "from_port_id": "iout",
+        "to_node_id": "ars_effective_body",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_smooth_body",
+        "from_port_id": "kout",
+        "to_node_id": "ars_effective_body",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_channel",
+        "from_port_id": "iout",
+        "to_node_id": "ars_cc_tone",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "ars_cc_tone",
+        "from_port_id": "kout",
+        "to_node_id": "ars_smooth_tone",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ars_tone",
+        "from_port_id": "iout",
+        "to_node_id": "ars_effective_tone",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_smooth_tone",
+        "from_port_id": "kout",
+        "to_node_id": "ars_effective_tone",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_channel",
+        "from_port_id": "iout",
+        "to_node_id": "ars_cc_warmth",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "ars_cc_warmth",
+        "from_port_id": "kout",
+        "to_node_id": "ars_smooth_warmth",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ars_warmth",
+        "from_port_id": "iout",
+        "to_node_id": "ars_effective_warmth",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_smooth_warmth",
+        "from_port_id": "kout",
+        "to_node_id": "ars_effective_warmth",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_channel",
+        "from_port_id": "iout",
+        "to_node_id": "ars_cc_pulse_depth",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "ars_cc_pulse_depth",
+        "from_port_id": "kout",
+        "to_node_id": "ars_smooth_pulse_depth",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ars_pulse_depth",
+        "from_port_id": "iout",
+        "to_node_id": "ars_effective_pulse_depth",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_smooth_pulse_depth",
+        "from_port_id": "kout",
+        "to_node_id": "ars_effective_pulse_depth",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_channel",
+        "from_port_id": "iout",
+        "to_node_id": "ars_cc_pulse_rate",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "ars_cc_pulse_rate",
+        "from_port_id": "kout",
+        "to_node_id": "ars_smooth_pulse_rate",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ars_pulse_rate",
+        "from_port_id": "iout",
+        "to_node_id": "ars_effective_pulse_rate",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_smooth_pulse_rate",
+        "from_port_id": "kout",
+        "to_node_id": "ars_effective_pulse_rate",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine_table",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine_table",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine_table",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine_table",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine_table",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine_table",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine_table",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle_table",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle_table",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle_table",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle_table",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle_table",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle_table",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle_table",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "ars_sine_table",
+        "from_port_id": "ift",
+        "to_node_id": "ars_sine",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_sine",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "ars_sine",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ars_triangle_table",
+        "from_port_id": "ift",
+        "to_node_id": "ars_triangle",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "ars_triangle",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "ars_triangle",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "ars_effective_body",
+        "from_port_id": "kout",
+        "to_node_id": "ars_body_audio",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "ars_sine",
+        "from_port_id": "asig",
+        "to_node_id": "ars_dry",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_triangle",
+        "from_port_id": "asig",
+        "to_node_id": "ars_dry",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_body_audio",
+        "from_port_id": "aout",
+        "to_node_id": "ars_dry",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_effective_warmth",
+        "from_port_id": "kout",
+        "to_node_id": "ars_drive",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ars_drive",
+        "from_port_id": "kout",
+        "to_node_id": "ars_saturator",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "ars_dry",
+        "from_port_id": "aout",
+        "to_node_id": "ars_saturator",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "ars_drive",
+        "from_port_id": "kout",
+        "to_node_id": "ars_normalizer",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "ars_effective_warmth",
+        "from_port_id": "kout",
+        "to_node_id": "ars_warmth_audio",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "ars_dry",
+        "from_port_id": "aout",
+        "to_node_id": "ars_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ars_warmth_audio",
+        "from_port_id": "aout",
+        "to_node_id": "ars_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ars_saturator",
+        "from_port_id": "aout",
+        "to_node_id": "ars_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ars_normalizer",
+        "from_port_id": "aout",
+        "to_node_id": "ars_lowpass",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ars_effective_tone",
+        "from_port_id": "kout",
+        "to_node_id": "ars_lowpass",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "ars_effective_pulse_rate",
+        "from_port_id": "kout",
+        "to_node_id": "ars_pulse",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "ars_output",
+        "from_port_id": "iout",
+        "to_node_id": "ars_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "ars_effective_pulse_depth",
+        "from_port_id": "kout",
+        "to_node_id": "ars_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "ars_pulse",
+        "from_port_id": "kout",
+        "to_node_id": "ars_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "ars_lowpass",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "ars_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "amp_madsr::iatt": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "ars_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::idec": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "ars_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::islev": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "ars_sustain",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::irel": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "ars_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ars_cc_body::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "ars_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ars_smooth_body::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "ars_cc_body",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_effective_body::a": {
+          "expression": "base + cc * (0.5 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "ars_body",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "ars_smooth_body",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_cc_tone::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "ars_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ars_smooth_tone::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "ars_cc_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_effective_tone::a": {
+          "expression": "(0 + 4000 + abs((base * ampdb(12.041199826559248 * cc)) - 0) - abs((base * ampdb(12.041199826559248 * cc)) - 4000)) / 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "ars_tone",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "ars_smooth_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_cc_warmth::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "ars_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ars_smooth_warmth::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "ars_cc_warmth",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_effective_warmth::a": {
+          "expression": "base + cc * (1 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "ars_warmth",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "ars_smooth_warmth",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_cc_pulse_depth::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "ars_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ars_smooth_pulse_depth::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "ars_cc_pulse_depth",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_effective_pulse_depth::a": {
+          "expression": "base + cc * (0.35 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "ars_pulse_depth",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "ars_smooth_pulse_depth",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_cc_pulse_rate::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "ars_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ars_smooth_pulse_rate::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "ars_cc_pulse_rate",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_effective_pulse_rate::a": {
+          "expression": "(0 + 4 + abs((base * ampdb(12.041199826559248 * cc)) - 0) - abs((base * ampdb(12.041199826559248 * cc)) - 4)) / 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "ars_pulse_rate",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "ars_smooth_pulse_rate",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_sine_table::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "ars_sine_table::iarg2": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (2 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (2 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine_table::iarg3": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (3 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (3 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine_table::iarg4": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine_table::iarg5": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (5 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (5 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine_table::iarg6": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine_table::iarg7": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (7 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (7 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine_table::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle_table::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "ars_triangle_table::iarg2": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (2 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (2 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle_table::iarg3": {
+          "expression": "-0.1111111111111111 * ((0 + 1 + abs((floor(sr * .45 / (3 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (3 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle_table::iarg4": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle_table::iarg5": {
+          "expression": "0.04 * ((0 + 1 + abs((floor(sr * .45 / (5 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (5 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle_table::iarg6": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle_table::iarg7": {
+          "expression": "-0.02040816326530612 * ((0 + 1 + abs((floor(sr * .45 / (7 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (7 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle_table::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "ars_sine_table",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "ars_sine::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_sine::amp": {
+          "expression": "amp",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_triangle::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "ars_triangle_table",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "ars_triangle::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "ars_triangle::amp": {
+          "expression": "amp",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_body_audio::kin": {
+          "expression": "body",
+          "inputs": [
+            {
+              "token": "body",
+              "from_node_id": "ars_effective_body",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_dry::a": {
+          "expression": "sine * (1 - body) + triangle * body",
+          "inputs": [
+            {
+              "token": "sine",
+              "from_node_id": "ars_sine",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "triangle",
+              "from_node_id": "ars_triangle",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "body",
+              "from_node_id": "ars_body_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "ars_drive::a": {
+          "expression": "1 + 3 * warmth",
+          "inputs": [
+            {
+              "token": "warmth",
+              "from_node_id": "ars_effective_warmth",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_saturator::xin": {
+          "expression": "drive * audio",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "ars_drive",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "audio",
+              "from_node_id": "ars_dry",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "ars_normalizer::xin": {
+          "expression": "drive",
+          "inputs": [
+            {
+              "token": "drive",
+              "from_node_id": "ars_drive",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_warmth_audio::kin": {
+          "expression": "warmth",
+          "inputs": [
+            {
+              "token": "warmth",
+              "from_node_id": "ars_effective_warmth",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_lowpass::asig": {
+          "expression": "dry * (1 - warmth) + warmth * audio / norm",
+          "inputs": [
+            {
+              "token": "dry",
+              "from_node_id": "ars_dry",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "warmth",
+              "from_node_id": "ars_warmth_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "audio",
+              "from_node_id": "ars_saturator",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "norm",
+              "from_node_id": "ars_normalizer",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "ars_lowpass::xfreq": {
+          "expression": "tone",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "ars_effective_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_pulse::kcps": {
+          "expression": "rate",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "ars_effective_pulse_rate",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "ars_gain::kin": {
+          "expression": ".12 * ampdb(output) * (1 - depth * (.5 + .5 * pulse))",
+          "inputs": [
+            {
+              "token": "output",
+              "from_node_id": "ars_output",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "ars_effective_pulse_depth",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pulse",
+              "from_node_id": "ars_pulse",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "ars_lowpass",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "ars_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

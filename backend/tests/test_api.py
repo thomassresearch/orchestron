@@ -7880,6 +7880,70 @@ def test_continuous_effect_native_roundtrip_and_instance_controls(tmp_path, fixt
         assert {key: item["default"] for key, item in bindings.items()} == defaults
 
 
+@pytest.mark.parametrize("fixture,prefix,instrument_type", [
+    ("ambient_rounded_sub", "ars", "bass"), ("ambient_wavetable_cloud", "awc", "melody"),
+])
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_ambient_techno_native_persistence_and_csd_exports(tmp_path, fixture, prefix, instrument_type, event_source):
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture(fixture)
+    definition = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={"id"}))
+    bundle = definition.model_dump(mode="json", by_alias=True)
+    values = {prefix + "_channel": 3, prefix + "_tone": 1000, prefix + "_release": 1}
+    config = dict(version=20, instruments=[
+        dict(id="ambient", patchId=patch.id, midiChannel=1, performanceControllerValues=values),
+    ], audioGraph=dict(masterId="$master", routes=[
+        dict(id=side, sourceId="ambient", sourcePort=side, targetId="$master", targetPort=side)
+        for side in ("left", "right")
+    ]))
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    performance = payload["performanceExport"]
+    performance["patch_definitions"] = [bundle]
+    performance["performance"]["config"] = config
+    with _client(tmp_path) as client:
+        exported = client.post("/api/bundles/export/patch", json=bundle)
+        assert exported.status_code == 200, exported.text
+        filename = fixture + ".orch.instrument.json"
+        plan = {"patches": [{"id": patch.id, "sourcePatchId": patch.id, "type": "create", "name": patch.name}]}
+        imported = client.post("/api/bundles/import/commit",
+                               files={"bundle": (filename, exported.content)}, data={"plan": json.dumps(plan)})
+        assert imported.status_code == 200, imported.text
+        restored = client.get("/api/patches/" + patch.id).json()
+        assert restored["graph"] == bundle["graph"]
+        assert restored["instrument_type"] == instrument_type and not restored["always_on"]
+        saved = client.post("/api/performances", json=dict(name="Ambient controls", config=config))
+        assert saved.status_code == 201, saved.text
+        assert client.get("/api/performances/" + saved.json()["id"]).json()["config"] == config
+        session = client.post("/api/sessions", json={"instruments": [
+            dict(id="ambient", patch_id=patch.id, midi_channel=1, performance_controller_values=values),
+        ]})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        bindings = compiled.json()["manifest"]["performanceControllers"]["ambient"]
+        defaults = {n.id: n.params["default"] for n in patch.graph.nodes if n.opcode == "perf_controller"}
+        assert {key: item["value"] for key, item in bindings.items()} == {**defaults, **values}
+        assert {key: item["default"] for key, item in bindings.items()} == defaults
+        native = client.post("/api/bundles/export/performance", json=performance)
+        assert native.status_code == 200, native.text
+        expanded = client.post("/api/bundles/import/expand?preview=true", content=native.content,
+                               headers={"X-File-Name": "ambient.orch.performance.json"})
+        assert expanded.status_code == 200, expanded.text
+        assert expanded.json()["performance"]["config"]["instruments"][0]["performanceControllerValues"] == values
+        exported = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert exported.status_code == 200, exported.text
+        with zipfile.ZipFile(BytesIO(exported.content)) as archive:
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+        assert "ksmps = 1" in csd and " ftgenonce " in csd
+        code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
+        assert (" ctrl7 " in code) == (event_source == "midiFile")
+        if event_source == "score":
+            assert "gk_vcs_score_cc[" in code
+
+
 def test_tenor_saxophone_native_roundtrip_preserves_legato_and_controls(tmp_path):
     from backend.app.models.export import ExportedPatchDefinition
     from backend.tests.csound_test_support import load_patch_fixture

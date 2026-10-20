@@ -27,6 +27,7 @@ Patches have an editable Instrument Type. Load Patch browses collapsed type grou
 - [Runtime Panel and Compilation Workflow](runtime_panel_and_compilation.md)
 - [Instrument Import / Export and CSD Export](instrument_import_export.md)
 - [Physical Steel-String Guitar](steel_string_waveguide.md)
+- [Ambient Techno Instruments](ambient_techno.md)
 - [Supported Opcodes](supported_opcodes.md)
 
 For the supplied stereo effects and their performance controls, see [Standard Effects](../performance/standard_effects.md) at the end of the Performance chapter.

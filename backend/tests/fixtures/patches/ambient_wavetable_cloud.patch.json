@@ -1,0 +1,5508 @@
+{
+  "name": "Ambient Wavetable Cloud",
+  "description": "Four-wave morphing synth with three detuned voices, slow scan/drift and an octave shimmer layer. Suggested MIDI 36\u201384. Dry stereo output; add rack delay/reverb to taste. Velocity-sensitive. Performance controls apply to new notes; MIDI controls affect held notes and releases. Control channel defaults to 16 (independent of note channel). CC102 Wave Position, CC103 Scan Depth, CC104 Motion Rate (Hz), CC105 Drift (cents), CC106 Detune (cents), CC107 Stereo Width, CC108 Shimmer, CC109 Tone (Hz). CC0 preserves the base setting; higher values add intensity, with 30 ms smoothing. Use controller-sequencer Reset Value 0. Notes never reset CCs; instances sharing a control channel share automation. Route Stereo Output through the mixer to Master.",
+  "is_template": false,
+  "always_on": false,
+  "instrument_type": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 150.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 340.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 460.0,
+          "y": 240.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 1300.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "awc_position",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Wave Position",
+          "min": 0,
+          "max": 1,
+          "default": 0.3,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1150.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "awc_scan",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Scan Depth",
+          "min": 0,
+          "max": 0.5,
+          "default": 0.15,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -865.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "awc_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Motion Rate (Hz)",
+          "min": 0.005,
+          "max": 1,
+          "default": 0.04,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -580.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "awc_drift",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Drift (cents)",
+          "min": 0,
+          "max": 8,
+          "default": 1.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -295.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "awc_detune",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Detune (cents)",
+          "min": 0,
+          "max": 20,
+          "default": 5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1150.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "awc_width",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Stereo Width",
+          "min": 0,
+          "max": 1,
+          "default": 0.65,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -865.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "awc_shimmer",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Shimmer",
+          "min": 0,
+          "max": 0.5,
+          "default": 0.1,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -580.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "awc_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tone (Hz)",
+          "min": 200,
+          "max": 12000,
+          "default": 3500,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -295.0,
+          "y": -960.0
+        }
+      },
+      {
+        "id": "awc_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack (s)",
+          "min": 0.05,
+          "max": 12,
+          "default": 2,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1150.0,
+          "y": -720.0
+        }
+      },
+      {
+        "id": "awc_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Decay (s)",
+          "min": 0.1,
+          "max": 12,
+          "default": 3,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -865.0,
+          "y": -720.0
+        }
+      },
+      {
+        "id": "awc_sustain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Sustain",
+          "min": 0,
+          "max": 1,
+          "default": 0.85,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -580.0,
+          "y": -720.0
+        }
+      },
+      {
+        "id": "awc_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release (s)",
+          "min": 0.1,
+          "max": 20,
+          "default": 6,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -295.0,
+          "y": -720.0
+        }
+      },
+      {
+        "id": "awc_output",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -24,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1150.0,
+          "y": -480.0
+        }
+      },
+      {
+        "id": "awc_channel",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "MIDI Control Channel",
+          "min": 1,
+          "max": 16,
+          "default": 16,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -865.0,
+          "y": -480.0
+        }
+      },
+      {
+        "id": "awc_cc_position",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 102,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_smooth_position",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_effective_position",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_cc_scan",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 103,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 260.0
+        }
+      },
+      {
+        "id": "awc_smooth_scan",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 260.0
+        }
+      },
+      {
+        "id": "awc_effective_scan",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 260.0
+        }
+      },
+      {
+        "id": "awc_cc_motion",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 104,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_smooth_motion",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_effective_motion",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_cc_drift",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 105,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 780.0
+        }
+      },
+      {
+        "id": "awc_smooth_drift",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 780.0
+        }
+      },
+      {
+        "id": "awc_effective_drift",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 780.0
+        }
+      },
+      {
+        "id": "awc_cc_detune",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 106,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_smooth_detune",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_effective_detune",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_cc_width",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 107,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1300.0
+        }
+      },
+      {
+        "id": "awc_smooth_width",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 1300.0
+        }
+      },
+      {
+        "id": "awc_effective_width",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 1300.0
+        }
+      },
+      {
+        "id": "awc_cc_shimmer",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 108,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_smooth_shimmer",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_effective_shimmer",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_cc_tone",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 109,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1820.0
+        }
+      },
+      {
+        "id": "awc_smooth_tone",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.03,
+          "isig": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 1820.0
+        }
+      },
+      {
+        "id": "awc_effective_tone",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 600.0,
+          "y": 1820.0
+        }
+      },
+      {
+        "id": "awc_table_1_0",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1000.0,
+          "y": 2800.0
+        }
+      },
+      {
+        "id": "awc_table_1_1",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 2800.0
+        }
+      },
+      {
+        "id": "awc_table_1_2",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1560.0,
+          "y": 2800.0
+        }
+      },
+      {
+        "id": "awc_table_1_3",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1840.0,
+          "y": 2800.0
+        }
+      },
+      {
+        "id": "awc_table_2_0",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1000.0,
+          "y": 3200.0
+        }
+      },
+      {
+        "id": "awc_table_2_1",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1280.0,
+          "y": 3200.0
+        }
+      },
+      {
+        "id": "awc_table_2_2",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1560.0,
+          "y": 3200.0
+        }
+      },
+      {
+        "id": "awc_table_2_3",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10
+        },
+        "position": {
+          "x": 1840.0,
+          "y": 3200.0
+        }
+      },
+      {
+        "id": "awc_slow_0",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_drift_lfo_0",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 210.0
+        }
+      },
+      {
+        "id": "awc_position_0",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_pitch_0",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 210.0
+        }
+      },
+      {
+        "id": "awc_voice_0_wave_0",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_voice_0_wave_1",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 1980.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_voice_0_wave_2",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 2260.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_voice_0_wave_3",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0
+        },
+        "position": {
+          "x": 2540.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_tone_0",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "awc_gain_0",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 210.0
+        }
+      },
+      {
+        "id": "awc_slow_1",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_drift_lfo_1",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "awc_position_1",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_pitch_1",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "awc_voice_1_wave_0",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.21
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_voice_1_wave_1",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.21
+        },
+        "position": {
+          "x": 1980.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_voice_1_wave_2",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.21
+        },
+        "position": {
+          "x": 2260.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_voice_1_wave_3",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.21
+        },
+        "position": {
+          "x": 2540.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_tone_1",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_pan_1",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 3250.0,
+          "y": 520.0
+        }
+      },
+      {
+        "id": "awc_gain_1",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "awc_slow_2",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_drift_lfo_2",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 1250.0
+        }
+      },
+      {
+        "id": "awc_position_2",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_pitch_2",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 1250.0
+        }
+      },
+      {
+        "id": "awc_voice_2_wave_0",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.57
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_voice_2_wave_1",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.57
+        },
+        "position": {
+          "x": 1980.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_voice_2_wave_2",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.57
+        },
+        "position": {
+          "x": 2260.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_voice_2_wave_3",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.57
+        },
+        "position": {
+          "x": 2540.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_tone_2",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_pan_2",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 3250.0,
+          "y": 1040.0
+        }
+      },
+      {
+        "id": "awc_gain_2",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 1250.0
+        }
+      },
+      {
+        "id": "awc_slow_3",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_drift_lfo_3",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 1770.0
+        }
+      },
+      {
+        "id": "awc_position_3",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_pitch_3",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 1770.0
+        }
+      },
+      {
+        "id": "awc_voice_3_wave_0",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.34
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_voice_3_wave_1",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.34
+        },
+        "position": {
+          "x": 1980.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_voice_3_wave_2",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.34
+        },
+        "position": {
+          "x": 2260.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_voice_3_wave_3",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.34
+        },
+        "position": {
+          "x": 2540.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_tone_3",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_pan_3",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 3250.0,
+          "y": 1560.0
+        }
+      },
+      {
+        "id": "awc_gain_3",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 1770.0
+        }
+      },
+      {
+        "id": "awc_slow_4",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_drift_lfo_4",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 2290.0
+        }
+      },
+      {
+        "id": "awc_position_4",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_pitch_4",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 2290.0
+        }
+      },
+      {
+        "id": "awc_voice_4_wave_0",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.78
+        },
+        "position": {
+          "x": 1700.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_voice_4_wave_1",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.78
+        },
+        "position": {
+          "x": 1980.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_voice_4_wave_2",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.78
+        },
+        "position": {
+          "x": 2260.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_voice_4_wave_3",
+        "opcode": "poscil3",
+        "params": {
+          "iphs": 0.78
+        },
+        "position": {
+          "x": 2540.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_tone_4",
+        "opcode": "butterlp",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_pan_4",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 3250.0,
+          "y": 2080.0
+        }
+      },
+      {
+        "id": "awc_gain_4",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2900.0,
+          "y": 2290.0
+        }
+      },
+      {
+        "id": "awc_mix_left",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 3600.0,
+          "y": 600.0
+        }
+      },
+      {
+        "id": "awc_mix_right",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 3600.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1500.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1500.0,
+          "y": 310.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "awc_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "awc_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "awc_sustain",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "awc_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_position",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_position",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_position",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_position",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_position",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_position",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_position",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_scan",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_scan",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_scan",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_scan",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_scan",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_scan",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_scan",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_motion",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_motion",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_motion",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_motion",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_motion",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_drift",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_drift",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_drift",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_drift",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_drift",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_drift",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_drift",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_detune",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_detune",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_detune",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_detune",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_detune",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_detune",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_detune",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_width",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_width",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_width",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_width",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_width",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_width",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_width",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_shimmer",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_shimmer",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_shimmer",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_shimmer",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_shimmer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_shimmer",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_shimmer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "awc_cc_tone",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "awc_cc_tone",
+        "from_port_id": "kout",
+        "to_node_id": "awc_smooth_tone",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "awc_tone",
+        "from_port_id": "iout",
+        "to_node_id": "awc_effective_tone",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_smooth_tone",
+        "from_port_id": "kout",
+        "to_node_id": "awc_effective_tone",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_0",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_0",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_0",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_0",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_0",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_0",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_0",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_1",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_1",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_1",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_1",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_1",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_1",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_1",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_2",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_2",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_2",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_2",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_2",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_2",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_2",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_3",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_3",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_3",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_3",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_3",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_3",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_1_3",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_0",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_0",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_0",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_0",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_0",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_0",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_0",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_1",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_1",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_1",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_1",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_1",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_1",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_1",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_2",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_2",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_2",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_2",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_2",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_2",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_2",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_3",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_3",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_3",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_3",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_3",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_3",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_table_2_3",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_slow_0",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_drift_lfo_0",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_position",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_scan",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_slow_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_pitch_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_detune",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_drift",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_0",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_table_1_0",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_0_wave_0",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_0",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_1",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_0_wave_1",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_2",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_0_wave_2",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_3",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_0_wave_3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_0",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_0_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_voice_0_wave_0",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_0_wave_1",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_0_wave_2",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_0_wave_3",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_0",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_tone",
+        "from_port_id": "kout",
+        "to_node_id": "awc_tone_0",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "awc_output",
+        "from_port_id": "iout",
+        "to_node_id": "awc_gain_0",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_effective_shimmer",
+        "from_port_id": "kout",
+        "to_node_id": "awc_gain_0",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_tone_0",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_gain_0",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_width",
+        "from_port_id": "kout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_slow_1",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_drift_lfo_1",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_position",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_scan",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_slow_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_pitch_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_detune",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_drift",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_table_1_0",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_1_wave_0",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_0",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_1",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_1_wave_1",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_2",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_1_wave_2",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_3",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_1_wave_3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_1",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_1_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_voice_1_wave_0",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_1_wave_1",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_1_wave_2",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_1_wave_3",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_tone",
+        "from_port_id": "kout",
+        "to_node_id": "awc_tone_1",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "awc_output",
+        "from_port_id": "iout",
+        "to_node_id": "awc_gain_1",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_effective_shimmer",
+        "from_port_id": "kout",
+        "to_node_id": "awc_gain_1",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_tone_1",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_gain_1",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_width",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pan_1",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_slow_2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_drift_lfo_2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_position",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_scan",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_slow_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_pitch_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_detune",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_drift",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_2",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_table_1_0",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_2_wave_0",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_0",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_1",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_2_wave_1",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_2",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_2_wave_2",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_1_3",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_2_wave_3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_2",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_2_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_voice_2_wave_0",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_2_wave_1",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_2_wave_2",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_2_wave_3",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_tone",
+        "from_port_id": "kout",
+        "to_node_id": "awc_tone_2",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "awc_output",
+        "from_port_id": "iout",
+        "to_node_id": "awc_gain_2",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_effective_shimmer",
+        "from_port_id": "kout",
+        "to_node_id": "awc_gain_2",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_tone_2",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_gain_2",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_width",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pan_2",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_slow_3",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_drift_lfo_3",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_position",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_scan",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_slow_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_pitch_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_detune",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_drift",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_3",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_table_2_0",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_3_wave_0",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_0",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_2_1",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_3_wave_1",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_2_2",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_3_wave_2",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_2_3",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_3_wave_3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_3",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_3_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_voice_3_wave_0",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_3_wave_1",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_3_wave_2",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_3_wave_3",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_tone",
+        "from_port_id": "kout",
+        "to_node_id": "awc_tone_3",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "awc_output",
+        "from_port_id": "iout",
+        "to_node_id": "awc_gain_3",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_effective_shimmer",
+        "from_port_id": "kout",
+        "to_node_id": "awc_gain_3",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_gain_3",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_tone_3",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_gain_3",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_3",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_width",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pan_3",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_slow_4",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_motion",
+        "from_port_id": "kout",
+        "to_node_id": "awc_drift_lfo_4",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "awc_effective_position",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_scan",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_slow_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_position_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_pitch_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_detune",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_effective_drift",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_drift_lfo_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pitch_4",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_table_2_0",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_4_wave_0",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_0",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_0",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_2_1",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_4_wave_1",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_1",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_2_2",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_4_wave_2",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_2",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_table_2_3",
+        "from_port_id": "ift",
+        "to_node_id": "awc_voice_4_wave_3",
+        "to_port_id": "ifn"
+      },
+      {
+        "from_node_id": "awc_pitch_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_position_4",
+        "from_port_id": "kout",
+        "to_node_id": "awc_voice_4_wave_3",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "awc_voice_4_wave_0",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_4",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_4_wave_1",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_4",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_4_wave_2",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_4",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_voice_4_wave_3",
+        "from_port_id": "asig",
+        "to_node_id": "awc_tone_4",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_tone",
+        "from_port_id": "kout",
+        "to_node_id": "awc_tone_4",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "awc_output",
+        "from_port_id": "iout",
+        "to_node_id": "awc_gain_4",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_effective_shimmer",
+        "from_port_id": "kout",
+        "to_node_id": "awc_gain_4",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "awc_gain_4",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "awc_tone_4",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_4",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_gain_4",
+        "from_port_id": "aout",
+        "to_node_id": "awc_pan_4",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "awc_effective_width",
+        "from_port_id": "kout",
+        "to_node_id": "awc_pan_4",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "awc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_1",
+        "from_port_id": "aleft",
+        "to_node_id": "awc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_2",
+        "from_port_id": "aleft",
+        "to_node_id": "awc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_3",
+        "from_port_id": "aleft",
+        "to_node_id": "awc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_4",
+        "from_port_id": "aleft",
+        "to_node_id": "awc_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "awc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_1",
+        "from_port_id": "aright",
+        "to_node_id": "awc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_2",
+        "from_port_id": "aright",
+        "to_node_id": "awc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_3",
+        "from_port_id": "aright",
+        "to_node_id": "awc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_pan_4",
+        "from_port_id": "aright",
+        "to_node_id": "awc_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "awc_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "amp_madsr::iatt": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "awc_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::idec": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "awc_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::islev": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "awc_sustain",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::irel": {
+          "expression": "setting",
+          "inputs": [
+            {
+              "token": "setting",
+              "from_node_id": "awc_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_cc_position::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_position::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_position",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_position::a": {
+          "expression": "base + cc * (1 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_position",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_position",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_cc_scan::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_scan::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_scan",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_scan::a": {
+          "expression": "base + cc * (0.5 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_scan",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_scan",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_cc_motion::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_motion::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_motion::a": {
+          "expression": "(0 + 2 + abs((base * ampdb(12.041199826559248 * cc)) - 0) - abs((base * ampdb(12.041199826559248 * cc)) - 2)) / 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_cc_drift::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_drift::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_drift",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_drift::a": {
+          "expression": "base + cc * (8 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_drift",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_drift",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_cc_detune::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_detune::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_detune",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_detune::a": {
+          "expression": "base + cc * (20 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_detune",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_cc_width::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_width::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_width::a": {
+          "expression": "base + cc * (1 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_width",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_cc_shimmer::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_shimmer::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_shimmer",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_shimmer::a": {
+          "expression": "base + cc * (0.5 - base)",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_shimmer",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_shimmer",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_cc_tone::ichan": {
+          "expression": "floor(channel + .5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "awc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "awc_smooth_tone::ksig": {
+          "expression": "(0 + 1 + abs((cc) - 0) - abs((cc) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "cc",
+              "from_node_id": "awc_cc_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_effective_tone::a": {
+          "expression": "(0 + 16000 + abs((base * ampdb(12.041199826559248 * cc)) - 0) - abs((base * ampdb(12.041199826559248 * cc)) - 16000)) / 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "awc_tone",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "awc_smooth_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_table_1_0::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "awc_table_1_0::iarg2": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (2 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (2 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_0::iarg3": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (3 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (3 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_0::iarg4": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_0::iarg5": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (5 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (5 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_0::iarg6": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_0::iarg7": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (7 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (7 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_0::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_1::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "awc_table_1_1::iarg2": {
+          "expression": "0.35 * ((0 + 1 + abs((floor(sr * .45 / (2 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (2 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_1::iarg3": {
+          "expression": "0.15 * ((0 + 1 + abs((floor(sr * .45 / (3 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (3 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_1::iarg4": {
+          "expression": "0.07 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_1::iarg5": {
+          "expression": "0.03 * ((0 + 1 + abs((floor(sr * .45 / (5 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (5 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_1::iarg6": {
+          "expression": "0.02 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_1::iarg7": {
+          "expression": "0.01 * ((0 + 1 + abs((floor(sr * .45 / (7 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (7 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_1::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_2::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "awc_table_1_2::iarg2": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (2 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (2 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_2::iarg3": {
+          "expression": "0.55 * ((0 + 1 + abs((floor(sr * .45 / (3 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (3 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_2::iarg4": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_2::iarg5": {
+          "expression": "0.22 * ((0 + 1 + abs((floor(sr * .45 / (5 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (5 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_2::iarg6": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_2::iarg7": {
+          "expression": "0.1 * ((0 + 1 + abs((floor(sr * .45 / (7 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (7 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_2::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_3::iarg1": {
+          "expression": "0.7",
+          "inputs": []
+        },
+        "awc_table_1_3::iarg2": {
+          "expression": "0.2 * ((0 + 1 + abs((floor(sr * .45 / (2 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (2 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_3::iarg3": {
+          "expression": "0.5 * ((0 + 1 + abs((floor(sr * .45 / (3 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (3 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_3::iarg4": {
+          "expression": "0.15 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_3::iarg5": {
+          "expression": "0.4 * ((0 + 1 + abs((floor(sr * .45 / (5 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (5 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_3::iarg6": {
+          "expression": "0.1 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_3::iarg7": {
+          "expression": "0.3 * ((0 + 1 + abs((floor(sr * .45 / (7 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (7 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_1_3::iarg8": {
+          "expression": "0.08 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_0::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "awc_table_2_0::iarg2": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_0::iarg3": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_0::iarg4": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_0::iarg5": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (10 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (10 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_0::iarg6": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (12 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (12 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_0::iarg7": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (14 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (14 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_0::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (16 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (16 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_1::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "awc_table_2_1::iarg2": {
+          "expression": "0.35 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_1::iarg3": {
+          "expression": "0.15 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_1::iarg4": {
+          "expression": "0.07 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_1::iarg5": {
+          "expression": "0.03 * ((0 + 1 + abs((floor(sr * .45 / (10 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (10 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_1::iarg6": {
+          "expression": "0.02 * ((0 + 1 + abs((floor(sr * .45 / (12 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (12 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_1::iarg7": {
+          "expression": "0.01 * ((0 + 1 + abs((floor(sr * .45 / (14 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (14 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_1::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (16 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (16 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_2::iarg1": {
+          "expression": "1",
+          "inputs": []
+        },
+        "awc_table_2_2::iarg2": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_2::iarg3": {
+          "expression": "0.55 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_2::iarg4": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_2::iarg5": {
+          "expression": "0.22 * ((0 + 1 + abs((floor(sr * .45 / (10 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (10 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_2::iarg6": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (12 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (12 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_2::iarg7": {
+          "expression": "0.1 * ((0 + 1 + abs((floor(sr * .45 / (14 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (14 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_2::iarg8": {
+          "expression": "0 * ((0 + 1 + abs((floor(sr * .45 / (16 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (16 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_3::iarg1": {
+          "expression": "0.7",
+          "inputs": []
+        },
+        "awc_table_2_3::iarg2": {
+          "expression": "0.2 * ((0 + 1 + abs((floor(sr * .45 / (4 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (4 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_3::iarg3": {
+          "expression": "0.5 * ((0 + 1 + abs((floor(sr * .45 / (6 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (6 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_3::iarg4": {
+          "expression": "0.15 * ((0 + 1 + abs((floor(sr * .45 / (8 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (8 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_3::iarg5": {
+          "expression": "0.4 * ((0 + 1 + abs((floor(sr * .45 / (10 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (10 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_3::iarg6": {
+          "expression": "0.1 * ((0 + 1 + abs((floor(sr * .45 / (12 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (12 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_3::iarg7": {
+          "expression": "0.3 * ((0 + 1 + abs((floor(sr * .45 / (14 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (14 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_table_2_3::iarg8": {
+          "expression": "0.08 * ((0 + 1 + abs((floor(sr * .45 / (16 * 1.017 * hz))) - 0) - abs((floor(sr * .45 / (16 * 1.017 * hz))) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_slow_0::kcps": {
+          "expression": "rate * 0.73",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_drift_lfo_0::kcps": {
+          "expression": "rate * 0.317",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_position_0::a": {
+          "expression": "(0 + 1 + abs((position + scan * (.7 * slow + .3 * drift)) - 0) - abs((position + scan * (.7 * slow + .3 * drift)) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "position",
+              "from_node_id": "awc_effective_position",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scan",
+              "from_node_id": "awc_effective_scan",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "slow",
+              "from_node_id": "awc_slow_0",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_drift_lfo_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_pitch_0::a": {
+          "expression": "1 * hz * ampdb((detune * 0 + drift * lfo) * .005017166594399686)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "awc_effective_detune",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_effective_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "awc_drift_lfo_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_0::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_0",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_0_wave_0::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_0::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 0)) - 0) - abs((1 - abs(position * 3 - 0)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_1::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_1",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_0_wave_1::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_1::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 1)) - 0) - abs((1 - abs(position * 3 - 1)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_2::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_2",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_0_wave_2::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_2::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 2)) - 0) - abs((1 - abs(position * 3 - 2)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_3::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_3",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_0_wave_3::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_0_wave_3::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 3)) - 0) - abs((1 - abs(position * 3 - 3)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_tone_0::asig": {
+          "expression": "wave0 + wave1 + wave2 + wave3",
+          "inputs": [
+            {
+              "token": "wave0",
+              "from_node_id": "awc_voice_0_wave_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave1",
+              "from_node_id": "awc_voice_0_wave_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave2",
+              "from_node_id": "awc_voice_0_wave_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave3",
+              "from_node_id": "awc_voice_0_wave_3",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "awc_tone_0::xfreq": {
+          "expression": "tone",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "awc_effective_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_gain_0::kin": {
+          "expression": ".12 * 0.5 * ampdb(output) * (1 - shimmer) * 1",
+          "inputs": [
+            {
+              "token": "output",
+              "from_node_id": "awc_output",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "shimmer",
+              "from_node_id": "awc_effective_shimmer",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "awc_tone_0",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "awc_gain_0",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "output_pan2::xp": {
+          "expression": ".5 + 0.0 * width",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "awc_effective_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_slow_1::kcps": {
+          "expression": "rate * 1",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_drift_lfo_1::kcps": {
+          "expression": "rate * 0.479",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_position_1::a": {
+          "expression": "(0 + 1 + abs((position + scan * (.7 * slow + .3 * drift)) - 0) - abs((position + scan * (.7 * slow + .3 * drift)) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "position",
+              "from_node_id": "awc_effective_position",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scan",
+              "from_node_id": "awc_effective_scan",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "slow",
+              "from_node_id": "awc_slow_1",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_drift_lfo_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_pitch_1::a": {
+          "expression": "1 * hz * ampdb((detune * -1 + drift * lfo) * .005017166594399686)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "awc_effective_detune",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_effective_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "awc_drift_lfo_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_0::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_0",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_1_wave_0::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_0::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 0)) - 0) - abs((1 - abs(position * 3 - 0)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_1::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_1",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_1_wave_1::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_1::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 1)) - 0) - abs((1 - abs(position * 3 - 1)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_2::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_2",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_1_wave_2::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_2::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 2)) - 0) - abs((1 - abs(position * 3 - 2)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_3::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_3",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_1_wave_3::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_1_wave_3::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 3)) - 0) - abs((1 - abs(position * 3 - 3)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_tone_1::asig": {
+          "expression": "wave0 + wave1 + wave2 + wave3",
+          "inputs": [
+            {
+              "token": "wave0",
+              "from_node_id": "awc_voice_1_wave_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave1",
+              "from_node_id": "awc_voice_1_wave_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave2",
+              "from_node_id": "awc_voice_1_wave_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave3",
+              "from_node_id": "awc_voice_1_wave_3",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "awc_tone_1::xfreq": {
+          "expression": "tone",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "awc_effective_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_gain_1::kin": {
+          "expression": ".12 * 0.25 * ampdb(output) * (1 - shimmer) * 1",
+          "inputs": [
+            {
+              "token": "output",
+              "from_node_id": "awc_output",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "shimmer",
+              "from_node_id": "awc_effective_shimmer",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_pan_1::asig": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "awc_tone_1",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "awc_gain_1",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "awc_pan_1::xp": {
+          "expression": ".5 + -0.48 * width",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "awc_effective_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_slow_2::kcps": {
+          "expression": "rate * 1.173",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_drift_lfo_2::kcps": {
+          "expression": "rate * 0.613",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_position_2::a": {
+          "expression": "(0 + 1 + abs((position + scan * (.7 * slow + .3 * drift)) - 0) - abs((position + scan * (.7 * slow + .3 * drift)) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "position",
+              "from_node_id": "awc_effective_position",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scan",
+              "from_node_id": "awc_effective_scan",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "slow",
+              "from_node_id": "awc_slow_2",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_drift_lfo_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_pitch_2::a": {
+          "expression": "1 * hz * ampdb((detune * 1 + drift * lfo) * .005017166594399686)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "awc_effective_detune",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_effective_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "awc_drift_lfo_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_0::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_0",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_2_wave_0::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_0::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 0)) - 0) - abs((1 - abs(position * 3 - 0)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_1::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_1",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_2_wave_1::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_1::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 1)) - 0) - abs((1 - abs(position * 3 - 1)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_2::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_2",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_2_wave_2::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_2::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 2)) - 0) - abs((1 - abs(position * 3 - 2)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_3::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_1_3",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_2_wave_3::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_2_wave_3::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 3)) - 0) - abs((1 - abs(position * 3 - 3)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_tone_2::asig": {
+          "expression": "wave0 + wave1 + wave2 + wave3",
+          "inputs": [
+            {
+              "token": "wave0",
+              "from_node_id": "awc_voice_2_wave_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave1",
+              "from_node_id": "awc_voice_2_wave_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave2",
+              "from_node_id": "awc_voice_2_wave_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave3",
+              "from_node_id": "awc_voice_2_wave_3",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "awc_tone_2::xfreq": {
+          "expression": "tone",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "awc_effective_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_gain_2::kin": {
+          "expression": ".12 * 0.25 * ampdb(output) * (1 - shimmer) * 1",
+          "inputs": [
+            {
+              "token": "output",
+              "from_node_id": "awc_output",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "shimmer",
+              "from_node_id": "awc_effective_shimmer",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_pan_2::asig": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "awc_tone_2",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "awc_gain_2",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "awc_pan_2::xp": {
+          "expression": ".5 + 0.48 * width",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "awc_effective_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_slow_3::kcps": {
+          "expression": "rate * 0.53",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_drift_lfo_3::kcps": {
+          "expression": "rate * 0.839",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_position_3::a": {
+          "expression": "(0 + 1 + abs((position + scan * (.7 * slow + .3 * drift)) - 0) - abs((position + scan * (.7 * slow + .3 * drift)) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "position",
+              "from_node_id": "awc_effective_position",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scan",
+              "from_node_id": "awc_effective_scan",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "slow",
+              "from_node_id": "awc_slow_3",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_drift_lfo_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_pitch_3::a": {
+          "expression": "2 * hz * ampdb((detune * -1 + drift * lfo) * .005017166594399686)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "awc_effective_detune",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_effective_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "awc_drift_lfo_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_0::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_0",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_3_wave_0::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_0::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 0)) - 0) - abs((1 - abs(position * 3 - 0)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_1::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_1",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_3_wave_1::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_1::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 1)) - 0) - abs((1 - abs(position * 3 - 1)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_2::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_2",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_3_wave_2::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_2::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 2)) - 0) - abs((1 - abs(position * 3 - 2)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_3::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_3",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_3_wave_3::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_3_wave_3::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 3)) - 0) - abs((1 - abs(position * 3 - 3)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_3",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_tone_3::asig": {
+          "expression": "wave0 + wave1 + wave2 + wave3",
+          "inputs": [
+            {
+              "token": "wave0",
+              "from_node_id": "awc_voice_3_wave_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave1",
+              "from_node_id": "awc_voice_3_wave_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave2",
+              "from_node_id": "awc_voice_3_wave_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave3",
+              "from_node_id": "awc_voice_3_wave_3",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "awc_tone_3::xfreq": {
+          "expression": "tone",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "awc_effective_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_gain_3::kin": {
+          "expression": ".12 * 0.5 * ampdb(output) * shimmer * ((0 + 1 + abs((sr * .45 / (2 * 1.017 * hz) - 1) - 0) - abs((sr * .45 / (2 * 1.017 * hz) - 1) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "output",
+              "from_node_id": "awc_output",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "shimmer",
+              "from_node_id": "awc_effective_shimmer",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_pan_3::asig": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "awc_tone_3",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "awc_gain_3",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "awc_pan_3::xp": {
+          "expression": ".5 + -0.48 * width",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "awc_effective_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_slow_4::kcps": {
+          "expression": "rate * 1.37",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_drift_lfo_4::kcps": {
+          "expression": "rate * 1.071",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "awc_effective_motion",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_position_4::a": {
+          "expression": "(0 + 1 + abs((position + scan * (.7 * slow + .3 * drift)) - 0) - abs((position + scan * (.7 * slow + .3 * drift)) - 1)) / 2",
+          "inputs": [
+            {
+              "token": "position",
+              "from_node_id": "awc_effective_position",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "scan",
+              "from_node_id": "awc_effective_scan",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "slow",
+              "from_node_id": "awc_slow_4",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_drift_lfo_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_pitch_4::a": {
+          "expression": "2 * hz * ampdb((detune * 1 + drift * lfo) * .005017166594399686)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "awc_effective_detune",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "awc_effective_drift",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "awc_drift_lfo_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_0::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_0",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_4_wave_0::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_0::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 0)) - 0) - abs((1 - abs(position * 3 - 0)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_1::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_1",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_4_wave_1::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_1::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 1)) - 0) - abs((1 - abs(position * 3 - 1)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_2::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_2",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_4_wave_2::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_2::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 2)) - 0) - abs((1 - abs(position * 3 - 2)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_3::ifn": {
+          "expression": "table",
+          "inputs": [
+            {
+              "token": "table",
+              "from_node_id": "awc_table_2_3",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "awc_voice_4_wave_3::freq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "awc_pitch_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_voice_4_wave_3::amp": {
+          "expression": "amp * ((0 + 1 + abs((1 - abs(position * 3 - 3)) - 0) - abs((1 - abs(position * 3 - 3)) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "awc_position_4",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_tone_4::asig": {
+          "expression": "wave0 + wave1 + wave2 + wave3",
+          "inputs": [
+            {
+              "token": "wave0",
+              "from_node_id": "awc_voice_4_wave_0",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave1",
+              "from_node_id": "awc_voice_4_wave_1",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave2",
+              "from_node_id": "awc_voice_4_wave_2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "wave3",
+              "from_node_id": "awc_voice_4_wave_3",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "awc_tone_4::xfreq": {
+          "expression": "tone",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "awc_effective_tone",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_gain_4::kin": {
+          "expression": ".12 * 0.5 * ampdb(output) * shimmer * ((0 + 1 + abs((sr * .45 / (2 * 1.017 * hz) - 1) - 0) - abs((sr * .45 / (2 * 1.017 * hz) - 1) - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "output",
+              "from_node_id": "awc_output",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "shimmer",
+              "from_node_id": "awc_effective_shimmer",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "awc_pan_4::asig": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "awc_tone_4",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "awc_gain_4",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "awc_pan_4::xp": {
+          "expression": ".5 + 0.48 * width",
+          "inputs": [
+            {
+              "token": "width",
+              "from_node_id": "awc_effective_width",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "awc_mix_left::a": {
+          "expression": "voice0 + voice1 + voice2 + voice3 + voice4",
+          "inputs": [
+            {
+              "token": "voice0",
+              "from_node_id": "output_pan2",
+              "from_port_id": "aleft"
+            },
+            {
+              "token": "voice1",
+              "from_node_id": "awc_pan_1",
+              "from_port_id": "aleft"
+            },
+            {
+              "token": "voice2",
+              "from_node_id": "awc_pan_2",
+              "from_port_id": "aleft"
+            },
+            {
+              "token": "voice3",
+              "from_node_id": "awc_pan_3",
+              "from_port_id": "aleft"
+            },
+            {
+              "token": "voice4",
+              "from_node_id": "awc_pan_4",
+              "from_port_id": "aleft"
+            }
+          ]
+        },
+        "output_left::asignal": {
+          "expression": "audio",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "awc_mix_left",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "awc_mix_right::a": {
+          "expression": "voice0 + voice1 + voice2 + voice3 + voice4",
+          "inputs": [
+            {
+              "token": "voice0",
+              "from_node_id": "output_pan2",
+              "from_port_id": "aright"
+            },
+            {
+              "token": "voice1",
+              "from_node_id": "awc_pan_1",
+              "from_port_id": "aright"
+            },
+            {
+              "token": "voice2",
+              "from_node_id": "awc_pan_2",
+              "from_port_id": "aright"
+            },
+            {
+              "token": "voice3",
+              "from_node_id": "awc_pan_3",
+              "from_port_id": "aright"
+            },
+            {
+              "token": "voice4",
+              "from_node_id": "awc_pan_4",
+              "from_port_id": "aright"
+            }
+          ]
+        },
+        "output_right::asignal": {
+          "expression": "audio",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "awc_mix_right",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  },
+  "id": "a56097b0-8502-5ecf-b0f9-d2e7b3f6b679"
+}

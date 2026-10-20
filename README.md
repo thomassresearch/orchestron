@@ -173,6 +173,10 @@ guide for compiler setup and [playback implementation selection](BACKEND.md#comp
 
 You can also [import example instruments](examples/instruments/) or [load an example performance](examples/performances/). The [examples guide](examples/README.md) explains both routes.
 
+The [Ambient Techno instruments](documentation/instrument_design/ambient_techno.md)
+pair a rounded sub-bass with a moving wavetable cloud. Per-instance controls set
+the base sound; separate MIDI CCs add live timbre, motion, width and shimmer.
+
 The [Standard Effects](documentation/performance/standard_effects.md) section at the end of the Performance chapter collects the supplied effect guides.
 
 [Tube Overdrive](documentation/instrument_design/tube_overdrive.md) adds warm stereo
