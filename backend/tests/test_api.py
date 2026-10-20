@@ -7851,6 +7851,8 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
 
 
 @pytest.mark.parametrize("fixture,values,defaults", [
+    ("autopanner", {"ap_tempo": 137, "ap_beats": 1.375, "ap_depth": .63},
+     {"ap_tempo": 120, "ap_beats": 4, "ap_depth": 1}),
     ("stereo_moog_filter", {"smf_cutoff": 2500, "smf_resonance": .75, "smf_channel": 3},
      {"smf_cutoff": 1000, "smf_resonance": .3, "smf_channel": 16}),
     ("granular_capture",
@@ -8018,7 +8020,7 @@ def test_tenor_saxophone_native_roundtrip_preserves_legato_and_controls(tmp_path
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture", "stereo_moog_filter"])
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture", "stereo_moog_filter", "autopanner"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
@@ -8027,7 +8029,10 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
     from backend.tools.stereo_delay_audio import insert_graph, probe_source
 
     patch = load_patch_fixture(fixture)
-    if fixture == "stereo_moog_filter":
+    if fixture == "autopanner":
+        values = dict(ap_tempo=137, ap_beats=1.375, ap_depth=.63)
+        controls = [("Tempo (BPM)", 40, 180, 120), ("Beats per cycle", .125, 16, 4), ("Depth", 0, 1, 1)]
+    elif fixture == "stereo_moog_filter":
         values = dict(smf_cutoff=2500, smf_resonance=.75, smf_channel=3)
         controls = [("Cutoff (Hz)", 20, 20000, 1000), ("Resonance", 0, 1, .3),
                     ("MIDI Control Channel", 1, 16, 16)]
@@ -8101,7 +8106,11 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         assert "ksmps = 1" in csd
-        if fixture == "stereo_moog_filter":
+        if fixture == "autopanner":
+            from backend.tests.csound_test_support import orc_code_lines
+            code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
+            assert code.count(" poscil3 ") == 1
+        elif fixture == "stereo_moog_filter":
             from backend.tests.csound_test_support import orc_code_lines
             code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
             assert code.count(" moogvcf ") == 2

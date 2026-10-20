@@ -25,6 +25,7 @@ For a parallel return, use **wet-only** output where supported, so the original 
 - [Tube Overdrive](../instrument_design/tube_overdrive.md)
 - [Stereo Delay](../instrument_design/stereo_delay.md)
 - [Stereo Flanger](../instrument_design/stereo_flanger.md)
+- [Autopanner](../instrument_design/autopanner.md)
 - [Parametric Equalizer](../instrument_design/parametric_equalizer.md)
 - [Stereo Widener, Bit Crusher, and Harmonizer](../instrument_design/continuous_effects.md)
 - [Granular Capture](../instrument_design/granular_capture.md)

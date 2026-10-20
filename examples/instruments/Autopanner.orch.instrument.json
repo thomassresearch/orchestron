@@ -1,0 +1,303 @@
+{
+  "sourcePatchId": "autopanner-v1",
+  "name": "Autopanner",
+  "description": "Continuous stereo Autopanner with separate left/right paths and a smooth sine sweep. Tempo (40–180 BPM, default 120), Beats per cycle (0.125–16, default 4), Depth (0–1, default 1). One cycle lasts 60 * Beats / Tempo seconds. Depth 0 passes audio unchanged; Depth 1 alternately attenuates each channel to silence. Gains never exceed unity. Starts centered, moving right; phase resets on rack start. Set tempo manually: no arranger synchronization. Use as a mixer insert. Restart the rack after changing settings.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "ap_tempo",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tempo (BPM)",
+          "min": 40,
+          "max": 180,
+          "default": 120,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "ap_beats",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Beats per cycle",
+          "min": 0.125,
+          "max": 16,
+          "default": 4,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "ap_depth",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Depth",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "ap_lfo",
+        "opcode": "poscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1,
+          "iphs": 0
+        },
+        "position": {
+          "x": 360.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "ap_depth_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 720.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "ap_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 360.0
+        }
+      },
+      {
+        "id": "ap_gain_left",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1080.0,
+          "y": 360.0
+        }
+      },
+      {
+        "id": "ap_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 720.0
+        }
+      },
+      {
+        "id": "ap_gain_right",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1080.0,
+          "y": 720.0
+        }
+      },
+      {
+        "id": "ap_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1440.0,
+          "y": 360.0
+        }
+      },
+      {
+        "id": "ap_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1440.0,
+          "y": 720.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "ap_tempo",
+        "from_port_id": "iout",
+        "to_node_id": "ap_lfo",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "ap_beats",
+        "from_port_id": "iout",
+        "to_node_id": "ap_lfo",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "ap_depth",
+        "from_port_id": "iout",
+        "to_node_id": "ap_depth_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "ap_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "ap_gain_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ap_depth_audio",
+        "from_port_id": "aout",
+        "to_node_id": "ap_gain_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "ap_lfo",
+        "from_port_id": "asig",
+        "to_node_id": "ap_gain_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "ap_gain_left",
+        "from_port_id": "aout",
+        "to_node_id": "ap_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "ap_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "ap_gain_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ap_depth_audio",
+        "from_port_id": "aout",
+        "to_node_id": "ap_gain_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "ap_lfo",
+        "from_port_id": "asig",
+        "to_node_id": "ap_gain_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "ap_gain_right",
+        "from_port_id": "aout",
+        "to_node_id": "ap_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "ap_lfo::freq": {
+          "expression": "tempo / (60 * beats)",
+          "inputs": [
+            {
+              "token": "tempo",
+              "from_node_id": "ap_tempo",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "beats",
+              "from_node_id": "ap_beats",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "ap_gain_left::b": {
+          "expression": "1 - depth * (1 + wave) / 2",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "ap_depth_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wave",
+              "from_node_id": "ap_lfo",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "ap_gain_right::b": {
+          "expression": "1 - depth * (1 - wave) / 2",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "ap_depth_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wave",
+              "from_node_id": "ap_lfo",
+              "from_port_id": "asig"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "ap_input": true,
+        "ap_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "ap_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "ap_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "ap_input",
+      "mainOutput": "ap_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

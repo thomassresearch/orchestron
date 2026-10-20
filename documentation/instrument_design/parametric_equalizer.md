@@ -1,6 +1,6 @@
 # Parametric Equalizer
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](stereo_flanger.md) | [Next](continuous_effects.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](autopanner.md) | [Next](continuous_effects.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
 
 [Download Parametric Equalizer](../../examples/instruments/Parametric_Equalizer.orch.instrument.json)
 and import it using **Instrument Design → Import**. This continuous stereo effect

@@ -49,6 +49,10 @@ Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_desi
 
 Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
 
+Play [HSB Mono](documentation/instrument_design/hsb_mono.md) for cyclic tonality,
+octave brightness and pitch slides across gaps of roughly 20 ms, with performance
+knobs and live MIDI control of all three settings.
+
 The [Parametric Equalizer](documentation/instrument_design/parametric_equalizer.md)
 provides seven stereo bands from 63 Hz to 16 kHz, with linear −20 to +20 dB
 performance controls and neutral 0 dB defaults.
@@ -194,6 +198,11 @@ control supports 1–100 ms modulation; larger values also lengthen the wet dela
 [Stereo Flanger](documentation/instrument_design/stereo_flanger.md) adds sweeping
 comb filtering with Rate, Delay, Depth, Feedback, Stereo Phase and Mix controls.
 Its continuous stereo insert supports signed feedback and a wet-only send return.
+
+[Autopanner](documentation/instrument_design/autopanner.md) sweeps stereo balance
+with manual Tempo, Beats per cycle and Depth controls. It preserves separate
+channels, passes audio unchanged at zero Depth, and requires a rack restart
+after changing settings.
 
 [Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns.
 

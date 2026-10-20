@@ -1,0 +1,815 @@
+{
+  "sourcePatchId": "35a07e2c-4b00-40ec-b71f-d361476ec81e",
+  "name": "HSB Mono",
+  "description": "Monophonic hsboscil synth with five sine-wave octaves and independent cyclic tonality/brightness. Last-note priority; overlapping/touching notes share an envelope. Patch-local portk memory glides across gaps up to approximately 20 ms; longer gaps start directly at the new pitch. A positive gap retriggers the amplitude envelope, as in a slide bass; it does not extend the phrase gate. Legato half-time defaults to 60 ms (higher = slower). Velocity-sensitive, 6 ms attack / 150 ms decay / 0.8 sustain / 80 ms release. Suggested MIDI range 36-84. Performance controls: Tonality 0-1 octave cycle, Brightness -2 to +2 octaves, Legato half-time 1-500 ms. MIDI control channel defaults to 16; CC20 Tonality, CC74 Brightness, CC5 Legato half-time. CC0 recalls the performance setting; CC1 minimum, CC127 maximum, with 10 ms smoothing. Rack controls are read at phrase start. CCs affect held notes; notes never reset controllers. Instances sharing a control channel share CC automation, but their voice/glide state remains separate. Route Stereo Output through the mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_initial",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "velocity_scale",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 0,
+          "y": 240
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 260,
+          "y": 240
+        }
+      },
+      {
+        "id": "legato",
+        "opcode": "midi_legato",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 490
+        }
+      },
+      {
+        "id": "activity",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 1e-06,
+          "idec": 0,
+          "islev": 1,
+          "irel": 0,
+          "ireltim": 0
+        },
+        "position": {
+          "x": 300,
+          "y": 620
+        }
+      },
+      {
+        "id": "recent_activity",
+        "opcode": "portk",
+        "params": {
+          "isig": -1
+        },
+        "position": {
+          "x": 600,
+          "y": 620
+        }
+      },
+      {
+        "id": "phrase_onset",
+        "opcode": "linseg",
+        "params": {
+          "ia": 1,
+          "idur1": 2.0833333333333333e-05,
+          "ib": 0
+        },
+        "position": {
+          "x": 900,
+          "y": 620
+        }
+      },
+      {
+        "id": "hsb_tonality",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Tonality (octave cycle)",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0,
+          "y": 1050
+        }
+      },
+      {
+        "id": "hsb_brightness",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Brightness (octaves)",
+          "min": -2,
+          "max": 2,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0,
+          "y": 1390
+        }
+      },
+      {
+        "id": "hsb_legato_rate",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Legato half-time (s)",
+          "min": 0.001,
+          "max": 0.5,
+          "default": 0.06,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 0,
+          "y": 1730
+        }
+      },
+      {
+        "id": "hsb_cc_channel",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "MIDI control channel",
+          "min": 1,
+          "max": 16,
+          "default": 16,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 0,
+          "y": 2100
+        }
+      },
+      {
+        "id": "tone_cc",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 20,
+          "kmin": 0,
+          "kmax": 127
+        },
+        "position": {
+          "x": 370,
+          "y": 1050
+        }
+      },
+      {
+        "id": "tone_value",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.01
+        },
+        "position": {
+          "x": 750,
+          "y": 1050
+        }
+      },
+      {
+        "id": "brightness_cc",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 74,
+          "kmin": 0,
+          "kmax": 127
+        },
+        "position": {
+          "x": 370,
+          "y": 1390
+        }
+      },
+      {
+        "id": "brightness_value",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.01
+        },
+        "position": {
+          "x": 750,
+          "y": 1390
+        }
+      },
+      {
+        "id": "glide_cc",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 5,
+          "kmin": 0,
+          "kmax": 127
+        },
+        "position": {
+          "x": 370,
+          "y": 1730
+        }
+      },
+      {
+        "id": "glide_value",
+        "opcode": "portk",
+        "params": {
+          "khtim": 0.01
+        },
+        "position": {
+          "x": 750,
+          "y": 1730
+        }
+      },
+      {
+        "id": "glide_pitch",
+        "opcode": "portk",
+        "params": {
+          "isig": -1
+        },
+        "position": {
+          "x": 1250,
+          "y": 400
+        }
+      },
+      {
+        "id": "pitch_octaves",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1560,
+          "y": 400
+        }
+      },
+      {
+        "id": "amp_attack",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.006
+        },
+        "position": {
+          "x": 1250,
+          "y": 1100
+        }
+      },
+      {
+        "id": "amp_decay",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.15
+        },
+        "position": {
+          "x": 1250,
+          "y": 1340
+        }
+      },
+      {
+        "id": "amp_sustain",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.8
+        },
+        "position": {
+          "x": 1250,
+          "y": 1580
+        }
+      },
+      {
+        "id": "amp_release",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.08
+        },
+        "position": {
+          "x": 1250,
+          "y": 1820
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 1560,
+          "y": 1100
+        }
+      },
+      {
+        "id": "sine_table",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": 10,
+          "iarg1": 1
+        },
+        "position": {
+          "x": 1550,
+          "y": -450
+        }
+      },
+      {
+        "id": "octave_window",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 16384,
+          "igen": -19,
+          "iarg1": 1,
+          "iarg2": 0.5,
+          "iarg3": 270,
+          "iarg4": 0.5
+        },
+        "position": {
+          "x": 1870,
+          "y": -450
+        }
+      },
+      {
+        "id": "hsb_oscillator",
+        "opcode": "hsboscil",
+        "params": {
+          "ibasfreq": 261.6255653005986,
+          "ioctcnt": 5,
+          "iphs": -1
+        },
+        "position": {
+          "x": 2200,
+          "y": 300
+        }
+      },
+      {
+        "id": "output_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2600,
+          "y": 300
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2900,
+          "y": 300
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2900,
+          "y": 600
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "activity",
+        "from_port_id": "kenv",
+        "to_node_id": "recent_activity",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "activity",
+        "from_port_id": "kenv",
+        "to_node_id": "recent_activity",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "hsb_cc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "tone_cc",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "hsb_tonality",
+        "from_port_id": "iout",
+        "to_node_id": "tone_value",
+        "to_port_id": "isig"
+      },
+      {
+        "from_node_id": "hsb_tonality",
+        "from_port_id": "iout",
+        "to_node_id": "tone_value",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tone_cc",
+        "from_port_id": "kout",
+        "to_node_id": "tone_value",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hsb_cc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "brightness_cc",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "hsb_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "brightness_value",
+        "to_port_id": "isig"
+      },
+      {
+        "from_node_id": "hsb_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "brightness_value",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "brightness_cc",
+        "from_port_id": "kout",
+        "to_node_id": "brightness_value",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "hsb_cc_channel",
+        "from_port_id": "iout",
+        "to_node_id": "glide_cc",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "hsb_legato_rate",
+        "from_port_id": "iout",
+        "to_node_id": "glide_value",
+        "to_port_id": "isig"
+      },
+      {
+        "from_node_id": "hsb_legato_rate",
+        "from_port_id": "iout",
+        "to_node_id": "glide_value",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "glide_cc",
+        "from_port_id": "kout",
+        "to_node_id": "glide_value",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "legato",
+        "from_port_id": "kfreq",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "glide_value",
+        "from_port_id": "kout",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "recent_activity",
+        "from_port_id": "kout",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "phrase_onset",
+        "from_port_id": "kenv",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "glide_pitch",
+        "from_port_id": "kout",
+        "to_node_id": "pitch_octaves",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "amp_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "amp_sustain",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "amp_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "sine_table",
+        "from_port_id": "ift",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "iwfn"
+      },
+      {
+        "from_node_id": "octave_window",
+        "from_port_id": "ift",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "ioctfn"
+      },
+      {
+        "from_node_id": "pitch_octaves",
+        "from_port_id": "kout",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "ktone"
+      },
+      {
+        "from_node_id": "tone_value",
+        "from_port_id": "kout",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "ktone"
+      },
+      {
+        "from_node_id": "pitch_octaves",
+        "from_port_id": "kout",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "kbrite"
+      },
+      {
+        "from_node_id": "brightness_value",
+        "from_port_id": "kout",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "kbrite"
+      },
+      {
+        "from_node_id": "legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "hsb_oscillator",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "hsb_oscillator",
+        "from_port_id": "ares",
+        "to_node_id": "output_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "output_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "zero_dbfs": 1
+    },
+    "ui_layout": {
+      "input_formulas": {
+        "recent_activity::khtim": {
+          "expression": "0.020 * (1 - gate)",
+          "inputs": [
+            {
+              "token": "gate",
+              "from_node_id": "activity",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "tone_cc::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "hsb_cc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tone_value::isig": {
+          "expression": "base + 0",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "hsb_tonality",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tone_value::ksig": {
+          "expression": "base * (1 - ceil(cc / 127)) + (0 + (cc - 1) / 126 * 1) * ceil(cc / 127) + 0",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "hsb_tonality",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "tone_cc",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "brightness_cc::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "hsb_cc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "brightness_value::isig": {
+          "expression": "base + 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "hsb_brightness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "brightness_value::ksig": {
+          "expression": "base * (1 - ceil(cc / 127)) + (-2 + (cc - 1) / 126 * 4) * ceil(cc / 127) + 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "hsb_brightness",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "brightness_cc",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "glide_cc::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "hsb_cc_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "glide_value::isig": {
+          "expression": "base + 0",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "hsb_legato_rate",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "glide_value::ksig": {
+          "expression": "base * (1 - ceil(cc / 127)) + (0.001 * ampdb((cc - 1) / 126 * 53.979400086720375)) * ceil(cc / 127) + 0",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "hsb_legato_rate",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "glide_cc",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "glide_pitch::khtim": {
+          "expression": "rate * (1 - onset * (1 - floor(memory + 0.5)))",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "glide_value",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "memory",
+              "from_node_id": "recent_activity",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "onset",
+              "from_node_id": "phrase_onset",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "pitch_octaves::a": {
+          "expression": "dbamp(pitch / 261.6255653005986) / 6.020599913279624",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "glide_pitch",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "hsb_oscillator::ktone": {
+          "expression": "octave + tone + 8",
+          "inputs": [
+            {
+              "token": "octave",
+              "from_node_id": "pitch_octaves",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "tone",
+              "from_node_id": "tone_value",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "hsb_oscillator::kbrite": {
+          "expression": "octave + brightness - 2",
+          "inputs": [
+            {
+              "token": "octave",
+              "from_node_id": "pitch_octaves",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "brightness",
+              "from_node_id": "brightness_value",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "hsb_oscillator::kamp": {
+          "expression": "0.28 * velocity * envelope",
+          "inputs": [
+            {
+              "token": "velocity",
+              "from_node_id": "legato",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "envelope",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "main-output": true
+      }
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "guided": true,
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ]
+    },
+    "control_flow": {}
+  }
+}

@@ -36,6 +36,12 @@ their own in-memory copy.
   delay sweeps, dry bypass, channel isolation, extremes and decay, plus native
   round trips, saved instance settings and both CSD export modes.
 
+- `autopanner.patch.json` freezes the continuous stereo Autopanner. Tests compare
+  audio-rate gains to an independent sine oracle, including fractional beats,
+  live/offline block sizes, exact depth-zero bypass, phase restart, stereo
+  isolation, silence and bounds. API tests cover native round trips, instance
+  settings and both CSD exports.
+
 - `analog_drumkit.patch.json` is a fixed copy of the five-voice analog drumkit
   supplied when this fixture was added. Backend audio regressions and frontend
   template tests share this snapshot.
@@ -107,3 +113,8 @@ polyphony, instance isolation, native rendering and CSD export without reading e
 snapshot. It covers CC20/21 scaling, startup initialization, channel selection,
 stereo separation, cutoff recovery, controller endpoints, native round trips and
 MIDI/SCORE exports. Tests never import its example builder.
+
+`patches/hsb_mono.patch.json` independently covers the HSB Mono instrument's
+patch-local 20 ms pitch memory, monophonic fallback, instance isolation,
+performance/CC controls, velocity, stereo output and release tails. Tests use
+the existing compiler unchanged and never load its developer example.

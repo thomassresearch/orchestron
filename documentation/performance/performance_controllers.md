@@ -49,6 +49,11 @@ Depth, Feedback, Stereo Phase and Mix. It preserves separate left/right paths,
 supports positive and negative feedback, and can provide a wet-only send return.
 Restart the rack after changing its six per-instance settings.
 
+[Autopanner](../instrument_design/autopanner.md) provides Tempo (BPM), Beats per
+cycle and Depth. Tempo is entered manually; the default sweep takes four beats
+at 120 BPM. Depth zero passes stereo audio unchanged. Restart the rack after
+changing any of these per-instance settings.
+
 [Parametric Equalizer](../instrument_design/parametric_equalizer.md) provides seven
 gain controls at 63 Hz, 160 Hz, 400 Hz, 1 kHz, 2.5 kHz, 6.3 kHz and 16 kHz.
 All use a linear −20 to +20 dB range with 0 dB defaults. The graph converts dB

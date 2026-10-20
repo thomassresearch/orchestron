@@ -1,5 +1,11 @@
 # Documentation screenshot coverage
 
+Autopanner captures added on 2026-10-20: `autopanner_graph.png` shows its complete
+editable stereo graph; `autopanner_controls.png` shows the three per-instance
+controls and restart guidance. Both are real Playwright captures from a separate
+temporary database with the engine stopped. The existing library's performance
+and app state were not changed.
+
 Rack and mixer screenshots refreshed on 2026-09-29 from the live Orchestron environment at `http://127.0.0.1:8000/client/`, with **Ratchet drums demo** loaded. The captures show the group divider, drag handles, matching mixer order, and pinned Master. The engine was stopped; the performance settings were left unchanged.
 
 The other screenshots retain the original 2026-09-07 capture set for commit `b487abd` (audio routing and persistent Perform mixer), captured with Playwright in a separate browser session and temporary database. All images are real UI captures cropped to the relevant panel. English labels match the English manual.
