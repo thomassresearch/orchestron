@@ -90,3 +90,9 @@ The exported CSD score still contains a finite `f 0 <duration>` line. The durati
 ## MIDI-controlled capture effects
 
 [Granular Capture](documentation/instrument_design/granular_capture.md) remains continuous with assignment channel 0. Its `ctrl7` nodes read explicit per-instance channel/CC settings. The `stereo_capture` UDO owns bounded sample-local stereo history, snapshots and grains. Both compiler paths include its helpers once; SCORE exports rewrite explicit-channel readers. Switch state remains MIDI runtime state, not persisted buffer data.
+
+[Stereo Moog Filter](documentation/instrument_design/stereo_moog_filter.md) uses two
+`moogvcf` instances with shared CC20/21 factors. Its per-instance control channel
+defaults to 16. Unlike Granular Capture, it explicitly initializes its two shared
+CCs to maximum using `initc7`; starting another instance on the same channel resets
+those values for every receiver. Performance settings remain I-rate.

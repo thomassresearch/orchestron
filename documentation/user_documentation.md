@@ -95,7 +95,7 @@ The animation describes the existing native Csound runtime. See [clock ownership
 | Browser audio mode (`browser_clock` PCM) | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
 | Browser-clock latency tuning for unified browser audio | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
 | App-state persistence and defaults | [Persistence and Defaults](configuration/persistence_and_defaults.md) |
-| Supported opcode catalog (144 opcodes) | [Supported Opcodes](instrument_design/supported_opcodes.md) |
+| Supported opcode catalog | [Supported Opcodes](instrument_design/supported_opcodes.md) |
 
 ## File Format Quick Reference
 

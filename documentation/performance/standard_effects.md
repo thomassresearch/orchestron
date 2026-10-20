@@ -28,5 +28,6 @@ For a parallel return, use **wet-only** output where supported, so the original 
 - [Parametric Equalizer](../instrument_design/parametric_equalizer.md)
 - [Stereo Widener, Bit Crusher, and Harmonizer](../instrument_design/continuous_effects.md)
 - [Granular Capture](../instrument_design/granular_capture.md)
+- [Stereo Moog Filter](../instrument_design/stereo_moog_filter.md)
 
 **Navigation:** [Up](performance.md) | [Prev](live_status_and_safety_controls.md) | [Next](../instrument_design/tube_overdrive.md)

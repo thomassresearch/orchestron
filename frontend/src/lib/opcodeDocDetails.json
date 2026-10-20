@@ -8540,5 +8540,34 @@
         "spanish": "Salida derecha."
       }
     }
+  },
+  "initc7": {
+    "description": {
+      "english": "Initializes the controller used to create a 7-bit MIDI value. Initializes MIDI controller ictlno with ivalue",
+      "german": "Initialisiert den Controller, der zum Erstellen eines 7-Bit-MIDI-Werts verwendet wird. Initialisiert den MIDI-Controller ictlno mit Wert",
+      "french": "Initialise le contrôleur utilisé pour créer une valeur MIDI 7 bits. Initialise le contrôleur MIDI ictlno avec ivalue",
+      "spanish": "Inicializa el controlador utilizado para crear un valor MIDI de 7 bits. Inicializa el controlador MIDI ictlno con ivalue"
+    },
+    "inputs": {
+      "ichan": {
+        "english": "MIDI channel (1-16)",
+        "german": "MIDI-Kanal (1-16)",
+        "french": "Canal MIDI (1-16)",
+        "spanish": "Canal MIDI (1-16)"
+      },
+      "ictlno": {
+        "english": "controller number (0-127)",
+        "german": "Controller-Nummer (0-127)",
+        "french": "numéro de contrôleur (0-127)",
+        "spanish": "número de controlador (0-127)"
+      },
+      "ivalue": {
+        "english": "floating point value (must be within 0 to 1)",
+        "german": "Gleitkommawert (muss zwischen 0 und 1 liegen)",
+        "french": "valeur à virgule flottante (doit être comprise entre 0 et 1)",
+        "spanish": "valor de coma flotante (debe estar entre 0 y 1)"
+      }
+    },
+    "outputs": {}
   }
 }

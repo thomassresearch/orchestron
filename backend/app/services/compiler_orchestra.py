@@ -518,6 +518,16 @@ class OrchestraEmitter:
                 )
                 return f"{env['iamp']} = (tablei(p5 / 128, {ifn}, 1) * ({iscal}))"
             return f"{env['iamp']} = ((p5 / 128) * ({iscal}))"
+        if opcode == "initc7":
+            channel = f"int(limit({env['ichan']}, 1, 16))"
+            controller = f"int(limit({env['ictlno']}, 0, 127))"
+            # Csound initc7 stores the normalized value * 127 + 0.5,
+            # without integer truncation. Use init, not a k-rate assignment:
+            # later score controller events must be able to replace this value.
+            return (
+                f"{SCORE_CONTROLLER_ARRAY_NAME}[({channel} - 1) * 128 + {controller}] "
+                f"init (({env['ivalue']}) * 127 + 0.5)"
+            )
         if opcode == "ctrl7":
             channel = f"int(limit({env['ichan']}, 1, 16))"
             controller = f"int(limit({env['ictlno']}, 0, 127))"

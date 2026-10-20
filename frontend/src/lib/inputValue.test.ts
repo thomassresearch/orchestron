@@ -20,7 +20,7 @@ const state = (graph: PatchGraph, id = "xcf") => resolveInputValue(graph, body(g
 describe("input values presented as compiled", () => {
   it("reveals the saxophone's four stored filter parameters without mutating its graph", () => {
     const graph = fixture(); const before = structuredClone(graph);
-    for (const [id, expected] of [["sax_body", ["650", "750", "1", "1"]], ["sax_presence", ["1800", "1600", "1", "1"]]] as const) {
+    for (const [id, expected] of [["sax_body", ["850", "600", "1", "1"]], ["sax_presence", ["2400", "1200", "1", "1"]]] as const) {
       const node = graph.nodes.find((n) => n.id === id)!;
       ["xcf", "xbw", "inumlayer", "iscl"].forEach((key, i) => {
         expect(resolveInputValue(graph, node, port(key))).toMatchObject({ source: "parameter", highlighted: true, expression: expected[i] });
@@ -39,7 +39,7 @@ describe("input values presented as compiled", () => {
   it("uses formula, connections, parameter, default, unset precedence with stable bindings", () => {
     let graph = fixture();
     graph.connections.push({ from_node_id: "sax_tone", from_port_id: "iout", to_node_id: "sax_body", to_port_id: "xcf" });
-    expect(state(graph)).toMatchObject({ source: "connections", expression: "in1", highlighted: false, storedValue: 650 });
+    expect(state(graph)).toMatchObject({ source: "connections", expression: "in1", highlighted: false, storedValue: 850 });
     graph.ui_layout = setInputFormulaConfig(graph.ui_layout, "sax_body::xcf", { expression: "tone * 1000", inputs: [
       { token: "tone", from_node_id: "sax_tone", from_port_id: "iout" }
     ] });
@@ -58,7 +58,7 @@ describe("input values presented as compiled", () => {
     expect(body(next).params.xcf).toBe(Number(text));
     expect(readInputFormulaMap(next.ui_layout)["sax_body::xcf"]).toBeUndefined();
     expect(state(next).highlighted).toBe(true);
-    expect(body(graph).params.xcf).toBe(650);
+    expect(body(graph).params.xcf).toBe(850);
   });
 
   it("saves expressions with zero or multiple wires and removes the obsolete parameter", () => {
@@ -85,9 +85,9 @@ describe("input values presented as compiled", () => {
     const next = resetInputValue(graph, "sax_body", "xcf");
     expect(state(next)).toMatchObject({ source: "default", expression: "1000", highlighted: false });
     expect(next.connections).toBe(graph.connections);
-    expect(body(next).params.xbw).toBe(750);
+    expect(body(next).params.xbw).toBe(600);
     expect(body(next).position).toBe(body(graph).position);
-    expect(body(graph).params.xcf).toBe(650);
+    expect(body(graph).params.xcf).toBe(850);
   });
 
   it("keeps constants and formulas through save/reload and native instrument import", () => {
@@ -173,7 +173,7 @@ describe("specialized inputs and projections", () => {
 
   it.each(["english", "german", "french", "spanish"] as const)("labels source, reset and editing in %s", (language) => {
     const labels = inputValueCopy(language);
-    expect(describeInputValue(state(fixture()), language)).toBe(`${labels.parameter}: 650`);
+    expect(describeInputValue(state(fixture()), language)).toBe(`${labels.parameter}: 850`);
     expect(labels.reset).toBeTruthy(); expect(labels.default).toBeTruthy(); expect(labels.edit).toBeTruthy();
   });
 });

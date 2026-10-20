@@ -7814,6 +7814,8 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
 
 
 @pytest.mark.parametrize("fixture,values,defaults", [
+    ("stereo_moog_filter", {"smf_cutoff": 2500, "smf_resonance": .75, "smf_channel": 3},
+     {"smf_cutoff": 1000, "smf_resonance": .3, "smf_channel": 16}),
     ("granular_capture",
      {"gc_channel": 3, "gc_cc_stutter": 40, "gc_cc_freeze": 41, "gc_cc_capture": 42, "gc_cc_granular": 43,
       "gc_slice": 250, "gc_grain": 100, "gc_density": 80, "gc_pitch": 12, "gc_spread": 1, "gc_mix": .5, "gc_output": -12},
@@ -7915,7 +7917,7 @@ def test_tenor_saxophone_native_roundtrip_preserves_legato_and_controls(tmp_path
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture"])
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture", "stereo_moog_filter"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
@@ -7924,7 +7926,11 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
     from backend.tools.stereo_delay_audio import insert_graph, probe_source
 
     patch = load_patch_fixture(fixture)
-    if fixture == "granular_capture":
+    if fixture == "stereo_moog_filter":
+        values = dict(smf_cutoff=2500, smf_resonance=.75, smf_channel=3)
+        controls = [("Cutoff (Hz)", 20, 20000, 1000), ("Resonance", 0, 1, .3),
+                    ("MIDI Control Channel", 1, 16, 16)]
+    elif fixture == "granular_capture":
         values = {n.id: n.params["default"] for n in patch.graph.nodes if n.opcode == "perf_controller"}
         values.update(gc_channel=3, gc_cc_freeze=41, gc_pitch=12)
         controls = [(n.params['label'], n.params['min'], n.params['max'], n.params['default'])
@@ -7977,7 +7983,7 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         listed = next(p for p in client.get("/api/patches").json() if p["id"] == restored["id"])
         assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == controls
         assert [c["scale"] for c in listed["performance_controllers"]] == [
-            "logarithmic" if (fixture == "stereo_flanger" and index == 0) or (fixture == "bit_crusher" and index == 1) else "linear"
+            "logarithmic" if (fixture in {"stereo_flanger", "stereo_moog_filter"} and index == 0) or (fixture == "bit_crusher" and index == 1) else "linear"
             for index in range(len(controls))
         ]
         saved = client.post("/api/performances", json=dict(name="Delay controls", config=config))
@@ -7994,7 +8000,15 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         assert "ksmps = 1" in csd
-        if fixture == "granular_capture":
+        if fixture == "stereo_moog_filter":
+            from backend.tests.csound_test_support import orc_code_lines
+            code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
+            assert code.count(" moogvcf ") == 2
+            assert (" ctrl7 " in code) == (event_source == "midiFile")
+            assert ("initc7 " in code) == (event_source == "midiFile")
+            if event_source == "score":
+                assert code.count("init ((1) * 127 + 0.5)") == 2
+        elif fixture == "granular_capture":
             assert csd.count("opcode vcs_stereo_capture,") == 1
             assert (" ctrl7 " in csd) == (event_source == "midiFile")
             if event_source == "score":
@@ -8290,6 +8304,60 @@ def test_capture_and_ctrl7_opcode_api(tmp_path):
         capture = catalog['stereo_capture']
         assert [p['id'] for p in capture['outputs']] == ['aleftout', 'arightout']
         assert [p['signal_type'] for p in capture['inputs']] == ['a', 'a'] + ['k'] * 4 + ['i'] * 7
+
+
+def test_initc7_opcode_api(tmp_path):
+    with _client(tmp_path) as client:
+        catalog = {o["name"]: o for o in client.get("/api/opcodes").json()}
+        initializer = catalog["initc7"]
+        assert initializer["documentation_url"] == "https://csound.com/docs/manual/initc7.html"
+        assert [(p["id"], p["signal_type"], p["default"]) for p in initializer["inputs"]] == [
+            ("ichan", "i", 1), ("ictlno", "i", 20), ("ivalue", "i", 1),
+        ]
+        assert all(p["required"] for p in initializer["inputs"])
+        assert initializer["outputs"] == []
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_stereo_moog_filter_exports_time_zero_controls_and_full_scale_resets(tmp_path, event_source):
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tools.stereo_delay_audio import insert_graph, probe_source
+
+    patch = load_patch_fixture("stereo_moog_filter")
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    payload["performanceExport"]["patch_definitions"] = [
+        ExportedPatchDefinition(sourcePatchId=p.id, **p.model_dump(exclude={"id"})).model_dump(mode="json", by_alias=True)
+        for p in (probe_source(), patch)]
+    payload["performanceExport"]["performance"]["config"] = dict(version=20, instruments=[
+        dict(id="source", patchId="stereo-delay-probe", midiChannel=0),
+        dict(id="delay", patchId=patch.id, midiChannel=0, performanceControllerValues={"smf_channel": 3}),
+    ], audioGraph=insert_graph().model_dump(mode="json", by_alias=True))
+    payload["sequencerConfig"] = dict(timing={"tempo_bpm": 120}, playback_end_step=16, controller_tracks=[
+        dict(track_id=f"moog-{cc}", controller_number=cc, controller_mode="step",
+             reset_value=127, target_channels=[3], timing={"steps_per_beat": 4}, length_beats=2,
+             pads=[dict(pad_index=0, steps=[value, None, 127, None, 0, None, 64])])
+        for cc, value in [(20, 64), (21, 0)]
+    ])
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        if event_source == "midiFile":
+            events = [(tick, message.control, message.value)
+                      for tick, message in _midi_messages_with_absolute_ticks(archive.read("Offline_Export/Offline_Export.mid"))
+                      if message.type == "control_change" and message.channel == 2]
+        else:
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+            rows = [line.split() for line in csd.splitlines() if line.startswith("i 9000 ")]
+            events = [(float(row[2]), int(row[4]) % 128, int(row[5]))
+                      for row in rows if int(row[4]) // 128 == 2]
+        for cc, initial in [(20, 64), (21, 0)]:
+            values = [(time, value) for time, controller, value in events if controller == cc]
+            assert [value for time, value in values if time == 0][-1] == initial
+            assert values[-1][1] == 127
+            assert {value for time, value in values if time > 0} == {0, 64, 127}
 
 
 @pytest.mark.parametrize('event_source', ['midiFile', 'score'])

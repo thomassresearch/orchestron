@@ -91,3 +91,8 @@ polyphony, instance isolation, native rendering and CSD export without reading e
 `sequencers/controller_steps.json` defines sparse controller steps, repeated values, explicit zero, reset initialization and selected MIDI channels for frontend/backend regression tests.
 
 `patches/granular_capture.patch.json` and `sequencers/granular_capture_steps.json` independently cover MIDI-controlled capture, looping, granular DSP, step resets, native round trips and both CSD exports.
+
+`patches/stereo_moog_filter.patch.json` is the independent continuous stereo filter
+snapshot. It covers CC20/21 scaling, startup initialization, channel selection,
+stereo separation, cutoff recovery, controller endpoints, native round trips and
+MIDI/SCORE exports. Tests never import its example builder.

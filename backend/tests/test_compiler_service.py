@@ -1121,3 +1121,28 @@ def test_ctrl7_optional_table_and_continuous_score_channel(table, mode):
         line = next(line for line in lines if 'gk_vcs_score_cc' in line)
         assert 'int(limit(' in line
         assert any('table(' in candidate for candidate in lines) == (table is not None)
+
+
+@pytest.mark.parametrize("mode", ["midi", "score"])
+def test_stereo_moog_filter_compiles_independent_instance_settings(mode):
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    from backend.tests.csound_test_support import load_patch_fixture, orc_code_lines
+
+    patch = load_patch_fixture("stereo_moog_filter")
+    targets = [
+        PatchInstrumentTarget(patch, 0, assignment_id=f"filter-{i}", always_on=True,
+                              performance_controller_values=dict(
+                                  smf_channel=i + 2, smf_cutoff=1000 * (i + 1), smf_resonance=.2 * (i + 1)))
+        for i in range(2)
+    ]
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
+        targets, midi_input="0", rtmidi_module="none", performance_input_mode=mode)
+    code = "\n".join(orc_code_lines(artifact.orc))
+    assert code.count(" moogvcf ") == 4
+    assert code.count("initc7 ") == (4 if mode == "midi" else 0)
+    assert code.count("init ((1) * 127 + 0.5)") == (4 if mode == "score" else 0)
+    settings = artifact.manifest["performanceControllers"]
+    for i in range(2):
+        assert settings[f"filter-{i}"]["smf_channel"]["value"] == i + 2
+        assert settings[f"filter-{i}"]["smf_cutoff"]["value"] == 1000 * (i + 1)
+    assert settings["filter-0"]["smf_cutoff"]["channel"] != settings["filter-1"]["smf_cutoff"]["channel"]

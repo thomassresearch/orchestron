@@ -193,6 +193,10 @@ Its continuous stereo insert supports signed feedback and a wet-only send return
 
 [Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns.
 
+[Stereo Moog Filter](documentation/instrument_design/stereo_moog_filter.md) provides
+resonant stereo low-pass filtering with per-instance Cutoff and Resonance settings.
+CC20 and CC21 scale those settings together for both channels during playback.
+
 The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
 includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
 with a waveguide string model, velocity-sensitive plucking and finger/plectrum,

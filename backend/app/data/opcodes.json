@@ -17103,5 +17103,46 @@
       "controller"
     ],
     "icon_filename": "midictrl.svg"
+  },
+  {
+    "name": "initc7",
+    "category": "midi",
+    "description": "Initialize a shared 7-bit MIDI controller on an explicit channel.",
+    "documentation_markdown": "Initialize a channel/controller pair once when the instrument starts. The normalized value is 0–1. This changes shared MIDI state, including other readers of the same channel and CC. SCORE exports initialize the matching controller array entry; subsequent events replace it. Csound stores ivalue × 127 + 0.5 internally, so clamp normalized readers when exact endpoints matter.",
+    "documentation_url": "https://csound.com/docs/manual/initc7.html",
+    "inputs": [
+      {
+        "id": "ichan",
+        "name": "Channel",
+        "signal_type": "i",
+        "required": true,
+        "default": 1,
+        "description": "MIDI channel, 1–16."
+      },
+      {
+        "id": "ictlno",
+        "name": "Controller",
+        "signal_type": "i",
+        "required": true,
+        "default": 20,
+        "description": "MIDI controller number, 0–127."
+      },
+      {
+        "id": "ivalue",
+        "name": "Initial Value",
+        "signal_type": "i",
+        "required": true,
+        "default": 1,
+        "description": "Normalized initial value, 0–1."
+      }
+    ],
+    "outputs": [],
+    "template": "initc7 {ichan}, {ictlno}, {ivalue}",
+    "tags": [
+      "midi",
+      "controller",
+      "initialization"
+    ],
+    "icon_filename": "midictrl.svg"
   }
 ]

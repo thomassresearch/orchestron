@@ -1,0 +1,422 @@
+{
+  "sourcePatchId": "stereo-moog-filter-v1",
+  "name": "Stereo Moog Filter",
+  "description": "Stereo resonant low-pass filter using moogvcf. CC20 scales Cutoff and CC21 scales Resonance by CC/127, synchronously for both channels. MIDI channel defaults to 16. Starting the instrument initializes both shared CCs to maximum; use Reset Value 127 in controller sequencers. Channel 16/CC20-21 overlap Granular Capture defaults. Fully processed output; resonance near 1 can self-oscillate. Restart the rack after changing performance controllers.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "smf_cutoff",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Cutoff (Hz)",
+          "min": 20,
+          "max": 20000,
+          "default": 1000,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "smf_resonance",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Resonance",
+          "min": 0,
+          "max": 1,
+          "default": 0.3,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 300.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "smf_channel",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "MIDI Control Channel",
+          "min": 1,
+          "max": 16,
+          "default": 16,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 600.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "smf_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "smf_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "smf_init_cutoff",
+        "opcode": "initc7",
+        "params": {
+          "ictlno": 20,
+          "ivalue": 1
+        },
+        "position": {
+          "x": 1000.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "smf_cc_cutoff",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 20,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 500.0,
+          "y": -50.0
+        }
+      },
+      {
+        "id": "smf_init_resonance",
+        "opcode": "initc7",
+        "params": {
+          "ictlno": 21,
+          "ivalue": 1
+        },
+        "position": {
+          "x": 1350.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "smf_cc_resonance",
+        "opcode": "ctrl7",
+        "params": {
+          "ictlno": 21,
+          "kmin": 0,
+          "kmax": 1
+        },
+        "position": {
+          "x": 850.0,
+          "y": -50.0
+        }
+      },
+      {
+        "id": "smf_filter_left",
+        "opcode": "moogvcf",
+        "params": {
+          "iscale": 1,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1400.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "smf_filter_right",
+        "opcode": "moogvcf",
+        "params": {
+          "iscale": 1,
+          "iskip": 0
+        },
+        "position": {
+          "x": 1400.0,
+          "y": 900.0
+        }
+      },
+      {
+        "id": "smf_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2000.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "smf_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2000.0,
+          "y": 800.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "smf_channel",
+        "from_port_id": "iout",
+        "to_node_id": "smf_init_cutoff",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "smf_channel",
+        "from_port_id": "iout",
+        "to_node_id": "smf_cc_cutoff",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "smf_channel",
+        "from_port_id": "iout",
+        "to_node_id": "smf_init_resonance",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "smf_channel",
+        "from_port_id": "iout",
+        "to_node_id": "smf_cc_resonance",
+        "to_port_id": "ichan"
+      },
+      {
+        "from_node_id": "smf_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "smf_filter_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "smf_cutoff",
+        "from_port_id": "iout",
+        "to_node_id": "smf_filter_left",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "smf_cc_cutoff",
+        "from_port_id": "kout",
+        "to_node_id": "smf_filter_left",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "smf_resonance",
+        "from_port_id": "iout",
+        "to_node_id": "smf_filter_left",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "smf_cc_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "smf_filter_left",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "smf_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "smf_filter_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "smf_cutoff",
+        "from_port_id": "iout",
+        "to_node_id": "smf_filter_right",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "smf_cc_cutoff",
+        "from_port_id": "kout",
+        "to_node_id": "smf_filter_right",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "smf_resonance",
+        "from_port_id": "iout",
+        "to_node_id": "smf_filter_right",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "smf_cc_resonance",
+        "from_port_id": "kout",
+        "to_node_id": "smf_filter_right",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "smf_filter_left",
+        "from_port_id": "aout",
+        "to_node_id": "smf_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "smf_filter_right",
+        "from_port_id": "aout",
+        "to_node_id": "smf_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "smf_init_cutoff::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "smf_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "smf_cc_cutoff::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "smf_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "smf_init_resonance::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "smf_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "smf_cc_resonance::ichan": {
+          "expression": "floor(channel + 0.5)",
+          "inputs": [
+            {
+              "token": "channel",
+              "from_node_id": "smf_channel",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "smf_filter_left::xfco": {
+          "expression": "selected * (abs(cc) - abs(cc - 1) + 1) / 2",
+          "inputs": [
+            {
+              "token": "selected",
+              "from_node_id": "smf_cutoff",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "smf_cc_cutoff",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "smf_filter_left::xres": {
+          "expression": "selected * (abs(cc) - abs(cc - 1) + 1) / 2",
+          "inputs": [
+            {
+              "token": "selected",
+              "from_node_id": "smf_resonance",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "smf_cc_resonance",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "smf_filter_right::xfco": {
+          "expression": "selected * (abs(cc) - abs(cc - 1) + 1) / 2",
+          "inputs": [
+            {
+              "token": "selected",
+              "from_node_id": "smf_cutoff",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "smf_cc_cutoff",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "smf_filter_right::xres": {
+          "expression": "selected * (abs(cc) - abs(cc - 1) + 1) / 2",
+          "inputs": [
+            {
+              "token": "selected",
+              "from_node_id": "smf_resonance",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cc",
+              "from_node_id": "smf_cc_resonance",
+              "from_port_id": "kout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "smf_input": true,
+        "smf_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "smf_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "smf_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "smf_input",
+      "mainOutput": "smf_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **192** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **193** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -25,7 +25,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | filter | 27 |
 | fm | 17 |
 | math | 3 |
-| midi | 9 |
+| midi | 10 |
 | mixer | 3 |
 | modulation | 10 |
 | noise | 3 |
@@ -185,6 +185,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
 | ctrl7 | 5 (i, i, k, k, i) | 1 (k) | Explicit-channel MIDI CC reader, including continuous instruments. |
+| initc7 | 3 (i, i, i) | - | Initialize a shared MIDI CC once at instrument startup with a normalized value. |
 | ampmidi | 2 (i, i) | 1 (i) | Generate init-rate amplitude from MIDI note velocity. |
 | ampmidicurve | 3 (k, k, k) | 1 (k) | Map MIDI velocity to gain using dynamic range and curve exponent. |
 | ampmidid | 2 (k, i) | 1 (k) | Map MIDI velocity to amplitude using a decibel range. |
