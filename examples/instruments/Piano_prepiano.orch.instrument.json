@@ -1,6 +1,6 @@
 {
   "name": "Piano — prepiano",
-  "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive the strings and hammer. Dry centered stereo output; route to Master. Main string, hammer, release and level settings are performance controls and apply to new notes. Pitch-tracked hammer excitation gives the upper register a ringing string decay, with compensated treble gain.",
+  "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive the strings and hammer. Dry centered stereo output; route to Master. Main string, hammer, release and level settings are performance controls and apply to new notes. Pitch-tracked excitation keeps treble notes pitched; decay tracking above 800 Hz shortens their prominent ring, guided by acoustic-piano recordings.",
   "isTemplate": false,
   "alwaysOn": false,
   "instrumentType": "melody",
@@ -367,12 +367,6 @@
         "to_port_id": "iD"
       },
       {
-        "from_node_id": "piano_decay",
-        "from_port_id": "iout",
-        "to_node_id": "piano_strings",
-        "to_port_id": "iT30"
-      },
-      {
         "from_node_id": "piano_loss",
         "from_port_id": "iout",
         "to_node_id": "piano_strings",
@@ -383,6 +377,18 @@
         "from_port_id": "iout",
         "to_node_id": "piano_strings",
         "to_port_id": "imass"
+      },
+      {
+        "from_node_id": "piano_decay",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "iT30"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "piano_strings",
+        "to_port_id": "iT30"
       },
       {
         "from_node_id": "piano_hardness",
@@ -506,16 +512,6 @@
             }
           ]
         },
-        "piano_strings::iT30": {
-          "expression": "value",
-          "inputs": [
-            {
-              "token": "value",
-              "from_node_id": "piano_decay",
-              "from_port_id": "iout"
-            }
-          ]
-        },
         "piano_strings::iB": {
           "expression": "value",
           "inputs": [
@@ -533,6 +529,21 @@
               "token": "value",
               "from_node_id": "piano_mass",
               "from_port_id": "iout"
+            }
+          ]
+        },
+        "piano_strings::iT30": {
+          "expression": "decay / (1 + (hz - 800 + abs(hz - 800)) / (400 + hz - 800 + abs(hz - 800)) + (hz - 800 + abs(hz - 800)) / 4000)",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "piano_decay",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
             }
           ]
         },

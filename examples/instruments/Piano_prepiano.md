@@ -4,7 +4,7 @@
 
 This example uses Csound's [`prepiano`](https://csound.com/docs/manual/prepiano.html) as an ordinary struck-string piano: three slightly detuned strings, fixed pivoting boundaries, and a stationary pickup. Both preparation-table inputs are fixed at zero. There are no rattle, rubber, or scanning controls.
 
-MIDI notes provide pitch through `cpsmidi`. MIDI velocity drives both hammer strength and output amplitude through `ampmidi`, so harder playing changes the strike as well as volume. An `madsr` envelope damps each note after key release. The sound is dry and centered, with equal left/right output; add room reverb in the mixer if desired. Hammer excitation tracks pitch above 400 Hz so the short treble strings receive enough energy to ring. High notes now retain a pitched decay through C8, with gain compensation keeping their level controlled. This is a dry physical-model piano.
+MIDI notes provide pitch through `cpsmidi`. MIDI velocity drives both hammer strength and output amplitude through `ampmidi`, so harder playing changes the strike as well as volume. An `madsr` envelope damps each note after key release. The sound is dry and centered, with equal left/right output; add room reverb in the mixer if desired. Hammer excitation tracks pitch above 400 Hz so the short treble strings receive enough energy to sound pitched. Above 800 Hz, string decay becomes progressively shorter, guided by acoustic-piano recordings. This corrects the previous revision's excessive upper-register ringing while retaining the native physical model.
 
 ## Performance controls
 
@@ -12,7 +12,7 @@ Settings apply to newly played notes. Sounding notes keep their initialized sett
 
 | Control | Range | Default | Purpose |
 | --- | --- | --- | --- |
-| String decay (s) | 0.5–8 | 4 | Native 30 dB decay-time parameter; actual decay also depends on pitch and damping. |
+| String decay (s) | 0.5–8 | 4 | Base 30 dB decay parameter, shortened above 800 Hz; actual decay also depends on pitch and damping. |
 | String detune (cents) | 0–10 | 4 | Total tuning spread across three strings. |
 | String stiffness | 0.25–2 | 1 | Relative stiffness, tracked with MIDI pitch. |
 | High-frequency loss | 0.0001–0.01 | 0.002 | Damping of upper partials. |
@@ -27,10 +27,53 @@ Stiffness uses `control × frequency / 60`. Strike position adds `frequency / 24
 
 The graph uses the first `prepiano` output followed by `pan2`. This gives a balanced centered pair and avoids the unequal stereo-readout gain in Csound 6.18 when using a stationary pickup. The unused second source output remains available for graph experiments.
 
+## Acoustic reference comparison
+
+The treble revision was compared with sixteen individual C5–C8 recordings:
+
+- [Salamander Grand Piano V3](https://github.com/sfzinstruments/SalamanderGrandPiano), Yamaha C5 recordings by Alexander Holm, velocity layers 8 and 12, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- [University of Iowa Musical Instrument Samples](https://theremin.music.uiowa.edu/MISpiano.html), Steinway & Sons model B played by Evan Mazunik, `mf` and `ff` recordings.
+
+The comparison matches pitch and normalizes each note to its maximum 20 ms RMS.
+A fourth-order high-pass at half the fundamental removes microphone/hammer rumble
+consistently from both recordings and synthesis for measurement. The table reports
+the last crossing of −20 dB in the first five seconds after that maximum, allowing
+for unison beating. It measures prominent decay, not complete silence, note-off
+release or the opcode's nominal `iT30` value. The model was held for five seconds
+at velocity 90. Recorded dynamics do not correspond to an exactly matched MIDI
+velocity, and the two pianos differ substantially.
+
+| Note | Acoustic references | Previous model | Revised model |
+| --- | --- | --- | --- |
+| C6 | 0.56–0.72 s | 0.98 s | 0.78 s |
+| C7 | 0.14–0.80 s | 1.26 s | 0.46 s |
+| C8 | 0.12–0.18 s | 1.22 s | 0.24 s |
+
+For `t = max(frequency − 800, 0)`, the new native decay parameter is
+`String decay / (1 + t / (200 + t) + t / 2000)`. At the default control value of
+4 seconds this produces approximately 2.40 at C6, 1.59 at C7 and 1.10 at C8.
+The formula changes the model's string damping, without adding a sampled layer
+or an artificial key-release cutoff. Notes through G5 retain their prior response.
+All ten controller definitions and IDs remain unchanged.
+
+The reference samples are analysis material only; the instrument and performance
+exports remain sample-free. Local source URLs, SHA-256 hashes, measurements, decay
+plots and an attack-level-matched comparison are under
+`output/prepiano/reference_comparison/`. The comparison plays C6, C7 and C8, each
+as **Yamaha reference → previous model → revised model**, at 3.3-second intervals.
+Reference excerpts are trimmed to three seconds, gain matched and faded over the
+last 20 ms; their attribution is also recorded in `CREDITS.txt` there.
+
 ## Validation
 
-The revision passed 84 native Csound renders, including before/after comparisons, host MIDI, MIDI-file and score playback, an 88-key sweep, four velocities, repeated notes, all ten controls at their limits, sixteen combined extreme settings, and dense bass and treble chords. Samples were finite, channels balanced, release tails complete, and peaks below clipping; the loudest tested case reached 0.679 (about −3.4 dBFS).
+The revision passed 74 instrument renders, including an 88-key sweep, host MIDI,
+MIDI-file and score playback, four velocities, repeated notes, all ten controls
+at their limits, eight combined extreme settings and dense chords. Samples were
+finite, channels balanced, release tails complete and peaks below clipping;
+the loudest tested case reached 0.654 (about −3.7 dBFS).
 
-The bass/middle comparison at C2, C3, C4 and G4 was sample-identical. At default settings and MIDI velocity 100, C6, C7 and C8 all retained pitched energy in the 1–1.5 second window after the attack. Representative C5–C8 pitch checks were within 9 cents. The original string-decay and damper-release controls continue to shape the note tail.
-
-Both Mel and log-STFT spectrograms were inspected for the before/after treble audition and matched control comparisons. Listening was not performed. Frontend production and Docker frontend builds also passed.
+C2, C3, C4, C5 and G5 comparisons were sample-identical. C6–C8 pitch checks were
+within 4 cents. Both saved demo export modes also rendered successfully, and its
+MIDI notes, velocities and mixer levels were retained. Mel and log-STFT plots
+were inspected after the correction. These are numerical and visual checks;
+listening was not performed. Frontend production and Docker frontend builds passed.

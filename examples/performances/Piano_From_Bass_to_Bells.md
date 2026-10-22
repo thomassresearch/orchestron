@@ -39,8 +39,10 @@ a distant bass note while playing another chord with the same hand.
 
 ## Sound and controls
 
-The included instrument uses the improved pitch-tracked `prepiano` hammer
-excitation. All ten existing performance controls remain available at their
+The included instrument uses pitch-tracked `prepiano` hammer excitation and
+[reference-guided treble damping](../instruments/Piano_prepiano.md#acoustic-reference-comparison).
+High notes lose their prominent ring sooner, even while their keys remain held.
+All ten existing performance controls remain available at their
 defaults, including String decay at 4 seconds and Damper release at 0.25 seconds.
 The notes' held durations expose the physical model's decay; no pedal automation,
 reverb, delay, rubber or rattle preparations are used.
@@ -69,7 +71,7 @@ Validation used the saved performance exported by the running application:
 - Held-note counts, hand spans and bass-to-chord movement gaps were checked against
   the actual exported note-on/off times.
 - MIDI and SCORE exports rendered at 48 kHz stereo with no Csound errors or
-  clipping. Peaks were −7.52 and −7.19 dBFS respectively.
+  clipping. Peaks after the treble-damping revision were −7.81 and −7.30 dBFS respectively.
 - Mel and log-frequency STFT plots were inspected for the register progression,
   exposed treble decays and clean ending.
 - The required frontend build and Docker `frontend-build` target passed.
