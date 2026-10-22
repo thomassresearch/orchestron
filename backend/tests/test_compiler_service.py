@@ -20,6 +20,104 @@ from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 
 
+def _prepiano_patch(preparations=(), params=None) -> PatchDocument:
+    patch = PatchDocument(
+        name="Prepared piano opcode test",
+        graph=PatchGraph(
+            nodes=[NodeInstance(id="piano", opcode="prepiano", params=params or {}),
+                   NodeInstance(id="out", opcode="outs")],
+            connections=[
+                Connection(from_node_id="piano", from_port_id="al", to_node_id="out", to_port_id="left"),
+                Connection(from_node_id="piano", from_port_id="ar", to_node_id="out", to_port_id="right"),
+            ],
+        ),
+    )
+    values = {"rattles": [1, 0.6, 10, 100, 0.001], "rubbers": [1, 0.7, 50, 500, 1000]}
+    for preparation in preparations:
+        patch.graph.nodes.append(NodeInstance(id=preparation, opcode="GEN"))
+        patch.graph.ui_layout.setdefault("gen_nodes", {})[preparation] = {
+            "routineNumber": 2, "tableSize": 8, "normalize": False,
+            "valueList": values[preparation],
+        }
+        patch.graph.connections.append(Connection(
+            from_node_id=preparation, from_port_id="ift", to_node_id="piano", to_port_id=f"i{preparation}",
+        ))
+    return patch
+
+
+@pytest.mark.parametrize("preparations", [(), ("rattles",), ("rubbers",), ("rattles", "rubbers")])
+def test_prepiano_compile_defaults_and_preparation_tables(preparations) -> None:
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        _prepiano_patch(preparations), midi_input="0", rtmidi_module="none",
+    )
+    lines = orc_code_lines(artifact.orc)
+    line = next(line.strip() for line in lines if " prepiano " in line)
+    outputs, arguments = line.split(" prepiano ")
+    left, right = outputs.split(", ")
+    assert f"outs {left}, {right}" in [line.strip() for line in lines]
+    args = arguments.split(", ")
+    assert args[:15] == ['60', '3', '10', '1', '3', '0.002', '2', '2', '1',
+                         '5000', '-0.01', '0.09', '20', '0', '0.1']
+    assert len(args) == 17
+    for index, preparation in enumerate(("rattles", "rubbers"), start=15):
+        if preparation in preparations:
+            table_line = next(line.strip() for line in lines if f"i_{preparation}_ift" in line and " ftgen " in line)
+            assert args[index] == table_line.split()[0]
+            assert "ftgen 0, 0, 8, -2, 1, " in table_line
+        else:
+            assert args[index] == '0'
+
+
+@pytest.mark.parametrize("port,rate,allowed", [
+    ("ifreq", "i", True), ("ifreq", "k", False),
+    ("kbcl", "i", True), ("kbcl", "k", True), ("kbcl", "a", False),
+    ("kbcr", "k", True), ("kbcr", "a", False),
+    ("irubbers", "k", False), ("irattles", "a", False),
+])
+def test_prepiano_connection_rates(port, rate, allowed) -> None:
+    patch = _prepiano_patch()
+    patch.graph.nodes.append(NodeInstance(id="source", opcode=f"const_{rate}", params={"value": 2}))
+    patch.graph.connections.append(Connection(
+        from_node_id="source", from_port_id=f"{rate}out", to_node_id="piano", to_port_id=port,
+    ))
+    compiler = CompilerService(OpcodeService("/static/icons"))
+    if allowed:
+        artifact = compiler.compile_patch(patch, midi_input="0", rtmidi_module="none")
+        line = next(line for line in orc_code_lines(artifact.orc) if " prepiano " in line)
+        assert f"{rate}_source_{rate}out" in line
+    else:
+        with pytest.raises(CompilationError):
+            compiler.compile_patch(patch, midi_input="0", rtmidi_module="none")
+
+
+@pytest.mark.parametrize("preparations", [(), ("rattles",), ("rubbers",), ("rattles", "rubbers")])
+def test_prepiano_native_stereo_audio(preparations, tmp_path) -> None:
+    import shutil
+    import subprocess
+
+    import numpy as np
+
+    csound = shutil.which("csound")
+    if not csound:
+        pytest.skip("Csound executable is unavailable")
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(
+        _prepiano_patch(preparations), midi_input="0", rtmidi_module="none",
+    )
+    path = tmp_path / "prepiano.csd"
+    path.write_text("\n".join([
+        "<CsoundSynthesizer>", "<CsOptions>", "-d -m0 -f -h -o prepiano.raw", "</CsOptions>",
+        "<CsInstruments>", artifact.orc, "</CsInstruments>", "<CsScore>",
+        "i 1 0 2", "e", "</CsScore>", "</CsoundSynthesizer>",
+    ]))
+    result = subprocess.run([csound, path.name], cwd=tmp_path, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    samples = np.fromfile(tmp_path / "prepiano.raw", dtype=np.float32).reshape(-1, 2)
+    assert len(samples) >= 96000
+    assert np.isfinite(samples).all()
+    assert np.all(np.sqrt(np.mean(samples ** 2, axis=0)) > 0.0001)
+    assert np.max(np.abs(samples)) < 1
+
+
 def test_wrap_csd_uses_headless_coremidi_on_macos(monkeypatch) -> None:
     monkeypatch.setattr("backend.app.services.compiler_service.sys.platform", "darwin")
 

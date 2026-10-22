@@ -9559,6 +9559,202 @@
     "icon_filename": "vco.svg"
   },
   {
+    "name": "prepiano",
+    "category": "physical_modeling",
+    "description": "Stereo prepared-piano physical model with detuned strings, hammer controls, rattles and rubbers.",
+    "documentation_markdown": "### `prepiano`\n\nStereo prepared-piano physical model with detuned strings, hammer controls, rattles and rubbers.\n\n**Reference**\n- [Csound prepiano reference](https://csound.com/docs/manual/prepiano.html)",
+    "documentation_url": "https://csound.com/docs/manual/prepiano.html",
+    "inputs": [
+      {
+        "id": "ifreq",
+        "name": "Frequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 60,
+        "description": "Base string frequency in Hz; connect cpsmidi for note pitch."
+      },
+      {
+        "id": "iNS",
+        "name": "Strings",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 3,
+        "description": "Number of strings. Start with 3; use 2 or 3 with Csound 6."
+      },
+      {
+        "id": "iD",
+        "name": "Detune",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 10,
+        "description": "Total detuning spread between the lowest and highest strings, in cents."
+      },
+      {
+        "id": "iK",
+        "name": "Stiffness",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Dimensionless string stiffness. Use a positive value to initialize a new voice; negative values skip initialization."
+      },
+      {
+        "id": "iT30",
+        "name": "Decay30dB",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 3,
+        "description": "Time in seconds for a 30 dB decay."
+      },
+      {
+        "id": "iB",
+        "name": "HighFreqLoss",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.002,
+        "description": "High-frequency loss; keep this small."
+      },
+      {
+        "id": "kbcl",
+        "name": "BoundaryLeft",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 2,
+        "description": "Left boundary: 1 = clamped, 2 = pivoting, 3 = free. Changes during a note may glitch."
+      },
+      {
+        "id": "kbcr",
+        "name": "BoundaryRight",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 2,
+        "description": "Right boundary: 1 = clamped, 2 = pivoting, 3 = free. Changes during a note may glitch."
+      },
+      {
+        "id": "imass",
+        "name": "HammerMass",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Mass of the hammer."
+      },
+      {
+        "id": "ihvfreq",
+        "name": "HammerFrequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 5000,
+        "description": "Natural vibration frequency of the hammer in Hz."
+      },
+      {
+        "id": "iinit",
+        "name": "HammerPosition",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": -0.01,
+        "description": "Initial hammer position."
+      },
+      {
+        "id": "ipos",
+        "name": "StrikePosition",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.09,
+        "description": "Strike position as a fraction of the string length."
+      },
+      {
+        "id": "ivel",
+        "name": "StrikeVelocity",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 20,
+        "description": "Hammer strike velocity. The Csound example uses 20 to 100; this is not an output gain."
+      },
+      {
+        "id": "isfreq",
+        "name": "ScanFrequency",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0,
+        "description": "Frequency of scanning the string readout position in Hz."
+      },
+      {
+        "id": "isspread",
+        "name": "ScanSpread",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.1,
+        "description": "Difference between the stereo scanning frequencies in Hz."
+      },
+      {
+        "id": "irattles",
+        "name": "RattlesTable",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "GEN02 table number, or 0 for none. Disable normalization. Values: count, then position, mass-density ratio, frequency and vertical length for each rattle."
+      },
+      {
+        "id": "irubbers",
+        "name": "RubbersTable",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "GEN02 table number, or 0 for none. Disable normalization. Values: count, then position, mass-density ratio, frequency and loss for each rubber."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "al",
+        "name": "aLeft",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Left audio output of the prepared piano."
+      },
+      {
+        "id": "ar",
+        "name": "aRight",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Right audio output of the prepared piano."
+      }
+    ],
+    "template": "{al}, {ar} prepiano {ifreq}, {iNS}, {iD}, {iK}, {iT30}, {iB}, {kbcl}, {kbcr}, {imass}, {ihvfreq}, {iinit}, {ipos}, {ivel}, {isfreq}, {isspread}, {irattles}, {irubbers}",
+    "tags": [
+      "sound",
+      "physical-modeling",
+      "source",
+      "piano",
+      "prepared",
+      "string",
+      "hammer",
+      "rattle",
+      "rubber",
+      "stereo"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
     "name": "sekere",
     "category": "physical_modeling",
     "description": "PhISEM sekere shaker model.",

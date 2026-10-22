@@ -8355,6 +8355,29 @@ def test_insert_bypass_live_updates_and_performance_native_app_state_round_trips
         assert any(node["opcode"] == "a_mul" for node in expanded["patch_definitions"][1]["graph"]["nodes"])
 
 
+def test_prepiano_opcode_api_schema(tmp_path):
+    with _client(tmp_path) as client:
+        response = client.get('/api/opcodes?category=physical_modeling')
+        assert response.status_code == 200
+        opcode = next(o for o in response.json() if o['name'] == 'prepiano')
+        assert client.get('/api/opcodes/prepiano').json() == opcode
+        assert opcode['documentation_url'] == 'https://csound.com/docs/manual/prepiano.html'
+        assert [(p['id'], p['signal_type'], p['required'], p['default']) for p in opcode['inputs']] == [
+            ('ifreq', 'i', True, 60), ('iNS', 'i', True, 3),
+            ('iD', 'i', True, 10), ('iK', 'i', True, 1),
+            ('iT30', 'i', True, 3), ('iB', 'i', True, 0.002),
+            ('kbcl', 'k', True, 2), ('kbcr', 'k', True, 2),
+            ('imass', 'i', True, 1), ('ihvfreq', 'i', True, 5000),
+            ('iinit', 'i', True, -0.01), ('ipos', 'i', True, 0.09),
+            ('ivel', 'i', True, 20), ('isfreq', 'i', True, 0),
+            ('isspread', 'i', True, 0.1), ('irattles', 'i', False, 0),
+            ('irubbers', 'i', False, 0),
+        ]
+        assert [(p['id'], p['signal_type']) for p in opcode['outputs']] == [('al', 'a'), ('ar', 'a')]
+        icon = client.get('/api/opcodes/prepiano/icon', follow_redirects=False)
+        assert icon.headers['location'] == opcode['icon']
+
+
 def test_pvscale_opcode_api_schema(tmp_path):
     with _client(tmp_path) as client:
         opcode = next(o for o in client.get('/api/opcodes').json() if o['name'] == 'pvscale')

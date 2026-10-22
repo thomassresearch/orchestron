@@ -49,6 +49,8 @@ Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_desi
 
 Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
 
+Build prepared-piano sounds with [`prepiano`](documentation/instrument_design/opcode_catalog_and_documentation.md#prepared-piano): stereo modeled strings, hammer controls, and optional GEN tables for rattles and rubbers.
+
 Play [HSB Mono](documentation/instrument_design/hsb_mono.md) for cyclic tonality,
 octave brightness and pitch slides across gaps of roughly 20 ms, with performance
 knobs and live MIDI control of all three settings.

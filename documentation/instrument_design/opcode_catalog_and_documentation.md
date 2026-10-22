@@ -109,6 +109,23 @@ Each node produces mono audio; connect its output to both `outs` inputs for cent
 
 ![compress2, pareq and hsboscil nodes with their audio, control and table inputs](../../screenshots/instrument_compress2_pareq_hsboscil.jpg)
 
+## Prepared Piano
+
+Search for [`prepiano`](https://csound.com/docs/manual/prepiano.html) in **physical_modeling**. The node exposes the stereo form: connect `al` to the left output and `ar` to the right output. Connect `cpsmidi` to init-rate `ifreq` for note pitch; use downstream gain or envelopes for volume shaping.
+
+The starting values follow the Csound example: 60 Hz, three strings, 10 cents detuning, stiffness 1, a 3-second decay to −30 dB, high-frequency loss 0.002, pivoting ends, hammer mass 1, hammer frequency 5000 Hz, initial hammer position −0.01, strike position 0.09, strike velocity 20, scan frequency 0 Hz and stereo scan-frequency spread 0.1 Hz. These are editor starting values. Use two or three strings with Csound 6; its implementation divides the detuning spread by the string count minus one.
+
+Only `kbcl` and `kbcr` accept live control-rate changes (or init-rate constants): **1 = clamped**, **2 = pivoting**, **3 = free**. Changing boundaries during a note can glitch. Other inputs are init rate. Keep stiffness positive for new voices; negative stiffness skips native initialization and is intended for continuing an already initialized model.
+
+Optional `irattles` and `irubbers` default to **0**, disabling that preparation. To add one, create a [GEN02 value-list table](gen_table_editor.md), disable normalization, and connect its init-rate `ift` output to the corresponding table port. Use a table size large enough for a count followed by four values per object (`1 + 4 × count`; size 8 holds one object):
+
+| Preparation | Values after the count | Example value list |
+| --- | --- | --- |
+| Rattle | Position along the string, mass-density ratio, frequency, vertical length | `1, 0.6, 10, 100, 0.001` |
+| Rubber | Position along the string, mass-density ratio, frequency, loss | `1, 0.7, 50, 500, 1000` |
+
+Either table can be used alone. When only a rubber table is connected, the rattle argument stays 0. These examples render with the 60 Hz starting settings; retune stiffness and preparations when changing register. The native physical model can become unstable with other combinations, including these rubber settings at 220 Hz with stiffness 1. Start with low output gain when experimenting. The node's `?` help covers every port in English, German, French and Spanish.
+
 ## STK Instruments
 
 Search for `stk` to find the 27 Synthesis Toolkit instruments in the `physical_modeling`, `fm`, and `oscillator` categories. They include strings, winds, percussion, voices, organs, and electric pianos. Each node produces one mono audio signal; connect it to both `outs` inputs for centered stereo output.

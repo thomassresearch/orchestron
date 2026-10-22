@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **193** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **194** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -31,7 +31,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | noise | 3 |
 | oscillator | 20 |
 | output | 1 |
-| physical_modeling | 30 |
+| physical_modeling | 31 |
 | reverb | 4 |
 | routing | 4 |
 | soundfont | 3 |
@@ -282,6 +282,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | dripwater | 8 (k, i, i, i, i, i, i, i) | 1 (a) | Stochastic dripping-water physical model source. |
 | marimba | 11 (k, k, i, i, i, k, k, i, i, i, i) | 1 (a) | Physical model of a marimba bar and resonator. |
 | pluck | 6 (k, k, i, i, i, i) | 1 (a) | Karplus-Strong plucked-string model. |
+| prepiano | 17 (i, i, i, i, i, i, k, k, i, i, i, i, i, i, i, i, i) | 2 (a, a) | Stereo prepared-piano physical model with detuned strings, hammer controls, rattles and rubbers. |
 | sekere | 5 (i, i, i, i, i) | 1 (a) | PhISEM sekere shaker model. |
 | sleighbells | 8 (k, i, i, i, i, i, i, i) | 1 (a) | PhISEM sleigh bells model. |
 | wgbow | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Waveguide bowed-string model. |

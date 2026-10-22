@@ -8569,5 +8569,131 @@
       }
     },
     "outputs": {}
+  },
+  "prepiano": {
+    "description": {
+      "english": "Stereo physical model of struck piano strings with optional rattles and rubbers. Start at 60 Hz with stiffness 1; retune stiffness and preparations for other registers, since some combinations can become unstable. Shape output level with downstream gain or envelopes.",
+      "german": "Physikalisches Stereomodell angeschlagener Klaviersaiten mit optionalen Rasseln und Gummidämpfern. Mit 60 Hz und Steifigkeit 1 beginnen; Steifigkeit und Präparation für andere Register anpassen, da manche Kombinationen instabil werden können. Den Ausgangspegel mit nachgeschalteter Verstärkung oder Hüllkurven formen.",
+      "french": "Modèle physique stéréo de cordes de piano frappées, avec objets vibrants et amortisseurs en caoutchouc optionnels. Commencer à 60 Hz avec une rigidité de 1 ; adapter rigidité et préparations aux autres registres, car certaines combinaisons peuvent devenir instables. Régler le niveau de sortie avec un gain ou une enveloppe en aval.",
+      "spanish": "Modelo físico estéreo de cuerdas de piano percutidas, con sonajas y amortiguadores de goma opcionales. Comience a 60 Hz con rigidez 1; ajuste la rigidez y las preparaciones para otros registros, ya que algunas combinaciones pueden volverse inestables. Controle el nivel de salida con ganancia o envolventes posteriores."
+    },
+    "inputs": {
+      "ifreq": {
+        "english": "Base string frequency in Hz. Connect cpsmidi for MIDI note pitch.",
+        "german": "Grundfrequenz der Saiten in Hz. cpsmidi für die MIDI-Notentonhöhe anschließen.",
+        "french": "Fréquence fondamentale des cordes en Hz. Relier cpsmidi pour la hauteur des notes MIDI.",
+        "spanish": "Frecuencia fundamental de las cuerdas en Hz. Conecte cpsmidi para la altura de las notas MIDI."
+      },
+      "iNS": {
+        "english": "Number of strings. Start with 3; use 2 or 3 with Csound 6, whose detuning calculation divides by the string count minus one.",
+        "german": "Anzahl der Saiten. Mit 3 beginnen; unter Csound 6 nur 2 oder 3 verwenden, da die Verstimmungsberechnung durch die Saitenanzahl minus eins teilt.",
+        "french": "Nombre de cordes. Commencer avec 3 ; utiliser 2 ou 3 avec Csound 6, dont le calcul du désaccord divise par le nombre de cordes moins un.",
+        "spanish": "Número de cuerdas. Comience con 3; use 2 o 3 con Csound 6, cuyo cálculo de desafinación divide por el número de cuerdas menos uno."
+      },
+      "iD": {
+        "english": "Total detuning spread between the lowest and highest strings, in cents.",
+        "german": "Gesamte Verstimmung zwischen der tiefsten und höchsten Saite in Cent.",
+        "french": "Écart total de désaccord entre les cordes la plus grave et la plus aiguë, en cents.",
+        "spanish": "Separación total de afinación entre las cuerdas más grave y más aguda, en cents."
+      },
+      "iK": {
+        "english": "Dimensionless stiffness. Keep positive for new voices; negative values skip initialization and require an already initialized model.",
+        "german": "Dimensionslose Steifigkeit. Für neue Stimmen positiv halten; negative Werte überspringen die Initialisierung und benötigen ein bereits initialisiertes Modell.",
+        "french": "Rigidité sans dimension. Garder une valeur positive pour les nouvelles voix ; les valeurs négatives sautent l’initialisation et nécessitent un modèle déjà initialisé.",
+        "spanish": "Rigidez adimensional. Manténgala positiva para voces nuevas; los valores negativos omiten la inicialización y requieren un modelo ya inicializado."
+      },
+      "iT30": {
+        "english": "Time in seconds for the string level to decay by 30 dB.",
+        "german": "Zeit in Sekunden, bis der Saitenpegel um 30 dB abgeklungen ist.",
+        "french": "Durée en secondes pour une décroissance du niveau des cordes de 30 dB.",
+        "spanish": "Tiempo en segundos para que el nivel de las cuerdas decaiga 30 dB."
+      },
+      "iB": {
+        "english": "High-frequency loss parameter; keep this small.",
+        "german": "Verlustparameter für hohe Frequenzen; klein halten.",
+        "french": "Paramètre de perte dans les hautes fréquences ; garder une valeur faible.",
+        "spanish": "Parámetro de pérdida de altas frecuencias; mantenga un valor pequeño."
+      },
+      "kbcl": {
+        "english": "Left boundary: 1 = clamped, 2 = pivoting, 3 = free. Accepts control or init rate; changes during a note may glitch.",
+        "german": "Linke Randbedingung: 1 = eingespannt, 2 = gelenkig, 3 = frei. Akzeptiert Kontroll- oder Init-Rate; Änderungen während einer Note können Störgeräusche erzeugen.",
+        "french": "Condition à gauche : 1 = encastrée, 2 = articulée, 3 = libre. Accepte les taux contrôle ou init ; les changements pendant une note peuvent produire des parasites.",
+        "spanish": "Condición izquierda: 1 = empotrada, 2 = articulada, 3 = libre. Acepta tasa de control o de inicio; los cambios durante una nota pueden producir chasquidos."
+      },
+      "kbcr": {
+        "english": "Right boundary: 1 = clamped, 2 = pivoting, 3 = free. Accepts control or init rate; changes during a note may glitch.",
+        "german": "Rechte Randbedingung: 1 = eingespannt, 2 = gelenkig, 3 = frei. Akzeptiert Kontroll- oder Init-Rate; Änderungen während einer Note können Störgeräusche erzeugen.",
+        "french": "Condition à droite : 1 = encastrée, 2 = articulée, 3 = libre. Accepte les taux contrôle ou init ; les changements pendant une note peuvent produire des parasites.",
+        "spanish": "Condición derecha: 1 = empotrada, 2 = articulada, 3 = libre. Acepta tasa de control o de inicio; los cambios durante una nota pueden producir chasquidos."
+      },
+      "imass": {
+        "english": "Mass of the piano hammer.",
+        "german": "Masse des Klavierhammers.",
+        "french": "Masse du marteau du piano.",
+        "spanish": "Masa del martillo del piano."
+      },
+      "ihvfreq": {
+        "english": "Natural vibration frequency of the hammer in Hz.",
+        "german": "Eigenfrequenz des Hammers in Hz.",
+        "french": "Fréquence propre de vibration du marteau en Hz.",
+        "spanish": "Frecuencia natural de vibración del martillo en Hz."
+      },
+      "iinit": {
+        "english": "Initial hammer position; starts at -0.01.",
+        "german": "Anfangsposition des Hammers; Vorgabe −0,01.",
+        "french": "Position initiale du marteau ; valeur de départ −0,01.",
+        "spanish": "Posición inicial del martillo; valor inicial −0,01."
+      },
+      "ipos": {
+        "english": "Strike position as a fraction of the string length; starts at 0.09.",
+        "german": "Anschlagposition als Anteil der Saitenlänge; Vorgabe 0,09.",
+        "french": "Position de frappe en fraction de la longueur de la corde ; valeur de départ 0,09.",
+        "spanish": "Posición del golpe como fracción de la longitud de la cuerda; valor inicial 0,09."
+      },
+      "ivel": {
+        "english": "Hammer strike velocity. The Csound example uses 20 to 100; this is not an output gain or a MIDI velocity value.",
+        "german": "Anschlaggeschwindigkeit des Hammers. Das Csound-Beispiel verwendet 20 bis 100; dies ist weder Ausgangsverstärkung noch MIDI-Velocity.",
+        "french": "Vitesse de frappe du marteau. L’exemple Csound utilise 20 à 100 ; ce paramètre n’est ni un gain de sortie ni une vélocité MIDI.",
+        "spanish": "Velocidad de golpe del martillo. El ejemplo de Csound usa de 20 a 100; no es una ganancia de salida ni un valor de velocidad MIDI."
+      },
+      "isfreq": {
+        "english": "Center frequency for scanning the string readout positions, in Hz.",
+        "german": "Mittenfrequenz der Abtastbewegung entlang der Saiten in Hz.",
+        "french": "Fréquence centrale du balayage des positions de lecture des cordes, en Hz.",
+        "spanish": "Frecuencia central del barrido de las posiciones de lectura de las cuerdas, en Hz."
+      },
+      "isspread": {
+        "english": "Difference between the stereo scanning frequencies in Hz: left uses isfreq - isspread/2, right uses isfreq + isspread/2.",
+        "german": "Differenz der Stereo-Abtastfrequenzen in Hz: links gilt isfreq − isspread/2, rechts isfreq + isspread/2.",
+        "french": "Différence entre les fréquences de balayage stéréo en Hz : gauche = isfreq − isspread/2, droite = isfreq + isspread/2.",
+        "spanish": "Diferencia entre las frecuencias de barrido estéreo en Hz: izquierda = isfreq − isspread/2, derecha = isfreq + isspread/2."
+      },
+      "irattles": {
+        "english": "Optional GEN02 table number; 0 disables rattles. Disable normalization. Store a count followed by position, mass-density ratio, frequency and vertical length for each rattle. Allocate at least 1 + 4 × count values.",
+        "german": "Optionale GEN02-Tabellennummer; 0 deaktiviert Rasseln. Normalisierung ausschalten. Zuerst die Anzahl, dann je Rassel Position, Massendichteverhältnis, Frequenz und vertikale Länge speichern. Mindestens 1 + 4 × Anzahl Werte vorsehen.",
+        "french": "Numéro de table GEN02 optionnel ; 0 désactive les objets vibrants. Désactiver la normalisation. Stocker le nombre, puis la position, le rapport de densité, la fréquence et la longueur verticale de chaque objet. Prévoir au moins 1 + 4 × nombre valeurs.",
+        "spanish": "Número de tabla GEN02 opcional; 0 desactiva las sonajas. Desactive la normalización. Guarde el número de objetos y después posición, relación de densidad, frecuencia y longitud vertical de cada uno. Reserve al menos 1 + 4 × número de objetos valores."
+      },
+      "irubbers": {
+        "english": "Optional GEN02 table number; 0 disables rubbers. Disable normalization. Store a count followed by position, mass-density ratio, frequency and loss for each rubber. Allocate at least 1 + 4 × count values. Can be used without a rattle table.",
+        "german": "Optionale GEN02-Tabellennummer; 0 deaktiviert Gummidämpfer. Normalisierung ausschalten. Zuerst die Anzahl, dann je Dämpfer Position, Massendichteverhältnis, Frequenz und Verlustparameter speichern. Mindestens 1 + 4 × Anzahl Werte vorsehen. Auch ohne Rasseltabelle verwendbar.",
+        "french": "Numéro de table GEN02 optionnel ; 0 désactive les amortisseurs en caoutchouc. Désactiver la normalisation. Stocker le nombre, puis la position, le rapport de densité, la fréquence et la perte de chaque amortisseur. Prévoir au moins 1 + 4 × nombre valeurs. Utilisable sans table d’objets vibrants.",
+        "spanish": "Número de tabla GEN02 opcional; 0 desactiva los amortiguadores de goma. Desactive la normalización. Guarde el número de objetos y después posición, relación de densidad, frecuencia y pérdida de cada uno. Reserve al menos 1 + 4 × número de objetos valores. Puede usarse sin tabla de sonajas."
+      }
+    },
+    "outputs": {
+      "al": {
+        "english": "Left audio output.",
+        "german": "Linker Audioausgang.",
+        "french": "Sortie audio gauche.",
+        "spanish": "Salida de audio izquierda."
+      },
+      "ar": {
+        "english": "Right audio output.",
+        "german": "Rechter Audioausgang.",
+        "french": "Sortie audio droite.",
+        "spanish": "Salida de audio derecha."
+      }
+    }
   }
 }

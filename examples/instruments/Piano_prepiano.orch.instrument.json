@@ -1,0 +1,646 @@
+{
+  "name": "Piano — prepiano",
+  "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive the strings and hammer. Dry centered stereo output; route to Master. Main string, hammer, release and level settings are performance controls and apply to new notes. Most resonant in the bass and middle register; the native model becomes short and percussive in the treble.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 300,
+          "y": -1000
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40,
+          "y": 130
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 250,
+          "y": 150
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.001
+        },
+        "position": {
+          "x": 40,
+          "y": 260
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.01
+        },
+        "position": {
+          "x": 40,
+          "y": 320
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40,
+          "y": 380
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.25
+        },
+        "position": {
+          "x": 40,
+          "y": 440
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 250,
+          "y": 340
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 460,
+          "y": 240
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 1500,
+          "y": -150
+        }
+      },
+      {
+        "id": "piano_release",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.05,
+          "max": 1.5,
+          "default": 0.25,
+          "scale": "logarithmic",
+          "label": "Damper release (s)"
+        },
+        "position": {
+          "x": 40,
+          "y": 650
+        }
+      },
+      {
+        "id": "piano_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "String decay (s)",
+          "min": 0.5,
+          "max": 8,
+          "default": 4,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -800,
+          "y": -800
+        }
+      },
+      {
+        "id": "piano_detune",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "String detune (cents)",
+          "min": 0,
+          "max": 10,
+          "default": 4,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -460,
+          "y": -800
+        }
+      },
+      {
+        "id": "piano_stiffness",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "String stiffness",
+          "min": 0.25,
+          "max": 2,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -120,
+          "y": -800
+        }
+      },
+      {
+        "id": "piano_loss",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "High-frequency loss",
+          "min": 0.0001,
+          "max": 0.01,
+          "default": 0.002,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -800,
+          "y": -420
+        }
+      },
+      {
+        "id": "piano_mass",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Hammer mass",
+          "min": 0.5,
+          "max": 2,
+          "default": 1,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -460,
+          "y": -420
+        }
+      },
+      {
+        "id": "piano_hardness",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Hammer hardness (Hz)",
+          "min": 2000,
+          "max": 6000,
+          "default": 3500,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -120,
+          "y": -420
+        }
+      },
+      {
+        "id": "piano_strike",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Strike position",
+          "min": 0.08,
+          "max": 0.2,
+          "default": 0.09,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -800,
+          "y": -40
+        }
+      },
+      {
+        "id": "piano_strength",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Hammer strength",
+          "min": 10,
+          "max": 40,
+          "default": 30,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -460,
+          "y": -40
+        }
+      },
+      {
+        "id": "piano_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -18,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -120,
+          "y": -40
+        }
+      },
+      {
+        "id": "piano_strings",
+        "opcode": "prepiano",
+        "params": {
+          "iNS": 3,
+          "kbcl": 2,
+          "kbcr": 2,
+          "iinit": -0.001,
+          "isfreq": 0,
+          "isspread": 0,
+          "irattles": 0,
+          "irubbers": 0
+        },
+        "position": {
+          "x": 650,
+          "y": -750
+        }
+      },
+      {
+        "id": "piano_amplitude",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1100,
+          "y": 550
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1900,
+          "y": -150
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1900,
+          "y": 150
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "piano_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "piano_strings",
+        "to_port_id": "ifreq"
+      },
+      {
+        "from_node_id": "piano_detune",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "iD"
+      },
+      {
+        "from_node_id": "piano_decay",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "iT30"
+      },
+      {
+        "from_node_id": "piano_loss",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "iB"
+      },
+      {
+        "from_node_id": "piano_mass",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "imass"
+      },
+      {
+        "from_node_id": "piano_hardness",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "ihvfreq"
+      },
+      {
+        "from_node_id": "piano_stiffness",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "iK"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "piano_strings",
+        "to_port_id": "iK"
+      },
+      {
+        "from_node_id": "piano_strike",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "ipos"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "piano_strings",
+        "to_port_id": "ipos"
+      },
+      {
+        "from_node_id": "piano_strength",
+        "from_port_id": "iout",
+        "to_node_id": "piano_strings",
+        "to_port_id": "ivel"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "piano_strings",
+        "to_port_id": "ivel"
+      },
+      {
+        "from_node_id": "piano_level",
+        "from_port_id": "iout",
+        "to_node_id": "piano_amplitude",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "piano_amplitude",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "piano_amplitude",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "piano_strings",
+        "from_port_id": "al",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "piano_amplitude",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "piano_strings::ifreq": {
+          "expression": "hz",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "piano_strings::iD": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "piano_detune",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "piano_strings::iT30": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "piano_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "piano_strings::iB": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "piano_loss",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "piano_strings::imass": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "piano_mass",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "piano_strings::ihvfreq": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "piano_hardness",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "piano_strings::iK": {
+          "expression": "stiffness * hz / 60",
+          "inputs": [
+            {
+              "token": "stiffness",
+              "from_node_id": "piano_stiffness",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "piano_strings::ipos": {
+          "expression": "position + hz / 24000",
+          "inputs": [
+            {
+              "token": "position",
+              "from_node_id": "piano_strike",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "piano_strings::ivel": {
+          "expression": "strength * (0.15 + 0.85 * velocity)",
+          "inputs": [
+            {
+              "token": "strength",
+              "from_node_id": "piano_strength",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            }
+          ]
+        },
+        "piano_amplitude::kin": {
+          "expression": "ampdb(level) * amplitude * (0.5 + hz / 200)",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "piano_level",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "signal * amplitude",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "piano_strings",
+              "from_port_id": "al"
+            },
+            {
+              "token": "amplitude",
+              "from_node_id": "piano_amplitude",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 3000,
+      "ksmps": 16,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainOutput": "main-output",
+      "guided": true
+    }
+  }
+}

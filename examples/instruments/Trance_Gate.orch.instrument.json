@@ -1,0 +1,268 @@
+{
+  "sourcePatchId": "46336034-3d43-4b9d-af44-ce2715ed747b",
+  "name": "Trance Gate",
+  "description": "Continuous stereo Trance Gate. CH16 CC24 sets target amplitude linearly: CC/127; 127 = unity, 0 = silence after release. A shared audio-rate exponential envelope smooths all target changes, including intermediate levels. Attack and Release are half-times in milliseconds (defaults 5/10 ms), not full ramp durations. Starts with a closed envelope; reads existing shared CC state without resetting it. Use as a mixer insert with a controller sequencer: CH16, CC24, Step, Reset Value 0. Restart the rack after changing performance controllers. Multiple instances share CC24.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "tg_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack half-time (ms)",
+          "min": 1,
+          "max": 500,
+          "default": 5,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 0,
+          "y": -350
+        }
+      },
+      {
+        "id": "tg_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release half-time (ms)",
+          "min": 1,
+          "max": 1000,
+          "default": 10,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 360,
+          "y": -350
+        }
+      },
+      {
+        "id": "tg_cc",
+        "opcode": "ctrl7",
+        "params": {
+          "ichan": 16,
+          "ictlno": 24,
+          "kmin": 0,
+          "kmax": 1,
+          "ifn": 0
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "tg_target_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 360,
+          "y": 0
+        }
+      },
+      {
+        "id": "tg_envelope",
+        "opcode": "follow2",
+        "params": {},
+        "position": {
+          "x": 720,
+          "y": 0
+        }
+      },
+      {
+        "id": "tg_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0,
+          "y": 350
+        }
+      },
+      {
+        "id": "tg_gain_left",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1080,
+          "y": 350
+        }
+      },
+      {
+        "id": "tg_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0,
+          "y": 650
+        }
+      },
+      {
+        "id": "tg_gain_right",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1080,
+          "y": 650
+        }
+      },
+      {
+        "id": "tg_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1440,
+          "y": 350
+        }
+      },
+      {
+        "id": "tg_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1440,
+          "y": 650
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "tg_cc",
+        "from_port_id": "kout",
+        "to_node_id": "tg_target_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tg_target_audio",
+        "from_port_id": "aout",
+        "to_node_id": "tg_envelope",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tg_attack",
+        "from_port_id": "iout",
+        "to_node_id": "tg_envelope",
+        "to_port_id": "katt"
+      },
+      {
+        "from_node_id": "tg_release",
+        "from_port_id": "iout",
+        "to_node_id": "tg_envelope",
+        "to_port_id": "krel"
+      },
+      {
+        "from_node_id": "tg_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "tg_gain_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "tg_envelope",
+        "from_port_id": "aout",
+        "to_node_id": "tg_gain_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "tg_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "tg_gain_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "tg_envelope",
+        "from_port_id": "aout",
+        "to_node_id": "tg_gain_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "tg_gain_left",
+        "from_port_id": "aout",
+        "to_node_id": "tg_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "tg_gain_right",
+        "from_port_id": "aout",
+        "to_node_id": "tg_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "tg_envelope::katt": {
+          "expression": "milliseconds * 0.009965784284662087",
+          "inputs": [
+            {
+              "token": "milliseconds",
+              "from_node_id": "tg_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tg_envelope::krel": {
+          "expression": "milliseconds * 0.009965784284662087",
+          "inputs": [
+            {
+              "token": "milliseconds",
+              "from_node_id": "tg_release",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "tg_input": true,
+        "tg_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "tg_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "tg_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "tg_input",
+      "mainOutput": "tg_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}
