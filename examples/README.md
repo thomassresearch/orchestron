@@ -40,6 +40,10 @@ and a WAV render with two warm passages within the industrial groove.
 [Hardtrance Demo](performances/hardtrance_demo/README.md) documents a seven-minute,
 146 BPM hard trance arrangement, its instrument settings, and its shared effects routing.
 
+The [Piano — prepiano example](instruments/Piano_prepiano.md) is a sample-free,
+polyphonic piano with MIDI pitch and velocity, ten performance controls and no
+rattle or rubber preparations. It includes a native instrument, a control guide and audio-validation results.
+
 ## Import an instrument (Instrument Design -> Import)
 
 [Analog Drumkit](instruments/analog_drumkit/README.md) includes 17 GM-mapped voices

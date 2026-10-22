@@ -12,8 +12,8 @@
         "opcode": "cpsmidi",
         "params": {},
         "position": {
-          "x": 300,
-          "y": -1000
+          "x": 50,
+          "y": -850
         }
       },
       {
@@ -23,8 +23,8 @@
           "value": 1.0
         },
         "position": {
-          "x": 40,
-          "y": 130
+          "x": 50,
+          "y": -600
         }
       },
       {
@@ -32,8 +32,8 @@
         "opcode": "ampmidi",
         "params": {},
         "position": {
-          "x": 250,
-          "y": 150
+          "x": 400,
+          "y": -600
         }
       },
       {
@@ -43,8 +43,8 @@
           "value": 0.001
         },
         "position": {
-          "x": 40,
-          "y": 260
+          "x": 50,
+          "y": 0
         }
       },
       {
@@ -54,8 +54,8 @@
           "value": 0.01
         },
         "position": {
-          "x": 40,
-          "y": 320
+          "x": 50,
+          "y": 210
         }
       },
       {
@@ -65,19 +65,8 @@
           "value": 1.0
         },
         "position": {
-          "x": 40,
-          "y": 380
-        }
-      },
-      {
-        "id": "env_release_const",
-        "opcode": "const_i",
-        "params": {
-          "value": 0.25
-        },
-        "position": {
-          "x": 40,
-          "y": 440
+          "x": 50,
+          "y": 420
         }
       },
       {
@@ -85,8 +74,8 @@
         "opcode": "madsr",
         "params": {},
         "position": {
-          "x": 250,
-          "y": 340
+          "x": 400,
+          "y": 180
         }
       },
       {
@@ -94,8 +83,8 @@
         "opcode": "k_mul",
         "params": {},
         "position": {
-          "x": 460,
-          "y": 240
+          "x": 800,
+          "y": 500
         }
       },
       {
@@ -106,8 +95,8 @@
           "imode": 0
         },
         "position": {
-          "x": 1500,
-          "y": -150
+          "x": 1700,
+          "y": -100
         }
       },
       {
@@ -121,8 +110,8 @@
           "label": "Damper release (s)"
         },
         "position": {
-          "x": 40,
-          "y": 650
+          "x": -1100,
+          "y": 440
         }
       },
       {
@@ -136,8 +125,8 @@
           "scale": "logarithmic"
         },
         "position": {
-          "x": -800,
-          "y": -800
+          "x": -1100,
+          "y": -850
         }
       },
       {
@@ -151,8 +140,8 @@
           "scale": "linear"
         },
         "position": {
-          "x": -460,
-          "y": -800
+          "x": -740,
+          "y": -850
         }
       },
       {
@@ -166,8 +155,8 @@
           "scale": "logarithmic"
         },
         "position": {
-          "x": -120,
-          "y": -800
+          "x": -380,
+          "y": -850
         }
       },
       {
@@ -181,7 +170,7 @@
           "scale": "logarithmic"
         },
         "position": {
-          "x": -800,
+          "x": -1100,
           "y": -420
         }
       },
@@ -196,7 +185,7 @@
           "scale": "logarithmic"
         },
         "position": {
-          "x": -460,
+          "x": -740,
           "y": -420
         }
       },
@@ -211,7 +200,7 @@
           "scale": "logarithmic"
         },
         "position": {
-          "x": -120,
+          "x": -380,
           "y": -420
         }
       },
@@ -226,8 +215,8 @@
           "scale": "linear"
         },
         "position": {
-          "x": -800,
-          "y": -40
+          "x": -1100,
+          "y": 10
         }
       },
       {
@@ -241,8 +230,8 @@
           "scale": "linear"
         },
         "position": {
-          "x": -460,
-          "y": -40
+          "x": -740,
+          "y": 10
         }
       },
       {
@@ -252,12 +241,12 @@
           "label": "Output (dB)",
           "min": -18,
           "max": 0,
-          "default": -6,
+          "default": -3,
           "scale": "linear"
         },
         "position": {
-          "x": -120,
-          "y": -40
+          "x": -380,
+          "y": 10
         }
       },
       {
@@ -274,8 +263,8 @@
           "irubbers": 0
         },
         "position": {
-          "x": 650,
-          "y": -750
+          "x": 900,
+          "y": -850
         }
       },
       {
@@ -283,8 +272,8 @@
         "opcode": "k_to_a",
         "params": {},
         "position": {
-          "x": 1100,
-          "y": 550
+          "x": 1300,
+          "y": 500
         }
       },
       {
@@ -294,8 +283,8 @@
           "sname": "left"
         },
         "position": {
-          "x": 1900,
-          "y": -150
+          "x": 2050,
+          "y": -100
         }
       },
       {
@@ -305,8 +294,8 @@
           "sname": "right"
         },
         "position": {
-          "x": 1900,
-          "y": 150
+          "x": 2050,
+          "y": 180
         }
       }
     ],
@@ -456,6 +445,24 @@
         "to_port_id": "kin"
       },
       {
+        "from_node_id": "piano_mass",
+        "from_port_id": "iout",
+        "to_node_id": "piano_amplitude",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "piano_stiffness",
+        "from_port_id": "iout",
+        "to_node_id": "piano_amplitude",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "piano_strike",
+        "from_port_id": "iout",
+        "to_node_id": "piano_amplitude",
+        "to_port_id": "kin"
+      },
+      {
         "from_node_id": "piano_strings",
         "from_port_id": "al",
         "to_node_id": "output_pan2",
@@ -579,7 +586,7 @@
           ]
         },
         "piano_amplitude::kin": {
-          "expression": "ampdb(level) * amplitude * (0.5 + hz / 200)",
+          "expression": "0.7 * ampdb(level) * amplitude * (0.5 + hz / 200) / (mass * (0.75 + 0.25 * stiffness) * (0.5 + 5 * position))",
           "inputs": [
             {
               "token": "level",
@@ -595,6 +602,21 @@
               "token": "hz",
               "from_node_id": "pitch_cpsmidi",
               "from_port_id": "kfreq"
+            },
+            {
+              "token": "mass",
+              "from_node_id": "piano_mass",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "stiffness",
+              "from_node_id": "piano_stiffness",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "position",
+              "from_node_id": "piano_strike",
+              "from_port_id": "iout"
             }
           ]
         },
@@ -642,5 +664,6 @@
       "mainOutput": "main-output",
       "guided": true
     }
-  }
+  },
+  "sourcePatchId": "c62bc06a-4ae5-4590-8b73-a76a00891f27"
 }
