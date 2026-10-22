@@ -8429,6 +8429,28 @@ def test_controller_step_csd_exports_compact_score_only_and_preserve_resets(tmp_
                 ]
 
 
+def test_controller_step_score_export_preserves_double_speed_gate(tmp_path: Path) -> None:
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "score"
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/trance_gate_steps.json").read_text())
+    payload["sequencerConfig"].update(config)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+    assert "p3 = max(p3, 1 / kr)" in csd
+    assert "ksmps = 1" in csd
+    rows = [line.split() for line in csd.splitlines() if line.startswith("i 9000 ")]
+    track = config["controller_tracks"][0]
+    steps = [value for pad in track["pad_loop_sequence"] for value in track["pads"][pad]["steps"]]
+    expected = [(0, 0)] + [(step * 60 / 137 / 8, value) for step, value in enumerate(steps)
+                          if step == 0 or steps[step - 1] != value]
+    assert [int(row[4]) for row in rows] == [1944] * len(expected)
+    assert [int(row[5]) for row in rows] == [value for _, value in expected]
+    assert [float(row[2]) for row in rows] == pytest.approx([time for time, _ in expected], abs=1e-6)
+
+
 def test_controller_step_score_retains_repeated_writes_with_note_initc7(tmp_path: Path) -> None:
     payload = _performance_csd_export_payload()
     payload["eventSource"] = "score"

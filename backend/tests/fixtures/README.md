@@ -112,6 +112,10 @@ polyphony, instance isolation, native rendering and CSD export without reading e
 
 `sequencers/controller_steps.json` defines sparse controller steps, repeated values, explicit zero, reset initialization and selected MIDI channels for frontend/backend regression tests.
 
+`sequencers/trance_gate_steps.json` freezes the CH16/CC24 double-speed pattern from
+Trance Gate Demo - Psy Trance. SCORE regressions check every received step and
+the stop reset at several host control-block sizes, independently of examples.
+
 `patches/granular_capture.patch.json` and `sequencers/granular_capture_steps.json` independently cover MIDI-controlled capture, looping, granular DSP, step resets, native round trips and both CSD exports.
 
 `patches/stereo_moog_filter.patch.json` is the independent continuous stereo filter

@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 
 from backend.app.models.session import SessionSequencerTimingConfig
@@ -22,6 +25,56 @@ def targets():
 
 def captured_events(messages):
     return [CapturedMidiEvent(time, bytes(message), sequence) for sequence, (time, message) in enumerate(messages)]
+
+
+@pytest.mark.parametrize("sample_rate,ksmps", [(48000, 1), (48000, 16), (48000, 32), (44100, 64), (48000, 128)])
+def test_score_step_gate_renders_every_value_with_larger_control_blocks(exporter, sample_rate, ksmps):
+    import numpy as np
+
+    from backend.app.engine.ctcsound_loader import load_ctcsound_module
+    from backend.app.models.export import PerformanceCsdExportRequest
+    from backend.app.services.compiler_orchestra import OrchestraEmitter, SCORE_CONTROLLER_ARRAY_NAME
+
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/trance_gate_steps.json").read_text())
+    request = PerformanceCsdExportRequest.model_validate({
+        "performanceExport": {"format": "orchestron.performance", "version": 1, "exported_at": "test",
+                              "performance": {"name": "Gate probe", "config": {"version": 20}}},
+        "sequencerConfig": config, "eventSource": "score",
+    })
+    # Make the end reset observable even though the demo's last step is zero.
+    request.sequencer_config.controller_tracks[0].reset_value = 23
+    events = exporter._capture_offline_midi_events(request=request, controller_default_channels=(1,))
+    duration = 16 * 60 / 137
+    lines, _ = exporter._build_score_lines(events=events, targets=[], duration_seconds=duration + .1,
+                                         timing=request.sequencer_config.timing, allow_continuous=True)
+    # A sustained reader exposes the actual received CC, including the final reset.
+    # Keep the export's one-sample setter duration while changing the host block size.
+    orc = [f"sr={sample_rate}", f"ksmps={ksmps}", "nchnls=2", "0dbfs=1",
+           *OrchestraEmitter.score_controller_header_lines(),
+           "instr 1", f"a_gate upsamp {SCORE_CONTROLLER_ARRAY_NAME}[1944] / 127",
+           f"a_other upsamp {SCORE_CONTROLLER_ARRAY_NAME}[1816] / 127",
+           "outs a_gate, a_other", "endin"]
+    csd = "\n".join(["<CsoundSynthesizer>", "<CsOptions>", "-n -d -m0", "</CsOptions>",
+                     "<CsInstruments>", *orc, "</CsInstruments>", "<CsScore>",
+                     f"i 1 0 {duration + .1}", *lines, "</CsScore>", "</CsoundSynthesizer>"])
+    cs = load_ctcsound_module().Csound()
+    try:
+        assert cs.compileCsdText(csd) == 0
+        assert cs.start() == 0
+        blocks = []
+        while cs.performKsmps() == 0:
+            blocks.append(cs.spout().copy().reshape(-1, 2))
+        samples = np.concatenate(blocks)
+    finally:
+        cs.cleanup()
+        cs.reset()
+    track = config["controller_tracks"][0]
+    expected = [value / 127 for pad in track["pad_loop_sequence"] for value in track["pads"][pad]["steps"]]
+    # Assert the authored pattern independently of captured/compacted event output.
+    midpoints = ((np.arange(len(expected)) + .5) * (60 / 137 / 8) * sample_rate).astype(int)
+    np.testing.assert_array_equal(samples[midpoints, 0], expected)
+    assert samples[int((duration + .05) * sample_rate), 0] == 23 / 127
+    assert np.count_nonzero(samples[:, 1]) == 0
 
 
 def test_score_groups_notes_and_controllers_by_measure_without_changing_events(exporter, targets):
@@ -169,7 +222,8 @@ def test_score_compaction_keeps_note_releases_panic_and_final_duration(exporter,
 
 
 @pytest.mark.parametrize("initialization", ["none", "continuous", "per_note"])
-def test_score_compaction_renders_identical_samples_with_controller_initialization(exporter, monkeypatch, initialization):
+@pytest.mark.parametrize("ksmps", [1, 16, 64])
+def test_score_compaction_renders_identical_samples_with_controller_initialization(exporter, monkeypatch, initialization, ksmps):
     import numpy as np
 
     from backend.app.engine.ctcsound_loader import load_ctcsound_module
@@ -191,7 +245,7 @@ def test_score_compaction_renders_identical_samples_with_controller_initializati
     if initialization != "none":
         nodes.append(dict(id="init", opcode="initc7", params=dict(ichan=1, ictlno=74, ivalue=1)))
     patch = PatchDocument.model_validate(dict(name="CC state probe", graph=dict(
-        nodes=nodes, connections=connections, engine_config=dict(sr=48000, ksmps=1, nchnls=2, **{"0dbfs": 1}),
+        nodes=nodes, connections=connections, engine_config=dict(sr=48000, ksmps=ksmps, nchnls=2, **{"0dbfs": 1}),
     )))
     always_on = initialization == "continuous"
     targets = [PatchInstrumentTarget(patch=patch, midi_channel=0 if always_on else 1, always_on=always_on)]

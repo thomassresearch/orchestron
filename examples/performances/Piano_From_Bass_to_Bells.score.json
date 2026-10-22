@@ -1,0 +1,1067 @@
+{
+  "version": 2,
+  "title": "Piano — From Bass to Bells",
+  "tempo": 76,
+  "key": "C",
+  "mode": "ionian",
+  "tracks": [
+    {
+      "type": "melodic",
+      "name": "LH — bass / lower voice",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "C3",
+              "duration_steps": 12,
+              "velocity": 75,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "E3",
+              "duration_steps": 4,
+              "velocity": 68,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 16,
+              "root": "G3",
+              "duration_steps": 14,
+              "velocity": 79,
+              "timing_offset_percent": -5
+            },
+            {
+              "at_step": 32,
+              "root": "F3",
+              "duration_steps": 22,
+              "velocity": 74,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "E3",
+              "duration_steps": 6,
+              "velocity": 65,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 64,
+              "root": "A2",
+              "duration_steps": 12,
+              "velocity": 76,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "C3",
+              "duration_steps": 4,
+              "velocity": 69,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 80,
+              "root": "E3",
+              "duration_steps": 14,
+              "velocity": 77,
+              "timing_offset_percent": -5
+            },
+            {
+              "at_step": 96,
+              "root": "G2",
+              "duration_steps": 12,
+              "velocity": 73,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 108,
+              "root": "B2",
+              "duration_steps": 4,
+              "velocity": 66,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 112,
+              "root": "D3",
+              "duration_steps": 8,
+              "velocity": 71,
+              "timing_offset_percent": -5
+            },
+            {
+              "at_step": 120,
+              "root": "G3",
+              "duration_steps": 6,
+              "velocity": 76,
+              "timing_offset_percent": 10
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "C2",
+              "duration_steps": 6,
+              "velocity": 66,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "E3",
+              "duration_steps": 20,
+              "velocity": 53,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 32,
+              "root": "F2",
+              "duration_steps": 6,
+              "velocity": 63,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "F3",
+              "duration_steps": 20,
+              "velocity": 54,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 64,
+              "root": "A2",
+              "duration_steps": 6,
+              "velocity": 67,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "E3",
+              "duration_steps": 20,
+              "velocity": 55,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 96,
+              "root": "G2",
+              "duration_steps": 6,
+              "velocity": 61,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 104,
+              "root": "D3",
+              "duration_steps": 20,
+              "velocity": 53,
+              "timing_offset_percent": -4
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "A2",
+              "duration_steps": 6,
+              "velocity": 66,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "E3",
+              "duration_steps": 14,
+              "velocity": 54,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 32,
+              "root": "F2",
+              "duration_steps": 6,
+              "velocity": 63,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "F3",
+              "duration_steps": 14,
+              "velocity": 55,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 64,
+              "root": "C3",
+              "duration_steps": 6,
+              "velocity": 67,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "E3",
+              "duration_steps": 14,
+              "velocity": 53,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 96,
+              "root": "G2",
+              "duration_steps": 6,
+              "velocity": 61,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 104,
+              "root": "D3",
+              "duration_steps": 14,
+              "velocity": 54,
+              "timing_offset_percent": -4
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "C3",
+              "duration_steps": 6,
+              "velocity": 66,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "E3",
+              "duration_steps": 14,
+              "velocity": 55,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 32,
+              "root": "F2",
+              "duration_steps": 6,
+              "velocity": 63,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "F3",
+              "duration_steps": 14,
+              "velocity": 53,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 64,
+              "root": "G2",
+              "duration_steps": 6,
+              "velocity": 67,
+              "timing_offset_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "D3",
+              "duration_steps": 14,
+              "velocity": 54,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 96,
+              "root": "C2",
+              "duration_steps": 32,
+              "velocity": 61,
+              "timing_offset_percent": 0
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          "P4"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "LH — inner voice",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": []
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 8,
+              "root": "G3",
+              "duration_steps": 20,
+              "velocity": 56,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 40,
+              "root": "A3",
+              "duration_steps": 20,
+              "velocity": 57,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 72,
+              "root": "A3",
+              "duration_steps": 20,
+              "velocity": 58,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 104,
+              "root": "G3",
+              "duration_steps": 20,
+              "velocity": 56,
+              "timing_offset_percent": 5
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 8,
+              "root": "A3",
+              "duration_steps": 14,
+              "velocity": 57,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 40,
+              "root": "A3",
+              "duration_steps": 14,
+              "velocity": 58,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 72,
+              "root": "G3",
+              "duration_steps": 14,
+              "velocity": 56,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 104,
+              "root": "G3",
+              "duration_steps": 14,
+              "velocity": 57,
+              "timing_offset_percent": 5
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 8,
+              "root": "G3",
+              "duration_steps": 14,
+              "velocity": 58,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 40,
+              "root": "A3",
+              "duration_steps": 14,
+              "velocity": 56,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 72,
+              "root": "G3",
+              "duration_steps": 14,
+              "velocity": 57,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 96,
+              "root": "G2",
+              "duration_steps": 32,
+              "velocity": 52,
+              "timing_offset_percent": 9
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          "P4"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "LH — upper voice",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": []
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 8,
+              "root": "C4",
+              "duration_steps": 20,
+              "velocity": 59,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 40,
+              "root": "C4",
+              "duration_steps": 20,
+              "velocity": 60,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 72,
+              "root": "C4",
+              "duration_steps": 20,
+              "velocity": 61,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 104,
+              "root": "B3",
+              "duration_steps": 20,
+              "velocity": 59,
+              "timing_offset_percent": 14
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 8,
+              "root": "C4",
+              "duration_steps": 14,
+              "velocity": 60,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 40,
+              "root": "C4",
+              "duration_steps": 14,
+              "velocity": 61,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 72,
+              "root": "C4",
+              "duration_steps": 14,
+              "velocity": 59,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 104,
+              "root": "B3",
+              "duration_steps": 14,
+              "velocity": 60,
+              "timing_offset_percent": 14
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 8,
+              "root": "C4",
+              "duration_steps": 14,
+              "velocity": 61,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 40,
+              "root": "C4",
+              "duration_steps": 14,
+              "velocity": 59,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 72,
+              "root": "B3",
+              "duration_steps": 14,
+              "velocity": 60,
+              "timing_offset_percent": 14
+            },
+            {
+              "at_step": 96,
+              "root": "C3",
+              "duration_steps": 32,
+              "velocity": 56,
+              "timing_offset_percent": 18
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          "P4"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "RH — melody / lower chord voice",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "C4",
+              "duration_steps": 28,
+              "velocity": 49,
+              "timing_offset_percent": 4
+            },
+            {
+              "at_step": 32,
+              "root": "C4",
+              "duration_steps": 28,
+              "velocity": 50,
+              "timing_offset_percent": 4
+            },
+            {
+              "at_step": 64,
+              "root": "C4",
+              "duration_steps": 28,
+              "velocity": 51,
+              "timing_offset_percent": 4
+            },
+            {
+              "at_step": 96,
+              "root": "B3",
+              "duration_steps": 28,
+              "velocity": 52,
+              "timing_offset_percent": 4
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "E5",
+              "duration_steps": 12,
+              "velocity": 83,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 12,
+              "root": "G5",
+              "duration_steps": 4,
+              "velocity": 77,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 16,
+              "root": "A5",
+              "duration_steps": 8,
+              "velocity": 88,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 24,
+              "root": "G5",
+              "duration_steps": 6,
+              "velocity": 79,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 32,
+              "root": "F5",
+              "duration_steps": 20,
+              "velocity": 83,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 52,
+              "root": "E5",
+              "duration_steps": 4,
+              "velocity": 72,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 56,
+              "root": "D5",
+              "duration_steps": 6,
+              "velocity": 76,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 64,
+              "root": "E5",
+              "duration_steps": 12,
+              "velocity": 80,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 76,
+              "root": "C5",
+              "duration_steps": 4,
+              "velocity": 72,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 80,
+              "root": "D5",
+              "duration_steps": 8,
+              "velocity": 77,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 88,
+              "root": "E5",
+              "duration_steps": 6,
+              "velocity": 81,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 96,
+              "root": "D5",
+              "duration_steps": 12,
+              "velocity": 78,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 108,
+              "root": "B4",
+              "duration_steps": 4,
+              "velocity": 69,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 112,
+              "root": "C5",
+              "duration_steps": 8,
+              "velocity": 75,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 120,
+              "root": "D5",
+              "duration_steps": 6,
+              "velocity": 79,
+              "timing_offset_percent": 8
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "E5",
+              "duration_steps": 8,
+              "velocity": 80,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 8,
+              "root": "G5",
+              "duration_steps": 8,
+              "velocity": 86,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 16,
+              "root": "C6",
+              "duration_steps": 14,
+              "velocity": 92,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 32,
+              "root": "F6",
+              "duration_steps": 20,
+              "velocity": 95,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 52,
+              "root": "E6",
+              "duration_steps": 4,
+              "velocity": 83,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 56,
+              "root": "D6",
+              "duration_steps": 6,
+              "velocity": 86,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 64,
+              "root": "E6",
+              "duration_steps": 12,
+              "velocity": 88,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 76,
+              "root": "G6",
+              "duration_steps": 4,
+              "velocity": 94,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 80,
+              "root": "A6",
+              "duration_steps": 8,
+              "velocity": 99,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 88,
+              "root": "G6",
+              "duration_steps": 6,
+              "velocity": 88,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 96,
+              "root": "D6",
+              "duration_steps": 8,
+              "velocity": 82,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 104,
+              "root": "G6",
+              "duration_steps": 22,
+              "velocity": 90,
+              "timing_offset_percent": 11
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "E6",
+              "duration_steps": 8,
+              "velocity": 86,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 8,
+              "root": "G6",
+              "duration_steps": 8,
+              "velocity": 93,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 16,
+              "root": "C7",
+              "duration_steps": 14,
+              "velocity": 101,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 32,
+              "root": "A6",
+              "duration_steps": 8,
+              "velocity": 90,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 40,
+              "root": "G6",
+              "duration_steps": 8,
+              "velocity": 83,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 48,
+              "root": "E6",
+              "duration_steps": 8,
+              "velocity": 79,
+              "timing_offset_percent": -4
+            },
+            {
+              "at_step": 56,
+              "root": "D6",
+              "duration_steps": 6,
+              "velocity": 74,
+              "timing_offset_percent": 8
+            },
+            {
+              "at_step": 64,
+              "root": "D6",
+              "duration_steps": 8,
+              "velocity": 78,
+              "timing_offset_percent": 5
+            },
+            {
+              "at_step": 72,
+              "root": "G6",
+              "duration_steps": 22,
+              "velocity": 85,
+              "timing_offset_percent": 11
+            },
+            {
+              "at_step": 96,
+              "root": "E6",
+              "duration_steps": 32,
+              "velocity": 62,
+              "timing_offset_percent": 5
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          "P4"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "RH — inner voice",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "E4",
+              "duration_steps": 28,
+              "velocity": 52,
+              "timing_offset_percent": 13
+            },
+            {
+              "at_step": 32,
+              "root": "F4",
+              "duration_steps": 28,
+              "velocity": 53,
+              "timing_offset_percent": 13
+            },
+            {
+              "at_step": 64,
+              "root": "E4",
+              "duration_steps": 28,
+              "velocity": 54,
+              "timing_offset_percent": 13
+            },
+            {
+              "at_step": 96,
+              "root": "D4",
+              "duration_steps": 28,
+              "velocity": 55,
+              "timing_offset_percent": 13
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": []
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": []
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 96,
+              "root": "G6",
+              "duration_steps": 32,
+              "velocity": 66,
+              "timing_offset_percent": 14
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          "P4"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "RH — upper voice",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "G4",
+              "duration_steps": 28,
+              "velocity": 55,
+              "timing_offset_percent": 22
+            },
+            {
+              "at_step": 32,
+              "root": "A4",
+              "duration_steps": 28,
+              "velocity": 56,
+              "timing_offset_percent": 22
+            },
+            {
+              "at_step": 64,
+              "root": "A4",
+              "duration_steps": 28,
+              "velocity": 57,
+              "timing_offset_percent": 22
+            },
+            {
+              "at_step": 96,
+              "root": "G4",
+              "duration_steps": 28,
+              "velocity": 58,
+              "timing_offset_percent": 22
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": []
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": []
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 96,
+              "root": "C7",
+              "duration_steps": 32,
+              "velocity": 84,
+              "timing_offset_percent": 23
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          "P4"
+        ]
+      }
+    }
+  ]
+}

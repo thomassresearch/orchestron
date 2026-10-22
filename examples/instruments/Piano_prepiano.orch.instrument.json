@@ -1,6 +1,6 @@
 {
   "name": "Piano — prepiano",
-  "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive the strings and hammer. Dry centered stereo output; route to Master. Main string, hammer, release and level settings are performance controls and apply to new notes. Most resonant in the bass and middle register; the native model becomes short and percussive in the treble.",
+  "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive the strings and hammer. Dry centered stereo output; route to Master. Main string, hammer, release and level settings are performance controls and apply to new notes. Pitch-tracked hammer excitation gives the upper register a ringing string decay, with compensated treble gain.",
   "isTemplate": false,
   "alwaysOn": false,
   "instrumentType": "melody",
@@ -391,6 +391,12 @@
         "to_port_id": "ihvfreq"
       },
       {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "piano_strings",
+        "to_port_id": "ihvfreq"
+      },
+      {
         "from_node_id": "piano_stiffness",
         "from_port_id": "iout",
         "to_node_id": "piano_strings",
@@ -531,12 +537,17 @@
           ]
         },
         "piano_strings::ihvfreq": {
-          "expression": "value",
+          "expression": "hardness * ((hz + 400 + abs(hz - 400)) / 800) * ((hz + 400 + abs(hz - 400)) / 800)",
           "inputs": [
             {
-              "token": "value",
+              "token": "hardness",
               "from_node_id": "piano_hardness",
               "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
             }
           ]
         },
@@ -586,7 +597,7 @@
           ]
         },
         "piano_amplitude::kin": {
-          "expression": "0.7 * ampdb(level) * amplitude * (0.5 + hz / 200) / (mass * (0.75 + 0.25 * stiffness) * (0.5 + 5 * position))",
+          "expression": "0.7 * ampdb(level) * amplitude * (0.5 + hz / (200 + (hz - 400 + abs(hz - 400)) / 8)) / (mass * (0.75 + 0.25 * stiffness) * (0.5 + 5 * position))",
           "inputs": [
             {
               "token": "level",

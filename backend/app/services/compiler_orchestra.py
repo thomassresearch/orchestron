@@ -621,6 +621,9 @@ class OrchestraEmitter:
             f"{SCORE_CONTROLLER_ARRAY_NAME}[] init 2048",
             f"instr {SCORE_CONTROLLER_INSTRUMENT_REF}",
             "  iindex = int(p4)",
+            # External hosts may increase ksmps: retain at least one k-rate
+            # pass, after startup initc7 assignments, for the controller write.
+            "  p3 = max(p3, 1 / kr)",
             f"  {SCORE_CONTROLLER_ARRAY_NAME}[iindex] = p5",
             "endin",
         ]

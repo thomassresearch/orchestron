@@ -49,7 +49,7 @@ Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_desi
 
 Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
 
-Build prepared-piano sounds with [`prepiano`](documentation/instrument_design/opcode_catalog_and_documentation.md#prepared-piano): stereo modeled strings, hammer controls, and optional GEN tables for rattles and rubbers. The [playable piano example](examples/instruments/Piano_prepiano.md) uses MIDI pitch and velocity with ten performance controls and no preparations.
+Build prepared-piano sounds with [`prepiano`](documentation/instrument_design/opcode_catalog_and_documentation.md#prepared-piano): stereo modeled strings, hammer controls, and optional GEN tables for rattles and rubbers. The [playable piano example](examples/instruments/Piano_prepiano.md) uses MIDI pitch and velocity with ten performance controls, pitch-tracked treble excitation and no preparations.
 
 Play [HSB Mono](documentation/instrument_design/hsb_mono.md) for cyclic tonality,
 octave brightness and pitch slides across gaps of roughly 20 ms, with performance
@@ -159,7 +159,7 @@ The interface and integrated help are available in **English, German, French, an
 
 Save instruments and performances to your library, or export native bundles to back them up and share them with another Orchestron user. Sample assets travel with ZIP bundles. Native imports validate the bundle before confirmation and save the selected instruments, performance, and new audio assets together; cancelling leaves the library and audio storage unchanged. You can also export an instrument as a Csound `.csd` file, or export an arranged performance as a Csound render package using MIDI or an embedded score. Score exports group events by master measure, with measure/timestamp comments and blank lines between groups. Each performance render package includes instructions for producing an audio file.
 
-Both performance CSD modes optimize offline rendering of the saved mix while preserving musical controller automation and effect tails. SCORE exports also omit redundant controller writes, including repeated Step Mode values, when the receiving controller state is unchanged.
+Both performance CSD modes optimize offline rendering of the saved mix while preserving musical controller automation and effect tails. SCORE exports also omit redundant controller writes, including repeated Step Mode values, when the receiving controller state is unchanged. Controller steps and resets still apply when you increase `ksmps` for playback in an external Csound host such as the Web IDE.
 
 Read about [instrument exchange](documentation/instrument_design/instrument_import_export.md), [performance exports](documentation/performance/performance_import_export.md), and [language and help settings](documentation/configuration/gui_language_and_integrated_help.md).
 

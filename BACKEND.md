@@ -251,6 +251,12 @@ Compaction is disabled if an exported note-triggered patch contains `initc7`:
 its inputs may be expressions, and later note/legato initialization can overwrite
 shared state. Always-on initializers run at startup and remain safe to compact.
 
+SCORE setters extend their duration at initialization to at least `1 / kr`.
+External hosts can use larger control blocks, in which the exported one-sample
+events would otherwise initialize without performing. Retain the k-rate write
+after startup `initc7` initialization so compacted startup values still win.
+Event times, channel isolation, compaction and reset values remain unchanged.
+
 - Uses `mido` when available.
 - Does not require `python-rtmidi` for the base install; if the native MIDI backend is unavailable, it falls back automatically and the Rust host bridge path still works.
 - Falls back to synthetic inputs when the host MIDI backend is unavailable.

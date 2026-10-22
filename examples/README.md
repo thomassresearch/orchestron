@@ -44,6 +44,11 @@ The [Piano — prepiano example](instruments/Piano_prepiano.md) is a sample-free
 polyphonic piano with MIDI pitch and velocity, ten performance controls and no
 rattle or rubber preparations. It includes a native instrument, a control guide and audio-validation results.
 
+[Piano — From Bass to Bells](performances/Piano_From_Bass_to_Bells.md) is a short
+two-hand solo using that piano. Bass and middle-register phrases lead to sustained
+treble notes, with varied MIDI velocities, gently spread chords and dry sound.
+The native performance includes the updated instrument and an editable score.
+
 ## Import an instrument (Instrument Design -> Import)
 
 [Analog Drumkit](instruments/analog_drumkit/README.md) includes 17 GM-mapped voices
