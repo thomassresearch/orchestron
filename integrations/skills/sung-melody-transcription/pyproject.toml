@@ -11,6 +11,9 @@ dependencies = [
 [project.scripts]
 sung-melody = "sung_melody.cli:main"
 
+[tool.uv]
+constraint-dependencies = ["certifi>=2026.10.19"]
+
 [dependency-groups]
 dev = ["pytest>=9,<10", "ruff>=0.15,<0.16"]
 

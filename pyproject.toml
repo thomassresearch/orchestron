@@ -43,6 +43,7 @@ path = "hatch_build.py"
 
 [tool.uv]
 package = true
+constraint-dependencies = ["certifi>=2026.10.19"]
 cache-keys = [
   { file = "pyproject.toml" },
   { file = "hatch_build.py" },
