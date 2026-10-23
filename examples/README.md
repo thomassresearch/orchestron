@@ -45,11 +45,18 @@ seven-minute psytrance performance with a recurring A–B♭–E signature, pad-
 contrasts, a shorter breakdown and a brighter second-half peak. Its native backup,
 WAV previews and reproduction files preserve the original Psysound unchanged.
 
-The [Piano — prepiano example](instruments/Piano_prepiano.md) is a sample-free,
+The [Piano — prepiano example](instruments/Piano_prepiano.orch.instrument.json) is a sample-free,
 polyphonic piano with MIDI pitch and velocity, ten performance controls and no
-rattle or rubber preparations. It includes a native instrument, a control guide and audio-validation results.
+rattle or rubber preparations. Its bass and middle registers combine the physical
+strings with sparse harmonic reinforcement and shared spectral envelopes,
+calibrated against [Salamander Yamaha C5 spectra](https://github.com/sfzinstruments/SalamanderGrandPiano)
+(Alexander Holm, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)).
+The compact revision refines the C4–G5 spectra and decay and reduces hammer noise
+on G#5–A#5, while preserving the bass and high-treble character. All ten controls
+retain their IDs and settings. The native instrument contains numerical synthesis
+parameters, not recordings. The native instrument is approximately 474 KB.
 
-[Piano — From Bass to Bells](performances/Piano_From_Bass_to_Bells.md) is a short
+[Piano — From Bass to Bells](performances/Piano_From_Bass_to_Bells.orch.json) is a short
 two-hand solo using that piano. Bass and middle-register phrases lead to sustained
 treble notes, with varied MIDI velocities, gently spread chords and dry sound.
 The native performance includes the updated instrument and an editable score.
