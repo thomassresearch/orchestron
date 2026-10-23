@@ -61,6 +61,15 @@ two-hand solo using that piano. Bass and middle-register phrases lead to sustain
 treble notes, with varied MIDI velocities, gently spread chords and dry sound.
 The native performance includes the updated instrument and an editable score.
 
+[Piano Addiitive Synthesis](instruments/Piano_Addiitive_Synthesis.orch.instrument.zip)
+is a separate version with synthetic HETRO files for 14 overlapping registers,
+retaining `prepiano` and the same ten controls. Two explicit harmonic oscillators
+preserve the dominant attack; `adsyn` supplies the remaining reinforcement.
+Its [From Bass to Bells demo](performances/Piano_Addiitive_Synthesis_Demo.orch.zip)
+preserves the original notes, timing and velocities. The
+[design, comparison measurements and profile builder](../tools/piano_additive/README.md)
+document the smaller graph data, runtime reduction and synthesis approximations.
+
 [Piano — The Light That Returns](performances/Piano_The_Light_That_Returns.md)
 is a D Dorian solo for one pianist: a mellow recurring theme moves into the warmth
 of the natural sixth, retreats, and finds a fuller resolution. Its native bundle
