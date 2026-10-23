@@ -26,4 +26,4 @@ build-backend = "hatchling.build"
 packages = ["src/orchestron_patch"]
 
 [tool.uv]
-constraint-dependencies = ["urllib3>=2.8.0"]
+constraint-dependencies = ["urllib3>=2.8.0", "pillow>=13.0.0"]
