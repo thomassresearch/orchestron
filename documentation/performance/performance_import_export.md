@@ -34,7 +34,7 @@ A performance export includes:
 - Referenced patch definitions for the instruments currently assigned in the performance rack
 - Patch names (included in the snapshot for easier remapping on import)
 
-If any referenced patch contains uploaded GEN01 audio assets or `sfload` SoundFont assets, export is automatically produced as a ZIP and includes those assets.
+If any referenced patch contains uploaded GEN01 audio assets or `sfload` SoundFont assets or `adsyn` analysis files, export is automatically produced as a ZIP and includes those assets.
 
 ## Offline Render Export (`Export CSD (MIDI)` / `Export CSD (SCORE)`)
 
@@ -68,7 +68,7 @@ The MIDI ZIP contains:
 - A finite `f 0 ...` score duration sized for the exported arranger playback plus a release-tail buffer
 - The arranger playback rendered as a `.mid` file from beginning to arrangement end
 - Enabled manual MIDI Controller lane values written into the MIDI file at tick 0 on their selected MIDI channels (all 16 by default)
-- Uploaded bundled sample audio / SoundFont files used by the exported instruments
+- Uploaded bundled sample audio / SoundFont / `adsyn` analysis files used by the exported instruments
 - A `README.txt` with the exact Csound command line needed to render the package
 
 The SCORE ZIP contains the same compiled instruments and bundled assets, but omits the `.mid` file. Instead, it embeds note events as score `i` statements, embeds controller sequencer sweeps and enabled manual MIDI Controller lane values as score-controlled CC setter events, and rewrites supported MIDI opcodes such as `cpsmidi`, `ampmidi`, `midi_note`, `notnum`, and `midictrl` for score playback. If export-time approximations are needed, such as best-effort `ampmidi` function-table mapping, the ZIP includes `WARNINGS.txt` and the README lists the warnings.
@@ -79,7 +79,7 @@ SCORE exports omit repeated controller writes when the value already held by tha
 
 SCORE controller events last at least one control block, including double-speed Step Mode gates and stop resets. They also work if you increase `ksmps` in an external host such as the Csound Web IDE; timing then follows that host's control-block resolution. Exports still default to 48 kHz and `ksmps=1`. Re-export older files to obtain this fix, or add `p3 = max(p3, 1 / kr)` inside `instr 9000` before its controller assignment.
 
-Only assets stored through Orchestron's upload/import flow are bundled. GEN01 and `sfload` nodes must reference uploaded assets; compile, session start, and offline performance CSD export reject raw filesystem `samplePath` values instead of passing them to Csound.
+Only assets stored through Orchestron's upload/import flow are bundled. GEN01, `sfload`, and `adsyn` nodes must reference uploaded assets; compile, session start, and offline performance CSD export reject raw filesystem `samplePath` values instead of passing them to Csound.
 
 Offline performance CSD export is bounded before synthesis starts: looping playback is rejected, both the range length and its absolute end position are limited to 65,536 transport steps, a single step can carry at most 16 notes, and the estimated MIDI event budget is limited to 200,000 events. MIDI generation also stops if it exceeds the event budget or takes more than 5 seconds. The CSD export request is limited to the configured bundle JSON size (8 MiB by default).
 
@@ -139,7 +139,7 @@ The exported `.csd` already includes matching `CsOptions`, so `csound Offline_Ex
 
 The Performance page `Import` button supports two categories of files:
 
-Bundle imports are bounded by backend request and ZIP limits before large archive members are decompressed. Defaults are 256 MiB compressed request body, 8 MiB import JSON, 512 ZIP entries, and 256 MiB total uncompressed ZIP content. Tune these with `VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_JSON_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_MEMBERS`, and `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES`; individual bundled audio/SoundFont assets still use `VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES`. Persistent generated-asset storage is capped by `VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_TOTAL_BYTES` and `VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_COUNT`; unreferenced generated assets older than `VISUALCSOUND_GEN_AUDIO_ASSET_GC_MIN_AGE_SECONDS` are eligible for garbage collection.
+Bundle imports are bounded by backend request and ZIP limits before large archive members are decompressed. Defaults are 256 MiB compressed request body, 8 MiB import JSON, 512 ZIP entries, and 256 MiB total uncompressed ZIP content. Tune these with `VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_JSON_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_MEMBERS`, and `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES`; individual bundled audio/SoundFont/analysis assets still use `VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES`. Persistent generated-asset storage is capped by `VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_TOTAL_BYTES` and `VISUALCSOUND_GEN_AUDIO_ASSETS_MAX_COUNT`; unreferenced generated assets older than `VISUALCSOUND_GEN_AUDIO_ASSET_GC_MIN_AGE_SECONDS` are eligible for garbage collection.
 
 ### 1. Full Orchestron Performance Export (recommended)
 

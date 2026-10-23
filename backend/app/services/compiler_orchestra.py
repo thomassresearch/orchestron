@@ -24,7 +24,6 @@ from backend.app.services.compiler_common import (
     DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES,
     GEN_NODES_LAYOUT_KEY,
     OPTIONAL_OMIT_MARKER,
-    SFLOAD_NODES_LAYOUT_KEY,
     CompilationError,
     PatchInstrumentTarget,
     SfloadGlobalRequest,
@@ -36,6 +35,7 @@ from backend.app.services.compiler_formula import (
 )
 from backend.app.services.compiler_graph import find_port
 from backend.app.services.gen_asset_service import GenAssetService
+from backend.app.services.adsyn_analysis import validate_adsyn_analysis
 from backend.app.services.orc_metadata import format_orc_comment_value
 from backend.app.services.compiler_legato import has_legato, midi_opcode, phrase_prefix
 
@@ -267,6 +267,20 @@ class OrchestraEmitter:
                         allow_packaged_asset_paths=allow_packaged_asset_paths,
                     )
                 )
+                continue
+
+            if compiled.spec.name == "adsyn":
+                filename = self._resolve_file_asset_filename(
+                    ui_layout, compiled.node.id, compiled.node.params,
+                    allow_packaged_asset_paths=allow_packaged_asset_paths, opcode="adsyn",
+                )
+                if filename is None:
+                    raise CompilationError([f"adsyn node '{compiled.node.id}' requires an uploaded hetro analysis file."])
+                instrument_lines.extend([
+                    self._node_comment(compiled.node.id, "adsyn"),
+                    f"{env['ares']} adsyn {env['kamod']}, {env['kfmod']}, {env['ksmod']}, "
+                    f"{self._format_csound_string(filename)}",
+                ])
                 continue
 
             if compiled.spec.name == "maxalloc":
@@ -819,7 +833,7 @@ class OrchestraEmitter:
         if not output_name:
             raise CompilationError([f"sfload node '{node.id}' is missing output variable binding."])
 
-        filename = self._resolve_sfload_filename(
+        filename = self._resolve_file_asset_filename(
             ui_layout,
             node.id,
             legacy_params=node.params,
@@ -898,23 +912,32 @@ class OrchestraEmitter:
         safe_suffix = re.sub(r"[^A-Za-z0-9_]", "_", suffix)
         return f"S_{safe_node}_{safe_suffix}"
 
-    def _resolve_sfload_filename(
+    def _resolve_file_asset_filename(
         self,
         ui_layout: dict[str, object],
         node_id: str,
         legacy_params: dict[str, object] | None = None,
         *,
         allow_packaged_asset_paths: bool = False,
+        opcode: str = "sfload",
     ) -> str | None:
-        raw_config = self._lookup_sfload_node_config(ui_layout, node_id)
-        if not raw_config:
+        raw_nodes = ui_layout.get(f"{opcode}_nodes")
+        raw_config = raw_nodes.get(node_id) if isinstance(raw_nodes, dict) else None
+        if not isinstance(raw_config, dict):
             raw_config = {}
+        asset_label = "hetro analysis" if opcode == "adsyn" else "SoundFont"
 
         sample_asset = raw_config.get("sampleAsset")
         if isinstance(sample_asset, dict):
             stored_name = sample_asset.get("stored_name")
             if isinstance(stored_name, str) and stored_name.strip():
-                return self._resolve_gen_audio_asset_path(stored_name.strip())
+                filename = self._resolve_gen_audio_asset_path(stored_name.strip())
+                if opcode == "adsyn":
+                    try:
+                        validate_adsyn_analysis(self._gen_asset_service.resolve_audio_path(filename))
+                    except (ValueError, OSError) as err:
+                        raise CompilationError([f"adsyn node '{node_id}': {err}"]) from err
+                return filename
 
         raw_sample_path = raw_config.get("samplePath")
         if isinstance(raw_sample_path, str) and raw_sample_path.strip():
@@ -922,22 +945,22 @@ class OrchestraEmitter:
                 return self._resolve_packaged_asset_path(
                     raw_sample_path.strip(),
                     node_id=node_id,
-                    opcode="sfload",
+                    opcode=opcode,
                 )
             raise CompilationError(
                 [
-                    f"sfload node '{node_id}' uses samplePath. "
-                    "Upload the SoundFont file before compiling or starting a session."
+                    f"{opcode} node '{node_id}' uses samplePath. "
+                    f"Upload the {asset_label} file before compiling or starting a session."
                 ]
             )
 
         if legacy_params is not None:
-            raw_filename = legacy_params.get("filename")
-            if isinstance(raw_filename, str) and raw_filename.strip():
+            raw_filename = legacy_params.get("filename", legacy_params.get("ifilcod"))
+            if raw_filename is not None and str(raw_filename).strip():
                 raise CompilationError(
                     [
-                        f"sfload node '{node_id}' uses a raw filename parameter. "
-                        "Upload the SoundFont file before compiling or starting a session."
+                        f"{opcode} node '{node_id}' uses a raw filename parameter. "
+                        f"Upload the {asset_label} file before compiling or starting a session."
                     ]
                 )
 
@@ -980,16 +1003,6 @@ class OrchestraEmitter:
             return validate_gen_node_layout_config(raw_config)
         except ValueError as err:
             raise CompilationError([f"Invalid GEN node config for '{node_id}': {err}"]) from err
-
-    @staticmethod
-    def _lookup_sfload_node_config(ui_layout: dict[str, object], node_id: str) -> dict[str, object]:
-        raw_sfload_nodes = ui_layout.get(SFLOAD_NODES_LAYOUT_KEY)
-        if not isinstance(raw_sfload_nodes, dict):
-            return {}
-        raw_config = raw_sfload_nodes.get(node_id)
-        if not isinstance(raw_config, dict):
-            return {}
-        return raw_config
 
     @staticmethod
     def _gen_mode(value: object) -> str:

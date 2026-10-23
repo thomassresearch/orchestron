@@ -340,6 +340,7 @@ def test_start_ctcsound_sets_ssdir_option_for_gen_audio_assets(monkeypatch, tmp_
     worker.start(csd=csd, midi_input="0", rtmidi_module="alsaseq")
 
     assert f"--env:SSDIR={assets_dir.resolve()}" in worker._ctcsound.instance.options
+    assert f"--env:SADIR={assets_dir.resolve()}" in worker._ctcsound.instance.options
 
 
 def test_headless_runtime_suppresses_csound_messages_after_start(monkeypatch) -> None:

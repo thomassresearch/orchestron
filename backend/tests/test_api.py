@@ -8721,3 +8721,105 @@ def test_performance_exports_preserve_independent_curve_endpoints(tmp_path: Path
     assert values == sorted(values)
     assert max(b - a for a, b in zip(values, values[1:])) == 1
     assert len(values) <= 72
+
+
+def test_adsyn_opcode_upload_save_compile_and_native_bundle(tmp_path):
+    from backend.tests.adsyn_test_support import ANALYSIS_FILE, adsyn_patch
+    from backend.app.services.gen_asset_references import collect_persisted_gen_audio_stored_names
+    with _client(tmp_path) as client:
+        opcode = client.get("/api/opcodes/adsyn").json()
+        assert opcode["documentation_url"] == "https://csound.com/docs/manual/adsyn.html"
+        assert [(p["id"], p["signal_type"], p["default"]) for p in opcode["inputs"]] == [
+            ("kamod", "k", 1), ("kfmod", "k", 1), ("ksmod", "k", 1)]
+        assert [(p["id"], p["signal_type"]) for p in opcode["outputs"]] == [("ares", "a")]
+        upload = client.post("/api/assets/gen-audio", content=ANALYSIS_FILE.read_bytes(),
+                             headers={"X-File-Name": "tone.het", "Content-Type": "application/octet-stream"})
+        assert upload.status_code == 201
+        asset = upload.json()
+        patch = adsyn_patch(asset)
+        created = client.post("/api/patches", json=patch.model_dump(mode="json"))
+        assert created.status_code == 201, created.text
+        loaded = client.get(f"/api/patches/{created.json()['id']}").json()
+        assert loaded["graph"]["ui_layout"] == patch.graph.ui_layout
+        session = client.post("/api/sessions", json={"patch_id": created.json()["id"]}).json()
+        compiled = client.post(f"/api/sessions/{session['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        assert f'adsyn 1, 1, 1, "{asset["stored_name"]}"' in compiled.json()["orc"]
+        assert collect_persisted_gen_audio_stored_names(patch_documents=[patch], performance_documents=[]) == {asset["stored_name"]}
+        payload = {"sourcePatchId": created.json()["id"], **patch.model_dump(mode="json", exclude={"id"})}
+        exported = client.post("/api/bundles/export/patch", json=payload)
+        assert exported.status_code == 200, exported.text
+        with zipfile.ZipFile(BytesIO(exported.content)) as archive:
+            assert archive.read(f'audio/{asset["stored_name"]}') == ANALYSIS_FILE.read_bytes()
+        # Simulate moving the bundle to a machine with no existing analysis file.
+        (tmp_path / "gen_audio_assets" / asset["stored_name"]).unlink()
+        imported = client.post("/api/bundles/import/expand", content=exported.content,
+                               headers={"X-File-Name": "test.orch.instrument.zip", "Content-Type": "application/zip"})
+        assert imported.status_code == 200, imported.text
+        assert imported.json()["graph"]["ui_layout"] == patch.graph.ui_layout
+        assert (tmp_path / "gen_audio_assets" / asset["stored_name"]).read_bytes() == ANALYSIS_FILE.read_bytes()
+
+
+@pytest.mark.parametrize("mode", ["score", "midiFile"])
+def test_adsyn_performance_exports_bundle_analysis(tmp_path, mode):
+    from backend.tests.adsyn_test_support import ANALYSIS_FILE, adsyn_patch
+    from backend.app.engine.ctcsound_loader import load_ctcsound_module
+    import numpy as np
+    asset_dir = tmp_path / "gen_audio_assets"
+    asset_dir.mkdir()
+    (asset_dir / ANALYSIS_FILE.name).write_bytes(ANALYSIS_FILE.read_bytes())
+    payload = _performance_csd_export_payload()
+    patch = adsyn_patch(kamod=.2)
+    payload["performanceExport"]["patch_definitions"][0]["graph"] = patch.graph.model_dump(mode="json", by_alias=True)
+    payload["eventSource"] = mode
+    with _client(tmp_path) as client:
+        native = client.post("/api/bundles/export/performance", json=payload["performanceExport"])
+        assert native.status_code == 200, native.text
+        with zipfile.ZipFile(BytesIO(native.content)) as archive:
+            assert archive.read(f"audio/{ANALYSIS_FILE.name}") == ANALYSIS_FILE.read_bytes()
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+    destination = tmp_path / "offline"
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        assert sum(name.endswith(ANALYSIS_FILE.name) for name in archive.namelist()) == 1
+        archive.extractall(destination)
+    (asset_dir / ANALYSIS_FILE.name).unlink()
+    root = destination / "Offline_Export"
+    csd = (root / "Offline_Export.csd").read_text()
+    assert f'"assets/{ANALYSIS_FILE.name}"' in csd and str(asset_dir) not in csd
+    # Render the exported bundle with its own directory as Csound's working directory.
+    old_cwd = Path.cwd()
+    cs = load_ctcsound_module().Csound()
+    try:
+        os.chdir(root)
+        assert cs.compileCsdText(csd) == 0
+        assert cs.start() == 0
+        peak = 0.
+        while cs.performKsmps() == 0:
+            samples = cs.spout().copy()
+            assert np.isfinite(samples).all()
+            peak = max(peak, float(np.max(np.abs(samples))))
+        assert peak > .01
+    finally:
+        cs.cleanup()
+        cs.reset()
+        os.chdir(old_cwd)
+
+
+@pytest.mark.parametrize("contents", [b"not an analysis file", b"HETRO 1\n-1,0,32767,1"])
+def test_adsyn_invalid_analysis_compile_and_export_diagnostics(tmp_path, contents):
+    from backend.tests.adsyn_test_support import ANALYSIS_FILE, adsyn_patch
+    with _client(tmp_path) as client:
+        upload = client.post("/api/assets/gen-audio", content=contents, headers={"X-File-Name": ANALYSIS_FILE.name})
+        patch = adsyn_patch(upload.json())
+        saved = client.post("/api/patches", json=patch.model_dump(mode="json"))
+        assert saved.status_code == 201
+        session = client.post("/api/sessions", json={"patch_id": saved.json()["id"]}).json()
+        result = client.post(f"/api/sessions/{session['session_id']}/compile")
+        assert result.status_code == 422, result.text
+        assert "adsyn node" in result.text
+        payload = _performance_csd_export_payload()
+        payload["performanceExport"]["patch_definitions"][0]["graph"] = patch.graph.model_dump(mode="json", by_alias=True)
+        result = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert result.status_code == 400, result.text
+        assert "hetro" in result.text.lower() or "track" in result.text.lower()

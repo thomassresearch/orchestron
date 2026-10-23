@@ -17340,5 +17340,61 @@
       "initialization"
     ],
     "icon_filename": "midictrl.svg"
+  },
+  {
+    "name": "adsyn",
+    "category": "oscillator",
+    "description": "Resynthesize sinusoidal partials from a hetro analysis file.",
+    "documentation_markdown": "### `adsyn`\n\nUpload a hetro analysis file using the node configuration button. Amplitude, frequency and playback speed are multiplicative controls; 1 preserves the analysis.\n\n**Reference**\n- [Csound adsyn](https://csound.com/docs/manual/adsyn.html)",
+    "documentation_url": "https://csound.com/docs/manual/adsyn.html",
+    "inputs": [
+      {
+        "id": "kamod",
+        "name": "kamod",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Amplitude multiplier."
+      },
+      {
+        "id": "kfmod",
+        "name": "kfmod",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Frequency multiplier; 2 transposes up one octave."
+      },
+      {
+        "id": "ksmod",
+        "name": "ksmod",
+        "signal_type": "k",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1,
+        "description": "Analysis playback speed; 2 plays twice as fast."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "ares",
+        "name": "ares",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": "Resynthesized mono audio."
+      }
+    ],
+    "template": "{ares} adsyn {kamod}, {kfmod}, {ksmod}, \"<configured-analysis-file>\"",
+    "tags": [
+      "additive",
+      "resynthesis",
+      "analysis",
+      "hetro",
+      "source"
+    ],
+    "icon_filename": "vco.svg"
   }
 ]

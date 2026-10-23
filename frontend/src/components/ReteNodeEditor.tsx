@@ -26,7 +26,7 @@ import { createReteBranchController, type ReteBranchController, type BranchRegio
 import { PerformanceControllerEditor } from "./PerformanceControllerEditor";
 import { performanceControllerCopy } from "../lib/performanceControllerCopy";
 import { GenNodeEditorModal } from "./GenNodeEditorModal";
-import { SfloadNodeEditorModal } from "./SfloadNodeEditorModal";
+import { SfloadNodeEditorModal, adsynEditorCopy } from "./SfloadNodeEditorModal";
 import type { Connection, GuiLanguage, NodePosition, OpcodeSpec, PatchGraph, PortSpec, SignalType } from "../types";
 
 type EditorHandle = {
@@ -425,6 +425,7 @@ interface GenEditorState {
 }
 
 interface SfloadEditorState {
+  opcode: "sfload" | "adsyn";
   nodeId: string;
   config: SfloadNodeConfig;
 }
@@ -704,12 +705,13 @@ export function ReteNodeEditor({
   const openSfloadEditor = useCallback((nodeId: string) => {
     const graphState = graphRef.current;
     const targetNode = graphState.nodes.find((node) => node.id === nodeId);
-    if (!targetNode || targetNode.opcode !== "sfload") {
+    if (!targetNode || (targetNode.opcode !== "sfload" && targetNode.opcode !== "adsyn")) {
       return;
     }
     setSfloadEditor({
+      opcode: targetNode.opcode,
       nodeId,
-      config: getSfloadNodeConfig(graphState.ui_layout, nodeId)
+      config: getSfloadNodeConfig(graphState.ui_layout, nodeId, `${targetNode.opcode}_nodes`)
     });
   }, []);
 
@@ -736,7 +738,7 @@ export function ReteNodeEditor({
       const targetNodeId = sfloadEditor.nodeId;
       updateGraph((currentGraph) => ({
         ...currentGraph,
-        ui_layout: setSfloadNodeConfig(currentGraph.ui_layout, targetNodeId, config)
+        ui_layout: setSfloadNodeConfig(currentGraph.ui_layout, targetNodeId, config, `${sfloadEditor.opcode}_nodes`)
       }));
       setSfloadEditor(null);
     },
@@ -961,7 +963,7 @@ export function ReteNodeEditor({
               const opcodeCategory = spec?.category;
               const hasDocumentation = Boolean(spec?.documentation_markdown?.trim().length);
               const isGenNode = opcodeName === "GEN";
-              const isSfloadNode = opcodeName === "sfload";
+              const isSfloadNode = opcodeName === "sfload" || opcodeName === "adsyn";
               const isPerformanceController = opcodeName === "perf_controller";
 
               return function ColoredNode(props: any) {
@@ -980,9 +982,9 @@ export function ReteNodeEditor({
                         aria-label={
                           isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode
                             ? `Configure GEN node ${patchNodeId ?? ""}`.trim()
-                            : `Configure sfload node ${patchNodeId ?? ""}`.trim()
+                            : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).configureSfloadAria(patchNodeId ?? "") : `Configure sfload node ${patchNodeId ?? ""}`.trim()
                         }
-                        title={isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode ? "Configure GEN routine" : "Configure SoundFont file"}
+                        title={isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode ? "Configure GEN routine" : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).title : "Configure SoundFont file"}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -1020,7 +1022,7 @@ export function ReteNodeEditor({
                           justifyContent: "center"
                         }}
                       >
-                        {isPerformanceController ? "⚙" : isGenNode ? "GEN" : "SF2"}
+                        {isPerformanceController ? "⚙" : isGenNode ? "GEN" : opcodeName === "adsyn" ? "HET" : "SF2"}
                       </button>
                     ) : null}
                     {hasDocumentation && onOpcodeHelpRequest ? (
@@ -1740,6 +1742,7 @@ export function ReteNodeEditor({
 
       {sfloadEditor && (
         <SfloadNodeEditorModal
+          opcode={sfloadEditor.opcode}
           nodeId={sfloadEditor.nodeId}
           guiLanguage={guiLanguage}
           initialConfig={sfloadEditor.config}

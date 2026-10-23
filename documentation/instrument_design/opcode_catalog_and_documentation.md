@@ -162,3 +162,45 @@ See also:
 <p align="center"><em>Integrated opcode documentation modal opened from a graph node.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](patch_toolbar_and_tabs.md) | [Next](graph_editor.md)
+
+## Additive Resynthesis with adsyn
+
+[`adsyn`](https://csound.com/docs/manual/adsyn.html) resynthesizes sinusoidal
+partials from a Csound `hetro` analysis file. Find it in **oscillator**, add it
+to the graph, and open its configuration button to upload the analysis.
+The selected filename is saved with the instrument. Use **Clear Asset** to
+remove a selection or upload another file to replace it.
+
+![adsyn analysis-file configuration](../../screenshots/adsyn_analysis_file.png)
+
+The three control-rate inputs also accept init-rate connections and formulas:
+
+| Input | Default | Meaning |
+| --- | --- | --- |
+| `kamod` | 1 | Amplitude multiplier |
+| `kfmod` | 1 | Frequency multiplier; 2 raises every partial by an octave |
+| `ksmod` | 1 | Analysis playback speed; 2 traverses the envelopes twice as fast |
+
+Connect the mono audio output `ares` to your envelope/effects chain and then
+an audio output. Add your own release envelope for MIDI articulation. `adsyn`
+can be placed in the main graph or inside an If/Switch synthesis case.
+The analysis file is chosen when each note initializes; the three controls
+can change at control rate during playback.
+
+Upload analysis data, not a WAV recording. Generate it outside Orchestron
+with [Csound hetro](https://csound.com/docs/manual/hetro.html), for example:
+
+```sh
+csound -U hetro -f440 -h16 source.wav source.het
+```
+
+Set `-f` to the approximate fundamental of the source. SDIF data must first
+be converted with Csound's `sdif2ad` utility. The file picker allows arbitrary
+extensions because Csound analysis files need not be named `.het`.
+
+Orchestron accepts portable HETRO text and legacy native-endian binary analysis.
+Malformed tracks are rejected before compilation or CSD export.
+Orchestron resolves uploaded/imported files from its asset storage; raw paths
+and numeric Csound filename aliases are not supported. Instrument/performance
+ZIPs carry the analysis file, and both performance CSD modes include it under
+`assets/`. No analysis-generation tool or piano conversion is included.

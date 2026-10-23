@@ -567,6 +567,7 @@ class CsoundWorker:
         if not self._gen_audio_assets_dir:
             return
         csound.setOption(f"--env:SSDIR={self._gen_audio_assets_dir}")
+        csound.setOption(f"--env:SADIR={self._gen_audio_assets_dir}")
 
     @staticmethod
     def _suppress_csound_performance_messages(csound: Any) -> None:

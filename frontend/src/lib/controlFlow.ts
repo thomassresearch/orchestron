@@ -123,7 +123,7 @@ export function removeGraphNodes(graph: PatchGraph, removed: Set<string>): Patch
   const formulas = Object.fromEntries(Object.entries(readInputFormulaMap(graph.ui_layout)).filter(([key, formula]) =>
     !removed.has(parseFormulaTargetKey(key)!.toNodeId) && !formula.inputs.some((input) => removed.has(input.from_node_id))));
   let layout = writeInputFormulaMap(graph.ui_layout, formulas);
-  for (const key of ["gen_nodes", "sfload_nodes", "control_flow_blocks", "control_flow_case_sizes"]) {
+  for (const key of ["gen_nodes", "sfload_nodes", "adsyn_nodes", "control_flow_blocks", "control_flow_case_sizes"]) {
     const map = layout[key];
     if (map && typeof map === "object" && !Array.isArray(map)) layout = { ...layout, [key]: Object.fromEntries(Object.entries(map).filter(([id]) => !removed.has(id))) };
   }

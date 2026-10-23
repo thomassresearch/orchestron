@@ -19,8 +19,8 @@ File extensions:
 
 Orchestron chooses the format automatically:
 
-- JSON export when no referenced uploaded GEN01 or `sfload` assets are present
-- ZIP export when the instrument references uploaded GEN01 audio assets or `sfload` SoundFont assets (so audio dependencies can be included)
+- JSON export when no referenced uploaded GEN01, `sfload`, or `adsyn` assets are present
+- ZIP export when the instrument references uploaded GEN01 audio assets or `sfload` SoundFont assets or `adsyn` analysis files (so audio dependencies can be included)
 
 ### 2. Csound CSD Export (`Export CSD` button)
 
@@ -40,7 +40,7 @@ An instrument bundle contains:
 - schema version
 - full patch graph (`nodes`, `connections`, `ui_layout`, `engine_config`)
 
-If a ZIP bundle is required, it also contains referenced uploaded audio/SoundFont assets under an `audio/` folder in the archive.
+If a ZIP bundle is required, it also contains referenced uploaded audio/SoundFont/analysis assets under an `audio/` folder in the archive.
 
 ## Instrument Import (`Import` button)
 
@@ -66,7 +66,7 @@ The dialog validates name collisions before proceeding. Cancelling leaves the li
 
 ## Audio Dependency Handling
 
-For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets:
+For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets or `adsyn` analysis files:
 
 - Orchestron validates the archive structure
 - Imports the selected patches' audio files into backend storage after confirmation
@@ -80,7 +80,7 @@ For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets
 - Missing referenced audio assets in a ZIP import cause import failure (prevents broken GEN01 references)
 - Default import limits are 256 MiB compressed request body, 8 MiB root JSON, 512 ZIP entries, and 256 MiB total uncompressed ZIP content
 - Deployments can tune these with `VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_JSON_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_MEMBERS`, and `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES`
-- Individual imported audio/SoundFont assets are still limited by `VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES`
+- Individual imported audio/SoundFont/analysis assets are still limited by `VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES`
 
 ## Instrument Bundle vs Performance Bundle
 

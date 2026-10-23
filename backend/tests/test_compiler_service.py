@@ -1244,3 +1244,59 @@ def test_stereo_moog_filter_compiles_independent_instance_settings(mode):
         assert settings[f"filter-{i}"]["smf_channel"]["value"] == i + 2
         assert settings[f"filter-{i}"]["smf_cutoff"]["value"] == 1000 * (i + 1)
     assert settings["filter-0"]["smf_cutoff"]["channel"] != settings["filter-1"]["smf_cutoff"]["channel"]
+
+
+@pytest.mark.parametrize("rate", ["i", "k", "a"])
+def test_adsyn_compile_rates_and_formulas(tmp_path, rate):
+    from backend.tests.adsyn_test_support import ANALYSIS_FILE, adsyn_compiler, adsyn_patch
+    (tmp_path / ANALYSIS_FILE.name).write_bytes(ANALYSIS_FILE.read_bytes())
+    patch = adsyn_patch()
+    patch.graph.nodes.append(NodeInstance(id="factor", opcode=f"const_{rate}", params={"value": 2}))
+    patch.graph.connections.append(Connection(from_node_id="factor", from_port_id=f"{rate}out",
+                                              to_node_id="tone", to_port_id="kfmod"))
+    patch.graph.ui_layout["input_formulas"] = {"tone::ksmod": {"expression": "1 / 2", "inputs": []}}
+    compiler = adsyn_compiler(tmp_path)
+    if rate == "a":
+        with pytest.raises(CompilationError):
+            compiler.compile_patch(patch, midi_input="0", rtmidi_module="none")
+    else:
+        orc = compiler.compile_patch(patch, midi_input="0", rtmidi_module="none").orc
+        line = next(line for line in orc_code_lines(orc) if " adsyn " in line)
+        assert f"adsyn 1, {rate}_factor_{rate}out" in line
+        assert '1 / 2' in line and f'"{ANALYSIS_FILE.name}"' in line
+        assert orc.index("instr ") < orc.index(line) < orc.index("endin")
+        assert str(tmp_path) not in orc
+
+
+@pytest.mark.parametrize("config,params", [
+    ({}, {}), ({"samplePath": "/private/not-an-asset.het"}, {}),
+    ({"samplePath": "../secret.het"}, {}), ({}, {"ifilcod": 1}),
+    ({}, {"filename": "/tmp/secret.het"}),
+    ({"sampleAsset": {"stored_name": "missing.het"}}, {}),
+    ({"sampleAsset": {"stored_name": "../secret.het"}}, {}),
+])
+def test_adsyn_rejects_missing_or_unmanaged_files(tmp_path, config, params):
+    from backend.tests.adsyn_test_support import adsyn_compiler, adsyn_patch
+    patch = adsyn_patch(**params)
+    patch.graph.ui_layout["adsyn_nodes"]["tone"] = config
+    with pytest.raises(CompilationError):
+        adsyn_compiler(tmp_path).compile_patch(patch, midi_input="0", rtmidi_module="none")
+
+
+@pytest.mark.parametrize("path,allowed", [("assets/tone.het", True), ("/tmp/tone.het", False),
+                                          ("assets/../tone.het", False), ("assets/soundin.1", False)])
+def test_adsyn_packaged_paths_are_export_only(tmp_path, path, allowed):
+    from backend.tests.adsyn_test_support import adsyn_compiler, adsyn_patch
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    patch = adsyn_patch()
+    patch.graph.ui_layout["adsyn_nodes"]["tone"] = {"samplePath": path}
+    compiler = adsyn_compiler(tmp_path)
+    with pytest.raises(CompilationError):
+        compiler.compile_patch(patch, midi_input="0", rtmidi_module="none")
+    kwargs = dict(targets=[PatchInstrumentTarget(patch=patch, midi_channel=1)], midi_input="0",
+                  rtmidi_module="none", allow_packaged_asset_paths=True)
+    if allowed:
+        assert f'"{path}"' in compiler.compile_patch_bundle(**kwargs).orc
+    else:
+        with pytest.raises(CompilationError):
+            compiler.compile_patch_bundle(**kwargs)

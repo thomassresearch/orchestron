@@ -45,13 +45,13 @@ def collect_referenced_gen_audio_stored_names_from_graph(graph: object) -> set[s
                 continue
             _add_sample_asset_stored_name(names, node_config.get("sampleAsset"))
 
-    sfload_nodes = ui_layout.get("sfload_nodes")
-    if isinstance(sfload_nodes, dict):
-        for raw_node_config in sfload_nodes.values():
-            node_config = _as_dict(raw_node_config)
-            if node_config is None:
-                continue
-            _add_sample_asset_stored_name(names, node_config.get("sampleAsset"))
+    for layout_key in ("sfload_nodes", "adsyn_nodes"):
+        file_nodes = ui_layout.get(layout_key)
+        if isinstance(file_nodes, dict):
+            for raw_node_config in file_nodes.values():
+                node_config = _as_dict(raw_node_config)
+                if node_config is not None:
+                    _add_sample_asset_stored_name(names, node_config.get("sampleAsset"))
     return names
 
 

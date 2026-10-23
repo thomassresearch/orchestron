@@ -76,7 +76,43 @@ const SFLOAD_EDITOR_COPY: Record<GuiLanguage, SfloadEditorCopy> = {
   }
 };
 
+const ADSYN_EDITOR_COPY: Record<GuiLanguage, SfloadEditorCopy> = {
+  english: {
+    ...SFLOAD_EDITOR_COPY.english,
+    title: "adsyn Analysis File", uploadSf2File: "Upload Analysis File",
+    note: "Choose a hetro analysis file containing partial amplitude and frequency tracks. Audio recordings and SDIF files must be converted with Csound's analysis utilities first.",
+    uploadFailed: "Failed to upload analysis file.",
+    configureSfloadAria: (nodeId) => `adsyn analysis file for ${nodeId}`
+  },
+  german: {
+    ...SFLOAD_EDITOR_COPY.german,
+    title: "adsyn-Analysedatei", uploadSf2File: "Analysedatei hochladen",
+    note: "Wähle eine hetro-Analysedatei mit Amplituden- und Frequenzverläufen der Teiltöne. Audioaufnahmen und SDIF-Dateien müssen zuerst mit den Csound-Analysewerkzeugen konvertiert werden.",
+    uploadFailed: "Analysedatei konnte nicht hochgeladen werden.",
+    configureSfloadAria: (nodeId) => `adsyn-Analysedatei für ${nodeId}`
+  },
+  french: {
+    ...SFLOAD_EDITOR_COPY.french,
+    title: "Fichier d’analyse adsyn", uploadSf2File: "Téléverser une analyse",
+    note: "Choisissez un fichier d’analyse hetro contenant les amplitudes et fréquences des partiels. Convertissez d’abord les enregistrements audio et les fichiers SDIF avec les outils d’analyse Csound.",
+    uploadFailed: "Échec du téléversement de l’analyse.",
+    configureSfloadAria: (nodeId) => `fichier d’analyse adsyn pour ${nodeId}`
+  },
+  spanish: {
+    ...SFLOAD_EDITOR_COPY.spanish,
+    title: "Archivo de análisis adsyn", uploadSf2File: "Subir archivo de análisis",
+    note: "Seleccione un archivo hetro con las amplitudes y frecuencias de los parciales. Convierta primero las grabaciones de audio y los archivos SDIF con las herramientas de análisis de Csound.",
+    uploadFailed: "No se pudo subir el archivo de análisis.",
+    configureSfloadAria: (nodeId) => `archivo de análisis adsyn para ${nodeId}`
+  }
+};
+
+export function adsynEditorCopy(language: GuiLanguage): SfloadEditorCopy {
+  return ADSYN_EDITOR_COPY[language];
+}
+
 interface SfloadNodeEditorModalProps {
+  opcode?: "sfload" | "adsyn";
   nodeId: string;
   guiLanguage: GuiLanguage;
   initialConfig: SfloadNodeConfig;
@@ -85,13 +121,14 @@ interface SfloadNodeEditorModalProps {
 }
 
 export function SfloadNodeEditorModal({
+  opcode = "sfload",
   nodeId,
   guiLanguage,
   initialConfig,
   onClose,
   onSave
 }: SfloadNodeEditorModalProps) {
-  const copy = SFLOAD_EDITOR_COPY[guiLanguage];
+  const copy = opcode === "adsyn" ? adsynEditorCopy(guiLanguage) : SFLOAD_EDITOR_COPY[guiLanguage];
   const [draft, setDraft] = useState<SfloadNodeConfig>(() => normalizeSfloadNodeConfig(initialConfig));
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -158,7 +195,7 @@ export function SfloadNodeEditorModal({
 
             <div className="mt-3">
               <AssetUploadCard
-                accept=".sf2"
+                accept={opcode === "adsyn" ? "" : ".sf2"}
                 asset={draft.sampleAsset}
                 uploading={uploading}
                 uploadError={uploadError}

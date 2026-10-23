@@ -66,8 +66,8 @@ export function normalizeSfloadNodeConfig(raw: unknown): SfloadNodeConfig {
   };
 }
 
-export function readSfloadNodeConfigMap(uiLayout: JsonObject): SfloadNodeConfigMap {
-  const raw = uiLayout[SFLOAD_NODES_LAYOUT_KEY];
+export function readSfloadNodeConfigMap(uiLayout: JsonObject, layoutKey = SFLOAD_NODES_LAYOUT_KEY): SfloadNodeConfigMap {
+  const raw = uiLayout[layoutKey];
   if (!isRecord(raw)) {
     return {};
   }
@@ -82,16 +82,16 @@ export function readSfloadNodeConfigMap(uiLayout: JsonObject): SfloadNodeConfigM
   return result;
 }
 
-export function getSfloadNodeConfig(uiLayout: JsonObject, nodeId: string): SfloadNodeConfig {
-  const map = readSfloadNodeConfigMap(uiLayout);
+export function getSfloadNodeConfig(uiLayout: JsonObject, nodeId: string, layoutKey = SFLOAD_NODES_LAYOUT_KEY): SfloadNodeConfig {
+  const map = readSfloadNodeConfigMap(uiLayout, layoutKey);
   return map[nodeId] ? normalizeSfloadNodeConfig(map[nodeId]) : defaultSfloadNodeConfig();
 }
 
-export function writeSfloadNodeConfigMap(uiLayout: JsonObject, map: SfloadNodeConfigMap): JsonObject {
+export function writeSfloadNodeConfigMap(uiLayout: JsonObject, map: SfloadNodeConfigMap, layoutKey = SFLOAD_NODES_LAYOUT_KEY): JsonObject {
   const nextLayout: JsonObject = { ...uiLayout };
   const entries = Object.entries(map);
   if (entries.length === 0) {
-    delete nextLayout[SFLOAD_NODES_LAYOUT_KEY];
+    delete nextLayout[layoutKey];
     return nextLayout;
   }
 
@@ -99,19 +99,19 @@ export function writeSfloadNodeConfigMap(uiLayout: JsonObject, map: SfloadNodeCo
   for (const [nodeId, config] of entries) {
     rawMap[nodeId] = sfloadNodeConfigToJson(config);
   }
-  nextLayout[SFLOAD_NODES_LAYOUT_KEY] = rawMap;
+  nextLayout[layoutKey] = rawMap;
   return nextLayout;
 }
 
-export function setSfloadNodeConfig(uiLayout: JsonObject, nodeId: string, config: SfloadNodeConfig | null): JsonObject {
-  const current = readSfloadNodeConfigMap(uiLayout);
+export function setSfloadNodeConfig(uiLayout: JsonObject, nodeId: string, config: SfloadNodeConfig | null, layoutKey = SFLOAD_NODES_LAYOUT_KEY): JsonObject {
+  const current = readSfloadNodeConfigMap(uiLayout, layoutKey);
   const next = { ...current };
   if (!config) {
     delete next[nodeId];
   } else {
     next[nodeId] = normalizeSfloadNodeConfig(config);
   }
-  return writeSfloadNodeConfigMap(uiLayout, next);
+  return writeSfloadNodeConfigMap(uiLayout, next, layoutKey);
 }
 
 function sfloadNodeConfigToJson(config: SfloadNodeConfig): JsonValue {

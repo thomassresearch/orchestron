@@ -30,6 +30,7 @@ Start with a playable instrument, a drumset, an audio effect, an audio output pa
 
 - **Synths and textures:** combine oscillators, filters, envelopes, physical models, and effects for basses, leads, bells, pads, and evolving soundscapes.
 - **Sample-based sounds:** upload audio or SoundFonts, and use the table editor to build waveforms and shape how samples are played.
+- **Additive resynthesis:** upload a `hetro` analysis file into [`adsyn`](documentation/instrument_design/opcode_catalog_and_documentation.md#additive-resynthesis-with-adsyn), then control amplitude, pitch and playback speed.
 - **Drumsets:** give different notes their own synthesis voices with [If / Switch branches](documentation/instrument_design/control_flow.md), then sequence them together.
 - **Effects:** design stereo processors to use as inserts, shared effects, or part of your Master chain.
 

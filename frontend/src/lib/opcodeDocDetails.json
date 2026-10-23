@@ -8695,5 +8695,41 @@
         "spanish": "Salida de audio derecha."
       }
     }
+  },
+  "adsyn": {
+    "description": {
+      "english": "Output is an additive set of individually controlled sinusoids, using an oscillator bank.",
+      "german": "Der Ausgang ist ein additiver Satz individuell gesteuerter Sinuskurven unter Verwendung einer Oszillatorbank.",
+      "french": "La sortie est un ensemble additif de sinusoïdes contrôlées individuellement, utilisant une banque d'oscillateurs.",
+      "spanish": "La salida es un conjunto aditivo de sinusoides controlados individualmente, utilizando un banco de osciladores."
+    },
+    "inputs": {
+      "kamod": {
+        "english": "amplitude factor of the contributing partials.",
+        "german": "Amplitudenfaktor der beitragenden Teiltöne.",
+        "french": "facteur d'amplitude des partiels contributeurs.",
+        "spanish": "factor de amplitud de los parciales contribuyentes."
+      },
+      "kfmod": {
+        "english": "frequency factor of the contributing partials. It is a control-rate transposition factor: a value of 1 incurs no transposition, 1.5 transposes up a perfect fifth, and 0.5 down an octave.",
+        "german": "Frequenzfaktor der beitragenden Teiltöne. Es handelt sich um einen Transpositionsfaktor mit Kontrollrate: Ein Wert von 1 führt zu keiner Transposition, 1,5 transponiert eine reine Quinte nach oben und 0,5 eine Oktave nach unten.",
+        "french": "facteur de fréquence des partiels contributeurs. Il s'agit d'un facteur de transposition de taux de contrôle: une valeur de 1 n'entraîne aucune transposition, 1,5 transpose une quinte parfaite et 0,5 vers le bas d'une octave.",
+        "spanish": "factor de frecuencia de los parciales contribuyentes. Es un factor de transposición de tasa de control: un valor de 1 no incurre en transposición, 1,5 transpone hacia arriba una quinta perfecta y 0,5 hacia abajo una octava."
+      },
+      "ksmod": {
+        "english": "speed factor of the contributing partials.",
+        "german": "Geschwindigkeitsfaktor der beitragenden Teiltöne.",
+        "french": "facteur de vitesse des partiels contributeurs.",
+        "spanish": "factor de velocidad de los parciales contribuyentes."
+      }
+    },
+    "outputs": {
+      "ares": {
+        "english": "Output variable `ares` from adsyn.",
+        "german": "Ausgabevariable „ares“ von Adsyn.",
+        "french": "Variable de sortie « ares » d'Adsyn.",
+        "spanish": "Variable de salida `ares` de adsyn."
+      }
+    }
   }
 }

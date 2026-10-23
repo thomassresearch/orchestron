@@ -22,6 +22,7 @@ from backend.app.services.compiler_service import CompilerService, PatchInstrume
 from backend.app.services.compiler_common import CompilationProfile
 from backend.app.services.compiler_orchestra import OrchestraEmitter, SCORE_CONTROLLER_ARRAY_NAME
 from backend.app.services.gen_asset_service import GenAssetService
+from backend.app.services.adsyn_analysis import validate_adsyn_analysis
 from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 from backend.app.services.performance_export_selection import select_performance_csd_instruments
@@ -377,36 +378,42 @@ class PerformanceExportService:
                 updated.pop("sampleAsset", None)
                 gen_nodes[node_id] = updated
 
-        sfload_nodes = ui_layout.get("sfload_nodes")
-        if isinstance(sfload_nodes, dict):
-            for node_id, raw_node_config in list(sfload_nodes.items()):
-                if not isinstance(raw_node_config, dict):
-                    continue
-                updated = dict(raw_node_config)
-                archive_path = self._resolve_bundled_archive_path(
-                    updated,
-                    bundle_index,
-                    raw_path_error=(
-                        f"sfload node '{node_id}' uses samplePath. Upload the SoundFont file before exporting a performance CSD."
-                    ),
-                )
-                if archive_path is None:
-                    continue
-                updated["samplePath"] = archive_path
-                updated.pop("sampleAsset", None)
-                sfload_nodes[node_id] = updated
+        for opcode in ("sfload", "adsyn"):
+            file_nodes = ui_layout.get(f"{opcode}_nodes")
+            if isinstance(file_nodes, dict):
+                for node_id, raw_node_config in list(file_nodes.items()):
+                    if not isinstance(raw_node_config, dict):
+                        continue
+                    updated = dict(raw_node_config)
+                    if opcode == "adsyn":
+                        asset = updated.get("sampleAsset")
+                        if isinstance(asset, dict) and isinstance(asset.get("stored_name"), str):
+                            validate_adsyn_analysis(self._gen_asset_service.resolve_audio_path(asset["stored_name"]))
+                    archive_path = self._resolve_bundled_archive_path(
+                        updated,
+                        bundle_index,
+                        raw_path_error=(
+                            f"{opcode} node '{node_id}' uses samplePath. Upload the asset file before exporting a performance CSD."
+                        ),
+                    )
+                    if archive_path is None:
+                        continue
+                    updated["samplePath"] = archive_path
+                    updated.pop("sampleAsset", None)
+                    file_nodes[node_id] = updated
 
         for node in graph.nodes:
-            if node.opcode != "sfload":
+            if node.opcode not in {"sfload", "adsyn"}:
                 continue
-            raw_config = sfload_nodes.get(node.id) if isinstance(sfload_nodes, dict) else None
+            file_nodes = ui_layout.get(f"{node.opcode}_nodes")
+            raw_config = file_nodes.get(node.id) if isinstance(file_nodes, dict) else None
             if isinstance(raw_config, dict) and self._has_exportable_sample_reference(raw_config):
                 continue
-            raw_filename = node.params.get("filename")
-            if isinstance(raw_filename, str) and raw_filename.strip():
+            raw_filename = node.params.get("filename", node.params.get("ifilcod"))
+            if raw_filename is not None and str(raw_filename).strip():
                 raise ValueError(
-                    f"sfload node '{node.id}' uses a raw filename parameter. "
-                    "Upload the SoundFont file before exporting a performance CSD."
+                    f"{node.opcode} node '{node.id}' uses a raw filename parameter. "
+                    "Upload the asset file before exporting a performance CSD."
                 )
 
     def _resolve_bundled_archive_path(

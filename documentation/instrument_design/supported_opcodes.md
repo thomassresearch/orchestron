@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **194** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **195** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -29,7 +29,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | mixer | 3 |
 | modulation | 10 |
 | noise | 3 |
-| oscillator | 20 |
+| oscillator | 21 |
 | output | 1 |
 | physical_modeling | 31 |
 | reverb | 4 |
@@ -232,6 +232,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | --- | --- | --- | --- |
 | STKMoog | 12 (i, i, k, k, k, k, k, k, k, k, k, k) | 1 (a) | STK sampled-wave synthesizer with swept formant filters. |
 | STKSimple | 10 (i, i, k, k, k, k, k, k, k, k) | 1 (a) | STK wavetable and noise synthesizer with filters and an ADSR envelope. |
+| adsyn | 3 (k, k, k) | 1 (a) | Resynthesize sinusoidal partials from an uploaded hetro analysis file. |
 | fof | 15 (k, k, k, k, k, k, k, k, i, i, i, i, i, i, i) | 1 (a) | Formant/granular source using sinusoid bursts. |
 | fof2 | 15 (k, k, k, k, k, k, k, k, i, i, i, i, k, k, i) | 1 (a) | FOF source with per-grain phase indexing and glissando. |
 | foscili | 7 (k, k, k, k, k, i, i) | 1 (a) | Audio-rate FM oscillator with harmonic ratios. |
