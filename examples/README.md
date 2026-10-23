@@ -40,6 +40,11 @@ and a WAV render with two warm passages within the industrial groove.
 [Hardtrance Demo](performances/hardtrance_demo/README.md) documents a seven-minute,
 146 BPM hard trance arrangement, its instrument settings, and its shared effects routing.
 
+[Psysound II](performances/psysound_ii/README.md) develops Psysound into a separate
+seven-minute psytrance performance with a recurring A–B♭–E signature, pad-free
+contrasts, a shorter breakdown and a brighter second-half peak. Its native backup,
+WAV previews and reproduction files preserve the original Psysound unchanged.
+
 The [Piano — prepiano example](instruments/Piano_prepiano.md) is a sample-free,
 polyphonic piano with MIDI pitch and velocity, ten performance controls and no
 rattle or rubber preparations. It includes a native instrument, a control guide and audio-validation results.
@@ -48,6 +53,25 @@ rattle or rubber preparations. It includes a native instrument, a control guide 
 two-hand solo using that piano. Bass and middle-register phrases lead to sustained
 treble notes, with varied MIDI velocities, gently spread chords and dry sound.
 The native performance includes the updated instrument and an editable score.
+
+[Piano — The Light That Returns](performances/Piano_The_Light_That_Returns.md)
+is a D Dorian solo for one pianist: a mellow recurring theme moves into the warmth
+of the natural sixth, retreats, and finds a fuller resolution. Its native bundle
+and editable score use four lanes with native chord cells, coordinated two-hand
+phrasing, dynamics and expressive timing.
+
+[The Light That Returns — Flowing](performances/Piano_The_Light_That_Returns_Flowing.md)
+keeps that melody and adds a more varied left hand: held chords open into broken
+figures and rising or falling arpeggios, with both hands together at important
+arrivals. It is saved as a separate performance with the latest piano and reverb settings.
+
+[The Light That Returns — Expressive](performances/Piano_The_Light_That_Returns_Expressive.md)
+adds subtle shared rubato and phrase-shaped dynamic swells to the Flowing version.
+Both hands retain coordinated arrivals, with the same notes, accompaniment and sound settings.
+
+[The Light That Returns — Contrast](performances/Piano_The_Light_That_Returns_Contrast.md)
+deepens the quiet minor passages, builds A-based tension before the warm return,
+and settles into a sparse ending with a delayed, coordinated final D.
 
 ## Import an instrument (Instrument Design -> Import)
 

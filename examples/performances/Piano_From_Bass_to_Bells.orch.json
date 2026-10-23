@@ -1,7 +1,7 @@
 {
   "format": "orchestron.performance",
   "version": 1,
-  "exported_at": "2026-10-22T20:51:29.052904+00:00",
+  "exported_at": "2026-10-22T21:26:47.111390+00:00",
   "performance": {
     "name": "Piano — From Bass to Bells",
     "description": "A 16-bar two-hand piano study at 76 BPM: bass melody, middle-register answer and exposed high-register sustain. Varied MIDI velocities, gently spread chords, dry prepiano with its existing performance controls. Four beats of closing silence; no loop.",
@@ -42421,7 +42421,7 @@
         {
           "sourcePatchId": "c62bc06a-4ae5-4590-8b73-a76a00891f27",
           "name": "Piano — prepiano",
-          "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive the strings and hammer. Dry centered stereo output; route to Master. Main string, hammer, release and level settings are performance controls and apply to new notes. Pitch-tracked excitation keeps treble notes pitched; decay tracking above 800 Hz shortens their prominent ring, guided by acoustic-piano recordings.",
+          "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive strings and hammer; dry centered stereo output routes to Master. All ten performance controls are retained. Notes through A5 keep their existing sound. From C6, a brief deterministic contact pulse excites six fitted body resonances instead of added noise. Hammer mass, hardness, strength and velocity shape the contact. The shortened string decay is unchanged.",
           "isTemplate": false,
           "alwaysOn": false,
           "instrumentType": "melody",
@@ -42698,6 +42698,214 @@
                 }
               },
               {
+                "id": "piano_attack_env",
+                "opcode": "linseg",
+                "params": {
+                  "ia": 0,
+                  "ib": 1,
+                  "ic": 0.2,
+                  "id": 0
+                },
+                "position": {
+                  "x": 50.0,
+                  "y": 1000.0
+                }
+              },
+              {
+                "id": "piano_attack_smooth",
+                "opcode": "k_to_a",
+                "params": {},
+                "position": {
+                  "x": 400.0,
+                  "y": 1000.0
+                }
+              },
+              {
+                "id": "piano_attack_noise",
+                "opcode": "noise",
+                "params": {
+                  "beta": 0
+                },
+                "position": {
+                  "x": 750.0,
+                  "y": 1000.0
+                }
+              },
+              {
+                "id": "piano_attack_highpass",
+                "opcode": "butterhp",
+                "params": {
+                  "xfreq": 180,
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1100.0,
+                  "y": 1000.0
+                }
+              },
+              {
+                "id": "piano_attack_lowpass",
+                "opcode": "butterlp",
+                "params": {
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1450.0,
+                  "y": 1000.0
+                }
+              },
+              {
+                "id": "piano_attack_mix",
+                "opcode": "k_to_a",
+                "params": {},
+                "position": {
+                  "x": 1450.0,
+                  "y": 1300.0
+                }
+              },
+              {
+                "id": "piano_contact_register",
+                "opcode": "k_mul",
+                "params": {
+                  "b": 1
+                },
+                "position": {
+                  "x": 50.0,
+                  "y": 1600.0
+                }
+              },
+              {
+                "id": "piano_contact_env",
+                "opcode": "expsega",
+                "params": {
+                  "ia": 0.001,
+                  "ib": 0.2,
+                  "ic": 1,
+                  "id": 0.001,
+                  "ie": 0.001,
+                  "idur4": 0.01
+                },
+                "position": {
+                  "x": 400.0,
+                  "y": 1600.0
+                }
+              },
+              {
+                "id": "piano_contact_pulse",
+                "opcode": "a_mul",
+                "params": {
+                  "b": 1
+                },
+                "position": {
+                  "x": 750.0,
+                  "y": 1600.0
+                }
+              },
+              {
+                "id": "piano_contact_window",
+                "opcode": "linseg",
+                "params": {
+                  "ia": 1,
+                  "idur1": 0.035,
+                  "ib": 1,
+                  "idur2": 0.045,
+                  "ic": 0,
+                  "idur3": 0.01,
+                  "id": 0
+                },
+                "position": {
+                  "x": 400.0,
+                  "y": 1900.0
+                }
+              },
+              {
+                "id": "piano_contact_gain",
+                "opcode": "k_to_a",
+                "params": {},
+                "position": {
+                  "x": 750.0,
+                  "y": 1900.0
+                }
+              },
+              {
+                "id": "piano_contact_mode_1",
+                "opcode": "mode",
+                "params": {
+                  "xfreq": 285,
+                  "xQ": 40.290926,
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1100.0,
+                  "y": 1600.0
+                }
+              },
+              {
+                "id": "piano_contact_mode_2",
+                "opcode": "mode",
+                "params": {
+                  "xfreq": 475,
+                  "xQ": 59.69026,
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1450.0,
+                  "y": 1600.0
+                }
+              },
+              {
+                "id": "piano_contact_mode_3",
+                "opcode": "mode",
+                "params": {
+                  "xfreq": 610,
+                  "xQ": 68.989375,
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1800.0,
+                  "y": 1600.0
+                }
+              },
+              {
+                "id": "piano_contact_mode_4",
+                "opcode": "mode",
+                "params": {
+                  "xfreq": 985,
+                  "xQ": 92.834063,
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1100.0,
+                  "y": 1930.0
+                }
+              },
+              {
+                "id": "piano_contact_mode_5",
+                "opcode": "mode",
+                "params": {
+                  "xfreq": 1175,
+                  "xQ": 92.284284,
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1450.0,
+                  "y": 1930.0
+                }
+              },
+              {
+                "id": "piano_contact_mode_6",
+                "opcode": "mode",
+                "params": {
+                  "xfreq": 1505,
+                  "xQ": 104.018133,
+                  "iskip": 0
+                },
+                "position": {
+                  "x": 1800.0,
+                  "y": 1930.0
+                }
+              },
+              {
                 "id": "output_left",
                 "opcode": "outleta",
                 "params": {
@@ -42896,6 +43104,288 @@
                 "to_port_id": "kin"
               },
               {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_env",
+                "to_port_id": "idur1"
+              },
+              {
+                "from_node_id": "piano_hardness",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_env",
+                "to_port_id": "idur1"
+              },
+              {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_env",
+                "to_port_id": "idur2"
+              },
+              {
+                "from_node_id": "piano_hardness",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_env",
+                "to_port_id": "idur2"
+              },
+              {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_env",
+                "to_port_id": "idur3"
+              },
+              {
+                "from_node_id": "piano_hardness",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_env",
+                "to_port_id": "idur3"
+              },
+              {
+                "from_node_id": "piano_attack_env",
+                "from_port_id": "kenv",
+                "to_node_id": "piano_attack_smooth",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_attack_noise",
+                "from_port_id": "aout",
+                "to_node_id": "piano_attack_highpass",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_attack_highpass",
+                "from_port_id": "aout",
+                "to_node_id": "piano_attack_lowpass",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_hardness",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_lowpass",
+                "to_port_id": "xfreq"
+              },
+              {
+                "from_node_id": "velocity_ampmidi",
+                "from_port_id": "iamp",
+                "to_node_id": "piano_attack_lowpass",
+                "to_port_id": "xfreq"
+              },
+              {
+                "from_node_id": "pitch_cpsmidi",
+                "from_port_id": "kfreq",
+                "to_node_id": "piano_contact_register",
+                "to_port_id": "a"
+              },
+              {
+                "from_node_id": "pitch_cpsmidi",
+                "from_port_id": "kfreq",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "velocity_ampmidi",
+                "from_port_id": "iamp",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "piano_level",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "piano_strength",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "piano_attack_smooth",
+                "from_port_id": "aout",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "amp_madsr",
+                "from_port_id": "kenv",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "piano_contact_register",
+                "from_port_id": "kout",
+                "to_node_id": "piano_attack_noise",
+                "to_port_id": "amp"
+              },
+              {
+                "from_node_id": "pitch_cpsmidi",
+                "from_port_id": "kfreq",
+                "to_node_id": "piano_attack_mix",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_attack_env",
+                "from_port_id": "kenv",
+                "to_node_id": "piano_attack_mix",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_contact_register",
+                "from_port_id": "kout",
+                "to_node_id": "piano_attack_mix",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur1"
+              },
+              {
+                "from_node_id": "piano_hardness",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur1"
+              },
+              {
+                "from_node_id": "velocity_ampmidi",
+                "from_port_id": "iamp",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur1"
+              },
+              {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur2"
+              },
+              {
+                "from_node_id": "piano_hardness",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur2"
+              },
+              {
+                "from_node_id": "velocity_ampmidi",
+                "from_port_id": "iamp",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur2"
+              },
+              {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur3"
+              },
+              {
+                "from_node_id": "piano_hardness",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur3"
+              },
+              {
+                "from_node_id": "velocity_ampmidi",
+                "from_port_id": "iamp",
+                "to_node_id": "piano_contact_env",
+                "to_port_id": "idur3"
+              },
+              {
+                "from_node_id": "piano_contact_env",
+                "from_port_id": "aenv",
+                "to_node_id": "piano_contact_pulse",
+                "to_port_id": "a"
+              },
+              {
+                "from_node_id": "piano_contact_register",
+                "from_port_id": "kout",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "pitch_cpsmidi",
+                "from_port_id": "kfreq",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "velocity_ampmidi",
+                "from_port_id": "iamp",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_level",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_strength",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_mass",
+                "from_port_id": "iout",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_contact_window",
+                "from_port_id": "kenv",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "amp_madsr",
+                "from_port_id": "kenv",
+                "to_node_id": "piano_contact_gain",
+                "to_port_id": "kin"
+              },
+              {
+                "from_node_id": "piano_contact_pulse",
+                "from_port_id": "aout",
+                "to_node_id": "piano_contact_mode_1",
+                "to_port_id": "ain"
+              },
+              {
+                "from_node_id": "piano_contact_pulse",
+                "from_port_id": "aout",
+                "to_node_id": "piano_contact_mode_2",
+                "to_port_id": "ain"
+              },
+              {
+                "from_node_id": "piano_contact_pulse",
+                "from_port_id": "aout",
+                "to_node_id": "piano_contact_mode_3",
+                "to_port_id": "ain"
+              },
+              {
+                "from_node_id": "piano_contact_pulse",
+                "from_port_id": "aout",
+                "to_node_id": "piano_contact_mode_4",
+                "to_port_id": "ain"
+              },
+              {
+                "from_node_id": "piano_contact_pulse",
+                "from_port_id": "aout",
+                "to_node_id": "piano_contact_mode_5",
+                "to_port_id": "ain"
+              },
+              {
+                "from_node_id": "piano_contact_pulse",
+                "from_port_id": "aout",
+                "to_node_id": "piano_contact_mode_6",
+                "to_port_id": "ain"
+              },
+              {
                 "from_node_id": "piano_strings",
                 "from_port_id": "al",
                 "to_node_id": "output_pan2",
@@ -42903,6 +43393,60 @@
               },
               {
                 "from_node_id": "piano_amplitude",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_attack_lowpass",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_attack_mix",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_contact_gain",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_contact_mode_1",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_contact_mode_2",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_contact_mode_3",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_contact_mode_4",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_contact_mode_5",
+                "from_port_id": "aout",
+                "to_node_id": "output_pan2",
+                "to_port_id": "asig"
+              },
+              {
+                "from_node_id": "piano_contact_mode_6",
                 "from_port_id": "aout",
                 "to_node_id": "output_pan2",
                 "to_port_id": "asig"
@@ -43063,8 +43607,348 @@
                     }
                   ]
                 },
+                "piano_attack_env::idur1": {
+                  "expression": "0.0015 * mass * 3500 / hardness",
+                  "inputs": [
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "hardness",
+                      "from_node_id": "piano_hardness",
+                      "from_port_id": "iout"
+                    }
+                  ]
+                },
+                "piano_attack_env::idur2": {
+                  "expression": "0.008 * mass * 3500 / hardness",
+                  "inputs": [
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "hardness",
+                      "from_node_id": "piano_hardness",
+                      "from_port_id": "iout"
+                    }
+                  ]
+                },
+                "piano_attack_env::idur3": {
+                  "expression": "0.025 * mass * 3500 / hardness",
+                  "inputs": [
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "hardness",
+                      "from_node_id": "piano_hardness",
+                      "from_port_id": "iout"
+                    }
+                  ]
+                },
+                "piano_attack_smooth::kin": {
+                  "expression": "env",
+                  "inputs": [
+                    {
+                      "token": "env",
+                      "from_node_id": "piano_attack_env",
+                      "from_port_id": "kenv"
+                    }
+                  ]
+                },
+                "piano_attack_noise::amp": {
+                  "expression": "(0.16 * ((hz - 800 + abs(hz - 800)) / 2000 * (1 + (hz - 800 + abs(hz - 800)) / 4000) + 1.8 * (hz - 800 + abs(hz - 800)) / (400 + (hz - 800 + abs(hz - 800)))) * velocity * velocity * ampdb(level) * strength / 30 * (0.6 + 0.4 * mass) * env * gate) * (1 - treble)",
+                  "inputs": [
+                    {
+                      "token": "hz",
+                      "from_node_id": "pitch_cpsmidi",
+                      "from_port_id": "kfreq"
+                    },
+                    {
+                      "token": "velocity",
+                      "from_node_id": "velocity_ampmidi",
+                      "from_port_id": "iamp"
+                    },
+                    {
+                      "token": "level",
+                      "from_node_id": "piano_level",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "strength",
+                      "from_node_id": "piano_strength",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "env",
+                      "from_node_id": "piano_attack_smooth",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "gate",
+                      "from_node_id": "amp_madsr",
+                      "from_port_id": "kenv"
+                    },
+                    {
+                      "token": "treble",
+                      "from_node_id": "piano_contact_register",
+                      "from_port_id": "kout"
+                    }
+                  ]
+                },
+                "piano_attack_highpass::asig": {
+                  "expression": "noise",
+                  "inputs": [
+                    {
+                      "token": "noise",
+                      "from_node_id": "piano_attack_noise",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
+                "piano_attack_lowpass::asig": {
+                  "expression": "body",
+                  "inputs": [
+                    {
+                      "token": "body",
+                      "from_node_id": "piano_attack_highpass",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
+                "piano_attack_lowpass::xfreq": {
+                  "expression": "600 + hardness * (0.35 + 0.55 * velocity)",
+                  "inputs": [
+                    {
+                      "token": "hardness",
+                      "from_node_id": "piano_hardness",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "velocity",
+                      "from_node_id": "velocity_ampmidi",
+                      "from_port_id": "iamp"
+                    }
+                  ]
+                },
+                "piano_attack_mix::kin": {
+                  "expression": "(1 - 1 / (1 + 2 * (hz - 800 + abs(hz - 800)) / (2000 + (hz - 800 + abs(hz - 800))) * env)) * (1 - treble)",
+                  "inputs": [
+                    {
+                      "token": "hz",
+                      "from_node_id": "pitch_cpsmidi",
+                      "from_port_id": "kfreq"
+                    },
+                    {
+                      "token": "env",
+                      "from_node_id": "piano_attack_env",
+                      "from_port_id": "kenv"
+                    },
+                    {
+                      "token": "treble",
+                      "from_node_id": "piano_contact_register",
+                      "from_port_id": "kout"
+                    }
+                  ]
+                },
+                "piano_contact_register::a": {
+                  "expression": "(((hz - 880 + abs(hz - 880)) / 333.004522404789 + 1 - abs((hz - 880 + abs(hz - 880)) / 333.004522404789 - 1)) / 2) * (((hz - 880 + abs(hz - 880)) / 333.004522404789 + 1 - abs((hz - 880 + abs(hz - 880)) / 333.004522404789 - 1)) / 2) * (3 - 2 * (((hz - 880 + abs(hz - 880)) / 333.004522404789 + 1 - abs((hz - 880 + abs(hz - 880)) / 333.004522404789 - 1)) / 2))",
+                  "inputs": [
+                    {
+                      "token": "hz",
+                      "from_node_id": "pitch_cpsmidi",
+                      "from_port_id": "kfreq"
+                    }
+                  ]
+                },
+                "piano_contact_env::idur1": {
+                  "expression": "0.00023999999999999998 * (0.7 + 0.3 * mass) * 3500 / hardness / (0.7 + 0.6 * velocity)",
+                  "inputs": [
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "hardness",
+                      "from_node_id": "piano_hardness",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "velocity",
+                      "from_node_id": "velocity_ampmidi",
+                      "from_port_id": "iamp"
+                    }
+                  ]
+                },
+                "piano_contact_env::idur2": {
+                  "expression": "0.00035999999999999997 * (0.7 + 0.3 * mass) * 3500 / hardness / (0.7 + 0.6 * velocity)",
+                  "inputs": [
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "hardness",
+                      "from_node_id": "piano_hardness",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "velocity",
+                      "from_node_id": "velocity_ampmidi",
+                      "from_port_id": "iamp"
+                    }
+                  ]
+                },
+                "piano_contact_env::idur3": {
+                  "expression": "0.0006 * (0.7 + 0.3 * mass) * 3500 / hardness / (0.7 + 0.6 * velocity)",
+                  "inputs": [
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "hardness",
+                      "from_node_id": "piano_hardness",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "velocity",
+                      "from_node_id": "velocity_ampmidi",
+                      "from_port_id": "iamp"
+                    }
+                  ]
+                },
+                "piano_contact_pulse::a": {
+                  "expression": "pulse - 0.001",
+                  "inputs": [
+                    {
+                      "token": "pulse",
+                      "from_node_id": "piano_contact_env",
+                      "from_port_id": "aenv"
+                    }
+                  ]
+                },
+                "piano_contact_gain::kin": {
+                  "expression": "0.0006 * (1 - 0.699126 * (((hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2093.0045224 + 1 - abs((hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2093.0045224 - 1)) / 2) + 2.503690 * (((hz - 2093.0045224 + abs(hz - 2093.0045224)) / 4186.0090448 + 1 - abs((hz - 2093.0045224 + abs(hz - 2093.0045224)) / 4186.0090448 - 1)) / 2)) * treble * (0.75 + (hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2 / (3000 + (hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2)) * velocity * velocity * ampdb(level) * strength / 30 * (0.8 + 0.2 * mass) * window * gate",
+                  "inputs": [
+                    {
+                      "token": "treble",
+                      "from_node_id": "piano_contact_register",
+                      "from_port_id": "kout"
+                    },
+                    {
+                      "token": "hz",
+                      "from_node_id": "pitch_cpsmidi",
+                      "from_port_id": "kfreq"
+                    },
+                    {
+                      "token": "velocity",
+                      "from_node_id": "velocity_ampmidi",
+                      "from_port_id": "iamp"
+                    },
+                    {
+                      "token": "level",
+                      "from_node_id": "piano_level",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "strength",
+                      "from_node_id": "piano_strength",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "mass",
+                      "from_node_id": "piano_mass",
+                      "from_port_id": "iout"
+                    },
+                    {
+                      "token": "window",
+                      "from_node_id": "piano_contact_window",
+                      "from_port_id": "kenv"
+                    },
+                    {
+                      "token": "gate",
+                      "from_node_id": "amp_madsr",
+                      "from_port_id": "kenv"
+                    }
+                  ]
+                },
+                "piano_contact_mode_1::ain": {
+                  "expression": "pulse",
+                  "inputs": [
+                    {
+                      "token": "pulse",
+                      "from_node_id": "piano_contact_pulse",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
+                "piano_contact_mode_2::ain": {
+                  "expression": "pulse",
+                  "inputs": [
+                    {
+                      "token": "pulse",
+                      "from_node_id": "piano_contact_pulse",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
+                "piano_contact_mode_3::ain": {
+                  "expression": "pulse",
+                  "inputs": [
+                    {
+                      "token": "pulse",
+                      "from_node_id": "piano_contact_pulse",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
+                "piano_contact_mode_4::ain": {
+                  "expression": "pulse",
+                  "inputs": [
+                    {
+                      "token": "pulse",
+                      "from_node_id": "piano_contact_pulse",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
+                "piano_contact_mode_5::ain": {
+                  "expression": "pulse",
+                  "inputs": [
+                    {
+                      "token": "pulse",
+                      "from_node_id": "piano_contact_pulse",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
+                "piano_contact_mode_6::ain": {
+                  "expression": "pulse",
+                  "inputs": [
+                    {
+                      "token": "pulse",
+                      "from_node_id": "piano_contact_pulse",
+                      "from_port_id": "aout"
+                    }
+                  ]
+                },
                 "output_pan2::asig": {
-                  "expression": "signal * amplitude",
+                  "expression": "(signal * amplitude + impact) * (1 - mix) + gain * (3.644 * body1 + 2.475 * body2 + 3.094 * body3 + 7.535 * body4 + 5.18 * body5 + 7.274 * body6)",
                   "inputs": [
                     {
                       "token": "signal",
@@ -43074,6 +43958,51 @@
                     {
                       "token": "amplitude",
                       "from_node_id": "piano_amplitude",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "impact",
+                      "from_node_id": "piano_attack_lowpass",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "mix",
+                      "from_node_id": "piano_attack_mix",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "gain",
+                      "from_node_id": "piano_contact_gain",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "body1",
+                      "from_node_id": "piano_contact_mode_1",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "body2",
+                      "from_node_id": "piano_contact_mode_2",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "body3",
+                      "from_node_id": "piano_contact_mode_3",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "body4",
+                      "from_node_id": "piano_contact_mode_4",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "body5",
+                      "from_node_id": "piano_contact_mode_5",
+                      "from_port_id": "aout"
+                    },
+                    {
+                      "token": "body6",
+                      "from_node_id": "piano_contact_mode_6",
                       "from_port_id": "aout"
                     }
                   ]
@@ -43118,7 +44047,7 @@
     {
       "sourcePatchId": "c62bc06a-4ae5-4590-8b73-a76a00891f27",
       "name": "Piano — prepiano",
-      "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive the strings and hammer. Dry centered stereo output; route to Master. Main string, hammer, release and level settings are performance controls and apply to new notes. Pitch-tracked excitation keeps treble notes pitched; decay tracking above 800 Hz shortens their prominent ring, guided by acoustic-piano recordings.",
+      "description": "Polyphonic, sample-free piano using prepiano with no preparations. MIDI pitch and velocity drive strings and hammer; dry centered stereo output routes to Master. All ten performance controls are retained. Notes through A5 keep their existing sound. From C6, a brief deterministic contact pulse excites six fitted body resonances instead of added noise. Hammer mass, hardness, strength and velocity shape the contact. The shortened string decay is unchanged.",
       "isTemplate": false,
       "alwaysOn": false,
       "instrumentType": "melody",
@@ -43395,6 +44324,214 @@
             }
           },
           {
+            "id": "piano_attack_env",
+            "opcode": "linseg",
+            "params": {
+              "ia": 0,
+              "ib": 1,
+              "ic": 0.2,
+              "id": 0
+            },
+            "position": {
+              "x": 50.0,
+              "y": 1000.0
+            }
+          },
+          {
+            "id": "piano_attack_smooth",
+            "opcode": "k_to_a",
+            "params": {},
+            "position": {
+              "x": 400.0,
+              "y": 1000.0
+            }
+          },
+          {
+            "id": "piano_attack_noise",
+            "opcode": "noise",
+            "params": {
+              "beta": 0
+            },
+            "position": {
+              "x": 750.0,
+              "y": 1000.0
+            }
+          },
+          {
+            "id": "piano_attack_highpass",
+            "opcode": "butterhp",
+            "params": {
+              "xfreq": 180,
+              "iskip": 0
+            },
+            "position": {
+              "x": 1100.0,
+              "y": 1000.0
+            }
+          },
+          {
+            "id": "piano_attack_lowpass",
+            "opcode": "butterlp",
+            "params": {
+              "iskip": 0
+            },
+            "position": {
+              "x": 1450.0,
+              "y": 1000.0
+            }
+          },
+          {
+            "id": "piano_attack_mix",
+            "opcode": "k_to_a",
+            "params": {},
+            "position": {
+              "x": 1450.0,
+              "y": 1300.0
+            }
+          },
+          {
+            "id": "piano_contact_register",
+            "opcode": "k_mul",
+            "params": {
+              "b": 1
+            },
+            "position": {
+              "x": 50.0,
+              "y": 1600.0
+            }
+          },
+          {
+            "id": "piano_contact_env",
+            "opcode": "expsega",
+            "params": {
+              "ia": 0.001,
+              "ib": 0.2,
+              "ic": 1,
+              "id": 0.001,
+              "ie": 0.001,
+              "idur4": 0.01
+            },
+            "position": {
+              "x": 400.0,
+              "y": 1600.0
+            }
+          },
+          {
+            "id": "piano_contact_pulse",
+            "opcode": "a_mul",
+            "params": {
+              "b": 1
+            },
+            "position": {
+              "x": 750.0,
+              "y": 1600.0
+            }
+          },
+          {
+            "id": "piano_contact_window",
+            "opcode": "linseg",
+            "params": {
+              "ia": 1,
+              "idur1": 0.035,
+              "ib": 1,
+              "idur2": 0.045,
+              "ic": 0,
+              "idur3": 0.01,
+              "id": 0
+            },
+            "position": {
+              "x": 400.0,
+              "y": 1900.0
+            }
+          },
+          {
+            "id": "piano_contact_gain",
+            "opcode": "k_to_a",
+            "params": {},
+            "position": {
+              "x": 750.0,
+              "y": 1900.0
+            }
+          },
+          {
+            "id": "piano_contact_mode_1",
+            "opcode": "mode",
+            "params": {
+              "xfreq": 285,
+              "xQ": 40.290926,
+              "iskip": 0
+            },
+            "position": {
+              "x": 1100.0,
+              "y": 1600.0
+            }
+          },
+          {
+            "id": "piano_contact_mode_2",
+            "opcode": "mode",
+            "params": {
+              "xfreq": 475,
+              "xQ": 59.69026,
+              "iskip": 0
+            },
+            "position": {
+              "x": 1450.0,
+              "y": 1600.0
+            }
+          },
+          {
+            "id": "piano_contact_mode_3",
+            "opcode": "mode",
+            "params": {
+              "xfreq": 610,
+              "xQ": 68.989375,
+              "iskip": 0
+            },
+            "position": {
+              "x": 1800.0,
+              "y": 1600.0
+            }
+          },
+          {
+            "id": "piano_contact_mode_4",
+            "opcode": "mode",
+            "params": {
+              "xfreq": 985,
+              "xQ": 92.834063,
+              "iskip": 0
+            },
+            "position": {
+              "x": 1100.0,
+              "y": 1930.0
+            }
+          },
+          {
+            "id": "piano_contact_mode_5",
+            "opcode": "mode",
+            "params": {
+              "xfreq": 1175,
+              "xQ": 92.284284,
+              "iskip": 0
+            },
+            "position": {
+              "x": 1450.0,
+              "y": 1930.0
+            }
+          },
+          {
+            "id": "piano_contact_mode_6",
+            "opcode": "mode",
+            "params": {
+              "xfreq": 1505,
+              "xQ": 104.018133,
+              "iskip": 0
+            },
+            "position": {
+              "x": 1800.0,
+              "y": 1930.0
+            }
+          },
+          {
             "id": "output_left",
             "opcode": "outleta",
             "params": {
@@ -43593,6 +44730,288 @@
             "to_port_id": "kin"
           },
           {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_env",
+            "to_port_id": "idur1"
+          },
+          {
+            "from_node_id": "piano_hardness",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_env",
+            "to_port_id": "idur1"
+          },
+          {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_env",
+            "to_port_id": "idur2"
+          },
+          {
+            "from_node_id": "piano_hardness",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_env",
+            "to_port_id": "idur2"
+          },
+          {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_env",
+            "to_port_id": "idur3"
+          },
+          {
+            "from_node_id": "piano_hardness",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_env",
+            "to_port_id": "idur3"
+          },
+          {
+            "from_node_id": "piano_attack_env",
+            "from_port_id": "kenv",
+            "to_node_id": "piano_attack_smooth",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_attack_noise",
+            "from_port_id": "aout",
+            "to_node_id": "piano_attack_highpass",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_attack_highpass",
+            "from_port_id": "aout",
+            "to_node_id": "piano_attack_lowpass",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_hardness",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_lowpass",
+            "to_port_id": "xfreq"
+          },
+          {
+            "from_node_id": "velocity_ampmidi",
+            "from_port_id": "iamp",
+            "to_node_id": "piano_attack_lowpass",
+            "to_port_id": "xfreq"
+          },
+          {
+            "from_node_id": "pitch_cpsmidi",
+            "from_port_id": "kfreq",
+            "to_node_id": "piano_contact_register",
+            "to_port_id": "a"
+          },
+          {
+            "from_node_id": "pitch_cpsmidi",
+            "from_port_id": "kfreq",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "velocity_ampmidi",
+            "from_port_id": "iamp",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "piano_level",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "piano_strength",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "piano_attack_smooth",
+            "from_port_id": "aout",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "amp_madsr",
+            "from_port_id": "kenv",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "piano_contact_register",
+            "from_port_id": "kout",
+            "to_node_id": "piano_attack_noise",
+            "to_port_id": "amp"
+          },
+          {
+            "from_node_id": "pitch_cpsmidi",
+            "from_port_id": "kfreq",
+            "to_node_id": "piano_attack_mix",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_attack_env",
+            "from_port_id": "kenv",
+            "to_node_id": "piano_attack_mix",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_contact_register",
+            "from_port_id": "kout",
+            "to_node_id": "piano_attack_mix",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur1"
+          },
+          {
+            "from_node_id": "piano_hardness",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur1"
+          },
+          {
+            "from_node_id": "velocity_ampmidi",
+            "from_port_id": "iamp",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur1"
+          },
+          {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur2"
+          },
+          {
+            "from_node_id": "piano_hardness",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur2"
+          },
+          {
+            "from_node_id": "velocity_ampmidi",
+            "from_port_id": "iamp",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur2"
+          },
+          {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur3"
+          },
+          {
+            "from_node_id": "piano_hardness",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur3"
+          },
+          {
+            "from_node_id": "velocity_ampmidi",
+            "from_port_id": "iamp",
+            "to_node_id": "piano_contact_env",
+            "to_port_id": "idur3"
+          },
+          {
+            "from_node_id": "piano_contact_env",
+            "from_port_id": "aenv",
+            "to_node_id": "piano_contact_pulse",
+            "to_port_id": "a"
+          },
+          {
+            "from_node_id": "piano_contact_register",
+            "from_port_id": "kout",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "pitch_cpsmidi",
+            "from_port_id": "kfreq",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "velocity_ampmidi",
+            "from_port_id": "iamp",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_level",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_strength",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_mass",
+            "from_port_id": "iout",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_contact_window",
+            "from_port_id": "kenv",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "amp_madsr",
+            "from_port_id": "kenv",
+            "to_node_id": "piano_contact_gain",
+            "to_port_id": "kin"
+          },
+          {
+            "from_node_id": "piano_contact_pulse",
+            "from_port_id": "aout",
+            "to_node_id": "piano_contact_mode_1",
+            "to_port_id": "ain"
+          },
+          {
+            "from_node_id": "piano_contact_pulse",
+            "from_port_id": "aout",
+            "to_node_id": "piano_contact_mode_2",
+            "to_port_id": "ain"
+          },
+          {
+            "from_node_id": "piano_contact_pulse",
+            "from_port_id": "aout",
+            "to_node_id": "piano_contact_mode_3",
+            "to_port_id": "ain"
+          },
+          {
+            "from_node_id": "piano_contact_pulse",
+            "from_port_id": "aout",
+            "to_node_id": "piano_contact_mode_4",
+            "to_port_id": "ain"
+          },
+          {
+            "from_node_id": "piano_contact_pulse",
+            "from_port_id": "aout",
+            "to_node_id": "piano_contact_mode_5",
+            "to_port_id": "ain"
+          },
+          {
+            "from_node_id": "piano_contact_pulse",
+            "from_port_id": "aout",
+            "to_node_id": "piano_contact_mode_6",
+            "to_port_id": "ain"
+          },
+          {
             "from_node_id": "piano_strings",
             "from_port_id": "al",
             "to_node_id": "output_pan2",
@@ -43600,6 +45019,60 @@
           },
           {
             "from_node_id": "piano_amplitude",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_attack_lowpass",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_attack_mix",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_contact_gain",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_contact_mode_1",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_contact_mode_2",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_contact_mode_3",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_contact_mode_4",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_contact_mode_5",
+            "from_port_id": "aout",
+            "to_node_id": "output_pan2",
+            "to_port_id": "asig"
+          },
+          {
+            "from_node_id": "piano_contact_mode_6",
             "from_port_id": "aout",
             "to_node_id": "output_pan2",
             "to_port_id": "asig"
@@ -43760,8 +45233,348 @@
                 }
               ]
             },
+            "piano_attack_env::idur1": {
+              "expression": "0.0015 * mass * 3500 / hardness",
+              "inputs": [
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "hardness",
+                  "from_node_id": "piano_hardness",
+                  "from_port_id": "iout"
+                }
+              ]
+            },
+            "piano_attack_env::idur2": {
+              "expression": "0.008 * mass * 3500 / hardness",
+              "inputs": [
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "hardness",
+                  "from_node_id": "piano_hardness",
+                  "from_port_id": "iout"
+                }
+              ]
+            },
+            "piano_attack_env::idur3": {
+              "expression": "0.025 * mass * 3500 / hardness",
+              "inputs": [
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "hardness",
+                  "from_node_id": "piano_hardness",
+                  "from_port_id": "iout"
+                }
+              ]
+            },
+            "piano_attack_smooth::kin": {
+              "expression": "env",
+              "inputs": [
+                {
+                  "token": "env",
+                  "from_node_id": "piano_attack_env",
+                  "from_port_id": "kenv"
+                }
+              ]
+            },
+            "piano_attack_noise::amp": {
+              "expression": "(0.16 * ((hz - 800 + abs(hz - 800)) / 2000 * (1 + (hz - 800 + abs(hz - 800)) / 4000) + 1.8 * (hz - 800 + abs(hz - 800)) / (400 + (hz - 800 + abs(hz - 800)))) * velocity * velocity * ampdb(level) * strength / 30 * (0.6 + 0.4 * mass) * env * gate) * (1 - treble)",
+              "inputs": [
+                {
+                  "token": "hz",
+                  "from_node_id": "pitch_cpsmidi",
+                  "from_port_id": "kfreq"
+                },
+                {
+                  "token": "velocity",
+                  "from_node_id": "velocity_ampmidi",
+                  "from_port_id": "iamp"
+                },
+                {
+                  "token": "level",
+                  "from_node_id": "piano_level",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "strength",
+                  "from_node_id": "piano_strength",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "env",
+                  "from_node_id": "piano_attack_smooth",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "gate",
+                  "from_node_id": "amp_madsr",
+                  "from_port_id": "kenv"
+                },
+                {
+                  "token": "treble",
+                  "from_node_id": "piano_contact_register",
+                  "from_port_id": "kout"
+                }
+              ]
+            },
+            "piano_attack_highpass::asig": {
+              "expression": "noise",
+              "inputs": [
+                {
+                  "token": "noise",
+                  "from_node_id": "piano_attack_noise",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
+            "piano_attack_lowpass::asig": {
+              "expression": "body",
+              "inputs": [
+                {
+                  "token": "body",
+                  "from_node_id": "piano_attack_highpass",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
+            "piano_attack_lowpass::xfreq": {
+              "expression": "600 + hardness * (0.35 + 0.55 * velocity)",
+              "inputs": [
+                {
+                  "token": "hardness",
+                  "from_node_id": "piano_hardness",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "velocity",
+                  "from_node_id": "velocity_ampmidi",
+                  "from_port_id": "iamp"
+                }
+              ]
+            },
+            "piano_attack_mix::kin": {
+              "expression": "(1 - 1 / (1 + 2 * (hz - 800 + abs(hz - 800)) / (2000 + (hz - 800 + abs(hz - 800))) * env)) * (1 - treble)",
+              "inputs": [
+                {
+                  "token": "hz",
+                  "from_node_id": "pitch_cpsmidi",
+                  "from_port_id": "kfreq"
+                },
+                {
+                  "token": "env",
+                  "from_node_id": "piano_attack_env",
+                  "from_port_id": "kenv"
+                },
+                {
+                  "token": "treble",
+                  "from_node_id": "piano_contact_register",
+                  "from_port_id": "kout"
+                }
+              ]
+            },
+            "piano_contact_register::a": {
+              "expression": "(((hz - 880 + abs(hz - 880)) / 333.004522404789 + 1 - abs((hz - 880 + abs(hz - 880)) / 333.004522404789 - 1)) / 2) * (((hz - 880 + abs(hz - 880)) / 333.004522404789 + 1 - abs((hz - 880 + abs(hz - 880)) / 333.004522404789 - 1)) / 2) * (3 - 2 * (((hz - 880 + abs(hz - 880)) / 333.004522404789 + 1 - abs((hz - 880 + abs(hz - 880)) / 333.004522404789 - 1)) / 2))",
+              "inputs": [
+                {
+                  "token": "hz",
+                  "from_node_id": "pitch_cpsmidi",
+                  "from_port_id": "kfreq"
+                }
+              ]
+            },
+            "piano_contact_env::idur1": {
+              "expression": "0.00023999999999999998 * (0.7 + 0.3 * mass) * 3500 / hardness / (0.7 + 0.6 * velocity)",
+              "inputs": [
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "hardness",
+                  "from_node_id": "piano_hardness",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "velocity",
+                  "from_node_id": "velocity_ampmidi",
+                  "from_port_id": "iamp"
+                }
+              ]
+            },
+            "piano_contact_env::idur2": {
+              "expression": "0.00035999999999999997 * (0.7 + 0.3 * mass) * 3500 / hardness / (0.7 + 0.6 * velocity)",
+              "inputs": [
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "hardness",
+                  "from_node_id": "piano_hardness",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "velocity",
+                  "from_node_id": "velocity_ampmidi",
+                  "from_port_id": "iamp"
+                }
+              ]
+            },
+            "piano_contact_env::idur3": {
+              "expression": "0.0006 * (0.7 + 0.3 * mass) * 3500 / hardness / (0.7 + 0.6 * velocity)",
+              "inputs": [
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "hardness",
+                  "from_node_id": "piano_hardness",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "velocity",
+                  "from_node_id": "velocity_ampmidi",
+                  "from_port_id": "iamp"
+                }
+              ]
+            },
+            "piano_contact_pulse::a": {
+              "expression": "pulse - 0.001",
+              "inputs": [
+                {
+                  "token": "pulse",
+                  "from_node_id": "piano_contact_env",
+                  "from_port_id": "aenv"
+                }
+              ]
+            },
+            "piano_contact_gain::kin": {
+              "expression": "0.0006 * (1 - 0.699126 * (((hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2093.0045224 + 1 - abs((hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2093.0045224 - 1)) / 2) + 2.503690 * (((hz - 2093.0045224 + abs(hz - 2093.0045224)) / 4186.0090448 + 1 - abs((hz - 2093.0045224 + abs(hz - 2093.0045224)) / 4186.0090448 - 1)) / 2)) * treble * (0.75 + (hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2 / (3000 + (hz - 1046.5022612 + abs(hz - 1046.5022612)) / 2)) * velocity * velocity * ampdb(level) * strength / 30 * (0.8 + 0.2 * mass) * window * gate",
+              "inputs": [
+                {
+                  "token": "treble",
+                  "from_node_id": "piano_contact_register",
+                  "from_port_id": "kout"
+                },
+                {
+                  "token": "hz",
+                  "from_node_id": "pitch_cpsmidi",
+                  "from_port_id": "kfreq"
+                },
+                {
+                  "token": "velocity",
+                  "from_node_id": "velocity_ampmidi",
+                  "from_port_id": "iamp"
+                },
+                {
+                  "token": "level",
+                  "from_node_id": "piano_level",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "strength",
+                  "from_node_id": "piano_strength",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "mass",
+                  "from_node_id": "piano_mass",
+                  "from_port_id": "iout"
+                },
+                {
+                  "token": "window",
+                  "from_node_id": "piano_contact_window",
+                  "from_port_id": "kenv"
+                },
+                {
+                  "token": "gate",
+                  "from_node_id": "amp_madsr",
+                  "from_port_id": "kenv"
+                }
+              ]
+            },
+            "piano_contact_mode_1::ain": {
+              "expression": "pulse",
+              "inputs": [
+                {
+                  "token": "pulse",
+                  "from_node_id": "piano_contact_pulse",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
+            "piano_contact_mode_2::ain": {
+              "expression": "pulse",
+              "inputs": [
+                {
+                  "token": "pulse",
+                  "from_node_id": "piano_contact_pulse",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
+            "piano_contact_mode_3::ain": {
+              "expression": "pulse",
+              "inputs": [
+                {
+                  "token": "pulse",
+                  "from_node_id": "piano_contact_pulse",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
+            "piano_contact_mode_4::ain": {
+              "expression": "pulse",
+              "inputs": [
+                {
+                  "token": "pulse",
+                  "from_node_id": "piano_contact_pulse",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
+            "piano_contact_mode_5::ain": {
+              "expression": "pulse",
+              "inputs": [
+                {
+                  "token": "pulse",
+                  "from_node_id": "piano_contact_pulse",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
+            "piano_contact_mode_6::ain": {
+              "expression": "pulse",
+              "inputs": [
+                {
+                  "token": "pulse",
+                  "from_node_id": "piano_contact_pulse",
+                  "from_port_id": "aout"
+                }
+              ]
+            },
             "output_pan2::asig": {
-              "expression": "signal * amplitude",
+              "expression": "(signal * amplitude + impact) * (1 - mix) + gain * (3.644 * body1 + 2.475 * body2 + 3.094 * body3 + 7.535 * body4 + 5.18 * body5 + 7.274 * body6)",
               "inputs": [
                 {
                   "token": "signal",
@@ -43771,6 +45584,51 @@
                 {
                   "token": "amplitude",
                   "from_node_id": "piano_amplitude",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "impact",
+                  "from_node_id": "piano_attack_lowpass",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "mix",
+                  "from_node_id": "piano_attack_mix",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "gain",
+                  "from_node_id": "piano_contact_gain",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "body1",
+                  "from_node_id": "piano_contact_mode_1",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "body2",
+                  "from_node_id": "piano_contact_mode_2",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "body3",
+                  "from_node_id": "piano_contact_mode_3",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "body4",
+                  "from_node_id": "piano_contact_mode_4",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "body5",
+                  "from_node_id": "piano_contact_mode_5",
+                  "from_port_id": "aout"
+                },
+                {
+                  "token": "body6",
+                  "from_node_id": "piano_contact_mode_6",
                   "from_port_id": "aout"
                 }
               ]

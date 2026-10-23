@@ -1,0 +1,4255 @@
+{
+  "version": 2,
+  "title": "Piano — The Light That Returns — Expressive",
+  "tempo": 80,
+  "key": "D",
+  "mode": "dorian",
+  "tracks": [
+    {
+      "type": "melodic",
+      "name": "Left hand — bars 1–32",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 23,
+              "velocity": 41,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 35,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 39,
+              "timing_offset_percent": 14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 36,
+              "timing_offset_percent": 7,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 34,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 38,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 36,
+              "timing_offset_percent": -2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 37,
+              "timing_offset_percent": -5,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 68,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 34,
+              "timing_offset_percent": -13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "C4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 38,
+              "timing_offset_percent": -15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 37,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 40,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "C4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 36,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 37,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 92,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 32,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 14,
+              "velocity": 39,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 11,
+              "velocity": 32,
+              "timing_offset_percent": 40,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 41,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 38,
+              "timing_offset_percent": 15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 36,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 39,
+              "timing_offset_percent": 21,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 36,
+              "timing_offset_percent": 25,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 37,
+              "timing_offset_percent": 28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 42,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 34,
+              "timing_offset_percent": 2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 37,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 36,
+              "timing_offset_percent": -9,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 40,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F3",
+              "chord": "maj",
+              "duration_steps": 11,
+              "velocity": 43,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "C4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 40,
+              "timing_offset_percent": -24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 43,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "F3",
+              "chord": "maj",
+              "duration_steps": 6,
+              "velocity": 40,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "sus4",
+              "duration_steps": 14,
+              "velocity": 39,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A2",
+              "chord": "sus4",
+              "duration_steps": 11,
+              "velocity": 34,
+              "timing_offset_percent": 33,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 47,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": -3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 42,
+              "timing_offset_percent": -7,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 43,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 48,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 36,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 40,
+              "timing_offset_percent": -20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": -23,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": -26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": -28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 60,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 40,
+              "timing_offset_percent": -1,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 49,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 68,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 40,
+              "timing_offset_percent": 9,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 11,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 40,
+              "timing_offset_percent": 14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 39,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 92,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 2,
+              "velocity": 37,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 14,
+              "velocity": 44,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 25,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 116,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 41,
+              "timing_offset_percent": 31,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 120,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 42,
+              "timing_offset_percent": 36,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 48,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 46,
+              "timing_offset_percent": 15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 48,
+              "timing_offset_percent": 21,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 46,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 28,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 42,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 11,
+              "velocity": 45,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 39,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 39,
+              "timing_offset_percent": -13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 60,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 42,
+              "timing_offset_percent": -16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 68,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 38,
+              "timing_offset_percent": -16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 40,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": 2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 92,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 2,
+              "velocity": 38,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 14,
+              "velocity": 42,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 7,
+              "velocity": 35,
+              "timing_offset_percent": 44,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 5,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "F3",
+              "chord": "maj",
+              "duration_steps": 23,
+              "velocity": 37,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "F3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 32,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 36,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 28,
+              "timing_offset_percent": 13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 32,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 30,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 38,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 36,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 35,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 39,
+              "timing_offset_percent": -16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 35,
+              "timing_offset_percent": -5,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 37,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 14,
+              "velocity": 35,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 11,
+              "velocity": 29,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 6,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 22,
+              "velocity": 38,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 5,
+              "velocity": 31,
+              "timing_offset_percent": 28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "F3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 36,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 33,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "C4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 32,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "F3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 34,
+              "timing_offset_percent": -2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 41,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 32,
+              "timing_offset_percent": -2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 35,
+              "timing_offset_percent": 1,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "C4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 33,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 36,
+              "timing_offset_percent": 11,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 32,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "sus4",
+              "duration_steps": 14,
+              "velocity": 34,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A2",
+              "chord": "sus4",
+              "duration_steps": 11,
+              "velocity": 32,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 7,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "E3",
+              "chord": "min7",
+              "duration_steps": 3,
+              "velocity": 44,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 4,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 39,
+              "timing_offset_percent": -7,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 43,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "E3",
+              "chord": "min7",
+              "duration_steps": 6,
+              "velocity": 42,
+              "timing_offset_percent": -16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "B2",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": -20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 36,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 39,
+              "timing_offset_percent": -22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": -24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": -27,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": -30,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 60,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 39,
+              "timing_offset_percent": -31,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "A2",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 50,
+              "timing_offset_percent": -32,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 68,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": -29,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": -26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": -24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": -21,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 92,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 41,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 50,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 100,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 104,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": 15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 108,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 48,
+              "timing_offset_percent": 30,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 116,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 25,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 120,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 124,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 40,
+              "timing_offset_percent": 15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 8,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "E3",
+              "chord": "min7",
+              "duration_steps": 7,
+              "velocity": 48,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 46,
+              "timing_offset_percent": 3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 48,
+              "timing_offset_percent": -5,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 45,
+              "timing_offset_percent": -9,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "E3",
+              "chord": "min7",
+              "duration_steps": 7,
+              "velocity": 45,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 50,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 36,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 41,
+              "timing_offset_percent": -9,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 60,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 38,
+              "timing_offset_percent": -15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 7,
+              "velocity": 45,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 46,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 44,
+              "timing_offset_percent": 1,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 7,
+              "velocity": 44,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "sus2",
+              "duration_steps": 14,
+              "velocity": 40,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P8"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "Left hand — bars 33–48",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 14,
+              "velocity": 53,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 49,
+              "timing_offset_percent": 14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 47,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 50,
+              "timing_offset_percent": 2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "B2",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 52,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 36,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": -4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": 3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 49,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 60,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 42,
+              "timing_offset_percent": 13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "A2",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 52,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 68,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 46,
+              "timing_offset_percent": -2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": -9,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": -11,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 92,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 42,
+              "timing_offset_percent": -5,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 49,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 104,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": 15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 108,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 46,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 49,
+              "timing_offset_percent": 27,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 116,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 46,
+              "timing_offset_percent": 35,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 120,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 6,
+              "velocity": 37,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "C3",
+              "chord": "maj7",
+              "duration_steps": 7,
+              "velocity": 47,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": 13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "E3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 42,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "C3",
+              "chord": "maj7",
+              "duration_steps": 7,
+              "velocity": 42,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 51,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 36,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 31,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": 27,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 47,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 42,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 44,
+              "timing_offset_percent": 3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 60,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 39,
+              "timing_offset_percent": -3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 49,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 45,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 43,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 46,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 43,
+              "timing_offset_percent": 13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 44,
+              "timing_offset_percent": 17,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 28,
+              "velocity": 45,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 23,
+              "velocity": 37,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 7,
+              "velocity": 32,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "C3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 36,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 28,
+              "timing_offset_percent": 11,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 31,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 28,
+              "timing_offset_percent": -2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "B2",
+              "chord": "none",
+              "duration_steps": 8,
+              "velocity": 39,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 33,
+              "timing_offset_percent": -3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 36,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 35,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "G3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 38,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "D3",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 32,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 14,
+              "velocity": 35,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A2",
+              "chord": "min7",
+              "duration_steps": 11,
+              "velocity": 29,
+              "timing_offset_percent": 44,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 11,
+              "velocity": 35,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 31,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 29,
+              "timing_offset_percent": 29,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 33,
+              "timing_offset_percent": 31,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "A3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 30,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 28,
+              "root": "F3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 33,
+              "timing_offset_percent": 27,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 11,
+              "velocity": 37,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 33,
+              "timing_offset_percent": 30,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 4,
+              "velocity": 31,
+              "timing_offset_percent": 33,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "B3",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 34,
+              "timing_offset_percent": 37,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "G3",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 32,
+              "timing_offset_percent": 40,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 20,
+              "velocity": 33,
+              "timing_offset_percent": 36,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "D3",
+              "chord": "min",
+              "duration_steps": 30,
+              "velocity": 39,
+              "timing_offset_percent": 48,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          1,
+          2,
+          3,
+          4,
+          "P8"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "Right hand — bars 1–32",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 61,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 54,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 49,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 45,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 56,
+              "timing_offset_percent": 14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 53,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 47,
+              "timing_offset_percent": -5,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 59,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 64,
+              "timing_offset_percent": -15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 70,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 57,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 54,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A3",
+              "chord": "min",
+              "duration_steps": 11,
+              "velocity": 40,
+              "timing_offset_percent": 40,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 65,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 57,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 51,
+              "timing_offset_percent": 21,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 49,
+              "timing_offset_percent": 28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 60,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 57,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 53,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 62,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 72,
+              "timing_offset_percent": -24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 61,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 56,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 108,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 50,
+              "timing_offset_percent": 28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 120,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 61,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 73,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 75,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 66,
+              "timing_offset_percent": -3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 61,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 70,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 76,
+              "timing_offset_percent": -23,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 83,
+              "timing_offset_percent": -28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 78,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 78,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 70,
+              "timing_offset_percent": 14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 68,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 59,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 69,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 108,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 80,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 120,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 73,
+              "timing_offset_percent": 36,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 80,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 82,
+              "timing_offset_percent": 15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "G5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 87,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "F5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 76,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 28,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 71,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 74,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 67,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 62,
+              "timing_offset_percent": -13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 63,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 73,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 77,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "F5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 82,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A4",
+              "chord": "min",
+              "duration_steps": 15,
+              "velocity": 65,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 54,
+              "timing_offset_percent": 44,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 5,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 54,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 48,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 43,
+              "timing_offset_percent": 29,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 39,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 50,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 47,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 43,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 53,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 57,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 63,
+              "timing_offset_percent": -16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 52,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 48,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 39,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 6,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 4,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 55,
+              "timing_offset_percent": 14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 48,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 41,
+              "timing_offset_percent": 28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 52,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 48,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 46,
+              "timing_offset_percent": -2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 60,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 53,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 48,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 48,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 57,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 7,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 56,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 4,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 58,
+              "timing_offset_percent": -4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 56,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 62,
+              "timing_offset_percent": -16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 62,
+              "timing_offset_percent": -20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 36,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 65,
+              "timing_offset_percent": -22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 69,
+              "timing_offset_percent": -26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 73,
+              "timing_offset_percent": -28,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 71,
+              "timing_offset_percent": -32,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 68,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 74,
+              "timing_offset_percent": -29,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "C5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 78,
+              "timing_offset_percent": -24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 74,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 92,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 69,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 68,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 104,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 74,
+              "timing_offset_percent": 15,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 14,
+              "velocity": 82,
+              "timing_offset_percent": 30,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 8,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 76,
+              "timing_offset_percent": 10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 82,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "F5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 85,
+              "timing_offset_percent": -5,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 79,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "G5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 88,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "F5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 79,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 73,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 70,
+              "timing_offset_percent": -12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 70,
+              "timing_offset_percent": -18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "C5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 76,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 71,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 82,
+              "timing_offset_percent": 12,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A4",
+              "chord": "sus2",
+              "duration_steps": 14,
+              "velocity": 57,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P8"
+        ]
+      }
+    },
+    {
+      "type": "melodic",
+      "name": "Right hand — bars 33–48",
+      "channel": 1,
+      "length_beats": 16,
+      "timing": {
+        "meter_numerator": 4,
+        "meter_denominator": 4,
+        "steps_per_beat": 8,
+        "beat_rate_numerator": 1,
+        "beat_rate_denominator": 1
+      },
+      "pads": [
+        {
+          "pad": 1,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 85,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 72,
+              "timing_offset_percent": 14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 81,
+              "timing_offset_percent": 2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 82,
+              "timing_offset_percent": -10,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 40,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 85,
+              "timing_offset_percent": 3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "G5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 91,
+              "timing_offset_percent": 16,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 78,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F5",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 84,
+              "timing_offset_percent": 6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 75,
+              "timing_offset_percent": -6,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 72,
+              "timing_offset_percent": -9,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 76,
+              "timing_offset_percent": -14,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 74,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 108,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 86,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 120,
+              "root": "G4",
+              "chord": "maj",
+              "duration_steps": 7,
+              "velocity": 75,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 2,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "G5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 86,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 8,
+              "root": "A5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 91,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "G5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 82,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 20,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 75,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 28,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 69,
+              "timing_offset_percent": -4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "B5",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 90,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "A5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 85,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 52,
+              "root": "G5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 79,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 60,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 72,
+              "timing_offset_percent": -3,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 78,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 72,
+              "root": "E5",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 71,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "D5",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 69,
+              "timing_offset_percent": 8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 84,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 69,
+              "timing_offset_percent": 13,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 92,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 62,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "G4",
+              "chord": "maj",
+              "duration_steps": 29,
+              "velocity": 68,
+              "timing_offset_percent": 42,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 3,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 57,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 50,
+              "timing_offset_percent": 24,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 16,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 45,
+              "timing_offset_percent": 27,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 42,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 51,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 48,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 45,
+              "timing_offset_percent": 4,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 41,
+              "timing_offset_percent": -2,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 52,
+              "timing_offset_percent": -8,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 76,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 3,
+              "velocity": 61,
+              "timing_offset_percent": 0,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 80,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 67,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 88,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 53,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "G4",
+              "chord": "none",
+              "duration_steps": 15,
+              "velocity": 50,
+              "timing_offset_percent": 22,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 112,
+              "root": "A3",
+              "chord": "min",
+              "duration_steps": 11,
+              "velocity": 37,
+              "timing_offset_percent": 44,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        },
+        {
+          "pad": 4,
+          "length_beats": 16,
+          "events": [
+            {
+              "at_step": 0,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 50,
+              "timing_offset_percent": 18,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 12,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 44,
+              "timing_offset_percent": 26,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 24,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 41,
+              "timing_offset_percent": 34,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 32,
+              "root": "B4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 58,
+              "timing_offset_percent": 20,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 44,
+              "root": "A4",
+              "chord": "none",
+              "duration_steps": 11,
+              "velocity": 50,
+              "timing_offset_percent": 30,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 56,
+              "root": "F4",
+              "chord": "none",
+              "duration_steps": 7,
+              "velocity": 42,
+              "timing_offset_percent": 40,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 64,
+              "root": "E4",
+              "chord": "none",
+              "duration_steps": 20,
+              "velocity": 41,
+              "timing_offset_percent": 36,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            },
+            {
+              "at_step": 96,
+              "root": "D4",
+              "chord": "none",
+              "duration_steps": 30,
+              "velocity": 50,
+              "timing_offset_percent": 48,
+              "strum_direction": "off",
+              "strum_spread_percent": 0
+            }
+          ]
+        }
+      ],
+      "pad_loop": {
+        "repeat": false,
+        "root": [
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          "P16",
+          1,
+          2,
+          3,
+          4,
+          "P8"
+        ]
+      }
+    }
+  ]
+}

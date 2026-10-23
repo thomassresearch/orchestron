@@ -7,6 +7,11 @@
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/protect_gitignore.py\"",
             "statusMessage": "Protecting developer-maintained gitignore files"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/protect_example_exports.py\"",
+            "statusMessage": "Checking example export destinations"
           }
         ]
       }
