@@ -1,0 +1,7 @@
+{
+  "patch_id": "c3d19531-a832-4e4f-b99e-c9cf62fe6de4",
+  "name": "Synth Bass",
+  "compile_state": "compiled",
+  "diagnostics": [],
+  "native_export": "examples/instruments/Synth_Bass.orch.instrument.json"
+}

@@ -1,0 +1,131 @@
+{
+  "method": "Harmonics 2-21 below 2.2 kHz; local background subtraction; low-harmonic normalization; 12 dB loss cap.",
+  "limitation": "Spectral tuning aid only; the phone recording has unknown speaker/room response.",
+  "segments_seconds_midi_note": [
+    [
+      0.3,
+      0.39,
+      41
+    ],
+    [
+      0.63,
+      0.71,
+      36
+    ],
+    [
+      0.79,
+      0.87,
+      33
+    ]
+  ],
+  "candidates": [
+    {
+      "floor_hz": 650,
+      "peak_hz": 4200,
+      "decay_s": 0.18,
+      "robust_harmonic_error_db": 4.931110813190377
+    },
+    {
+      "floor_hz": 1200,
+      "peak_hz": 4200,
+      "decay_s": 0.12,
+      "robust_harmonic_error_db": 4.9527206162906205
+    },
+    {
+      "floor_hz": 900,
+      "peak_hz": 3000,
+      "decay_s": 0.18,
+      "robust_harmonic_error_db": 4.960587462125493
+    },
+    {
+      "floor_hz": 1200,
+      "peak_hz": 3000,
+      "decay_s": 0.12,
+      "robust_harmonic_error_db": 4.961103310082848
+    },
+    {
+      "floor_hz": 1200,
+      "peak_hz": 3000,
+      "decay_s": 0.08,
+      "robust_harmonic_error_db": 5.002117829463542
+    },
+    {
+      "floor_hz": 1200,
+      "peak_hz": 4200,
+      "decay_s": 0.08,
+      "robust_harmonic_error_db": 5.002117854634085
+    },
+    {
+      "floor_hz": 650,
+      "peak_hz": 3000,
+      "decay_s": 0.18,
+      "robust_harmonic_error_db": 5.035232306675325
+    },
+    {
+      "floor_hz": 900,
+      "peak_hz": 4200,
+      "decay_s": 0.18,
+      "robust_harmonic_error_db": 5.057309361503385
+    },
+    {
+      "floor_hz": 900,
+      "peak_hz": 4200,
+      "decay_s": 0.12,
+      "robust_harmonic_error_db": 5.088748886919654
+    },
+    {
+      "floor_hz": 900,
+      "peak_hz": 3000,
+      "decay_s": 0.12,
+      "robust_harmonic_error_db": 5.095421071887356
+    },
+    {
+      "floor_hz": 1200,
+      "peak_hz": 3000,
+      "decay_s": 0.18,
+      "robust_harmonic_error_db": 5.171522458859614
+    },
+    {
+      "floor_hz": 900,
+      "peak_hz": 3000,
+      "decay_s": 0.08,
+      "robust_harmonic_error_db": 5.185169152855555
+    },
+    {
+      "floor_hz": 900,
+      "peak_hz": 4200,
+      "decay_s": 0.08,
+      "robust_harmonic_error_db": 5.185169152943346
+    },
+    {
+      "floor_hz": 1200,
+      "peak_hz": 4200,
+      "decay_s": 0.18,
+      "robust_harmonic_error_db": 5.360200902143506
+    },
+    {
+      "floor_hz": 650,
+      "peak_hz": 4200,
+      "decay_s": 0.12,
+      "robust_harmonic_error_db": 5.648373972963163
+    },
+    {
+      "floor_hz": 650,
+      "peak_hz": 3000,
+      "decay_s": 0.12,
+      "robust_harmonic_error_db": 5.740385165708635
+    },
+    {
+      "floor_hz": 650,
+      "peak_hz": 3000,
+      "decay_s": 0.08,
+      "robust_harmonic_error_db": 6.373357841811424
+    },
+    {
+      "floor_hz": 650,
+      "peak_hz": 4200,
+      "decay_s": 0.08,
+      "robust_harmonic_error_db": 6.373358102783901
+    }
+  ]
+}

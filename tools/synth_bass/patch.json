@@ -1,0 +1,440 @@
+{
+  "name": "Synth Bass",
+  "description": "Dry, punchy saw bass reconstructed from a mobile recording. Fast bright attack settles into a darker harmonic body; every MIDI note retriggers. Tone scales filter brightness, Decay sets the filter sweep duration, and Drive adds compensated saturation. Suggested MIDI notes 33-53 (A1-F3). Velocity-sensitive, centered Stereo Output; route through the mixer to Master. No recorded audio, noise, room reverb, or legato mode.",
+  "is_template": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40,
+          "y": 40
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 40,
+          "y": 250
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 330,
+          "y": 250
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.002
+        },
+        "position": {
+          "x": 40,
+          "y": 470
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.11
+        },
+        "position": {
+          "x": 40,
+          "y": 680
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.6
+        },
+        "position": {
+          "x": 40,
+          "y": 890
+        }
+      },
+      {
+        "id": "env_release_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.045
+        },
+        "position": {
+          "x": 40,
+          "y": 1100
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 330,
+          "y": 600
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 630,
+          "y": 350
+        }
+      },
+      {
+        "id": "bass_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.75
+        },
+        "position": {
+          "x": 330,
+          "y": 40
+        }
+      },
+      {
+        "id": "bass_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 630,
+          "y": 40
+        }
+      },
+      {
+        "id": "bass_vco2",
+        "opcode": "vco2",
+        "params": {
+          "imode": 0,
+          "kphs": 0
+        },
+        "position": {
+          "x": 930,
+          "y": 40
+        }
+      },
+      {
+        "id": "effect_1_moogladder2",
+        "opcode": "moogladder2",
+        "params": {
+          "xres": 0.2
+        },
+        "position": {
+          "x": 1230,
+          "y": 40
+        }
+      },
+      {
+        "id": "effect_2_distort1",
+        "opcode": "distort1",
+        "params": {
+          "kpostgain": 0.75,
+          "kshape1": 0,
+          "kshape2": 0,
+          "imode": 2
+        },
+        "position": {
+          "x": 1530,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 1830,
+          "y": 40
+        }
+      },
+      {
+        "id": "filter_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 3000,
+          "ib": 900,
+          "idur2": 0.01,
+          "ic": 900
+        },
+        "position": {
+          "x": 930,
+          "y": 650
+        }
+      },
+      {
+        "id": "bass_tone",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.5,
+          "max": 2,
+          "default": 1,
+          "scale": "logarithmic",
+          "label": "Tone"
+        },
+        "position": {
+          "x": 630,
+          "y": 650
+        }
+      },
+      {
+        "id": "bass_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.04,
+          "max": 0.3,
+          "default": 0.18,
+          "scale": "logarithmic",
+          "label": "Decay (s)"
+        },
+        "position": {
+          "x": 630,
+          "y": 980
+        }
+      },
+      {
+        "id": "bass_drive",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 1,
+          "max": 3,
+          "default": 1.2,
+          "scale": "linear",
+          "label": "Drive"
+        },
+        "position": {
+          "x": 1230,
+          "y": 650
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2130,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2130,
+          "y": 260
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "env_release_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "bass_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "bass_gain",
+        "from_port_id": "kout",
+        "to_node_id": "bass_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "bass_amp",
+        "from_port_id": "kout",
+        "to_node_id": "bass_vco2",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "bass_vco2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "bass_vco2",
+        "from_port_id": "asig",
+        "to_node_id": "effect_1_moogladder2",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "effect_1_moogladder2",
+        "from_port_id": "aout",
+        "to_node_id": "effect_2_distort1",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_2_distort1",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "bass_tone",
+        "from_port_id": "iout",
+        "to_node_id": "effect_1_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "bass_decay",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "bass_drive",
+        "from_port_id": "iout",
+        "to_node_id": "effect_2_distort1",
+        "to_port_id": "kpregain"
+      },
+      {
+        "from_node_id": "filter_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "effect_1_moogladder2",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "bass_drive",
+        "from_port_id": "iout",
+        "to_node_id": "effect_2_distort1",
+        "to_port_id": "kpostgain"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "effect_1_moogladder2::xcf": {
+          "expression": "tone * sweep",
+          "inputs": [
+            {
+              "token": "tone",
+              "from_node_id": "bass_tone",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "sweep",
+              "from_node_id": "filter_envelope",
+              "from_port_id": "kenv"
+            }
+          ]
+        },
+        "effect_2_distort1::kpostgain": {
+          "expression": "0.9 / in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "bass_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainOutput": "main-output",
+      "guided": true
+    }
+  },
+  "instrument_type": "bass",
+  "always_on": false
+}

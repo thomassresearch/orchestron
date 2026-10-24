@@ -1,0 +1,13 @@
+{
+  "name": "Synth Bass",
+  "description": "Dry, punchy saw bass reconstructed from a mobile recording. Fast bright attack settles into a darker harmonic body; every MIDI note retriggers. Tone scales filter brightness, Decay sets the filter sweep duration, and Drive adds compensated saturation. Suggested MIDI notes 33-53 (A1-F3). Velocity-sensitive, centered Stereo Output; route through the mixer to Master. No recorded audio, noise, room reverb, or legato mode.",
+  "family": "subtractive",
+  "engine": {"sr": 48000, "ksmps": 32, "nchnls": 2, "0dbfs": 1},
+  "envelope": {"attack": 0.002, "decay": 0.11, "sustain": 0.6, "release": 0.045},
+  "layers": [{"id": "bass", "opcode": "vco2", "gain": 0.75, "mode": 0, "phase": 0}],
+  "effects": [
+    {"opcode": "moogladder2", "cutoff": 900, "resonance": 0.2},
+    {"opcode": "distort1", "pre_gain": 1.2, "post_gain": 0.75, "shape1": 0, "shape2": 0, "mode": 2}
+  ],
+  "output": {"pan": 0.5, "mode": 0}
+}

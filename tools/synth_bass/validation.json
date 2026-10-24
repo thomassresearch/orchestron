@@ -1,0 +1,579 @@
+{
+  "patch_sha256": "c0da3604b3ebd116ae85f6f14b72cd2d693d30e7545af316e5ad636e1d449d49",
+  "sample_rate": 48000,
+  "ksmps": 32,
+  "duration_seconds_per_scenario": 9.5,
+  "notes_start_duration_pitch_velocity": [
+    [
+      0.1,
+      0.16,
+      38,
+      32
+    ],
+    [
+      0.7,
+      0.16,
+      38,
+      64
+    ],
+    [
+      1.3,
+      0.16,
+      38,
+      100
+    ],
+    [
+      1.9,
+      0.16,
+      38,
+      127
+    ],
+    [
+      2.5,
+      0.8,
+      33,
+      100
+    ],
+    [
+      3.5,
+      0.8,
+      41,
+      100
+    ],
+    [
+      4.5,
+      0.18,
+      38,
+      100
+    ],
+    [
+      4.62,
+      0.18,
+      41,
+      100
+    ],
+    [
+      4.74,
+      0.18,
+      36,
+      100
+    ],
+    [
+      5.2,
+      0.065,
+      38,
+      100
+    ],
+    [
+      5.3100000000000005,
+      0.065,
+      38,
+      100
+    ],
+    [
+      5.42,
+      0.065,
+      38,
+      100
+    ],
+    [
+      5.53,
+      0.065,
+      38,
+      100
+    ],
+    [
+      5.640000000000001,
+      0.065,
+      38,
+      100
+    ],
+    [
+      6.1,
+      0.8,
+      38,
+      100
+    ],
+    [
+      6.35,
+      0.4,
+      36,
+      100
+    ],
+    [
+      7.2,
+      0.3,
+      21,
+      100
+    ],
+    [
+      7.7,
+      0.3,
+      53,
+      100
+    ],
+    [
+      8.3,
+      0.4,
+      33,
+      127
+    ],
+    [
+      8.3,
+      0.4,
+      38,
+      127
+    ],
+    [
+      8.3,
+      0.4,
+      41,
+      127
+    ]
+  ],
+  "scenarios": {
+    "default": {
+      "overrides": {},
+      "finite": true,
+      "peak": 0.5056493505253276,
+      "rms_left": 0.06609597234567191,
+      "rms_right": 0.0660959723456719,
+      "stereo_difference_peak": 2.220446049250313e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.02474182688336928,
+        0.049208859845776616,
+        0.07600808363761548,
+        0.09536434014755815
+      ],
+      "held_note_centroid_hz": 120.92930464333622,
+      "decay_window_centroid_hz": 120.94985116585204,
+      "retriggers_rms": [
+        0.1031258971021092,
+        0.10268012723007747,
+        0.1031258971021092,
+        0.10268012723007747,
+        0.1031258971021092
+      ]
+    },
+    "bass_tone_min": {
+      "overrides": {
+        "bass_tone": 0.5
+      },
+      "finite": true,
+      "peak": 0.5127717846794523,
+      "rms_left": 0.06642317414056438,
+      "rms_right": 0.06642317414056437,
+      "stereo_difference_peak": 2.220446049250313e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.02505338215087105,
+        0.049807157600144626,
+        0.07681073121404908,
+        0.09617447960656997
+      ],
+      "held_note_centroid_hz": 98.75341138605754,
+      "decay_window_centroid_hz": 98.77075789483881,
+      "retriggers_rms": [
+        0.10455378494315913,
+        0.10411087879414892,
+        0.10455378494315913,
+        0.10411087879414892,
+        0.10455378494315913
+      ]
+    },
+    "bass_tone_max": {
+      "overrides": {
+        "bass_tone": 2
+      },
+      "finite": true,
+      "peak": 0.4854220754616315,
+      "rms_left": 0.06501800147186382,
+      "rms_right": 0.0650180014718638,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024195784474874162,
+        0.048143887346074464,
+        0.0744573371293984,
+        0.09356293717503791
+      ],
+      "held_note_centroid_hz": 143.58338798079586,
+      "decay_window_centroid_hz": 143.61034954516128,
+      "retriggers_rms": [
+        0.10062848288636833,
+        0.100191273501726,
+        0.10062848288636833,
+        0.100191273501726,
+        0.10062848288636833
+      ]
+    },
+    "bass_decay_min": {
+      "overrides": {
+        "bass_decay": 0.04
+      },
+      "finite": true,
+      "peak": 0.5056493505253276,
+      "rms_left": 0.06638368936379917,
+      "rms_right": 0.06638368936379915,
+      "stereo_difference_peak": 2.220446049250313e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024999548931384626,
+        0.04970305958669392,
+        0.0766670018128248,
+        0.09600310342225471
+      ],
+      "held_note_centroid_hz": 120.92930464333622,
+      "decay_window_centroid_hz": 120.91169262506362,
+      "retriggers_rms": [
+        0.10446060843978079,
+        0.10398040524531489,
+        0.10446060843978079,
+        0.10398040524531489,
+        0.10446060843978079
+      ]
+    },
+    "bass_decay_max": {
+      "overrides": {
+        "bass_decay": 0.3
+      },
+      "finite": true,
+      "peak": 0.48872015734716523,
+      "rms_left": 0.06592355355153971,
+      "rms_right": 0.0659235535515397,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024624577526449344,
+        0.04897988126305766,
+        0.07567678521177926,
+        0.09497911030711352
+      ],
+      "held_note_centroid_hz": 120.92930464333622,
+      "decay_window_centroid_hz": 133.93685747273773,
+      "retriggers_rms": [
+        0.10292049917625214,
+        0.10247621877486945,
+        0.10292049917625214,
+        0.10247621877486945,
+        0.10292049917625214
+      ]
+    },
+    "bass_drive_min": {
+      "overrides": {
+        "bass_drive": 1
+      },
+      "finite": true,
+      "peak": 0.5112153999516823,
+      "rms_left": 0.06645711993893591,
+      "rms_right": 0.06645711993893588,
+      "stereo_difference_peak": 2.220446049250313e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024755996970125933,
+        0.04932006426809892,
+        0.07641309018423872,
+        0.09615582982257267
+      ],
+      "held_note_centroid_hz": 121.28733053395226,
+      "decay_window_centroid_hz": 121.30822486532708,
+      "retriggers_rms": [
+        0.10388862759774593,
+        0.10344186593183535,
+        0.10388862759774593,
+        0.10344186593183535,
+        0.10388862759774593
+      ]
+    },
+    "bass_drive_max": {
+      "overrides": {
+        "bass_drive": 3
+      },
+      "finite": true,
+      "peak": 0.42906852976048915,
+      "rms_left": 0.060903870672401994,
+      "rms_right": 0.06090387067240199,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.02450338062337848,
+        0.04744110536462369,
+        0.07011368428218659,
+        0.0846634088603645
+      ],
+      "held_note_centroid_hz": 115.79910716066564,
+      "decay_window_centroid_hz": 115.814835246708,
+      "retriggers_rms": [
+        0.09234877472546987,
+        0.09192448763767004,
+        0.09234877472546987,
+        0.09192448763767004,
+        0.09234877472546987
+      ]
+    },
+    "corner_0": {
+      "overrides": {
+        "bass_tone": 0.5,
+        "bass_decay": 0.04,
+        "bass_drive": 1
+      },
+      "finite": true,
+      "peak": 0.5184300104897596,
+      "rms_left": 0.06679029142864294,
+      "rms_right": 0.06679029142864294,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.02514053933377985,
+        0.050061690284059095,
+        0.07735572246625529,
+        0.09690861247163284
+      ],
+      "held_note_centroid_hz": 98.95916419592967,
+      "decay_window_centroid_hz": 98.94727278886019,
+      "retriggers_rms": [
+        0.10606383334753636,
+        0.10555426865705612,
+        0.10606383334753636,
+        0.10555426865705612,
+        0.10606383334753636
+      ]
+    },
+    "corner_1": {
+      "overrides": {
+        "bass_tone": 0.5,
+        "bass_decay": 0.04,
+        "bass_drive": 3
+      },
+      "finite": true,
+      "peak": 0.4346390843138733,
+      "rms_left": 0.0609000057122552,
+      "rms_right": 0.060900005712255185,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.02485235315755787,
+        0.047941033098894054,
+        0.07042665545607549,
+        0.08460460512551728
+      ],
+      "held_note_centroid_hz": 95.75137400233086,
+      "decay_window_centroid_hz": 95.73909501250341,
+      "retriggers_rms": [
+        0.0933260007478342,
+        0.09282358034527995,
+        0.0933260007478342,
+        0.09282358034527995,
+        0.0933260007478342
+      ]
+    },
+    "corner_2": {
+      "overrides": {
+        "bass_tone": 0.5,
+        "bass_decay": 0.3,
+        "bass_drive": 1
+      },
+      "finite": true,
+      "peak": 0.5229287601379575,
+      "rms_left": 0.06678066027865136,
+      "rms_right": 0.06678066027865134,
+      "stereo_difference_peak": 2.220446049250313e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.025009869674874764,
+        0.04981367604077012,
+        0.07708603889141862,
+        0.09685571046991334
+      ],
+      "held_note_centroid_hz": 98.95916419592967,
+      "decay_window_centroid_hz": 111.67748087215766,
+      "retriggers_rms": [
+        0.10525100598632718,
+        0.10481322819674128,
+        0.10525100598632718,
+        0.10481322819674128,
+        0.10525100598632718
+      ]
+    },
+    "corner_3": {
+      "overrides": {
+        "bass_tone": 0.5,
+        "bass_decay": 0.3,
+        "bass_drive": 3
+      },
+      "finite": true,
+      "peak": 0.43690590177490657,
+      "rms_left": 0.06100862841176287,
+      "rms_right": 0.06100862841176286,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024739019611951452,
+        0.04781337854382544,
+        0.07047569804778053,
+        0.08493552694842726
+      ],
+      "held_note_centroid_hz": 95.75137400233086,
+      "decay_window_centroid_hz": 107.1364767474953,
+      "retriggers_rms": [
+        0.09308117149409695,
+        0.09266020856146477,
+        0.09308117149409695,
+        0.09266020856146477,
+        0.09308117149409695
+      ]
+    },
+    "corner_4": {
+      "overrides": {
+        "bass_tone": 2,
+        "bass_decay": 0.04,
+        "bass_drive": 1
+      },
+      "finite": true,
+      "peak": 0.4951750356662462,
+      "rms_left": 0.0659740191190162,
+      "rms_right": 0.06597401911901618,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024650831316499734,
+        0.04911271452356739,
+        0.07610488487383528,
+        0.09577860764701059
+      ],
+      "held_note_centroid_hz": 144.0790713814043,
+      "decay_window_centroid_hz": 144.05656227522138,
+      "retriggers_rms": [
+        0.10357144282426424,
+        0.10312585392746518,
+        0.10357144282426424,
+        0.10312585392746518,
+        0.10357144282426424
+      ]
+    },
+    "corner_5": {
+      "overrides": {
+        "bass_tone": 2,
+        "bass_decay": 0.04,
+        "bass_drive": 3
+      },
+      "finite": true,
+      "peak": 0.41061792474592823,
+      "rms_left": 0.06059925105645288,
+      "rms_right": 0.06059925105645287,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.02440209307796405,
+        0.04726086915238983,
+        0.06988437707626491,
+        0.08442215763487514
+      ],
+      "held_note_centroid_hz": 136.5139005555529,
+      "decay_window_centroid_hz": 136.4917769334762,
+      "retriggers_rms": [
+        0.09215791892548181,
+        0.091734314302287,
+        0.09215791892548181,
+        0.091734314302287,
+        0.09215791892548181
+      ]
+    },
+    "corner_6": {
+      "overrides": {
+        "bass_tone": 2,
+        "bass_decay": 0.3,
+        "bass_drive": 1
+      },
+      "finite": true,
+      "peak": 0.4925670396748742,
+      "rms_left": 0.06501479024714406,
+      "rms_right": 0.06501479024714404,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.0240261833073494,
+        0.047883485197215726,
+        0.07427713228879572,
+        0.0936234271900441
+      ],
+      "held_note_centroid_hz": 144.0790713814043,
+      "decay_window_centroid_hz": 157.31504342772314,
+      "retriggers_rms": [
+        0.10102504706362381,
+        0.10058520531047166,
+        0.10102504706362381,
+        0.10058520531047166,
+        0.10102504706362381
+      ]
+    },
+    "corner_7": {
+      "overrides": {
+        "bass_tone": 2,
+        "bass_decay": 0.3,
+        "bass_drive": 3
+      },
+      "finite": true,
+      "peak": 0.4089005773823118,
+      "rms_left": 0.05995059223105291,
+      "rms_right": 0.05995059223105291,
+      "stereo_difference_peak": 1.6653345369377348e-16,
+      "tail_peak_after_release": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.023803523526936446,
+        0.04621241321499928,
+        0.06858346319330218,
+        0.08309174470044331
+      ],
+      "held_note_centroid_hz": 136.5139005555529,
+      "decay_window_centroid_hz": 148.70642419121432,
+      "retriggers_rms": [
+        0.09045398130537789,
+        0.09003842564420704,
+        0.09045398130537789,
+        0.09003842564420704,
+        0.09045398130537789
+      ]
+    }
+  },
+  "overlapping_notes_vs_independent_attacks_peak_error": 0.0,
+  "preview_peak": 0.26373560871297835,
+  "listened_to": false,
+  "spectrogram_inspection": {
+    "status": "completed",
+    "views": [
+      "Mel power",
+      "log-frequency STFT power"
+    ],
+    "settings": {
+      "sample_rate": 48000,
+      "n_fft": 4096,
+      "hop_length": 128,
+      "n_mels": 128,
+      "fmin": 20,
+      "fmax": 8000,
+      "vmin": -100,
+      "vmax": 0
+    },
+    "auditions_visually_inspected": [
+      "audition",
+      "default",
+      "bass_tone_min",
+      "bass_tone_max",
+      "bass_decay_min",
+      "bass_decay_max",
+      "bass_drive_min",
+      "bass_drive_max"
+    ],
+    "inspection_method": "Opened both full preview images and both-view contact sheets for default and individual control extremes.",
+    "observations": [
+      "Repeated bright attacks and stable harmonic pitch are visible.",
+      "Held notes settle into a stable darker spectrum.",
+      "Higher Tone extends upper harmonics; longer Decay extends the bright transient.",
+      "Both channel panels agree; note releases reach dark gaps and the final tail ends before the render boundary.",
+      "No unexpected persistent tones or broadband bursts were seen outside note attacks."
+    ],
+    "combined_control_corners": "All eight numerically checked and spectrograms generated; not individually visually inspected."
+  }
+}
