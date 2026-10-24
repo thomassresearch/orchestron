@@ -1,0 +1,47 @@
+{
+  "instrument": "Piano Addiitive Synthesis",
+  "revision": "C3\u2013B4 harmonic and decay refinement, following bass enrichment",
+  "documented_on": "2026-10-24",
+  "files": [
+    {
+      "path": "examples/instruments/Piano_Additive_Synthesis.orch.instrument.zip",
+      "sha256": "55cb06ba811900043e45ea6addacb98454092dcbed978a367d7f0019f16cfc7a",
+      "bytes": 169703
+    },
+    {
+      "path": "examples/performances/Piano_Addiitive_Synthesis_Demo.orch.zip",
+      "sha256": "889edbc4c88ff1d144a781c7b9a5cce2271478d18c6bbb544c7447efd79849cb",
+      "bytes": 210156
+    },
+    {
+      "path": "examples/instruments/Piano_prepiano.orch.instrument.json",
+      "sha256": "63e30955ba5282d25ad0ae436e924ed2ab0d0babb7ebae05301cf675a491795c",
+      "bytes": 474397
+    },
+    {
+      "path": "tools/piano_additive/build_profiles.py",
+      "sha256": "acfaebdb80eac78de2451916dfe39cee514f8db4e7b8ca8e641064bb89a7d425",
+      "bytes": 16171
+    },
+    {
+      "path": "tools/piano_additive/refine_middle.py",
+      "sha256": "2f6d7e4d8ae9c932ae58748e50a58f5a5692648898ae636ed8589405f42ad8b6",
+      "bytes": 10660
+    },
+    {
+      "path": "tools/piano_additive/fit.json",
+      "sha256": "ee661a6e5f9bad75c3128a69ed3913cf8976111434bf9b3e14927fefdff33d03",
+      "bytes": 367295
+    },
+    {
+      "path": "tools/piano_additive/bass_enrichment.json",
+      "sha256": "438da1372ad1575b9fab0f4aff0a6ec79ac52ebb6c99999e1ebecdfffad61903",
+      "bytes": 39600
+    },
+    {
+      "path": "tools/piano_additive/middle_refinement.json",
+      "sha256": "2a879b9fc26fe775dd5105d89c19c9fbb67ff6cc74d6574f9bf90efeab85b7a4",
+      "bytes": 577343
+    }
+  ]
+}

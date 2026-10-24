@@ -1,0 +1,496 @@
+{
+  "passed": true,
+  "all_ten_controls_preserved": true,
+  "upper_MIDI_48_through_108_bit_identical": true,
+  "velocity": [
+    {
+      "note": 21,
+      "rms": [
+        0.010251409714585512,
+        0.012832747654242032,
+        0.016569324602346835,
+        0.023848372206520807
+      ]
+    },
+    {
+      "note": 24,
+      "rms": [
+        0.00983351648993069,
+        0.012353749071427781,
+        0.01600366001447588,
+        0.023069178595246008
+      ]
+    },
+    {
+      "note": 30,
+      "rms": [
+        0.005774700139780031,
+        0.0077379795353491815,
+        0.01032878045294112,
+        0.01597614024210097
+      ]
+    },
+    {
+      "note": 36,
+      "rms": [
+        0.005550694811431957,
+        0.007791790786233161,
+        0.01046721736840557,
+        0.01697618714818331
+      ]
+    },
+    {
+      "note": 45,
+      "rms": [
+        0.004127699943779195,
+        0.0063657968646927835,
+        0.008787403319642163,
+        0.014230207149630124
+      ]
+    }
+  ],
+  "renders": [
+    {
+      "label": "defaults",
+      "peak": 0.08392937252743958,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "piano_release_min",
+      "peak": 0.08392937252743958,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_release": 0.05
+      }
+    },
+    {
+      "label": "piano_release_max",
+      "peak": 0.08392937252743958,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_release": 1.5
+      }
+    },
+    {
+      "label": "piano_decay_min",
+      "peak": 0.07941817598016669,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_decay": 0.5
+      }
+    },
+    {
+      "label": "piano_decay_max",
+      "peak": 0.0842688174254491,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_decay": 8
+      }
+    },
+    {
+      "label": "piano_detune_min",
+      "peak": 0.08392952008129828,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_detune": 0
+      }
+    },
+    {
+      "label": "piano_detune_max",
+      "peak": 0.08392859788284479,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_detune": 10
+      }
+    },
+    {
+      "label": "piano_stiffness_min",
+      "peak": 0.05791266116961498,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_stiffness": 0.25
+      }
+    },
+    {
+      "label": "piano_stiffness_max",
+      "peak": 0.08987921076083827,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_stiffness": 2
+      }
+    },
+    {
+      "label": "piano_loss_min",
+      "peak": 0.08406986697029484,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_loss": 0.0001
+      }
+    },
+    {
+      "label": "piano_loss_max",
+      "peak": 0.08372893749242243,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_loss": 0.01
+      }
+    },
+    {
+      "label": "piano_mass_min",
+      "peak": 0.08230797695504158,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_mass": 0.5
+      }
+    },
+    {
+      "label": "piano_mass_max",
+      "peak": 0.08104866197773959,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_mass": 2
+      }
+    },
+    {
+      "label": "piano_hardness_min",
+      "peak": 0.06967860878436413,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_hardness": 2000
+      }
+    },
+    {
+      "label": "piano_hardness_max",
+      "peak": 0.11040027845523809,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_hardness": 6000
+      }
+    },
+    {
+      "label": "piano_strike_min",
+      "peak": 0.08801665286456024,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_strike": 0.08
+      }
+    },
+    {
+      "label": "piano_strike_max",
+      "peak": 0.052752659164977074,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_strike": 0.2
+      }
+    },
+    {
+      "label": "piano_strength_min",
+      "peak": 0.025642564200844986,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_strength": 10
+      }
+    },
+    {
+      "label": "piano_strength_max",
+      "peak": 0.11275221463510741,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_strength": 40
+      }
+    },
+    {
+      "label": "piano_level_min",
+      "peak": 0.014924988547254487,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_level": -18
+      }
+    },
+    {
+      "label": "piano_level_max",
+      "peak": 0.11855338813792402,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_level": 0
+      }
+    },
+    {
+      "label": "C3_to_C8_before",
+      "peak": 0.07662114062412385,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "C3_to_C8_after",
+      "peak": 0.07662114062412385,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n21_v40",
+      "peak": 0.049135939750736865,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n21_v60",
+      "peak": 0.061769481047107166,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n21_v92",
+      "peak": 0.0794687480694495,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n21_v124",
+      "peak": 0.1147830309783992,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n24_v40",
+      "peak": 0.04433998857310215,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n24_v60",
+      "peak": 0.05731736679568733,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n24_v92",
+      "peak": 0.07584690896684937,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n24_v124",
+      "peak": 0.1092760736298218,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n30_v40",
+      "peak": 0.03028537005867233,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n30_v60",
+      "peak": 0.040304651794177825,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n30_v92",
+      "peak": 0.05365546983401322,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n30_v124",
+      "peak": 0.08204468805455008,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n36_v40",
+      "peak": 0.03165181642780367,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n36_v60",
+      "peak": 0.043676373649727,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n36_v92",
+      "peak": 0.06069917016836307,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n36_v124",
+      "peak": 0.10031525440845424,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n45_v40",
+      "peak": 0.01663353598762613,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n45_v60",
+      "peak": 0.031267781596048774,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n45_v92",
+      "peak": 0.05009042376777532,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "n45_v124",
+      "peak": 0.0865503198103725,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "chord",
+      "peak": 0.19895249307331098,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "maximum_controls_chord",
+      "peak": 0.6056442075596049,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_release": 1.5,
+        "piano_decay": 8,
+        "piano_detune": 10,
+        "piano_stiffness": 2,
+        "piano_loss": 0.0001,
+        "piano_mass": 2,
+        "piano_hardness": 6000,
+        "piano_strike": 0.2,
+        "piano_strength": 40,
+        "piano_level": 0
+      }
+    },
+    {
+      "label": "bass_retriggers",
+      "peak": 0.09544396373645267,
+      "tail_peak": 0.0,
+      "settings": {}
+    },
+    {
+      "label": "long_decay",
+      "peak": 0.10739853179492723,
+      "tail_peak": 0.0,
+      "settings": {
+        "piano_decay": 8
+      }
+    }
+  ],
+  "listened_by_ear": false,
+  "deterministic_assets": {
+    "changed_assets": [
+      "piano_k36_v124.het",
+      "piano_k30_v40.het",
+      "piano_k30_v124.het",
+      "piano_k24_v40.het",
+      "piano_k36_v40.het",
+      "piano_k24_v124.het"
+    ],
+    "approved_candidate_bytes_match": true,
+    "other_assets_identical": true,
+    "graph_formulas_controls_identical": true
+  },
+  "demo": {
+    "passed": true,
+    "arrangement_mixer_controls_identical": true,
+    "midi_file_bit_identical": true,
+    "notes": 110,
+    "note_events": 220,
+    "score_events_identical": true,
+    "archives": [
+      {
+        "kind": "instrument",
+        "bytes": 97410,
+        "json_bytes": 282821,
+        "uncompressed_bytes": 482641,
+        "assets": 34,
+        "sha256": "949a8002d153192a8a5f2855095b105ccc36ab860fc9510c9c0d725b97578af9"
+      },
+      {
+        "kind": "performance",
+        "bytes": 129637,
+        "json_bytes": 2031004,
+        "uncompressed_bytes": 2230824,
+        "assets": 34,
+        "sha256": "e7518fda7ffe35953e77569b0c4fb9877b52d4618f53eab739ad2675676c4f76"
+      }
+    ],
+    "renders": [
+      {
+        "mode": "score",
+        "duration": 55.68420833333333,
+        "peak": 0.6400724053382874,
+        "rms": 0.056079953341700524,
+        "tail_peak": 0.0,
+        "rms_difference_from_previous": 0.0002659650040287151
+      },
+      {
+        "mode": "midiFile",
+        "duration": 55.68420833333333,
+        "peak": 0.6426615118980408,
+        "rms": 0.05613548783625946,
+        "tail_peak": 0.0,
+        "rms_difference_from_previous": 0.00026750738170478844
+      }
+    ]
+  },
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed",
+  "saved": {
+    "instrument_id": "be805682-127d-40c5-be1f-9cda971908d5",
+    "performance_id": "177e2df9-2d0c-4f72-9f40-a8ec589f86cf",
+    "same_ids": true,
+    "arrangement_and_controls_unchanged": true
+  },
+  "deterministic_regeneration": "34 of 34 asset payloads byte-identical",
+  "spectrograms_opened_and_inspected": [
+    "Piano_Addiitive_Synthesis_Demo.mel.png",
+    "Piano_Addiitive_Synthesis_Demo.stft.png",
+    "controller_audition.mel.png",
+    "controller_audition.stft.png"
+  ],
+  "comparison": {
+    "reference": "Alexander Holm, Salamander Grand Piano V3, CC BY 3.0",
+    "pitches": [
+      "C1",
+      "C2"
+    ],
+    "velocity": 124,
+    "windows_seconds": [
+      [
+        0.1,
+        0.25
+      ],
+      [
+        0.25,
+        0.5
+      ],
+      [
+        0.5,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        4
+      ]
+    ],
+    "metric": "Reference-energy-weighted absolute partial-level discrepancy, averaged across pitches and windows",
+    "before_db": 2.9304939099279292,
+    "after_db": 2.7378328207332516,
+    "comment": "The saved six bass payloads exactly match the tested through-48 candidate at these pitches. Spectral fitting measure; no listening score."
+  }
+}

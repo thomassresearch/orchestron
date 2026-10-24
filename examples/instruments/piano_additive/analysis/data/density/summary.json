@@ -1,0 +1,178 @@
+[
+  {
+    "group": "all_below_C5",
+    "version": "baseline",
+    "weighted_error_db": 3.157728119775889,
+    "absolute_partial_error": 19.108335410920343,
+    "missing_energy": 0.022088428844037125,
+    "excess_energy": 0.0,
+    "added_energy": 0.022089361215968432,
+    "retained_error_percent": 99.88440185894633,
+    "max_level_delta_db": 0.0
+  },
+  {
+    "group": "all_below_C5",
+    "version": "limit48",
+    "weighted_error_db": 3.1385659964871055,
+    "absolute_partial_error": 19.091185409084172,
+    "missing_energy": 0.004198441621813394,
+    "excess_energy": 0.0007559183129091368,
+    "added_energy": 0.022089361215968432,
+    "retained_error_percent": 99.97404660053859,
+    "max_level_delta_db": 0.03646192738080449
+  },
+  {
+    "group": "all_below_C5",
+    "version": "limit64",
+    "weighted_error_db": 3.1380262629469207,
+    "absolute_partial_error": 19.090138936605097,
+    "missing_energy": 0.002954159097211901,
+    "excess_energy": 0.0009535135008957354,
+    "added_energy": 0.022089361215968432,
+    "retained_error_percent": 99.97952804698085,
+    "max_level_delta_db": 0.03792672540705248
+  },
+  {
+    "group": "all_below_C5",
+    "version": "limit80",
+    "weighted_error_db": 3.1380112482627105,
+    "absolute_partial_error": 19.090082108579914,
+    "missing_energy": 0.002882496569700139,
+    "excess_energy": 0.000968031664273012,
+    "added_energy": 0.022089361215968432,
+    "retained_error_percent": 99.97982732662791,
+    "max_level_delta_db": 0.037926724864858985
+  },
+  {
+    "group": "deep_bass_C1_C2",
+    "version": "baseline",
+    "weighted_error_db": 2.7001305405044898,
+    "absolute_partial_error": 5.516734257182562,
+    "missing_energy": 0.022018820895706077,
+    "excess_energy": 0.0,
+    "added_energy": 0.022019752357348134,
+    "retained_error_percent": 99.60086399767539,
+    "max_level_delta_db": 0.0
+  },
+  {
+    "group": "deep_bass_C1_C2",
+    "version": "limit48",
+    "weighted_error_db": 2.621086753298916,
+    "absolute_partial_error": 5.499599228296398,
+    "missing_energy": 0.00418510838651426,
+    "excess_energy": 0.0007143744771254828,
+    "added_energy": 0.022019752357348134,
+    "retained_error_percent": 99.91090378886437,
+    "max_level_delta_db": 0.03646192738080449
+  },
+  {
+    "group": "deep_bass_C1_C2",
+    "version": "limit64",
+    "weighted_error_db": 2.6188602892601516,
+    "absolute_partial_error": 5.4985527625903705,
+    "missing_energy": 0.002940833231474502,
+    "excess_energy": 0.0009119695612508332,
+    "added_energy": 0.022019752357348134,
+    "retained_error_percent": 99.9299223880286,
+    "max_level_delta_db": 0.03792672540705248
+  },
+  {
+    "group": "deep_bass_C1_C2",
+    "version": "limit80",
+    "weighted_error_db": 2.618798355286862,
+    "absolute_partial_error": 5.498495931020077,
+    "missing_energy": 0.00286917073230921,
+    "excess_energy": 0.0009264877557678003,
+    "added_energy": 0.022019752357348134,
+    "retained_error_percent": 99.93096093528203,
+    "max_level_delta_db": 0.037926724864858985
+  },
+  {
+    "group": "C3_to_B4",
+    "version": "baseline",
+    "weighted_error_db": 3.008721929107227,
+    "absolute_partial_error": 12.133081153764602,
+    "missing_energy": 6.444138596858675e-05,
+    "excess_energy": 0.0,
+    "added_energy": 6.444191807113681e-05,
+    "retained_error_percent": 99.99946887863726,
+    "max_level_delta_db": 0.0
+  },
+  {
+    "group": "C3_to_B4",
+    "version": "limit48",
+    "weighted_error_db": 3.0087219266047054,
+    "absolute_partial_error": 12.133037988724885,
+    "missing_energy": 1.1766691505390538e-05,
+    "excess_energy": 9.949919802497577e-06,
+    "added_energy": 6.444191807113681e-05,
+    "retained_error_percent": 99.99982101258294,
+    "max_level_delta_db": 0.00031590886160567304
+  },
+  {
+    "group": "C3_to_B4",
+    "version": "limit64",
+    "weighted_error_db": 3.008721926607031,
+    "absolute_partial_error": 12.133037987246315,
+    "missing_energy": 1.1759318531963815e-05,
+    "excess_energy": 9.950079173894989e-06,
+    "added_energy": 6.444191807113681e-05,
+    "retained_error_percent": 99.99982107203711,
+    "max_level_delta_db": 0.00031590886160567304
+  },
+  {
+    "group": "C3_to_B4",
+    "version": "limit80",
+    "weighted_error_db": 3.008721926607031,
+    "absolute_partial_error": 12.133037987246315,
+    "missing_energy": 1.1759318531963815e-05,
+    "excess_energy": 9.950079173894989e-06,
+    "added_energy": 6.444191807113681e-05,
+    "retained_error_percent": 99.99982107203711,
+    "max_level_delta_db": 0.00031590886160567304
+  },
+  {
+    "group": "hard_bass_C1_C2",
+    "version": "baseline",
+    "weighted_error_db": 2.9304939099279292,
+    "absolute_partial_error": 1.5491692578796326,
+    "missing_energy": 0.01288884532486221,
+    "excess_energy": 0.0,
+    "added_energy": 0.01288954048042999,
+    "retained_error_percent": 99.16798652331975,
+    "max_level_delta_db": 0.0
+  },
+  {
+    "group": "hard_bass_C1_C2",
+    "version": "limit48",
+    "weighted_error_db": 2.7378328207332516,
+    "absolute_partial_error": 1.5386791225411742,
+    "missing_energy": 0.0021996174964018615,
+    "excess_energy": 0.00021085974501753075,
+    "added_energy": 0.01288954048042999,
+    "retained_error_percent": 99.84331178070103,
+    "max_level_delta_db": 0.03646192738080449
+  },
+  {
+    "group": "hard_bass_C1_C2",
+    "version": "limit64",
+    "weighted_error_db": 2.729300114617466,
+    "absolute_partial_error": 1.537648178519593,
+    "missing_energy": 0.001147333947568285,
+    "excess_energy": 0.00023200566490944293,
+    "added_energy": 0.01288954048042999,
+    "retained_error_percent": 99.91026612537004,
+    "max_level_delta_db": 0.03792672540705248
+  },
+  {
+    "group": "hard_bass_C1_C2",
+    "version": "limit80",
+    "weighted_error_db": 2.729052396293034,
+    "absolute_partial_error": 1.5375807981290424,
+    "missing_energy": 0.0010765395948013961,
+    "excess_energy": 0.0002353690126458601,
+    "added_energy": 0.01288954048042999,
+    "retained_error_percent": 99.91464771898167,
+    "max_level_delta_db": 0.037926724864858985
+  }
+]

@@ -1,0 +1,270 @@
+[
+  {
+    "file": "C2v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C2v4.flac",
+    "note": 36,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 4,
+    "midi_velocity": 40,
+    "sha256": "25d2ac48536df4b2241c54d4c180432c8a838143e876182801f5a5f92b4f898f",
+    "bytes": 2222842
+  },
+  {
+    "file": "C2v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C2v8.flac",
+    "note": 36,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 8,
+    "midi_velocity": 60,
+    "sha256": "2fae21e19a214aeecd527a2235b106f66030df6ff51cfa789a5b4c6feb3d7357",
+    "bytes": 2561685
+  },
+  {
+    "file": "C2v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C2v12.flac",
+    "note": 36,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 12,
+    "midi_velocity": 92,
+    "sha256": "dcbafcb704b7e1555b50b587269e7436769ac8c8fbb9234b1e2c3e84512c5ff8",
+    "bytes": 2608263
+  },
+  {
+    "file": "C2v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C2v16.flac",
+    "note": 36,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 16,
+    "midi_velocity": 124,
+    "sha256": "dc9ee5e32ae23753fd565af1f181e79edf043ebbb93d9f5c28637248c98f629b",
+    "bytes": 2698276
+  },
+  {
+    "file": "Piano.pp.C2.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.pp.C2.aiff",
+    "note": 36,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "pp",
+    "sha256": "7ff5b7bd53e73ea7da25129d94a90998256a59aef65560caf8d324d36383a0ed",
+    "bytes": 8298822
+  },
+  {
+    "file": "Piano.mf.C2.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.C2.aiff",
+    "note": 36,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "mf",
+    "sha256": "a794e41d4a1f67265e6e67c1a91ef7e0ea5d85cf9cfebdb772c43c27c355ba5f",
+    "bytes": 9033438
+  },
+  {
+    "file": "Piano.ff.C2.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.ff.C2.aiff",
+    "note": 36,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "ff",
+    "sha256": "647d72cdcc351e25e2f22048f2c04f35b833960af8d6f115f1d88ac220aec1cc",
+    "bytes": 9257398
+  },
+  {
+    "file": "C3v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C3v4.flac",
+    "note": 48,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 4,
+    "midi_velocity": 40,
+    "sha256": "172b7e9fe81980ddb64334477459ea91e039b3c083f76a022682182be3482660",
+    "bytes": 1689449
+  },
+  {
+    "file": "C3v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C3v8.flac",
+    "note": 48,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 8,
+    "midi_velocity": 60,
+    "sha256": "b9200830cdef54fe0eb92db928dea161cd26d1faf31c7a08a4f51c97549e05bf",
+    "bytes": 1741485
+  },
+  {
+    "file": "C3v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C3v12.flac",
+    "note": 48,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 12,
+    "midi_velocity": 92,
+    "sha256": "1250eceb6bc80b2a4559f5d15834a19b357f6f8695412445f0c292abcf9e3d78",
+    "bytes": 1753840
+  },
+  {
+    "file": "C3v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C3v16.flac",
+    "note": 48,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 16,
+    "midi_velocity": 124,
+    "sha256": "d1ff6d03ff0bed873d3b5ab2ad9f7ff31117779cbf64671b267206e140116045",
+    "bytes": 1875350
+  },
+  {
+    "file": "Piano.pp.C3.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.pp.C3.aiff",
+    "note": 48,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "pp",
+    "sha256": "dedfacca6a9c244ff7c38d7b53c55b08e43fc8f4ce7d6c8c5a0f8b70fb03b58d",
+    "bytes": 6798614
+  },
+  {
+    "file": "Piano.mf.C3.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.C3.aiff",
+    "note": 48,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "mf",
+    "sha256": "b39ff5e129df5557996dbdbadd1f2622cf33425d33714d70af16fd4f209355b5",
+    "bytes": 7293410
+  },
+  {
+    "file": "Piano.ff.C3.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.ff.C3.aiff",
+    "note": 48,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "ff",
+    "sha256": "98d381ee558d3ca77393d9596a7c88c580d2f75eed7b3e573108e815ab3afddf",
+    "bytes": 8001522
+  },
+  {
+    "file": "C4v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v4.flac",
+    "note": 60,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 4,
+    "midi_velocity": 40,
+    "sha256": "c68ab13a20f4e84361843417a17521d0cf7bd9587a43fbb36c04db56045990ed",
+    "bytes": 1628805
+  },
+  {
+    "file": "C4v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v8.flac",
+    "note": 60,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 8,
+    "midi_velocity": 60,
+    "sha256": "36fb0535a1f21fe1dfc367c361dedda73710144e8c4940b40e97e6e5f8a3c694",
+    "bytes": 1774472
+  },
+  {
+    "file": "C4v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v12.flac",
+    "note": 60,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 12,
+    "midi_velocity": 92,
+    "sha256": "21ebd25176ad28fabe364f22357cd8b7471b449c91b10ab4400c9c1408c74128",
+    "bytes": 1776181
+  },
+  {
+    "file": "C4v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v16.flac",
+    "note": 60,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 16,
+    "midi_velocity": 124,
+    "sha256": "e2944a0d1b31ea0ff8eb82b20ae2108027f111d96fb680c6e36d01f40582c252",
+    "bytes": 1772214
+  },
+  {
+    "file": "Piano.pp.C4.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.pp.C4.aiff",
+    "note": 60,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "pp",
+    "sha256": "94540df460e6f4b1517d9ae0bb1a1cc5b4b28ffd61106eda3e89475544ee545d",
+    "bytes": 5195362
+  },
+  {
+    "file": "Piano.mf.C4.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.C4.aiff",
+    "note": 60,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "mf",
+    "sha256": "1a7d8ddea94a3639fa58d79ebcc0b09b170b9c324811d2b705f97e278fdefac2",
+    "bytes": 5453058
+  },
+  {
+    "file": "Piano.ff.C4.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.ff.C4.aiff",
+    "note": 60,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "ff",
+    "sha256": "92f65bcbfb326257869017ea88da346bda98285183f13a78394f5d1c83218e0f",
+    "bytes": 6353718
+  },
+  {
+    "file": "C5v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v4.flac",
+    "note": 72,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 4,
+    "midi_velocity": 40,
+    "sha256": "0d7c117cdb01b261cb3a303c4a7c9f56ef42015078e3c69ab3aa19dd39287a6c",
+    "bytes": 1468588
+  },
+  {
+    "file": "C5v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v8.flac",
+    "note": 72,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 8,
+    "midi_velocity": 60,
+    "sha256": "f663242a552aad54113f186a6dd90c907c81d1f6374887a23179814544f78d79",
+    "bytes": 1516971
+  },
+  {
+    "file": "C5v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v12.flac",
+    "note": 72,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 12,
+    "midi_velocity": 92,
+    "sha256": "bef7fa0e75075f0566400a5f5d7c313d6e295d287413c88e742e2dc2205d8915",
+    "bytes": 1537892
+  },
+  {
+    "file": "C5v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v16.flac",
+    "note": 72,
+    "source": "Salamander Yamaha C5 / Alexander Holm / CC BY 3.0",
+    "layer": 16,
+    "midi_velocity": 124,
+    "sha256": "6ae603ecdcf54ec2a55b5e727b7a67668475a4cfcb48a12a4677cb6402683073",
+    "bytes": 1531778
+  },
+  {
+    "file": "Piano.pp.C5.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.pp.C5.aiff",
+    "note": 72,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "pp",
+    "sha256": "7971a111ee9ca5940327f239e5971c8c96fcf28b3a823ee80f85770d228b8862",
+    "bytes": 4065978
+  },
+  {
+    "file": "Piano.mf.C5.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.mf.C5.aiff",
+    "note": 72,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "mf",
+    "sha256": "68c231a437a0d54004427c723d136814358deea8f913516bee6095ea6c407937",
+    "bytes": 4355518
+  },
+  {
+    "file": "Piano.ff.C5.aiff",
+    "url": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/piano/Piano.ff.C5.aiff",
+    "note": 72,
+    "source": "University of Iowa / Steinway B / Evan Mazunik",
+    "dynamic": "ff",
+    "sha256": "732d634c8cc9d57b3281e1bc0c57b8418d8bc3e7a6bd715ebaf4f7692814dfe1",
+    "bytes": 6470654
+  }
+]

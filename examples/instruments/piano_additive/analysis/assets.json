@@ -1,0 +1,374 @@
+{
+  "note": "Plots copied without alteration. JSON copies replace machine-specific absolute paths with repository-relative artifact identifiers or local-artifact basenames; URLs, hashes and measurements are preserved. Source paths describe provenance, not required files in this documentation package. CSV line endings are normalized to LF; all CSV cells are unchanged.",
+  "assets": [
+    {
+      "file": "analysis/plots/attack/attack_25ms_detail.png",
+      "stage": "attack",
+      "source": "output/prepiano/low_attack_analysis/attack_25ms_detail.png",
+      "source_sha256": "060592a907d929dd97ee229fda601069dfb5da01095aa03bf7a6eb08ba1b20a8",
+      "sha256": "060592a907d929dd97ee229fda601069dfb5da01095aa03bf7a6eb08ba1b20a8",
+      "bytes": 1066628
+    },
+    {
+      "file": "analysis/plots/attack/attack_time_frequency.png",
+      "stage": "attack",
+      "source": "output/prepiano/low_attack_analysis/attack_time_frequency.png",
+      "source_sha256": "7beb94fd05663b6fc2c5edf6860c2f86847ede563292918938c786ff79db9294",
+      "sha256": "7beb94fd05663b6fc2c5edf6860c2f86847ede563292918938c786ff79db9294",
+      "bytes": 221019
+    },
+    {
+      "file": "analysis/plots/attack/velocity_brightness.png",
+      "stage": "attack",
+      "source": "output/prepiano/low_attack_analysis/velocity_brightness.png",
+      "source_sha256": "f0766cd06eb8a01069d21cb0d051505ab1a9c4da0c988ecf3a0ec44ecfea6a94",
+      "sha256": "f0766cd06eb8a01069d21cb0d051505ab1a9c4da0c988ecf3a0ec44ecfea6a94",
+      "bytes": 233396
+    },
+    {
+      "file": "analysis/plots/original_spectra/partial_evolution.png",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/partial_evolution.png",
+      "source_sha256": "762b183dd9e9aec6644f462729afc9bc0f3fafcf382103f90b2da472d4a76f51",
+      "sha256": "762b183dd9e9aec6644f462729afc9bc0f3fafcf382103f90b2da472d4a76f51",
+      "bytes": 169600
+    },
+    {
+      "file": "analysis/plots/original_spectra/spectra_over_time.png",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/spectra_over_time.png",
+      "source_sha256": "825c739e6c81fc166b8740cfeb79825eaf887a3471d1ed9fc6371521d8611fcb",
+      "sha256": "825c739e6c81fc166b8740cfeb79825eaf887a3471d1ed9fc6371521d8611fcb",
+      "bytes": 536534
+    },
+    {
+      "file": "analysis/plots/original_spectra/partial_envelopes.png",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/partial_envelopes.png",
+      "source_sha256": "eea80df944b08daaf3aa01b69bed1b2e58c4ed7160147999c28625659f37c9da",
+      "sha256": "eea80df944b08daaf3aa01b69bed1b2e58c4ed7160147999c28625659f37c9da",
+      "bytes": 631762
+    },
+    {
+      "file": "analysis/plots/original_spectra/detune_diagnostic.png",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/detune_diagnostic.png",
+      "source_sha256": "0fcba57644beda31a334134c92fc9087ec6a7abc0eae44bf558b293db2cb92be",
+      "sha256": "0fcba57644beda31a334134c92fc9087ec6a7abc0eae44bf558b293db2cb92be",
+      "bytes": 213000
+    },
+    {
+      "file": "analysis/plots/original_spectra/upper_body_evolution.png",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/upper_body_evolution.png",
+      "source_sha256": "16a773aea6230667de6cdd39905be9dfa31e6462ba30c0f2110a93fbab8dd8a9",
+      "sha256": "16a773aea6230667de6cdd39905be9dfa31e6462ba30c0f2110a93fbab8dd8a9",
+      "bytes": 100473
+    },
+    {
+      "file": "analysis/plots/compact/middle_partials.png",
+      "stage": "compact",
+      "source": "output/prepiano/compact_revision/middle_partials.png",
+      "source_sha256": "b86a5404a90038f2e3af7958657dfe269a0cf0a083bccf5784e2ad0683e65ec3",
+      "sha256": "b86a5404a90038f2e3af7958657dfe269a0cf0a083bccf5784e2ad0683e65ec3",
+      "bytes": 296977
+    },
+    {
+      "file": "analysis/plots/compact/middle_decay.png",
+      "stage": "compact",
+      "source": "output/prepiano/compact_revision/middle_decay.png",
+      "source_sha256": "b9c5312947e12a524884364f433453f68da9a0bcac749a315b30bdda4d87588f",
+      "sha256": "b9c5312947e12a524884364f433453f68da9a0bcac749a315b30bdda4d87588f",
+      "bytes": 322066
+    },
+    {
+      "file": "analysis/plots/additive/attack_spectra.png",
+      "stage": "additive",
+      "source": "output/prepiano/additive_revision/attack_spectra.png",
+      "source_sha256": "7cfd33673b98632288f9106fc53ac87957caf49a50e2d149c2d40ee94359146b",
+      "sha256": "7cfd33673b98632288f9106fc53ac87957caf49a50e2d149c2d40ee94359146b",
+      "bytes": 482237
+    },
+    {
+      "file": "analysis/plots/additive/decay_comparison.png",
+      "stage": "additive",
+      "source": "output/prepiano/additive_revision/decay_comparison.png",
+      "source_sha256": "05bfbdc23b598b26b9f2efbe429e009e84e7de14340787ff129d5cd1bebff3a8",
+      "sha256": "05bfbdc23b598b26b9f2efbe429e009e84e7de14340787ff129d5cd1bebff3a8",
+      "bytes": 254653
+    },
+    {
+      "file": "analysis/plots/density/spectral_evolution.png",
+      "stage": "density",
+      "source": "output/prepiano/harmonic_density/spectral_evolution.png",
+      "source_sha256": "cccaa0480f80b97f71469c2af3c3674d02a124c526350b25f6227961832e5f6f",
+      "sha256": "cccaa0480f80b97f71469c2af3c3674d02a124c526350b25f6227961832e5f6f",
+      "bytes": 421311
+    },
+    {
+      "file": "analysis/plots/density/attack_25ms.png",
+      "stage": "density",
+      "source": "output/prepiano/harmonic_density/attack_25ms.png",
+      "source_sha256": "c55e7f759002473f1ad0365a15020479c675ecb01dee052735923ca150230d4b",
+      "sha256": "c55e7f759002473f1ad0365a15020479c675ecb01dee052735923ca150230d4b",
+      "bytes": 387777
+    },
+    {
+      "file": "analysis/plots/middle/harmonic_decay.png",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/harmonic_decay.png",
+      "source_sha256": "983bc18c920bf0265702d53d56fcf5809d80531a201b885c7e78694123c36450",
+      "sha256": "983bc18c920bf0265702d53d56fcf5809d80531a201b885c7e78694123c36450",
+      "bytes": 451586
+    },
+    {
+      "file": "analysis/plots/middle/Piano_Addiitive_Synthesis_Demo.mel.png",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/spectrograms/Piano_Addiitive_Synthesis_Demo.mel.png",
+      "source_sha256": "5dc45406f5f0bc700954e81d4c32b91ff37c7538980495a6497bbc0c90ac95be",
+      "sha256": "5dc45406f5f0bc700954e81d4c32b91ff37c7538980495a6497bbc0c90ac95be",
+      "bytes": 409416
+    },
+    {
+      "file": "analysis/plots/middle/Piano_Addiitive_Synthesis_Demo.stft.png",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/spectrograms/Piano_Addiitive_Synthesis_Demo.stft.png",
+      "source_sha256": "e891f92dc94244f8327b0c7ba4786989ab2890d7198d7bacf5396a28c92cad50",
+      "sha256": "e891f92dc94244f8327b0c7ba4786989ab2890d7198d7bacf5396a28c92cad50",
+      "bytes": 779065
+    },
+    {
+      "file": "analysis/plots/middle/Yamaha_Previous_Revised.stft.png",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/spectrograms/Yamaha_Previous_Revised.stft.png",
+      "source_sha256": "457498477552bb429705fda35692f7dc5bb0c4e9725f6235ab3ba9ca0039938e",
+      "sha256": "457498477552bb429705fda35692f7dc5bb0c4e9725f6235ab3ba9ca0039938e",
+      "bytes": 204571
+    },
+    {
+      "file": "analysis/data/attack/measurements.json",
+      "stage": "attack",
+      "source": "output/prepiano/low_attack_analysis/measurements.json",
+      "source_sha256": "56767252df9adb86378c557010000729852506088a2509746fab3fc0e09df35c",
+      "sha256": "56767252df9adb86378c557010000729852506088a2509746fab3fc0e09df35c",
+      "bytes": 107048
+    },
+    {
+      "file": "analysis/data/attack/sources.json",
+      "stage": "attack",
+      "source": "output/prepiano/low_attack_analysis/sources.json",
+      "source_sha256": "33d2a05d4e0df80d2146d1bb714bff41e58866e5a754b85ad9ad7eb61de9c8e7",
+      "sha256": "33d2a05d4e0df80d2146d1bb714bff41e58866e5a754b85ad9ad7eb61de9c8e7",
+      "bytes": 10091
+    },
+    {
+      "file": "analysis/data/original_spectra/measurements.json",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/measurements.json",
+      "source_sha256": "7eceebdf67cdd39d5c2512c804e292a808170bef173fe6df562bad1e615dc7ae",
+      "sha256": "7eceebdf67cdd39d5c2512c804e292a808170bef173fe6df562bad1e615dc7ae",
+      "bytes": 270782
+    },
+    {
+      "file": "analysis/data/original_spectra/partial_summary.csv",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/partial_summary.csv",
+      "source_sha256": "ac907737fc219bf07285ebc98490fbe98f397fbfbf6023c2effc9bd6ad3472bd",
+      "sha256": "3bbe400d190f2fa5514e2dce67781d2e965e3a5aea4676a0968ae38a6b055e6b",
+      "bytes": 595772,
+      "transformation": "CRLF to LF only; all cells unchanged"
+    },
+    {
+      "file": "analysis/data/original_spectra/calibration.json",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/calibration.json",
+      "source_sha256": "6935ecb8b7344f9a599f9796297d45fa0352b2767b0454cc9f9ab6465a9c2171",
+      "sha256": "6935ecb8b7344f9a599f9796297d45fa0352b2767b0454cc9f9ab6465a9c2171",
+      "bytes": 581
+    },
+    {
+      "file": "analysis/data/original_spectra/threshold_sensitivity.json",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/threshold_sensitivity.json",
+      "source_sha256": "1e3ad72b79354108afbe234fdbda28dcf2f8a950b2a7b8ce9ae4cc540197d6df",
+      "sha256": "1e3ad72b79354108afbe234fdbda28dcf2f8a950b2a7b8ce9ae4cc540197d6df",
+      "bytes": 1508
+    },
+    {
+      "file": "analysis/data/original_spectra/sources.json",
+      "stage": "original_spectra",
+      "source": "output/prepiano/spectral_evolution/sources.json",
+      "source_sha256": "601f84f51b80e0adfbeec4ce139c7bc9651bcf2a21a2ec9f11efd9753781cba7",
+      "sha256": "bffef005d5c3bb572edca39e8044a37aebde44228d0851bf5ae125e232b34e63",
+      "bytes": 12109
+    },
+    {
+      "file": "analysis/data/compact/comparison.json",
+      "stage": "compact",
+      "source": "output/prepiano/compact_revision/comparison.json",
+      "source_sha256": "6e898d020d382ac152720f7afa5f8e1aacf5845c11a760a1c96c06d324750324",
+      "sha256": "6e898d020d382ac152720f7afa5f8e1aacf5845c11a760a1c96c06d324750324",
+      "bytes": 11257
+    },
+    {
+      "file": "analysis/data/compact/validation.json",
+      "stage": "compact",
+      "source": "output/prepiano/compact_revision/validation.json",
+      "source_sha256": "31586b19d6168b35c2e6698642df03fece0481d5ae72a5298108daf7d4026325",
+      "sha256": "31586b19d6168b35c2e6698642df03fece0481d5ae72a5298108daf7d4026325",
+      "bytes": 10021
+    },
+    {
+      "file": "analysis/data/compact/sources.json",
+      "stage": "compact",
+      "source": "output/prepiano/compact_revision/sources.json",
+      "source_sha256": "e274650eff75a817be541250150a9a0b5bae9f72b9101c9d1930bdac204ba113",
+      "sha256": "b008a1e406f7b7651534ca2afc4938423877accdac18deda7c5701da278f361f",
+      "bytes": 13889
+    },
+    {
+      "file": "analysis/data/additive/comparison.json",
+      "stage": "additive",
+      "source": "tools/piano_additive/comparison.json",
+      "source_sha256": "d32a4d22ca1c4474d77f2e2707f85e11622d7b47be20cff4d402f8aab45eb62c",
+      "sha256": "d32a4d22ca1c4474d77f2e2707f85e11622d7b47be20cff4d402f8aab45eb62c",
+      "bytes": 4413
+    },
+    {
+      "file": "analysis/data/additive/off_grid.json",
+      "stage": "additive",
+      "source": "tools/piano_additive/off_grid.json",
+      "source_sha256": "6de7f1ef529c914b971892f9e96ce2df18a702d9b7f89d48d9414a0ccaa185f8",
+      "sha256": "6de7f1ef529c914b971892f9e96ce2df18a702d9b7f89d48d9414a0ccaa185f8",
+      "bytes": 10192
+    },
+    {
+      "file": "analysis/data/additive/validation.json",
+      "stage": "additive",
+      "source": "tools/piano_additive/validation.json",
+      "source_sha256": "f7b114794231fbf76f8b470220bb1970b56680e862dfb25ce38eb09167b7c3bb",
+      "sha256": "f7b114794231fbf76f8b470220bb1970b56680e862dfb25ce38eb09167b7c3bb",
+      "bytes": 9696
+    },
+    {
+      "file": "analysis/data/additive/demo_audio_validation.json",
+      "stage": "additive",
+      "source": "tools/piano_additive/demo_audio_validation.json",
+      "source_sha256": "d02dee1c8e163e6c47b4c67a89b628e864a2f449566ff0d4baeb85fc736a1bff",
+      "sha256": "d02dee1c8e163e6c47b4c67a89b628e864a2f449566ff0d4baeb85fc736a1bff",
+      "bytes": 306
+    },
+    {
+      "file": "analysis/data/density/summary.json",
+      "stage": "density",
+      "source": "output/prepiano/harmonic_density/summary.json",
+      "source_sha256": "4f01240c378ef6a89f0ded6de97ec457cc2eff9625538801d836165cc6324c23",
+      "sha256": "4f01240c378ef6a89f0ded6de97ec457cc2eff9625538801d836165cc6324c23",
+      "bytes": 6029
+    },
+    {
+      "file": "analysis/data/density/comparisons.json",
+      "stage": "density",
+      "source": "output/prepiano/harmonic_density/comparisons.json",
+      "source_sha256": "675e3464abd8b977a52a2500bd030bfed2e918dbe8d730337bea07c21050e479",
+      "sha256": "675e3464abd8b977a52a2500bd030bfed2e918dbe8d730337bea07c21050e479",
+      "bytes": 300682
+    },
+    {
+      "file": "analysis/data/density/reference_survey.json",
+      "stage": "density",
+      "source": "output/prepiano/harmonic_density/reference_survey.json",
+      "source_sha256": "09e0a12e60ccd53858201aa16fbef94c9f8dd6fda7d971f955298cc3816ec0c7",
+      "sha256": "09e0a12e60ccd53858201aa16fbef94c9f8dd6fda7d971f955298cc3816ec0c7",
+      "bytes": 78272
+    },
+    {
+      "file": "analysis/data/density/benchmark.json",
+      "stage": "density",
+      "source": "output/prepiano/harmonic_density/benchmark.json",
+      "source_sha256": "bac26afd5821a57ba8d82774691d8f8d3019a89259273d91e545753ba916dd50",
+      "sha256": "bac26afd5821a57ba8d82774691d8f8d3019a89259273d91e545753ba916dd50",
+      "bytes": 691
+    },
+    {
+      "file": "analysis/data/density/sources.json",
+      "stage": "density",
+      "source": "output/prepiano/harmonic_density/sources.json",
+      "source_sha256": "b2ff505643e775f07a28996394821959592cb30acca7604f15da5ccee447b986",
+      "sha256": "a7da40053b1555033fe727957ed9da5c2fc99de6e47e1819a88cdebcfc84cc82",
+      "bytes": 11469
+    },
+    {
+      "file": "analysis/data/bass/validation.json",
+      "stage": "bass",
+      "source": "tools/piano_additive/bass_enrichment_validation.json",
+      "source_sha256": "12c03f232d50b1aa2668a03588146e992beb3f4f33c232a059d63ccaf17f92bb",
+      "sha256": "12c03f232d50b1aa2668a03588146e992beb3f4f33c232a059d63ccaf17f92bb",
+      "bytes": 10768
+    },
+    {
+      "file": "analysis/data/middle/summary.json",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/spectral_summary.json",
+      "source_sha256": "0186ccfa6e169b75a2189e42c8136633228c2eeca28f2627e3877876ab07ff90",
+      "sha256": "0186ccfa6e169b75a2189e42c8136633228c2eeca28f2627e3877876ab07ff90",
+      "bytes": 2750
+    },
+    {
+      "file": "analysis/data/middle/validation.json",
+      "stage": "middle",
+      "source": "tools/piano_additive/middle_refinement_validation.json",
+      "source_sha256": "9a98c9e64ef80bfb2269c08c73ad321ceccb96982c918ca291e765dbbf63c566",
+      "sha256": "9a98c9e64ef80bfb2269c08c73ad321ceccb96982c918ca291e765dbbf63c566",
+      "bytes": 42443
+    },
+    {
+      "file": "analysis/data/middle/sources.json",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/sources.json",
+      "source_sha256": "332d5a478687ef3331d755e9535ee548b5bec1ac641282687f3fba4036996354",
+      "sha256": "6b7743086d3ea66e58ddd8bd69273f94a8be65f6d9516b965a9d0b4a1504a864",
+      "bytes": 11149
+    },
+    {
+      "file": "analysis/data/middle/holdout_sources.json",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/holdout/sources.json",
+      "source_sha256": "4fb04b1b83e7642f07f5ad3c16a80640691831fcc8d5a1a947a304b106cffc4c",
+      "sha256": "ecd3055fddff1792c88421acb74397066ca1a9f084960c5d62aa10566a29e37a",
+      "bytes": 10483
+    },
+    {
+      "file": "analysis/data/middle/before.json",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/baseline/comparison.json",
+      "source_sha256": "4570d10fa279671a51f991c522c9b923f10dd2fbbbbf0f1946b0c0f48dcb7e3c",
+      "sha256": "4570d10fa279671a51f991c522c9b923f10dd2fbbbbf0f1946b0c0f48dcb7e3c",
+      "bytes": 22851
+    },
+    {
+      "file": "analysis/data/middle/after.json",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/final/comparison.json",
+      "source_sha256": "506436e1e80589af08eaac104543a58f561341152c85a3b7f5327cd441efc48a",
+      "sha256": "506436e1e80589af08eaac104543a58f561341152c85a3b7f5327cd441efc48a",
+      "bytes": 25461
+    },
+    {
+      "file": "analysis/data/middle/holdout_before.json",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/baseline/comparison_holdout.json",
+      "source_sha256": "84190f7066291b0bb29e606bb386cc1278304756a5b005cb00c0dc0a7d78f652",
+      "sha256": "84190f7066291b0bb29e606bb386cc1278304756a5b005cb00c0dc0a7d78f652",
+      "bytes": 17129
+    },
+    {
+      "file": "analysis/data/middle/holdout_after.json",
+      "stage": "middle",
+      "source": "output/prepiano/middle_refinement/final/comparison_holdout.json",
+      "source_sha256": "e160986fd4706ea8bcd41db3179f9f11ea90ac5c73248ad416510bfcc3932747",
+      "sha256": "e160986fd4706ea8bcd41db3179f9f11ea90ac5c73248ad416510bfcc3932747",
+      "bytes": 19061
+    }
+  ]
+}

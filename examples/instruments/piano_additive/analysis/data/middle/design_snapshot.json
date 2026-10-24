@@ -1,0 +1,188 @@
+{
+  "instrument_name": "Piano Addiitive Synthesis",
+  "scope": "Selected authored graph details, after C3\u2013B4 refinement. Not an importable patch.",
+  "output_mix": {
+    "expression": "((((signal * amplitude * core * contour + impact) * (1 - mix) + gain * (3.644 * body1 + 2.475 * body2 + 3.094 * body3 + 7.535 * body4 + 5.18 * body5 + 7.274 * body6))) + partial_gate * (bank + partial2 + partial4)) * shape_c4",
+    "inputs": [
+      {
+        "token": "signal",
+        "from_node_id": "piano_bass_radiation",
+        "from_port_id": "ares"
+      },
+      {
+        "token": "amplitude",
+        "from_node_id": "piano_amplitude",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "impact",
+        "from_node_id": "piano_attack_lowpass",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "mix",
+        "from_node_id": "piano_attack_mix",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "gain",
+        "from_node_id": "piano_contact_gain",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "body1",
+        "from_node_id": "piano_contact_mode_1",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "body2",
+        "from_node_id": "piano_contact_mode_2",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "body3",
+        "from_node_id": "piano_contact_mode_3",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "body4",
+        "from_node_id": "piano_contact_mode_4",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "body5",
+        "from_node_id": "piano_contact_mode_5",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "body6",
+        "from_node_id": "piano_contact_mode_6",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "core",
+        "from_node_id": "piano_core_gain",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "contour",
+        "from_node_id": "piano_middle_decay_bound",
+        "from_port_id": "xout"
+      },
+      {
+        "token": "partial_gate",
+        "from_node_id": "piano_partial_gate",
+        "from_port_id": "aout"
+      },
+      {
+        "token": "shape_c4",
+        "from_node_id": "piano_c4_decay_bound",
+        "from_port_id": "xout"
+      },
+      {
+        "token": "bank",
+        "from_node_id": "hetro_tone",
+        "from_port_id": "ares"
+      },
+      {
+        "token": "partial2",
+        "from_node_id": "piano_partial_2",
+        "from_port_id": "asig"
+      },
+      {
+        "token": "partial4",
+        "from_node_id": "piano_partial_4",
+        "from_port_id": "asig"
+      }
+    ]
+  },
+  "controls": [
+    {
+      "id": "piano_release",
+      "min": 0.05,
+      "max": 1.5,
+      "default": 0.25,
+      "scale": "logarithmic",
+      "label": "Damper release (s)"
+    },
+    {
+      "id": "piano_decay",
+      "label": "String decay (s)",
+      "min": 0.5,
+      "max": 8,
+      "default": 4,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "piano_detune",
+      "label": "String detune (cents)",
+      "min": 0,
+      "max": 10,
+      "default": 4,
+      "scale": "linear"
+    },
+    {
+      "id": "piano_stiffness",
+      "label": "String stiffness",
+      "min": 0.25,
+      "max": 2,
+      "default": 1,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "piano_loss",
+      "label": "High-frequency loss",
+      "min": 0.0001,
+      "max": 0.01,
+      "default": 0.002,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "piano_mass",
+      "label": "Hammer mass",
+      "min": 0.5,
+      "max": 2,
+      "default": 1,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "piano_hardness",
+      "label": "Hammer hardness (Hz)",
+      "min": 2000,
+      "max": 6000,
+      "default": 3500,
+      "scale": "logarithmic"
+    },
+    {
+      "id": "piano_strike",
+      "label": "Strike position",
+      "min": 0.08,
+      "max": 0.2,
+      "default": 0.09,
+      "scale": "linear"
+    },
+    {
+      "id": "piano_strength",
+      "label": "Hammer strength",
+      "min": 10,
+      "max": 40,
+      "default": 30,
+      "scale": "linear"
+    },
+    {
+      "id": "piano_level",
+      "label": "Output (dB)",
+      "min": -18,
+      "max": 0,
+      "default": -3,
+      "scale": "linear"
+    }
+  ],
+  "opcode_counts": {
+    "prepiano": 1,
+    "adsyn": 51,
+    "oscil3": 2,
+    "expsega": 5
+  },
+  "nodes": 156
+}

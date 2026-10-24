@@ -1,0 +1,962 @@
+[
+  {
+    "note": "C3",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.5525918756113387,
+    "level_change_db": -0.9687942375581133
+  },
+  {
+    "note": "C3",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 2.293809348887179,
+    "level_change_db": -2.4291562210176014
+  },
+  {
+    "note": "C3",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.6185575478968502,
+    "level_change_db": -0.46392279663884406
+  },
+  {
+    "note": "C3",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.716515990225654,
+    "level_change_db": -0.44945603180479166
+  },
+  {
+    "note": "C3",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.22168736135778785,
+    "level_change_db": 0.007826907032011556
+  },
+  {
+    "note": "C3",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.6696260971847319,
+    "level_change_db": -1.2092607126535617
+  },
+  {
+    "note": "C3",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 2.4310574136662386,
+    "level_change_db": -3.641144092338891
+  },
+  {
+    "note": "C3",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.704240572439915,
+    "level_change_db": -0.3508626553934373
+  },
+  {
+    "note": "C3",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.49432531878447855,
+    "level_change_db": 0.018572894459846123
+  },
+  {
+    "note": "C3",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.0968525485376608,
+    "level_change_db": 0.04194713369941857
+  },
+  {
+    "note": "D#3",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.36419401544953667,
+    "level_change_db": -0.42039627167229277
+  },
+  {
+    "note": "D#3",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 1.2495184104305832,
+    "level_change_db": -0.11017405350311238
+  },
+  {
+    "note": "D#3",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.7075208170848272,
+    "level_change_db": 1.2186477696678175
+  },
+  {
+    "note": "D#3",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.0995357589815726,
+    "level_change_db": 0.9709873541674395
+  },
+  {
+    "note": "D#3",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 1.1360180707367724,
+    "level_change_db": -0.6935984920893389
+  },
+  {
+    "note": "D#3",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.24446657548467113,
+    "level_change_db": -0.3150155833287329
+  },
+  {
+    "note": "D#3",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.7021309621966323,
+    "level_change_db": -0.03889405372715021
+  },
+  {
+    "note": "D#3",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.5620949323181471,
+    "level_change_db": 1.2978425884544198
+  },
+  {
+    "note": "D#3",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.03121717344874,
+    "level_change_db": 1.334034062899799
+  },
+  {
+    "note": "D#3",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 1.331835394093323,
+    "level_change_db": -0.731450694175307
+  },
+  {
+    "note": "F#3",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.22059082995132703,
+    "level_change_db": -0.16163224424870948
+  },
+  {
+    "note": "F#3",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.6715041989022746,
+    "level_change_db": 0.5441146752522973
+  },
+  {
+    "note": "F#3",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.5887887641380775,
+    "level_change_db": 2.099762906276375
+  },
+  {
+    "note": "F#3",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.28202382023456185,
+    "level_change_db": 2.587697323093244
+  },
+  {
+    "note": "F#3",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.7637234088019234,
+    "level_change_db": -0.19908224565943403
+  },
+  {
+    "note": "F#3",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.22827499154839231,
+    "level_change_db": -0.04442793868674278
+  },
+  {
+    "note": "F#3",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.17337564064130437,
+    "level_change_db": 0.7098389793608805
+  },
+  {
+    "note": "F#3",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.404229043145898,
+    "level_change_db": 2.2547790269133254
+  },
+  {
+    "note": "F#3",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.21059170456994605,
+    "level_change_db": 2.552462558439943
+  },
+  {
+    "note": "F#3",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 2.215635311317167,
+    "level_change_db": -1.0168313596158076
+  },
+  {
+    "note": "A3",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.20256090291447548,
+    "level_change_db": -0.05738401332781632
+  },
+  {
+    "note": "A3",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.37976515470445954,
+    "level_change_db": 0.9706213226862016
+  },
+  {
+    "note": "A3",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.1366892722108248,
+    "level_change_db": 3.4690071608167274
+  },
+  {
+    "note": "A3",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.4294620525422994,
+    "level_change_db": 6.148898886889239
+  },
+  {
+    "note": "A3",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.3517872483459396,
+    "level_change_db": 7.539052820854058
+  },
+  {
+    "note": "A3",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.15738387889638072,
+    "level_change_db": -0.05027913437056323
+  },
+  {
+    "note": "A3",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.34198593785223363,
+    "level_change_db": 0.8640311562422337
+  },
+  {
+    "note": "A3",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.480450427377438,
+    "level_change_db": 3.3259996520755357
+  },
+  {
+    "note": "A3",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.3709040190836339,
+    "level_change_db": 6.132219338078101
+  },
+  {
+    "note": "A3",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.44375821697235507,
+    "level_change_db": 7.715962490648652
+  },
+  {
+    "note": "C4",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.22908455591603352,
+    "level_change_db": -0.31178379999354366
+  },
+  {
+    "note": "C4",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.13090522253512885,
+    "level_change_db": 0.06192926326529356
+  },
+  {
+    "note": "C4",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.42258472980939155,
+    "level_change_db": 0.7421154619748025
+  },
+  {
+    "note": "C4",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 2.494412924556399,
+    "level_change_db": 1.7640650101070585
+  },
+  {
+    "note": "C4",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 1.3561278459072303,
+    "level_change_db": 0.4592163236252792
+  },
+  {
+    "note": "C4",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.1445093670364769,
+    "level_change_db": -0.21514807874208633
+  },
+  {
+    "note": "C4",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.10480993020008092,
+    "level_change_db": 0.1357067350546404
+  },
+  {
+    "note": "C4",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.37286248315257936,
+    "level_change_db": 0.8182538941297259
+  },
+  {
+    "note": "C4",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.957437629565868,
+    "level_change_db": 1.8174916948887363
+  },
+  {
+    "note": "C4",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.989325241608627,
+    "level_change_db": 0.7961975845473719
+  },
+  {
+    "note": "D#4",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.17480667592548135,
+    "level_change_db": -0.5471196374709464
+  },
+  {
+    "note": "D#4",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.8024619247448209,
+    "level_change_db": -1.9859100893789141
+  },
+  {
+    "note": "D#4",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.8778398790613887,
+    "level_change_db": -2.735041013781667
+  },
+  {
+    "note": "D#4",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 5.697342759240463,
+    "level_change_db": -1.8330438769887456
+  },
+  {
+    "note": "D#4",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 2.317346865354438,
+    "level_change_db": -0.7449216421248317
+  },
+  {
+    "note": "D#4",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.13299843233066888,
+    "level_change_db": -0.5597675615201274
+  },
+  {
+    "note": "D#4",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.7484582630622618,
+    "level_change_db": -1.6070000870274705
+  },
+  {
+    "note": "D#4",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.807387964241041,
+    "level_change_db": -1.9751514446365472
+  },
+  {
+    "note": "D#4",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 4.787527955356255,
+    "level_change_db": -1.2397753171663826
+  },
+  {
+    "note": "D#4",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 2.133108164113401,
+    "level_change_db": 0.07450144330119936
+  },
+  {
+    "note": "F#4",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.19742589946653116,
+    "level_change_db": -0.34542452285504927
+  },
+  {
+    "note": "F#4",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.6186155954050445,
+    "level_change_db": -0.7296028925647535
+  },
+  {
+    "note": "F#4",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.1543464972869132,
+    "level_change_db": -0.8684632571008543
+  },
+  {
+    "note": "F#4",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.46360641347844256,
+    "level_change_db": -0.5698638868533639
+  },
+  {
+    "note": "F#4",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 1.068578268995206,
+    "level_change_db": 0.5457440377556779
+  },
+  {
+    "note": "F#4",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.4083170967312513,
+    "level_change_db": -0.5317301241343524
+  },
+  {
+    "note": "F#4",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 1.8522463202234338,
+    "level_change_db": -1.592790941906979
+  },
+  {
+    "note": "F#4",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.7854978831051047,
+    "level_change_db": -1.6971947583917344
+  },
+  {
+    "note": "F#4",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.1106905899003732,
+    "level_change_db": -1.322683957430211
+  },
+  {
+    "note": "F#4",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 1.4343877750283331,
+    "level_change_db": 0.011335554930071158
+  },
+  {
+    "note": "A4",
+    "velocity": 76,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.13353113383259946,
+    "level_change_db": -0.23581064601568338
+  },
+  {
+    "note": "A4",
+    "velocity": 76,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.5601397663953342,
+    "level_change_db": -0.6815957446587823
+  },
+  {
+    "note": "A4",
+    "velocity": 76,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.30908674440725076,
+    "level_change_db": -1.099945727031055
+  },
+  {
+    "note": "A4",
+    "velocity": 76,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.5561423321029464,
+    "level_change_db": -0.5619992605210391
+  },
+  {
+    "note": "A4",
+    "velocity": 76,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.8679325723506062,
+    "level_change_db": 0.7301793222285103
+  },
+  {
+    "note": "A4",
+    "velocity": 108,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.19382196375503227,
+    "level_change_db": -0.2357867591209259
+  },
+  {
+    "note": "A4",
+    "velocity": 108,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.3937193366183323,
+    "level_change_db": -0.7604261737285936
+  },
+  {
+    "note": "A4",
+    "velocity": 108,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.3230346136543603,
+    "level_change_db": -1.4204331592873927
+  },
+  {
+    "note": "A4",
+    "velocity": 108,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.4414398268945743,
+    "level_change_db": -1.321424059031631
+  },
+  {
+    "note": "A4",
+    "velocity": 108,
+    "start": 2,
+    "end": 4,
+    "error_db": 0.8356045321095915,
+    "level_change_db": 0.3474688150776881
+  },
+  {
+    "note": "D3",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 1.0113457249998707,
+    "level_change_db": -0.9570920861532362
+  },
+  {
+    "note": "D3",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 3.5190468405529636,
+    "level_change_db": -2.3190644889144925
+  },
+  {
+    "note": "D3",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 4.675661457201208,
+    "level_change_db": -0.25610898626797224
+  },
+  {
+    "note": "D3",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 4.565815519790369,
+    "level_change_db": 0.2768111456275332
+  },
+  {
+    "note": "D3",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 2.6172819433097363,
+    "level_change_db": -0.829097949252614
+  },
+  {
+    "note": "F3",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.8478427090565098,
+    "level_change_db": -0.5756869919004668
+  },
+  {
+    "note": "F3",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 1.4582727607832868,
+    "level_change_db": -0.0063181438201783315
+  },
+  {
+    "note": "F3",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 1.2417244163573582,
+    "level_change_db": 1.796732691024863
+  },
+  {
+    "note": "F3",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 2.0284663404016157,
+    "level_change_db": 1.891186650744599
+  },
+  {
+    "note": "F3",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 2.962733533367572,
+    "level_change_db": -0.9686433285609702
+  },
+  {
+    "note": "G#3",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.8633027681813105,
+    "level_change_db": -0.28786640625397303
+  },
+  {
+    "note": "G#3",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.8659088430446177,
+    "level_change_db": 0.5830061501635391
+  },
+  {
+    "note": "G#3",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 1.0567379992651889,
+    "level_change_db": 2.7461909792894375
+  },
+  {
+    "note": "G#3",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.8397473816545253,
+    "level_change_db": 4.973042820326911
+  },
+  {
+    "note": "G#3",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 3.4195812910460037,
+    "level_change_db": 4.335799641121908
+  },
+  {
+    "note": "B3",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.5409187014945217,
+    "level_change_db": -0.3576643645127794
+  },
+  {
+    "note": "B3",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.8506600464131182,
+    "level_change_db": 0.2056571697128222
+  },
+  {
+    "note": "B3",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 1.5403301727995076,
+    "level_change_db": 1.0078819752104557
+  },
+  {
+    "note": "B3",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 2.6492136099895274,
+    "level_change_db": 1.761560743251502
+  },
+  {
+    "note": "B3",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 6.902247812255023,
+    "level_change_db": 2.520549367092078
+  },
+  {
+    "note": "D4",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.43725111297383024,
+    "level_change_db": -0.5475209165558568
+  },
+  {
+    "note": "D4",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 1.7800231103060113,
+    "level_change_db": -1.2704565885581198
+  },
+  {
+    "note": "D4",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 1.5780399123950855,
+    "level_change_db": -1.6249733843758198
+  },
+  {
+    "note": "D4",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 7.025460234180439,
+    "level_change_db": 0.2972536223101451
+  },
+  {
+    "note": "D4",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 4.263578216667076,
+    "level_change_db": -0.45776332835988087
+  },
+  {
+    "note": "F4",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.4758053243919461,
+    "level_change_db": -0.19127100922831167
+  },
+  {
+    "note": "F4",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 1.4320298584435198,
+    "level_change_db": -0.850214867939443
+  },
+  {
+    "note": "F4",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 1.4453488033410817,
+    "level_change_db": -1.4067367760692728
+  },
+  {
+    "note": "F4",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.0893114088491531,
+    "level_change_db": -0.9580633958867285
+  },
+  {
+    "note": "F4",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 1.4491510168989807,
+    "level_change_db": -0.1708181776771049
+  },
+  {
+    "note": "G#4",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.5787404058835545,
+    "level_change_db": -0.3795542523739782
+  },
+  {
+    "note": "G#4",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.8191709835315696,
+    "level_change_db": -0.7144910296780692
+  },
+  {
+    "note": "G#4",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 1.1097587851813806,
+    "level_change_db": -1.0879275990490676
+  },
+  {
+    "note": "G#4",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 1.164676535541606,
+    "level_change_db": -0.5551141141940134
+  },
+  {
+    "note": "G#4",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 2.4673790794548203,
+    "level_change_db": 0.4561821665408295
+  },
+  {
+    "note": "B4",
+    "velocity": 92,
+    "start": 0.1,
+    "end": 0.25,
+    "error_db": 0.2624074554093843,
+    "level_change_db": -0.07985546253660263
+  },
+  {
+    "note": "B4",
+    "velocity": 92,
+    "start": 0.25,
+    "end": 0.5,
+    "error_db": 0.577256707377409,
+    "level_change_db": -0.23724280993918792
+  },
+  {
+    "note": "B4",
+    "velocity": 92,
+    "start": 0.5,
+    "end": 1,
+    "error_db": 0.7863386802840321,
+    "level_change_db": -0.4344612072251846
+  },
+  {
+    "note": "B4",
+    "velocity": 92,
+    "start": 1,
+    "end": 2,
+    "error_db": 0.7137657543183556,
+    "level_change_db": -0.314041659645855
+  },
+  {
+    "note": "B4",
+    "velocity": 92,
+    "start": 2,
+    "end": 4,
+    "error_db": 3.797960423629854,
+    "level_change_db": 0.3221326691251426
+  }
+]

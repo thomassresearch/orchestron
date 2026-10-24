@@ -1,0 +1,449 @@
+{
+  "passed": true,
+  "controls_preserved": true,
+  "prepiano_retained": true,
+  "sample_free": true,
+  "velocity": [
+    {
+      "note": "A3",
+      "rms": [
+        0.0013659558548041,
+        0.0021606477829445602,
+        0.0037755633023518692,
+        0.005449544096494139
+      ]
+    },
+    {
+      "note": "C4",
+      "rms": [
+        0.0011031971185632827,
+        0.0017653214839890921,
+        0.003395519011225609,
+        0.0046787303411993265
+      ]
+    },
+    {
+      "note": "D#4",
+      "rms": [
+        0.0011670103066232923,
+        0.0018230989607759816,
+        0.0025733479490478777,
+        0.0047579571444733605
+      ]
+    },
+    {
+      "note": "F#4",
+      "rms": [
+        0.0015804827994025628,
+        0.002410476979939484,
+        0.0032446590941958855,
+        0.006023125079289126
+      ]
+    },
+    {
+      "note": "A4",
+      "rms": [
+        0.0011696860932349452,
+        0.0020409156780878688,
+        0.0029756129099534233,
+        0.004871070721368172
+      ]
+    },
+    {
+      "note": "C5",
+      "rms": [
+        0.001207443967530735,
+        0.0016862492137809271,
+        0.0026925636783525575,
+        0.004722023546855753
+      ]
+    },
+    {
+      "note": "D#5",
+      "rms": [
+        0.0012180855132891092,
+        0.0016371524636514846,
+        0.0025848340886170445,
+        0.005432608855014534
+      ]
+    },
+    {
+      "note": "F#5",
+      "rms": [
+        0.001231458287329776,
+        0.0018499396090465084,
+        0.002793041542839602,
+        0.0052921504316444795
+      ]
+    },
+    {
+      "note": "A5",
+      "rms": [
+        0.0007448053495226692,
+        0.0015231959967040253,
+        0.0029402525162926527,
+        0.0055373210490106475
+      ]
+    },
+    {
+      "note": "C6",
+      "rms": [
+        0.000253571491068615,
+        0.0007224973192473683,
+        0.002095653734082864,
+        0.0043062612657074305
+      ]
+    }
+  ],
+  "renders": [
+    {
+      "name": "defaults",
+      "mode": "host",
+      "peak": 0.06793412015261727,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9438964579894673,
+      "settings": {}
+    },
+    {
+      "name": "piano_release_min",
+      "mode": "host",
+      "peak": 0.06793412015261727,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.8987622919958085,
+      "settings": {
+        "piano_release": 0.05
+      }
+    },
+    {
+      "name": "piano_release_max",
+      "mode": "host",
+      "peak": 0.06793412015261727,
+      "tail_peak": 0.0,
+      "wall_seconds": 1.0964512909995392,
+      "settings": {
+        "piano_release": 1.5
+      }
+    },
+    {
+      "name": "piano_decay_min",
+      "mode": "host",
+      "peak": 0.058863142706024454,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9015734999848064,
+      "settings": {
+        "piano_decay": 0.5
+      }
+    },
+    {
+      "name": "piano_decay_max",
+      "mode": "host",
+      "peak": 0.06863505171691878,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9175131670199335,
+      "settings": {
+        "piano_decay": 8
+      }
+    },
+    {
+      "name": "piano_detune_min",
+      "mode": "host",
+      "peak": 0.0679353116328176,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9033335839922074,
+      "settings": {
+        "piano_detune": 0
+      }
+    },
+    {
+      "name": "piano_detune_max",
+      "mode": "host",
+      "peak": 0.06792786534731879,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9358811250131112,
+      "settings": {
+        "piano_detune": 10
+      }
+    },
+    {
+      "name": "piano_stiffness_min",
+      "mode": "host",
+      "peak": 0.053103225885039324,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9655498749925755,
+      "settings": {
+        "piano_stiffness": 0.25
+      }
+    },
+    {
+      "name": "piano_stiffness_max",
+      "mode": "host",
+      "peak": 0.05987480765739376,
+      "tail_peak": 0.0,
+      "wall_seconds": 1.1305570830008946,
+      "settings": {
+        "piano_stiffness": 2
+      }
+    },
+    {
+      "name": "piano_loss_min",
+      "mode": "host",
+      "peak": 0.06805923682385122,
+      "tail_peak": 0.0,
+      "wall_seconds": 1.0703601670102216,
+      "settings": {
+        "piano_loss": 0.0001
+      }
+    },
+    {
+      "name": "piano_loss_max",
+      "mode": "host",
+      "peak": 0.06741196835795626,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9426497500098776,
+      "settings": {
+        "piano_loss": 0.01
+      }
+    },
+    {
+      "name": "piano_mass_min",
+      "mode": "host",
+      "peak": 0.06595753201318429,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9268131669959985,
+      "settings": {
+        "piano_mass": 0.5
+      }
+    },
+    {
+      "name": "piano_mass_max",
+      "mode": "host",
+      "peak": 0.07196827136808527,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9285887079895474,
+      "settings": {
+        "piano_mass": 2
+      }
+    },
+    {
+      "name": "piano_hardness_min",
+      "mode": "host",
+      "peak": 0.060506637657072135,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9525340420077555,
+      "settings": {
+        "piano_hardness": 2000
+      }
+    },
+    {
+      "name": "piano_hardness_max",
+      "mode": "host",
+      "peak": 0.07377188038586391,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9168827079993207,
+      "settings": {
+        "piano_hardness": 6000
+      }
+    },
+    {
+      "name": "piano_strike_min",
+      "mode": "host",
+      "peak": 0.06637276838839382,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9188214160094503,
+      "settings": {
+        "piano_strike": 0.08
+      }
+    },
+    {
+      "name": "piano_strike_max",
+      "mode": "host",
+      "peak": 0.04692117215303019,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9318521250097547,
+      "settings": {
+        "piano_strike": 0.2
+      }
+    },
+    {
+      "name": "piano_strength_min",
+      "mode": "host",
+      "peak": 0.01906857896743939,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9389798339980189,
+      "settings": {
+        "piano_strength": 10
+      }
+    },
+    {
+      "name": "piano_strength_max",
+      "mode": "host",
+      "peak": 0.089944326468678,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9413035420002416,
+      "settings": {
+        "piano_strength": 40
+      }
+    },
+    {
+      "name": "piano_level_min",
+      "mode": "host",
+      "peak": 0.012080585553217825,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9679812919930555,
+      "settings": {
+        "piano_level": -18
+      }
+    },
+    {
+      "name": "piano_level_max",
+      "mode": "host",
+      "peak": 0.095959493937936,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.9524017499934416,
+      "settings": {
+        "piano_level": 0
+      }
+    },
+    {
+      "name": "short_note",
+      "mode": "host",
+      "peak": 0.023397707994866287,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.48609916600980796,
+      "settings": {}
+    },
+    {
+      "name": "retrigger",
+      "mode": "host",
+      "peak": 0.02383619771579455,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.6307809579884633,
+      "settings": {}
+    },
+    {
+      "name": "lowest_key",
+      "mode": "host",
+      "peak": 0.10211067144318252,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.5866042499837931,
+      "settings": {}
+    },
+    {
+      "name": "eight_note_chord",
+      "mode": "host",
+      "peak": 0.16734009476852635,
+      "tail_peak": 0.0,
+      "wall_seconds": 0.972916124999756,
+      "settings": {}
+    },
+    {
+      "name": "extreme_chord",
+      "mode": "host",
+      "peak": 0.4784933909631412,
+      "tail_peak": 0.0,
+      "wall_seconds": 1.2552807080210187,
+      "settings": {
+        "piano_release": 1.5,
+        "piano_decay": 8,
+        "piano_detune": 10,
+        "piano_stiffness": 2,
+        "piano_loss": 0.0001,
+        "piano_mass": 2,
+        "piano_hardness": 6000,
+        "piano_strike": 0.2,
+        "piano_strength": 40,
+        "piano_level": 0
+      }
+    },
+    {
+      "name": "offline_midi",
+      "mode": "midi",
+      "peak": 0.06793412015261736,
+      "tail_peak": 0.0,
+      "wall_seconds": 1.7566819580097217,
+      "settings": {}
+    },
+    {
+      "name": "offline_score",
+      "mode": "score",
+      "peak": 0.06793412015261736,
+      "tail_peak": 0.0,
+      "wall_seconds": 1.7241824580123648,
+      "settings": {}
+    },
+    {
+      "name": "88_key_sweep",
+      "mode": "host",
+      "peak": 0.0889815880822773,
+      "tail_peak": 0.0,
+      "wall_seconds": 2.1684463749988936,
+      "settings": {}
+    },
+    {
+      "name": "long_held_middle_4",
+      "mode": "host",
+      "peak": 0.047840799270046294,
+      "tail_peak": 0.0,
+      "wall_seconds": 2.949108958011493,
+      "settings": {
+        "piano_decay": 4
+      }
+    },
+    {
+      "name": "long_held_middle_8",
+      "mode": "host",
+      "peak": 0.04787696735324695,
+      "tail_peak": 0.0,
+      "wall_seconds": 2.985502458002884,
+      "settings": {
+        "piano_decay": 8
+      }
+    }
+  ],
+  "benchmark": [
+    {
+      "version": "previous",
+      "median_seconds": 4.467894583009183,
+      "runs": [
+        4.467894583009183,
+        4.470579500019085,
+        4.433826708002016
+      ]
+    },
+    {
+      "version": "compact",
+      "median_seconds": 2.4763112500077114,
+      "runs": [
+        2.470254167012172,
+        2.483215750020463,
+        2.4763112500077114
+      ]
+    }
+  ],
+  "upper_preservation": [
+    {
+      "note": "B5",
+      "max_absolute_difference": 4.4412680720584685e-09
+    },
+    {
+      "note": "C6",
+      "max_absolute_difference": 2.7305983862913052e-11
+    },
+    {
+      "note": "C7",
+      "max_absolute_difference": 4.7704805383741444e-11
+    }
+  ],
+  "listened_by_ear": false,
+  "spectrograms_opened_and_inspected": [
+    "Piano_From_Bass_to_Bells",
+    "Yamaha_previous_compact",
+    "controller_audition",
+    "keyboard_sweep"
+  ],
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed",
+  "git_diff_check": "passed",
+  "final_patch_sha256": "8cc783aea399fc6ddc766286b331fb3f72934ed0ea026f13ae8ec391a4f3047f",
+  "native_sha256": "63e30955ba5282d25ad0ae436e924ed2ab0d0babb7ebae05301cf675a491795c"
+}

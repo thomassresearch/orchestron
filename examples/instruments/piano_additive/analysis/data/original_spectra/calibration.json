@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "known_partials": 4,
+  "measured_partials": 4,
+  "slopes": [
+    {
+      "partial": 1,
+      "known_db_per_second": -7.5,
+      "measured_db_per_second": -7.499998166765324
+    },
+    {
+      "partial": 2,
+      "known_db_per_second": -15.0,
+      "measured_db_per_second": -14.999990037318303
+    },
+    {
+      "partial": 3,
+      "known_db_per_second": -30.0,
+      "measured_db_per_second": -29.99999155009071
+    },
+    {
+      "partial": 5,
+      "known_db_per_second": -42.85714285714286,
+      "measured_db_per_second": -42.85714180626122
+    }
+  ]
+}

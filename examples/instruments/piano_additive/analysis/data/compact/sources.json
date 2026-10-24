@@ -1,0 +1,362 @@
+[
+  {
+    "note": "A3",
+    "midi_note": 57,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/compact_revision/references/A3v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A3v4.flac",
+    "sha256": "7cfc9b2a18f8728431dfc236ca5c97793d3bdb413fd713eb13198c673982618f"
+  },
+  {
+    "note": "A3",
+    "midi_note": 57,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/compact_revision/references/A3v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A3v8.flac",
+    "sha256": "b02ed7c37d6b902552274c92d66911751ee52aac20b28618387e1388b1653ed4"
+  },
+  {
+    "note": "A3",
+    "midi_note": 57,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/compact_revision/references/A3v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A3v12.flac",
+    "sha256": "d1fbc87c103c7c04ed6620156f6716c3b3862af36e6368e02bbf8886576b739e"
+  },
+  {
+    "note": "A3",
+    "midi_note": 57,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/compact_revision/references/A3v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A3v16.flac",
+    "sha256": "d584ac0c3fc47e6ac35773ea71fb73d8ebee373c06130a47357ef5a3e9b2ef53"
+  },
+  {
+    "note": "C4",
+    "midi_note": 60,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/low_attack_analysis/references/C4v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v4.flac",
+    "sha256": "c68ab13a20f4e84361843417a17521d0cf7bd9587a43fbb36c04db56045990ed"
+  },
+  {
+    "note": "C4",
+    "midi_note": 60,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/low_attack_analysis/references/C4v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v8.flac",
+    "sha256": "36fb0535a1f21fe1dfc367c361dedda73710144e8c4940b40e97e6e5f8a3c694"
+  },
+  {
+    "note": "C4",
+    "midi_note": 60,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/low_attack_analysis/references/C4v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v12.flac",
+    "sha256": "21ebd25176ad28fabe364f22357cd8b7471b449c91b10ab4400c9c1408c74128"
+  },
+  {
+    "note": "C4",
+    "midi_note": 60,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/low_attack_analysis/references/C4v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C4v16.flac",
+    "sha256": "e2944a0d1b31ea0ff8eb82b20ae2108027f111d96fb680c6e36d01f40582c252"
+  },
+  {
+    "note": "D#4",
+    "midi_note": 63,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/compact_revision/references/D#4v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%234v4.flac",
+    "sha256": "dfd69f142177241a5219427e0c7012a19002b6bc98e11bafe287d7190f847b79"
+  },
+  {
+    "note": "D#4",
+    "midi_note": 63,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/compact_revision/references/D#4v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%234v8.flac",
+    "sha256": "295179461449c598c44ad712977d47b41c0c25d9c782d349094e748dc06c0dfa"
+  },
+  {
+    "note": "D#4",
+    "midi_note": 63,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/compact_revision/references/D#4v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%234v12.flac",
+    "sha256": "78bc671f77911b0750e5cf2b5377bea3f1615b64f97d209c5694433c673b0b31"
+  },
+  {
+    "note": "D#4",
+    "midi_note": 63,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/compact_revision/references/D#4v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%234v16.flac",
+    "sha256": "e16a8fe9c9f78a6a269054957458566ceca8603845dd5bf62e2ecc9e5f1e849d"
+  },
+  {
+    "note": "F#4",
+    "midi_note": 66,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/compact_revision/references/F#4v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%234v4.flac",
+    "sha256": "e024309f6f410365a9dea891a96d6df920e93d0c401a161f642c6e5e33de6ae3"
+  },
+  {
+    "note": "F#4",
+    "midi_note": 66,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/compact_revision/references/F#4v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%234v8.flac",
+    "sha256": "be2dc339e8cec5f2f1da4ff583672dbc518bf5319547a08901b094617ac6998e"
+  },
+  {
+    "note": "F#4",
+    "midi_note": 66,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/compact_revision/references/F#4v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%234v12.flac",
+    "sha256": "dd0d513f3187457ef1f7c5c2dcb274d6132df10ade225dba06a0f212bd499572"
+  },
+  {
+    "note": "F#4",
+    "midi_note": 66,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/compact_revision/references/F#4v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%234v16.flac",
+    "sha256": "76a4f0d7faaf8577f13c405f38b04f37cbd318064bf1c029e86e87ae9f3910dd"
+  },
+  {
+    "note": "A4",
+    "midi_note": 69,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/compact_revision/references/A4v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A4v4.flac",
+    "sha256": "4c6cc00539fef67b2f9540d789f099fb3dd04d779f4d4d385224a4d815918583"
+  },
+  {
+    "note": "A4",
+    "midi_note": 69,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/compact_revision/references/A4v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A4v8.flac",
+    "sha256": "59529694455698d7fd212cde8eec4029eaae8e5e6d454bb48bf36428eaa8009b"
+  },
+  {
+    "note": "A4",
+    "midi_note": 69,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/spectral_evolution/references/A4v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A4v12.flac",
+    "sha256": "16f43b59ecb870359978c4523c97745a13c439d56e574ed5a96aec633aae5f4f"
+  },
+  {
+    "note": "A4",
+    "midi_note": 69,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/compact_revision/references/A4v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A4v16.flac",
+    "sha256": "5bea0aeb7d5b8a3e332ea52c2c5cb195bfd2ebdf73689adddac13fbd24ff85b0"
+  },
+  {
+    "note": "C5",
+    "midi_note": 72,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/low_attack_analysis/references/C5v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v4.flac",
+    "sha256": "0d7c117cdb01b261cb3a303c4a7c9f56ef42015078e3c69ab3aa19dd39287a6c"
+  },
+  {
+    "note": "C5",
+    "midi_note": 72,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/low_attack_analysis/references/C5v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v8.flac",
+    "sha256": "f663242a552aad54113f186a6dd90c907c81d1f6374887a23179814544f78d79"
+  },
+  {
+    "note": "C5",
+    "midi_note": 72,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/low_attack_analysis/references/C5v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v12.flac",
+    "sha256": "bef7fa0e75075f0566400a5f5d7c313d6e295d287413c88e742e2dc2205d8915"
+  },
+  {
+    "note": "C5",
+    "midi_note": 72,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/low_attack_analysis/references/C5v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C5v16.flac",
+    "sha256": "6ae603ecdcf54ec2a55b5e727b7a67668475a4cfcb48a12a4677cb6402683073"
+  },
+  {
+    "note": "D#5",
+    "midi_note": 75,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/compact_revision/references/D#5v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%235v4.flac",
+    "sha256": "c7f25db21896025a0b71832e3e6b859a5e88f270b8230555b9ac4772913bf821"
+  },
+  {
+    "note": "D#5",
+    "midi_note": 75,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/compact_revision/references/D#5v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%235v8.flac",
+    "sha256": "f841ad0506994313f4202fbe3f07d917e60eeb10fb3461df3eae4fb9cd58432a"
+  },
+  {
+    "note": "D#5",
+    "midi_note": 75,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/compact_revision/references/D#5v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%235v12.flac",
+    "sha256": "84561eff0510969f90068b03de4b70c2965082609f4daf73dc80a213c67b4721"
+  },
+  {
+    "note": "D#5",
+    "midi_note": 75,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/compact_revision/references/D#5v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/D%235v16.flac",
+    "sha256": "ad16c4ac6eb1f359ab615eaa646747d91f12b27580c85d6567d1ec669bc105f6"
+  },
+  {
+    "note": "F#5",
+    "midi_note": 78,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/compact_revision/references/F#5v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%235v4.flac",
+    "sha256": "2a7a898c7e1b1287cc6b79844b24bd7cd39f232573e380f2264e1694a38845c1"
+  },
+  {
+    "note": "F#5",
+    "midi_note": 78,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/compact_revision/references/F#5v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%235v8.flac",
+    "sha256": "7757ef988e874313432a3b4ed586f0407fd4a9933b7ccc613b8ff96a2f83bc87"
+  },
+  {
+    "note": "F#5",
+    "midi_note": 78,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/compact_revision/references/F#5v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%235v12.flac",
+    "sha256": "8c93b4180c17e7c6c998b66d505cdcaea2bc9037790ab5e51847bbc28a4cf27e"
+  },
+  {
+    "note": "F#5",
+    "midi_note": 78,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/compact_revision/references/F#5v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/F%235v16.flac",
+    "sha256": "79594c2edcd522a812c5728c111fc5a076e4885969d9fd3aec7f3fff8e3cf6dc"
+  },
+  {
+    "note": "A5",
+    "midi_note": 81,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/compact_revision/references/A5v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A5v4.flac",
+    "sha256": "36bfb6bd47e8412e842334856c0c7f19005462f69f7cc9e1829bd7bfe0e3fe72"
+  },
+  {
+    "note": "A5",
+    "midi_note": 81,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/compact_revision/references/A5v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A5v8.flac",
+    "sha256": "c71f80ecee2dfc37519769ab97e2e92732bfce9314f6562ba884a737cfa018a9"
+  },
+  {
+    "note": "A5",
+    "midi_note": 81,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/compact_revision/references/A5v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A5v12.flac",
+    "sha256": "5cbe3f13c10a181fb6ab5637f083988eeaac4dfa900cef847693c2748c0b7bab"
+  },
+  {
+    "note": "A5",
+    "midi_note": 81,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/compact_revision/references/A5v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/A5v16.flac",
+    "sha256": "04e48cc80f16484d0d8fbe3d421534f2a6ae68119bf3369ae8bc8bb5ac8dda92"
+  },
+  {
+    "note": "C6",
+    "midi_note": 84,
+    "layer": 4,
+    "velocity": 40,
+    "path": "output/prepiano/spectral_evolution/references/C6v4.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C6v4.flac",
+    "sha256": "1f3f32e401bbd2a87a9c5b094aa6f748213fe762f3026554eb60305c02399ef7"
+  },
+  {
+    "note": "C6",
+    "midi_note": 84,
+    "layer": 8,
+    "velocity": 60,
+    "path": "output/prepiano/reference_comparison/C6v8.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C6v8.flac",
+    "sha256": "e5d5db275007d4b0e35ce94b00e0b53f6c659707517ee1326bd77eeba119693b"
+  },
+  {
+    "note": "C6",
+    "midi_note": 84,
+    "layer": 12,
+    "velocity": 92,
+    "path": "output/prepiano/reference_comparison/C6v12.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C6v12.flac",
+    "sha256": "a3bd4d493607a6683ecd0c9d638febf643f94130042828e77253dda60d5d3761"
+  },
+  {
+    "note": "C6",
+    "midi_note": 84,
+    "layer": 16,
+    "velocity": 124,
+    "path": "output/prepiano/spectral_evolution/references/C6v16.flac",
+    "url": "https://raw.githubusercontent.com/sfzinstruments/SalamanderGrandPiano/master/Samples/C6v16.flac",
+    "sha256": "e7cffec5a543fe98423606d82a13e3d79200b90fd0a30a27e9da67ccb091d166"
+  }
+]
