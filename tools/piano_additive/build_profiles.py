@@ -55,6 +55,8 @@ REFERENCE_HZ = 250.0
 RETAIN = {2, 4}
 FIT = json.loads((Path(__file__).resolve().parent/'fit.json').read_text())
 FIT_PARTIALS = {p['partial']:p for p in FIT['partials']}
+BASS_ENRICHMENT = json.loads((Path(__file__).resolve().parent/'bass_enrichment.json').read_text())
+BASS_PROFILES = {(p['key'], p['velocity']): p['tracks'] for p in BASS_ENRICHMENT['profiles']}
 
 
 def evaluate(target, note, velocity, **extra):
@@ -131,6 +133,23 @@ def make_file(key, velocity):
         frequency = round(REFERENCE_HZ*track['ratio'])
         assert 0 <= frequency <= 32767
         lines.append(f'-2,0,{frequency},13000,{frequency},32767')
+    # Append only the measured missing bass components. Keep original tracks,
+    # normalization and velocity-basis fitting unchanged so approved notes retain
+    # their exact synthesis. C1/F#1/C2 enrichment fades to zero at the C3 anchor.
+    # Use the emitted gain's precision, as in the validated offline experiment.
+    extra_norm = 65536 / float(f'{65536/norm:.12f}')
+    added = 0
+    for track in sorted(BASS_PROFILES.get((key, velocity), []), key=lambda t: t['partial']):
+        assert key <= 36 and track['partial'] <= 48 and track['partial'] not in PARTIALS
+        points = breakpoints(track['times'], track['levels'], extra_norm)
+        if max(amplitude for _, amplitude in points) == 0:
+            continue
+        frequency = round(REFERENCE_HZ * track['ratio'])
+        assert 0 <= frequency <= 32767
+        lines.append('-1,' + ','.join(f'{t},{a}' for t,a in points) + ',32767')
+        lines.append(f'-2,0,{frequency},13000,{frequency},32767')
+        added += 1
+    lines[0] = f'HETRO {len(tracks) + added}'
     filename = f'piano_k{key}_v{velocity}.het'
     path = OUT/'assets'/filename
     path.write_text('\n'.join(lines)+'\n', encoding='ascii')
@@ -251,6 +270,16 @@ def build():
     formula(g,'output_pan2.asig',entry['expression'].replace('bank0 + bank1 + bank2 + bank3','bank + '+' + '.join(retained_outputs)),
             **{i['token']:i['from_node_id']+'.'+i['from_port_id'] for i in entry['inputs']
                if i['from_node_id'] not in remove},bank='hetro_tone.ares',**retained_outputs)
+    from refine_middle import apply_middle_refinement
+    middle_data = json.loads((Path(__file__).resolve().parent/'middle_refinement.json').read_text())
+    middle_audit = apply_middle_refinement(p, middle_data, OUT, sys.modules[__name__])
+    original_assets = assets
+    assets = [cfg['sampleAsset'] for cfg in g['ui_layout']['adsyn_nodes'].values()]
+    used = {asset['stored_name'] for asset in assets}
+    for asset in original_assets:
+        if asset['stored_name'] not in used:
+            (OUT/'assets'/asset['stored_name']).unlink()
+    (OUT/'middle_velocity_basis.json').write_text(json.dumps(middle_audit,indent=2)+'\n')
     (OUT/'assets.json').write_text(json.dumps(assets,indent=2)+'\n')
     (OUT/'velocity_basis.json').write_text(json.dumps(audit,indent=2)+'\n')
     (OUT/'revised.json').write_text(json.dumps(p,indent=2)+'\n')
