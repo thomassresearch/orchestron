@@ -954,10 +954,23 @@ export function ReteNodeEditor({
       editorRef.current = editor;
       areaRef.current = area;
 
+      // Rete calls customize again on area.update. React must receive the same
+      // component type or it remounts the node and discards the focused input.
+      const nodeComponents = new Map<string, (props: any) => ReactNode>();
+      function ColoredControl(props: any) {
+        const input = <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />;
+        return props.data instanceof CoefficientListControl
+          ? <label className="block text-xs text-slate-900">{copy.coefficients}{input}</label>
+          : input;
+      }
+
       render.addPreset(
         ReactPresets.classic.setup({
           customize: {
             node(context) {
+              const nodeId = String(context.payload.id);
+              const existing = nodeComponents.get(nodeId);
+              if (existing) return existing;
               const opcodeName = String(context.payload.label);
               const spec = opcodeByName.get(opcodeName);
               const opcodeCategory = spec?.category;
@@ -966,7 +979,7 @@ export function ReteNodeEditor({
               const isSfloadNode = opcodeName === "sfload" || opcodeName === "adsyn";
               const isPerformanceController = opcodeName === "perf_controller";
 
-              return function ColoredNode(props: any) {
+              function ColoredNode(props: any) {
                 const patchNodeId = reteToPatchRef.current.get(String((context.payload as { id?: unknown }).id ?? ""));
                 return (
                   <div style={{ position: "relative" }} data-patch-node={patchNodeId} title={opcodeName.startsWith("__result_") ? flowCopy("resizeHelp") : undefined}>
@@ -1063,20 +1076,15 @@ export function ReteNodeEditor({
                     ) : null}
                   </div>
                 );
-              };
+              }
+              nodeComponents.set(nodeId, ColoredNode);
+              return ColoredNode;
             },
             control(context) {
               if (!(context.payload instanceof ClassicPreset.InputControl)) {
                 return null;
               }
-              return function ColoredControl(props: any) {
-                if (context.payload instanceof CoefficientListControl) {
-                  return <label className="block text-xs text-slate-900">{copy.coefficients}
-                    <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />
-                  </label>;
-                }
-                return <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />;
-              };
+              return ColoredControl;
             },
             connection(context) {
               return (context.payload as { isPseudo?: boolean }).isPseudo ? NonInteractiveConnection : ReactPresets.classic.Connection;

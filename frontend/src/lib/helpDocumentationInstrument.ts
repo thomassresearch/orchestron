@@ -335,7 +335,7 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
 - The canvas stores node positions, input-formula metadata, and other UI layout details with the patch, so reopening a saved patch restores the last arranged view.
 - Connections should follow compatible port types, but the backend compiler remains the final source of truth for missing inputs, invalid formulas, and compile errors.
 - The delete action only removes explicitly selected nodes or cables; casual socket interaction is intentionally prevented from tearing down existing wiring.
-- Constant nodes expose inline value editing, so simple control or init values can be adjusted without opening another inspector.
+- Constant nodes expose inline value editing. Type complete numbers, including decimals such as .25, without refocusing the field between characters.
 
 ### Stored Values and Formulas
 
@@ -366,7 +366,7 @@ If multiple signals are connected to the **same input** of an opcode:
 - Die Canvas speichert Node-Positionen, Input-Formula-Metadaten und weitere UI-Layout-Details zusammen mit dem Patch, sodass ein gespeicherter Patch wieder in der zuletzt angeordneten Ansicht oeffnet.
 - Verbindungen sollten kompatiblen Port-Typen folgen, aber der Backend-Compiler bleibt die letzte Instanz fuer fehlende Eingänge, ungueltige Formeln und Compile-Fehler.
 - Die Delete-Aktion entfernt nur explizit ausgewaehlte Nodes oder Kabel; lockere Socket-Interaktionen sollen bestehendes Wiring bewusst nicht versehentlich zerreissen.
-- Constant-Nodes erlauben Inline-Wertbearbeitung, damit einfache Control- oder Init-Werte ohne zusaetzlichen Inspector angepasst werden koennen.
+- Constant-Nodes erlauben Inline-Wertbearbeitung. Gib vollständige Zahlen einschließlich Dezimalzahlen wie .25 ein, ohne das Feld zwischen Zeichen erneut anzuklicken.
 
 ### Gespeicherte Werte und Formeln
 
@@ -397,7 +397,7 @@ Wenn mehrere Signale mit **demselben Eingang** eines Opcodes verbunden sind:
 - Le canevas stocke les positions des nœuds, les metadonnees de formule d'entree et d'autres details de mise en page UI avec le patch ; rouvrir un patch sauvegarde restaure donc la derniere vue organisee.
 - Les connexions doivent suivre des types de ports compatibles, mais le compilateur backend reste l'autorite finale pour les entrees manquantes, les formules invalides et les erreurs de compilation.
 - L'action de suppression ne retire que les nœuds ou cables explicitement selectionnes ; une interaction normale avec les sockets ne doit pas casser le cablage existant par accident.
-- Les nœuds constants exposent une edition inline des valeurs, ce qui permet d'ajuster des valeurs simples de controle ou d'init sans ouvrir un autre inspecteur.
+- Les nœuds constants permettent de saisir directement des nombres complets, y compris des décimales comme .25, sans recliquer dans le champ entre les caractères.
 
 ### Valeurs et formules enregistrées
 
@@ -428,7 +428,7 @@ Si plusieurs signaux sont connectés à **la même entrée** d'un opcode :
 - El lienzo guarda posiciones de nodos, metadatos de formulas de entrada y otros detalles de layout de la UI junto con el patch, asi que al reabrir un patch guardado se recupera la ultima disposicion.
 - Las conexiones deben seguir tipos de puerto compatibles, pero el compilador del backend sigue siendo la referencia final para entradas faltantes, formulas invalidas y errores de compilacion.
 - La accion de borrar solo elimina nodos o cables seleccionados de forma explicita; una interaccion casual con sockets no debe romper el cableado existente por accidente.
-- Los nodos constantes exponen edicion inline de valores para ajustar controles o valores init simples sin abrir otro inspector.
+- Los nodos constantes permiten escribir números completos, incluidos decimales como .25, sin volver a enfocar el campo entre caracteres.
 
 ### Valores y fórmulas guardados
 

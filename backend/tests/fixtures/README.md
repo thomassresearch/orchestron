@@ -127,3 +127,7 @@ MIDI/SCORE exports. Tests never import its example builder.
 patch-local 20 ms pitch memory, monophonic fallback, instance isolation,
 performance/CC controls, velocity, stereo output and release tails. Tests use
 the existing compiler unchanged and never load its developer example.
+
+`patches/goa_trance_fm_lead.patch.json` freezes the saved Goa lead that exposed
+the `limit` input-rate mismatch. It covers init-rate MIDI pitch/controller formulas,
+mixer compilation and native browser-clock audio without reading a live library.

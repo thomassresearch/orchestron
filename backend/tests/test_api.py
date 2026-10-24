@@ -8823,3 +8823,24 @@ def test_adsyn_invalid_analysis_compile_and_export_diagnostics(tmp_path, content
         result = client.post("/api/bundles/export/performance-csd", json=payload)
         assert result.status_code == 400, result.text
         assert "hetro" in result.text.lower() or "track" in result.text.lower()
+
+
+def test_goa_lead_session_compiles_limit_init_formula_as_audio(tmp_path: Path) -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=load_patch_fixture("goa_trance_fm_lead").model_dump(mode="json"))
+        assert patch.status_code == 201, patch.text
+        session = client.post("/api/sessions", json={
+            "instruments": [{"id": "lead", "patch_id": patch.json()["id"], "midi_channel": 5}],
+            "audio_graph": {"masterId": "$master", "routes": [
+                {"id": side, "sourceId": "lead", "sourcePort": side, "targetId": "$master", "targetPort": side}
+                for side in ["left", "right"]
+            ]},
+        })
+        assert session.status_code == 201, session.text
+        compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        limit = next(line for line in orc_code_lines(compiled.json()["orc"]) if " limit " in line)
+        assert " limit a((i_pitch_kfreq_" in limit
+        assert " * i_97626757_" in limit

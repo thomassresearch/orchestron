@@ -366,7 +366,9 @@ class OrchestraEmitter:
                 ):
                     env["aexcite2"] = OPTIONAL_OMIT_MARKER
 
-            if compiled.spec.name == "tanh" and "xin" in env:
+            # These catalog nodes always output audio. Csound's limit overload
+            # also requires an audio input, even for literal/i/k-rate formulas.
+            if compiled.spec.name in {"tanh", "limit"} and "xin" in env:
                 xin = env["xin"].strip()
                 if (
                     xin

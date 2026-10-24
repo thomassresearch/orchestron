@@ -103,7 +103,9 @@ Deletion flow:
 
 ### Constant Nodes
 
-The constant opcodes (`const_a`, `const_i`, `const_k`, `const_s`) provide inline editable values directly on the node. `const_s` accepts lowercase letters, digits, and underscores, must begin with a lowercase letter, and is limited to 50 characters.
+The constant opcodes (`const_a`, `const_i`, `const_k`, `const_s`) provide inline editable values directly on the node. Numeric fields keep focus while you type complete values, including a leading decimal point (for example `.25`), negative numbers and scientific notation. `const_s` accepts lowercase letters, digits, and underscores, must begin with a lowercase letter, and is limited to 50 characters.
+
+![Inline constant fields retain focus while entering decimals and multi-digit values](../../screenshots/instrument_constant_input_editing.jpg)
 
 ### Custom IIR Coefficients
 

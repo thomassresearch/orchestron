@@ -64,6 +64,8 @@ Build composite waveforms with the [GEN19 table editor](documentation/instrument
 
 Hover over an instrument's description in Instrument Design to read the full text in a tooltip.
 
+Edit [constant values](documentation/instrument_design/graph_editor.md#constant-nodes) directly on the node, including multi-digit numbers and decimals, while keeping the field focused.
+
 Bright-green input sockets reveal active stored values and formulas. Double-click any editable input—even without a cable—to inspect its value and source, edit it, or **Reset input** to the remaining connections or catalog default. See the [input value and formula guide](documentation/instrument_design/input_formula_assistant.md).
 
 Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to hear an unfinished patch on its own or in the context of a performance before saving it. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
