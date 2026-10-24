@@ -1,6 +1,6 @@
-# Piano Addiitive Synthesis — design and development
+# Piano Additive Synthesis — design and development
 
-**Piano Addiitive Synthesis** is a playable hybrid physical/additive piano for Orchestron. It combines Csound's `prepiano` string model with synthetic `adsyn` harmonic profiles, two retained partial oscillators, and a separate attack/contact model. The spelling “Addiitive” preserves the requested instrument name.
+**Piano Additive Synthesis** is a playable hybrid physical/additive piano for Orchestron. It combines Csound's `prepiano` string model with synthetic `adsyn` harmonic profiles, two retained partial oscillators, and a separate attack/contact model. The spelling “Additive” preserves the requested instrument name.
 
 The acoustic reference is **Alexander Holm's Salamander Grand Piano V3, recorded from a Yamaha C5**, distributed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The [reference library](https://github.com/sfzinstruments/SalamanderGrandPiano) supplied measurements of harmonic balance, velocity response and decay. The instrument contains **generated breakpoint data, not Yamaha audio samples**.
 
@@ -9,7 +9,7 @@ This documentation captures the design after the **C3–B4 harmonic/decay refine
 ## Use the current instrument
 
 - [Current instrument bundle](../Piano_Additive_Synthesis.orch.instrument.zip): import in Instrument Design.
-- [Current “From Bass to Bells” demo](../../performances/Piano_Addiitive_Synthesis_Demo.orch.zip): import in Perform. It retains the same two-hand arrangement, 110 notes, velocities and timing used throughout the later comparisons.
+- [Current “From Bass to Bells” demo](../../performances/Piano_Additive_Synthesis_Demo.orch.zip): import in Perform. It retains the same two-hand arrangement, 110 notes, velocities and timing used throughout the later comparisons.
 - [Current reproducible generator](../../../tools/piano_additive/build_profiles.py) and [generator notes](../../../tools/piano_additive/README.md).
 
 The `build_profiles.py`, `fit.json`, `velocity_basis.json` and demo ZIP already located **beside this README** are earlier conversion snapshots, preserved as historical material. In particular, the local demo ZIP is the initial additive version, not the current middle-refined version linked above. Use the current generator under `tools/piano_additive/` to reproduce the latest instrument.
