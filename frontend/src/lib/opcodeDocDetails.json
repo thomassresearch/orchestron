@@ -8731,5 +8731,65 @@
         "spanish": "Variable de salida `ares` de adsyn."
       }
     }
+  },
+  "swept_gate": {
+    "description": {
+      "english": "Orchestron triangle gate with a reversible linear frequency sweep. State is local to each instance. An off-to-on transition restarts at the start frequency and zero rising phase. Release returns at the same speed and closes at the start frequency; equal frequencies stop immediately. The audio-rate gate can feed a shared smoothing envelope. Pan position 0–1: current triangle while the LFO runs, including return; otherwise the held manual random position. LFO takes priority when both sources are on. Starts at 0.5 and holds through release. Scale externally with Stereo.",
+      "german": "Orchestron-Dreieck-Gate mit umkehrbarem linearem Frequenzverlauf. Jede Instanz besitzt einen eigenen Zustand. Einschalten setzt Startfrequenz und Phase auf den ansteigenden Nullpunkt zurück. Ausschalten führt mit gleicher Geschwindigkeit zur Startfrequenz zurück und schließt das Gate; gleiche Frequenzen stoppen sofort. Das Audioraten-Gate kann eine gemeinsame Glättungshüllkurve steuern. Pan-Position 0–1: aktueller Dreieckwert während des LFO-Laufs einschließlich Rücklauf, sonst gehaltener manueller Zufallswert. Der LFO hat Vorrang, wenn beide Quellen aktiv sind. Start bei 0,5; bleibt beim Ausklang gehalten. Extern mit Stereo skalieren.",
+      "french": "Porte triangulaire Orchestron avec balayage linéaire réversible de fréquence. Chaque instance conserve son propre état. Le passage arrêt-marche réinitialise la fréquence initiale et la phase montante à zéro. Le relâchement revient à la même vitesse et ferme la porte à la fréquence initiale ; des fréquences identiques arrêtent immédiatement. La sortie audio peut alimenter une enveloppe de lissage commune. Position panoramique 0–1 : triangle courant pendant le LFO, retour compris ; sinon valeur aléatoire manuelle maintenue. Le LFO est prioritaire lorsque les deux sources sont actives. Démarre à 0,5 et reste fixe pendant le relâchement. Régler l’intensité extérieurement avec Stereo.",
+      "spanish": "Puerta triangular de Orchestron con barrido lineal reversible de frecuencia. Cada instancia conserva su propio estado. Al activar se restablecen la frecuencia inicial y la fase ascendente desde cero. Al soltar vuelve a la misma velocidad y cierra en la frecuencia inicial; con frecuencias iguales se detiene inmediatamente. La salida de audio puede alimentar una envolvente de suavizado compartida. Posición panorámica 0–1: triángulo actual mientras funciona el LFO, incluido el regreso; en otro caso, posición aleatoria manual retenida. El LFO tiene prioridad cuando ambas fuentes están activas. Empieza en 0,5 y se mantiene durante la caída. Escalar externamente con Stereo."
+    },
+    "inputs": {
+      "kcommand": {
+        "english": "127 switches on, 0 starts the return sweep. Other values keep the switch state. Repeated 127 does not restart; 0 then 127 resets frequency and phase, even during return.",
+        "german": "127 schaltet ein, 0 startet den Rücklauf. Andere Werte halten den Schaltzustand. Wiederholte 127 starten nicht neu; 0 gefolgt von 127 setzt Frequenz und Phase auch im Rücklauf zurück.",
+        "french": "127 active, 0 lance le retour. Les autres valeurs conservent l’état. Répéter 127 ne redémarre pas ; 0 puis 127 réinitialise fréquence et phase, même pendant le retour.",
+        "spanish": "127 activa y 0 inicia el regreso. Otros valores mantienen el estado. Repetir 127 no reinicia; 0 seguido de 127 restablece frecuencia y fase, incluso durante el regreso."
+      },
+      "istart": {
+        "english": "Start frequency in Hz, clamped to 0.1–40. Initialization-rate setting; default 2 Hz.",
+        "german": "Startfrequenz in Hz, begrenzt auf 0,1–40. Initialisierungswert; Standard 2 Hz.",
+        "french": "Fréquence initiale en Hz, limitée à 0,1–40. Réglage à l’initialisation ; défaut 2 Hz.",
+        "spanish": "Frecuencia inicial en Hz, limitada a 0,1–40. Ajuste de inicialización; valor predeterminado 2 Hz."
+      },
+      "iend": {
+        "english": "End frequency in Hz, clamped to 0.1–40; default 16 Hz. Held while on after the sweep. May be lower than Start.",
+        "german": "Endfrequenz in Hz, begrenzt auf 0,1–40; Standard 16 Hz. Bleibt nach der Fahrt eingeschaltet konstant. Darf unter Start liegen.",
+        "french": "Fréquence finale en Hz, limitée à 0,1–40 ; défaut 16 Hz. Maintenue après le balayage tant que la porte est activée. Peut être inférieure à Start.",
+        "spanish": "Frecuencia final en Hz, limitada a 0,1–40; valor predeterminado 16 Hz. Se mantiene al terminar el barrido mientras esté activo. Puede ser menor que Start."
+      },
+      "itime": {
+        "english": "Full linear sweep duration in seconds, clamped to 0.01–60; default 4 s. Early returns take proportionally less time. Restart the rack after changing initialization settings.",
+        "german": "Dauer der vollständigen linearen Fahrt in Sekunden, begrenzt auf 0,01–60; Standard 4 s. Früher Rücklauf dauert entsprechend kürzer. Nach Änderung der Initialisierungswerte das Rack neu starten.",
+        "french": "Durée du balayage linéaire complet en secondes, limitée à 0,01–60 ; défaut 4 s. Les retours anticipés sont proportionnellement plus courts. Redémarrer le rack après modification des réglages d’initialisation.",
+        "spanish": "Duración del barrido lineal completo en segundos, limitada a 0,01–60; valor predeterminado 4 s. Los regresos anticipados tardan proporcionalmente menos. Reiniciar el rack después de modificar los ajustes de inicialización."
+      },
+      "ithreshold": {
+        "english": "Threshold clamped to 0–1; default 0.5. The 0–1 triangle opens the gate strictly above this value. Higher values shorten openings; 1 stays closed.",
+        "german": "Schwelle, begrenzt auf 0–1; Standard 0,5. Das 0–1-Dreieck öffnet nur oberhalb dieses Werts. Höhere Werte verkürzen die Öffnung; 1 bleibt geschlossen.",
+        "french": "Seuil limité à 0–1 ; défaut 0,5. Le triangle 0–1 ouvre la porte uniquement au-dessus de cette valeur. Un seuil supérieur raccourcit les ouvertures ; 1 reste fermé.",
+        "spanish": "Umbral limitado a 0–1; valor predeterminado 0,5. El triángulo 0–1 abre la puerta solo por encima de este valor. Un umbral mayor acorta las aperturas; 1 permanece cerrado."
+      },
+      "kmanual": {
+        "english": "Positive manual gate amplitude. Each zero-to-positive transition samples instance-local noise for pan; repeated or changed positive values hold it. Default 0 preserves existing graphs.",
+        "german": "Positive manuelle Gate-Amplitude. Jeder Wechsel von null zu positiv übernimmt einen Pan-Wert aus instanzeigenem Rauschen; wiederholte oder geänderte positive Werte halten ihn. Standard 0 erhält bestehende Graphen.",
+        "french": "Amplitude positive de la porte manuelle. Chaque passage de zéro à positif échantillonne le bruit propre à cette instance pour le panoramique ; les valeurs positives répétées ou modifiées le conservent. La valeur par défaut 0 préserve les graphes existants.",
+        "spanish": "Amplitud positiva de la puerta manual. Cada transición de cero a positivo toma una muestra del ruido de la instancia para la posición estéreo; los valores positivos repetidos o modificados la mantienen. El valor predeterminado 0 conserva los grafos existentes."
+      }
+    },
+    "outputs": {
+      "agate": {
+        "english": "Binary audio-rate gate, 0 or 1. Starts closed. Smooth externally with the desired attack/release envelope.",
+        "german": "Binäres Audioraten-Gate, 0 oder 1. Startet geschlossen. Extern mit der gewünschten Attack-/Release-Hüllkurve glätten.",
+        "french": "Porte binaire à fréquence audio, 0 ou 1. Démarre fermée. Lisser extérieurement avec l’enveloppe d’attaque et de relâchement souhaitée.",
+        "spanish": "Puerta binaria de frecuencia de audio, 0 o 1. Comienza cerrada. Suavizar externamente con la envolvente de ataque y caída deseada."
+      },
+      "apan": {
+        "english": "Pan position 0–1: current triangle while the LFO runs, including return; otherwise the held manual random position. LFO takes priority when both sources are on. Starts at 0.5 and holds through release. Scale externally with Stereo.",
+        "german": "Pan-Position 0–1: aktueller Dreieckwert während des LFO-Laufs einschließlich Rücklauf, sonst gehaltener manueller Zufallswert. Der LFO hat Vorrang, wenn beide Quellen aktiv sind. Start bei 0,5; bleibt beim Ausklang gehalten. Extern mit Stereo skalieren.",
+        "french": "Position panoramique 0–1 : triangle courant pendant le LFO, retour compris ; sinon valeur aléatoire manuelle maintenue. Le LFO est prioritaire lorsque les deux sources sont actives. Démarre à 0,5 et reste fixe pendant le relâchement. Régler l’intensité extérieurement avec Stereo.",
+        "spanish": "Posición panorámica 0–1: triángulo actual mientras funciona el LFO, incluido el regreso; en otro caso, posición aleatoria manual retenida. El LFO tiene prioridad cuando ambas fuentes están activas. Empieza en 0,5 y se mantiene durante la caída. Escalar externamente con Stereo."
+      }
+    }
   }
 }

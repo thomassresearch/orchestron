@@ -9,7 +9,7 @@ from backend.app.services.opcode_service import OpcodeService
 from backend.tests.stk_test_support import STK_CONTROLLERS
 
 
-@pytest.mark.parametrize("name", ["compress2", "pareq", "hsboscil", "pvscale", "ctrl7", "initc7", "stereo_capture", "prepiano", "adsyn"])
+@pytest.mark.parametrize("name", ["compress2", "pareq", "hsboscil", "pvscale", "ctrl7", "initc7", "stereo_capture", "swept_gate", "prepiano", "adsyn"])
 def test_compress2_pareq_hsboscil_have_icons_and_complete_localized_help(name: str) -> None:
     root = Path(__file__).resolve().parents[2]
     opcode = OpcodeService(icon_prefix="/static/icons").get_opcode(name)

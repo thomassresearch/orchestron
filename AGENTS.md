@@ -29,6 +29,8 @@ Legacy paths and environment variables retain the VisualCSound name. Keep this g
   When layout or interaction changes, take new screenshots, save to `screenshots/` (or update existing)
   and update the relevant documentation to reference the new screenshots.
   Keep labels and integrated help consistent across EN/DE/FR/ES.
+- The user manual in `documentation/` and its generated PDF are English-only. Do not add
+  translated sections or language-specific subchapters; multilingual UI/help remains separate.
 - README is for user capabilities, screenshots, and getting started. Preserve its title/opening
   through the user-documentation link and the full **Built With Codex** section unless the user
   requests changes. Keep implementation decisions here or in linked technical references.

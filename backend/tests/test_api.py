@@ -7851,6 +7851,10 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
 
 
 @pytest.mark.parametrize("fixture,values,defaults", [
+    ("trance_gate", {"tg_attack": 3, "tg_release": 17, "tg_lfo_start": 7, "tg_lfo_end": 25,
+                    "tg_lfo_time": 2.5, "tg_lfo_threshold": .7, "tg_stereo": .6},
+     {"tg_attack": 5, "tg_release": 10, "tg_lfo_start": 2, "tg_lfo_end": 16,
+      "tg_lfo_time": 4, "tg_lfo_threshold": .5, "tg_stereo": 0}),
     ("autopanner", {"ap_tempo": 137, "ap_beats": 1.375, "ap_depth": .63},
      {"ap_tempo": 120, "ap_beats": 4, "ap_depth": 1}),
     ("stereo_moog_filter", {"smf_cutoff": 2500, "smf_resonance": .75, "smf_channel": 3},
@@ -8020,7 +8024,7 @@ def test_tenor_saxophone_native_roundtrip_preserves_legato_and_controls(tmp_path
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture", "stereo_moog_filter", "autopanner"])
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture", "stereo_moog_filter", "autopanner", "trance_gate"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
@@ -8029,7 +8033,13 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
     from backend.tools.stereo_delay_audio import insert_graph, probe_source
 
     patch = load_patch_fixture(fixture)
-    if fixture == "autopanner":
+    if fixture == "trance_gate":
+        values = dict(tg_attack=3, tg_release=17, tg_lfo_start=7, tg_lfo_end=25,
+                      tg_lfo_time=2.5, tg_lfo_threshold=.7, tg_stereo=.6)
+        controls = [("Attack half-time (ms)", 1, 500, 5), ("Release half-time (ms)", 1, 1000, 10),
+                    ("Start frequency (Hz)", .1, 40, 2), ("End frequency (Hz)", .1, 40, 16),
+                    ("Sweep time (s)", .01, 60, 4), ("Threshold", 0, 1, .5), ("Stereo", 0, 1, 0)]
+    elif fixture == "autopanner":
         values = dict(ap_tempo=137, ap_beats=1.375, ap_depth=.63)
         controls = [("Tempo (BPM)", 40, 180, 120), ("Beats per cycle", .125, 16, 4), ("Depth", 0, 1, 1)]
     elif fixture == "stereo_moog_filter":
@@ -8089,7 +8099,7 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         listed = next(p for p in client.get("/api/patches").json() if p["id"] == restored["id"])
         assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == controls
         assert [c["scale"] for c in listed["performance_controllers"]] == [
-            "logarithmic" if (fixture in {"stereo_flanger", "stereo_moog_filter"} and index == 0) or (fixture == "bit_crusher" and index == 1) else "linear"
+            "logarithmic" if (fixture in {"stereo_flanger", "stereo_moog_filter"} and index == 0) or (fixture == "bit_crusher" and index == 1) or (fixture == "trance_gate" and index < 5) else "linear"
             for index in range(len(controls))
         ]
         saved = client.post("/api/performances", json=dict(name="Delay controls", config=config))
@@ -8106,7 +8116,11 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         assert "ksmps = 1" in csd
-        if fixture == "autopanner":
+        if fixture == "trance_gate":
+            assert csd.count("opcode vcs_swept_gate,") == 1
+            assert (" ctrl7 " in csd) == (event_source == "midiFile")
+            assert "setksmps 1" in csd and " follow2 " in csd
+        elif fixture == "autopanner":
             from backend.tests.csound_test_support import orc_code_lines
             code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
             assert code.count(" poscil3 ") == 1
@@ -8844,3 +8858,90 @@ def test_goa_lead_session_compiles_limit_init_formula_as_audio(tmp_path: Path) -
         limit = next(line for line in orc_code_lines(compiled.json()["orc"]) if " limit " in line)
         assert " limit a((i_pitch_kfreq_" in limit
         assert " * i_97626757_" in limit
+
+
+def test_guarded_goa_lead_native_roundtrip_preserves_formulas_and_controller_overrides(tmp_path: Path) -> None:
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tools.goa_lead_audio import SAVED_VALUES
+
+    patch = load_patch_fixture("goa_trance_fm_lead_guarded")
+    definition = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={"id"}))
+    payload = definition.model_dump(mode="json", by_alias=True)
+    with _client(tmp_path) as client:
+        exported = client.post("/api/bundles/export/patch", json=payload)
+        assert exported.status_code == 200, exported.text
+        filename = "Goa_Trance_FM_Lead.orch.instrument.json"
+        plan = {"patches": [{"id": "guarded-goa", "sourcePatchId": patch.id,
+                             "type": "create", "name": patch.name}]}
+        imported = client.post("/api/bundles/import/commit", files={"bundle": (filename, exported.content)},
+                               data={"plan": json.dumps(plan)})
+        assert imported.status_code == 200, imported.text
+        restored = client.get("/api/patches/guarded-goa").json()
+        assert restored["graph"] == payload["graph"]
+        assert restored["instrument_type"] == "melody"
+        session = client.post("/api/sessions", json={"instruments": [{
+            "id": "lead", "patch_id": "guarded-goa", "midi_channel": 5,
+            "performance_controller_values": SAVED_VALUES,
+        }]})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f'/api/sessions/{session.json()["session_id"]}/compile')
+        assert compiled.status_code == 200, compiled.text
+        bindings = compiled.json()["manifest"]["performanceControllers"]["lead"]
+        assert {key: value["value"] for key, value in bindings.items()} == SAVED_VALUES
+        orc = compiled.json()["orc"]
+        assert sum(" statevar " in line for line in orc_code_lines(orc)) == 2
+        assert "zdf_2pole" not in orc
+        assert "goa_stability_coefficient_0" in orc and "goa_stability_coefficient_1" in orc
+
+
+def test_swept_gate_catalog_contract(tmp_path):
+    with _client(tmp_path) as client:
+        response = client.get('/api/opcodes')
+        assert response.status_code == 200
+        opcode = next(item for item in response.json() if item['name'] == 'swept_gate')
+        assert [(p['id'], p['signal_type'], p['default']) for p in opcode['inputs']] == [
+            ('kcommand', 'k', 0), ('istart', 'i', 2), ('iend', 'i', 16),
+            ('itime', 'i', 4), ('ithreshold', 'i', .5), ('kmanual', 'k', 0)]
+        assert [(p['id'], p['signal_type']) for p in opcode['outputs']] == [('agate', 'a'), ('apan', 'a')]
+        assert opcode['documentation_url'].endswith('/documentation/instrument_design/trance_gate.md')
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_trance_gate_export_preserves_lfo_commands_and_stop_reset(tmp_path, event_source):
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tools.stereo_delay_audio import insert_graph, probe_source
+
+    patch = load_patch_fixture('trance_gate')
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    payload['performanceExport']['patch_definitions'] = [
+        ExportedPatchDefinition(sourcePatchId=p.id, **p.model_dump(exclude={'id'})).model_dump(mode='json', by_alias=True)
+        for p in (probe_source(), patch)]
+    payload['performanceExport']['performance']['config'] = dict(version=20, instruments=[
+        dict(id='source', patchId='stereo-delay-probe', midiChannel=0),
+        dict(id='delay', patchId=patch.id, midiChannel=0)],
+        audioGraph=insert_graph().model_dump(mode='json', by_alias=True))
+    payload['sequencerConfig'] = dict(timing={'tempo_bpm': 120}, playback_end_step=16, controller_tracks=[
+        dict(track_id='lfo', controller_number=29, controller_mode='step', reset_value=0,
+             target_channels=[16], timing={'steps_per_beat': 4}, length_beats=4,
+             pads=[dict(pad_index=0, steps=[127, 127, 64, 0, 127])])])
+    with _client(tmp_path) as client:
+        response = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+        assert csd.count('opcode vcs_swept_gate,') == 1
+        if event_source == 'midiFile':
+            events = [(tick, message.value) for tick, message in
+                      _midi_messages_with_absolute_ticks(archive.read('Offline_Export/Offline_Export.mid'))
+                      if message.type == 'control_change' and message.channel == 15 and message.control == 29]
+            assert [value for _, value in events] == [0, 127, 127, 64, 0, 127, 0]
+        else:
+            rows = [line.split() for line in csd.splitlines() if line.startswith('i 9000 ')]
+            events = [(float(row[2]), int(row[5])) for row in rows if int(row[4]) == 1949]
+            # Repeated switch values may be compacted; they must never retrigger.
+            assert [value for _, value in events] == [0, 127, 64, 0, 127, 0]
+        assert [value for time, value in events if time == 0][-1] == 127
+        assert events[-1][0] > 0 and events[-1][1] == 0

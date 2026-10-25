@@ -1,0 +1,635 @@
+{
+  "name": "Goa Trance FM Lead",
+  "description": "May only be used up to C6 (unstable above)",
+  "is_template": false,
+  "always_on": false,
+  "instrument_type": "melody",
+  "schema_version": 2,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 237.43955865483588,
+          "y": 49.81199321659644
+        }
+      },
+      {
+        "id": "velocity",
+        "opcode": "ampmidi",
+        "params": {
+          "iscal": 1
+        },
+        "position": {
+          "x": -150.85550901673977,
+          "y": 106.07304593061556
+        }
+      },
+      {
+        "id": "envelope",
+        "opcode": "madsr",
+        "params": {
+          "iatt": 0.01,
+          "idec": 0.15,
+          "islev": 0.7,
+          "irel": 0.2,
+          "idel": 0,
+          "ireltim": -1
+        },
+        "position": {
+          "x": -165.68752352978703,
+          "y": 443.01152960969887
+        }
+      },
+      {
+        "id": "198449fe-df56-4652-87ec-b485a2d526bd",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": 211.12825551072638,
+          "y": 415.6967782330839
+        }
+      },
+      {
+        "id": "899fecbf-f5a9-4223-bb62-a660a78bcc8e",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0,
+          "max": 10,
+          "default": 0.5,
+          "scale": "linear",
+          "label": "Modulation Index"
+        },
+        "position": {
+          "x": 75.01441526190506,
+          "y": 696.2100390613679
+        }
+      },
+      {
+        "id": "f7a78046-4533-4b1b-b6e6-9e93bfaefe68",
+        "opcode": "statevar",
+        "params": {
+          "iosamps": 0,
+          "istor": 0
+        },
+        "position": {
+          "x": 1313.6537056253992,
+          "y": 79.99783138097683
+        }
+      },
+      {
+        "id": "97626757-30a0-4ff8-8db1-09d7665a5e56",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 10,
+          "default": 0.5,
+          "scale": "logarithmic",
+          "label": "HP cutoff"
+        },
+        "position": {
+          "x": 228.4072383185862,
+          "y": -66.58305949512129
+        }
+      },
+      {
+        "id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+        "opcode": "limit",
+        "params": {
+          "xmin": -0.8,
+          "xmax": 0.8
+        },
+        "position": {
+          "x": 959.803237287361,
+          "y": -11.368277485034058
+        }
+      },
+      {
+        "id": "d74c3bd2-8370-4529-983e-d2037bc3a877",
+        "opcode": "const_i",
+        "params": {
+          "value": "10"
+        },
+        "position": {
+          "x": 608.0622972487654,
+          "y": -54.02953378004179
+        }
+      },
+      {
+        "id": "492b5f18-85a0-4e62-8f0e-4f000c71e619",
+        "opcode": "const_i",
+        "params": {
+          "value": "18000"
+        },
+        "position": {
+          "x": 618.2073603191058,
+          "y": 113.7279782272754
+        }
+      },
+      {
+        "id": "354bfb51-e700-4955-9141-b93bbe325c72",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.1,
+          "max": 5,
+          "default": 0.5,
+          "scale": "linear",
+          "label": "Reson"
+        },
+        "position": {
+          "x": 881.2705773316841,
+          "y": 492.45279924146604
+        }
+      },
+      {
+        "id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "opcode": "crossfmpmi",
+        "params": {
+          "xfrq1": 1,
+          "xfrq2": 1.5,
+          "xndx1": 2,
+          "xndx2": 2,
+          "kcps": 220,
+          "ifn1": 1,
+          "ifn2": 1,
+          "iphs1": 0,
+          "iphs2": 0
+        },
+        "position": {
+          "x": 576.8037931282012,
+          "y": 453.78015957520773
+        }
+      },
+      {
+        "id": "b29b4aef-fe1b-46ac-87fc-4383f638f714",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0,
+          "max": 10,
+          "default": 0.5,
+          "scale": "linear",
+          "label": "Modulation Index 2"
+        },
+        "position": {
+          "x": -40.402711862924406,
+          "y": 829.3334142390579
+        }
+      },
+      {
+        "id": "c6aada3f-f49d-409f-8055-730cbf5f17ab",
+        "opcode": "statevar",
+        "params": {
+          "xcf": 1200,
+          "iosamps": 0,
+          "istor": 0
+        },
+        "position": {
+          "x": 1342.6632530417403,
+          "y": 763.0554305820685
+        }
+      },
+      {
+        "id": "2b2236cd-bc37-4110-8f6f-e5cf6937adf3",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 151.25268182948193,
+          "y": 229.37994431091016
+        }
+      },
+      {
+        "id": "38b28604-6f05-48c6-a57d-052ce5cc5266",
+        "opcode": "GEN",
+        "params": {},
+        "position": {
+          "x": 167.4453528867971,
+          "y": 999.6691210956803
+        }
+      },
+      {
+        "id": "41c8c4ec-094b-49ff-b77f-99a65bb00092",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.0001"
+        },
+        "position": {
+          "x": -517.9506061753443,
+          "y": 363.7427699696526
+        }
+      },
+      {
+        "id": "4660bc64-7131-4324-86df-17f1a411de5f",
+        "opcode": "const_i",
+        "params": {
+          "value": "0.1"
+        },
+        "position": {
+          "x": -564.9933091416196,
+          "y": 531.6023893527477
+        }
+      },
+      {
+        "id": "1b282f58-9965-4333-9b9b-249a0362bf10",
+        "opcode": "const_i",
+        "params": {
+          "value": "1"
+        },
+        "position": {
+          "x": -559.0132726992213,
+          "y": 692.2362085716312
+        }
+      },
+      {
+        "id": "355ece54-e1bb-439a-807d-ebbf44d462f2",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0.125,
+          "max": 4,
+          "default": 0.25,
+          "scale": "linear",
+          "label": "Ratio"
+        },
+        "position": {
+          "x": 106.32664917346865,
+          "y": 573.4837181843491
+        }
+      },
+      {
+        "id": "output-left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1636.1540383770962,
+          "y": 432.60213795977086
+        }
+      },
+      {
+        "id": "output-right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1636.1540383770962,
+          "y": 612.6021379597718
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "f7a78046-4533-4b1b-b6e6-9e93bfaefe68",
+        "from_port_id": "ahp",
+        "to_node_id": "output-left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "97626757-30a0-4ff8-8db1-09d7665a5e56",
+        "from_port_id": "iout",
+        "to_node_id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "d74c3bd2-8370-4529-983e-d2037bc3a877",
+        "from_port_id": "iout",
+        "to_node_id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+        "to_port_id": "xmin"
+      },
+      {
+        "from_node_id": "492b5f18-85a0-4e62-8f0e-4f000c71e619",
+        "from_port_id": "iout",
+        "to_node_id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+        "to_port_id": "xmax"
+      },
+      {
+        "from_node_id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+        "from_port_id": "xout",
+        "to_node_id": "f7a78046-4533-4b1b-b6e6-9e93bfaefe68",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "354bfb51-e700-4955-9141-b93bbe325c72",
+        "from_port_id": "iout",
+        "to_node_id": "f7a78046-4533-4b1b-b6e6-9e93bfaefe68",
+        "to_port_id": "xq"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "198449fe-df56-4652-87ec-b485a2d526bd",
+        "from_port_id": "iout",
+        "to_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "to_port_id": "xfrq1"
+      },
+      {
+        "from_node_id": "899fecbf-f5a9-4223-bb62-a660a78bcc8e",
+        "from_port_id": "iout",
+        "to_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "to_port_id": "xndx1"
+      },
+      {
+        "from_node_id": "b29b4aef-fe1b-46ac-87fc-4383f638f714",
+        "from_port_id": "iout",
+        "to_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "to_port_id": "xndx2"
+      },
+      {
+        "from_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "from_port_id": "a1",
+        "to_node_id": "f7a78046-4533-4b1b-b6e6-9e93bfaefe68",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "354bfb51-e700-4955-9141-b93bbe325c72",
+        "from_port_id": "iout",
+        "to_node_id": "c6aada3f-f49d-409f-8055-730cbf5f17ab",
+        "to_port_id": "xq"
+      },
+      {
+        "from_node_id": "c6aada3f-f49d-409f-8055-730cbf5f17ab",
+        "from_port_id": "ahp",
+        "to_node_id": "output-right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "from_port_id": "a2",
+        "to_node_id": "c6aada3f-f49d-409f-8055-730cbf5f17ab",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+        "from_port_id": "xout",
+        "to_node_id": "c6aada3f-f49d-409f-8055-730cbf5f17ab",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "2b2236cd-bc37-4110-8f6f-e5cf6937adf3",
+        "from_port_id": "aout",
+        "to_node_id": "f7a78046-4533-4b1b-b6e6-9e93bfaefe68",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "2b2236cd-bc37-4110-8f6f-e5cf6937adf3",
+        "from_port_id": "aout",
+        "to_node_id": "c6aada3f-f49d-409f-8055-730cbf5f17ab",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "38b28604-6f05-48c6-a57d-052ce5cc5266",
+        "from_port_id": "ift",
+        "to_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "to_port_id": "ifn1"
+      },
+      {
+        "from_node_id": "38b28604-6f05-48c6-a57d-052ce5cc5266",
+        "from_port_id": "ift",
+        "to_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "to_port_id": "ifn2"
+      },
+      {
+        "from_node_id": "41c8c4ec-094b-49ff-b77f-99a65bb00092",
+        "from_port_id": "iout",
+        "to_node_id": "envelope",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "4660bc64-7131-4324-86df-17f1a411de5f",
+        "from_port_id": "iout",
+        "to_node_id": "envelope",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "1b282f58-9965-4333-9b9b-249a0362bf10",
+        "from_port_id": "iout",
+        "to_node_id": "envelope",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "4660bc64-7131-4324-86df-17f1a411de5f",
+        "from_port_id": "iout",
+        "to_node_id": "envelope",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "355ece54-e1bb-439a-807d-ebbf44d462f2",
+        "from_port_id": "iout",
+        "to_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+        "to_port_id": "xfrq2"
+      },
+      {
+        "from_node_id": "velocity",
+        "from_port_id": "iamp",
+        "to_node_id": "f7a78046-4533-4b1b-b6e6-9e93bfaefe68",
+        "to_port_id": "xcf"
+      },
+      {
+        "from_node_id": "envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "2b2236cd-bc37-4110-8f6f-e5cf6937adf3",
+        "to_port_id": "kin"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "07817312-2bf6-4a88-8465-db474d02b0fe::xin": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "pitch",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "97626757-30a0-4ff8-8db1-09d7665a5e56",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "f7a78046-4533-4b1b-b6e6-9e93bfaefe68::ain": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+              "from_port_id": "a1"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "2b2236cd-bc37-4110-8f6f-e5cf6937adf3",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "c6aada3f-f49d-409f-8055-730cbf5f17ab::ain": {
+          "expression": "in1 * in2",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "a44371b7-92b2-492b-8854-b4eec0dc268e",
+              "from_port_id": "a2"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "2b2236cd-bc37-4110-8f6f-e5cf6937adf3",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "f7a78046-4533-4b1b-b6e6-9e93bfaefe68::xq": {
+          "expression": "in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "354bfb51-e700-4955-9141-b93bbe325c72",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "c6aada3f-f49d-409f-8055-730cbf5f17ab::xq": {
+          "expression": "in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "354bfb51-e700-4955-9141-b93bbe325c72",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "f7a78046-4533-4b1b-b6e6-9e93bfaefe68::xcf": {
+          "expression": "in1 * (0.1+0.9*in2)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "07817312-2bf6-4a88-8465-db474d02b0fe",
+              "from_port_id": "xout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "velocity",
+              "from_port_id": "iamp"
+            }
+          ]
+        }
+      },
+      "gen_nodes": {
+        "38b28604-6f05-48c6-a57d-052ce5cc5266": {
+          "mode": "ftgen",
+          "tableNumber": 15,
+          "startTime": 0,
+          "tableSize": 16384,
+          "routineNumber": 10,
+          "routineName": "",
+          "normalize": true,
+          "harmonicAmplitudes": [
+            1,
+            0,
+            0.3,
+            0,
+            0.1,
+            0,
+            0.025
+          ],
+          "gen11HarmonicCount": 8,
+          "gen11LowestHarmonic": 1,
+          "gen11Multiplier": 1,
+          "valueList": [
+            1
+          ],
+          "segmentStartValue": 0,
+          "segments": [
+            {
+              "length": 16384,
+              "value": 1
+            }
+          ],
+          "gen17Pairs": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 127,
+              "y": 127
+            }
+          ],
+          "gen19Partials": [
+            {
+              "partial": 1,
+              "strength": 1,
+              "phase": 0,
+              "offset": 0
+            }
+          ],
+          "gen20WindowType": 1,
+          "gen20Max": 1,
+          "gen20Opt": 0.5,
+          "sampleAsset": null,
+          "samplePath": "",
+          "sampleSkipTime": 0,
+          "sampleFormat": 0,
+          "sampleChannel": 0,
+          "rawArgsText": ""
+        }
+      },
+      "editor_state": {
+        "selection": {
+          "nodeIds": [],
+          "connections": []
+        },
+        "viewport": {
+          "x": 813.4506937173109,
+          "y": 163.5264591075479,
+          "k": 0.6459126822502159
+        }
+      },
+      "control_flow_blocks": {}
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "zero_dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "main_input": null,
+      "main_output": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  },
+  "id": "9fa13a9e-18e5-49b5-a889-99ca7967072d"
+}

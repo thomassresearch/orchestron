@@ -1,0 +1,405 @@
+{
+  "name": "Trance Gate",
+  "description": "Continuous stereo Trance Gate. CH16 CC24 sets amplitude to CC/127. CH16 CC29: 127 starts a triangle LFO at Start frequency; 0 sweeps back and stops. Repeated 127 holds; other values leave the switch unchanged. On retrigger, frequency and phase restart. Sweep time is the full linear start-to-end duration; early release returns proportionally sooner. The 0–1 triangle starts at zero rising and opens above Threshold. Either CC24 or the LFO can open the gate. Shared Attack/Release half-times (defaults 5/10 ms) smooth the combined gain. Starts closed and never resets shared CC state. Use as a serial mixer insert with CH16 controller Step lanes and Reset Value 0. Leave CC24 at 0 for LFO-only gating. Restart the rack after changing performance controls.",
+  "is_template": false,
+  "always_on": true,
+  "instrument_type": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "tg_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack half-time (ms)",
+          "min": 1,
+          "max": 500,
+          "default": 5,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "tg_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release half-time (ms)",
+          "min": 1,
+          "max": 1000,
+          "default": 10,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "tg_lfo_start",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Start frequency (Hz)",
+          "min": 0.1,
+          "max": 40,
+          "default": 2,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "tg_lfo_end",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "End frequency (Hz)",
+          "min": 0.1,
+          "max": 40,
+          "default": 16,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -650.0
+        }
+      },
+      {
+        "id": "tg_lfo_time",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Sweep time (s)",
+          "min": 0.01,
+          "max": 60,
+          "default": 4,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -650.0
+        }
+      },
+      {
+        "id": "tg_lfo_threshold",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Threshold",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -650.0
+        }
+      },
+      {
+        "id": "tg_cc",
+        "opcode": "ctrl7",
+        "params": {
+          "ichan": 16,
+          "ictlno": 24,
+          "kmin": 0,
+          "kmax": 1,
+          "ifn": 0
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "tg_target_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 360.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "tg_lfo_cc",
+        "opcode": "ctrl7",
+        "params": {
+          "ichan": 16,
+          "ictlno": 29,
+          "kmin": 0,
+          "kmax": 127,
+          "ifn": 0
+        },
+        "position": {
+          "x": 0.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "tg_lfo",
+        "opcode": "swept_gate",
+        "params": {},
+        "position": {
+          "x": 720.0,
+          "y": 350.0
+        }
+      },
+      {
+        "id": "tg_envelope",
+        "opcode": "follow2",
+        "params": {},
+        "position": {
+          "x": 1080.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "tg_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "tg_gain_left",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1440.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "tg_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1150.0
+        }
+      },
+      {
+        "id": "tg_gain_right",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 1440.0,
+          "y": 1150.0
+        }
+      },
+      {
+        "id": "tg_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1800.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "tg_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1800.0,
+          "y": 1150.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "tg_cc",
+        "from_port_id": "kout",
+        "to_node_id": "tg_target_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "tg_lfo_cc",
+        "from_port_id": "kout",
+        "to_node_id": "tg_lfo",
+        "to_port_id": "kcommand"
+      },
+      {
+        "from_node_id": "tg_lfo_start",
+        "from_port_id": "iout",
+        "to_node_id": "tg_lfo",
+        "to_port_id": "istart"
+      },
+      {
+        "from_node_id": "tg_lfo_end",
+        "from_port_id": "iout",
+        "to_node_id": "tg_lfo",
+        "to_port_id": "iend"
+      },
+      {
+        "from_node_id": "tg_lfo_time",
+        "from_port_id": "iout",
+        "to_node_id": "tg_lfo",
+        "to_port_id": "itime"
+      },
+      {
+        "from_node_id": "tg_lfo_threshold",
+        "from_port_id": "iout",
+        "to_node_id": "tg_lfo",
+        "to_port_id": "ithreshold"
+      },
+      {
+        "from_node_id": "tg_target_audio",
+        "from_port_id": "aout",
+        "to_node_id": "tg_envelope",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tg_lfo",
+        "from_port_id": "agate",
+        "to_node_id": "tg_envelope",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "tg_attack",
+        "from_port_id": "iout",
+        "to_node_id": "tg_envelope",
+        "to_port_id": "katt"
+      },
+      {
+        "from_node_id": "tg_release",
+        "from_port_id": "iout",
+        "to_node_id": "tg_envelope",
+        "to_port_id": "krel"
+      },
+      {
+        "from_node_id": "tg_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "tg_gain_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "tg_envelope",
+        "from_port_id": "aout",
+        "to_node_id": "tg_gain_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "tg_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "tg_gain_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "tg_envelope",
+        "from_port_id": "aout",
+        "to_node_id": "tg_gain_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "tg_gain_left",
+        "from_port_id": "aout",
+        "to_node_id": "tg_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "tg_gain_right",
+        "from_port_id": "aout",
+        "to_node_id": "tg_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "tg_envelope::asig": {
+          "expression": "(manual + lfo + abs(manual - lfo)) * 0.5",
+          "inputs": [
+            {
+              "token": "manual",
+              "from_node_id": "tg_target_audio",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "tg_lfo",
+              "from_port_id": "agate"
+            }
+          ]
+        },
+        "tg_envelope::katt": {
+          "expression": "milliseconds * 0.009965784284662087",
+          "inputs": [
+            {
+              "token": "milliseconds",
+              "from_node_id": "tg_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "tg_envelope::krel": {
+          "expression": "milliseconds * 0.009965784284662087",
+          "inputs": [
+            {
+              "token": "milliseconds",
+              "from_node_id": "tg_release",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "tg_input": true,
+        "tg_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "tg_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "tg_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "tg_input",
+      "mainOutput": "tg_output",
+      "guided": false
+    },
+    "control_flow": {}
+  },
+  "id": "46336034-3d43-4b9d-af44-ce2715ed747b",
+  "created_at": "2026-10-25T13:10:37.112012Z",
+  "updated_at": "2026-10-25T13:10:37.112114Z"
+}

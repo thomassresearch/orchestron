@@ -30,5 +30,6 @@ For a parallel return, use **wet-only** output where supported, so the original 
 - [Stereo Widener, Bit Crusher, and Harmonizer](../instrument_design/continuous_effects.md)
 - [Granular Capture](../instrument_design/granular_capture.md)
 - [Stereo Moog Filter](../instrument_design/stereo_moog_filter.md)
+- [Trance Gate](../instrument_design/trance_gate.md)
 
 **Navigation:** [Up](performance.md) | [Prev](live_status_and_safety_controls.md) | [Next](../instrument_design/tube_overdrive.md)

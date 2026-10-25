@@ -1201,6 +1201,37 @@ def test_capture_helpers_are_instance_local_and_emitted_once(mixer, mode):
     assert controls['g0']['gc_channel']['channel'] != controls['g1']['gc_channel']['channel']
 
 
+@pytest.mark.parametrize("mixer", [False, True])
+@pytest.mark.parametrize("mode", ["midi", "score"])
+def test_swept_gate_helper_is_emitted_once_in_all_compilation_paths(mixer, mode):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    from backend.app.models.audio import AudioGraph, AudioRoute
+
+    patch = load_patch_fixture("trance_gate")
+    targets = [PatchInstrumentTarget(patch=patch, midi_channel=0, always_on=True,
+                                    assignment_id=f"gate{i}", performance_controller_values={"tg_lfo_start": i + 2, "tg_stereo": i})
+               for i in range(2)]
+    routes = [AudioRoute(id=f"r{i}{side}", sourceId=f"gate{i}", sourcePort=side,
+                        targetId="$output", targetPort=side) for i in range(2) for side in ("left", "right")]
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
+        targets, midi_input="0", rtmidi_module="none", performance_input_mode=mode,
+        audio_graph=AudioGraph(routes=routes) if mixer else None)
+    assert artifact.orc.count("opcode vcs_swept_gate,") == 1
+    assert artifact.orc.count(" vcs_swept_gate ") == 2
+    assert "setksmps 1" in artifact.orc
+    assert "kRandomPan samphold" in artifact.orc
+    assert "opcode vcs_swept_gate, aa, kiiiik" in artifact.orc
+    assert (" ctrl7 " in artifact.orc) == (mode == "midi")
+    bindings = artifact.manifest["performanceControllers"]
+    assert bindings["gate0"]["tg_lfo_start"]["channel"] != bindings["gate1"]["tg_lfo_start"]["channel"]
+    assert bindings["gate0"]["tg_stereo"]["value"] == 0
+    assert bindings["gate1"]["tg_stereo"]["value"] == 1
+    assert bindings["gate0"]["tg_stereo"]["channel"] != bindings["gate1"]["tg_stereo"]["channel"]
+    original = load_patch_fixture("trance_gate_original")
+    assert "vcs_swept_gate" not in CompilerService(OpcodeService("/static/icons")).compile_patch(original, "0", "none").orc
+
+
 @pytest.mark.parametrize('table', [None, 0, 7])
 @pytest.mark.parametrize('mode', ['midi', 'score'])
 def test_ctrl7_optional_table_and_continuous_score_channel(table, mode):

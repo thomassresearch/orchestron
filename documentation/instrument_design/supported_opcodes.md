@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **195** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **196** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -27,7 +27,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | math | 3 |
 | midi | 10 |
 | mixer | 3 |
-| modulation | 10 |
+| modulation | 11 |
 | noise | 3 |
 | oscillator | 21 |
 | output | 1 |
@@ -215,6 +215,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | randomi | 5 (k, k, k, i, i) | 1 (k) | Control-rate interpolated random generator with update frequency control. |
 | release | - | 1 (k) | Return 1 during note release phase and 0 otherwise. |
 | samphold | 4 (k, k, i, i) | 1 (k) | Control-rate sample-and-hold processor. |
+| swept_gate | 6 (k, i, i, i, i, k) | 2 (a, a) | Orchestron swept triangle gate with LFO and sample-and-hold random panning. |
 | vibr | 4 (k, k, i, i) | 1 (k) | Simple vibrato control oscillator with table lookup. |
 | vibrato | 9 (k, k, k, k, k, k, k, k, i) | 1 (k) | Randomized vibrato generator. |
 

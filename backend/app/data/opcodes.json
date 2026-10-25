@@ -17396,5 +17396,88 @@
       "source"
     ],
     "icon_filename": "vco.svg"
+  },
+  {
+    "name": "swept_gate",
+    "category": "modulation",
+    "description": "Orchestron swept triangle gate with LFO and sample-and-hold random panning.",
+    "documentation_markdown": "Instance-local triangle phase and sample-timed frequency travel. An off-to-on transition resets frequency and phase. The end frequency holds while on; off returns to start and closes the gate. Equal frequencies stop immediately on off. No MIDI state is initialized or changed. See the Trance Gate guide. The Pan output follows the current triangle during the LFO and return. Manual zero-to-positive openings sample instance-local noise; this position applies when the LFO is inactive and holds through release. Pan starts centered. Existing graphs may leave the manual input at zero and the Pan output unused.",
+    "documentation_url": "https://github.com/thomassresearch/orchestron/blob/main/documentation/instrument_design/trance_gate.md",
+    "inputs": [
+      {
+        "id": "kcommand",
+        "name": "Command",
+        "signal_type": "k",
+        "required": true,
+        "default": 0,
+        "description": "127 switches on; 0 returns to start; other values hold. Repeated 127 does not restart."
+      },
+      {
+        "id": "istart",
+        "name": "Start frequency",
+        "signal_type": "i",
+        "required": true,
+        "default": 2,
+        "description": "Start frequency in Hz, clamped to 0.1–40."
+      },
+      {
+        "id": "iend",
+        "name": "End frequency",
+        "signal_type": "i",
+        "required": true,
+        "default": 16,
+        "description": "End frequency in Hz, clamped to 0.1–40. Descending sweeps are supported."
+      },
+      {
+        "id": "itime",
+        "name": "Sweep time",
+        "signal_type": "i",
+        "required": true,
+        "default": 4,
+        "description": "Full linear sweep duration in seconds, clamped to 0.01–60. Partial returns take proportionally less time."
+      },
+      {
+        "id": "ithreshold",
+        "name": "Threshold",
+        "signal_type": "i",
+        "required": true,
+        "default": 0.5,
+        "description": "Gate opens when the 0–1 triangle is strictly above this value, clamped to 0–1."
+      },
+      {
+        "id": "kmanual",
+        "name": "Manual gate",
+        "signal_type": "k",
+        "required": true,
+        "default": 0,
+        "description": "Positive values open the manual gate. A zero-to-positive edge samples a new random pan position; positive-to-positive changes hold it."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "agate",
+        "name": "Gate",
+        "signal_type": "a",
+        "required": true,
+        "default": null,
+        "description": "Audio-rate binary gate (0 or 1), starting closed; triangle starts at zero rising."
+      },
+      {
+        "id": "apan",
+        "name": "Pan",
+        "signal_type": "a",
+        "required": true,
+        "default": null,
+        "description": "0–1 pan: current triangle during the LFO and return, otherwise held random manual position. Starts centered and holds through release."
+      }
+    ],
+    "template": "{agate}, {apan} vcs_swept_gate {kcommand}, {istart}, {iend}, {itime}, {ithreshold}, {kmanual}",
+    "tags": [
+      "gate",
+      "triangle",
+      "sweep",
+      "virtual"
+    ],
+    "icon_filename": "oscili.svg"
   }
 ]

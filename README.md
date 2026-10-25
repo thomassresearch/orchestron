@@ -19,6 +19,12 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
+[Trance Gate](documentation/instrument_design/trance_gate.md) combines direct CC24
+gating with a CC29-triggered triangle LFO that sweeps between two frequencies and
+returns smoothly on release, with adjustable sweep time and threshold.
+Its Stereo control adds triangle-driven balance during LFO sweeps and a held
+random position on each manual gate opening.
+
 The [Analog Drumkit](examples/instruments/analog_drumkit/README.md) provides 17
 sample-free percussion voices for breakbeats, with General MIDI note assignments,
 shared kick snappiness and hi-hat tuning, snare tuning, and individual controls
@@ -47,6 +53,10 @@ adds growl, and velocities 115–127 bring out an overblown squeal. The example 
 includes level-matched previews of the original and balanced acoustic revision.
 
 Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_design/opcode_catalog_and_documentation.md#zdf-and-custom-iir-filters): modulate cutoff and resonance at audio rate, use simultaneous filter outputs, or supply custom IIR coefficients.
+
+The [Goa Trance FM Lead](documentation/instrument_design/goa_trance_fm_lead.md)
+retains its original filters and sound at stable settings, with note-dependent
+resonance guards that prevent its high-register filter runaway.
 
 Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
 

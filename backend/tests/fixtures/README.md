@@ -1,5 +1,11 @@
 # Test fixtures
 
+`patches/trance_gate_original.patch.json` freezes the original CC24 stereo gate;
+`patches/trance_gate.patch.json` adds the CC29 swept triangle LFO. Paired renders
+verify sample-identical direct gating, analytic sweep timing, early returns,
+retriggers, command latching, stereo/instance isolation and MIDI/SCORE exports.
+Tests never load the authoring builder or developer examples.
+
 `patches/ambient_rounded_sub.patch.json` and `patches/ambient_wavetable_cloud.patch.json`
 are independent Ambient Techno snapshots. Native DSP tests cover CC scaling and
 smoothing, explicit-channel isolation, note/release behavior, polyphony, tuning,
@@ -131,3 +137,13 @@ the existing compiler unchanged and never load its developer example.
 `patches/goa_trance_fm_lead.patch.json` freezes the saved Goa lead that exposed
 the `limit` input-rate mismatch. It covers init-rate MIDI pitch/controller formulas,
 mixer compilation and native browser-clock audio without reading a live library.
+
+`patches/goa_trance_fm_lead_crossfm_original.patch.json` preserves the later
+cross-FM lead and its A♯5 filter instability. The paired
+`patches/goa_trance_fm_lead_guarded.patch.json` adds per-channel Q guards.
+Tests verify exact pole bounds, unchanged stable notes, controller corners,
+native MIDI/SCORE audio, release, and native bundle/controller round trips.
+
+`trance_gate_lfo_original.patch.json` freezes the swept-LFO graph before Stereo
+was added. `trance_gate.patch.json` includes Stereo; tests verify exact previous
+output at Stereo 0 without reading example files or importing its builder.

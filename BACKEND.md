@@ -235,6 +235,18 @@ Parameter emission retains the instance/route identity, parameter kind and field
 
 ### MidiService
 
+The `swept_gate` virtual opcode emits `vcs_swept_gate` once in standalone and mixer
+compilation, including both offline modes. Its instance-local UDO uses `setksmps 1`,
+integer sample travel and integrated linear frequency for a resettable 0–1 triangle.
+Only command 127/0 changes the latch; release returns at the outgoing speed and
+closes at the start endpoint. Parameters clamp to the documented frequency/time/
+threshold bounds. Its second audio output holds the selected pan: triangle while
+active, otherwise instance-local noise sampled on manual zero-to-positive edges.
+Pan holds through release; the patch applies `tg_stereo` after the shared envelope.
+MIDI reads remain ordinary explicit-channel `ctrl7` nodes;
+no shared controller writes or scheduler changes are involved. See
+[Trance Gate](documentation/instrument_design/trance_gate.md).
+
 The `initc7` opcode initializes one explicit MIDI channel/controller pair when its
 instrument starts. SCORE compilation uses an init-only assignment to the same
 controller array read by `ctrl7`, preserving Csound's internal `ivalue * 127 + 0.5`

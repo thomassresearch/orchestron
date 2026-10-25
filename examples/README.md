@@ -13,6 +13,14 @@ The EDM, techno and psy trance instruments are available as native exports:
 [Goa Ray Lead](instruments/Goa_Ray_Lead.orch.instrument.json), and
 [Psy Rotor Bass](instruments/Psy_Rotor_Bass.orch.instrument.json).
 
+[Trance Gate](instruments/Trance_Gate.orch.instrument.json) retains CH16/CC24 gating
+and adds a swept triangle LFO on CH16/CC29. See its
+[controls and setup](../documentation/instrument_design/trance_gate.md).
+
+The [Goa Trance FM Lead](instruments/Goa_Trance_FM_Lead.orch.instrument.json)
+retains its stereo `statevar` filters with pitch-dependent stability guards.
+See the [guard derivation and validation](../documentation/instrument_design/goa_trance_fm_lead.md).
+
 The [Goa / Psytrance guide](instruments/GOA_PSYTRANCE.md) describes
 six more instruments with built-in echoes and reverb: acid lead, FM bleeps,
 vowel talker, laser zaps, stepped bubbles, and a rising noise/FM effect.

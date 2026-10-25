@@ -21,6 +21,7 @@ from backend.app.services.orc_metadata import format_csd_comment_value, instrume
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines, validate_legato
 from backend.app.services.compiler_waveguide import waveguide_header
 from backend.app.services.compiler_granular import granular_header
+from backend.app.services.compiler_swept_gate import swept_gate_header
 
 
 class CompilerService:
@@ -111,6 +112,7 @@ class CompilerService:
         ]
         orc_lines.extend(waveguide_header(targets))
         orc_lines.extend(granular_header(targets))
+        orc_lines.extend(swept_gate_header(targets))
         if legato_targets:
             orc_lines.extend([LEGATO_OPCODES, ""])
             for index, target in legato_targets.items():

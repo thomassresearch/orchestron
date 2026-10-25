@@ -96,3 +96,19 @@ The exported CSD score still contains a finite `f 0 <duration>` line. The durati
 defaults to 16. Unlike Granular Capture, it explicitly initializes its two shared
 CCs to maximum using `initc7`; starting another instance on the same channel resets
 those values for every receiver. Performance settings remain I-rate.
+
+[Trance Gate](documentation/instrument_design/trance_gate.md) combines CH16/CC24
+amplitude with a triangle LFO switched by CH16/CC29 (127 on, 0 return, other values
+ignored). The instance-local `swept_gate` UDO uses `setksmps 1` for linear frequency
+travel and phase integration; both compiler paths emit it once, including MIDI
+and SCORE exports. Repeated 127 holds the sweep; switching on during return resets
+frequency and phase. The maximum of both gate sources feeds one shared `follow2`
+envelope for stereo timing. Start/end frequency, full sweep time and threshold are
+I-rate performance settings. Neither CC is initialized by the patch. Use sequencer
+Reset Value 0 and allow the return sweep and envelope release to finish.
+
+Trance Gate also exposes `tg_stereo` (0–1, default 0). The UDO Pan output follows
+the triangle while active, including return; otherwise manual CC24 zero-to-positive
+openings sample instance-local `rand` noise through `samphold`. Positive repeats hold.
+LFO pan takes priority, and release holds the last position. Separate post-envelope
+balance multipliers preserve channels and exact previous output at Stereo 0.
