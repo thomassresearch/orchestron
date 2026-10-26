@@ -70,6 +70,17 @@ library controls and their saved overrides remain valid. New notes adopt changes
 
 ![Lower controls including individual tom tuning and tambourine decay](../../screenshots/analog_drumkit_breakbeat_controls_lower.png)
 
+<!-- pagebreak -->
+
+## Granular Synthesis
+
+[Granular Synthesis](../../examples/instruments/granular_synthesis/README.md)
+exposes 32 settings for its two `grain3` streams: harmonic source shaping, grain
+windows, density and duration, pitch and phase scatter, random distributions,
+internal motion, filters, ADSR, stereo width, pan and output level. Settings
+apply to new notes; held notes continue their initialized internal modulation.
+The guide includes controller ranges and five reproducible sound recipes.
+
 ## Stereo Chorus Depth
 
 [Download Stereo Chorus](../../examples/instruments/Stereo_Chorus.orch.instrument.json)
