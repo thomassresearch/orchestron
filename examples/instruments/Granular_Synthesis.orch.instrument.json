@@ -1,0 +1,2645 @@
+{
+  "sourcePatchId": "bbff4db5-ff6a-41ad-ab21-950b45c543c0",
+  "name": "Granular Synthesis",
+  "description": "Sample-free polyphonic stereo grain3 synthesizer with 30 performance controls. From sparse grains and glassy clouds to dense pads, noisy swarms and sync-like tones. Two independently seeded grain streams; harmonic/odd-even source shaping, five grain windows, pitch/phase scatter and distributions, evolving density/duration/phase/pitch, resonant filters, ADSR and stereo width. Pan and output level are set in the performance rack. Best MIDI 36–84. Window: 1 Hamming, 2 Hann, 3 triangle, 4 Blackman, 5 Blackman-Harris. Window, transpose, sync, follow and seed round to integers. Performance controllers apply to NEW notes; internal motion continues on held notes. Dry Stereo Output: route to Master; add shared reverb/delay to taste.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40.0,
+          "y": 40.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 40.0,
+          "y": 130.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 150.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 250.0,
+          "y": 340.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 460.0,
+          "y": 240.0
+        }
+      },
+      {
+        "id": "gs_harmonics",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Harmonic richness",
+          "min": 0,
+          "max": 1,
+          "default": 0.55,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "gs_even",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Even harmonics",
+          "min": 0,
+          "max": 1,
+          "default": 0.65,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1360.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "gs_window",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grain window (1–5)",
+          "min": 1,
+          "max": 5,
+          "default": 2,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1020.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "gs_density",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grains per second",
+          "min": 2,
+          "max": 240,
+          "default": 48,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -680.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "gs_duration",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grain duration (ms)",
+          "min": 4,
+          "max": 400,
+          "default": 90,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": -760.0
+        }
+      },
+      {
+        "id": "gs_scatter",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Pitch scatter (ratio)",
+          "min": 0,
+          "max": 1.5,
+          "default": 0.025,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1360.0,
+          "y": -760.0
+        }
+      },
+      {
+        "id": "gs_phase",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grain start phase",
+          "min": 0,
+          "max": 1,
+          "default": 0.25,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1020.0,
+          "y": -760.0
+        }
+      },
+      {
+        "id": "gs_phase_scatter",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Phase scatter",
+          "min": 0,
+          "max": 0.5,
+          "default": 0.5,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -680.0,
+          "y": -760.0
+        }
+      },
+      {
+        "id": "gs_pitch_distribution",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Pitch distribution",
+          "min": -0.95,
+          "max": 0.95,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": -520.0
+        }
+      },
+      {
+        "id": "gs_phase_distribution",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Phase distribution",
+          "min": -0.95,
+          "max": 0.95,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1360.0,
+          "y": -520.0
+        }
+      },
+      {
+        "id": "gs_sync",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Pitch sync (0/1)",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1020.0,
+          "y": -520.0
+        }
+      },
+      {
+        "id": "gs_follow",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Grains follow motion (0/1)",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -680.0,
+          "y": -520.0
+        }
+      },
+      {
+        "id": "gs_transpose",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Transpose (semitones)",
+          "min": -24,
+          "max": 24,
+          "default": 0,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": -280.0
+        }
+      },
+      {
+        "id": "gs_detune",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Stereo detune (cents)",
+          "min": 0,
+          "max": 30,
+          "default": 7,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1360.0,
+          "y": -280.0
+        }
+      },
+      {
+        "id": "gs_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Motion rate (Hz)",
+          "min": 0.02,
+          "max": 8,
+          "default": 0.18,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1020.0,
+          "y": -280.0
+        }
+      },
+      {
+        "id": "gs_scan",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Phase scan depth",
+          "min": 0,
+          "max": 0.5,
+          "default": 0.12,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -680.0,
+          "y": -280.0
+        }
+      },
+      {
+        "id": "gs_density_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Density motion",
+          "min": 0,
+          "max": 0.8,
+          "default": 0.15,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": -40.0
+        }
+      },
+      {
+        "id": "gs_duration_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Duration motion",
+          "min": 0,
+          "max": 0.8,
+          "default": 0.1,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1360.0,
+          "y": -40.0
+        }
+      },
+      {
+        "id": "gs_vibrato",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Pitch motion (cents)",
+          "min": 0,
+          "max": 100,
+          "default": 3,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1020.0,
+          "y": -40.0
+        }
+      },
+      {
+        "id": "gs_cutoff",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Low-pass cutoff (Hz)",
+          "min": 80,
+          "max": 18000,
+          "default": 6500,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -680.0,
+          "y": -40.0
+        }
+      },
+      {
+        "id": "gs_resonance",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter resonance",
+          "min": 0,
+          "max": 0.75,
+          "default": 0.12,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_filter_env",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter envelope (octaves)",
+          "min": 0,
+          "max": 3,
+          "default": 0.4,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1360.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_filter_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter motion (octaves)",
+          "min": 0,
+          "max": 3,
+          "default": 0.25,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1020.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_highpass",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "High-pass cutoff (Hz)",
+          "min": 20,
+          "max": 2000,
+          "default": 35,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -680.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack (s)",
+          "min": 0.002,
+          "max": 5,
+          "default": 0.35,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": 440.0
+        }
+      },
+      {
+        "id": "gs_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Decay (s)",
+          "min": 0.01,
+          "max": 5,
+          "default": 0.7,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -1360.0,
+          "y": 440.0
+        }
+      },
+      {
+        "id": "gs_sustain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Sustain",
+          "min": 0,
+          "max": 1,
+          "default": 0.8,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1020.0,
+          "y": 440.0
+        }
+      },
+      {
+        "id": "gs_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release (s)",
+          "min": 0.02,
+          "max": 8,
+          "default": 1.6,
+          "scale": "logarithmic"
+        },
+        "position": {
+          "x": -680.0,
+          "y": 440.0
+        }
+      },
+      {
+        "id": "gs_width",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Stereo width",
+          "min": 0,
+          "max": 1,
+          "default": 0.85,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -1700.0,
+          "y": 680.0
+        }
+      },
+      {
+        "id": "gs_pan",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.5
+        },
+        "position": {
+          "x": -1360.0,
+          "y": 680.0
+        }
+      },
+      {
+        "id": "gs_level",
+        "opcode": "const_i",
+        "params": {
+          "value": -3
+        },
+        "position": {
+          "x": -1020.0,
+          "y": 680.0
+        }
+      },
+      {
+        "id": "gs_seed",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Random seed",
+          "min": 1,
+          "max": 10000,
+          "default": 137,
+          "scale": "linear"
+        },
+        "position": {
+          "x": -680.0,
+          "y": 680.0
+        }
+      },
+      {
+        "id": "gs_wave",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 8192,
+          "igen": 10,
+          "iarg1": 1
+        },
+        "position": {
+          "x": 300.0,
+          "y": -1200.0
+        }
+      },
+      {
+        "id": "gs_window_table",
+        "opcode": "ftgenonce",
+        "params": {
+          "ip1": 0,
+          "ip2dummy": 0,
+          "isize": 2048,
+          "igen": 20
+        },
+        "position": {
+          "x": 300.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "gs_lfo_0",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 650.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "gs_lfo_1",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 650.0,
+          "y": -760.0
+        }
+      },
+      {
+        "id": "gs_lfo_2",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 1,
+          "itype": 0
+        },
+        "position": {
+          "x": 650.0,
+          "y": -520.0
+        }
+      },
+      {
+        "id": "gs_filter_hz",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1000.0,
+          "y": 900.0
+        }
+      },
+      {
+        "id": "gs_gain",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1000.0,
+          "y": 1200.0
+        }
+      },
+      {
+        "id": "gs_grain_l",
+        "opcode": "grain3",
+        "params": {
+          "imaxovr": 1024
+        },
+        "position": {
+          "x": 1350.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "gs_tone_l",
+        "opcode": "moogladder",
+        "params": {},
+        "position": {
+          "x": 1780.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "gs_hp_l",
+        "opcode": "butterhp",
+        "params": {},
+        "position": {
+          "x": 2150.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "gs_pan_l",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 2500.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "gs_grain_r",
+        "opcode": "grain3",
+        "params": {
+          "imaxovr": 1024
+        },
+        "position": {
+          "x": 1350.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_tone_r",
+        "opcode": "moogladder",
+        "params": {},
+        "position": {
+          "x": 1780.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_hp_r",
+        "opcode": "butterhp",
+        "params": {},
+        "position": {
+          "x": 2150.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_pan_r",
+        "opcode": "pan2",
+        "params": {
+          "imode": 0
+        },
+        "position": {
+          "x": 2500.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "gs_mix_left",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2850.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "gs_mix_right",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2850.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 3200.0,
+          "y": -300.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 3200.0,
+          "y": -300.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "gs_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "gs_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "gs_sustain",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "gs_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "gs_harmonics",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "gs_even",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg2"
+      },
+      {
+        "from_node_id": "gs_harmonics",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg3"
+      },
+      {
+        "from_node_id": "gs_harmonics",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "gs_even",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg4"
+      },
+      {
+        "from_node_id": "gs_harmonics",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg5"
+      },
+      {
+        "from_node_id": "gs_harmonics",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "gs_even",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg6"
+      },
+      {
+        "from_node_id": "gs_harmonics",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg7"
+      },
+      {
+        "from_node_id": "gs_harmonics",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "gs_even",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_wave",
+        "to_port_id": "iarg8"
+      },
+      {
+        "from_node_id": "gs_window",
+        "from_port_id": "iout",
+        "to_node_id": "gs_window_table",
+        "to_port_id": "iarg1"
+      },
+      {
+        "from_node_id": "gs_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_lfo_0",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_lfo_1",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_lfo_2",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_cutoff",
+        "from_port_id": "iout",
+        "to_node_id": "gs_filter_hz",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gs_filter_env",
+        "from_port_id": "iout",
+        "to_node_id": "gs_filter_hz",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "gs_filter_hz",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gs_filter_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_filter_hz",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gs_lfo_2",
+        "from_port_id": "kout",
+        "to_node_id": "gs_filter_hz",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "gs_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "gs_level",
+        "from_port_id": "iout",
+        "to_node_id": "gs_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "gs_density",
+        "from_port_id": "iout",
+        "to_node_id": "gs_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "gs_duration",
+        "from_port_id": "iout",
+        "to_node_id": "gs_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "gs_density_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "gs_duration_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_lfo_0",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_phase",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kphs"
+      },
+      {
+        "from_node_id": "gs_scan",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kphs"
+      },
+      {
+        "from_node_id": "gs_lfo_1",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kphs"
+      },
+      {
+        "from_node_id": "gs_phase_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kpmd"
+      },
+      {
+        "from_node_id": "gs_duration",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kgdur"
+      },
+      {
+        "from_node_id": "gs_duration_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kgdur"
+      },
+      {
+        "from_node_id": "gs_lfo_1",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kgdur"
+      },
+      {
+        "from_node_id": "gs_density",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kdens"
+      },
+      {
+        "from_node_id": "gs_density_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kdens"
+      },
+      {
+        "from_node_id": "gs_lfo_0",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kdens"
+      },
+      {
+        "from_node_id": "gs_wave",
+        "from_port_id": "ift",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kfn"
+      },
+      {
+        "from_node_id": "gs_window_table",
+        "from_port_id": "ift",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "iwfn"
+      },
+      {
+        "from_node_id": "gs_pitch_distribution",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kfrpow"
+      },
+      {
+        "from_node_id": "gs_phase_distribution",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "kprpow"
+      },
+      {
+        "from_node_id": "gs_seed",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "iseed"
+      },
+      {
+        "from_node_id": "gs_sync",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "gs_follow",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_l",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "gs_grain_l",
+        "from_port_id": "asig",
+        "to_node_id": "gs_tone_l",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "gs_gain",
+        "from_port_id": "aout",
+        "to_node_id": "gs_tone_l",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "gs_filter_hz",
+        "from_port_id": "kout",
+        "to_node_id": "gs_tone_l",
+        "to_port_id": "kcf"
+      },
+      {
+        "from_node_id": "gs_resonance",
+        "from_port_id": "iout",
+        "to_node_id": "gs_tone_l",
+        "to_port_id": "kres"
+      },
+      {
+        "from_node_id": "gs_tone_l",
+        "from_port_id": "aout",
+        "to_node_id": "gs_hp_l",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "gs_highpass",
+        "from_port_id": "iout",
+        "to_node_id": "gs_hp_l",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "gs_hp_l",
+        "from_port_id": "aout",
+        "to_node_id": "gs_pan_l",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "gs_pan",
+        "from_port_id": "iout",
+        "to_node_id": "gs_pan_l",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "gs_width",
+        "from_port_id": "iout",
+        "to_node_id": "gs_pan_l",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "gs_lfo_0",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_transpose",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_detune",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kfmd"
+      },
+      {
+        "from_node_id": "gs_phase",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kphs"
+      },
+      {
+        "from_node_id": "gs_scan",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kphs"
+      },
+      {
+        "from_node_id": "gs_lfo_1",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kphs"
+      },
+      {
+        "from_node_id": "gs_phase_scatter",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kpmd"
+      },
+      {
+        "from_node_id": "gs_duration",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kgdur"
+      },
+      {
+        "from_node_id": "gs_duration_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kgdur"
+      },
+      {
+        "from_node_id": "gs_lfo_1",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kgdur"
+      },
+      {
+        "from_node_id": "gs_density",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kdens"
+      },
+      {
+        "from_node_id": "gs_density_motion",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kdens"
+      },
+      {
+        "from_node_id": "gs_lfo_0",
+        "from_port_id": "kout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kdens"
+      },
+      {
+        "from_node_id": "gs_wave",
+        "from_port_id": "ift",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kfn"
+      },
+      {
+        "from_node_id": "gs_window_table",
+        "from_port_id": "ift",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "iwfn"
+      },
+      {
+        "from_node_id": "gs_pitch_distribution",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kfrpow"
+      },
+      {
+        "from_node_id": "gs_phase_distribution",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "kprpow"
+      },
+      {
+        "from_node_id": "gs_seed",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "iseed"
+      },
+      {
+        "from_node_id": "gs_sync",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "gs_follow",
+        "from_port_id": "iout",
+        "to_node_id": "gs_grain_r",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "gs_grain_r",
+        "from_port_id": "asig",
+        "to_node_id": "gs_tone_r",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "gs_gain",
+        "from_port_id": "aout",
+        "to_node_id": "gs_tone_r",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "gs_filter_hz",
+        "from_port_id": "kout",
+        "to_node_id": "gs_tone_r",
+        "to_port_id": "kcf"
+      },
+      {
+        "from_node_id": "gs_resonance",
+        "from_port_id": "iout",
+        "to_node_id": "gs_tone_r",
+        "to_port_id": "kres"
+      },
+      {
+        "from_node_id": "gs_tone_r",
+        "from_port_id": "aout",
+        "to_node_id": "gs_hp_r",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "gs_highpass",
+        "from_port_id": "iout",
+        "to_node_id": "gs_hp_r",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "gs_hp_r",
+        "from_port_id": "aout",
+        "to_node_id": "gs_pan_r",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "gs_pan",
+        "from_port_id": "iout",
+        "to_node_id": "gs_pan_r",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "gs_width",
+        "from_port_id": "iout",
+        "to_node_id": "gs_pan_r",
+        "to_port_id": "xp"
+      },
+      {
+        "from_node_id": "gs_pan_l",
+        "from_port_id": "aleft",
+        "to_node_id": "gs_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gs_pan_r",
+        "from_port_id": "aleft",
+        "to_node_id": "gs_mix_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gs_mix_left",
+        "from_port_id": "aout",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "gs_pan_l",
+        "from_port_id": "aright",
+        "to_node_id": "gs_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gs_pan_r",
+        "from_port_id": "aright",
+        "to_node_id": "gs_mix_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gs_mix_right",
+        "from_port_id": "aout",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "amp_madsr::iatt": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::idec": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_decay",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::islev": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_sustain",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_madsr::irel": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_wave::iarg2": {
+          "expression": "rich * even * ((1 - 2 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000) + abs((1 - 2 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000))) / 4",
+          "inputs": [
+            {
+              "token": "rich",
+              "from_node_id": "gs_harmonics",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "even",
+              "from_node_id": "gs_even",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_wave::iarg3": {
+          "expression": "rich * ((1 - 3 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000) + abs((1 - 3 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000))) / 6",
+          "inputs": [
+            {
+              "token": "rich",
+              "from_node_id": "gs_harmonics",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_wave::iarg4": {
+          "expression": "rich * even * ((1 - 4 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000) + abs((1 - 4 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000))) / 8",
+          "inputs": [
+            {
+              "token": "rich",
+              "from_node_id": "gs_harmonics",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "even",
+              "from_node_id": "gs_even",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_wave::iarg5": {
+          "expression": "rich * ((1 - 5 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000) + abs((1 - 5 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000))) / 10",
+          "inputs": [
+            {
+              "token": "rich",
+              "from_node_id": "gs_harmonics",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_wave::iarg6": {
+          "expression": "rich * even * ((1 - 6 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000) + abs((1 - 6 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000))) / 12",
+          "inputs": [
+            {
+              "token": "rich",
+              "from_node_id": "gs_harmonics",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "even",
+              "from_node_id": "gs_even",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_wave::iarg7": {
+          "expression": "rich * ((1 - 7 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000) + abs((1 - 7 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000))) / 14",
+          "inputs": [
+            {
+              "token": "rich",
+              "from_node_id": "gs_harmonics",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_wave::iarg8": {
+          "expression": "rich * even * ((1 - 8 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000) + abs((1 - 8 * (hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * (1 + scatter)) / 18000))) / 16",
+          "inputs": [
+            {
+              "token": "rich",
+              "from_node_id": "gs_harmonics",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "even",
+              "from_node_id": "gs_even",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_window_table::iarg1": {
+          "expression": "floor(window + .5)",
+          "inputs": [
+            {
+              "token": "window",
+              "from_node_id": "gs_window",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_lfo_0::kcps": {
+          "expression": "rate * 1",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "gs_motion",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_lfo_1::kcps": {
+          "expression": "rate * 0.731",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "gs_motion",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_lfo_2::kcps": {
+          "expression": "rate * 1.173",
+          "inputs": [
+            {
+              "token": "rate",
+              "from_node_id": "gs_motion",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_filter_hz::a": {
+          "expression": "(cutoff * ampdb(6.02059991328 * (depth * env + motion * lfo)) + 18000 - abs(cutoff * ampdb(6.02059991328 * (depth * env + motion * lfo)) - 18000)) / 2",
+          "inputs": [
+            {
+              "token": "cutoff",
+              "from_node_id": "gs_cutoff",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "gs_filter_env",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "amp_madsr",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "gs_filter_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_2",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_gain::kin": {
+          "expression": ".28 * amp * ampdb(level) / (1 + .5 * density * duration * .001 * (1 + dm) * (1 + gm))",
+          "inputs": [
+            {
+              "token": "amp",
+              "from_node_id": "amp_velocity_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "level",
+              "from_node_id": "gs_level",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "density",
+              "from_node_id": "gs_density",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "duration",
+              "from_node_id": "gs_duration",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "dm",
+              "from_node_id": "gs_density_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "gm",
+              "from_node_id": "gs_duration_motion",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_l::kcps": {
+          "expression": "hz * ampdb((floor(transpose + .5) * 100 + -1 * detune + vibrato * lfo) * .0050171665944)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_l::kfmd": {
+          "expression": "hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * scatter",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_l::kphs": {
+          "expression": "phase + -1 * scan * lfo - floor(phase + -1 * scan * lfo)",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "gs_phase",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scan",
+              "from_node_id": "gs_scan",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_l::kpmd": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_phase_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_l::kgdur": {
+          "expression": "duration * .001 * (1 + motion * lfo)",
+          "inputs": [
+            {
+              "token": "duration",
+              "from_node_id": "gs_duration",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "gs_duration_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_l::kdens": {
+          "expression": "density * (1 + motion * lfo)",
+          "inputs": [
+            {
+              "token": "density",
+              "from_node_id": "gs_density",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "gs_density_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_l::kfn": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_wave",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "gs_grain_l::iwfn": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_window_table",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "gs_grain_l::kfrpow": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_pitch_distribution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_l::kprpow": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_phase_distribution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_l::iseed": {
+          "expression": "floor(seed + .5) + 0",
+          "inputs": [
+            {
+              "token": "seed",
+              "from_node_id": "gs_seed",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_l::imode": {
+          "expression": "8 + 64 * floor(sync + .5) + 2 * floor(follow + .5)",
+          "inputs": [
+            {
+              "token": "sync",
+              "from_node_id": "gs_sync",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "follow",
+              "from_node_id": "gs_follow",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_tone_l::ain": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "gs_grain_l",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "gs_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "gs_tone_l::kcf": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_filter_hz",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_tone_l::kres": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_resonance",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_hp_l::asig": {
+          "expression": "audio",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "gs_tone_l",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "gs_hp_l::xfreq": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_highpass",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_pan_l::asig": {
+          "expression": "audio",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "gs_hp_l",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "gs_pan_l::xp": {
+          "expression": "pan + -1 * width * ((1 - abs(2 * pan - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "pan",
+              "from_node_id": "gs_pan",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "width",
+              "from_node_id": "gs_width",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_r::kcps": {
+          "expression": "hz * ampdb((floor(transpose + .5) * 100 + 1 * detune + vibrato * lfo) * .0050171665944)",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_r::kfmd": {
+          "expression": "hz * ampdb((floor(transpose + .5) * 100 + detune + vibrato) * .0050171665944) * scatter",
+          "inputs": [
+            {
+              "token": "hz",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "transpose",
+              "from_node_id": "gs_transpose",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "detune",
+              "from_node_id": "gs_detune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "vibrato",
+              "from_node_id": "gs_vibrato",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scatter",
+              "from_node_id": "gs_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_r::kphs": {
+          "expression": "phase + 1 * scan * lfo - floor(phase + 1 * scan * lfo)",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "gs_phase",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "scan",
+              "from_node_id": "gs_scan",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_r::kpmd": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_phase_scatter",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_r::kgdur": {
+          "expression": "duration * .001 * (1 + motion * lfo)",
+          "inputs": [
+            {
+              "token": "duration",
+              "from_node_id": "gs_duration",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "gs_duration_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_1",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_r::kdens": {
+          "expression": "density * (1 + motion * lfo)",
+          "inputs": [
+            {
+              "token": "density",
+              "from_node_id": "gs_density",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "motion",
+              "from_node_id": "gs_density_motion",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "lfo",
+              "from_node_id": "gs_lfo_0",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_grain_r::kfn": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_wave",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "gs_grain_r::iwfn": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_window_table",
+              "from_port_id": "ift"
+            }
+          ]
+        },
+        "gs_grain_r::kfrpow": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_pitch_distribution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_r::kprpow": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_phase_distribution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_r::iseed": {
+          "expression": "floor(seed + .5) + 7919",
+          "inputs": [
+            {
+              "token": "seed",
+              "from_node_id": "gs_seed",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_grain_r::imode": {
+          "expression": "8 + 64 * floor(sync + .5) + 2 * floor(follow + .5)",
+          "inputs": [
+            {
+              "token": "sync",
+              "from_node_id": "gs_sync",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "follow",
+              "from_node_id": "gs_follow",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_tone_r::ain": {
+          "expression": "audio * gain",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "gs_grain_r",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "gain",
+              "from_node_id": "gs_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "gs_tone_r::kcf": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_filter_hz",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "gs_tone_r::kres": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_resonance",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_hp_r::asig": {
+          "expression": "audio",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "gs_tone_r",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "gs_hp_r::xfreq": {
+          "expression": "value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "gs_highpass",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_pan_r::asig": {
+          "expression": "audio",
+          "inputs": [
+            {
+              "token": "audio",
+              "from_node_id": "gs_hp_r",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "gs_pan_r::xp": {
+          "expression": "pan + 1 * width * ((1 - abs(2 * pan - 1)) / 2)",
+          "inputs": [
+            {
+              "token": "pan",
+              "from_node_id": "gs_pan",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "width",
+              "from_node_id": "gs_width",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gs_mix_left::a": {
+          "expression": ".5 * (first + second)",
+          "inputs": [
+            {
+              "token": "first",
+              "from_node_id": "gs_pan_l",
+              "from_port_id": "aleft"
+            },
+            {
+              "token": "second",
+              "from_node_id": "gs_pan_r",
+              "from_port_id": "aleft"
+            }
+          ]
+        },
+        "gs_mix_right::a": {
+          "expression": ".5 * (first + second)",
+          "inputs": [
+            {
+              "token": "first",
+              "from_node_id": "gs_pan_l",
+              "from_port_id": "aright"
+            },
+            {
+              "token": "second",
+              "from_node_id": "gs_pan_r",
+              "from_port_id": "aright"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 3000,
+      "ksmps": 16,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

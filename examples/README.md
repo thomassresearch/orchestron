@@ -6,8 +6,13 @@ This folder contains example exports for Orchestron in two subfolders:
 - `performances/` contains exported performance files (`*.orch.json`, `*.orch.zip`)
 
 [Granular Synthesis](instruments/granular_synthesis/README.md) uses two `grain3`
-streams and 32 performance controls. Its guide compares `grain3` with `granule`
+streams and 30 performance controls. Its guide compares `grain3` with `granule`
 and includes five sound recipes, audio previews and the native instrument.
+
+[Grain of Salt](performances/grain_of_salt/README.md) is a five-minute melodic
+electronic song using seven contrasting Granular Synthesis instances. A recurring
+hook, groove, glassy middle passage and final return form a complete arrangement.
+The guide includes the native performance and full audio.
 
 The EDM, techno and psy trance instruments are available as native exports:
 [Rubber Core FM Bass](instruments/Rubber_Core_FM_Bass.orch.instrument.json),

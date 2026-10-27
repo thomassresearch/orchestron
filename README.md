@@ -20,9 +20,12 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 ## What you can create
 
 [Granular Synthesis](examples/instruments/granular_synthesis/README.md) is a
-sample-free stereo instrument with 32 performance controls for pitched clouds,
+sample-free stereo instrument with 30 performance controls for pitched clouds,
 sparse particles, metallic textures and sync-like tones. Its guide includes
 five sound recipes and audio previews.
+
+Hear seven contrasting instances in [Grain of Salt](examples/performances/grain_of_salt/README.md),
+a five-minute melodic electronic song with a recurring hook and a spacious middle section.
 
 [Trance Gate](documentation/instrument_design/trance_gate.md) combines direct CC24
 gating with a CC29-triggered triangle LFO that sweeps between two frequencies and
