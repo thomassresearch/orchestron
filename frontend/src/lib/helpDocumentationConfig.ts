@@ -1,3 +1,4 @@
+import { BROWSER_PLAYBACK_COPY } from "./browserPlaybackCopy";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, ConfigHelpDocId } from "./helpDocumentationTypes";
 
 export const configHelpDocuments: HelpDocumentSet<ConfigHelpDocId> = {
@@ -25,7 +26,7 @@ Konfiguriert Patch-Timing der Csound-Engine plus Browser-Clock-Latenzwerte, wenn
 
 - \`sr\`: Audio-Sample-Rate.
 - Ziel-Control-Rate: daraus wird \`ksmps\` abgeleitet.
-- Software-Buffer (\`-b\`) und Hardware-Buffer (\`-B\`).
+- ${BROWSER_PLAYBACK_COPY.german.buffers}
 - im Browser-Clock-Modus erscheinen zusaetzliche Werte fuer PCM-Warteschlange, Render-Burst und Anfrage-Parallelitaet.
 - Gültige Werte auf den aktuellen Patch anwenden.
 - Browser-Clock-Latenzwerte werden im App-State gespeichert, nicht im Patch.
@@ -70,6 +71,16 @@ El idioma de GUI controla la ayuda integrada y docs de opcodes.`
 
 These settings are shown only when the backend runtime mode is \`browser_clock\`.
 
+${BROWSER_PLAYBACK_COPY.english.mode}: ${BROWSER_PLAYBACK_COPY.english.modes.auto} / ${BROWSER_PLAYBACK_COPY.english.modes.live} / ${BROWSER_PLAYBACK_COPY.english.modes.listening}.
+
+${BROWSER_PLAYBACK_COPY.english.timeout}: 10 s (1–300 s).
+
+${BROWSER_PLAYBACK_COPY.english.description}
+
+${BROWSER_PLAYBACK_COPY.english.transition}
+
+${BROWSER_PLAYBACK_COPY.english.tuning}
+
 A dedicated browser worker owns render requests and PCM queue refills, so delayed React rendering cannot block audio production.
 
 - \`steady low/high water\`: the normal browser PCM queue target. Lower values reduce latency, higher values reduce underruns.
@@ -88,6 +99,16 @@ These values are stored in app state for the current workspace and runtime path,
       markdown: `## Browser-Clock-Latenz
 
 Diese Einstellungen erscheinen nur, wenn der Backend-Runtime-Modus \`browser_clock\` ist.
+
+${BROWSER_PLAYBACK_COPY.german.mode}: ${BROWSER_PLAYBACK_COPY.german.modes.auto} / ${BROWSER_PLAYBACK_COPY.german.modes.live} / ${BROWSER_PLAYBACK_COPY.german.modes.listening}.
+
+${BROWSER_PLAYBACK_COPY.german.timeout}: 10 s (1–300 s).
+
+${BROWSER_PLAYBACK_COPY.german.description}
+
+${BROWSER_PLAYBACK_COPY.german.transition}
+
+${BROWSER_PLAYBACK_COPY.german.tuning}
 
 Ein dedizierter Browser-Worker steuert Render-Anfragen und PCM-Refills, sodass verzoegertes React-Rendering die Audio-Produktion nicht blockieren kann.
 
@@ -108,6 +129,16 @@ Diese Werte werden fuer aktuellen Workspace und Runtime-Pfad im App-State gespei
 
 Ces reglages apparaissent uniquement lorsque le mode runtime du backend est \`browser_clock\`.
 
+${BROWSER_PLAYBACK_COPY.french.mode}: ${BROWSER_PLAYBACK_COPY.french.modes.auto} / ${BROWSER_PLAYBACK_COPY.french.modes.live} / ${BROWSER_PLAYBACK_COPY.french.modes.listening}.
+
+${BROWSER_PLAYBACK_COPY.french.timeout}: 10 s (1–300 s).
+
+${BROWSER_PLAYBACK_COPY.french.description}
+
+${BROWSER_PLAYBACK_COPY.french.transition}
+
+${BROWSER_PLAYBACK_COPY.french.tuning}
+
 Un worker navigateur dedie gere les requetes de rendu et le remplissage PCM ; un rendu React retarde ne peut donc pas bloquer la production audio.
 
 - \`steady low/high water\` : cible normale de file PCM cote navigateur. Des valeurs plus faibles reduisent la latence, des valeurs plus hautes reduisent les underruns.
@@ -126,6 +157,16 @@ Ces valeurs sont stockees dans l'etat applicatif pour le workspace et le chemin 
       markdown: `## Latencia browser-clock
 
 Estos ajustes solo aparecen cuando el modo runtime del backend es \`browser_clock\`.
+
+${BROWSER_PLAYBACK_COPY.spanish.mode}: ${BROWSER_PLAYBACK_COPY.spanish.modes.auto} / ${BROWSER_PLAYBACK_COPY.spanish.modes.live} / ${BROWSER_PLAYBACK_COPY.spanish.modes.listening}.
+
+${BROWSER_PLAYBACK_COPY.spanish.timeout}: 10 s (1–300 s).
+
+${BROWSER_PLAYBACK_COPY.spanish.description}
+
+${BROWSER_PLAYBACK_COPY.spanish.transition}
+
+${BROWSER_PLAYBACK_COPY.spanish.tuning}
 
 Un worker dedicado del navegador gestiona las solicitudes de render y el rellenado PCM, por lo que un renderizado React retrasado no puede bloquear la produccion de audio.
 
@@ -207,52 +248,52 @@ export const configHelpAppendices: HelpDocumentAppendixSet<ConfigHelpDocId> = {
 
 - \`sr\` sets the audio sample rate used when the patch compiles and starts. Higher values extend bandwidth but cost more CPU.
 - The target control rate defines the desired control update frequency. VisualCSound derives an integer \`ksmps\` from \`sr / control_rate\`, so the actual control rate may be rounded slightly.
-- Software buffer (\`-b\`) is the internal Csound block size. Hardware buffer (\`-B\`) is the device-facing buffer and is usually kept equal to or larger than \`-b\`.
+- ${BROWSER_PLAYBACK_COPY.english.buffers}
 - In browser-clock mode, the extra latency section adjusts browser-owned PCM queue depth, render request size, recovery boost, and request parallelism.
 
 ### Practical Tuning
 
-- Lower buffer values reduce latency but glitch sooner on heavy patches or slower machines.
-- Higher buffer values are safer for complex patches but feel less immediate when playing live.
+- Lower browser queue targets reduce latency but glitch sooner on heavy patches or slower machines.
+- Higher browser queue targets are safer for complex patches but feel less immediate when playing live.
 - Browser-clock latency settings apply to the current workspace/runtime path and are stored in app state, not in the patch.
 - Applying the engine form only updates the current patch state. Save the patch as well if these settings should persist in the patch library.`,
     german: `### Wie jedes Feld die Runtime beeinflusst
 
 - \`sr\` setzt die Audio-Sample-Rate fuer Compile/Start des Patches. Hoehere Werte erweitern die Bandbreite, kosten aber mehr CPU.
 - Die Ziel-Control-Rate definiert die gewuenschte Frequenz von Control-Updates. VisualCSound leitet daraus ein ganzzahliges \`ksmps\` aus \`sr / control_rate\` ab; die tatsaechliche Control-Rate kann daher leicht gerundet sein.
-- Software-Buffer (\`-b\`) ist die interne Csound-Blockgroesse. Hardware-Buffer (\`-B\`) ist der geraeteseitige Buffer und sollte meist gleich gross oder groesser als \`-b\` sein.
+- ${BROWSER_PLAYBACK_COPY.german.buffers}
 - Im Browser-Clock-Modus passt der zusaetzliche Latenzbereich die browserseitige PCM-Warteschlange, Render-Groesse, Recovery-Boosts und Anfrage-Parallelitaet an.
 
 ### Praktische Abstimmung
 
-- Niedrige Buffer-Werte reduzieren Latenz, erzeugen bei schweren Patches oder langsameren Rechnern aber frueher Aussetzer.
-- Hoehere Buffer-Werte sind fuer komplexe Patches sicherer, fuehlen sich live jedoch weniger direkt an.
+- Niedrige Browser-Queue-Ziele reduzieren Latenz, erzeugen bei schweren Patches oder langsameren Rechnern aber frueher Aussetzer.
+- Hoehere Browser-Queue-Ziele sind fuer komplexe Patches sicherer, fuehlen sich live jedoch weniger direkt an.
 - Browser-Clock-Latenzwerte gelten fuer aktuellen Workspace und Runtime-Pfad und werden im App-State gespeichert, nicht im Patch.
 - Das Anwenden des Engine-Formulars aktualisiert nur den Zustand des aktuellen Patches. Den Patch zusaetzlich speichern, wenn die Werte in der Patch-Bibliothek erhalten bleiben sollen.`,
     french: `### Effet de chaque champ sur la runtime
 
 - \`sr\` fixe le taux d'echantillonnage audio utilise au compile/start du patch. Des valeurs plus hautes etendent la bande passante mais coutent plus de CPU.
 - Le taux de controle cible definit la frequence souhaitee des mises a jour de controle. VisualCSound derive un \`ksmps\` entier depuis \`sr / control_rate\` ; le taux de controle reel peut donc etre legerement arrondi.
-- Le buffer logiciel (\`-b\`) correspond a la taille de bloc interne Csound. Le buffer materiel (\`-B\`) fait face au device et reste generalement egal ou superieur a \`-b\`.
+- ${BROWSER_PLAYBACK_COPY.french.buffers}
 - En mode browser-clock, la section de latence supplementaire regle la profondeur de file PCM, la taille des requetes de rendu, les boosts de recovery et le parallelisme.
 
 ### Reglage pratique
 
-- Des buffers plus faibles reduisent la latence mais provoquent plus vite des glitches sur des patches lourds ou des machines lentes.
-- Des buffers plus eleves sont plus surs pour les patches complexes, mais donnent une sensation moins immediate en jeu live.
+- Des cibles de file navigateur plus faibles reduisent la latence mais provoquent plus vite des glitches sur des patches lourds ou des machines lentes.
+- Des cibles de file navigateur plus elevees sont plus surs pour les patches complexes, mais donnent une sensation moins immediate en jeu live.
 - Les reglages de latence browser-clock s'appliquent au workspace/runtime courant et sont stockes dans l'etat applicatif, pas dans le patch.
 - Appliquer le formulaire moteur met uniquement a jour l'etat du patch courant. Enregistrez aussi le patch si ces reglages doivent rester dans la bibliotheque.`,
     spanish: `### Como afecta cada campo al runtime
 
 - \`sr\` fija la frecuencia de muestreo de audio usada al compilar/iniciar el patch. Valores mas altos amplian el ancho de banda pero consumen mas CPU.
 - La tasa de control objetivo define la frecuencia deseada de actualizacion de control. VisualCSound deriva un \`ksmps\` entero a partir de \`sr / control_rate\`, por lo que la tasa real puede quedar ligeramente redondeada.
-- El buffer software (\`-b\`) es el tamano interno de bloque de Csound. El buffer hardware (\`-B\`) mira al dispositivo y normalmente conviene mantenerlo igual o mayor que \`-b\`.
+- ${BROWSER_PLAYBACK_COPY.spanish.buffers}
 - En modo browser-clock, la seccion adicional de latencia ajusta la profundidad de la cola PCM, el tamano de las solicitudes de render, los boosts de recovery y el paralelismo.
 
 ### Ajuste practico
 
-- Valores bajos de buffer reducen la latencia, pero producen fallos antes en patches pesados o maquinas lentas.
-- Valores altos de buffer son mas seguros para patches complejos, aunque se sienten menos inmediatos en interpretacion en vivo.
+- Objetivos bajos de cola del navegador reducen la latencia, pero producen fallos antes en patches pesados o maquinas lentas.
+- Objetivos altos de cola del navegador son mas seguros para patches complejos, aunque se sienten menos inmediatos en interpretacion en vivo.
 - Los ajustes de latencia browser-clock se aplican al workspace/runtime actual y se guardan en el estado de la app, no en el patch.
 - Aplicar el formulario del motor solo actualiza el estado del patch actual. Guarda tambien el patch si quieres conservar estos valores en la biblioteca.`
   },

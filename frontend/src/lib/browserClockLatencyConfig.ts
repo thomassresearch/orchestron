@@ -2,6 +2,8 @@ import { wsBaseUrl } from "../api/client";
 import type { BrowserClockLatencySettings } from "../types";
 
 export const BROWSER_CLOCK_WATER_MS_MIN = 20;
+export const BROWSER_CLOCK_INACTIVITY_SECONDS_MIN = 1;
+export const BROWSER_CLOCK_INACTIVITY_SECONDS_MAX = 300;
 export const BROWSER_CLOCK_WATER_MS_MAX = 2_000;
 export const BROWSER_CLOCK_BOOST_MS_MIN = 0;
 export const BROWSER_CLOCK_BOOST_MS_MAX = 2_000;
@@ -15,6 +17,8 @@ export const BROWSER_CLOCK_IMMEDIATE_COOLDOWN_MS_MIN = 0;
 export const BROWSER_CLOCK_IMMEDIATE_COOLDOWN_MS_MAX = 1_000;
 
 export const REMOTE_BROWSER_CLOCK_LATENCY_SETTINGS: BrowserClockLatencySettings = {
+  playbackMode: "auto",
+  inactivityTimeoutSeconds: 10,
   steadyLowWaterMs: 450,
   steadyHighWaterMs: 900,
   startupLowWaterMs: 750,
@@ -30,6 +34,8 @@ export const REMOTE_BROWSER_CLOCK_LATENCY_SETTINGS: BrowserClockLatencySettings 
 };
 
 export const LOCAL_BROWSER_CLOCK_LATENCY_SETTINGS: BrowserClockLatencySettings = {
+  playbackMode: "auto",
+  inactivityTimeoutSeconds: 10,
   steadyLowWaterMs: 90,
   steadyHighWaterMs: 180,
   startupLowWaterMs: 180,
@@ -148,6 +154,9 @@ export function normalizeBrowserClockLatencySettings(
   );
 
   return {
+    playbackMode: value?.playbackMode === "live" || value?.playbackMode === "listening" ? value.playbackMode : "auto",
+    inactivityTimeoutSeconds: normalizeInteger(value?.inactivityTimeoutSeconds, 10,
+      BROWSER_CLOCK_INACTIVITY_SECONDS_MIN, BROWSER_CLOCK_INACTIVITY_SECONDS_MAX),
     steadyLowWaterMs,
     steadyHighWaterMs,
     startupLowWaterMs,

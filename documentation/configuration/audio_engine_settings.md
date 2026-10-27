@@ -68,7 +68,7 @@ The right-side panel shows the normalized engine values stored in the patch:
 - `software_buffer`
 - `hardware_buffer`
 
-Use this panel to verify what will be used at compile/start time.
+These are the current patch’s values. A multi-instrument performance takes its shared engine configuration from its first compiled instrument target; this panel is not a global performance playback configuration.
 
 ## Browser-Clock Latency Section
 
@@ -76,7 +76,7 @@ The Config page shows an additional section for browser-owned audio latency tuni
 
 See [Browser-Clock Latency](browser_clock_latency.md) for the unified browser-clock workflow explanation and the full UI screenshot of this section.
 
-Editable fields:
+Playback mode and inactivity timeout are shown above the expandable **Live buffering and recovery** fields:
 
 - steady queue low water / high water (`ms`)
 - startup queue low water / high water (`ms`)
@@ -88,7 +88,11 @@ Editable fields:
 
 These values control the browser PCM queue depth and render request behavior, which are the dominant latency/stability knobs on the unified browser-clock path.
 
-The patch engine section still matters because `sr`, `ksmps`, and the configured buffers are used by the backend render worker when it compiles and starts the headless Csound session.
+The patch engine sample rate and `ksmps` still determine synthesis timing. The Software/Hardware Buffer fields are passed to Csound, but do not control browser playback buffering: the headless worker reads `spout` after each `performKsmps()` call. Changing `-b` or `-B` does not enlarge the browser queue.
+
+Choose **Auto / Live / Listening** in the Browser-Clock Latency section. Auto is the default, with a configurable 10-second inactivity timeout (1–300 seconds). It detects manual piano/controller and selected external MIDI input, while ignoring sequencer automation and controller initialization. Held notes, sustain and controller gestures prevent the timeout. Queued audio is preserved on every switch, so the first note after Listening may still be delayed. The current state appears in Config and Runtime.
+
+The advanced **Live buffering and recovery** controls retain your existing tuning. Listening adds minimum steady targets of 750/1500 ms and startup targets of 1000/1800 ms, retaining larger custom targets. See [Playback Mode](browser_clock_latency.md#playback-mode) for the complete behavior.
 
 ### Field-By-Field Meaning
 
@@ -130,7 +134,7 @@ The patch engine section still matters because `sr`, `ksmps`, and the configured
 
 ### Practical Adjustment Order
 
-1. Start with `steady low/high water`.
+1. Choose Auto, Live or Listening; Auto defaults to a ten-second inactivity timeout.
 2. If clicks remain, raise the steady or startup watermarks slightly.
 3. If latency still feels too high, reduce `max blocks per request` carefully.
 4. Only then tune immediate note render and parallel request limits.

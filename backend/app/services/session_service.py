@@ -486,6 +486,7 @@ class SessionService:
 
     async def _stop_runtime(self, runtime: RuntimeSession) -> SessionActionResponse:
         session_id = runtime.session_id
+        runtime.live_midi_activity.reset()
         self._invalidate_configuration(runtime)
         await self._disconnect_browser_clock_controller(
             session_id,
@@ -511,6 +512,8 @@ class SessionService:
         if runtime.midi_router is not None:
             runtime.midi_router.panic()
         detail = runtime.worker.panic()
+        runtime.live_midi_activity.reset()
+        await self._notify_live_input_activity(runtime, activity=False, reset=True)
 
         await self._publish(runtime.session_id, "panic", {"detail": detail})
 
@@ -568,6 +571,7 @@ class SessionService:
         sequencer = self._ensure_sequencer(runtime)
         return {
             "type": "stream_config",
+            "live_input_held": runtime.live_midi_activity.held,
             "engine_sample_rate": runtime.worker.runtime_sample_rate,
             "ksmps": runtime.worker.runtime_ksmps,
             "channels": 2,
@@ -895,6 +899,7 @@ class SessionService:
 
         for host_id in replacement_host_ids:
             self._midi_service.remove_host_inputs(host_id=host_id)
+            await self._reset_host_live_input(host_id)
 
         return {
             "type": "host_registered",
@@ -940,6 +945,11 @@ class SessionService:
             for device in request.devices
         ]
         self._midi_service.replace_host_inputs(host_id=lease.host_id, devices=devices)
+        device_ids = {device.id for device in devices}
+        for runtime in list(self._sessions.values()):
+            if runtime.live_midi_activity.host_id == lease.host_id and runtime.midi_input not in device_ids:
+                runtime.live_midi_activity.reset()
+                await self._notify_live_input_activity(runtime, activity=False)
         return {
             "type": "device_inventory_ack",
             "host_id": lease.host_id,
@@ -965,6 +975,7 @@ class SessionService:
                     (runtime, self._connections.browser_controller(runtime.session_id))
                 )
 
+        active_runtimes: dict[str, RuntimeSession] = {}
         for event in request.events:
             targets = sessions_by_device.get(event.device_id)
             if not targets:
@@ -986,6 +997,8 @@ class SessionService:
                 continue
 
             for runtime, controller_lease in targets:
+                runtime.live_midi_activity.record(midi_request, lease.host_id)
+                active_runtimes[runtime.session_id] = runtime
                 target_engine_sample = self._target_engine_sample_for_mapped_event(
                     runtime=runtime,
                     lease=controller_lease,
@@ -1001,6 +1014,26 @@ class SessionService:
                     sync_stale=sync_stale,
                 )
 
+        # Coalesce a host batch into one activity notification per session.
+        for runtime in active_runtimes.values():
+            await self._notify_live_input_activity(runtime, activity=True)
+
+    async def _notify_live_input_activity(self, runtime: RuntimeSession, *, activity: bool, reset: bool = False) -> None:
+        controller = self._connections.browser_controller(runtime.session_id)
+        if controller is not None:
+            try:
+                await controller.send_json({"type": "live_input_activity", "activity": activity,
+                    "held": runtime.live_midi_activity.held, "reset": reset})
+            except Exception:
+                # Notification failure must not interrupt MIDI delivery or host cleanup.
+                logger.debug("Browser live-input notification failed for %s", runtime.session_id, exc_info=True)
+
+    async def _reset_host_live_input(self, host_id: str) -> None:
+        for runtime in list(self._sessions.values()):
+            if runtime.live_midi_activity.host_id == host_id:
+                runtime.live_midi_activity.reset()
+                await self._notify_live_input_activity(runtime, activity=False)
+
     async def release_host_midi_bridge(self, connection_id: str) -> None:
         self._remember_running_loop()
         async with self._lock:
@@ -1008,6 +1041,7 @@ class SessionService:
         if lease is None:
             return
         self._midi_service.remove_host_inputs(host_id=lease.host_id)
+        await self._reset_host_live_input(lease.host_id)
 
     async def send_midi_event(self, session_id: str, request: SessionMidiEventRequest) -> SessionActionResponse:
         self._remember_running_loop()
@@ -1468,6 +1502,9 @@ class SessionService:
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+        if runtime.midi_input != resolved:
+            runtime.live_midi_activity.reset()
+            await self._notify_live_input_activity(runtime, activity=False)
         runtime.midi_input = resolved
 
         await self._publish(runtime.session_id, "midi_bound", {"midi_input": resolved})

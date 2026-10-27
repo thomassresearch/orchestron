@@ -4,6 +4,48 @@
 
 Orchestron now uses backend audio mode `browser_clock` on every supported platform. The browser becomes the playback clock and requests PCM render chunks from the backend, so the most important latency and stability controls live in the Config page's `Browser-Clock Latency` section.
 
+## Playback Mode
+
+Choose **Auto**, **Live**, or **Listening**, then select **Apply Browser-Clock Settings**.
+Auto is the default, including when restoring a workspace saved before these modes existed.
+The mode and **Auto inactivity timeout (seconds)** are workspace preferences, stored in app state.
+The timeout defaults to **10 seconds** and accepts integer values from **1 to 300 seconds**.
+The current state appears in Config and in the Runtime panel; it is not saved with performances.
+
+| Mode | Behavior |
+| --- | --- |
+| Auto | Uses Listening while idle. Starting a piano keyboard or manual MIDI controller, playing notes, moving a manual MIDI control, or receiving external notes/CCs selects Live. |
+| Live | Always uses the configured Live queue targets and render limits, regardless of input activity. Select this before playing if the first note must be responsive. |
+| Listening | Keeps a larger queue for listening to a performance, even when manual input arrives. |
+
+Auto returns to Listening after the configured inactivity timeout. Held notes, sustain and active
+controller drags keep Live selected. Stopping/removing a manual source removes its activity; when
+no other source is active, Auto can return immediately. Merely leaving a keyboard/controller enabled
+or an external device connected does not keep Live selected forever. The timeout starts again at
+note/pedal release or the end of a controller gesture. External input is limited to the session's
+selected MIDI input. Disconnecting that device, rebinding MIDI input or Panic clears its held state.
+
+Sequencers, controller sequencers and the initial values sent automatically by manual MIDI controls
+do not trigger Live. Only the original external/manual input triggers it when routed into an arpeggiator.
+
+**Switching preserves all queued audio, pending renders and transport position.** The worker
+lets the existing queue drain when changing to Live and replenishes it when changing to Listening.
+The indicator shows **Switching to Live** while the larger queue is draining. This means the first
+unexpected note after Listening may still have the previous latency. No samples are skipped to
+make the switch appear instantaneous. The AudioContext remains running with its interactive latency hint.
+
+Open **Live buffering and recovery** to tune the existing advanced controls. Listening uses at least
+**750/1500 ms** steady low/high water and **1000/1800 ms** startup low/high water, with up to **512
+Csound blocks per request**. Larger custom queue targets are retained; other recovery and parallelism
+settings remain in effect. These queue targets are independent of Csound's synthesis block size.
+At 48 kHz, 32,768 frames represent about 683 ms and 65,536 frames about 1,365 ms. Queue settings
+already accept up to 2,000 ms, with a six-second ring buffer providing capacity for recovery headroom.
+
+Render requests remain capped at 512 blocks: that is about 341 ms at `ksmps=32`, but only 10.7 ms at
+`ksmps=1` and 48 kHz. Listening changes buffering, not synthesis/control rate. Larger queues absorb
+short stalls; they cannot compensate indefinitely if rendering is consistently slower than playback.
+Use Audio Queue, Underruns and Render Ratio in the Runtime panel to distinguish these cases.
+
 ## When This Section Appears
 
 The `Browser-Clock Latency` section is shown when the backend is running in `browser_clock` mode, for example:
@@ -82,8 +124,8 @@ Runtime sessions allocate backend Csound worker resources, so session creation a
 
 ## Practical Tuning Order
 
-1. Start from the defaults shown by the Config page.
-2. If the stream crackles or underruns, raise `Steady High Water` and `Startup High Water` first.
+1. Start with **Auto** (default), or choose **Listening** when live interaction is unnecessary.
+2. If the stream crackles or underruns, check the Runtime diagnostics. Raise both low and high queue watermarks so refilling also starts earlier.
 3. If latency still feels too high, lower the steady queue targets cautiously.
 4. If live note response feels sluggish, reduce `Max Blocks Per Request` or adjust the immediate-note controls in small steps.
 5. Apply the settings and test again with a realistic patch load.
@@ -93,12 +135,13 @@ Keep in mind that these settings are stored in app state for the current workspa
 They also work together with the engine settings from the patch:
 
 - browser-clock settings tune queueing and request behavior
-- patch engine settings such as `sr`, `ksmps`, `-b`, and `-B` tune the backend render block geometry
+- patch engine `sr` and `ksmps` determine synthesis timing and the audio duration of a render request
+- Csound I/O buffers `-b` and `-B` do not control browser queue depth or the browser device buffer on this headless path
 
 ## Screenshot
 
 <p align="center">
-  <img src="../../screenshots/config_browser_clock_latency.png" alt="Browser-Clock Latency settings in the Config page" width="1100" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/config_browser_playback_modes.png" alt="Config playback modes with Auto and a ten-second inactivity timeout" width="1100" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>The Config page's Browser-Clock Latency section, used when Orchestron runs headless in `browser_clock` mode and the browser owns audio playback.</em></p>
 

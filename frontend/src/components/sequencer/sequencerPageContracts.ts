@@ -158,6 +158,7 @@ export interface SequencerPagePianoRollActions {
 export interface SequencerPageMidiControllerActions {
   onAddMidiController: () => void;
   onRemoveMidiController: (controllerId: string) => void;
+  onMidiControllerGestureChange?: (controllerId: string, active: boolean) => void;
   onMidiControllerEnabledChange: (controllerId: string, enabled: boolean) => void;
   onMidiControllerNumberChange: (controllerId: string, controllerNumber: number) => void;
   onMidiControllerTargetChannelsChange: (id: string, channels: number[]) => void;

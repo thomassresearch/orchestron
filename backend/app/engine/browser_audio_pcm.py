@@ -1,8 +1,42 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 DEFAULT_BROWSER_AUDIO_SAMPLE_RATE = 48_000
+
+
+def create_csound_spout_copier(*, source_channels: int, block_frames: int) -> Callable[[Any, Any], None]:
+    """Copy fixed-size native blocks, reusing borrowed views within one render request.
+
+    Csound owns the samples; only the layout view is cached, never their values.
+    A binding returning a new array gets a new view. Nonstandard layouts retain
+    the general normalizer's validation and conversion behavior.
+    """
+    import numpy as np  # type: ignore
+
+    channels = max(1, int(source_channels))
+    source = None
+    stereo = None
+
+    def copy(spout: Any, out: Any) -> None:
+        nonlocal source, stereo
+        if spout is not source:
+            source, stereo = spout, None
+            if isinstance(spout, np.ndarray):
+                if spout.shape == (block_frames * channels,):
+                    stereo = spout.reshape(block_frames, channels)[:, :2]
+                elif spout.shape == (block_frames, channels):
+                    stereo = spout[:, :2]
+                elif spout.shape == (channels, block_frames):
+                    stereo = spout.T[:, :2]
+        if stereo is None:
+            normalize_csound_spout_to_stereo(spout, source_channels=channels, out=out)
+        else:
+            # One-channel views broadcast to stereo; copyto preserves the
+            # original float conversion and copies before Csound reuses spout.
+            np.copyto(out, stereo, casting="unsafe")
+
+    return copy
 
 
 def normalize_csound_spout_to_stereo(spout: Any, *, source_channels: int, out: Any = None) -> Any:

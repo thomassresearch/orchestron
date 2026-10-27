@@ -1,7 +1,11 @@
+import { BROWSER_PLAYBACK_COPY } from "../lib/browserPlaybackCopy";
+import type { BrowserClockWorkerDiagnostics } from "../audio/browserClockWorkerProtocol";
 import { useEffect, useMemo, useState } from "react";
 
 import { HelpIconButton } from "./HelpIconButton";
 import {
+  BROWSER_CLOCK_INACTIVITY_SECONDS_MIN,
+  BROWSER_CLOCK_INACTIVITY_SECONDS_MAX,
   BROWSER_CLOCK_BOOST_MS_MAX,
   BROWSER_CLOCK_BOOST_MS_MIN,
   BROWSER_CLOCK_IMMEDIATE_COOLDOWN_MS_MAX,
@@ -15,7 +19,7 @@ import {
   BROWSER_CLOCK_WATER_MS_MAX,
   BROWSER_CLOCK_WATER_MS_MIN
 } from "../lib/browserClockLatencyConfig";
-import type { BrowserClockLatencySettings, GuiLanguage, HelpDocId } from "../types";
+import type { BrowserClockLatencySettings, BrowserPlaybackMode, GuiLanguage, HelpDocId } from "../types";
 
 const AUDIO_RATE_MIN = 22000;
 const AUDIO_RATE_MAX = 48000;
@@ -24,7 +28,7 @@ const CONTROL_RATE_MAX = 48000;
 const ENGINE_BUFFER_MIN = 32;
 const ENGINE_BUFFER_MAX = 8192;
 
-type BrowserClockLatencyFieldKey = keyof BrowserClockLatencySettings;
+type BrowserClockLatencyFieldKey = Exclude<keyof BrowserClockLatencySettings, "playbackMode" | "inactivityTimeoutSeconds">;
 type BrowserClockLatencyFormState = Record<BrowserClockLatencyFieldKey, string>;
 type EngineInputFieldKey = "audioRate" | "controlRate" | "softwareBuffer" | "hardwareBuffer";
 type EngineInputState = Record<EngineInputFieldKey, string>;
@@ -246,6 +250,7 @@ interface ConfigPageProps {
   hardwareBuffer: number;
   showBrowserClockLatencyConfig: boolean;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  browserAudioDiagnostics?: BrowserClockWorkerDiagnostics | null;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
   onApplyEngineConfig: (config: {
     sr: number;
@@ -322,11 +327,15 @@ export function ConfigPage({
   hardwareBuffer,
   showBrowserClockLatencyConfig,
   browserClockLatencySettings,
+  browserAudioDiagnostics,
   onHelpRequest,
   onApplyEngineConfig,
   onApplyBrowserClockLatencySettings
 }: ConfigPageProps) {
   const copy = CONFIG_PAGE_COPY[guiLanguage];
+  const playbackCopy = BROWSER_PLAYBACK_COPY[guiLanguage];
+  const [playbackMode, setPlaybackMode] = useState(browserClockLatencySettings.playbackMode);
+  const [timeoutInput, setTimeoutInput] = useState(String(browserClockLatencySettings.inactivityTimeoutSeconds));
 
   const [engineInputs, setEngineInputs] = useState<EngineInputState>(() =>
     createEngineInputState(audioRate, controlRate, softwareBuffer, hardwareBuffer)
@@ -341,6 +350,8 @@ export function ConfigPage({
 
   useEffect(() => {
     setLatencyInputs(createLatencyFormState(browserClockLatencySettings));
+    setPlaybackMode(browserClockLatencySettings.playbackMode);
+    setTimeoutInput(String(browserClockLatencySettings.inactivityTimeoutSeconds));
   }, [browserClockLatencySettings]);
 
   const parsedAudioRate = parsePositiveInteger(engineInputs.audioRate);
@@ -450,7 +461,10 @@ export function ConfigPage({
     return nextErrors;
   }, [browserClockFieldDefinitions, copy, parsedLatencyValues]);
 
-  const canApplyBrowserClockLatencySettings =
+  const timeoutSeconds = parsePositiveInteger(timeoutInput);
+  const timeoutError = validateRange(timeoutSeconds, BROWSER_CLOCK_INACTIVITY_SECONDS_MIN, BROWSER_CLOCK_INACTIVITY_SECONDS_MAX, playbackCopy.timeout, copy);
+
+  const canApplyBrowserClockLatencySettings = timeoutError === null &&
     browserClockFieldDefinitions.every((field) => latencyErrors[field.key] === null) &&
     browserClockFieldDefinitions.every((field) => parsedLatencyValues[field.key] !== null);
 
@@ -486,6 +500,8 @@ export function ConfigPage({
     }
 
     void onApplyBrowserClockLatencySettings({
+      playbackMode,
+      inactivityTimeoutSeconds: timeoutSeconds ?? 10,
       steadyLowWaterMs: parsedLatencyValues.steadyLowWaterMs ?? browserClockLatencySettings.steadyLowWaterMs,
       steadyHighWaterMs: parsedLatencyValues.steadyHighWaterMs ?? browserClockLatencySettings.steadyHighWaterMs,
       startupLowWaterMs: parsedLatencyValues.startupLowWaterMs ?? browserClockLatencySettings.startupLowWaterMs,
@@ -518,6 +534,7 @@ export function ConfigPage({
             {copy.audioEngineConfiguration}
           </h2>
           <p className="mt-1 text-sm text-slate-400">{copy.audioEngineDescription}</p>
+          <p className="mt-2 text-sm text-amber-200/90">{playbackCopy.buffers}</p>
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-2">
@@ -618,6 +635,36 @@ export function ConfigPage({
             <p className="mt-1 text-sm text-slate-400">{copy.browserClockLatencyDescription}</p>
             <p className="mt-2 text-xs text-slate-500">{copy.browserClockLatencyStorageNote}</p>
 
+            <div className="mt-4 rounded-xl border border-cyan-700/60 bg-slate-950/70 p-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="flex flex-col gap-2 text-sm text-slate-200">
+                  {playbackCopy.mode}
+                  <select aria-label={playbackCopy.mode} value={playbackMode}
+                    onChange={event => setPlaybackMode(event.target.value as BrowserPlaybackMode)}
+                    className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2">
+                    {(["auto", "live", "listening"] as const).map(mode => <option key={mode} value={mode}>{playbackCopy.modes[mode]}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2 text-sm text-slate-200">
+                  {playbackCopy.timeout}
+                  <input aria-label={playbackCopy.timeout} type="number" min={BROWSER_CLOCK_INACTIVITY_SECONDS_MIN}
+                    max={BROWSER_CLOCK_INACTIVITY_SECONDS_MAX} step={1} value={timeoutInput}
+                    onChange={event => setTimeoutInput(event.target.value)}
+                    className="rounded-lg border border-slate-600 bg-slate-950 px-3 py-2" />
+                  {timeoutError && <span role="alert" className="text-xs text-rose-300">{timeoutError}</span>}
+                </label>
+              </div>
+              <p className="mt-3 text-sm text-slate-300">{playbackCopy.description}</p>
+              <p className="mt-2 text-xs text-amber-200/90">{playbackCopy.transition}</p>
+              <p role="status" className="mt-3 text-xs font-semibold text-cyan-200">
+                {browserAudioDiagnostics
+                  ? `${playbackCopy.modes[browserAudioDiagnostics.playbackMode]} · ${playbackCopy.states[browserAudioDiagnostics.playbackState]}`
+                  : playbackCopy.idle}
+              </p>
+            </div>
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-slate-200">{playbackCopy.advanced}</summary>
+              <p className="mt-2 text-xs text-slate-400">{playbackCopy.tuning}</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {browserClockFieldDefinitions.map((field) => (
                 <label key={field.key} className="flex flex-col gap-2">
@@ -644,6 +691,7 @@ export function ConfigPage({
               ))}
             </div>
 
+            </details>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <button
                 type="button"

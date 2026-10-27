@@ -13,7 +13,7 @@ from typing import Any, Callable
 
 from backend.app.engine.browser_audio_pcm import (
     DEFAULT_BROWSER_AUDIO_SAMPLE_RATE,
-    normalize_csound_spout_to_stereo,
+    create_csound_spout_copier,
     resample_stereo_block_linear,
 )
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
@@ -369,6 +369,11 @@ class CsoundWorker:
             return frames
 
     def _apply_control_channels(self, csound) -> None:
+        # Optimistic empty checks never clear producer state. A write arriving
+        # after this check is consumed at the next k-period, just as after a
+        # locked drain. Swapping a nonempty queue still requires its lock.
+        if not self._control_pending:
+            return
         with self._mixer_lock:
             pending, self._control_pending = self._control_pending, {}
         for name, value in pending.items():
@@ -429,6 +434,7 @@ class CsoundWorker:
             merged = self._pcm_render_buffer[:requested_frames]
             source_frames_rendered = 0
             before_block_arity = self._callback_arity(before_block)
+            copy_spout = create_csound_spout_copier(source_channels=source_nchnls, block_frames=source_ksmps)
             for block_index in range(requested_blocks):
                 self._apply_boundary_actions()
                 block_start_sample = sample_start + source_frames_rendered
@@ -450,10 +456,9 @@ class CsoundWorker:
                         self._running = False
                     raise RuntimeError(f"CSound performKsmps exited with status {result}")
 
-                normalize_csound_spout_to_stereo(
+                copy_spout(
                     csound.spout(),
-                    source_channels=source_nchnls,
-                    out=merged[source_frames_rendered:source_frames_rendered + source_ksmps],
+                    merged[source_frames_rendered:source_frames_rendered + source_ksmps],
                 )
                 source_frames_rendered += source_ksmps
                 self._capture_mixer_meters(csound, block_end_sample, source_sr)
@@ -534,6 +539,8 @@ class CsoundWorker:
         return result.result()
 
     def _apply_boundary_actions(self) -> None:
+        if not self._boundary_actions:
+            return
         with self._boundary_lock:
             actions, self._boundary_actions = self._boundary_actions, []
         for action, result in actions:
@@ -633,6 +640,8 @@ class CsoundWorker:
             return 0
 
         def _midi_read(_csound_ptr: object, _user_data: object, buffer_ptr: object, nbytes: int) -> int:
+            if not self._host_midi_buffer:
+                return 0
             count = max(0, int(nbytes))
             if count <= 0:
                 return 0
@@ -674,6 +683,13 @@ class CsoundWorker:
         ct.libcsound.csoundSetExternalMidiWriteCallback(csound.cs, callbacks["write"])
 
     def _prepare_host_midi_block(self, *, block_start_sample: int, block_end_sample: int) -> None:
+        if not self._midi_scheduler.has_due_events(block_end_sample):
+            # Preserve the old per-period discard of any bytes Csound did not
+            # consume, including a partial MIDI message from the previous block.
+            if self._host_midi_buffer:
+                with self._host_midi_lock:
+                    self._host_midi_buffer.clear()
+            return
         events = self._midi_scheduler.drain_block(
             block_start_sample=block_start_sample,
             block_end_sample=block_end_sample,

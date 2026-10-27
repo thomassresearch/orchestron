@@ -154,3 +154,16 @@ it("ignores stale worker errors after reconnecting the same session", async () =
   expect(onErrorChange).not.toHaveBeenCalled();
   expect(workers[1].messages[workers[1].messages.length - 1]).toMatchObject({ type: "mixer_request" });
 });
+
+it("retains keyboard arming through cold-start cleanup and clears it at a session boundary", async () => {
+  const { client } = audioClient();
+  client.setLiveInput("piano:a", "start");
+  await client.disconnect(); // No connected session yet; compilation can change app state.
+  await client.connect("new");
+  expect(workers[0].messages.filter(m => m.type === "live_input")).toEqual([
+    { type: "live_input", source: "piano:a", action: "start" }
+  ]);
+  await client.disconnect();
+  await client.connect("next");
+  expect(workers[1].messages.filter(m => m.type === "live_input")).toEqual([]);
+});

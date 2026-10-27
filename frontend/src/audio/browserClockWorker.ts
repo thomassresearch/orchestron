@@ -1,5 +1,7 @@
 /// <reference lib="webworker" />
 
+import { BrowserPlaybackPolicy, playbackLatencySettings } from "./browserPlaybackPolicy";
+
 import type {
   BrowserClockClockSyncMessage,
   BrowserClockLatencySettings,
@@ -73,6 +75,9 @@ function latencyMsToFrames(sampleRate: number, milliseconds: number): number {
 }
 
 class BrowserClockWorkerRuntime {
+  private playbackPolicy = new BrowserPlaybackPolicy();
+  private previousPlaybackMode: "live" | "listening" | null = null;
+  private drainingToLive = false;
   private socket: WebSocket | null = null;
   private sessionId: string | null = null;
   private sampleRate = 48_000;
@@ -125,13 +130,18 @@ class BrowserClockWorkerRuntime {
         return;
       case "latency_settings":
         this.latencySettings = message.latencySettings;
-        this.sendClaim();
         this.requestRefill();
+        this.sendDiagnostics();
         return;
       case "sequencer_request":
         this.sendJson(message.request);
         return;
       case "manual_midi":
+        if (message.activity?.activity !== false) {
+          const source = message.activity?.source ?? ("source_id" in message.midi && message.midi.source_id
+            ? `piano:${message.midi.source_id}` : "browser");
+          this.playbackPolicy.midi(message.midi, source, performance.now());
+        }
         this.sendJson({
           type: "manual_midi",
           midi: message.midi,
@@ -140,6 +150,12 @@ class BrowserClockWorkerRuntime {
         if (message.midi.type === "note_on") {
           this.requestImmediateRender();
         }
+        this.sendDiagnostics();
+        return;
+      case "live_input":
+        this.playbackPolicy.control(message.source, message.action, performance.now());
+        this.requestRefill();
+        if (this.latencySettings) this.sendDiagnostics();
         return;
       case "visual_ack":
         this.visualUpdateInFlight = false;
@@ -206,6 +222,9 @@ class BrowserClockWorkerRuntime {
   }
 
   private resetPipeline(): void {
+    this.playbackPolicy.reset();
+    this.previousPlaybackMode = null;
+    this.drainingToLive = false;
     if (this.stateBuffer) {
       for (let index = 0; index < BROWSER_CLOCK_STATE_LENGTH; index += 1) {
         Atomics.store(this.stateBuffer, index, 0);
@@ -241,13 +260,15 @@ class BrowserClockWorkerRuntime {
     if (!this.latencySettings || this.socket?.readyState !== WebSocket.OPEN) {
       return;
     }
-    const targets = this.claimTargets();
+    // Negotiate enough headroom for either mode once. Automatic transitions
+    // never replace the controller lease, pending renders or queued PCM.
+    const targets = this.claimTargets(playbackLatencySettings(this.latencySettings, "listening"));
     this.sendJson({
       type: "claim_controller",
       audio_context_sample_rate: this.sampleRate,
       queue_low_water_frames: targets.low,
       queue_high_water_frames: targets.high,
-      max_blocks_per_request: this.latencySettings.maxBlocksPerRequest
+      max_blocks_per_request: 512
     });
   }
 
@@ -279,6 +300,12 @@ class BrowserClockWorkerRuntime {
 
   private handleServerMessage(message: BrowserClockServerMessage): void {
     switch (message.type) {
+      case "live_input_activity":
+        if (message.reset) this.playbackPolicy.reset();
+        this.playbackPolicy.external(message.activity, message.held, performance.now());
+        this.requestRefill();
+        this.sendDiagnostics();
+        return;
       case "mixer_ack":
         this.post({ type: "mixer_ack", requestId: message.request_id, result: { mixer: message.mixer, revision: message.revision } });
         return;
@@ -286,6 +313,7 @@ class BrowserClockWorkerRuntime {
         this.post({ type: "mixer_error", requestId: message.request_id, detail: message.detail });
         return;
       case "stream_config":
+        if (message.live_input_held) this.playbackPolicy.external(false, true, performance.now());
         this.streamConfig = message;
         this.lastUnderrunCount = this.underrunCount();
         Atomics.store(
@@ -421,7 +449,7 @@ class BrowserClockWorkerRuntime {
 
   private requestRefill(): void {
     const stream = this.streamConfig;
-    const settings = this.latencySettings;
+    const settings = this.latencySettings ? this.effectiveSettings() : null;
     if (!stream || !settings || this.socket?.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -460,10 +488,12 @@ class BrowserClockWorkerRuntime {
 
   private requestImmediateRender(): void {
     const stream = this.streamConfig;
-    const settings = this.latencySettings;
+    const settings = this.latencySettings ? this.effectiveSettings() : null;
     if (!stream || !settings || this.inFlightInteractiveRequests > 0) {
       return;
     }
+    if (this.playbackPolicy.mode(settings, performance.now()) !== "live" ||
+        this.availableFrames() + this.pendingRenderFrames >= this.queueTargets().high) return;
     const now = Date.now();
     if (now - this.lastImmediateRenderAt < settings.immediateRenderCooldownMs) {
       return;
@@ -667,7 +697,15 @@ class BrowserClockWorkerRuntime {
   }
 
   private sendDiagnostics(): void {
+    const settings = this.requireSettings();
+    const mode = this.playbackPolicy.mode(settings, performance.now());
+    const targets = this.queueTargets();
+    const blockFrames = this.streamConfig
+      ? Math.ceil(this.streamConfig.ksmps * this.sampleRate / this.streamConfig.engine_sample_rate) : 128;
+    if (this.availableFrames() + this.pendingRenderFrames <= targets.high + blockFrames) this.drainingToLive = false;
     const diagnostics: BrowserClockWorkerDiagnostics = {
+      playbackMode: settings.playbackMode,
+      playbackState: this.drainingToLive ? "switching_to_live" : mode,
       sampleRate: this.sampleRate,
       queuedFrames: this.availableFrames(),
       pendingRenderFrames: this.pendingRenderFrames,
@@ -700,15 +738,26 @@ class BrowserClockWorkerRuntime {
     }
   }
 
-  private claimTargets(): { low: number; high: number } {
+  private effectiveSettings(): BrowserClockLatencySettings {
     const settings = this.requireSettings();
-    const low = this.clampFrames(latencyMsToFrames(this.sampleRate, settings.startupLowWaterMs));
-    const high = this.clampFrames(Math.max(low + 2048, latencyMsToFrames(this.sampleRate, settings.startupHighWaterMs)));
+    const mode = this.playbackPolicy.mode(settings, performance.now());
+    if (mode !== this.previousPlaybackMode) {
+      this.drainingToLive = mode === "live" && this.previousPlaybackMode === "listening";
+      this.previousPlaybackMode = mode;
+    }
+    return playbackLatencySettings(settings, mode);
+  }
+
+  private claimTargets(settings = this.effectiveSettings()): { low: number; high: number } {
+    const requestedLow = this.clampFrames(latencyMsToFrames(this.sampleRate, settings.startupLowWaterMs));
+    const high = this.clampFrames(Math.min(latencyMsToFrames(this.sampleRate, 2000),
+      Math.max(requestedLow + 2048, latencyMsToFrames(this.sampleRate, settings.startupHighWaterMs))));
+    const low = Math.min(requestedLow, high - 1);
     return { low, high };
   }
 
   private queueTargets(): { low: number; high: number; parallel: number } {
-    const settings = this.requireSettings();
+    const settings = this.effectiveSettings();
     if (!this.startupPrimed) {
       const startup = this.claimTargets();
       return {

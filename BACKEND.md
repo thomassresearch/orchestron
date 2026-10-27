@@ -663,6 +663,7 @@ Supported message types:
 - `claim_controller` opens the controller session and returns the stream configuration.
 - `request_render` asks the backend to render PCM blocks and returns JSON metadata followed by the raw PCM bytes.
 - `manual_midi` forwards a direct MIDI event through the browser-clock controller path.
+- Server `live_input_activity` messages contain `activity`, `held`, and `reset` booleans for the browser Auto/Live/Listening policy. Selected external notes/CCs update bounded per-session note/sustain state and emit one notification per host batch. `stream_config.live_input_held` restores held-input awareness on controller claims. Host removal/replacement, device removal and MIDI rebinding clear external state; Panic clears all browser activity via `reset: true`; engine Stop clears session state. Sequencer output and manual-controller initialization do not generate external activity notifications. Browser policy/timeout live in workspace app state; effective mode and held input are never performance data. Mode transitions adjust refill targets without clearing PCM or reclaiming the controller lease.
 - `lane_output` carries `request_id`, a monotonically increasing `revision`, and a complete sparse `lanes` map of `{mute, solo}` controls keyed by device ID. HTTP uses `PUT /api/sessions/{session_id}/sequencer/lane-output` with the same body minus `type`/`request_id`. Unknown lanes fail atomically (422); stale/conflicting revisions fail (409), while identical retries are idempotent. WebSocket failures use `sequencer_error` with `request_id`, without interrupting audio. Status and audible arpeggiator markers include `lane_output` with revision, controls and effective suppression.
 - Runtime configuration optionally carries a `lane_output` snapshot so output controls are applied before playback starts or resumes. Older preparation snapshots cannot replace newer controls. This field is runtime-only: performance v16, app-state v2 and native envelopes do not gain fields. Source-tagged MIDI is gated at delivery, with note ownership preventing releases from suppressed attacks or shared-pitch sources from cutting other lanes. Drummer runtime IDs map to one device; arpeggiator solo dependencies preserve required inputs/processing. Gates do not change transport or authored enablement, and remain independent of the mixer. Controller mute holds the last received CC value. Engine restarts retain desired controls; New/Load/Import supplies a cleared snapshot.
 - `audition` accepts the same session-only command as `POST /api/sessions/{session_id}/sequencer/audition`, plus `request_id`. `action` is `start`, `cancel`, `stop`, `return`, `preview_start`, `preview_end`, `workspace_start`, or `workspace_end`. Choose `track_ids` (one device; all drummer rows together) or `arpeggiator_id`. Start requires a compiled `sequence` of at most 256 existing pad/pause tokens. Commands run at the render boundary; launches and returns follow the next pad/rest boundary, while Stop is immediate. Seeks/loops resolve pending commands at their destination. Authored configuration stays separate; HTTP acknowledgments and audible PCM markers report `auditions`. No audition state is persisted or exported. Momentary `preview_start`/`preview_end` require `gesture_id` and monotonically increasing per-device `revision`; starts also carry compiled tokens. Start queues at the lane’s next cycle boundary when arranger playback is active; while stopped it applies at the next render block. Ending a queued preview cancels it without releasing notes. End restores previous arrangement/manual/latched-audition playback at the current clock; previously stopped lanes stay stopped. Revisions reject stale/conflicting commands (HTTP 409, request-scoped WebSocket `sequencer_error`); matching retries are idempotent. An end for a different gesture cannot stop a newer preview. Status includes `preview_gesture`/`preview_revision` while held and `preview_active` once launched. Status and audible transport deltas report `arranger_active` separately from the shared clock’s `running`; the frontend freezes its session-only arranger cursor during standalone previews/manual playback and resumes song playback from that cursor. Transport clear discards restoration state. Pending source events are removed on transitions, with ownership-aware releases protecting shared channels.
@@ -818,6 +819,24 @@ The direct Csound binding (used by the macOS fallback) reuses its borrowed NumPy
 output view across render blocks. Compile, Start, Stop, Cleanup and Reset invalidate
 the view before calling Csound. PCM responses still copy the samples into their own
 buffers; the stock `ctcsound` binding is unchanged.
+
+The browser render loop checks boundary actions, channel controls and MIDI every
+k-period, including at `ksmps=1`. Empty queues bypass allocation and locking;
+nonempty queues still drain under their existing locks. MIDI publishes an advisory
+next-event sample after every heap mutation, including cancellation and reset.
+The sample cursor still advances after every completed period. PCM copying caches
+only borrowed mono/stereo/multichannel layout views within a single render request;
+samples are copied before the next performance call and returned bytes own their data.
+
+`make benchmark-render-loop` measures real Csound at 48 kHz / `ksmps=1` with
+512-frame requests, including idle, 24 sustained voices and eight sequencer tracks.
+The harness in `backend/tools/benchmark_render_loop.py` accepts `--source-root` for
+a frozen baseline and `--compare` for its JSON report. Both runs must use the same
+Csound, Python and sequencer implementation. Keep matching Cython extensions with
+the baseline, or explicitly select the Python kernel for both runs. Timing excludes
+compilation, warmup and tracing; a separate pass checks PCM bytes, MIDI sample/order,
+meter/transport frames, final state and a prepared live edit. Reports include source
+hashes and chunk p99 timings. Do not run timing comparisons alongside other tests.
 
 All sequencer validation failures return `422`.
 

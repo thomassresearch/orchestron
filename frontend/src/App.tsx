@@ -558,6 +558,7 @@ export default function App() {
     runtimeAudioOutputMode,
     sendAllNotesOff,
     sendDirectMidiEvent,
+    setLiveInput,
     sequencerRef,
     transportDevice,
     stopSequencerTransport,
@@ -1107,6 +1108,7 @@ export default function App() {
 
   const onPianoRollEnabledChange = useCallback(
     (rollId: string, enabled: boolean) => {
+      setLiveInput(`piano:${rollId}`, enabled ? "start" : "stop");
       if (!enabled) {
         const roll = sequencerRef.current.pianoRolls.find((entry) => entry.id === rollId);
         if (roll) {
@@ -1122,12 +1124,12 @@ export default function App() {
         void startSession();
       }
     },
-    [activeSessionState, primeBrowserClockAudio, sendAllNotesOff, setPianoRollEnabled, startSession]
+    [activeSessionState, primeBrowserClockAudio, sendAllNotesOff, setPianoRollEnabled, startSession, setLiveInput]
   );
 
   const { onMidiControllerEnabledChange, onMidiControllerNumberChange,
-    onMidiControllerValueChange, onMidiControllerTargetChannelsChange } = useMidiControllerRouting({
-    activeSessionId, activeSessionState, sendDirectMidiEvent, setSequencerError, errors: appCopy.errors
+    onMidiControllerValueChange, onMidiControllerTargetChannelsChange, onMidiControllerGestureChange } = useMidiControllerRouting({
+    activeSessionId, activeSessionState, sendDirectMidiEvent, setLiveInput, setSequencerError, errors: appCopy.errors
   });
 
   const buildCurrentPerformanceExport = useCallback(async (purpose: "native" | "csd" = "native") => {
@@ -1587,6 +1589,7 @@ export default function App() {
   const sequencerMidiControllerActions = {
     onAddMidiController: addMidiController,
     onRemoveMidiController: removeMidiController,
+    onMidiControllerGestureChange,
     onMidiControllerEnabledChange,
     onMidiControllerTargetChannelsChange,
     onMidiControllerNumberChange: onMidiControllerNumberChange,
@@ -1950,6 +1953,7 @@ export default function App() {
               hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
               showBrowserClockLatencyConfig={runtimeAudioOutputMode === "browser_clock"}
               browserClockLatencySettings={browserClockLatencySettings}
+              browserAudioDiagnostics={browserAudioDiagnostics}
               onHelpRequest={onHelpRequest}
               onApplyEngineConfig={(config) => {
                 void applyEngineConfig(config);

@@ -1,3 +1,4 @@
+import type { LiveInputAction } from "../audio/browserPlaybackPolicy";
 import { playingArrangerSourceChanges } from "../store/arrangerHistory";
 import { acknowledgeLaneOutput, setLaneOutputSender } from "../lib/laneOutput";
 import { compilePadLoopPattern } from "../lib/padLoopPattern";
@@ -31,6 +32,7 @@ import {
 } from "../lib/sequencerRuntime";
 import { useAppStore } from "../store/useAppStore";
 import type {
+  ManualMidiActivity,
   SessionAuditionRequest,
   SessionDeviceTransportRequest,
   PadLoopPatternItem,
@@ -107,11 +109,12 @@ interface UseSequencerRuntimeControllerResult {
   readPlaybackTransportSubunit: () => number | null;
   onApplyBrowserClockLatencySettings: (settings: BrowserClockLatencySettings) => void;
   primeBrowserClockAudio: () => void;
+  setLiveInput: (source: string, action: LiveInputAction) => void;
   queueSequencerPadRuntime: (sessionId: string, trackId: string, padIndex: number | null) => Promise<SessionSequencerStatus>;
   resolveSequencerSessionId: () => string | null;
   runtimeAudioOutputMode: SessionAudioOutputMode | null;
   sendAllNotesOff: (channel: number) => void;
-  sendDirectMidiEvent: (payload: SessionMidiEventRequest, sessionIdOverride?: string) => Promise<void>;
+  sendDirectMidiEvent: (payload: SessionMidiEventRequest, sessionIdOverride?: string, activity?: ManualMidiActivity) => Promise<void>;
   sequencerRef: MutableRefObject<SequencerState>;
   stopSequencerTransport: (resetPlayhead: boolean) => Promise<void>;
   moveSequencerTransport: (deltaSteps: number) => Promise<void>;
@@ -1181,14 +1184,14 @@ export function useSequencerRuntimeController({
   };
 
   const sendDirectMidiEvent = useCallback(
-    async (payload: SessionMidiEventRequest, sessionIdOverride?: string): Promise<void> => {
+    async (payload: SessionMidiEventRequest, sessionIdOverride?: string, activity?: ManualMidiActivity): Promise<void> => {
       const sessionId = sessionIdOverride ?? activeSessionId;
       if (!sessionId) {
         throw new Error(errors.noActiveRuntimeSession);
       }
       try {
         if (effectiveAudioOutputMode === "browser_clock") {
-          await browserClockClientRef.current.sendManualMidi(sessionId, payload);
+          await browserClockClientRef.current.sendManualMidi(sessionId, payload, activity);
           return;
         }
         await api.sendSessionMidiEvent(sessionId, payload);
@@ -1235,6 +1238,10 @@ export function useSequencerRuntimeController({
     }
     return JSON.stringify(buildBackendArpeggiatorConfig(sequencerConfig));
   }, [activeSessionState, buildBackendArpeggiatorConfig, sequencerConfig]);
+
+  const setLiveInput = useCallback((source: string, action: LiveInputAction) => {
+    browserClockClientRef.current.setLiveInput(source, action);
+  }, [browserClockClientRef]);
 
   const primeBrowserClockAudio = useCallback((): void => {
     if (runtimeAudioOutputMode !== "browser_clock") {
@@ -1420,6 +1427,7 @@ export function useSequencerRuntimeController({
     readPlaybackTransportSubunit,
     onApplyBrowserClockLatencySettings,
     primeBrowserClockAudio,
+    setLiveInput,
     queueSequencerPadRuntime,
     resolveSequencerSessionId,
     runtimeAudioOutputMode,

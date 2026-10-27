@@ -3,6 +3,31 @@ from __future__ import annotations
 from backend.app.engine.midi_scheduler import ClockDomainMapping, EngineMidiScheduler
 
 
+def test_due_event_hint_tracks_earlier_enqueues_cancellation_release_and_reset():
+    scheduler = EngineMidiScheduler(max_events=2)
+    assert not scheduler.has_due_events(1)
+    scheduler.enqueue([0x90, 60, 100], source="lane:lead", target_engine_sample=100)
+    assert not scheduler.has_due_events(100)
+    assert scheduler.has_due_events(101)
+    scheduler.enqueue([0x90, 64, 100], source="lane:other", target_engine_sample=7)
+    assert not scheduler.enqueue([0x90, 70, 100], source="overflow", target_engine_sample=0)[0]
+    assert not scheduler.has_due_events(7)
+    assert scheduler.has_due_events(8)
+    assert len(scheduler.drain_block(block_start_sample=7, block_end_sample=8)) == 1
+    assert not scheduler.has_due_events(8)
+    scheduler.release_sources({"lane:lead"}, sample=8)  # Discards the future attack.
+    assert not scheduler.has_due_events(101)
+    scheduler.release_sources({"lane:other"}, sample=9)  # Creates an owned release.
+    assert scheduler.has_due_events(10)
+    assert [list(e.message) for e in scheduler.drain_block(block_start_sample=9, block_end_sample=10)] == [
+        [0x80, 64, 0],
+    ]
+    assert not scheduler.has_due_events(101)
+    scheduler.enqueue([0x90, 67, 100], source="manual", target_engine_sample=10)
+    scheduler.reset()
+    assert not scheduler.has_due_events(1000)
+
+
 def test_preview_transition_discards_pending_lane_events_without_cutting_shared_pitch():
     scheduler = EngineMidiScheduler()
     for source in ("lane:lead", "lane:other"):

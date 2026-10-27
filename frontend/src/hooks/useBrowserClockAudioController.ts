@@ -107,9 +107,21 @@ export function useBrowserClockAudioController({
     [applyBrowserClockTransportEventsRef, applySequencerStatusRef]
   );
   const browserClockClientRef = useRef(browserClockClient);
+  const previousManualSources = useRef(new Set<string>());
+  useEffect(() => {
+    const sources = new Set([
+      ...sequencer.pianoRolls.filter(roll => roll.enabled).map(roll => `piano:${roll.id}`),
+      ...sequencer.midiControllers.filter(controller => controller.enabled).map(controller => `controller:${controller.id}`)
+    ]);
+    for (const source of previousManualSources.current) {
+      if (!sources.has(source)) browserClockClient.setLiveInput(source, "stop");
+    }
+    previousManualSources.current = sources;
+  }, [browserClockClient, sequencer.pianoRolls, sequencer.midiControllers]);
 
   const onApplyBrowserClockLatencySettings = useCallback(
     (settings: BrowserClockLatencySettings) => {
+      browserClockLatencySettingsRef.current = settings;
       setBrowserClockLatencySettings(settings);
       if (runtimeAudioOutputMode === "browser_clock") {
         browserClockClientRef.current.refreshLatencySettings();

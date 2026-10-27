@@ -1,3 +1,4 @@
+import { BROWSER_PLAYBACK_COPY } from "../lib/browserPlaybackCopy";
 import type { CompileResponse, GuiLanguage, MidiInputRef, SessionEvent } from "../types";
 import type { BrowserClockWorkerDiagnostics } from "../audio/browserClockWorkerProtocol";
 
@@ -206,6 +207,10 @@ export function RuntimePanel({
           {browserAudioError ? <div className="mt-1 text-[10px] text-rose-300">{browserAudioError}</div> : null}
           {browserAudioDiagnostics ? (
             <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[10px] text-slate-400">
+              <dt>{BROWSER_PLAYBACK_COPY[guiLanguage].mode}</dt>
+              <dd className="text-right text-cyan-200">
+                {BROWSER_PLAYBACK_COPY[guiLanguage].modes[browserAudioDiagnostics.playbackMode]} · {BROWSER_PLAYBACK_COPY[guiLanguage].states[browserAudioDiagnostics.playbackState]}
+              </dd>
               <dt>{copy.audioQueue}</dt>
               <dd className="text-right text-slate-200">
                 {Math.round((browserAudioDiagnostics.queuedFrames * 1000) / Math.max(1, browserAudioDiagnostics.sampleRate))} ms

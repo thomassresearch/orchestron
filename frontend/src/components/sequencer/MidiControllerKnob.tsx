@@ -12,10 +12,13 @@ interface MidiControllerKnobProps {
   value: number;
   disabled: boolean;
   onChange: (value: number) => void;
+  onGestureChange?: (active: boolean) => void;
 }
 
-export const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, value, disabled, onChange }: MidiControllerKnobProps) {
+export const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, value, disabled, onChange, onGestureChange }: MidiControllerKnobProps) {
   const pointerStateRef = useRef<{ pointerId: number; startY: number; startValue: number } | null>(null);
+  const gestureRef = useRef(onGestureChange);
+  gestureRef.current = onGestureChange;
   const normalizedValue = clampMidiControllerValue(value);
   const angle = midiControllerKnobAngle(normalizedValue);
 
@@ -24,6 +27,7 @@ export const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, 
       return;
     }
     pointerStateRef.current = null;
+    gestureRef.current?.(false);
   }, []);
 
   const handlePointerDown = useCallback(
@@ -33,6 +37,7 @@ export const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, 
       }
 
       event.preventDefault();
+      gestureRef.current?.(true);
       pointerStateRef.current = {
         pointerId: event.pointerId,
         startY: event.clientY,
@@ -79,8 +84,12 @@ export const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, 
     if (!disabled) {
       return;
     }
-    pointerStateRef.current = null;
-  }, [disabled]);
+    if (pointerStateRef.current) releasePointer(pointerStateRef.current.pointerId);
+  }, [disabled, releasePointer]);
+
+  useEffect(() => () => {
+    if (pointerStateRef.current) releasePointer(pointerStateRef.current.pointerId);
+  }, [releasePointer]);
 
   return (
     <button
@@ -111,8 +120,4 @@ export const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, 
       </span>
     </button>
   );
-}, areMidiControllerKnobPropsEqual);
-
-function areMidiControllerKnobPropsEqual(previous: MidiControllerKnobProps, next: MidiControllerKnobProps): boolean {
-  return previous.ariaLabel === next.ariaLabel && previous.value === next.value && previous.disabled === next.disabled;
-}
+});

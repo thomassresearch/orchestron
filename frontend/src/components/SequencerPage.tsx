@@ -419,6 +419,7 @@ function useSequencerPageContext({
   const {
     onAddMidiController,
     onRemoveMidiController,
+    onMidiControllerGestureChange,
     onMidiControllerEnabledChange,
     onMidiControllerNumberChange,
     onMidiControllerTargetChannelsChange,
@@ -747,6 +748,7 @@ function useSequencerPageContext({
     onPianoRollNoteOff,
     onMidiControllerNumberChange,
     onMidiControllerTargetChannelsChange,
+    onMidiControllerGestureChange,
     onMidiControllerEnabledChange,
     onRemoveMidiController,
     onMidiControllerValueChange,
@@ -3237,6 +3239,7 @@ function MidiControllersBody({ context }: { context: ReturnType<typeof useSequen
     onMidiControllerNumberChange,
     onMidiControllerTargetChannelsChange,
     controlFieldClass,
+    onMidiControllerGestureChange,
     onMidiControllerEnabledChange,
     transportStopButtonClass,
     transportStartButtonClass,
@@ -3300,6 +3303,7 @@ function MidiControllersBody({ context }: { context: ReturnType<typeof useSequen
                 value={controller.value}
                 disabled={false}
                 onChange={(value) => onMidiControllerValueChange(controller.id, value)}
+                onGestureChange={(active) => onMidiControllerGestureChange?.(controller.id, active)}
               />
               <div className="space-y-1">
                 <div className={controlLabelClass}>{ui.value}</div>

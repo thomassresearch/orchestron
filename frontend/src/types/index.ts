@@ -705,7 +705,13 @@ export interface InstrumentTabSnapshot {
   patch: EditablePatchSnapshot;
 }
 
+export type BrowserPlaybackMode = "auto" | "live" | "listening";
+export type BrowserPlaybackState = "live" | "listening" | "switching_to_live";
+export type ManualMidiActivity = { source?: string; activity?: boolean };
+
 export interface BrowserClockLatencySettings {
+  playbackMode: BrowserPlaybackMode;
+  inactivityTimeoutSeconds: number;
   steadyLowWaterMs: number;
   steadyHighWaterMs: number;
   startupLowWaterMs: number;
@@ -1148,6 +1154,7 @@ export interface BrowserClockQueuePadControlRequest {
 }
 
 export interface BrowserClockStreamConfigMessage {
+  live_input_held?: boolean;
   type: "stream_config";
   engine_sample_rate: number;
   ksmps: number;
@@ -1236,6 +1243,7 @@ export interface BrowserClockEngineErrorMessage {
 }
 
 export type BrowserClockServerMessage =
+  | { type: "live_input_activity"; activity: boolean; held: boolean; reset?: boolean }
   | { type: "sequencer_error"; request_id: string; detail: string }
   | ({ type: "mixer_ack"; request_id: string } & MixerResponse)
   | { type: "mixer_error"; request_id: string; detail: string }

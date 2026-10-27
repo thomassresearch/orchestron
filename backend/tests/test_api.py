@@ -7524,6 +7524,96 @@ def test_repeated_note_preparation_applies_edits_without_sharing_playback_state(
         assert restored.pads[0] == original.pads[0]
 
 
+def test_native_ksmps_one_live_edit_arriving_during_render_keeps_next_sample_boundary(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    import threading
+
+    import numpy as np
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        patch = load_patch_fixture("midi_legato")
+        patch.graph.engine_config.ksmps = 1
+        patch.graph.engine_config.control_rate = 48000
+        saved = client.post("/api/patches", json=patch.model_dump(mode="json"))
+        assert saved.status_code == 201, saved.text
+        created = client.post("/api/sessions", json={"patch_id": saved.json()["id"]})
+        assert created.status_code == 201, created.text
+        base = f"/api/sessions/{created.json()['session_id']}"
+        assert client.post(base + "/compile").status_code == 200
+        assert client.post(base + "/start").status_code == 200
+        config = {"timing": {"tempo_bpm": 120}, "playback_end_step": 64,
+                  "tracks": [{"track_id": "lead", "length_beats": 1,
+                              "pads": [{"pad_index": 0, "length_beats": 1,
+                                        "steps": [{"note": 60, "hold": True}]}]}]}
+        started = client.post(base + "/sequencer/start", json={"config": config})
+        assert started.status_code == 200, started.text
+        service = client.app.state.container.session_service
+        runtime = service._sessions[created.json()["session_id"]]
+        worker, sequencer = runtime.worker, runtime.sequencer
+        assert worker.backend == "ctcsound" and worker.runtime_ksmps == 1
+        engine = worker._csound
+
+        def tick(_, sample):
+            tempo = sequencer.advance_render_block(sample_rate=48000, ksmps=1, block_start_sample=sample)
+            service._ensure_midi_router(runtime).advance_render_block(
+                block_start_sample=sample, block_end_sample=sample + 1, sample_rate=48000, tempo_bpm=tempo)
+
+        worker.render_blocks(block_count=2048, target_sample_rate=48000, before_block=tick)
+        position = sequencer.status().transport_subunit
+        paused, queued = threading.Event(), threading.Event()
+        observed = []
+
+        boundary_lock = worker._boundary_lock
+
+        class NotifyingBoundaryLock:
+            def __enter__(self):
+                boundary_lock.acquire()
+
+            def __exit__(self, *_args):
+                pending = bool(worker._boundary_actions)
+                boundary_lock.release()
+                if pending:
+                    queued.set()
+
+        assert not worker._boundary_actions
+        monkeypatch.setattr(worker, "_boundary_lock", NotifyingBoundaryLock())
+
+        def during_render(index, sample):
+            observed.append((sample, sequencer._config.timing.tempo_bpm))
+            if index == 10:
+                paused.set()  # This period has already checked the empty boundary queue.
+                assert queued.wait(10), "prepared edit never reached the render queue"
+            tick(index, sample)
+
+        with ThreadPoolExecutor(max_workers=2) as threads:
+            rendering = threads.submit(worker.render_blocks, block_count=512, target_sample_rate=48000,
+                                       before_block=during_render)
+            assert paused.wait(5)
+            config["timing"]["tempo_bpm"] = 137
+            editing = threads.submit(client.put, base + "/sequencer/config", json=config)
+            rendered = rendering.result(timeout=15)
+            response = editing.result(timeout=15)
+        assert response.status_code == 200, response.text
+        assert observed[:11] == [(2048 + n, 120) for n in range(11)]
+        assert observed[11:] == [(2048 + n, 137) for n in range(11, 512)]
+        assert worker._csound is engine and worker.render_sample_cursor == 2560
+        assert sequencer.status().transport_subunit > position
+        assert np.max(np.abs(np.frombuffer(rendered.pcm_f32le, dtype=np.float32))) > .00001
+
+        async def failed_preparation(*_args, **_kwargs):
+            raise RuntimeError("intentional preparation failure")
+
+        monkeypatch.setattr(service._preparation, "prepare", failed_preparation)
+        config["timing"]["tempo_bpm"] = 151
+        assert client.put(base + "/sequencer/config", json=config).status_code == 500
+        continued = worker.render_blocks(block_count=512, target_sample_rate=48000, before_block=tick)
+        assert worker._csound is engine and sequencer.status().timing.tempo_bpm == 137
+        assert continued.engine_sample_start == 2560
+        assert np.max(np.abs(np.frombuffer(continued.pcm_f32le, dtype=np.float32))) > .00001
+
+
 def test_selected_playback_kernel_preserves_queued_pad_boundary_over_pcm_api(tmp_path, monkeypatch):
     from backend.app.services import sequencer_playback
     from backend.tests.api_test_support import _BrowserClockRenderDriver
@@ -8945,3 +9035,59 @@ def test_trance_gate_export_preserves_lfo_commands_and_stop_reset(tmp_path, even
             assert [value for _, value in events] == [0, 127, 64, 0, 127, 0]
         assert [value for time, value in events if time == 0][-1] == 127
         assert events[-1][0] > 0 and events[-1][1] == 0
+
+
+def test_browser_playback_external_activity_and_cleanup(tmp_path: Path) -> None:
+    with _client(tmp_path, host_midi_token="test-token") as client:
+        session_id = _create_running_session(client, patch_name="Playback policy")
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as browser:
+            claim = {"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 48000, "queue_high_water_frames": 86400, "max_blocks_per_request": 512}
+            browser.send_json(claim)
+            assert browser.receive_json()["live_input_held"] is False
+            with client.websocket_connect("/ws/host-midi", headers={"authorization": "Bearer test-token"}) as host:
+                host.send_json({"type": "register_host", "host_id": "host-a", "host_name": "Test", "protocol_version": 1})
+                assert host.receive_json()["type"] == "host_registered"
+                inventory = {"type": "device_inventory", "devices": [{"id": "host:keyboard:a", "name": "Keys",
+                    "backend": "host_bridge", "selector": "keys", "host_id": "host-a", "timestamp_quality": "authoritative"}]}
+                host.send_json(inventory)
+                assert host.receive_json()["type"] == "device_inventory_ack"
+                assert client.put(f"/api/sessions/{session_id}/midi-input", json={"midi_input": "host:keyboard:a"}).status_code == 200
+                assert browser.receive_json() == {"type": "live_input_activity", "activity": False, "held": False, "reset": False}
+
+                def send(messages):
+                    host.send_json({"type": "midi_events", "events": [
+                        {"device_id": "host:keyboard:a", "midi": message} for message in messages]})
+                    return browser.receive_json()
+
+                assert send([[0x90, 60, 100]]) == {"type": "live_input_activity", "activity": True, "held": True, "reset": False}
+                browser.send_json(claim)
+                assert browser.receive_json()["live_input_held"] is True
+                # One summary for the batch, retaining the pedal after note release.
+                assert send([[0xB0, 64, 127], [0x80, 60, 0]])["held"] is True
+                assert send([[0xB0, 64, 0]])["held"] is False
+                assert send([[0xB0, 74, 32]])["activity"] is True
+                assert send([[0x90, 62, 100]])["held"] is True
+                assert client.post(f"/api/sessions/{session_id}/panic").status_code == 200
+                assert browser.receive_json() == {"type": "live_input_activity", "activity": False, "held": False, "reset": True}
+                assert send([[0x90, 64, 100]])["held"] is True
+                host.send_json({"type": "device_inventory", "devices": []})
+                assert host.receive_json()["type"] == "device_inventory_ack"
+                assert browser.receive_json()["held"] is False
+                host.send_json(inventory)
+                host.receive_json()
+                assert send([[0x90, 65, 100]])["held"] is True
+            # Unplugging must not strand Auto in Live with a held note.
+            assert browser.receive_json() == {"type": "live_input_activity", "activity": False, "held": False, "reset": False}
+            # Manual and automated messages are not echoed as external activity.
+            browser.send_json({"type": "manual_midi", "midi": {"type": "note_on", "channel": 1, "note": 60}})
+            browser.send_json({"type": "request_render", "block_count": 1})
+            assert browser.receive_json()["type"] == "render_chunk"
+            assert browser.receive_bytes()
+
+
+def test_browser_playback_preferences_round_trip_in_app_state(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        state = {"version": 3, "browserClockLatencySettings": {"playbackMode": "auto", "inactivityTimeoutSeconds": 23}}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["browserClockLatencySettings"] == state["browserClockLatencySettings"]

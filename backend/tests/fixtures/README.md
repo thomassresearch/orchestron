@@ -1,5 +1,9 @@
 # Test fixtures
 
+`csound/render_loop.csd` is the deterministic native K=1 render benchmark orchestra;
+`csound/midi_sample_probe.csd` exposes note and controller delivery as exact sample
+levels. Both exercise host MIDI without an OS MIDI device or audio output device.
+
 `patches/trance_gate_original.patch.json` freezes the original CC24 stereo gate;
 `patches/trance_gate.patch.json` adds the CC29 swept triangle LFO. Paired renders
 verify sample-identical direct gating, analytic sweep timing, early returns,

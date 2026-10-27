@@ -21,9 +21,11 @@ it("routes initialization, channel changes, CC changes, and knob changes to each
   }), { initialProps: { state: "running" } });
   const messages = () => send.mock.calls.map(([event]) => event);
   expect(messages()).toEqual([1, 16].map(channel => ({ type: "control_change", channel, controller: 74, value: 30 })));
+  expect(send.mock.calls.every(([, , activity]) => activity.activity === false)).toBe(true);
   send.mockClear();
   act(() => result.current.onMidiControllerTargetChannelsChange(id, [2, 16]));
   expect(messages()).toEqual([2, 16].map(channel => ({ type: "control_change", channel, controller: 74, value: 30 })));
+  expect(send.mock.calls.every(([, , activity]) => activity.activity === true && activity.source === `controller:${id}`)).toBe(true);
   send.mockClear();
   act(() => result.current.onMidiControllerNumberChange(id, 71));
   expect(messages().map(message => [message.channel, message.controller])).toEqual([[2, 71], [16, 71]]);

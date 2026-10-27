@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
+from pathlib import Path
 import threading
 
 import numpy as np
@@ -9,6 +10,129 @@ import pytest
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.engine.browser_audio_pcm import resample_stereo_block_linear
+
+
+def test_controls_queued_during_drain_are_applied_at_following_boundary(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    entered, enqueued = threading.Event(), threading.Event()
+    observed = []
+
+    class Channels:
+        def setControlChannel(self, name, value):
+            observed.append((name, value))
+            if value == 1:
+                entered.set()
+                assert enqueued.wait(5)
+
+    def producer():
+        assert entered.wait(5)
+        worker.queue_control_channels({"gain": 2})
+        enqueued.set()
+
+    worker._apply_control_channels(Channels())  # Empty fast path before first write.
+    worker.queue_control_channels({"gain": 1})
+    with ThreadPoolExecutor(max_workers=1) as threads:
+        queued = threads.submit(producer)
+        worker._apply_control_channels(Channels())
+        queued.result(timeout=5)
+    assert observed == [("gain", 1)]
+    worker._apply_control_channels(Channels())
+    worker._apply_control_channels(Channels())
+    assert observed == [("gain", 1), ("gain", 2)]
+
+
+def test_boundary_actions_enqueued_while_applying_wait_for_next_boundary(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    first, second = Future(), Future()
+    worker._apply_boundary_actions()
+
+    def action():
+        with worker._boundary_lock:
+            worker._boundary_actions.append((lambda: 2, second))
+        return 1
+
+    with worker._boundary_lock:
+        worker._boundary_actions.append((action, first))
+    worker._apply_boundary_actions()
+    assert first.result() == 1 and not second.done()
+    worker._apply_boundary_actions()
+    assert second.result() == 2
+
+
+def test_empty_midi_period_discards_unconsumed_bytes_and_accepts_next_sample(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    worker._host_midi_buffer.extend([0x90, 60])  # Partial read left over from the previous period.
+    worker._prepare_host_midi_block(block_start_sample=10, block_end_sample=11)
+    assert not worker._host_midi_buffer
+    worker._midi_scheduler.enqueue([0x90, 62, 99], source="manual", target_engine_sample=11)
+    worker._prepare_host_midi_block(block_start_sample=10, block_end_sample=11)
+    assert not worker._host_midi_buffer
+    worker._prepare_host_midi_block(block_start_sample=11, block_end_sample=12)
+    assert worker._host_midi_buffer == bytes([0x90, 62, 99])
+    worker._prepare_host_midi_block(block_start_sample=12, block_end_sample=13)
+    assert not worker._host_midi_buffer
+
+
+def test_midi_arriving_after_empty_check_is_delivered_at_next_sample(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "true")
+    worker = CsoundWorker()
+    worker.start("sr = 48000\nksmps = 1\nnchnls = 2", "unused", "null")
+    entered, enqueued = threading.Event(), threading.Event()
+    delivered = []
+
+    class Engine:
+        def performKsmps(self):
+            delivered.append(bytes(worker._host_midi_buffer))
+            if len(delivered) == 1:
+                entered.set()
+                assert enqueued.wait(5)
+            return 0
+
+        def spout(self):
+            return np.zeros(2)
+
+    def producer():
+        assert entered.wait(5)
+        assert worker.enqueue_timestamped_midi([0x90, 60, 100], source="manual", target_engine_sample=0)
+        enqueued.set()
+
+    worker._backend, worker._csound = "ctcsound", Engine()
+    with ThreadPoolExecutor(max_workers=1) as threads:
+        queued = threads.submit(producer)
+        worker.render_blocks(block_count=3, target_sample_rate=48000)
+        queued.result(timeout=5)
+    assert delivered == [b"", bytes([0x90, 60, 100]), b""]
+    assert worker.render_sample_cursor == 3
+
+
+def test_native_ksmps_one_midi_audio_onsets_and_controls_are_sample_exact(monkeypatch):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+    worker = CsoundWorker()
+    if worker.backend != "ctcsound":
+        pytest.skip("Native Csound unavailable")
+    csd = (Path(__file__).parent / "fixtures/csound/midi_sample_probe.csd").read_text()
+    worker.start(csd, "internal:loopback", "null")
+    try:
+        assert worker.runtime_ksmps == 1
+        # Boundaries adjacent to a 512-frame PCM request, and same-sample order.
+        for sample, message in [(1, [0x90, 60, 100]), (511, [0x80, 60, 0]),
+                                (512, [0xB0, 74, 127]), (512, [0x90, 62, 100]),
+                                (513, [0xB0, 74, 0]), (700, [0x80, 62, 0])]:
+            assert worker.enqueue_timestamped_midi(message, source="manual", target_engine_sample=sample)
+        worker.queue_control_channels({"gain": 1})
+        chunks = [worker.render_blocks(block_count=512, target_sample_rate=48000).pcm_f32le for _ in range(2)]
+        pcm = np.frombuffer(b"".join(chunks), dtype=np.float32).reshape(-1, 2)
+        expected = np.zeros(1024, dtype=np.float32)
+        expected[1:511] = .25
+        expected[512] = .5
+        expected[513:700] = .25
+        np.testing.assert_array_equal(pcm[:, 0], expected)
+        np.testing.assert_array_equal(pcm[:, 1], -expected)
+    finally:
+        worker.stop()
 
 
 def test_stop_waits_for_render_ownership_and_prevents_late_pcm(monkeypatch):
@@ -668,13 +792,14 @@ def test_browser_clock_ctcsound_runtime_resamples_merged_blocks_once_per_request
     assert np.isfinite(pcm).all()
 
 
-def test_browser_clock_ctcsound_cursor_tracks_each_completed_block_for_internal_midi() -> None:
+@pytest.mark.parametrize("ksmps", [1, 64])
+def test_browser_clock_ctcsound_cursor_tracks_each_completed_block_for_internal_midi(ksmps) -> None:
     class FakeCsound:
         def performKsmps(self) -> int:  # noqa: N802
             return 0
 
         def spout(self) -> np.ndarray:
-            return np.zeros((64, 2), dtype=np.float32)
+            return np.zeros((ksmps, 2), dtype=np.float32)
 
     worker = CsoundWorker()
     worker._backend = "ctcsound"
@@ -684,7 +809,7 @@ def test_browser_clock_ctcsound_cursor_tracks_each_completed_block_for_internal_
     worker._host_midi_enabled = True
     worker._runtime_sr = 48_000
     worker._runtime_nchnls = 2
-    worker._runtime_ksmps = 64
+    worker._runtime_ksmps = ksmps
     worker._midi_scheduler.set_engine_sample_rate(48_000)
 
     observed_cursors: list[tuple[int, int]] = []
@@ -715,12 +840,12 @@ def test_browser_clock_ctcsound_cursor_tracks_each_completed_block_for_internal_
         before_block=before_block,
     )
 
-    assert observed_cursors == [(0, 0), (64, 64), (128, 128)]
-    assert [event.target_engine_sample for event in drained_events] == [0, 64, 128]
+    assert observed_cursors == [(n * ksmps, n * ksmps) for n in range(3)]
+    assert [event.target_engine_sample for event in drained_events] == [n * ksmps for n in range(3)]
     assert all(event.late is False for event in drained_events)
     assert render.engine_sample_start == 0
-    assert render.engine_sample_end == 192
-    assert worker.render_sample_cursor == 192
+    assert render.engine_sample_end == 3 * ksmps
+    assert worker.render_sample_cursor == 3 * ksmps
 
 
 def test_mixer_queue_applies_only_on_render_thread_before_block_and_timestamps_meters(monkeypatch):

@@ -26,6 +26,7 @@ class EngineMidiScheduler:
         self._max_events = max(1, int(max_events))
         self._lock = threading.Lock()
         self._events: list[EngineMidiEvent] = []
+        self._next_event_sample: int | None = None
         self._sequence = 0
         self._overflow_count = 0
         self._engine_sample_rate = 0
@@ -47,6 +48,7 @@ class EngineMidiScheduler:
     def reset(self) -> None:
         with self._lock:
             self._events.clear()
+            self._next_event_sample = None
             self.lane_output.reset_notes()
             self._sequence = 0
             self._overflow_count = 0
@@ -85,7 +87,18 @@ class EngineMidiScheduler:
             self._sequence += 1
             event.sequence = self._sequence
             heapq.heappush(self._events, event)
+            self._next_event_sample = self._events[0].target_engine_sample
         return (True, event)
+
+    def has_due_events(self, block_end_sample: int) -> bool:
+        """Read an advisory deadline without locking or inspecting a mutating heap.
+
+        Every queue mutation publishes this immutable scalar under the lock.
+        A concurrent enqueue after this read remains queued for the next period;
+        a true hint is always rechecked by drain_block under the lock.
+        """
+        sample = self._next_event_sample
+        return sample is not None and sample < block_end_sample
 
     def enqueue_after_delay(
         self,
@@ -122,6 +135,7 @@ class EngineMidiScheduler:
                 if self.lane_output.allows(event.source, event.message):
                     drained.append(event)
                     drained.extend([event] * self.lane_output.take_deferred_releases(event.message))
+            self._next_event_sample = self._events[0].target_engine_sample if self._events else None
         return drained
 
     def release_sources(self, sources: set[str], *, sample: int) -> None:
@@ -132,6 +146,7 @@ class EngineMidiScheduler:
             for source, message in self.lane_output.source_releases(sources):
                 self._sequence += 1
                 heapq.heappush(self._events, EngineMidiEvent(sample, self._sequence, source, bytes(message)))
+            self._next_event_sample = self._events[0].target_engine_sample if self._events else None
 
 
 class ClockDomainMapping:

@@ -1,4 +1,5 @@
 import { withLaneOutput } from "./laneOutput";
+import type { LiveInputAction } from "../audio/browserPlaybackPolicy";
 import { publishMeters, releaseMixerTransport, setMixerTransport } from "./mixerRuntime";
 import type { MixerState, MixerResponse } from "../types";
 import { wsBaseUrl } from "../api/client";
@@ -14,6 +15,7 @@ import {
 } from "../audio/browserClockWorkerProtocol";
 import type {
   BrowserClockLatencySettings,
+  ManualMidiActivity,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
   SessionSequencerStatus
@@ -72,6 +74,7 @@ export class BrowserClockAudioClient {
   private workerPrimed = false;
   private fatalError: string | null = null;
   private unlockHandler: (() => void) | null = null;
+  private pendingLiveInputs = new Map<string, { action: LiveInputAction; at: number }>();
 
   constructor(callbacks: BrowserClockCallbacks) {
     this.callbacks = callbacks;
@@ -127,6 +130,12 @@ export class BrowserClockAudioClient {
       stateBuffer: this.stateBufferSab,
       latencySettings: this.callbacks.getLatencySettings()
     });
+    for (const [source, input] of this.pendingLiveInputs) {
+      if (performance.now() - input.at < this.callbacks.getLatencySettings().inactivityTimeoutSeconds * 1000) {
+        this.postWorker({ type: "live_input", source, action: input.action });
+      }
+    }
+    this.pendingLiveInputs.clear();
 
     try {
       await promise;
@@ -138,6 +147,8 @@ export class BrowserClockAudioClient {
   }
 
   async disconnect(): Promise<void> {
+    // A keyboard can be armed while its new session is still compiling.
+    if (this.sessionId) this.pendingLiveInputs.clear();
     this.pipelineGeneration += 1;
     this.pipelinePromise = null;
     this.connectPromise = null;
@@ -190,11 +201,18 @@ export class BrowserClockAudioClient {
     return Atomics.load(this.stateBuffer, BROWSER_CLOCK_STATE_TRANSPORT_SUBUNIT) >>> 0;
   }
 
-  async sendManualMidi(sessionId: string, midi: SessionMidiEventRequest): Promise<void> {
+  setLiveInput(source: string, action: LiveInputAction): void {
+    if (this.sessionId) this.postWorker({ type: "live_input", source, action }, true);
+    else if (action === "stop") this.pendingLiveInputs.delete(source);
+    else this.pendingLiveInputs.set(source, { action, at: performance.now() });
+  }
+
+  async sendManualMidi(sessionId: string, midi: SessionMidiEventRequest, activity?: ManualMidiActivity): Promise<void> {
     await this.connect(sessionId);
     this.postWorker({
       type: "manual_midi",
       midi,
+      activity,
       eventEpochMs: performance.timeOrigin + performance.now()
     });
   }

@@ -4,10 +4,42 @@ import numpy as np
 import pytest
 
 from backend.app.engine.browser_audio_pcm import (
+    create_csound_spout_copier,
     csound_spout_to_pcm_block,
     normalize_csound_spout_to_stereo,
     resample_stereo_block_linear,
 )
+
+
+@pytest.mark.parametrize("frames", [1, 5])
+@pytest.mark.parametrize("channels", [1, 2, 4])
+@pytest.mark.parametrize("layout", ["flat", "interleaved", "planar"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_spout_copier_preserves_bytes_when_csound_reuses_or_replaces_buffer(frames, channels, layout, dtype):
+    copy = create_csound_spout_copier(source_channels=channels, block_frames=frames)
+    output = np.empty((frames, 2), dtype=np.float32)
+    for _ in range(2):  # Some bindings return a fresh array on every spout call.
+        samples = np.empty((frames, channels), dtype=dtype)
+        spout = samples.reshape(-1) if layout == "flat" else samples.T if layout == "planar" else samples
+        for value in (1 / 7, -0.0, np.inf, np.nan, -1 / 3):
+            samples[:] = value
+            expected = normalize_csound_spout_to_stereo(spout, source_channels=channels)
+            copy(spout, output)
+            assert output.tobytes() == expected.tobytes()
+            saved = output.copy()
+            samples.fill(99)  # Returned PCM must not alias Csound's next period.
+            assert output.tobytes() == saved.tobytes()
+
+
+def test_spout_copier_retains_unusual_layout_validation():
+    copy = create_csound_spout_copier(source_channels=2, block_frames=3)
+    output = np.empty((3, 2), dtype=np.float32)
+    for spout in (np.arange(6).reshape(1, 2, 3), list(range(6))):
+        copy(spout, output)
+        assert output.tobytes() == normalize_csound_spout_to_stereo(spout, source_channels=2).tobytes()
+    for spout in (np.array([]), np.array([1]), np.arange(4)):
+        with pytest.raises(ValueError):
+            copy(spout, output)
 
 
 def test_normalize_csound_spout_to_stereo_upsamples_mono() -> None:

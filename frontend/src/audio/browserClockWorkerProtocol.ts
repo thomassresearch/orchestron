@@ -2,6 +2,9 @@ import type { MixerState, MixerResponse } from "../types";
 import type { MeterValue } from "../lib/mixerRuntime";
 import type {
   BrowserClockLatencySettings,
+  BrowserPlaybackMode,
+  BrowserPlaybackState,
+  ManualMidiActivity,
   BrowserClockTransportEvent,
   SessionMidiEventRequest,
   SessionSequencerConfigRequest,
@@ -56,7 +59,8 @@ export type BrowserClockMainToWorkerMessage =
   | { type: "disconnect" }
   | { type: "latency_settings"; latencySettings: BrowserClockLatencySettings }
   | { type: "sequencer_request"; request: BrowserClockWorkerSequencerRequest }
-  | { type: "manual_midi"; midi: SessionMidiEventRequest; eventEpochMs: number }
+  | { type: "manual_midi"; midi: SessionMidiEventRequest; eventEpochMs: number; activity?: ManualMidiActivity }
+  | { type: "live_input"; source: string; action: import("./browserPlaybackPolicy").LiveInputAction }
   | { type: "visual_ack" };
 
 export type AudibleBrowserClockTransportEvent = BrowserClockTransportEvent & {
@@ -64,6 +68,8 @@ export type AudibleBrowserClockTransportEvent = BrowserClockTransportEvent & {
 };
 
 export type BrowserClockWorkerDiagnostics = {
+  playbackMode: BrowserPlaybackMode;
+  playbackState: BrowserPlaybackState;
   sampleRate: number;
   queuedFrames: number;
   pendingRenderFrames: number;

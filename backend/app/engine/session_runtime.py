@@ -7,6 +7,7 @@ import threading
 import asyncio
 
 from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.live_midi_activity import LiveMidiActivity
 from backend.app.models.audio import AudioGraph, MixerState
 from backend.app.models.session import CompileArtifact, SessionInstrumentAssignment, SessionState
 
@@ -35,6 +36,7 @@ class RuntimeSession:
     lifecycle_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     closing: bool = False
     stopping: bool = False
+    live_midi_activity: LiveMidiActivity = field(default_factory=LiveMidiActivity)
 
     @property
     def patch_id(self) -> str:
