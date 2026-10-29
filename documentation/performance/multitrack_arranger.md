@@ -123,6 +123,11 @@ Audition/preview commands and restoration state, selection, position, sounding p
 
 ## Score Sequencer lanes
 
+The arranger remains available in performances made entirely from Score
+Sequencers, with one lane per device.
+
+![Eight Score Sequencer lanes in Sonata for Cello and Piano — The Returning Light](../../screenshots/score-only-arranger.jpg)
+
 [Score Sequencers](score_sequencers.md) use the same source controls, phrases,
 variations, speaker previews and lane mute/solo as other note lanes. Their pad
 lengths may span many minutes. A score is one indivisible occurrence: a range

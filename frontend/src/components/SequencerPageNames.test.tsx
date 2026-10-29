@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "../../../backend/tests/fixtures/performances/device_names.json";
 import { performanceDeviceKinds } from "../lib/performanceDeviceNames";
+import { defaultScoreTrack } from "../lib/scoreSequencer";
 import { useAppStore } from "../store/useAppStore";
 import { INITIAL_PANEL_COLLAPSE_STATE } from "./CollapsiblePanel";
 import { SequencerPage } from "./SequencerPage";
@@ -40,6 +41,23 @@ beforeEach(() => {
   useAppStore.getState().applySequencerConfigSnapshot(fixture.config);
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+it.each([1, 8])("keeps the arranger visible when a performance contains only %i Score Sequencers", count => {
+  const { sequencer } = useAppStore.getState();
+  const scoreTracks = Array.from({ length: count }, (_, index) => {
+    const track = defaultScoreTrack(index + 1, sequencer.timing);
+    track.padLoopPattern.rootSequence = [{ type: "pad", padIndex: 0 }];
+    track.padLoopEnabled = true;
+    return track;
+  });
+  useAppStore.setState({ sequencer: { ...sequencer, scoreTracks, tracks: [], drummerTracks: [],
+    controllerSequencers: [], arpeggiators: [], pianoRolls: [], midiControllers: [] } });
+  const { container } = render(<Page />);
+  expect(screen.getByRole("button", { name: "Multitrack Arranger" })).toBeTruthy();
+  const arranger = container.querySelector("#multitrack-arranger")!;
+  expect(within(arranger as HTMLElement).getAllByRole("region")).toHaveLength(count);
+  for (const track of scoreTracks) expect(arranger.textContent).toContain(track.name);
+});
 
 it("shows editable names for all seven types and updates sync choices and arranger titles", () => {
   useAppStore.getState().addSequencerTrack();

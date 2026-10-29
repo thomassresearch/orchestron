@@ -227,7 +227,7 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
   const arrangerActive = useAppStore(state => state.sequencerRuntime.arrangerActive) ?? props.sequencer.isPlaying;
   const activeTransportClass = " ring-2 ring-amber-300 !bg-amber-300 !text-slate-950";
   const transportButtonClass = "inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-400/50 bg-amber-400/10 text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-45";
-  if (props.sequencer.tracks.length + props.sequencer.drummerTracks.length + props.sequencer.controllerSequencers.length + props.sequencer.arpeggiators.length === 0) return null;
+  if (props.sequencer.tracks.length + props.sequencer.scoreTracks.length + props.sequencer.drummerTracks.length + props.sequencer.controllerSequencers.length + props.sequencer.arpeggiators.length === 0) return null;
   return (<CollapsiblePanel unmountOnCollapse
     title={copy.title}
     collapsed={collapsed}

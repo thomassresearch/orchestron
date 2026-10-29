@@ -78,7 +78,10 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
     <div className="flex flex-wrap items-center gap-3">
       <PerformanceDeviceName kind="scoreTracks" device={track} fallback={c.name} sequencer={useAppStore.getState().sequencer} guiLanguage={language} onRename={useAppStore.getState().renamePerformanceDevice} />
       <button className={`${button} ${running ? "!border-amber-500" : "!border-cyan-500"}`} onClick={() => void transport?.play(track.id, !running).catch(e => setError(String(e)))}>{running ? c.stop : c.play}</button>
-      <button className={button} onClick={() => removeScoreTrack(track.id)}>{c.remove}</button>
+      <button type="button" onClick={() => removeScoreTrack(track.id)}
+        className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50">{c.remove}</button>
+    </div>
+    <div className="flex flex-wrap items-center gap-3">
       <label className="text-xs text-slate-400">{c.channel} <select className={input} value={track.midiChannel} onChange={e => attempt(() => updateScoreTrack(track.id, t => ({ ...t, midiChannel: Number(e.target.value) })))}>{Array.from({ length: 16 }, (_, i) => <option key={i}>{i + 1}</option>)}</select></label>
       <label className="text-xs text-slate-400">{c.scale} <select className={input} value={`${pad.scaleRoot}:${pad.scaleType}`} onChange={e => {
         const option = SEQUENCER_SCALE_OPTIONS.find(o => o.value === e.target.value); if (option) changePad({ ...pad, scaleRoot: option.root, scaleType: option.type, mode: linkedModeForScaleType(option.type) ?? pad.mode });

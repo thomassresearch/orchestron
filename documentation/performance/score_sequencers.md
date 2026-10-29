@@ -5,6 +5,9 @@ and velocity for every note. Add one in **Perform → Score Sequencers**, choose
 MIDI channel to match a rack instrument, and draw notes in the score. Each device
 has eight pads; a new pad starts at four local bars.
 
+The rose **Remove** button sits at the right end of each device header, alongside
+its name and Play/Stop controls, matching the other sequencers.
+
 ![Score Sequencer with independent note lengths, eight pads, a pattern workspace and scale-coloured pitch rows](../../screenshots/score-sequencer.jpg)
 
 ## Draw and edit notes
@@ -69,6 +72,9 @@ song order. Each score pad is one indivisible occurrence: range selection expand
 to include the whole score. Edit a partial passage inside the Score editor.
 Groups, variations, arranger undo/redo, lane mute/solo and speaker previews use
 the same controls as other sequencers.
+
+The multitrack arranger also appears when the performance contains only Score
+Sequencers; each score device has its own lane.
 
 Different pitches sustain independently. A repeated pitch retriggers it and
 replaces the previous release. Starting, seeking or returning from a preview

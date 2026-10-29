@@ -96,6 +96,10 @@ Draw long, polyphonic passages in the **[Score Sequencer](documentation/performa
 
 ![Score Sequencer with a vertical piano keyboard, independent note durations and eight pattern pads](screenshots/score-sequencer.jpg)
 
+Performances made entirely from Score Sequencers retain the multitrack arranger,
+with a separate lane for every score device. Each score header has the same
+right-aligned rose **Remove** button as the other sequencers.
+
 Create melodies, bass lines, drum patterns, and movement in the same performance. Melodic sequencers offer scales, modes, individual notes, and chords; drummer sequencers let you shape each hit's velocity. Move individual notes, chords, and drum hits early or late with per-step timing controls, preserving the pattern's meter and length. Draw controller curves or use **Step Mode** to send exact MIDI CC values at individual steps, with silent gaps and a configurable reset value on start/stop, and use beat-synchronized arpeggiators to drive existing MIDI instruments with editable rhythms, ties, ratchets and eight musical variation pads. Arpeggiators can follow their own arranger lanes or run independently in Live mode, with the same green Start and orange Stop controls as the other devices. Their Input Channel → Target Channel controls sit together in the top row, making the MIDI route visible immediately.
 
 Arpeggiator steps show large note previews and scale-degree borders using the piano keyboard’s colours. Chord borders show separate colour segments; Scale Off keeps borders neutral. Hover over a step to read its full note preview and scale degrees.
