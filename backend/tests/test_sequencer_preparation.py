@@ -274,3 +274,27 @@ def test_ratchet_strikes_cross_process_preparation_and_live_configuration(tmp_pa
         assert [strike.velocity for strike in strikes] == [100, 80, 60, 40]
         span = track.timing.transport_subunits_per_local_step
         assert [strike.offset for strike in strikes] == [span * i // 4 for i in range(4)]
+
+
+def test_score_preparation_failure_keeps_playing_configuration_and_sorted_indexes(tmp_path, monkeypatch):
+    import json
+    fixture = json.loads((Path(__file__).parent / "fixtures/sequencers/score.json").read_text())
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client)
+        base = f"/api/sessions/{session_id}/sequencer"
+        config = {"score_tracks": [fixture["runtime"]], "playback_end_step": 9600}
+        assert client.post(base + "/start", json={"config": config}).status_code == 200
+        service = client.app.state.container.session_service
+        sequencer = service._sessions[session_id].sequencer
+        original = sequencer._config
+        pad = original.tracks["score-fixture"].pads[0]
+        assert pad.steps == ()
+        assert pad.score_offsets == tuple(sorted(pad.score_offsets))
+        assert len(pad.score_notes) == 3  # Hidden note remains in authored JSON, outside the prepared extent.
+        async def fail(*_):
+            raise RuntimeError("score preparation failed")
+        monkeypatch.setattr(service._preparation, "prepare", fail)
+        config["score_tracks"][0]["pads"][0]["notes"][0]["pitch"] = 61
+        assert client.put(base + "/config", json=config).status_code == 500
+        assert sequencer._config is original
+        assert client.get(base + "/status").json()["score_tracks"][0]["length_beats"] == 1200

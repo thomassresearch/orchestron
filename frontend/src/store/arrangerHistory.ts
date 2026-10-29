@@ -1,3 +1,4 @@
+import { validateScoreTracks } from "../lib/scoreSequencer";
 import type { StoreApi } from "zustand";
 import type { PadLoopPatternState, SequencerState } from "../types";
 import type { ArrangementLaneKind } from "../lib/arrangementRange";
@@ -10,7 +11,7 @@ import type { AppStore } from "./appStoreTypes";
 export const ARRANGER_HISTORY_LIMIT = 25;
 export const arrangerActionCodes = ["place", "move", "remove", "closeGap", "rest", "group", "super", "ungroup", "variation", "deleteDefinition", "color", "source", "repeat", "overwrite", "insertAll", "insertSelected", "duplicateAll", "duplicateSelected"] as const;
 export type ArrangerActionCode = typeof arrangerActionCodes[number];
-const keys = { sequencer: "tracks", drummer: "drummerTracks", controller: "controllerSequencers", arpeggiator: "arpeggiators" } as const;
+const keys = { sequencer: "tracks", score: "scoreTracks", drummer: "drummerTracks", controller: "controllerSequencers", arpeggiator: "arpeggiators" } as const;
 type Track = SequencerState[typeof keys[ArrangementLaneKind]][number];
 type Pad = Track["pads"][number];
 type Identity = { id: string; kind: ArrangementLaneKind };
@@ -166,6 +167,7 @@ export function readArrangerHistory(raw: unknown, state: SequencerState): { arra
 export function createArrangerHistoryActions(set: StoreApi<AppStore>["setState"], get: () => AppStore): Pick<AppStore, "commitArrangerEdit" | "undoArranger" | "redoArranger" | "goToArrangerHistory"> {
   const edit = sequencerEditAccess(set, get);
   const commit = (sequencer: SequencerState, history: ArrangerHistory, restored = false) => {
+    validateScoreTracks(sequencer.scoreTracks);
     const original = get().sequencer;
     const displayed = edit.get().sequencer;
     const projected = { ...displayed };

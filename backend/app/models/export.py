@@ -81,9 +81,15 @@ class ExportPerformanceInstrumentAssignment(BaseModel):
 
 
 class ExportPerformanceConfig(BaseModel):
+    @model_validator(mode="before")
+    @classmethod
+    def validate_scores(cls, value):
+        from backend.app.models.score_validation import validate_authored_scores
+        return validate_authored_scores(value)
+
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=20)
+    version: int = Field(default=1, ge=1, le=21)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -217,8 +223,9 @@ class PerformanceCsdExportRequest(BaseModel):
             arpeggiator.input_channel
             for arpeggiator in self.sequencer_config.arpeggiators
         }
-        for track in self.sequencer_config.tracks:
-            track_event_count, track_activity_events = _estimate_note_track_events(
+        for track in [*self.sequencer_config.tracks, *self.sequencer_config.score_tracks]:
+            estimate = _estimate_score_track_events if hasattr(track, "launch_quantization") else _estimate_note_track_events
+            track_event_count, track_activity_events = estimate(
                 track,
                 playback_start_subunit=playback_start_subunit,
                 playback_end_subunit=playback_end_subunit,
@@ -724,3 +731,24 @@ def _estimate_arpeggiator_events(
         if event_count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
             return event_count
     return event_count
+
+
+def _estimate_score_track_events(track, *, playback_start_subunit, playback_end_subunit, stop_at_limit):
+    from backend.app.services.score_sequencer import compile_score_track
+    prepared = compile_score_track(track, track.timing.tempo_bpm)
+    segments, _ = _iter_track_token_segments(track, playback_end_subunit=playback_end_subunit)
+    events = []
+    count = 0
+    for token, start, end in segments:
+        pad = prepared.pads.get(token)
+        if pad is None:
+            continue
+        for note in pad.score_notes:
+            on, off = max(start + note.start, playback_start_subunit), min(start + note.end, end, playback_end_subunit)
+            if on >= off:
+                continue
+            count += 2
+            if stop_at_limit and count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
+                return count, []
+            events.extend(((on, "on", (note.pitch,)), (off, "off", (note.pitch,))))
+    return count, sorted(events, key=lambda e: (e[0], e[1] != "off"))

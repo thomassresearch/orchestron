@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "ticksPerQuarter": 20160,
+  "authored": {
+    "id": "score-fixture",
+    "name": "Long Score",
+    "midiChannel": 1,
+    "timing": {
+      "tempoBPM": 120,
+      "meterNumerator": 4,
+      "meterDenominator": 4,
+      "stepsPerBeat": 4,
+      "beatRateNumerator": 1,
+      "beatRateDenominator": 1
+    },
+    "activePad": 0,
+    "launchQuantization": "bar",
+    "enabled": true,
+    "padLoopEnabled": false,
+    "padLoopRepeat": true,
+    "pads": [
+      {
+        "lengthBeats": 1200,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": [
+          {
+            "id": "sustain",
+            "pitch": 60,
+            "velocity": 96,
+            "startTicks": 0,
+            "durationTicks": 40320
+          },
+          {
+            "id": "overlap",
+            "pitch": 64,
+            "velocity": 80,
+            "startTicks": 10080,
+            "durationTicks": 10080
+          },
+          {
+            "id": "retrigger",
+            "pitch": 60,
+            "velocity": 110,
+            "startTicks": 20160,
+            "durationTicks": 5040
+          },
+          {
+            "id": "hidden",
+            "pitch": 72,
+            "velocity": 75,
+            "startTicks": 30240000,
+            "durationTicks": 20160
+          }
+        ]
+      },
+      {
+        "lengthBeats": 16,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": [
+          {
+            "id": "second",
+            "pitch": 67,
+            "velocity": 90,
+            "startTicks": 0,
+            "durationTicks": 40320
+          }
+        ]
+      },
+      {
+        "lengthBeats": 16,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "lengthBeats": 16,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "lengthBeats": 16,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "lengthBeats": 16,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "lengthBeats": 16,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "lengthBeats": 16,
+        "scaleRoot": "C",
+        "scaleType": "major",
+        "mode": "ionian",
+        "notes": []
+      }
+    ]
+  },
+  "runtime": {
+    "track_id": "score-fixture",
+    "midi_channel": 1,
+    "length_beats": 1200,
+    "timing": {
+      "tempo_bpm": 120,
+      "meter_numerator": 4,
+      "meter_denominator": 4,
+      "steps_per_beat": 4,
+      "beat_rate_numerator": 1,
+      "beat_rate_denominator": 1,
+      "beat_unit": "meter"
+    },
+    "pads": [
+      {
+        "pad_index": 0,
+        "length_beats": 1200,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": [
+          {
+            "id": "sustain",
+            "pitch": 60,
+            "velocity": 96,
+            "start_ticks": 0,
+            "duration_ticks": 40320
+          },
+          {
+            "id": "overlap",
+            "pitch": 64,
+            "velocity": 80,
+            "start_ticks": 10080,
+            "duration_ticks": 10080
+          },
+          {
+            "id": "retrigger",
+            "pitch": 60,
+            "velocity": 110,
+            "start_ticks": 20160,
+            "duration_ticks": 5040
+          },
+          {
+            "id": "hidden",
+            "pitch": 72,
+            "velocity": 75,
+            "start_ticks": 30240000,
+            "duration_ticks": 20160
+          }
+        ]
+      },
+      {
+        "pad_index": 1,
+        "length_beats": 16,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": [
+          {
+            "id": "second",
+            "pitch": 67,
+            "velocity": 90,
+            "start_ticks": 0,
+            "duration_ticks": 40320
+          }
+        ]
+      },
+      {
+        "pad_index": 2,
+        "length_beats": 16,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "pad_index": 3,
+        "length_beats": 16,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "pad_index": 4,
+        "length_beats": 16,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "pad_index": 5,
+        "length_beats": 16,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "pad_index": 6,
+        "length_beats": 16,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": []
+      },
+      {
+        "pad_index": 7,
+        "length_beats": 16,
+        "scale_root": "C",
+        "scale_type": "major",
+        "mode": "ionian",
+        "notes": []
+      }
+    ]
+  }
+}

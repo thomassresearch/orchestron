@@ -1,7 +1,7 @@
 import type { SequencerState } from "../types";
 
 export const performanceDeviceKinds = [
-  "tracks", "drummerTracks", "controllerSequencers", "arpeggiators", "pianoRolls", "midiControllers"
+  "tracks", "scoreTracks", "drummerTracks", "controllerSequencers", "arpeggiators", "pianoRolls", "midiControllers"
 ] as const;
 export type PerformanceDeviceKind = typeof performanceDeviceKinds[number];
 export type PerformanceDeviceNameError = "empty" | "tooLong" | "html" | "duplicate" | "missing";

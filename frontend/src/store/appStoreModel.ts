@@ -1,3 +1,4 @@
+import { normalizeScoreTrack, validateScoreTracks, persistedScoreTracks } from "../lib/scoreSequencer";
 import { normalizePianoRollChordSize } from "../lib/pianoRollChord";
 import { normalizeStrumDirection, normalizeStrumSpread } from "../lib/sequencerStrum";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
@@ -114,7 +115,7 @@ export const DEFAULT_PAD_COUNT = 8;
 export const MAX_MIDI_CONTROLLERS = 6;
 export const MAX_ARPEGGIATORS = 8;
 export const DEFAULT_DRUMMER_ROW_KEYS = [36, 38, 42, 46] as const;
-export const APP_STATE_VERSION = 3 as const;
+export const APP_STATE_VERSION = 4 as const;
 export const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
 export const AUDIO_RATE_MIN = 22000;
 export const AUDIO_RATE_MAX = 48000;
@@ -1456,6 +1457,7 @@ export function defaultSequencerState(): SequencerState {
     arrangerLoopSelection: null,
     arrangerSongLoopEnabled: false,
     tracks: [defaultSequencerTrack(1, 1, timing)],
+    scoreTracks: [],
     drummerTracks: [],
     controllerSequencers: [],
     arpeggiators: [],
@@ -1467,7 +1469,7 @@ export function defaultSequencerState(): SequencerState {
 
 export function sequencerRuntimeStateFromSequencer(sequencer: SequencerState): SequencerRuntimeState {
   const trackLocalStepById: Record<string, number | null> = {};
-  for (const track of sequencer.tracks) {
+  for (const track of [...sequencer.tracks, ...sequencer.scoreTracks]) {
     trackLocalStepById[track.id] =
       typeof track.runtimeLocalStep === "number" && Number.isFinite(track.runtimeLocalStep)
         ? Math.max(0, Math.round(track.runtimeLocalStep))
@@ -1597,6 +1599,7 @@ export function syncSequencerTimingState(sequencer: SequencerState, timing: Sequ
     stepCount: nextStepCount,
     playhead: position.playhead,
     cycle: position.cycle,
+    scoreTracks: sequencer.scoreTracks.map(track => ({ ...track, timing: { ...track.timing, tempoBPM: timing.tempoBPM } })),
     tracks: sequencer.tracks.map((track) =>
       syncSequencerTrackTiming(track, {
         ...track.timing,
@@ -1674,7 +1677,7 @@ export function emptyPerformanceSequencerState(): SequencerState {
 
 export function performanceDeviceCount(sequencer: SequencerState): number {
   return (
-    sequencer.tracks.length +
+    sequencer.tracks.length + sequencer.scoreTracks.length +
     sequencer.drummerTracks.length +
     sequencer.controllerSequencers.length +
     sequencer.arpeggiators.length +
@@ -2187,6 +2190,8 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
     };
   });
 
+  const scoreTracks = (Array.isArray(sequencer.scoreTracks) ? sequencer.scoreTracks : []).map((t, i) => normalizeScoreTrack(t, i + 1, timing));
+  validateScoreTracks(scoreTracks);
   const normalizedTransportStepCount = resolveTransportStepCount(timing);
   const rawArrangerLoopSelection = normalizeRawArrangerLoopSelection(
     sequencer.arrangerLoopSelection ?? sequencer.arranger_loop_selection
@@ -2205,6 +2210,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
     arrangerLoopSelection,
     arrangerSongLoopEnabled: sequencer.arrangerSongLoopEnabled === true,
     tracks: normalizedTracks,
+    scoreTracks,
     drummerTracks: normalizedDrummerTracks,
     controllerSequencers: normalizedControllerSequencers,
     arpeggiators: normalizedArpeggiators,
@@ -2416,6 +2422,7 @@ export function normalizePersistedSequencerInstruments(
 export function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerState {
   return {
     ...sequencer,
+    scoreTracks: persistedScoreTracks(sequencer),
     isPlaying: false,
     playhead: 0,
     cycle: 0,
@@ -2849,7 +2856,7 @@ export function nextAvailableMidiChannel(bindings: SequencerInstrumentBinding[])
 
 export function nextAvailablePerformanceChannel(sequencer: SequencerState): number {
   const occupied = new Set<number>();
-  for (const track of sequencer.tracks) {
+  for (const track of [...sequencer.tracks, ...sequencer.scoreTracks]) {
     occupied.add(clampInt(track.midiChannel, 1, 16));
   }
   for (const track of sequencer.drummerTracks) {
@@ -2963,7 +2970,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 20,
+    version: 21,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -2988,6 +2995,7 @@ export function buildSequencerConfigSnapshot(
         Number.MAX_SAFE_INTEGER,
         sequencerTransportStepsPerBeat(timing)
       ),
+      scoreTracks: persistedScoreTracks(sequencer),
       tracks: sequencer.tracks.slice(0, MAX_SEQUENCERS_PER_TYPE).map((track, index) => ({
         id: track.id.length > 0 ? track.id : `voice-${index + 1}`,
         name: track.name.trim().length > 0 ? track.name : `Melodic Sequencer ${index + 1}`,
@@ -3187,7 +3195,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 17 &&
     payload.version !== 18 &&
     payload.version !== 19 &&
-    payload.version !== 20
+    payload.version !== 20 &&
+    payload.version !== 21
   ) {
     throw new Error("Unsupported sequencer config version.");
   }

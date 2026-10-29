@@ -951,7 +951,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v20 and accept v1–20; app state is v3 (reads v1–3); native envelopes are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v21 and accept v1–21; app state is v4 (reads v1–4); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -996,7 +996,7 @@ Compile, Start, Stop, and Delete serialize through each session's lifecycle lock
 
 ### Drummer ratchets (performance v18)
 
-Drummer cells persist `ratchets` (integer 1–8, default 1) and nullable `ratchetEndVelocity` (0–127, default null). The shared session step API uses strict `ratchets` and `ratchet_end_velocity`; frontend and standalone CLI conversion preserve both. Missing fields retain single-hit playback. App state remains v3 and native envelopes v1; the meter migration still runs only below performance v17 / app state v3.
+Drummer cells persist `ratchets` (integer 1–8, default 1) and nullable `ratchetEndVelocity` (0–127, default null). The shared session step API uses strict `ratchets` and `ratchet_end_velocity`; frontend and standalone CLI conversion preserve both. Missing fields retain single-hit playback. App state is v4 and native envelopes v1; the meter migration still runs only below performance v17 / app state v3.
 
 Preparation caches rational, absolute strike offsets and linearly interpolated velocities. A started roll snapshots its strikes, pitch and timing; later count/ramp/timing edits apply to its next occurrence. Zero-velocity strikes release their predecessor without emitting a note-on. Owned releases precede retriggers; later logical cells cancel unfinished rolls. Fresh/different-pad launches clamp the first roll as a group, while confirmed same-pad repeats permit anticipation and late tails. Stops, seeks, different pads, arrangement rests, removals and finite ends clear pending rolls. The existing source contexts retain lane mute/solo ownership and independent-device behavior. MIDI and SCORE capture use the same scheduler; export estimates include repeated strikes and downstream arpeggiator activity.
 
@@ -1006,7 +1006,7 @@ Melodic steps persist `strumDirection` (`off`/`up`/`down`, default `off`) and `s
 
 `sequencer_strum.py` owns pending attacks and per-pitch releases. Each note preserves the original chord/HOLD duration, shifting its release by the same amount as its attack. Retriggering a pitch replaces its release record; at coincident attacks the later logical step wins for that pitch only. Started gestures snapshot their notes, direction, spacing and timing; live HOLD changes still refresh releases. Same-pad repeats remap owned tails; stop, seek, pad changes, arrangement rests, removal and finite endings cancel them. Source-tagged scheduling preserves mute/solo and independent Manual pads. Both Python and Cython kernels, browser-clock rendering, MIDI capture and SCORE capture use this implementation.
 
-The API rejects active strumming combined with ratchets anywhere in the same track; the melodic GUI does not expose ratchets. Export estimates bound individual attacks and overlapping arpeggiator input, retaining retrigger counts for bypass. Frontend and standalone CLI write v20/read v1–20; app-state v3 and native envelope v1 stay unchanged. Inactive fields, hidden steps and pad/step copies retain settings; clearing resets them. CLI normalization validates/preserves fields and maps them to runtime requests. Author with `edit strum list|set|reset`, score `step_strum` lists, or inline event/progression fields; partial CLI edits preserve omitted settings, reset restores off/0, and invalid edits leave the staged file unchanged. See [CLI strumming](integrations/skills/orchestron-performance-creator/references/step_strum.md).
+The API rejects active strumming combined with ratchets anywhere in the same track; the melodic GUI does not expose ratchets. Export estimates bound individual attacks and overlapping arpeggiator input, retaining retrigger counts for bypass. Frontend and standalone CLI write v21/read v1–21; app-state v4 and native envelope v1 preserve these fields. Inactive fields, hidden steps and pad/step copies retain settings; clearing resets them. CLI normalization validates/preserves fields and maps them to runtime requests. Author with `edit strum list|set|reset`, score `step_strum` lists, or inline event/progression fields; partial CLI edits preserve omitted settings, reset restores off/0, and invalid edits leave the staged file unchanged. See [CLI strumming](integrations/skills/orchestron-performance-creator/references/step_strum.md).
 
 ### Opt-in monophonic phrases
 
@@ -1053,8 +1053,64 @@ Offline selection replaces bypass-only definitions with port metadata before ass
 
 ### Controller step mode (performance v20)
 
-Controller tracks accept `controller_mode: "curve" | "step"` (default `curve`) and `reset_value` (strict integer 0–127, default 0). Pads accept `steps`, at most 128 strict integers 0–127 or null. Missing cells are empty; only the active length is compiled. Frontend `controllerMode`/`resetValue` and 128-cell pad `steps` survive native bundles, app-state v3, performance v20 and CLI runtime conversion. Legacy performances load as curves. Curve and step datasets coexist; clear targets only the active mode, and shorter lengths retain hidden cells.
+Controller tracks accept `controller_mode: "curve" | "step"` (default `curve`) and `reset_value` (strict integer 0–127, default 0). Pads accept `steps`, at most 128 strict integers 0–127 or null. Missing cells are empty; only the active length is compiled. Frontend `controllerMode`/`resetValue` and 128-cell pad `steps` survive native bundles, app-state v4, performance v21 and CLI runtime conversion. Legacy performances load as curves. Curve and step datasets coexist; clear targets only the active mode, and shorter lengths retain hidden cells.
 
 Step events use exact rational local-step offsets without interpolation, implicit zero events, or value deduplication. A runtime occurrence guard survives configuration edits and prevents replay at the current timestamp. Reset initialization precedes step and note events. Start, stop, finite endings, removals, running seeks and preview transitions reset only the chosen CC/channel pairs; stopped seeks do not send. Ordinary loops, pad changes and rests hold the last value. Independent Manual pads retain phase and state through arranger controls. Mute/solo applies through normal MIDI source tagging. Routing edits clean up departing pairs and initialize arriving pairs; unchanged pairs retain their value. Reset-value edits apply at the next reset. Both CSD modes share this scheduler and estimates include repeated values plus lifecycle resets. The compiler caches up to 512 immutable step pads in addition to its existing curve cache.
 
 See [controller workflow](documentation/performance/controller_sequencers.md) for editing and reset examples.
+
+### Score Sequencers (performance v21, app state v4)
+
+Authored `sequencer.scoreTracks` and session `score_tracks` are separate from step
+arrays. Notes have stable per-pad IDs, MIDI pitch/velocity and integer
+`start_ticks`/`duration_ticks` at 20,160 ticks per quarter before rational speed
+conversion. Eight pads retain independent notes, theory and 1–8,192 local-beat
+lengths. Session and persisted validators enforce 16 tracks, 10,000 notes per pad
+and 50,000 per performance, including hidden notes. Existing JSON/export budgets
+also apply. Old supported documents receive an empty score collection; writers
+emit v21/v4 and native envelopes remain v1. The standalone CLI's
+[dedicated score authoring](integrations/skills/orchestron-performance-creator/references/score_sequencer.md)
+does not reinterpret composition-score v1/v2 inputs.
+
+`services/score_sequencer.py` prepares cached sparse indexes in the existing
+compiler process. Immutable notes are sorted by attack; event offsets, per-pitch
+search indexes and ID lookup tables avoid scanning an entire score in the render
+path. The shared Python/Cython playback dispatch uses these indexes. Runtime
+tracks carry `is_score`; public status separates `score_tracks`, while source
+transport, auditions, lane ownership and audible markers retain the same IDs.
+
+A voice belongs to its source, pad occurrence and pitch. Releases precede
+coincident attacks. A repeated pitch replaces the earlier release; other pitches
+retain independent durations. Play, seek, loop relocation and audition restoration
+chase notes spanning the destination for their remaining duration. Chasing uses
+at most 128 pitch searches. Live reconciliation looks up active voice IDs, retains
+unchanged attacks, adjusts releases and releases deleted/moved notes; newly
+inserted attacks behind the cursor wait for their next occurrence. Preparation
+failure preserves current playback and the edited draft.
+
+Manual `launch_quantization: bar` chooses the next local bar or earlier score end;
+`score` waits for the pad boundary. Later requests replace queued pads. Source
+phase anchors preserve independently started Manual scores through arranger
+operations. Length changes preserve stored notes, suppress later attacks and clip
+crossing releases; finite shortening past the cursor stops without rewinding.
+Arranger range operations expand to whole score occurrences. Score editor history
+is separate, session-only and capped at 25 actions per pad; it is reset with editor
+state on New/Load/Import. Duration changes invalidate conflicting arranger history.
+MIDI and SCORE export use the same runtime, including range-start chasing, and
+count score attacks and downstream arpeggiator events in their budget estimates.
+
+The [user guide](documentation/performance/score_sequencers.md) covers gestures,
+pad selection, hidden notes, workspace editing and transport. SVG output is
+viewport-limited; time-grid density coarsens at low zoom. Drag previews remain
+local until pointer-up, and the audible playhead updates outside persisted state.
+
+Run `.venv/bin/python -m backend.tools.benchmark_score_sequencer` for five/ten-minute
+scores with 128/10,000 notes, cold/cached/one-pad preparation in the compiler process,
+and 1,000 render blocks at the start and near the end alongside eight existing
+note tracks and eight controller tracks from the versioned TB303 fixture. On the
+October 2026 macOS ARM run, dense preparation medians were 38–40 ms cold/edited
+and 3.3 ms cached; cached process round trips were 90–94 ms. Near-end scheduling maxima
+were 0.161 ms; the largest start sample was 1.227 ms against a 1.333 ms block
+budget (all 99th percentiles below 0.14 ms). These are observations, not portable
+performance guarantees or synthesis benchmarks. The existing browser-clock and
+boundary benchmarks remain available through `make benchmark-runtime`.

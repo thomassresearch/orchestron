@@ -47,3 +47,12 @@ Every pad, group and supergroup has a separate speaker button. Hold for **250 ms
 A speaker preview temporarily overrides workspace playback, then returns to that workspace at the current clock position. Stopping the workspace restores the original track state. Releasing before preparation or a queued boundary cancels the preview. Pointer cancellation, focus loss and leaving the view end speaker previews; collapse/navigation also end workspace playback. Arranger Play/Stop cancels both layers, and late replies/releases cannot restart them. Other tracks continue and lane Mute/Solo stays effective.
 
 Live arpeggiator workspace Play and held speakers start at the configured next rhythm cycle or master bar when a Live clock is established; otherwise they start at an audio block. Pad duration determines phrase lengths. Incoming or held notes are required; no test chord is supplied. Hold and Active/Bypass/Mute remain effective. Chord changes during previews are retained, and release restores the underlying Live pulse. **Launch pad** explicitly launches the editing pad in Live/manual mode, separately from temporary previews. Saved definitions retain the same performance format.
+
+## Score pads
+
+[Score Sequencers](score_sequencers.md) provide eight independent scores and the
+same pattern workspace. Drag pads into it to assemble phrases, or into the
+arranger to build song order. Manual score pads default to **Next bar** launches,
+at the next local bar or earlier score end; **End of score** uses the pad boundary.
+Stopped or Arrangement pad clicks select only the editing pad. Each score pad
+stores its length, scale, mode and independent notes; Copy pad to retains them.

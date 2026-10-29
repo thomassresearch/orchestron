@@ -125,7 +125,7 @@ export function createTransportStoreActions(
       const sequencer = get().sequencer;
       const sequencerRuntime = get().sequencerRuntime;
       const nextTrackLocalStepById: Record<string, number | null> = {};
-      for (const track of sequencer.tracks) {
+      for (const track of [...sequencer.tracks, ...sequencer.scoreTracks]) {
         nextTrackLocalStepById[track.id] = isPlaying ? (sequencerRuntime.trackLocalStepById[track.id] ?? null) : null;
       }
       const nextDrummerTrackLocalStepById: Record<string, number | null> = {};
@@ -187,7 +187,7 @@ export function createTransportStoreActions(
           : Math.max(0, Math.floor(transportSubunit));
       const trackPayload = new Map((tracks ?? []).map((track) => [track.trackId, track]));
       const drummerTrackPayload = new Map((drummerTracks ?? []).map((track) => [track.trackId, track]));
-      const nextTracks = sequencer.tracks.map((track) => {
+      const nextTracks = [...sequencer.tracks, ...sequencer.scoreTracks].map((track) => {
         const payload = trackPayload.get(track.id);
         if (!payload) {
           if (!nextIsPlaying) {
@@ -208,7 +208,7 @@ export function createTransportStoreActions(
           payload.activePad === undefined ? track.activePad : normalizePadIndex(payload.activePad);
         const currentSelectedPad = track.pads[nextActivePad] ?? track.pads[0];
         const nextStepCount = normalizeTransportStepCount(payload.stepCount ?? currentSelectedPad?.stepCount ?? track.stepCount);
-        const nextLengthBeats = normalizeSequencerPadLengthBeats(currentSelectedPad?.lengthBeats ?? track.lengthBeats);
+        const nextLengthBeats = "launchQuantization" in track ? (currentSelectedPad?.lengthBeats ?? track.lengthBeats) : normalizeSequencerPadLengthBeats(currentSelectedPad?.lengthBeats ?? track.lengthBeats);
         const nextQueuedPad =
           payload.queuedPad === undefined
             ? track.queuedPad
@@ -373,7 +373,7 @@ export function createTransportStoreActions(
         const normalizedLocalStep =
           !nextIsPlaying || !payload || payload.localStep === undefined
             ? null
-            : Math.max(0, Math.round(payload.localStep)) % Math.max(1, normalizeSequencerTrackStepCount(track.stepCount));
+            : Math.max(0, Math.round(payload.localStep)) % Math.max(1, "launchQuantization" in track ? track.stepCount : normalizeSequencerTrackStepCount(track.stepCount));
         nextTrackLocalStepById[track.id] =
           normalizedLocalStep === null ? sequencerRuntime.trackLocalStepById[track.id] ?? null : normalizedLocalStep;
       }

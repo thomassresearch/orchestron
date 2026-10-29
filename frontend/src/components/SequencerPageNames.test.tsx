@@ -41,23 +41,23 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-it("shows editable names for all six types and updates sync choices and arranger titles", () => {
+it("shows editable names for all seven types and updates sync choices and arranger titles", () => {
   useAppStore.getState().addSequencerTrack();
   const { container } = render(<Page />);
   for (const kind of performanceDeviceKinds) {
     const oldName = fixture.config.sequencer[kind][0].name;
-    fireEvent.click(screen.getByRole("button", { name: `Rename: ${oldName}` }));
+    fireEvent.click(screen.getByLabelText(`Rename: ${oldName}`));
     const editor = container.querySelector('input[aria-invalid]')!;
     fireEvent.change(editor, { target: { value: `Renamed ${kind}` } });
     fireEvent.keyDown(editor, { key: "Enter" });
-    expect(screen.getByRole("button", { name: `Rename: Renamed ${kind}` })).toBeTruthy();
-    if (["tracks", "drummerTracks", "controllerSequencers"].includes(kind)) {
+    expect(screen.getByLabelText(`Rename: Renamed ${kind}`)).toBeTruthy();
+    if (["tracks", "scoreTracks", "drummerTracks", "controllerSequencers"].includes(kind)) {
       expect(screen.getAllByText(`Renamed ${kind}`).length).toBeGreaterThanOrEqual(2);
     }
   }
   expect(screen.getByRole("option", { name: "Renamed tracks" })).toBeTruthy();
   expect(screen.queryByText("Warm Lead")).toBeNull();
-}, 10_000);
+}, 15_000);
 
 it("discards the editor on a performance switch or device removal", () => {
   const { rerender, container } = render(<Page />);

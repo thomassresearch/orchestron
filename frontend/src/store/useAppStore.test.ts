@@ -99,7 +99,7 @@ describe("app store sequencer behavior", () => {
     useAppStore.getState().setSequencerBpm(137);
     const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
 
-    expect(snapshot.version).toBe(20);
+    expect(snapshot.version).toBe(21);
     expect(snapshot.instruments).toEqual([
       expect.objectContaining({
         id: instrumentBinding.id,

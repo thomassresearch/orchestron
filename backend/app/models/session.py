@@ -454,6 +454,45 @@ class SessionSequencerTrackConfig(BaseModel):
         return self
 
 
+class SessionScoreNoteConfig(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    pitch: int = Field(ge=0, le=127, strict=True)
+    velocity: int = Field(default=100, ge=0, le=127, strict=True)
+    start_ticks: int = Field(ge=0, lt=8192 * 20160, strict=True)
+    duration_ticks: int = Field(gt=0, le=8192 * 20160, strict=True)
+
+
+class SessionScorePadConfig(BaseModel):
+    pad_index: int = Field(ge=0, le=7)
+    length_beats: int = Field(default=16, ge=1, le=8192, strict=True)
+    scale_root: SequencerScaleRoot | None = None
+    scale_type: SequencerScaleType | None = None
+    mode: SequencerMode | None = None
+    notes: list[SessionScoreNoteConfig] = Field(default_factory=list, max_length=10000)
+
+    @model_validator(mode="after")
+    def unique_notes(self):
+        if len({note.id for note in self.notes}) != len(self.notes):
+            raise ValueError("Score note IDs must be unique within a pad.")
+        return self
+
+
+class SessionScoreSequencerTrackConfig(SessionSequencerTrackConfig):
+    timing: SessionSequencerTimingConfig = Field(default_factory=lambda: SessionSequencerTimingConfig(beat_unit="meter"))
+    length_beats: int = Field(default=16, ge=1, le=8192, strict=True)
+    gate_ratio: float = 1.0
+    launch_quantization: Literal["bar", "score"] = "bar"
+    pads: list[SessionScorePadConfig] = Field(default_factory=list, max_length=8)
+
+    @model_validator(mode="after")
+    def validate_unique_pad_indexes(self):
+        if len({pad.pad_index for pad in self.pads}) != len(self.pads):
+            raise ValueError("Duplicate score pad index.")
+        if any(not _is_valid_pad_loop_token(token) for token in self.pad_loop_sequence):
+            raise ValueError("Invalid score pad loop token.")
+        return self
+
+
 class SessionControllerSequencerTrackConfig(BaseModel):
     track_id: str = Field(min_length=1, max_length=256)
     controller_number: int = Field(ge=0, le=127)
@@ -653,6 +692,7 @@ class SessionSequencerConfigRequest(BaseModel):
     playback_end_step: int = Field(default=16, ge=1)
     playback_loop: bool = False
     tracks: list[SessionSequencerTrackConfig] = Field(default_factory=list, max_length=128)
+    score_tracks: list[SessionScoreSequencerTrackConfig] = Field(default_factory=list, max_length=16)
     controller_tracks: list[SessionControllerSequencerTrackConfig] = Field(default_factory=list, max_length=128)
     arpeggiators: list[SessionArpeggiatorConfig] = Field(default_factory=list, max_length=16)
 
@@ -660,10 +700,12 @@ class SessionSequencerConfigRequest(BaseModel):
     def validate_unique_track_ids(self) -> "SessionSequencerConfigRequest":
         if self.playback_end_step <= self.playback_start_step:
             raise ValueError("playback_end_step must be greater than playback_start_step.")
-        if not self.tracks and not self.controller_tracks and not self.arpeggiators:
+        if not self.tracks and not self.score_tracks and not self.controller_tracks and not self.arpeggiators:
             raise ValueError("At least one sequencer, controller, or arpeggiator must be configured.")
+        if sum(len(p.notes) for t in self.score_tracks for p in t.pads) > 50000:
+            raise ValueError("A performance cannot exceed 50000 score notes.")
         seen: set[str] = set()
-        for track in self.tracks:
+        for track in [*self.tracks, *self.score_tracks]:
             if track.track_id in seen:
                 raise ValueError(f"Duplicate track_id '{track.track_id}'.")
             seen.add(track.track_id)
@@ -673,7 +715,7 @@ class SessionSequencerConfigRequest(BaseModel):
             seen.add(track.track_id)
         _validate_arpeggiator_routes(self.arpeggiators)
         if self.lane_output is not None:
-            lane_ids = {t.track_id.split(":")[1] if t.track_id.startswith("drumrow:") and len(t.track_id.split(":")) == 3 else t.track_id for t in self.tracks}
+            lane_ids = {t.track_id.split(":")[1] if t.track_id.startswith("drumrow:") and len(t.track_id.split(":")) == 3 else t.track_id for t in [*self.tracks, *self.score_tracks]}
             lane_ids.update(t.track_id for t in self.controller_tracks)
             lane_ids.update(a.arpeggiator_id for a in self.arpeggiators if a.playback_mode == "arranger")
             if self.lane_output.lanes.keys() - lane_ids:
@@ -774,6 +816,11 @@ class SessionSequencerTrackStatus(BaseModel):
     active_notes: list[int] = Field(default_factory=list)
 
 
+class SessionScoreSequencerTrackStatus(SessionSequencerTrackStatus):
+    length_beats: int = Field(ge=1, le=8192)
+    step_count: int = Field(ge=1)
+
+
 class SessionControllerSequencerTrackStatus(BaseModel):
     track_id: str
     controller_number: int = Field(ge=0, le=127)
@@ -826,6 +873,7 @@ class SessionSequencerStatus(BaseModel):
     cycle: int = Field(ge=0)
     transport_subunit: int = Field(ge=0)
     tracks: list[SessionSequencerTrackStatus] = Field(default_factory=list)
+    score_tracks: list[SessionScoreSequencerTrackStatus] = Field(default_factory=list)
     controller_tracks: list[SessionControllerSequencerTrackStatus] = Field(default_factory=list)
     arpeggiators: list[SessionArpeggiatorStatus] = Field(default_factory=list)
 

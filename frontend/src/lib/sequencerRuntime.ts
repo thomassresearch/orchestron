@@ -234,14 +234,14 @@ function parseSequencerPadSwitch(value: unknown): SequencerPadSwitch | null {
     track_kind: value.track_kind === "controller" ? "controller" : value.track_kind === "note" ? "note" : undefined,
     active_pad: value.active_pad,
     local_step: value.local_step ?? undefined,
-    queued_pad: value.queued_pad ?? undefined,
-    pad_loop_position: value.pad_loop_position ?? undefined,
+    queued_pad: value.queued_pad,
+    pad_loop_position: value.pad_loop_position,
     enabled: typeof value.enabled === "boolean" ? value.enabled : undefined,
     queued_enabled:
       typeof value.queued_enabled === "boolean" || value.queued_enabled === null
         ? value.queued_enabled
         : undefined,
-    runtime_pad_start_subunit: value.runtime_pad_start_subunit ?? undefined
+    runtime_pad_start_subunit: value.runtime_pad_start_subunit
   };
 }
 

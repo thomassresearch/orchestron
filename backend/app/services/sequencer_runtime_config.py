@@ -325,6 +325,10 @@ def compile_sequencer_runtime_config(
             pad_loop_sequence=_normalize_pad_loop_sequence(track_request.pad_loop_sequence),
         )
 
+    from backend.app.services.score_sequencer import compile_score_track
+    for score in request.score_tracks:
+        tracks[score.track_id] = compile_score_track(score, request.timing.tempo_bpm)
+
     for track_request in request.controller_tracks:
         track_timing = SequencerTimingRuntime(
             tempo_bpm=request.timing.tempo_bpm,

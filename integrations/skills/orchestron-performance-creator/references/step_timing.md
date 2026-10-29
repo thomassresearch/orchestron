@@ -111,11 +111,11 @@ Offsets and step indices must be integers, not booleans, decimals or numeric str
 
 ## Persistence
 
-The CLI writes performance config v20 and reads v1–20. Persisted steps/cells use `timingOffsetPercent`; score events and the runtime API use `timing_offset_percent`. Save/load, native bundles, CLI runtime conversion and both CSD export modes preserve supported offsets. App-state version 3, native envelope version 1 and score-spec version 1 remain unchanged.
+The CLI writes performance config v21 and reads v1–21. Persisted steps/cells use `timingOffsetPercent`; score events and the runtime API use `timing_offset_percent`. Save/load, native bundles, CLI runtime conversion and both CSD export modes preserve supported offsets. App-state version 4, native envelope version 1 and score-spec version 1 preserve these fields.
 
 ## Meter timing and compatibility
 
-Performance configurations write v20. The CLI migrates v1–16 before normalization, including /8 pad/rest lengths and saved arranger history. Session requests explicitly send `beat_unit: "meter"`; omitted API values retain legacy quarter-beat interpretation. Subdivision accepts 1, 2, 3, 4, 6, 8; melodic/drum lengths accept 1–16 and controller lengths 1–32, with a strict 128-step limit. Rest tokens include -32. Global BPM remains quarter-note based; /8 local beats last half a quarter. Millisecond offsets include the denominator and playback-speed ratio. Native bundle envelopes are unchanged.
+Performance configurations write v21. The CLI migrates v1–16 before normalization, including /8 pad/rest lengths and saved arranger history. Session requests explicitly send `beat_unit: "meter"`; omitted API values retain legacy quarter-beat interpretation. Subdivision accepts 1, 2, 3, 4, 6, 8; melodic/drum lengths accept 1–16 and controller lengths 1–32, with a strict 128-step limit. Rest tokens include -32. Global BPM remains quarter-note based; /8 local beats last half a quarter. Millisecond offsets include the denominator and playback-speed ratio. Native bundle envelopes are unchanged.
 
 For twelve triplet steps over one 4/4 bar, set `lengthBeats: 4`, timing `meterNumerator: 4`, `meterDenominator: 4`, `stepsPerBeat: 3`, and speed numerator/denominator 1/1. A 6/8 bar uses length 6 and spans three shared quarter beats. See the [multilingual timing guide](https://github.com/thomassresearch/orchestron/blob/main/documentation/performance/sequencer_timing.md).
 

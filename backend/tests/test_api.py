@@ -9091,3 +9091,77 @@ def test_browser_playback_preferences_round_trip_in_app_state(tmp_path: Path) ->
         state = {"version": 3, "browserClockLatencySettings": {"playbackMode": "auto", "inactivityTimeoutSeconds": 23}}
         assert client.put("/api/app-state", json={"state": state}).status_code == 200
         assert client.get("/api/app-state").json()["state"]["browserClockLatencySettings"] == state["browserClockLatencySettings"]
+
+
+def _score_fixture():
+    return json.loads((Path(__file__).parent / "fixtures/sequencers/score.json").read_text())
+
+
+@pytest.mark.parametrize("archive_format", ["json", "zip"])
+def test_score_sequencer_v21_save_appstate_v4_and_native_round_trip(tmp_path: Path, archive_format: str):
+    payload = _performance_csd_export_payload()["performanceExport"]
+    config = payload["performance"]["config"]
+    config.update(version=21, sequencer={"scoreTracks": [_score_fixture()["authored"]]})
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Score", "config": config})
+        assert saved.status_code == 201, saved.text
+        assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"]["sequencer"] == config["sequencer"]
+        state = {"version": 4, "sequencer": config["sequencer"]}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["sequencer"] == config["sequencer"]
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200, exported.text
+        data = exported.content
+        if archive_format == "zip":
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("score.orch.json", data)
+            data = buffer.getvalue()
+        imported = client.post("/api/bundles/import/expand", content=data,
+            headers={"Content-Type": "application/octet-stream", "X-File-Name": f"score.orch.{archive_format}"})
+        assert imported.status_code == 200, imported.text
+        assert imported.json()["performance"]["config"]["sequencer"] == config["sequencer"]
+
+
+@pytest.mark.parametrize("field,value", [("pitch", 128), ("start_ticks", -1), ("duration_ticks", 0), ("velocity", 1.5)])
+def test_score_api_rejects_invalid_notes(tmp_path: Path, field, value):
+    track = _score_fixture()["runtime"]
+    track["pads"][0]["notes"][0][field] = value
+    with _client(tmp_path) as client:
+        response = client.put("/api/sessions/unknown/sequencer/config", json={"score_tracks": [track]})
+        assert response.status_code == 422
+        assert field in response.text
+
+
+def test_score_persisted_limits_reject_atomically(tmp_path: Path):
+    config = {"version": 21, "sequencer": {"scoreTracks": [_score_fixture()["authored"]]}}
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Score", "config": config}).json()
+        original = json.loads(json.dumps(config))
+        config["sequencer"]["scoreTracks"][0]["pads"][0]["lengthBeats"] = 8193
+        assert client.put(f'/api/performances/{saved["id"]}', json={"config": config}).status_code == 422
+        assert client.get(f'/api/performances/{saved["id"]}').json()["config"] == original
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_score_exports_chase_sustains_and_preserve_independent_durations(tmp_path: Path, event_source: str):
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    payload["performanceExport"]["performance"]["config"]["version"] = 21
+    # Export starts halfway into the first note. It ends at the same-pitch retrigger.
+    payload["sequencerConfig"].update(tracks=[], score_tracks=[_score_fixture()["runtime"]], playback_start_step=4, playback_end_step=16)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == "midiFile":
+                events = [(tick, msg.type, msg.note, msg.velocity) for tick, msg in _midi_messages_with_absolute_ticks(
+                    archive.read("Offline_Export/Offline_Export.mid")) if msg.type in {"note_on", "note_off"}]
+                assert [e for e in events if e[1] == "note_on"] == [(0, "note_on", 60, 96), (0, "note_on", 64, 80), (240, "note_on", 60, 110)]
+                assert (240, "note_off", 60, 0) in events
+                assert (240, "note_off", 64, 0) in events
+                assert (360, "note_off", 60, 0) in events
+            else:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                events = [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith("i 1 ")]
+                assert sorted(events) == sorted([[0, .25, 60, 96], [0, .25, 64, 80], [.25, .125, 60, 110]])

@@ -33,7 +33,7 @@ it.each([3, 4, 5] as const)("retains %i-note settings through autosave, save/loa
   expect(normalizeSequencerState(JSON.parse(JSON.stringify(persisted.sequencer))).pianoRolls[0])
     .toMatchObject({ autoChordEnabled: true, autoChordSize: size });
   const snapshot = current.buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(20); expect(persisted.version).toBe(3);
+  expect(snapshot.version).toBe(21); expect(persisted.version).toBe(4);
   const exported = buildPerformanceExportPayload({ snapshot, selectedPatches: [], performanceName: "Chords", performanceDescription: "" });
   const imported = parsePerformanceExportPayload(JSON.parse(JSON.stringify(exported.payload)))!;
   current.applySequencerConfigSnapshot(resolveImportedPerformanceConfig(imported, new Map(), []));

@@ -59,6 +59,8 @@ export function mergedSequencerState(
     };
   });
 
+  const scoreTracks = (sequencerConfig.scoreTracks ?? []).map(t => playbackTrack(t, sequencerRuntime.trackStateById?.[t.id]));
+  const scoreChanged = scoreTracks.some((t, i) => t !== sequencerConfig.scoreTracks[i]);
   let drummerRuntimeChanged = false;
   const drummerTracks = sequencerConfig.drummerTracks.map((authored) => {
     const track = playbackTrack(authored, sequencerRuntime.drummerStateById?.[authored.id]);
@@ -133,7 +135,7 @@ export function mergedSequencerState(
     sequencerConfig.stepCount === runtimeStepCount &&
     sequencerConfig.playhead === runtimePlayhead &&
     sequencerConfig.cycle === runtimeCycle &&
-    !trackRuntimeChanged &&
+    !trackRuntimeChanged && !scoreChanged &&
     !drummerRuntimeChanged &&
     !controllerRuntimeChanged &&
     !arpeggiatorRuntimeChanged
@@ -148,6 +150,7 @@ export function mergedSequencerState(
     playhead: runtimePlayhead,
     cycle: runtimeCycle,
     tracks: trackRuntimeChanged ? tracks : sequencerConfig.tracks,
+    scoreTracks: scoreChanged ? scoreTracks : sequencerConfig.scoreTracks,
     drummerTracks: drummerRuntimeChanged ? drummerTracks : sequencerConfig.drummerTracks,
     controllerSequencers: controllerRuntimeChanged
       ? controllerSequencers

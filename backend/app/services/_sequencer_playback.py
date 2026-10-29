@@ -7,6 +7,7 @@ Stateful operations continue through the runtime, which owns locks and MIDI.
 from __future__ import annotations
 
 from bisect import bisect_left, bisect_right
+from backend.app.services import score_sequencer as _scores
 from copy import copy
 
 from backend.app.services.sequencer_strum import perform_strum_events
@@ -242,6 +243,9 @@ def _perform_note_events_locked(self, config: SequencerRuntimeConfig, now: int, 
         if track_ids is not None and track_id not in track_ids:
             continue
         pad = _active_pad_runtime(track)
+        if track.is_score:
+            _scores.perform(self, track, pad, now, delay)
+            continue
         if not track.enabled or pad is None or not pad.steps:
             self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
             continue
@@ -482,6 +486,8 @@ def _next_event_subunit_locked(self, config: SequencerRuntimeConfig, current_sub
             origin = current_subunit - local_offset
             candidates.append(origin + max(1, duration))
             pad_runtime = _active_pad_runtime(track)
+            if track.is_score and pad_runtime is not None:
+                candidates.extend(_scores.next_event(self, track, pad_runtime, current_subunit))
             if pad_runtime is not None and pad_runtime.steps:
                 step_span = _transport_subunits_per_local_step(track)
                 candidates.append(origin + ((local_offset // step_span) + 1) * step_span)

@@ -262,12 +262,12 @@ MIDI and SCORE CSD exports use the same arpeggiator scheduler as live audio, inc
 
 ## Per-note timing (version 16)
 
-Current saves and exports write performance config **20** and accept versions **1–20**. Melodic steps and drummer cells store `timingOffsetPercent`, an integer from −50 to +50; missing values mean zero. Browser app state is version 3 (reads 1–3) and the native bundle envelope remains version 1. MIDI and SCORE exports use the same shifted attacks and releases as live playback, within each format's timing resolution.
+Current saves and exports write performance config **21** and accept versions **1–21**. Melodic steps and drummer cells store `timingOffsetPercent`, an integer from −50 to +50; missing values mean zero. Browser app state is version 4 (reads 1–4) and the native bundle envelope remains version 1. MIDI and SCORE exports use the same shifted attacks and releases as live playback, within each format's timing resolution.
 
 
 ## Arrangement compatibility and temporary audition
 
-The arrangement uses performance format v20, with imports of v1–20. Root sequences, group/supergroup references and pause tokens retain their meaning. Unused and empty draft definitions survive round trips. An imported enabled empty arrangement becomes an explicit occurrence of its previous active pad, retaining its repeat behavior. New empty lanes use Manual pads.
+The arrangement uses performance format v21, with imports of v1–21. Root sequences, group/supergroup references and pause tokens retain their meaning. Unused and empty draft definitions survive round trips. An imported enabled empty arrangement becomes an explicit occurrence of its previous active pad, retaining its repeat behavior. New empty lanes use Manual pads.
 
 Save, autosave, native bundles and both CSD modes read authored configuration. Temporary audition selection, queued commands, playback position and active-pad/enablement overrides are excluded; edits to musical content still save normally.
 
@@ -277,20 +277,31 @@ Optional `padLoopPattern.definitionColors` stores per-definition display colours
 
 Before normalization, legacy /8 melodic/drum/controller tracks double local beat lengths and halve steps per beat. Notes, holds, velocities, offsets, curve positions and speed ratios are retained. Rests, nested phrases, workspace drafts and arranger history (including its basis and before/after pads) convert together. New lengths support 1–16 melodic/drum beats and 1–32 controller beats; rests include 32. Derived counts and compiled sequences are rebuilt. The 128-step capacity remains enforced. Migration is idempotent and preserves on-grid schedules and arrangement positions; timing-offset rounding stays within the previous clock precision.
 
-Performance config v17 introduced the new meter-beat meaning, retained in v20; app state uses v3. The native JSON/ZIP envelope remains v1. New session requests explicitly use `beat_unit: "meter"`; omission preserves quarter-beat interpretation for older API clients. See [Sequencer timing](sequencer_timing.md).
+Performance config v17 introduced the new meter-beat meaning, retained in v21; app state uses v4. The native JSON/ZIP envelope remains v1. New session requests explicitly use `beat_unit: "meter"`; omission preserves quarter-beat interpretation for older API clients. See [Sequencer timing](sequencer_timing.md).
 
 
 ### Drummer ratchets (v18)
 
-Drummer cells also preserve `ratchets` (1–8, default 1) and `ratchetEndVelocity` (0–127 or null for constant velocity). They survive inactive cells, hidden steps, pad copies, saves and native bundles. MIDI and SCORE exports render the same rolls and velocity ramps as live playback, within each format's timing resolution. Repeated hits count toward the export event limit. Older performances default to one hit without a ramp. App-state v3 and native envelope v1 are unchanged; importing v17 does not repeat the meter conversion. See [ratchet editing](drummer_sequencers.md#ratchets-and-velocity-ramps).
+Drummer cells also preserve `ratchets` (1–8, default 1) and `ratchetEndVelocity` (0–127 or null for constant velocity). They survive inactive cells, hidden steps, pad copies, saves and native bundles. MIDI and SCORE exports render the same rolls and velocity ramps as live playback, within each format's timing resolution. Repeated hits count toward the export event limit. Older performances default to one hit without a ramp. App-state v4 and native envelope v1 preserve these fields; importing v17 does not repeat the meter conversion. See [ratchet editing](drummer_sequencers.md#ratchets-and-velocity-ramps).
 
 ### Melodic strumming (v19)
 
-Melodic steps preserve `strumDirection` (`off`, `up`, `down`, default `off`) and `strumSpreadPercent` (integer 0–100, default 0), including inactive settings on rests or steps without a chord. All current writers use v20 and readers accept v1–20. Existing performances play unchanged. App-state v3 and native envelope v1 remain unchanged; the meter migration still applies only to performances older than v17.
+Melodic steps preserve `strumDirection` (`off`, `up`, `down`, default `off`) and `strumSpreadPercent` (integer 0–100, default 0), including inactive settings on rests or steps without a chord. All current writers use v20 and readers accept v1–20. Existing performances play unchanged. App-state v4 and native envelope v1 preserve these fields; the meter migration still applies only to performances older than v17.
 
 Both CSD modes use the live sequencer's strum scheduling, including pitch order, timing offsets, overlapping note durations and same-pitch retriggers, within each export format's timing resolution. Finite exports cancel unfinished strums at the end. Individual attacks and downstream arpeggiator activity count toward export limits. The standalone CLI preserves and validates these fields and converts them to `strum_direction` / `strum_spread_percent` for runtime requests. Use `edit strum list|set|reset` to inspect or author them, or use `step_strum` lists and inline event/progression fields in YAML/JSON scores. See [strum editing](sequencer_tracks_and_steps.md#strummed-chords).
 
 
 ### Controller steps (v20)
 
-Controller sequencers save `controllerMode` (`curve` or `step`, default `curve`), `resetValue` (0–127, default 0), and 128 nullable integer `steps` per pad. Curves and step data are both retained, including hidden trailing cells. Legacy versions load in Curve Mode. Save/Load, autosave and native JSON/ZIP preserve these fields. Both CSD modes capture populated steps and start/stop resets using the live scheduler; SCORE then omits redundant controller writes as described above, while MIDI retains repeated messages. App-state v3 and native envelope v1 are unchanged. See [Controller Sequencers](controller_sequencers.md).
+Controller sequencers save `controllerMode` (`curve` or `step`, default `curve`), `resetValue` (0–127, default 0), and 128 nullable integer `steps` per pad. Curves and step data are both retained, including hidden trailing cells. Legacy versions load in Curve Mode. Save/Load, autosave and native JSON/ZIP preserve these fields. Both CSD modes capture populated steps and start/stop resets using the live scheduler; SCORE then omits redundant controller writes as described above, while MIDI retains repeated messages. App-state v4 and native envelope v1 preserve these fields. See [Controller Sequencers](controller_sequencers.md).
+
+### Score Sequencers (v21)
+
+Sparse `scoreTracks` preserve stable note IDs, tick timing, velocities, all eight
+pads, their lengths and scales, launch quantization and arrangement metadata.
+Earlier supported formats load with an empty score collection. Current saves
+write performance v21 and app-state v4; the native bundle envelope stays v1.
+Hidden notes survive native export and load. MIDI and SCORE renders chase notes
+spanning the export start and clip at score and export boundaries using the live
+scheduler. Score-assigned instruments and downstream arpeggiators participate in
+instrument selection and event budgets. See [Score Sequencers](score_sequencers.md).

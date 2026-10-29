@@ -151,3 +151,5 @@ native MIDI/SCORE audio, release, and native bundle/controller round trips.
 `trance_gate_lfo_original.patch.json` freezes the swept-LFO graph before Stereo
 was added. `trance_gate.patch.json` includes Stereo; tests verify exact previous
 output at Stereo 0 without reading example files or importing its builder.
+
+`sequencers/score.json` (fixture schema v1) provides matching authored and runtime Score Sequencer forms, independent sustains, a retrigger and hidden material in a ten-minute pad. Frontend, API, CLI and export regressions share this versioned fixture.

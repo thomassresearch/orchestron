@@ -22,7 +22,7 @@ Or run `make -C integrations` from the repository root. The build requires Make
 and Python 3.9 or newer, uses only the Python standard library, and needs no
 network or installed skill dependencies. Set `PYTHON=/path/to/python3` if needed.
 
-The output is `plugin-dist/orchestron-0.1.1.zip`; the filename comes from the
+The output is `plugin-dist/orchestron-0.1.2.zip`; the filename comes from the
 name and version in [`plugin.json`](plugin.json). Each build reports its path
 and compressed size. The archive contains one `orchestron/` directory with:
 
@@ -101,7 +101,7 @@ Typical agent workflow:
 2. List available patches and existing performances.
 3. Start an edit session for a new or existing performance.
 4. Add instrument assignments before sequencers.
-5. Connect exact main/send routes to effects and the built-in Master, and stage mixer levels. Add melodic, drum, controller, or arpeggiator tracks with CLI flags or a YAML/JSON score spec.
+5. Connect exact main/send routes to effects and the built-in Master, and stage mixer levels. Add melodic, drum, Score Sequencer, controller, or arpeggiator tracks with CLI flags or a YAML/JSON spec.
 6. Validate the staged edit.
 7. Commit only after validation succeeds.
 8. Optionally push mixer/controller/sequencer values to a matching live runtime, or rebuild it after rack or route changes.
@@ -119,6 +119,12 @@ uv run --locked --project integrations/skills/orchestron-performance-creator orc
 ```
 
 Use `edit sequencers list` to discover melodic/drummer track IDs, pads and drum rows. `edit step-timing list|set|reset` reads and edits selected early/late offsets without changing the notes or groove. See [per-note timing](skills/orchestron-performance-creator/references/step_timing.md) for step indexing, drum selection and score examples.
+
+Use `edit add-score-sequencer --spec /absolute/path/score-track.json` to add a
+polyphonic Score Sequencer with eight pads, variable duration, and notes at
+20,160 ticks per quarter note. `edit sequencers list` also includes these tracks.
+See [Score Sequencer authoring](skills/orchestron-performance-creator/references/score_sequencer.md)
+for the JSON/YAML format, limits, launch timing and performance v21 compatibility.
 
 Use `edit ratchets list|set|reset` to create drum rolls with 1–8 hits and optional velocity ramps. For example, `edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --count 4 --end-velocity 40` adds four hits to an existing snare cell. YAML/JSON scores support the same settings through `step_ratchets`. See [drummer ratchets](skills/orchestron-performance-creator/references/step_ratchets.md); inactive cells retain their activation state.
 

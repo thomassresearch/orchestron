@@ -162,7 +162,7 @@ export function buildSequencerPlaybackRange(
   }
   // Lane repeat settings cannot extend a song started by the arranger.
   const unbounded = !arrangerActive && !bounds.playbackLoop && (
-    state.tracks.some(trackShouldRunContinuously) ||
+    [...state.tracks, ...state.scoreTracks].some(trackShouldRunContinuously) ||
     state.drummerTracks.some(trackShouldRunContinuously) ||
     state.controllerSequencers.some(trackShouldRunContinuously) ||
     state.arpeggiators.some(arp => arp.playbackMode === "arranger" && arp.padLoopEnabled && arp.padLoopRepeat)
@@ -186,7 +186,7 @@ export function enabledForSequencerConfigExport(
 
 export function hasEnabledPerformanceSequencer(state: SequencerState): boolean {
   return (
-    state.tracks.some((track) => track.enabled || track.queuedEnabled === true) ||
+    [...state.tracks, ...state.scoreTracks].some((track) => track.enabled || track.queuedEnabled === true) ||
     state.drummerTracks.some((track) => track.enabled || track.queuedEnabled === true) ||
     state.controllerSequencers.some((controllerSequencer) => controllerSequencer.enabled)
   );

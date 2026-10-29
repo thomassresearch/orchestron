@@ -8,12 +8,13 @@ from backend.app.services.insert_bypass import routing_only_graph
 def _device_channels(request: PerformanceCsdExportRequest) -> set[int]:
     # Runtime tracks also cover drummer tracks and older/API-only exports. The
     # browser's transport placeholder is not a device assignment.
-    channels = {track.midi_channel for track in request.sequencer_config.tracks if track.track_id != "__transport__"}
+    channels = {track.midi_channel for track in [*request.sequencer_config.tracks, *request.sequencer_config.score_tracks] if track.track_id != "__transport__"}
     channels.update(arp.target_channel for arp in request.sequencer_config.arpeggiators)
     snapshot = (request.performance_export.performance.config.model_extra or {}).get("sequencer", {})
     if isinstance(snapshot, dict):
         for collection, key in (
             ("tracks", "midiChannel"),
+            ("scoreTracks", "midiChannel"),
             ("drummerTracks", "midiChannel"),
             ("pianoRolls", "midiChannel"),
             ("arpeggiators", "targetChannel"),

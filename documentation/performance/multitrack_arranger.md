@@ -120,3 +120,11 @@ Performances store root sequences, pads, groups, supergroups and supported pause
 Optional `definitionColors` metadata maps typed definition references (`pad:0`, `group:A`, `super:I`) to hexadecimal colours. It does not change sequence compilation or trigger audio preparation. Missing/invalid colours use type defaults. Save/load, autosave, and native bundles retain valid colours. CSD audio ignores them.
 
 Audition/preview commands and restoration state, selection, position, sounding pads and temporary enablement are session state. Save, autosave, native bundles and both CSD exports use authored data. Musical edits made while auditioning save normally.
+
+## Score Sequencer lanes
+
+[Score Sequencers](score_sequencers.md) use the same source controls, phrases,
+variations, speaker previews and lane mute/solo as other note lanes. Their pad
+lengths may span many minutes. A score is one indivisible occurrence: a range
+that touches it expands to include the entire score. Edit partial passages in
+its Score editor. Changing pad duration invalidates conflicting arranger history.

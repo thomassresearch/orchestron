@@ -295,6 +295,25 @@ export interface SequencerTrackState {
   queuedEnabled: boolean | null;
 }
 
+export interface ScoreNoteState {
+  id: string;
+  pitch: number;
+  startTicks: number;
+  durationTicks: number;
+  velocity: number;
+}
+
+export interface ScorePadState extends Omit<SequencerPadState, "lengthBeats"> {
+  lengthBeats: number;
+  notes: ScoreNoteState[];
+}
+
+export interface ScoreTrackState extends Omit<SequencerTrackState, "lengthBeats" | "pads"> {
+  lengthBeats: number;
+  pads: ScorePadState[];
+  launchQuantization: "bar" | "score";
+}
+
 export interface DrummerSequencerTrackState {
   id: string;
   name: string;
@@ -475,6 +494,7 @@ export interface SequencerState {
   arrangerLoopSelection: ArrangerLoopSelection | null;
   arrangerSongLoopEnabled: boolean;
   tracks: SequencerTrackState[];
+  scoreTracks: ScoreTrackState[];
   drummerTracks: DrummerSequencerTrackState[];
   controllerSequencers: ControllerSequencerState[];
   arpeggiators: ArpeggiatorState[];
@@ -563,7 +583,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -598,6 +618,7 @@ export interface SequencerConfigSnapshot {
     stepCount?: number;
     arrangerLoopSelection?: ArrangerLoopSelection | null;
     arrangerSongLoopEnabled?: boolean;
+    scoreTracks?: ScoreTrackState[];
     tracks: Array<{
       id: string;
       name: string;
@@ -728,7 +749,7 @@ export interface BrowserClockLatencySettings {
 
 export interface PersistedAppState {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;
@@ -843,6 +864,13 @@ export interface SessionSequencerTrackConfig {
   pads: SessionSequencerPadConfig[];
 }
 
+export interface SessionScoreTrackConfig extends Omit<SessionSequencerTrackConfig, "pads" | "length_beats"> {
+  length_beats: number;
+  launch_quantization: "bar" | "score";
+  pads: Array<{ pad_index: number; length_beats: number; scale_root: SequencerScaleRoot; scale_type: SequencerScaleType; mode: SequencerMode;
+    notes: Array<{ id: string; pitch: number; velocity: number; start_ticks: number; duration_ticks: number }> }>;
+}
+
 export interface SessionControllerSequencerTrackConfig {
   controller_mode?: ControllerSequencerMode;
   reset_value?: number;
@@ -868,6 +896,7 @@ export interface SessionSequencerConfigRequest {
   playback_end_step?: number;
   playback_loop?: boolean;
   tracks: SessionSequencerTrackConfig[];
+  score_tracks?: SessionScoreTrackConfig[];
   controller_tracks: SessionControllerSequencerTrackConfig[];
   arpeggiators?: SessionArpeggiatorConfig[];
 }
@@ -1018,6 +1047,7 @@ export interface SessionSequencerStatus {
   cycle: number;
   transport_subunit: number;
   tracks: SessionSequencerTrackStatus[];
+  score_tracks?: Array<Omit<SessionSequencerTrackStatus, "length_beats"> & { length_beats: number }>;
   controller_tracks: SessionControllerSequencerTrackStatus[];
   arpeggiators: SessionArpeggiatorStatus[];
 }

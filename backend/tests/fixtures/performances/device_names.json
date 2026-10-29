@@ -38,6 +38,12 @@
           "id": "midiControllers-1",
           "name": "Manual Modulation"
         }
+      ],
+      "scoreTracks": [
+        {
+          "id": "score-names",
+          "name": "Long Score"
+        }
       ]
     }
   },
@@ -47,6 +53,7 @@
     "controllerSequencers": "<b>Filter</b>",
     "arpeggiators": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     "pianoRolls": "Clavier été 🎹",
-    "midiControllers": "Manual Modulation"
+    "midiControllers": "Manual Modulation",
+    "scoreTracks": "Legacy Score"
   }
 }

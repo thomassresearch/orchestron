@@ -28,7 +28,7 @@ class LaneOutputGate:
         self._deferred_releases: dict[tuple[int, int], int] = {}
 
     def configure(self, config: Any) -> None:
-        routing = {lane_id(t.track_id): LaneRouting((t.midi_channel,)) for t in config.tracks}
+        routing = {lane_id(t.track_id): LaneRouting((t.midi_channel,)) for t in [*config.tracks, *getattr(config, "score_tracks", [])]}
         routing.update({t.track_id: LaneRouting(tuple(t.target_channels or ())) for t in config.controller_tracks})
         self.routing = routing
         self.configure_arpeggiators(config.arpeggiators)

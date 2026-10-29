@@ -99,6 +99,9 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 - Tempo is global; sequencers retain independent meter, grid, and rational beat ratios.
   Preserve polymeter/polyrhythm without floating-point clock drift. Note and controller pads
   switch at loop boundaries; arpeggiators run in the backend with unique input MIDI channels.
+- Score Sequencers use sparse 20,160-quarter-tick notes, eight pads and whole-score arranger occurrences;
+  next-bar/end launches, note chasing, hidden-note retention and limits are defined in the
+  [score guide](documentation/performance/score_sequencers.md) and backend score contract.
 - Melodic strums spread ordered chord attacks across 0–100% of a local step, preserving each
   note’s duration. Same-pitch retriggers replace owned releases; see backend strumming contracts.
 - Arranger alone edits song order. Playback source uses `padLoopEnabled`; lane end behavior
@@ -122,8 +125,8 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   references for dependency, revision, and note-release contracts.
 - Rack/topology changes lock while instruments run; mixer controls remain live. Direct output
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.
-- Mixer persistence arrived in performance config v11; current serializers/CLI write v20 and
-  accept v1–20. App state is v3 and reads v1–3. Distinguish these from the native bundle envelope version.
+- Mixer persistence arrived in performance config v11; current serializers/CLI write v21 and
+  accept v1–21. App state is v4 and reads v1–4. Distinguish these from the native bundle envelope version.
   Preserve types, device names, routing, mixer state, instance overrides and optional
   `padLoopPattern.definitionColors` display metadata across round trips. Colours never trigger audio preparation.
 - Master is the fixed `$master` endpoint, with no library patch or rack slot. Preserve its

@@ -14,7 +14,7 @@ def test_strum_config_and_runtime_round_trip():
     config = {'version': 18, 'instruments': [], 'sequencer': {'tracks': [
         {'id': 'lead', 'midiChannel': 1, 'pads': [{'steps': [step]}]}]}}
     restored = cli.normalize_performance_config(config, [])
-    assert restored['version'] == 20
+    assert restored['version'] == 21
     assert restored['sequencer']['tracks'][0]['pads'][0]['steps'][0] == step
     runtime = cli.build_runtime_config(restored)['tracks'][0]['pads'][0]['steps'][0]
     assert runtime['strum_direction'] == 'down'
@@ -88,7 +88,7 @@ def test_set_round_trips_to_runtime_without_changing_notes(session, capsys, dire
     assert config(session) == expected
     restored = cli.normalize_performance_config(config(session), [])
     wire = cli.build_runtime_config(restored)["tracks"][0]["pads"][0]["steps"][0]
-    assert restored["version"] == 20
+    assert restored["version"] == 21
     assert (wire["strum_direction"], wire["strum_spread_percent"], wire["note"]) == (direction, spread, [48, 52, 55])
 
 

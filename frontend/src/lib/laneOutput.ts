@@ -11,6 +11,7 @@ export const useLaneOutput = create<{ lanes: Record<string, Control>; routes: Re
 
 export function reconcileLaneOutput(sequencer: SequencerState, reset = false) {
   const routes: Record<string, Route> = Object.fromEntries([
+    ...sequencer.scoreTracks.map(t => [t.id, { channels: [t.midiChannel] }]),
     ...sequencer.tracks.map(t => [t.id, { channels: [t.midiChannel] }]),
     ...sequencer.drummerTracks.map(t => [t.id, { channels: [t.midiChannel] }]),
     ...sequencer.controllerSequencers.map(t => [t.id, { channels: t.targetChannels }]),
@@ -50,6 +51,7 @@ export function laneOutputRequest(): SessionLaneOutputRequest {
 /** Attach only to runtime requests, never authored data or export compilation. */
 export function withLaneOutput(config: SessionSequencerConfigRequest): SessionSequencerConfigRequest {
   const ids = new Set([...config.tracks.map(t => t.track_id.startsWith("drumrow:") ? t.track_id.split(":")[1] : t.track_id),
+    ...(config.score_tracks ?? []).map(t => t.track_id),
     ...(config.controller_tracks ?? []).map(t => t.track_id), ...(config.arpeggiators ?? []).filter(a => a.playback_mode === "arranger").map(a => a.arpeggiator_id)]);
   const request = laneOutputRequest();
   return { ...config, lane_output: { ...request, lanes: Object.fromEntries(Object.entries(request.lanes).filter(([id]) => ids.has(id))) } };

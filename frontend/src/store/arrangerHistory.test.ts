@@ -128,9 +128,9 @@ it("persists the cursor, defers autosave during playback, and accepts legacy fil
   const before = capturePersistWatchState(store());
   place(2); place(3); store().undoArranger();
   const saved = store().buildSequencerConfigSnapshot();
-  expect(saved.version).toBe(20);
+  expect(saved.version).toBe(21);
   const app = buildPersistedAppStateSnapshot(store());
-  expect(app.version).toBe(3);
+  expect(app.version).toBe(4);
   expect(readArrangerHistory(JSON.parse(JSON.stringify(app.arrangerHistory)), store().sequencer).arrangerHistory).toEqual(store().arrangerHistory);
   expect(shouldDeferSequencerPersistence(capturePersistWatchState(store()), before, true)).toBe(true);
   expect(parseSequencerConfigSnapshot(saved, [], null).arrangerHistory.cursor).toBe(1);

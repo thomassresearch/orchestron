@@ -1,5 +1,5 @@
 import { sequencerTransportSubunitCount, sequencerTransportSubunitsPerBeat } from "./sequencer";
-import type { GuiLanguage, SequencerTimingConfig, ControllerSequencerPadLengthBeats } from "../types";
+import type { GuiLanguage, SequencerTimingConfig } from "../types";
 
 const translations = {
   english: { meter: "Meter", length: "Pattern length", subdivision: "Subdivision", advanced: "Advanced timing", speed: "Playback speed", bar: "Bar", bars: "bars", beat: "Beat", beats: "beats", steps: "steps", perBeat: "per beat", scope: "Length: this pad. Meter, subdivision and speed: all pads.", songBeats: "quarter-note song beats", duration: "Plays over", limit: "Unavailable: a pad would exceed 128 steps.", notes: ["Quarter notes", "Eighth notes", "Sixteenth notes", "Thirty-second notes", "Sixty-fourth notes"], triplets: "triplets" },
@@ -28,7 +28,7 @@ export function patternLengthLabel(beats: number, numerator: number, language: G
     : length;
 }
 
-export function timingSummary(timing: SequencerTimingConfig, length: ControllerSequencerPadLengthBeats, language: GuiLanguage): string {
+export function timingSummary(timing: SequencerTimingConfig, length: number, language: GuiLanguage): string {
   const c = timingCopy(language);
   const duration = sequencerTransportSubunitCount(timing, length) / sequencerTransportSubunitsPerBeat();
   const formatted = new Intl.NumberFormat({english:"en", german:"de", french:"fr", spanish:"es"}[language], { maximumFractionDigits: 3 }).format(duration);

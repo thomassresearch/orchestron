@@ -379,12 +379,12 @@ export function sequencerTransportStepCount(
     typeof timingOrLengthBeats === "number" ? timingOrLengthBeats : (lengthBeats ?? 1);
   return typeof timingOrLengthBeats === "number"
     ? Math.max(1, Math.round(resolvedLengthBeats)) * SEQUENCER_TRANSPORT_STEP_RESOLUTION
-    : sequencerTransportSubunitCount(timingOrLengthBeats, resolvedLengthBeats as ControllerSequencerPadLengthBeats) / sequencerTransportSubunitsPerStep();
+    : sequencerTransportSubunitCount(timingOrLengthBeats, resolvedLengthBeats) / sequencerTransportSubunitsPerStep();
 }
 
 export function sequencerTransportSubunitCount(
   timing: SequencerTimingConfig,
-  lengthBeats: SequencerPadLengthBeats | ControllerSequencerPadLengthBeats
+  lengthBeats: number
 ): number {
   const beatRate = resolveSequencerBeatRate(timing.beatRateNumerator, timing.beatRateDenominator);
   return (

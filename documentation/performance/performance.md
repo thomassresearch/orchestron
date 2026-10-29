@@ -26,7 +26,7 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 
 Click a panel title or focus it and press Enter or Space to collapse or expand its contents. Header actions, status and help remain available. Panels collapse independently, start expanded and remember your choices across view switches until browser reload. Adding a device opens its group. Collapsing preserves edits and does not stop playback. The shared tempo stays outside the sequencer groups.
 
-Instrument Rack, Melodic Sequencers, Drummer Sequencers, Controller Sequencers, Arpeggiators, Piano Rolls (keyboards), MIDI Controllers, and Multitrack Arranger each have their own toggle. Empty drummer/controller groups keep their Add buttons. The arranger appears when at least one melodic, drummer, controller sequencer, or arpeggiator exists. These layout choices are not saved into performances or exports.
+Instrument Rack, Melodic Sequencers, Score Sequencers, Drummer Sequencers, Controller Sequencers, Arpeggiators, Piano Rolls (keyboards), MIDI Controllers, and Multitrack Arranger each have their own toggle. Empty drummer/controller groups keep their Add buttons. The arranger appears when at least one melodic, score, drummer, controller sequencer, or arpeggiator exists. These layout choices are not saved into performances or exports.
 
 Collapsed visual bodies are suspended: hidden grids and timelines are not built, animation loops stop, and hidden meters unsubscribe. This includes the Mixer and each nested routing, matrix, diagram, channel-mapping, diagnostic and insert section. Playback, pad switching, MIDI processing, audio controls and meter collection continue. Visible headers, rack summary, shared tempo and footer transport status keep updating. Expanding displays the current playback position and latest meters immediately, without replaying missed animation frames.
 
@@ -57,6 +57,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - [Instrument Rack and Engine Transport](instrument_rack_and_engine_transport.md)
 - [Audio Mixer and Routing](audio_mixer_and_routing.md)
 - [Melodic Sequencers and Step Editing](sequencer_tracks_and_steps.md)
+- [Score Sequencers](score_sequencers.md)
 - [Drummer Sequencers](drummer_sequencers.md)
 - [Pattern Pads and Reusable Phrases](pattern_pads_and_pad_looper.md)
 - [Multitrack Arranger](multitrack_arranger.md)

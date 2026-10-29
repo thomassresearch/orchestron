@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react";
 
-export type PerformPanelId = "rack" | "melodic" | "drummer" | "controller" | "arpeggiators" | "piano" | "midi" | "arranger";
+export type PerformPanelId = "rack" | "melodic" | "score" | "drummer" | "controller" | "arpeggiators" | "piano" | "midi" | "arranger";
 export type PanelId = "patchControls" | PerformPanelId;
 export type PanelCollapseState = Record<PanelId, boolean>;
 
@@ -8,6 +8,7 @@ export const INITIAL_PANEL_COLLAPSE_STATE: PanelCollapseState = {
   patchControls: false,
   rack: false,
   melodic: false,
+  score: false,
   drummer: false,
   controller: false,
   arpeggiators: false,

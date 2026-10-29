@@ -22,7 +22,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 20
+CURRENT_CONFIG_VERSION = 21
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16, 32}
@@ -1495,6 +1495,7 @@ def empty_performance_config(*, tempo: int = 120) -> dict[str, Any]:
             "stepCount": 8,
             "arrangerLoopSelection": None,
             "tracks": [],
+            "scoreTracks": [],
             "drummerTracks": [],
             "pianoRolls": [],
             "midiControllers": [],
@@ -1516,6 +1517,94 @@ def normalize_controller_steps(raw: Any) -> list[int | None]:
             for value in (values[:128] + [None] * 128)[:128]]
 
 
+SCORE_TICKS_PER_QUARTER = 20160
+
+
+def normalize_score_tracks(tracks: Any, timing: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize sparse Score Sequencers without interpreting composition-score inputs."""
+    def integer(value, low, high, field):
+        if type(value) is not int or not low <= value <= high:
+            raise OrchestronCliError("invalid_score_sequencer", f"{field} must be an integer in {low}..{high}.")
+        return value
+
+    if not isinstance(tracks, list) or len(tracks) > 16:
+        raise OrchestronCliError("invalid_score_sequencer", "At most 16 Score Sequencers are supported.")
+    result, total = [], 0
+    for source in tracks:
+        if not isinstance(source, dict):
+            raise OrchestronCliError("invalid_score_sequencer", "A Score Sequencer must be an object.")
+        track = copy.deepcopy(source)
+        local_timing = {**timing, **track.get("timing", {}), "tempoBPM": timing.get("tempoBPM", 120)}
+        track.setdefault("id", f"score-{uuid4()}")
+        track.setdefault("name", f"Score Sequencer {len(result) + 1}")
+        track["midiChannel"] = integer(track.get("midiChannel", 1), 1, 16, "midiChannel")
+        track["activePad"] = integer(track.get("activePad", 0), 0, 7, "activePad")
+        track.setdefault("launchQuantization", "bar")
+        if track["launchQuantization"] not in ("bar", "score"):
+            raise OrchestronCliError("invalid_score_sequencer", "launchQuantization must be bar or score.")
+        track.setdefault("enabled", True)
+        track.setdefault("padLoopEnabled", False)
+        track.setdefault("padLoopRepeat", True)
+        track.setdefault("padLoopPattern", empty_pad_loop_pattern())
+        track["timing"] = local_timing
+        pads = track.get("pads", [])
+        if not isinstance(pads, list) or len(pads) > 8:
+            raise OrchestronCliError("invalid_score_sequencer", "A Score Sequencer supports eight pads.")
+        normalized = []
+        for index in range(8):
+            pad = copy.deepcopy(pads[index]) if index < len(pads) else {}
+            if not isinstance(pad, dict):
+                raise OrchestronCliError("invalid_score_sequencer", "A score pad must be an object.")
+            pad["lengthBeats"] = integer(pad.get("lengthBeats", track.get("lengthBeats", local_timing["meterNumerator"] * 4)), 1, 8192, "lengthBeats")
+            for key, default in (("scaleRoot", "C"), ("scaleType", "minor"), ("mode", "aeolian")):
+                pad.setdefault(key, track.get(key, default))
+            validate_melodic_theory(scale_root=pad["scaleRoot"], scale_type=pad["scaleType"], mode=pad["mode"])
+            pad["stepCount"] = pad["lengthBeats"] * local_timing["stepsPerBeat"]
+            pad["steps"] = []
+            notes = pad.setdefault("notes", [])
+            if not isinstance(notes, list) or len(notes) > 10000:
+                raise OrchestronCliError("invalid_score_sequencer", "A score pad supports at most 10000 notes.")
+            ids = set()
+            for note in notes:
+                if not isinstance(note, dict):
+                    raise OrchestronCliError("invalid_score_sequencer", "A score note must be an object.")
+                identity = note.get("id")
+                if not isinstance(identity, str) or not identity or len(identity) > 128 or identity in ids:
+                    raise OrchestronCliError("invalid_score_sequencer", "Score note IDs must be unique nonempty strings, at most 128 characters.")
+                ids.add(identity)
+                integer(note.get("pitch"), 0, 127, "pitch")
+                note["velocity"] = integer(note.get("velocity", 100), 0, 127, "velocity")
+                integer(note.get("startTicks"), 0, 8192 * SCORE_TICKS_PER_QUARTER - 1, "startTicks")
+                integer(note.get("durationTicks"), 1, 8192 * SCORE_TICKS_PER_QUARTER, "durationTicks")
+            total += len(notes)
+            normalized.append(pad)
+        track["pads"] = normalized
+        active = normalized[track["activePad"]]
+        for key in ("lengthBeats", "stepCount", "scaleRoot", "scaleType", "mode"):
+            track[key] = active[key]
+        track["queuedPad"] = track["queuedEnabled"] = None
+        result.append(track)
+    if total > 50000:
+        raise OrchestronCliError("invalid_score_sequencer", "A performance supports at most 50000 score notes.")
+    return result
+
+
+def score_track_runtime(track: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "track_id": track["id"], "midi_channel": track["midiChannel"],
+        "timing": timing_to_runtime(track["timing"]), "length_beats": track["lengthBeats"],
+        "active_pad": track["activePad"], "enabled": track["enabled"],
+        "launch_quantization": track["launchQuantization"],
+        "scale_root": track["scaleRoot"], "scale_type": track["scaleType"], "mode": track["mode"],
+        "pad_loop_enabled": track["padLoopEnabled"], "pad_loop_repeat": track["padLoopRepeat"],
+        "pad_loop_sequence": compile_pad_loop_sequence(track),
+        "pads": [{"pad_index": index, "length_beats": pad["lengthBeats"],
+                  "scale_root": pad["scaleRoot"], "scale_type": pad["scaleType"], "mode": pad["mode"],
+                  "notes": [{"id": n["id"], "pitch": n["pitch"], "velocity": n["velocity"],
+                             "start_ticks": n["startTicks"], "duration_ticks": n["durationTicks"]} for n in pad["notes"]]}
+                 for index, pad in enumerate(track["pads"])]}
+
+
 def ensure_sequencer(config: dict[str, Any]) -> dict[str, Any]:
     sequencer = config.setdefault("sequencer", {})
     timing = sequencer.setdefault("timing", default_timing())
@@ -1525,6 +1614,7 @@ def ensure_sequencer(config: dict[str, Any]) -> dict[str, Any]:
     sequencer.setdefault("stepsPerBeat", timing.get("stepsPerBeat", 4))
     sequencer.setdefault("stepCount", 8)
     sequencer.setdefault("tracks", [])
+    sequencer.setdefault("scoreTracks", [])
     sequencer.setdefault("drummerTracks", [])
     sequencer.setdefault("pianoRolls", [])
     sequencer.setdefault("midiControllers", [])
@@ -1889,6 +1979,7 @@ def normalize_performance_config(
         instrument.pop("effectRoutes", None)
         instrument.pop("effectSourceIds", None)
     sequencer = ensure_sequencer(config)
+    sequencer["scoreTracks"] = normalize_score_tracks(sequencer["scoreTracks"], sequencer["timing"])
     for track in sequencer.get("tracks", []):
         for pad in [track, *track.get("pads", [])]:
             for step in pad.get("steps", []):
@@ -3986,6 +4077,7 @@ def timing_to_runtime(timing: dict[str, Any]) -> dict[str, Any]:
 def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
     sequencer = ensure_sequencer(config)
     timing = sequencer.get("timing") or default_timing()
+    score_tracks = [score_track_runtime(track) for track in normalize_score_tracks(sequencer["scoreTracks"], timing)]
     tracks = []
     for track in sequencer.get("tracks", []):
         if not isinstance(track, dict):
@@ -4122,14 +4214,14 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
             }
         )
     arpeggiators = [arpeggiator_runtime_config(arp) for arp in sequencer.get("arpeggiators", []) if isinstance(arp, dict)]
-    if not tracks and not controller_tracks and not arpeggiators:
+    if not tracks and not score_tracks and not controller_tracks and not arpeggiators:
         raise OrchestronCliError(
             "runtime_config_empty",
             "Cannot push runtime config: no sequencer, controller, or arpeggiator tracks exist.",
             retry=["Add a melodic, drummer, controller, or arpeggiator device before pushing runtime config."],
         )
     duration_beats = 1
-    for device in [*tracks, *controller_tracks, *arpeggiators]:
+    for device in [*tracks, *score_tracks, *controller_tracks, *arpeggiators]:
         sequence = device["pad_loop_sequence"] or [device["active_pad"]]
         lengths = {pad.get("pad_index", index): pad.get("length_beats", 4) for index, pad in enumerate(device["pads"])}
         local_timing = device.get("timing", {})  # Arpeggiators retain shared quarter beats.
@@ -4152,6 +4244,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
         "playback_end_step": end_step,
         "playback_loop": False,
         "tracks": tracks,
+        "score_tracks": score_tracks,
         "controller_tracks": controller_tracks,
         "arpeggiators": arpeggiators,
     }
@@ -4561,7 +4654,7 @@ def update_session_config(ctx: CliContext, mutator) -> dict[str, Any]:
 def command_edit_sequencers_list(args: argparse.Namespace, ctx: CliContext) -> None:
     config = load_edit_session(ctx.session_file).get("config", {})
     result = []
-    for kind, track in note_sequencers(config):
+    for kind, track in [*note_sequencers(config), *(("score", t) for t in config.get("sequencer", {}).get("scoreTracks", []))]:
         result.append({**summarize_device(track), "type": kind, "activePad": int(track.get("activePad", 0)) + 1,
                        "pads": [{"pad": index + 1, "stepCount": pad.get("stepCount"), "lengthBeats": pad.get("lengthBeats")}
                                 for index, pad in enumerate(track.get("pads", []))],
@@ -4661,6 +4754,7 @@ def command_edit_status(args: argparse.Namespace, ctx: CliContext) -> None:
             "configVersion": config.get("version") if isinstance(config, dict) else None,
             "instruments": len(config.get("instruments", [])) if isinstance(config, dict) else 0,
             "melodicTracks": len(sequencer.get("tracks", [])),
+            "scoreTracks": len(sequencer.get("scoreTracks", [])),
             "drummerTracks": len(sequencer.get("drummerTracks", [])),
             "controllerSequencers": len(sequencer.get("controllerSequencers", [])),
             "arpeggiators": len(sequencer.get("arpeggiators", [])),
@@ -5084,6 +5178,21 @@ def command_edit_add_drummer(args: argparse.Namespace, ctx: CliContext) -> None:
             pad_loop_enabled=pad_loop_enabled,
             pad_loop_repeat=pad_loop_repeat,
         )
+
+    print_payload(summarize_device(update_session_config(ctx, mutate)), ctx)
+
+
+def command_edit_add_score_sequencer(args: argparse.Namespace, ctx: CliContext) -> None:
+    source = load_score_spec(Path(args.spec))
+
+    def mutate(config: dict[str, Any]) -> dict[str, Any]:
+        sequencer = ensure_sequencer(config)
+        tracks = normalize_score_tracks([*sequencer["scoreTracks"], source], sequencer["timing"])
+        if len({t["id"] for t in tracks}) != len(tracks):
+            raise OrchestronCliError("invalid_score_sequencer", "Score track IDs must be unique.")
+        sequencer["scoreTracks"] = tracks
+        config["version"] = CURRENT_CONFIG_VERSION
+        return tracks[-1]
 
     print_payload(summarize_device(update_session_config(ctx, mutate)), ctx)
 
@@ -5642,6 +5751,9 @@ def build_parser() -> argparse.ArgumentParser:
     add_drum.add_argument("--enabled", action=argparse.BooleanOptionalAction, default=True)
     add_pad_loop_arguments(add_drum)
     add_drum.set_defaults(func=command_edit_add_drummer)
+    add_score = edit_sub.add_parser("add-score-sequencer", help="Add a sparse Score Sequencer from JSON/YAML.")
+    add_score.add_argument("--spec", required=True, help="Score track object with pads and tick-based notes (20160 ticks/quarter).")
+    add_score.set_defaults(func=command_edit_add_score_sequencer)
     add_cc_seq = edit_sub.add_parser("add-controller-sequencer", help="Add a controller sequencer curve.")
     add_cc_seq.add_argument("--cc", required=True, type=int, help="Controller number 0..127.")
     add_cc_seq.add_argument("--name", help="Track name.")

@@ -33,6 +33,7 @@ check: backend-check backend-test frontend-check
 benchmark-runtime:
 	uv run --extra dev python -m backend.tools.benchmark_browser_clock_render
 	uv run --extra dev python -m backend.tools.benchmark_sequencer_boundary
+	uv run --extra dev python -m backend.tools.benchmark_score_sequencer
 
 # Longer native Csound/API comparison; keeps raw paired samples and output hashes.
 benchmark-playback:

@@ -2,7 +2,7 @@ import type { PadLoopPatternItem, PadLoopPatternState, SequencerState } from "..
 import { arrangementSpans, restTokens, validateArrangementEdit } from "./arrangementEditing";
 import { sequencerTransportSubunitsPerBeat } from "./sequencer";
 
-export type ArrangementLaneKind = "sequencer" | "drummer" | "controller" | "arpeggiator";
+export type ArrangementLaneKind = "sequencer" | "score" | "drummer" | "controller" | "arpeggiator";
 export type RangeLane = {
   id: string; kind: ArrangementLaneKind; pattern: PadLoopPatternState;
   padBeats: number[]; beatSubunits: number;
@@ -24,6 +24,7 @@ export function arrangementRangeLanes(sequencer: SequencerState): RangeLane[] {
   const beat = sequencerTransportSubunitsPerBeat();
   return [
     ...sequencer.tracks.map(t => ({ id: t.id, kind: "sequencer" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
+    ...(sequencer.scoreTracks ?? []).map(t => ({ id: t.id, kind: "score" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
     ...sequencer.drummerTracks.map(t => ({ id: t.id, kind: "drummer" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
     ...sequencer.controllerSequencers.map(t => ({ id: t.id, kind: "controller" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat * 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator })),
     ...sequencer.arpeggiators.filter(t => t.playbackMode === "arranger").map(t => ({ id: t.id, kind: "arpeggiator" as const, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatSubunits: beat }))

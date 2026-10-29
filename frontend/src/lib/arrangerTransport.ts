@@ -95,7 +95,7 @@ export function transportSequenceStepCount(
   );
 }
 
-function trackTransportExtent(track: SequencerTrackState): number {
+function trackTransportExtent(track: SequencerTrackState | import("../types").ScoreTrackState): number {
   const sequence = compileArrangerTransportSequence(track.padLoopPattern, track.activePad);
   return transportSequenceStepCount(
     sequence,
@@ -126,11 +126,11 @@ function controllerSequencerTransportExtent(track: ControllerSequencerState): nu
 }
 
 export function arrangerTransportExtent(
-  sequencer: Pick<SequencerState, "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing">
+  sequencer: Pick<SequencerState, "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing"> & Partial<Pick<SequencerState, "scoreTracks">>
 ): number {
   const stepQuantum = arrangerStepQuantum(sequencer);
   let maxStep = stepQuantum;
-  for (const track of sequencer.tracks) {
+  for (const track of [...sequencer.tracks, ...(sequencer.scoreTracks ?? [])]) {
     maxStep = Math.max(maxStep, trackTransportExtent(track));
   }
   for (const track of sequencer.drummerTracks) {
@@ -172,7 +172,7 @@ export function normalizeArrangerLoopSelection(
 }
 
 export function arrangerPlaybackBounds(
-  sequencer: Pick<SequencerState, "arrangerLoopSelection" | "arrangerSongLoopEnabled" | "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing">
+  sequencer: Pick<SequencerState, "arrangerLoopSelection" | "arrangerSongLoopEnabled" | "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing"> & Partial<Pick<SequencerState, "scoreTracks">>
 ): {
   arrangementEndStep: number;
   selection: ArrangerLoopSelection | null;

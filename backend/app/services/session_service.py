@@ -1283,7 +1283,7 @@ class SessionService:
     @staticmethod
     def _validate_device_transport(request: SessionDeviceTransportRequest, config: SessionSequencerConfigRequest):
         from backend.app.engine.lane_output import lane_id
-        tracks = {t.track_id for t in [*config.tracks, *config.controller_tracks]}
+        tracks = {t.track_id for t in [*config.tracks, *config.score_tracks, *config.controller_tracks]}
         targets = set(request.track_ids)
         if not targets.issubset(tracks):
             raise ValueError("Device track is not configured.")
@@ -1292,7 +1292,7 @@ class SessionService:
             if len(lanes) != 1 or {identity for identity in tracks if lane_id(identity) in lanes} != targets:
                 raise ValueError("Target one complete device, including all drummer rows.")
             if request.pad_index is not None and any(request.pad_index not in {p.pad_index for p in t.pads}
-                    for t in [*config.tracks, *config.controller_tracks] if t.track_id in targets):
+                    for t in [*config.tracks, *config.score_tracks, *config.controller_tracks] if t.track_id in targets):
                 raise ValueError("Device pad is not configured.")
         if request.arpeggiator_id and not any(a.arpeggiator_id == request.arpeggiator_id and a.playback_mode == "arranger" for a in config.arpeggiators):
             raise ValueError("Device must be an Arranger-mode arpeggiator.")

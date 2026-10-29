@@ -18,9 +18,11 @@ from backend.app.models.session import (
     SessionSequencerStatus,
     SessionSequencerTimingConfig,
     SessionSequencerTrackStatus,
+    SessionScoreSequencerTrackStatus,
 )
 from backend.app.services.arpeggiator_runtime import MidiSourceContext
 from backend.app.services import sequencer_controller as _controllers
+from backend.app.services import score_sequencer as _scores
 from backend.app.services.preview_commands import PreviewCommands
 from backend.app.services.sequencer_source_transport import SequencerSourceTransport
 from backend.app.services.sequencer_strum import StrumState, refresh_strum_releases
@@ -119,6 +121,7 @@ class SessionSequencerRuntime:
         self._timed_notes: dict[str, SoundingTimedNote] = {}
         self._ratchet_rolls: dict[str, RatchetRoll] = {}
         self._strum_states: dict[str, StrumState] = {}
+        self._score_states: dict[str, _scores.ScoreState] = {}
         self._last_timed_attack: dict[str, tuple[int, int, int]] = {}
         self._render_subunit_remainder = 0.0
         self._next_render_event_subunit: int | None = None
@@ -240,6 +243,7 @@ class SessionSequencerRuntime:
                         track.last_value = value
             self._refresh_timed_releases(next_config)
             refresh_strum_releases(self, next_config)
+            _scores.reconcile(self, next_config)
             self._reset_render_event_cursor_locked(next_config)
             return self._status_locked()
 
@@ -652,6 +656,7 @@ class SessionSequencerRuntime:
 
         if self._running:
             track.queued_pad = pad_index
+            self._next_render_event_subunit = None
             return
 
         track.active_pad = pad_index
@@ -677,6 +682,7 @@ class SessionSequencerRuntime:
 
         if self._running:
             track.queued_pad = pad_index
+            self._next_render_event_subunit = None
             return
 
         track.active_pad = pad_index
@@ -1275,7 +1281,9 @@ class SessionSequencerRuntime:
                             delivery_delay_seconds=delivery_delay_seconds,
                         )
 
-            if local_boundary_reached and track.queued_pad is not None and track.queued_pad != track.active_pad:
+            if (local_boundary_reached or _scores.bar_launch(track, next_subunit)) and track.queued_pad is not None and track.queued_pad != track.active_pad:
+                if track.is_score:
+                    self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delivery_delay_seconds)
                 track.active_pad = track.queued_pad
                 track.queued_pad = None
                 track.sequence_ended = False
@@ -1936,6 +1944,7 @@ class SessionSequencerRuntime:
             self._ratchet_rolls.pop(track_id, None)
         self._timed_notes.pop(track_id, None)
         self._strum_states.pop(track_id, None)
+        self._score_states.pop(track_id, None)
         active_notes = self._active_notes.get(track_id)
         if not active_notes:
             return
@@ -1969,6 +1978,7 @@ class SessionSequencerRuntime:
                 self._release_track_notes_locked(track_id, previous_track.midi_channel)
 
     def _send_all_notes_off_locked(self) -> None:
+        self._score_states.clear()
         self._ratchet_rolls.clear()
         self._strum_states.clear()
         self._timed_notes.clear()
@@ -2071,7 +2081,7 @@ class SessionSequencerRuntime:
         visible_absolute_subunit = self._visible_absolute_subunit_locked()
         current_step, cycle = self._transport_position_locked(config, visible_absolute_subunit)
         tracks = [
-            SessionSequencerTrackStatus(
+            (SessionScoreSequencerTrackStatus if track.is_score else SessionSequencerTrackStatus)(
                 track_id=track.track_id,
                 midi_channel=track.midi_channel,
                 timing=SessionSequencerTimingConfig(
@@ -2141,7 +2151,8 @@ class SessionSequencerRuntime:
             current_step=current_step,
             cycle=cycle,
             transport_subunit=visible_absolute_subunit,
-            tracks=tracks,
+            tracks=[t for t in tracks if not config.tracks[t.track_id].is_score],
+            score_tracks=[t for t in tracks if config.tracks[t.track_id].is_score],
             controller_tracks=controller_tracks,
         )
 

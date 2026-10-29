@@ -67,7 +67,7 @@ it("does not build collapsed device grids or run their observers and animation f
   const { container } = render(<Page />);
   toggleDetails("Mixer", false);
   const hidden = [...container.querySelectorAll("div[hidden]")];
-  expect(hidden).toHaveLength(8);
+  expect(hidden).toHaveLength(9);
   expect(hidden.every(body => body.childNodes.length === 0)).toBe(true);
   expect(notes).not.toHaveBeenCalled(); expect(curves).not.toHaveBeenCalled(); expect(diagnostics).not.toHaveBeenCalled();
   for (let step = 1; step <= 12; step++) tick(step);

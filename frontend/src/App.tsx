@@ -1,3 +1,5 @@
+import { ScoreTransportContext } from "./components/sequencer/ScoreSequencers";
+import { scoreTrackConfig } from "./lib/scoreSequencer";
 import { PerformanceAuditionContext } from "./components/sequencer/PerformanceAudition";
 import { useMidiControllerRouting } from "./hooks/useMidiControllerRouting";
 import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels";
@@ -524,6 +526,7 @@ export default function App() {
         step_count: transportStepCount,
         ...playbackRange,
         tracks: transportTracks,
+        score_tracks: resolvedState.scoreTracks.map(t => scoreTrackConfig(t, exportMode)),
         controller_tracks: controllerTracks,
         arpeggiators: buildBackendArpeggiatorConfigs(resolvedState).map((arp, index) => ({
           ...arp, enabled: exportMode && arp.playback_mode === "arranger" ? resolvedState.arpeggiators[index].padLoopEnabled : arp.enabled
@@ -961,7 +964,7 @@ export default function App() {
 
   const collectPerformanceChannels = useCallback(() => {
     const channels = new Set<number>();
-    for (const track of sequencerRef.current.tracks) {
+    for (const track of [...sequencerRef.current.tracks, ...sequencerRef.current.scoreTracks]) {
       channels.add(track.midiChannel);
     }
     for (const track of sequencerRef.current.drummerTracks) {
@@ -1923,7 +1926,7 @@ export default function App() {
 
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
-            <PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
+            <ScoreTransportContext.Provider value={{ play: transportDevice, queue: async (id, pad) => { const session = resolveSequencerSessionId(); if (!session) throw new Error(appCopy.errors.noActiveSessionForPadSwitching); await queueSequencerPadRuntime(session, id, pad); } }}><PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
               editorStore={performanceEditors.store}
               collapsedPanels={collapsedPanels}
               onPanelCollapsedChange={setPanelCollapsed}
@@ -1938,7 +1941,7 @@ export default function App() {
               controllerSequencerActions={sequencerControllerSequencerActions}
               arpeggiatorActions={sequencerArpeggiatorActions}
               onHelpRequest={onHelpRequest}
-            /></PerformanceAuditionContext.Provider>
+            /></PerformanceAuditionContext.Provider></ScoreTransportContext.Provider>
           </Suspense>
         )}
 

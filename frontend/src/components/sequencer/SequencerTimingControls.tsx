@@ -1,13 +1,14 @@
 import { Fragment } from "react";
-import type { ControllerSequencerPadLengthBeats, GuiLanguage, SequencerTimingConfig } from "../../types";
+import type { GuiLanguage, SequencerTimingConfig } from "../../types";
 import { MAX_STEPS_PER_PAD, SEQUENCER_BEAT_RATE_OPTIONS, SEQUENCER_STEPS_PER_BEAT_OPTIONS } from "../../lib/sequencer";
 import { patternLengthLabel, sequencerBeatGroups, subdivisionLabel, timingCopy, timingSummary } from "../../lib/sequencerTimingPresentation";
 import { EditorDetails } from "./PerformanceEditorState";
 
 interface Props {
+  score?: boolean;
   id: string;
   timing: SequencerTimingConfig;
-  lengthBeats: ControllerSequencerPadLengthBeats;
+  lengthBeats: number;
   pads: { lengthBeats: number }[];
   controller?: boolean;
   language: GuiLanguage;
@@ -22,7 +23,8 @@ export function SequencerTimingControls(p: Props) {
   const c = timingCopy(p.language);
   const field = "min-h-8 min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200";
   const speed = p.timing.beatRateNumerator / p.timing.beatRateDenominator;
-  const oversized = (grid: number) => p.pads.some(pad => pad.lengthBeats * grid > MAX_STEPS_PER_PAD);
+  const seconds = Math.round(p.lengthBeats * 4 / p.timing.meterDenominator / speed * 60 / p.timing.tempoBPM);
+  const oversized = (grid: number) => !p.score && p.pads.some(pad => pad.lengthBeats * grid > MAX_STEPS_PER_PAD);
   return <div className="min-w-0 space-y-2">
     <div className="flex flex-wrap items-end gap-2">
       <fieldset className="min-w-0"><legend className="mb-1 text-xs text-slate-400">{c.meter}</legend>
@@ -36,9 +38,9 @@ export function SequencerTimingControls(p: Props) {
         </div>
       </fieldset>
       <label className="flex min-w-0 flex-col gap-1 text-xs text-slate-400">{c.length}
-        <select className={field} value={p.lengthBeats} onChange={e => p.onLength(Number(e.target.value))}>
+        {p.score ? <input aria-label={c.length} className={field} type="number" min={1} max={8192} value={p.lengthBeats} onChange={e => { const n = Number(e.target.value); if (Number.isInteger(n) && n >= 1 && n <= 8192) p.onLength(n); }} /> : <select className={field} value={p.lengthBeats} onChange={e => p.onLength(Number(e.target.value))}>
           {Array.from({length:p.controller ? 32 : 16}, (_, i) => i + 1).map(n => <option key={n} value={n} disabled={n * p.timing.stepsPerBeat > MAX_STEPS_PER_PAD}>{patternLengthLabel(n, p.timing.meterNumerator, p.language)}</option>)}
-        </select>
+        </select>}
       </label>
       <label className="flex min-w-0 max-w-full flex-col gap-1 text-xs text-slate-400">{c.subdivision}
         <select className={field} value={p.timing.stepsPerBeat} onChange={e => p.onSubdivision(Number(e.target.value))}>
@@ -46,7 +48,7 @@ export function SequencerTimingControls(p: Props) {
         </select>
       </label>
     </div>
-    <div className="text-xs text-slate-200" aria-live="polite">{timingSummary(p.timing, p.lengthBeats, p.language)}</div>
+    <div className="text-xs text-slate-200" aria-live="polite">{p.score ? `${patternLengthLabel(p.lengthBeats, p.timing.meterNumerator, p.language)} · ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : timingSummary(p.timing, p.lengthBeats, p.language)}</div>
     <div className="text-[11px] text-slate-400">{c.scope}</div>
     {(SEQUENCER_STEPS_PER_BEAT_OPTIONS.some(oversized) || p.controller && 32 * p.timing.stepsPerBeat > MAX_STEPS_PER_PAD) && <div className="text-[11px] text-slate-400">{c.limit}</div>}
     {speed !== 1 && <div className="text-xs text-amber-300">{c.speed}: {Number(speed.toFixed(3))}× ({p.timing.beatRateNumerator}:{p.timing.beatRateDenominator})</div>}

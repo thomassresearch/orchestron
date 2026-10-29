@@ -46,6 +46,7 @@ The animation describes the existing native Csound runtime. See [clock ownership
 - [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md)
 - [Audio Mixer and Routing](performance/audio_mixer_and_routing.md)
 - [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md)
+- [Score Sequencers](performance/score_sequencers.md)
 - [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md)
 - [Controller Sequencers](performance/controller_sequencers.md)
 - [Arpeggiators](performance/arpeggiators.md)
@@ -85,6 +86,7 @@ The animation describes the existing native Csound runtime. See [clock ownership
 | Instrument import/export bundles + CSD export | [Instrument Import / Export and CSD Export](instrument_design/instrument_import_export.md) |
 | Performance rack, multi-instrument assignments, engine transport | [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md) |
 | Melodic sequencers, pattern pads, pad looper, transposition | [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md), [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md) |
+| Long polyphonic scores, note drawing, hidden material and eight pads | [Score Sequencers](performance/score_sequencers.md) |
 | Controller sequencers and CC curve editor | [Controller Sequencers](performance/controller_sequencers.md) |
 | Backend arpeggiator virtual instruments and presets | [Arpeggiators](performance/arpeggiators.md) |
 | Piano rolls, scale/mode following, mixed-mode highlighting | [Piano Rolls](performance/piano_rolls.md) |

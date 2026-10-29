@@ -14,7 +14,7 @@ def test_step_controller_survives_normalization_and_runtime_conversion():
     track.update(controllerMode="step", resetValue=12, targetChannels=[2, 5])
     track["pads"][0]["steps"] = [None, 0, 64, 64, None, 127, None, None] + [None] * 119 + [80]
     restored = cli.normalize_performance_config(config, [])
-    assert restored["version"] == 20
+    assert restored["version"] == 21
     assert restored["sequencer"]["controllerSequencers"][0]["pads"][0]["steps"][-1] == 80
     wire = cli.build_runtime_config(restored)["controller_tracks"][0]
     assert (wire["controller_mode"], wire["reset_value"], wire["target_channels"]) == ("step", 12, [2, 5])

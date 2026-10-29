@@ -1,3 +1,4 @@
+import { ScoreSequencers } from "./sequencer/ScoreSequencers";
 import { ControllerSequencerStepEditor, controllerModeCopy } from "./sequencer/ControllerSequencerStepEditor";
 import { MelodicStepProperties, melodicStepCopy } from "./sequencer/MelodicStepProperties";
 import { DrummerRatchetControl, drummerRatchetCopy, drummerCellDescription } from "./sequencer/DrummerRatchetControl";
@@ -489,7 +490,7 @@ function useSequencerPageContext({
   const patchById = useMemo(() => new Map(patches.map((patch) => [patch.id, patch])), [patches]);
   const rackInstrumentRows = useMemo(() => groupRackInstruments(instrumentBindings, patchById), [instrumentBindings, patchById]);
   const totalPerformDevices =
-    sequencer.tracks.length +
+    sequencer.tracks.length + sequencer.scoreTracks.length +
     sequencer.drummerTracks.length +
     sequencer.controllerSequencers.length +
     sequencer.arpeggiators.length +
@@ -786,7 +787,7 @@ export function SequencerPage(props: SequencerPageProps) {
   const generation = useAppStore(state => state.performanceWorkspaceGeneration);
   const routes = useAppStore(state => state.audioGraph.routes);
   const owners: EditorOwner[] = ['page', 'rack', 'arranger', 'mixer',
-    ...[...props.data.sequencer.tracks, ...props.data.sequencer.drummerTracks, ...props.data.sequencer.controllerSequencers, ...props.data.sequencer.arpeggiators, ...props.data.sequencer.pianoRolls, ...props.data.sequencer.midiControllers].map(device => `device:${device.id}` as const),
+    ...[...props.data.sequencer.tracks, ...props.data.sequencer.scoreTracks, ...props.data.sequencer.drummerTracks, ...props.data.sequencer.controllerSequencers, ...props.data.sequencer.arpeggiators, ...props.data.sequencer.pianoRolls, ...props.data.sequencer.midiControllers].map(device => `device:${device.id}` as const),
     ...props.data.instrumentBindings.map(binding => `binding:${binding.id}` as const),
     ...routes.map(route => `route:${route.id}` as const)];
   return <PerformanceEditorProvider key={generation} owners={owners} retainedStore={props.editorStore}><OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}><SequencerPageContent {...props} /></OpenArrangerContext.Provider></PerformanceEditorProvider>;
@@ -935,6 +936,8 @@ function SequencerPageContent(props: SequencerPageProps) {
           <MelodicSequencersBody context={context} />
         </CollapsiblePanel>
 
+        <ScoreSequencers sequencer={props.data.sequencer} language={guiLanguage} collapsed={collapsedPanels.score} onCollapse={v => onPanelCollapsedChange("score", v)} readPosition={props.data.readPlaybackTransportSubunit} />
+
         <CollapsiblePanel unmountOnCollapse
           title={ui.drummerSequencers}
           collapsed={collapsedPanels.drummer}
@@ -1027,7 +1030,7 @@ function SequencerPageContent(props: SequencerPageProps) {
           <MidiControllersBody context={context} />
         </CollapsiblePanel>
 
-        {sequencer.tracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0 ? (
+        {sequencer.tracks.length + sequencer.scoreTracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0 ? (
           <MultitrackArranger
             collapsed={collapsedPanels.arranger}
             onCollapsedChange={(collapsed) => onPanelCollapsedChange("arranger", collapsed)}
@@ -1043,7 +1046,7 @@ function SequencerPageContent(props: SequencerPageProps) {
             onTransportFastForward={onSequencerCycleForward}
             onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
             onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)}
-            onEditPad={kind => onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false)}
+            onEditPad={kind => onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "score" ? "score" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false)}
             onHelpRequest={onHelpRequest}
           />
         ) : null}
@@ -3035,15 +3038,16 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
   const pianoRollSelectClass = `${controlFieldClass} h-5 !py-0`;
   const runningSequencerTheories = useMemo<RunningSequencerTheory[]>(
     () => {
-      const enabledTracks = sequencer.tracks.filter((track) => track.enabled);
-      const sourceTracks = enabledTracks.length > 0 ? enabledTracks : sequencer.tracks;
+      const noteTracks = [...sequencer.tracks, ...sequencer.scoreTracks];
+      const enabledTracks = noteTracks.filter((track) => track.enabled);
+      const sourceTracks = enabledTracks.length > 0 ? enabledTracks : noteTracks;
       return sourceTracks.map((track) => ({
         scaleRoot: track.scaleRoot,
         scaleType: track.scaleType,
         mode: track.mode
       }));
     },
-    [sequencer.tracks]
+    [sequencer.tracks, sequencer.scoreTracks]
   );
   const runningSequencerSummary = useMemo(() => {
     if (runningSequencerTheories.length === 0) {
