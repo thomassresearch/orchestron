@@ -212,6 +212,8 @@ tracks:
     pad_loop: [1, 2, P2, 2]
 ```
 
+For custom patterns, replace `groove` with `hits: [{key: 35, at_step: 0, velocity: 115}, {key: 38, at_step: 4, velocity: 98}]` at track or pad level. Keys are MIDI 0–127, steps start at 0 within the pad, and velocity is 1–127 (default 100). `hits: []` creates silence. Choose hits or groove per pad; duplicate key/step pairs are rejected. New keys add shared drum rows automatically. See [custom drum patterns](drummer_patterns.md) for CLI flags, validation and complete examples.
+
 Drummer tracks and pads also accept `step_ratchets` entries with `key`, `at_step`, `ratchets` (1–8) and optional `ratchet_end_velocity` (0–127 or null). These settings apply to generated cells without changing their activation or initial velocity. See [drummer ratchets](step_ratchets.md) for full score examples, pad targeting, strict validation and velocity ramps.
 
 Controller curve presets:

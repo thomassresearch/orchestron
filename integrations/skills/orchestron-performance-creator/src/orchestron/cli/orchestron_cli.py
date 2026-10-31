@@ -2893,6 +2893,40 @@ def empty_drum_cell() -> dict[str, Any]:
     return {"active": False, "velocity": 100, "timingOffsetPercent": 0}
 
 
+def parse_drum_hits(value: str, *, field: str) -> list[dict[str, int]]:
+    """CLI notation: MIDI_KEY@ZERO_BASED_STEP:VELOCITY, separated by spaces."""
+    hits = []
+    for index, token in enumerate(value.split()):
+        match = re.fullmatch(r"(\d+)@(\d+):(\d+)", token)
+        if match is None:
+            raise OrchestronCliError(
+                "invalid_drum_hit", "Use space-separated KEY@STEP:VELOCITY hits, e.g. '36@0:115 38@4:90'.",
+                path=f"{field}[{index}]",
+            )
+        key, at_step, velocity = map(int, match.groups())
+        hits.append({"key": key, "at_step": at_step, "velocity": velocity})
+    return hits
+
+
+def validate_drum_hits(value: Any, *, step_count: int, field: str) -> list[dict[str, int]]:
+    if not isinstance(value, list):
+        raise OrchestronCliError("invalid_drum_hits", "hits must be a list of key/at_step/velocity objects.", path=field)
+    result = []
+    seen = set()
+    for index, hit in enumerate(value):
+        path = f"{field}[{index}]"
+        if not isinstance(hit, dict) or set(hit) - {"key", "at_step", "velocity"}:
+            raise OrchestronCliError("invalid_drum_hit", "A hit accepts only key, at_step and velocity.", path=path)
+        key = score_integer(hit.get("key"), 0, 127, field=f"{path}.key")
+        at_step = score_integer(hit.get("at_step"), 0, step_count - 1, field=f"{path}.at_step")
+        velocity = score_integer(hit.get("velocity", 100), 1, 127, field=f"{path}.velocity")
+        if (key, at_step) in seen:
+            raise OrchestronCliError("duplicate_drum_hit", "Each drum key can have only one hit per step; use ratchets for rolls.", path=path)
+        seen.add((key, at_step))
+        result.append({"key": key, "at_step": at_step, "velocity": velocity})
+    return result
+
+
 def drum_groove_hits(groove: str, step_count: int) -> dict[str, list[tuple[int, int]]]:
     if groove == "four_on_floor":
         return {
@@ -2942,15 +2976,16 @@ def configured_drummer_pad(rows: list[dict[str, Any]], definition: dict[str, Any
     length_beats = parse_int_range(definition.get("length_beats", 4), 1, 16, field="length_beats")
     step_count = resolved_pad_steps(length_beats, timing)
     row_steps = {row["id"]: [empty_drum_cell() for _ in range(MAX_STEPS_PER_PAD)] for row in rows}
-    name_by_key = {key: name for name, key in GM_DRUMS.items()}
-    row_id_by_name = {name_by_key[row["key"]]: row["id"] for row in rows if row["key"] in name_by_key}
-    for drum_name, hits in drum_groove_hits(str(definition.get("groove", "backbeat")), step_count).items():
-        row_id = row_id_by_name.get(drum_name)
-        if row_id is None:
-            continue
-        for step_index, hit_velocity in hits:
-            if 0 <= step_index < MAX_STEPS_PER_PAD:
-                row_steps[row_id][step_index] = {"active": True, "velocity": hit_velocity}
+    row_id_by_key = {row["key"]: row["id"] for row in rows}
+    if "hits" in definition:
+        hits = definition["hits"]
+    else:
+        hits = [{"key": GM_DRUMS[name], "at_step": step, "velocity": velocity}
+                for name, groove_hits in drum_groove_hits(definition.get("groove") or "backbeat", step_count).items()
+                for step, velocity in groove_hits if 0 <= step < MAX_STEPS_PER_PAD]
+    for hit in hits:
+        row_id = row_id_by_key[hit["key"]]
+        row_steps[row_id][hit["at_step"]] = {**empty_drum_cell(), "active": True, "velocity": hit["velocity"]}
     return {
         "lengthBeats": length_beats,
         "stepCount": step_count,
@@ -2964,7 +2999,7 @@ def add_drummer_track_to_config(
     channel: int,
     name: str | None,
     length_beats: int,
-    groove: str,
+    groove: str | None,
     enabled: bool,
     active_pad: int = 0,
     pad_definitions: list[dict[str, Any]] | None = None,
@@ -2973,13 +3008,13 @@ def add_drummer_track_to_config(
     pad_loop_repeat: bool = False,
     include_primary_pad: bool = True,
     timing_override: dict[str, Any] | None = None,
+    hits: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     active_pad = parse_internal_pad_index(active_pad, field="active_pad")
     sequencer = ensure_sequencer(config)
     timing = copy.deepcopy(timing_override or sequencer.get("timing") or default_timing())
     tracks = sequencer.setdefault("drummerTracks", [])
     rows = default_drum_rows()
-    pads = [default_drummer_pad(rows, length_beats=length_beats, timing=timing) for _ in range(DEFAULT_PAD_COUNT)]
     definitions = []
     if include_primary_pad:
         definitions.append(
@@ -2987,14 +3022,29 @@ def add_drummer_track_to_config(
                 "pad_index": active_pad,
                 "length_beats": length_beats,
                 "groove": groove,
+                "hits": hits,
             }
         )
     definitions.extend(pad_definitions or [])
     merged = merge_pad_definitions(
         definitions,
-        base={"pad_index": active_pad, "length_beats": length_beats, "groove": groove},
-        pattern_fields=("groove",),
+        base={"pad_index": active_pad, "length_beats": length_beats},
+        pattern_fields=("groove", "hits"),
     )
+    row_keys = {row["key"] for row in rows}
+    for pad_index, definition in merged.items():
+        field = f"pads[{pad_index}]"
+        if "hits" not in definition:
+            continue
+        if "groove" in definition:
+            raise OrchestronCliError("conflicting_drum_pattern", "Choose hits or groove for each pad, not both.", path=field)
+        pad_length = parse_int_range(definition["length_beats"], 1, 16, field=f"{field}.length_beats")
+        definition["hits"] = validate_drum_hits(definition["hits"], step_count=resolved_pad_steps(pad_length, timing), field=f"{field}.hits")
+        for hit in definition["hits"]:
+            if hit["key"] not in row_keys:
+                rows.append({"id": f"drum-row-{len(rows) + 1}", "key": hit["key"]})
+                row_keys.add(hit["key"])
+    pads = [default_drummer_pad(rows, length_beats=length_beats, timing=timing) for _ in range(DEFAULT_PAD_COUNT)]
     for pad_index, definition in merged.items():
         pads[pad_index] = configured_drummer_pad(rows, definition, timing=timing)
     active_pad_state = pads[active_pad]
@@ -3495,13 +3545,19 @@ def drummer_pad_definitions_from_score(track_spec: dict[str, Any], *, field: str
     length_beats = clamp_int(track_spec.get("length_beats", 4), 1, 16, field=f"{field}.length_beats")
     pads = score_pads(track_spec, field=field)
     definitions = []
-    include_primary = not pads or "groove" in track_spec
+    include_primary = not pads or "groove" in track_spec or "hits" in track_spec
+    for definition, _, source in score_pad_sources(track_spec, field=field):
+        if "hits" in definition:
+            if definition["hits"] is None:
+                raise OrchestronCliError("invalid_drum_hits", "Use hits: [] for an empty pattern.", path=f"{source}.hits")
+            if "groove" in definition:
+                raise OrchestronCliError("conflicting_drum_pattern", "Choose hits or groove for each pad, not both.", path=source)
     for pad_list_index, pad_spec in enumerate(pads):
         definitions.append(
             {
                 "pad_index": parse_score_pad_index(pad_spec, fallback=pad_list_index, field=f"{field}.pads[{pad_list_index}]"),
                 "length_beats": clamp_int(pad_spec.get("length_beats", length_beats), 1, 16, field=f"{field}.pads[{pad_list_index}].length_beats"),
-                "groove": str(pad_spec.get("groove", "backbeat")),
+                **({"hits": pad_spec["hits"]} if "hits" in pad_spec else {"groove": str(pad_spec.get("groove", "backbeat"))}),
             }
         )
     return active_pad, include_primary, definitions
@@ -3639,6 +3695,8 @@ def _apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) ->
                                                      path=f"{source}.{collection}[{entry_index}]")
         if track_type != "drummer":
             for definition, _, source in score_pad_sources(track_spec, field=f"tracks[{index}]"):
+                if "hits" in definition:
+                    raise OrchestronCliError("unsupported_drum_hits", "hits requires a drummer track.", path=f"{source}.hits")
                 if "step_ratchets" in definition:
                     raise OrchestronCliError("unsupported_ratchet_track", "step_ratchets requires a drummer track.",
                                              path=f"{source}.step_ratchets")
@@ -3681,7 +3739,8 @@ def _apply_score_spec_to_config(config: dict[str, Any], spec: dict[str, Any]) ->
                     channel=clamp_int(track_spec.get("channel", 10), 1, 16, field=f"{field}.channel"),
                     name=track_spec.get("name") if isinstance(track_spec.get("name"), str) else None,
                     length_beats=clamp_int(track_spec.get("length_beats", 4), 1, 16, field=f"{field}.length_beats"),
-                    groove=str(track_spec.get("groove", "backbeat")),
+                    groove=track_spec.get("groove"),
+                    hits=track_spec.get("hits"),
                     enabled=bool(track_spec.get("enabled", True)),
                     active_pad=active_pad,
                     pad_definitions=pad_definitions,
@@ -5155,6 +5214,12 @@ def drummer_pad_definitions_from_args(args: argparse.Namespace) -> list[dict[str
     for index, assignment in enumerate(args.pad_groove or []):
         pad_index, groove = parse_pad_assignment(assignment, field=f"pad_groove[{index}]")
         definitions.append({"pad_index": pad_index, "groove": groove})
+    for index, assignment in enumerate(args.pad_hits or []):
+        pad_text, separator, pattern = assignment.partition("=")
+        if not separator:
+            raise OrchestronCliError("invalid_pad_assignment", "Use PAD=HITS, e.g. '2=36@0:115'.", path=f"pad_hits[{index}]")
+        pad_index = parse_user_pad_index(pad_text, field=f"pad_hits[{index}].pad")
+        definitions.append({"pad_index": pad_index, "hits": parse_drum_hits(pattern, field=f"pad_hits[{index}]")})
     return definitions
 
 
@@ -5202,6 +5267,7 @@ def command_edit_add_drummer(args: argparse.Namespace, ctx: CliContext) -> None:
             name=args.name,
             length_beats=clamp_int(args.length_beats, 1, 16, field="length_beats"),
             groove=args.groove,
+            hits=parse_drum_hits(args.hits, field="hits") if args.hits is not None else None,
             enabled=args.enabled,
             active_pad=parse_user_pad_index(args.pad, field="pad"),
             pad_definitions=drummer_pad_definitions_from_args(args),
@@ -5772,13 +5838,16 @@ def build_parser() -> argparse.ArgumentParser:
     add_mel.add_argument("--enabled", action=argparse.BooleanOptionalAction, default=True, help="Enable this sequencer track.")
     add_pad_loop_arguments(add_mel)
     add_mel.set_defaults(func=command_edit_add_melodic)
-    add_drum = edit_sub.add_parser("add-drummer", help="Add a General MIDI drummer sequencer groove.")
+    add_drum = edit_sub.add_parser("add-drummer", help="Add a drummer sequencer with preset grooves or custom hits.")
     add_drum.add_argument("--channel", type=int, default=10, help="MIDI channel 1..16. Default: 10.")
     add_drum.add_argument("--name", help="Track name.")
     add_drum.add_argument("--length-beats", type=int, default=4)
-    add_drum.add_argument("--pad", default="1", help="Pattern pad for --groove, 1..8 or P1..P8. Default: 1.")
-    add_drum.add_argument("--groove", default="backbeat", choices=["backbeat", "four_on_floor", "half_time", "breakbeat", "electro", "sparse"])
+    add_drum.add_argument("--pad", default="1", help="Pattern pad for --groove or --hits, 1..8 or P1..P8. Default: 1.")
+    drum_pattern = add_drum.add_mutually_exclusive_group()
+    drum_pattern.add_argument("--groove", choices=["backbeat", "four_on_floor", "half_time", "breakbeat", "electro", "sparse"], help="Preset groove; defaults to backbeat when --hits is omitted.")
+    drum_pattern.add_argument("--hits", help="Custom hits as space-separated KEY@STEP:VELOCITY; MIDI keys 0..127, steps from 0, velocity 1..127. Empty string creates silence.")
     add_drum.add_argument("--pad-groove", action="append", default=[], metavar="PAD=GROOVE", help="Additional pad groove; may repeat. Example: 2=breakbeat.")
+    add_drum.add_argument("--pad-hits", action="append", default=[], metavar="PAD=HITS", help="Additional custom pad; may repeat. Example: '2=36@0:115 38@4:90'.")
     add_drum.add_argument("--enabled", action=argparse.BooleanOptionalAction, default=True)
     add_pad_loop_arguments(add_drum)
     add_drum.set_defaults(func=command_edit_add_drummer)

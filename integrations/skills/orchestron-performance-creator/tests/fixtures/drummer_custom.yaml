@@ -1,0 +1,37 @@
+version: 2
+tempo: 116
+tracks:
+  - type: drummer
+    name: Custom kit
+    channel: 10
+    length_beats: 3
+    timing:
+      meter_numerator: 3
+      steps_per_beat: 6
+      beat_rate_numerator: 3
+      beat_rate_denominator: 2
+    pads:
+      - pad: 1
+        hits:
+          - {key: 35, at_step: 0, velocity: 127}
+          - {key: 38, at_step: 0, velocity: 1}
+          - {key: 54, at_step: 17, velocity: 73}
+        step_timing:
+          - {key: 54, at_step: 17, timing_offset_percent: -20}
+        step_ratchets:
+          - {key: 54, at_step: 17, ratchets: 3, ratchet_end_velocity: 40}
+      - pad: 2
+        length_beats: 1
+        hits:
+          - {key: 54, at_step: 5, velocity: 91}
+          - {key: 0, at_step: 0}
+          - {key: 127, at_step: 0, velocity: 99}
+      - pad: 3
+        hits: []
+      - pad: 4
+        groove: four_on_floor
+    pad_loop:
+      root: [A, 3, 4]
+      groups:
+        A: [1, 2, 1]
+      repeat: false

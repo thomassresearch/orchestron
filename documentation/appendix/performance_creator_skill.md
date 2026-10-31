@@ -8,6 +8,10 @@ The agent discovers available patches, starts a staged edit, assigns rack instru
 
 Before saving, the agent validates the staged performance against the backend. Commit saves the result; creating or updating a live session is a separate, optional step. Existing insert chains are retained, while insert creation and reordering use the app.
 
+The skill selects a device for each part: Drummer Sequencers for drum-kit grooves and fills, Melodic Sequencers for repeating bass, riffs and chord patterns, and Score Sequencers for long passages or independently timed overlapping notes. Song length alone does not require Score Sequencers: reusable pads and arranger groups build longer sections. Explicit user choices and existing devices are preserved unless a change is requested.
+
+Custom Drummer patterns support individual MIDI keys, step positions and velocities, with different patterns on each pad. Use `edit add-drummer --hits "35@0:115 38@4:98" --pad-hits "2=35@0:120 54@7:65"` or `hits` lists in a YAML/JSON score. Steps start at zero, velocities range from 1 to 127, and new MIDI keys add rows automatically. An empty hits list creates silence. See [custom drum patterns](../../integrations/skills/orchestron-performance-creator/references/drummer_patterns.md) for examples, timing and rolls.
+
 ## Example Agent Prompt
 
 > Read `integrations/skills/orchestron-performance-creator/SKILL.md` and follow its references. Use the backend at `http://localhost:8000/api`. First list available instruments and choose a drum kit, bass and pad from the library. Create a new 32-bar performance named “Night Drive” at 120 BPM in 4/4 and C minor: four bars of drums, an evolving bass section, a pad-led middle, and a short ending. Keep the bass and pad harmonically compatible, route the instruments to Master, and set balanced levels. Validate and save it without changing existing performances or starting playback. Report the instrument choices and arrangement.

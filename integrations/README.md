@@ -22,7 +22,7 @@ Or run `make -C integrations` from the repository root. The build requires Make
 and Python 3.9 or newer, uses only the Python standard library, and needs no
 network or installed skill dependencies. Set `PYTHON=/path/to/python3` if needed.
 
-The output is `plugin-dist/orchestron-0.1.2.zip`; the filename comes from the
+The output is `plugin-dist/orchestron-0.1.3.zip`; the filename comes from the
 name and version in [`plugin.json`](plugin.json). Each build reports its path
 and compressed size. The archive contains one `orchestron/` directory with:
 
@@ -119,6 +119,8 @@ uv run --locked --project integrations/skills/orchestron-performance-creator orc
 ```
 
 Use `edit sequencers list` to discover melodic/drummer track IDs, pads and drum rows. `edit step-timing list|set|reset` reads and edits selected early/late offsets without changing the notes or groove. See [per-note timing](skills/orchestron-performance-creator/references/step_timing.md) for step indexing, drum selection and score examples.
+
+Choose a device per musical part: Drummer for percussion, Melodic for repeating bass/riffs and chord patterns, and Score for passages needing longer or independently timed notes. Build song sections from reusable pads and arranger groups. Custom drums use `edit add-drummer --hits "35@0:115 38@4:98" --pad-hits "2=35@0:120 54@7:65"`, or `hits` objects in YAML/JSON scores. See [custom drum patterns](skills/orchestron-performance-creator/references/drummer_patterns.md) for individual velocities, MIDI-key rows and timing.
 
 Use `edit add-score-sequencer --spec /absolute/path/score-track.json` to add a
 polyphonic Score Sequencer with eight pads, variable duration, and notes at
