@@ -1,0 +1,20 @@
+name: Minimoog Monophonic
+description: Three-oscillator monophonic subtractive synthesizer with phrase legato.
+family: subtractive
+envelope:
+  attack: 0.005
+  decay: 0.3
+  sustain: 0.8
+  release: 0.3
+layers:
+  - id: osc
+    opcode: vco2
+    gain: 0.25
+    mode: 0
+effects:
+  - opcode: moogladder
+    params:
+      kcf: 1200
+      kres: 0.2
+output:
+  pan: 0.5

@@ -74,6 +74,10 @@ Play [HSB Mono](documentation/instrument_design/hsb_mono.md) for cyclic tonality
 octave brightness and pitch slides across gaps of roughly 20 ms, with performance
 knobs and live MIDI control of all three settings.
 
+[Minimoog Monophonic](examples/instruments/minimoog_monophonic/README.md) combines
+three oscillators, noise, a ladder filter and separate loudness/filter contours
+with 40 performance controls, monophonic legato and adjustable glide timing.
+
 The [Parametric Equalizer](documentation/instrument_design/parametric_equalizer.md)
 provides seven stereo bands from 63 Hz to 16 kHz, with linear −20 to +20 dB
 performance controls and neutral 0 dB defaults.

@@ -1,0 +1,70 @@
+{
+  "instrument": "Minimoog Monophonic",
+  "sample_rate": 48000,
+  "render_count": 118,
+  "controller_count": 40,
+  "default": {
+    "peak": 0.15228449968553917,
+    "rms": 0.04169682430436813,
+    "mean": [
+      -6.105280815270482e-05,
+      -6.105280815270445e-05
+    ],
+    "finite": true,
+    "over_full_scale": 0,
+    "settings": {},
+    "channel_rms": [
+      0.04169682430436789,
+      0.04169682430436789
+    ],
+    "tail_peak": 0.0
+  },
+  "worst_peak": 0.700961868649996,
+  "all_finite": true,
+  "clipped_samples": 0,
+  "checks": {
+    "controller_endpoint_renders": 80,
+    "isolated_waveform_renders": 18,
+    "legato_paths": [
+      "score/1",
+      "score/32",
+      "midi/1",
+      "midi/32"
+    ],
+    "velocity_rms": [
+      0.011354466490664395,
+      0.03880574373333907
+    ],
+    "listened": false
+  },
+  "frontend_build": "passed",
+  "docker_frontend_build": "passed",
+  "spectrograms": {
+    "views": [
+      "Mel",
+      "log-frequency STFT"
+    ],
+    "fft": 4096,
+    "hop": 256,
+    "mel_bands": 128,
+    "fixed_power_db": [
+      -100,
+      0
+    ],
+    "visually_inspected": true,
+    "auditions": [
+      "minimoog_monophonic",
+      "legato_time_min",
+      "legato_time_max",
+      "cutoff_min",
+      "cutoff_max",
+      "vibrato",
+      "noise_pink_max",
+      "osc1_wave_1",
+      "osc1_wave_3",
+      "osc1_wave_6",
+      "stress_20000_0"
+    ],
+    "observations": "Both channels match; glide speed, harmonic filtering and vibrato follow controls. Noise is present only in the intended variants. Releases decay to silence. The maximum-level stress audition has the expected broad spectrum."
+  }
+}

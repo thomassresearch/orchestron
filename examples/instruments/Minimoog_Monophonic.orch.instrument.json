@@ -1,0 +1,2189 @@
+{
+  "sourcePatchId": "60bc8c48-8c2b-56ee-88d8-7ba41cd1d39f",
+  "name": "Minimoog Monophonic",
+  "description": "Minimoog-style monophonic three-oscillator synthesizer with 24 dB ladder filter, white/pink noise, separate filter/loudness ADS contours, decay-after-release switch, oscillator-3/noise modulation, keyboard tracking, mixer saturation and optional velocity response. Last-note priority; touching/overlapping notes share one voice and both envelopes. Glide uses Legato half-time (default 0.065 s); larger values slide more slowly. A gap restarts envelopes and pitch directly. Rack values refresh at phrase start. Range 0=Lo, 1=32ft, 2=16ft, 3=8ft, 4=4ft, 5=2ft. Wave 1=triangle, 2=triangle/saw blend (reverse saw on Osc 3), 3=saw, 4=square, 5=25% pulse, 6=12.5% pulse. Osc 3 keyboard off uses C4 as reference; Lo gives about 4.1 Hz. For vibrato: Osc 3 range 0, keyboard off, mixer off; oscillator modulation on and increase modulation amount. Suggested MIDI range 36-84. Route Stereo Output to Master. Inspired by the original architecture, not a circuit-exact emulation; no external audio input or hardware CV.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "master_tune",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Master tune (cents)",
+          "min": -100,
+          "max": 100,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 0,
+          "y": -2100
+        }
+      },
+      {
+        "id": "glide_enabled",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Glide",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 0,
+          "y": -1790
+        }
+      },
+      {
+        "id": "legato_time",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Legato half-time (s)",
+          "min": 0.001,
+          "max": 2,
+          "default": 0.065,
+          "scale": "logarithmic",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 0,
+          "y": -1480
+        }
+      },
+      {
+        "id": "decay_enabled",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Decay after release",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 0,
+          "y": -1170
+        }
+      },
+      {
+        "id": "mod_mix",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Mod mix: Osc 3 to noise",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 0,
+          "y": -860
+        }
+      },
+      {
+        "id": "mod_amount",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Modulation amount",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 0,
+          "y": -550
+        }
+      },
+      {
+        "id": "osc_mod",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Oscillator modulation",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 0,
+          "y": -240
+        }
+      },
+      {
+        "id": "filter_mod",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter modulation",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 0,
+          "y": 70
+        }
+      },
+      {
+        "id": "osc1_range",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 1 range (0=Lo, 1=32, 2=16, 3=8, 4=4, 5=2 ft)",
+          "min": 0,
+          "max": 5,
+          "default": 3,
+          "scale": "linear",
+          "controller_type": "integer"
+        },
+        "position": {
+          "x": 360,
+          "y": -2100
+        }
+      },
+      {
+        "id": "osc1_wave",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 1 waveform (1-6; see guide)",
+          "min": 1,
+          "max": 6,
+          "default": 3,
+          "scale": "linear",
+          "controller_type": "integer"
+        },
+        "position": {
+          "x": 360,
+          "y": -1790
+        }
+      },
+      {
+        "id": "osc1_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 1 level",
+          "min": 0,
+          "max": 1,
+          "default": 0.8,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 360,
+          "y": -1170
+        }
+      },
+      {
+        "id": "osc1_enabled",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 1 mixer",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 360,
+          "y": -860
+        }
+      },
+      {
+        "id": "osc2_range",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 2 range (0=Lo, 1=32, 2=16, 3=8, 4=4, 5=2 ft)",
+          "min": 0,
+          "max": 5,
+          "default": 3,
+          "scale": "linear",
+          "controller_type": "integer"
+        },
+        "position": {
+          "x": 720,
+          "y": -2100
+        }
+      },
+      {
+        "id": "osc2_wave",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 2 waveform (1-6; see guide)",
+          "min": 1,
+          "max": 6,
+          "default": 3,
+          "scale": "linear",
+          "controller_type": "integer"
+        },
+        "position": {
+          "x": 720,
+          "y": -1790
+        }
+      },
+      {
+        "id": "osc2_tune",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 2 tune (semitones)",
+          "min": -7,
+          "max": 7,
+          "default": 0.07,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 720,
+          "y": -1480
+        }
+      },
+      {
+        "id": "osc2_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 2 level",
+          "min": 0,
+          "max": 1,
+          "default": 0.6,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 720,
+          "y": -1170
+        }
+      },
+      {
+        "id": "osc2_enabled",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 2 mixer",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 720,
+          "y": -860
+        }
+      },
+      {
+        "id": "osc3_range",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 3 range (0=Lo, 1=32, 2=16, 3=8, 4=4, 5=2 ft)",
+          "min": 0,
+          "max": 5,
+          "default": 3,
+          "scale": "linear",
+          "controller_type": "integer"
+        },
+        "position": {
+          "x": 1080,
+          "y": -2100
+        }
+      },
+      {
+        "id": "osc3_wave",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 3 waveform (1-6; see guide)",
+          "min": 1,
+          "max": 6,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "integer"
+        },
+        "position": {
+          "x": 1080,
+          "y": -1790
+        }
+      },
+      {
+        "id": "osc3_tune",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 3 tune (semitones)",
+          "min": -7,
+          "max": 7,
+          "default": -0.05,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 1080,
+          "y": -1480
+        }
+      },
+      {
+        "id": "osc3_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 3 level",
+          "min": 0,
+          "max": 1,
+          "default": 0.35,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 1080,
+          "y": -1170
+        }
+      },
+      {
+        "id": "osc3_enabled",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 3 mixer",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 1080,
+          "y": -860
+        }
+      },
+      {
+        "id": "osc3_keyboard",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Osc 3 keyboard control",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 1080,
+          "y": -550
+        }
+      },
+      {
+        "id": "noise_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Noise level",
+          "min": 0,
+          "max": 1,
+          "default": 0.15,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 1440,
+          "y": -2100
+        }
+      },
+      {
+        "id": "noise_enabled",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Noise mixer",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 1440,
+          "y": -1790
+        }
+      },
+      {
+        "id": "noise_pink",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Pink noise (off = white)",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 1440,
+          "y": -1480
+        }
+      },
+      {
+        "id": "mixer_drive",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Mixer drive",
+          "min": 1,
+          "max": 5,
+          "default": 1.35,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 1440,
+          "y": -1170
+        }
+      },
+      {
+        "id": "cutoff",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter cutoff (Hz)",
+          "min": 20,
+          "max": 20000,
+          "default": 900,
+          "scale": "logarithmic",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 1800,
+          "y": -2100
+        }
+      },
+      {
+        "id": "resonance",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter emphasis",
+          "min": 0,
+          "max": 1,
+          "default": 0.25,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 1800,
+          "y": -1790
+        }
+      },
+      {
+        "id": "contour",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter contour (octaves)",
+          "min": 0,
+          "max": 8,
+          "default": 3,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 1800,
+          "y": -1480
+        }
+      },
+      {
+        "id": "filter_key1",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter keyboard 1 (1/3)",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 1800,
+          "y": -1170
+        }
+      },
+      {
+        "id": "filter_key2",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter keyboard 2 (2/3)",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 1800,
+          "y": -860
+        }
+      },
+      {
+        "id": "filter_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter attack (s)",
+          "min": 0.001,
+          "max": 10,
+          "default": 0.008,
+          "scale": "logarithmic",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2160,
+          "y": -2100
+        }
+      },
+      {
+        "id": "filter_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter decay (s)",
+          "min": 0.005,
+          "max": 10,
+          "default": 0.28,
+          "scale": "logarithmic",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2160,
+          "y": -1790
+        }
+      },
+      {
+        "id": "filter_sustain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Filter sustain",
+          "min": 0,
+          "max": 1,
+          "default": 0.2,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2160,
+          "y": -1480
+        }
+      },
+      {
+        "id": "amp_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Loudness attack (s)",
+          "min": 0.001,
+          "max": 10,
+          "default": 0.005,
+          "scale": "logarithmic",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2520,
+          "y": -2100
+        }
+      },
+      {
+        "id": "amp_decay",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Loudness decay (s)",
+          "min": 0.005,
+          "max": 10,
+          "default": 0.3,
+          "scale": "logarithmic",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2520,
+          "y": -1790
+        }
+      },
+      {
+        "id": "amp_sustain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Loudness sustain",
+          "min": 0,
+          "max": 1,
+          "default": 0.8,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2520,
+          "y": -1480
+        }
+      },
+      {
+        "id": "velocity_amount",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Velocity sensitivity",
+          "min": 0,
+          "max": 1,
+          "default": 0.35,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2520,
+          "y": -1170
+        }
+      },
+      {
+        "id": "output_volume",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output volume",
+          "min": 0,
+          "max": 1,
+          "default": 0.7,
+          "scale": "linear",
+          "controller_type": "float"
+        },
+        "position": {
+          "x": 2520,
+          "y": -860
+        }
+      },
+      {
+        "id": "pitch_initial",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 750
+        }
+      },
+      {
+        "id": "velocity_scale",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 0,
+          "y": 1000
+        }
+      },
+      {
+        "id": "velocity_initial",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 340,
+          "y": 1000
+        }
+      },
+      {
+        "id": "legato",
+        "opcode": "midi_legato",
+        "params": {},
+        "position": {
+          "x": 0,
+          "y": 1300
+        }
+      },
+      {
+        "id": "glide_pitch",
+        "opcode": "portk",
+        "params": {},
+        "position": {
+          "x": 700,
+          "y": 800
+        }
+      },
+      {
+        "id": "played_frequency",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1100,
+          "y": 800
+        }
+      },
+      {
+        "id": "amp_envelope",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 1100,
+          "y": 1250
+        }
+      },
+      {
+        "id": "filter_envelope",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 1500,
+          "y": 1250
+        }
+      },
+      {
+        "id": "white_noise",
+        "opcode": "noise",
+        "params": {
+          "amp": 1,
+          "beta": 0
+        },
+        "position": {
+          "x": 0,
+          "y": 1800
+        }
+      },
+      {
+        "id": "pink_noise",
+        "opcode": "pinkish",
+        "params": {},
+        "position": {
+          "x": 360,
+          "y": 1800
+        }
+      },
+      {
+        "id": "noise_pink_audio",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 360,
+          "y": 2120
+        }
+      },
+      {
+        "id": "noise_colour",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 740,
+          "y": 1800
+        }
+      },
+      {
+        "id": "noise_modulation",
+        "opcode": "downsamp",
+        "params": {},
+        "position": {
+          "x": 1100,
+          "y": 1800
+        }
+      },
+      {
+        "id": "osc3_frequency",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1500,
+          "y": 3900
+        }
+      },
+      {
+        "id": "osc3_oscillator",
+        "opcode": "vco2",
+        "params": {
+          "kphs": 0.37,
+          "inyx": 0.49
+        },
+        "position": {
+          "x": 1950,
+          "y": 3900
+        }
+      },
+      {
+        "id": "osc3_modulation",
+        "opcode": "downsamp",
+        "params": {},
+        "position": {
+          "x": 2350,
+          "y": 3900
+        }
+      },
+      {
+        "id": "osc1_frequency",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1500,
+          "y": 2400
+        }
+      },
+      {
+        "id": "osc1_oscillator",
+        "opcode": "vco2",
+        "params": {
+          "kphs": 0,
+          "inyx": 0.49
+        },
+        "position": {
+          "x": 1950,
+          "y": 2400
+        }
+      },
+      {
+        "id": "osc1_shark_triangle",
+        "opcode": "vco2",
+        "params": {
+          "imode": 12,
+          "kphs": 0,
+          "inyx": 0.49
+        },
+        "position": {
+          "x": 1950,
+          "y": 2720
+        }
+      },
+      {
+        "id": "osc2_frequency",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1500,
+          "y": 3150
+        }
+      },
+      {
+        "id": "osc2_oscillator",
+        "opcode": "vco2",
+        "params": {
+          "kphs": 0.19,
+          "inyx": 0.49
+        },
+        "position": {
+          "x": 1950,
+          "y": 3150
+        }
+      },
+      {
+        "id": "osc2_shark_triangle",
+        "opcode": "vco2",
+        "params": {
+          "imode": 12,
+          "kphs": 0.19,
+          "inyx": 0.49
+        },
+        "position": {
+          "x": 1950,
+          "y": 3470
+        }
+      },
+      {
+        "id": "modulation",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2700,
+          "y": 1800
+        }
+      },
+      {
+        "id": "mixer",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2750,
+          "y": 2600
+        }
+      },
+      {
+        "id": "osc1_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 2350,
+          "y": 2700
+        }
+      },
+      {
+        "id": "osc2_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 2350,
+          "y": 3450
+        }
+      },
+      {
+        "id": "osc3_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 2350,
+          "y": 4250
+        }
+      },
+      {
+        "id": "noise_gain",
+        "opcode": "upsamp",
+        "params": {},
+        "position": {
+          "x": 2350,
+          "y": 4700
+        }
+      },
+      {
+        "id": "mixer_saturation",
+        "opcode": "tanh",
+        "params": {},
+        "position": {
+          "x": 3100,
+          "y": 2600
+        }
+      },
+      {
+        "id": "filter_frequency",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2700,
+          "y": 3300
+        }
+      },
+      {
+        "id": "ladder",
+        "opcode": "moogladder",
+        "params": {},
+        "position": {
+          "x": 3500,
+          "y": 2600
+        }
+      },
+      {
+        "id": "dc_filter",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 12
+        },
+        "position": {
+          "x": 3900,
+          "y": 2600
+        }
+      },
+      {
+        "id": "vca",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 4300,
+          "y": 2600
+        }
+      },
+      {
+        "id": "vca_gain",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 3900,
+          "y": 3100
+        }
+      },
+      {
+        "id": "output_saturation",
+        "opcode": "tanh",
+        "params": {},
+        "position": {
+          "x": 4650,
+          "y": 2600
+        }
+      },
+      {
+        "id": "output_pan",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 5000,
+          "y": 2600
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 5400,
+          "y": 2600
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 5400,
+          "y": 2920
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_initial",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "legato",
+        "from_port_id": "kfreq",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "pitch_initial",
+        "from_port_id": "kfreq",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "isig"
+      },
+      {
+        "from_node_id": "legato_time",
+        "from_port_id": "iout",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "glide_enabled",
+        "from_port_id": "iout",
+        "to_node_id": "glide_pitch",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "glide_pitch",
+        "from_port_id": "kout",
+        "to_node_id": "played_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "master_tune",
+        "from_port_id": "iout",
+        "to_node_id": "played_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_attack",
+        "from_port_id": "iout",
+        "to_node_id": "amp_envelope",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "amp_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_envelope",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "amp_sustain",
+        "from_port_id": "iout",
+        "to_node_id": "amp_envelope",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "amp_decay",
+        "from_port_id": "iout",
+        "to_node_id": "amp_envelope",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "decay_enabled",
+        "from_port_id": "iout",
+        "to_node_id": "amp_envelope",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "filter_attack",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "filter_decay",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "filter_sustain",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "filter_decay",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "decay_enabled",
+        "from_port_id": "iout",
+        "to_node_id": "filter_envelope",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "white_noise",
+        "from_port_id": "aout",
+        "to_node_id": "pink_noise",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "noise_pink",
+        "from_port_id": "iout",
+        "to_node_id": "noise_pink_audio",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "white_noise",
+        "from_port_id": "aout",
+        "to_node_id": "noise_colour",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "pink_noise",
+        "from_port_id": "aout",
+        "to_node_id": "noise_colour",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "noise_pink_audio",
+        "from_port_id": "aout",
+        "to_node_id": "noise_colour",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "noise_colour",
+        "from_port_id": "aout",
+        "to_node_id": "noise_modulation",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "played_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc3_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc3_range",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc3_keyboard",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc3_tune",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc3_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc3_oscillator",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "osc3_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_oscillator",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "osc3_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_oscillator",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "osc3_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_oscillator",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "osc3_oscillator",
+        "from_port_id": "asig",
+        "to_node_id": "osc3_modulation",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "played_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc1_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc1_range",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "modulation",
+        "from_port_id": "kout",
+        "to_node_id": "osc1_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc_mod",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc1_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc1_oscillator",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "osc1_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_oscillator",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "osc1_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_oscillator",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "osc1_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_oscillator",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "osc1_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc1_shark_triangle",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "osc1_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_shark_triangle",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "played_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc2_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc2_range",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc2_tune",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "modulation",
+        "from_port_id": "kout",
+        "to_node_id": "osc2_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc_mod",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc2_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc2_oscillator",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "osc2_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_oscillator",
+        "to_port_id": "imode"
+      },
+      {
+        "from_node_id": "osc2_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_oscillator",
+        "to_port_id": "kpw"
+      },
+      {
+        "from_node_id": "osc2_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_oscillator",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "osc2_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "osc2_shark_triangle",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "osc2_wave",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_shark_triangle",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "mod_amount",
+        "from_port_id": "iout",
+        "to_node_id": "modulation",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "mod_mix",
+        "from_port_id": "iout",
+        "to_node_id": "modulation",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc3_modulation",
+        "from_port_id": "kout",
+        "to_node_id": "modulation",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "noise_modulation",
+        "from_port_id": "kout",
+        "to_node_id": "modulation",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc1_level",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "osc1_enabled",
+        "from_port_id": "iout",
+        "to_node_id": "osc1_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "osc2_level",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "osc2_enabled",
+        "from_port_id": "iout",
+        "to_node_id": "osc2_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "osc3_level",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "osc3_enabled",
+        "from_port_id": "iout",
+        "to_node_id": "osc3_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "noise_level",
+        "from_port_id": "iout",
+        "to_node_id": "noise_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "noise_enabled",
+        "from_port_id": "iout",
+        "to_node_id": "noise_gain",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "osc1_oscillator",
+        "from_port_id": "asig",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc1_gain",
+        "from_port_id": "aout",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc1_shark_triangle",
+        "from_port_id": "asig",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc2_oscillator",
+        "from_port_id": "asig",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc2_gain",
+        "from_port_id": "aout",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc2_shark_triangle",
+        "from_port_id": "asig",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc3_oscillator",
+        "from_port_id": "asig",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "osc3_gain",
+        "from_port_id": "aout",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "noise_colour",
+        "from_port_id": "aout",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "noise_gain",
+        "from_port_id": "aout",
+        "to_node_id": "mixer",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "mixer",
+        "from_port_id": "aout",
+        "to_node_id": "mixer_saturation",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "mixer_drive",
+        "from_port_id": "iout",
+        "to_node_id": "mixer_saturation",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "played_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "filter_key1",
+        "from_port_id": "iout",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "filter_key2",
+        "from_port_id": "iout",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "filter_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "contour",
+        "from_port_id": "iout",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "modulation",
+        "from_port_id": "kout",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "filter_mod",
+        "from_port_id": "iout",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "cutoff",
+        "from_port_id": "iout",
+        "to_node_id": "filter_frequency",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "mixer_saturation",
+        "from_port_id": "aout",
+        "to_node_id": "ladder",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "filter_frequency",
+        "from_port_id": "kout",
+        "to_node_id": "ladder",
+        "to_port_id": "kcf"
+      },
+      {
+        "from_node_id": "resonance",
+        "from_port_id": "iout",
+        "to_node_id": "ladder",
+        "to_port_id": "kres"
+      },
+      {
+        "from_node_id": "ladder",
+        "from_port_id": "aout",
+        "to_node_id": "dc_filter",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "dc_filter",
+        "from_port_id": "aout",
+        "to_node_id": "vca",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "vca_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "velocity_amount",
+        "from_port_id": "iout",
+        "to_node_id": "vca_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "legato",
+        "from_port_id": "kvelocity",
+        "to_node_id": "vca_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "output_volume",
+        "from_port_id": "iout",
+        "to_node_id": "vca_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "vca_gain",
+        "from_port_id": "aout",
+        "to_node_id": "vca",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "vca",
+        "from_port_id": "aout",
+        "to_node_id": "output_saturation",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "output_saturation",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "output_pan",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "zero_dbfs": 1
+    },
+    "ui_layout": {
+      "input_formulas": {
+        "glide_pitch::ksig": {
+          "expression": "dbamp(freq / 440) / 6.020599913279624 + 8.75",
+          "inputs": [
+            {
+              "token": "freq",
+              "from_node_id": "legato",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "glide_pitch::isig": {
+          "expression": "dbamp(freq / 440) / 6.020599913279624 + 8.75",
+          "inputs": [
+            {
+              "token": "freq",
+              "from_node_id": "pitch_initial",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "glide_pitch::khtim": {
+          "expression": "time * enabled",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "legato_time",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "glide_enabled",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "played_frequency::a": {
+          "expression": "440 * ampdb(6.020599913279624 * (octave - 8.75 + tune / 1200))",
+          "inputs": [
+            {
+              "token": "octave",
+              "from_node_id": "glide_pitch",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "tune",
+              "from_node_id": "master_tune",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "amp_envelope::irel": {
+          "expression": "decay * enabled + 0.005 * (1 - enabled)",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "amp_decay",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "decay_enabled",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "filter_envelope::irel": {
+          "expression": "decay * enabled + 0.005 * (1 - enabled)",
+          "inputs": [
+            {
+              "token": "decay",
+              "from_node_id": "filter_decay",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "decay_enabled",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "noise_colour::a": {
+          "expression": "white * (1 - pink) + coloured * pink * 2",
+          "inputs": [
+            {
+              "token": "white",
+              "from_node_id": "white_noise",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "coloured",
+              "from_node_id": "pink_noise",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "pink",
+              "from_node_id": "noise_pink_audio",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "osc3_frequency::a": {
+          "expression": "((((pitch * keyboard + 261.6255653005986 * (1 - keyboard)) * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12)) + 0.05 + abs((pitch * keyboard + 261.6255653005986 * (1 - keyboard)) * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12)) - 0.05)) / 2) + 18000 - abs((((pitch * keyboard + 261.6255653005986 * (1 - keyboard)) * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12)) + 0.05 + abs((pitch * keyboard + 261.6255653005986 * (1 - keyboard)) * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12)) - 0.05)) / 2) - 18000)) / 2",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "played_frequency",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "range",
+              "from_node_id": "osc3_range",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "keyboard",
+              "from_node_id": "osc3_keyboard",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tune",
+              "from_node_id": "osc3_tune",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc3_oscillator::imode": {
+          "expression": "12 * (1 - ceil(abs(wave - 1) / 6)) + 2 * ((1 - ceil(abs(wave - 4) / 6)) + (1 - ceil(abs(wave - 5) / 6)) + (1 - ceil(abs(wave - 6) / 6)))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc3_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc3_oscillator::kpw": {
+          "expression": "0.5 - 0.25 * (1 - ceil(abs(wave - 5) / 6)) - 0.375 * (1 - ceil(abs(wave - 6) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc3_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc3_oscillator::kamp": {
+          "expression": "1 - 2 * (1 - ceil(abs(wave - 2) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc3_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc1_frequency::a": {
+          "expression": "(((pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + mod * enabled * 0.5)) + 0.05 + abs(pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + mod * enabled * 0.5)) - 0.05)) / 2) + 18000 - abs(((pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + mod * enabled * 0.5)) + 0.05 + abs(pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + mod * enabled * 0.5)) - 0.05)) / 2) - 18000)) / 2",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "played_frequency",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "range",
+              "from_node_id": "osc1_range",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "mod",
+              "from_node_id": "modulation",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "osc_mod",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc1_oscillator::imode": {
+          "expression": "12 * (1 - ceil(abs(wave - 1) / 6)) + 2 * ((1 - ceil(abs(wave - 4) / 6)) + (1 - ceil(abs(wave - 5) / 6)) + (1 - ceil(abs(wave - 6) / 6)))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc1_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc1_oscillator::kpw": {
+          "expression": "0.5 - 0.25 * (1 - ceil(abs(wave - 5) / 6)) - 0.375 * (1 - ceil(abs(wave - 6) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc1_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc1_oscillator::kamp": {
+          "expression": "1 - 0.5 * (1 - ceil(abs(wave - 2) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc1_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc1_shark_triangle::kamp": {
+          "expression": "0.5 * (1 - ceil(abs(wave - 2) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc1_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc2_frequency::a": {
+          "expression": "(((pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12 + mod * enabled * 0.5)) + 0.05 + abs(pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12 + mod * enabled * 0.5)) - 0.05)) / 2) + 18000 - abs(((pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12 + mod * enabled * 0.5)) + 0.05 + abs(pitch * ampdb(6.020599913279624 * ((range - 3 - 3 * (1 - ceil(abs(range - 0) / 6))) + tune / 12 + mod * enabled * 0.5)) - 0.05)) / 2) - 18000)) / 2",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "played_frequency",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "range",
+              "from_node_id": "osc2_range",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "tune",
+              "from_node_id": "osc2_tune",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "mod",
+              "from_node_id": "modulation",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "osc_mod",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc2_oscillator::imode": {
+          "expression": "12 * (1 - ceil(abs(wave - 1) / 6)) + 2 * ((1 - ceil(abs(wave - 4) / 6)) + (1 - ceil(abs(wave - 5) / 6)) + (1 - ceil(abs(wave - 6) / 6)))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc2_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc2_oscillator::kpw": {
+          "expression": "0.5 - 0.25 * (1 - ceil(abs(wave - 5) / 6)) - 0.375 * (1 - ceil(abs(wave - 6) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc2_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc2_oscillator::kamp": {
+          "expression": "1 - 0.5 * (1 - ceil(abs(wave - 2) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc2_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc2_shark_triangle::kamp": {
+          "expression": "0.5 * (1 - ceil(abs(wave - 2) / 6))",
+          "inputs": [
+            {
+              "token": "wave",
+              "from_node_id": "osc2_wave",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "modulation::a": {
+          "expression": "amount * (osc * (1 - mix) + noise * mix)",
+          "inputs": [
+            {
+              "token": "amount",
+              "from_node_id": "mod_amount",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "mix",
+              "from_node_id": "mod_mix",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "osc",
+              "from_node_id": "osc3_modulation",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "noise",
+              "from_node_id": "noise_modulation",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "osc1_gain::ksig": {
+          "expression": "level * enabled",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "osc1_level",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "osc1_enabled",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc2_gain::ksig": {
+          "expression": "level * enabled",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "osc2_level",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "osc2_enabled",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "osc3_gain::ksig": {
+          "expression": "level * enabled",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "osc3_level",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "osc3_enabled",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "noise_gain::ksig": {
+          "expression": "level * enabled",
+          "inputs": [
+            {
+              "token": "level",
+              "from_node_id": "noise_level",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "noise_enabled",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "mixer::a": {
+          "expression": "0.22 * ((osc1 + tri1) * level1 + (osc2 + tri2) * level2 + osc3 * level3 + noise * noiselevel)",
+          "inputs": [
+            {
+              "token": "osc1",
+              "from_node_id": "osc1_oscillator",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "level1",
+              "from_node_id": "osc1_gain",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tri1",
+              "from_node_id": "osc1_shark_triangle",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "osc2",
+              "from_node_id": "osc2_oscillator",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "level2",
+              "from_node_id": "osc2_gain",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "tri2",
+              "from_node_id": "osc2_shark_triangle",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "osc3",
+              "from_node_id": "osc3_oscillator",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "level3",
+              "from_node_id": "osc3_gain",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "noise",
+              "from_node_id": "noise_colour",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "noiselevel",
+              "from_node_id": "noise_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "mixer_saturation::xin": {
+          "expression": "signal * drive",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "mixer",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "drive",
+              "from_node_id": "mixer_drive",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "filter_frequency::a": {
+          "expression": "(((cutoff * ampdb(6.020599913279624 * ((dbamp(pitch / 130.8127826502993) / 6.020599913279624) * (key1 / 3 + key2 * 2 / 3) + envelope * contour + modulation * enabled * 3)) + 20 + abs(cutoff * ampdb(6.020599913279624 * ((dbamp(pitch / 130.8127826502993) / 6.020599913279624) * (key1 / 3 + key2 * 2 / 3) + envelope * contour + modulation * enabled * 3)) - 20)) / 2) + 20000 - abs(((cutoff * ampdb(6.020599913279624 * ((dbamp(pitch / 130.8127826502993) / 6.020599913279624) * (key1 / 3 + key2 * 2 / 3) + envelope * contour + modulation * enabled * 3)) + 20 + abs(cutoff * ampdb(6.020599913279624 * ((dbamp(pitch / 130.8127826502993) / 6.020599913279624) * (key1 / 3 + key2 * 2 / 3) + envelope * contour + modulation * enabled * 3)) - 20)) / 2) - 20000)) / 2",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "played_frequency",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "key1",
+              "from_node_id": "filter_key1",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "key2",
+              "from_node_id": "filter_key2",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "envelope",
+              "from_node_id": "filter_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "contour",
+              "from_node_id": "contour",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "modulation",
+              "from_node_id": "modulation",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "enabled",
+              "from_node_id": "filter_mod",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "cutoff",
+              "from_node_id": "cutoff",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "vca_gain::kin": {
+          "expression": "envelope * (1 - sensitivity + sensitivity * velocity) * volume * 1.5",
+          "inputs": [
+            {
+              "token": "envelope",
+              "from_node_id": "amp_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "sensitivity",
+              "from_node_id": "velocity_amount",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "legato",
+              "from_port_id": "kvelocity"
+            },
+            {
+              "token": "volume",
+              "from_node_id": "output_volume",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "main-output": true
+      }
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "guided": true,
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ]
+    },
+    "control_flow": {}
+  }
+}
