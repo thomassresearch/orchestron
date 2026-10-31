@@ -8,24 +8,39 @@ Use `perf_controller` to adapt a patch to a particular performance: envelope tim
 
 Add `perf_controller` from Constants in Instrument Design. Click its gear button and configure:
 
-| Field | Initial value | Meaning |
+| Type | Configuration | Perform control |
 | --- | --- | --- |
-| Minimum | 0 | Lowest setting |
-| Maximum | 1 | Highest setting |
-| Default | 0.5 | Setting before a rack override |
-| Scale | Linear | Linear or logarithmic knob movement |
-| Label | Parameter | Caption displayed in the rack |
+| Float | Minimum, Maximum, Default, linear/logarithmic Scale, Label | Existing knob with exact numeric entry |
+| Integer | Whole-number Minimum, Maximum and Default, Label; linear only | Up triangle, editable number, down triangle |
+| Bool | On/Off Default and Label | On/off toggle, output `0` or `1` |
 
-The fields are fixed values, without input sockets or formulas. Numbers must be finite, minimum smaller than maximum, and default within the range. Logarithmic minimum must be positive. Labels must contain non-whitespace text and be no more than 128 characters long. For a logarithmic attack-time control, try minimum `0.001`, maximum `5`, default `0.01`, and label `Attack (s)`. Connect `iout` to the envelope’s I-rate attack input, then save the patch.
+The Type selector initially chooses **Float**. Existing patches without a stored type also use Float. Float defaults remain minimum `0`, maximum `1`, default `0.5`, linear scale and label `Parameter`. Integer definitions without numeric fields use minimum `0`, maximum `1`, default `0`. Bool defaults to **Off** and uses a fixed internal `0–1` linear range.
+
+The fields are fixed values, without input sockets or formulas. Float numbers must be finite, minimum smaller than maximum, and default within the range. Logarithmic minimum must be positive. Integer has the same ordering requirements and accepts only safe whole numbers from `−9007199254740991` to `9007199254740991`. Labels must contain non-whitespace text and be no more than 128 characters long.
+
+Changing Type to Integer rounds the numeric fields to the nearest integer, with ties toward positive infinity (`-1.5` becomes `-1`). If rounding makes minimum and maximum equal, correct the range before saving. Changing to Bool maps a default below `0.5` to Off and any default at least `0.5` to On. Integer and Bool always use linear scale.
+
+For a logarithmic attack-time control, choose Float, minimum `0.001`, maximum `5`, default `0.01`, and label `Attack (s)`. Connect `iout` to the envelope’s I-rate attack input, then save the patch. All three types use the same numeric I-rate output and existing compatible connections.
+
+![Integer performance controller configuration](../../screenshots/performance_controller_integer_configuration.png)
 
 ## Tune a Rack Instrument
 
-Controllers appear in patch-node order beneath patch and channel. Controls wrap onto additional rows to fit the available card width. Each shows a caption, scale dashes, endpoints, LIN/LOG indicator, and current value. Linear ticks are equally spaced; logarithmic ticks follow ratios and mark decade boundaries.
+Controllers appear in patch-node order beneath patch and channel. Controls wrap onto additional rows to fit the available card width.
+
+**Float** retains its knob, caption, scale dashes, endpoints, LIN/LOG indicator and current value. Linear ticks are equally spaced; logarithmic ticks follow ratios and mark decade boundaries.
 
 - Drag vertically, or use arrow keys. Hold Shift for fine adjustment.
 - Enter an exact number below the knob; Enter or leaving the field applies it. Escape cancels.
 - Home and End choose the endpoints. Double-click, Delete, or Backspace on the focused knob resets to the patch default.
-- Changes affect newly started notes. Sounding notes keep their initialized value. Continuous instruments require a rack restart.
+
+**Integer** shows an upward triangle above the value and a downward triangle below it. Each click changes the value by exactly one; a button disables at its limit. Type a whole number or use Up/Down, Home and End. Enter or leaving the field applies an entry; Escape cancels it. Fractional entries are rejected, and whole numbers outside the configured range are clamped. Uncommitted drafts survive collapsing and expanding the rack.
+
+**Bool** shows a toggle with visible On/Off text. Click it, or focus it and use Space or Enter. Off outputs `0`; On outputs `1`. Integer and Bool each provide a **Reset to patch default** button (↺), which removes the instance override.
+
+![Float knobs, an Integer stepper and a Bool toggle in the Perform rack](../../screenshots/performance_controller_types_rack.png)
+
+Changes affect newly started notes. Sounding notes keep their initialized value. Continuous instruments require a rack restart. Changing a controller’s type while the rack runs also requires a restart.
 
 For an instrument using [`midi_legato`](../instrument_design/midi_legato.md), settings are sampled at the start of each **phrase**. Touching and overlapping notes keep the same voice and settings; the next note after a gap reads current values.
 
@@ -104,7 +119,7 @@ negative tap times.
 
 Untouched controls follow the patch default. After a value changes, an explicit instance override remains until reset, including when it is subsequently set to the current default. App state retains edits immediately through the existing persistence workflow; Save Performance is required to update a saved performance. Native JSON/ZIP bundles and both CSD (MIDI) and CSD (SCORE) exports preserve instance values. The CSD contains its initial settings and runs without a controller client. These controls do not send MIDI CC and do not become MIDI automation.
 
-Node IDs identify controls; duplicate labels are allowed. Changing the selected patch clears its overrides. Editing a patch range clamps saved values; deleting a controller removes its override, with a notice in the rack. Standalone patch export and isolated audition use defaults; audition within a performance uses the selected instance’s values.
+Node IDs identify controls; duplicate labels are allowed. Changing the selected patch clears its overrides. Editing a patch range clamps saved values. Changing to Integer rounds overrides to the nearest integer (ties toward positive infinity) and clamps to the range. Changing to Bool maps values below `0.5` to `0` and values at least `0.5` to `1`. Deleting a controller removes its override. These adjustments show a notice in the rack; untouched defaults remain implicit. External API and CLI submissions must already satisfy the selected type: fractional Integer values and Bool values other than `0`/`1` are rejected. Standalone patch export and isolated audition use defaults; audition within a performance uses the selected instance’s values.
 
 `perf_controller` is an Orchestron editor construct lowered to [I-rate chnget](https://csound.com/docs/manual/chnget.html) and channel initialization. It is not a native Csound opcode.
 

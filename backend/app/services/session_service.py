@@ -351,15 +351,16 @@ class SessionService:
                 normalized = validate_controller_values(definitions, values)
             except CompilationError as error:
                 raise HTTPException(status_code=422, detail=error.detail()) from error
-            if assignment.performance_controller_values == normalized:
-                return {"values": normalized}
             if runtime.state == SessionState.RUNNING:
                 bindings = runtime.compile_artifact.manifest.get("performanceControllers", {}).get(assignment_id, {})
                 if set(bindings) != {d.node_id for d in definitions} or any(
                     bindings[d.node_id].get(key) != getattr(d, key)
-                    for d in definitions for key in ("min", "max", "default", "scale")
+                    for d in definitions for key in ("controller_type", "min", "max", "default", "scale")
                 ):
                     raise HTTPException(status_code=409, detail="Controller definitions changed; restart the rack.")
+            if assignment.performance_controller_values == normalized:
+                return {"values": normalized}
+            if runtime.state == SessionState.RUNNING:
                 runtime.worker.queue_control_channels({
                     binding["channel"]: normalized.get(node_id, binding["default"])
                     for node_id, binding in bindings.items()

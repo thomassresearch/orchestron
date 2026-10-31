@@ -49,8 +49,22 @@ class PatchCliTests(unittest.TestCase):
         graph = build_patch_payload({"performance_controllers": [{"id": "sustain", "target": "amp_madsr.islev"}],
                                      "formulas": [{"target": "amp_madsr.islev", "expression": "0.5 * in1"}]})["graph"]
         node = next(n for n in graph["nodes"] if n["id"] == "sustain")
-        self.assertEqual(node["params"], {"min": 0, "max": 1, "default": 0.5, "scale": "linear", "label": "Parameter"})
+        self.assertEqual(node["params"], {"controller_type": "float", "min": 0, "max": 1, "default": 0.5, "scale": "linear", "label": "Parameter"})
         self.assertIn("amp_madsr::islev", graph["ui_layout"]["input_formulas"])
+
+    def test_discrete_performance_controllers(self) -> None:
+        for controller_type in ("integer", "bool"):
+            graph = build_patch_payload({"performance_controllers": [
+                {"id": "setting", "target": "amp_madsr.islev", "controller_type": controller_type}
+            ]})["graph"]
+            params = next(n["params"] for n in graph["nodes"] if n["id"] == "setting")
+            self.assertEqual(params["controller_type"], controller_type)
+            self.assertEqual(params["default"], 0)
+            for change in ({"default": 0.5}, {"scale": "logarithmic"}, {"max": 2**53}):
+                with self.subTest(controller_type=controller_type, change=change), self.assertRaises(PatchCliError):
+                    build_patch_payload({"performance_controllers": [
+                        {"id": "setting", "target": "amp_madsr.islev", "controller_type": controller_type, **change}
+                    ]})
 
     def test_invalid_performance_controllers_are_rejected_before_backend_writes(self) -> None:
         invalid = [{"min": 1, "max": 1}, {"default": 2}, {"min": float("nan")}, {"max": float("inf")},

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 
 from pydantic import ValidationError
 
-from backend.app.models.performance_controller import PerformanceControllerDefinition
+from backend.app.models.performance_controller import PerformanceControllerDefinition, is_safe_integer
 from backend.app.services.compiler_common import CompilationError
 
 
@@ -19,7 +20,7 @@ def controller_definitions(graph, *, strict=True) -> list[PerformanceControllerD
         try:
             definition = PerformanceControllerDefinition.model_validate({
                 "node_id": node.id,
-                **{key: node.params[key] for key in ("min", "max", "default", "scale", "label") if key in node.params},
+                **{key: node.params[key] for key in ("controller_type", "min", "max", "default", "scale", "label") if key in node.params},
             })
         except ValidationError as exc:
             message = f"perf_controller '{node.id}': " + "; ".join(e["msg"] for e in exc.errors())
@@ -36,8 +37,12 @@ def validate_controller_values(definitions, values: dict[str, float]) -> dict[st
         definition = by_id.get(node_id)
         if definition is None:
             raise CompilationError([f"Unknown performance controller '{node_id}'."])
-        if not isinstance(value, (int, float)) or isinstance(value, bool) or not definition.min <= value <= definition.max:
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or not definition.min <= value <= definition.max:
             raise CompilationError([f"Performance controller '{node_id}' value must be within {definition.min}–{definition.max}."])
+        if definition.controller_type == "integer" and not is_safe_integer(value):
+            raise CompilationError([f"Performance controller '{node_id}' value must be a safe integer."])
+        if definition.controller_type == "bool" and value not in (0, 1):
+            raise CompilationError([f"Performance controller '{node_id}' value must be 0 or 1."])
     return dict(values)
 
 

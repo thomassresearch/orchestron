@@ -1,7 +1,7 @@
 import type { StoreApi } from "zustand";
 import { api } from "../api/client";
 import { onMixerConnected } from "../lib/mixerRuntime";
-import { normalizeControllerValues } from "../lib/performanceControllers";
+import { normalizeControllerValue, normalizeControllerValues } from "../lib/performanceControllers";
 import type { AppStore } from "./appStoreTypes";
 
 type Actions = Pick<AppStore, "setPerformanceControllerValue" | "flushPerformanceControllers">;
@@ -64,7 +64,7 @@ export function createPerformanceControllerActions(set: StoreApi<AppStore>["setS
       const values = normalizeControllerValues(binding.performanceControllerValues);
       if (value === null) delete values[nodeId];
       else {
-        const next = Math.min(definition.max, Math.max(definition.min, value));
+        const next = normalizeControllerValue(value, definition);
         if (next === (values[nodeId] ?? definition.default)) return;
         values[nodeId] = next;
       }

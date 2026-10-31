@@ -4346,6 +4346,11 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
                 retry=["Import or create the referenced patch, or change the instrument assignment."],
             )
         patch_ref = next((patch for patch in patches if patch.get("id") == patch_id), {})
+        definitions = {item["node_id"]: item for item in patch_ref.get("performance_controllers", [])}
+        for node_id, value in instrument.get("performanceControllerValues", {}).items():
+            if node_id not in definitions:
+                raise OrchestronCliError("unknown_performance_controller", f"Unknown controller node '{node_id}'.")
+            validate_performance_controller_value(definitions[node_id], value)
         if patch_is_always_on(patch_ref):
             always_on_count += 1
         channel = clamp_int(instrument.get("midiChannel", 1), 0, 16, field=f"config.instruments[{index}].midiChannel")
@@ -4823,6 +4828,16 @@ def performance_controller_values(raw: Any) -> dict[str, float]:
     return dict(raw)
 
 
+def validate_performance_controller_value(definition: dict[str, Any], value: float) -> None:
+    controller_type = definition.get("controller_type", "float")
+    if definition.get("error") or not definition["min"] <= value <= definition["max"]:
+        raise OrchestronCliError("invalid_performance_controller", "Correct the patch configuration or choose a value within the controller range.")
+    if controller_type == "integer" and (value != int(value) or abs(value) > 2**53 - 1):
+        raise OrchestronCliError("invalid_performance_controller", "Integer controller values must be safe integers.")
+    if controller_type == "bool" and value not in (0, 1):
+        raise OrchestronCliError("invalid_performance_controller", "Bool controller values must be 0 or 1.")
+
+
 def command_edit_performance_controllers(args: argparse.Namespace, ctx: CliContext) -> None:
     patches = ApiClient(ctx.api_url, timeout=ctx.timeout).get("/patches")
     patches_by_id = {patch["id"]: patch for patch in patches}
@@ -4844,8 +4859,7 @@ def command_edit_performance_controllers(args: argparse.Namespace, ctx: CliConte
                 values.pop(args.node, None)
             else:
                 value = performance_controller_values({args.node: args.value})[args.node]
-                if definition.get("error") or not definition["min"] <= value <= definition["max"]:
-                    raise OrchestronCliError("invalid_performance_controller", "Correct the patch configuration or choose a value within the controller range.")
+                validate_performance_controller_value(definition, value)
                 values[args.node] = value
             binding["performanceControllerValues"] = values
         return {"bindingId": binding["id"], "performanceControllerValues": values,

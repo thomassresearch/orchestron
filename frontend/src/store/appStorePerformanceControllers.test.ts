@@ -37,6 +37,20 @@ describe("performance controller synchronization", () => {
     await actions.flushPerformanceControllers();
     expect(update).toHaveBeenLastCalledWith("session", "one", {});
   });
+  it.each(["integer", "bool"] as const)("normalizes %s edits and removes overrides on reset", async controller_type => {
+    const { store, actions, update } = setup();
+    store.setState(state => ({ patches: state.patches.map(patch => ({ ...patch,
+      performance_controllers: patch.performance_controllers?.map(definition => ({ ...definition, controller_type, default: 0 }))
+    })) }));
+    actions.setPerformanceControllerValue("one", "setting", 0.5);
+    await actions.flushPerformanceControllers();
+    expect(update).toHaveBeenLastCalledWith("session", "one", { setting: 1 });
+    actions.setPerformanceControllerValue("one", "setting", 0);
+    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: 0 });
+    actions.setPerformanceControllerValue("one", "setting", null);
+    await actions.flushPerformanceControllers();
+    expect(update).toHaveBeenLastCalledWith("session", "one", {});
+  });
   it("serializes writes and sends edits received during an acknowledgment", async () => {
     const { actions, update } = setup();
     let acknowledge!: () => void;

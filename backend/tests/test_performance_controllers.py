@@ -10,6 +10,7 @@ import zipfile
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 
 from backend.app.models.audio import AudioGraph, MixerState, MixerStrip
 from backend.app.models.patch import Connection, EngineConfig, NodeInstance, PatchDocument, PatchGraph
@@ -147,14 +148,29 @@ def test_session_updates_reset_validation_persistence_and_restart(tmp_path):
         assert client.get(f'/api/performances/{performance["id"]}').json()["config"] == config
 
 
+def add_mixed_controllers(graph, instruments):
+    graph["nodes"].extend([
+        NodeInstance(id="count", opcode="perf_controller", params={"controller_type": "integer", "min": -3, "max": 3}).model_dump(mode="json"),
+        NodeInstance(id="enabled", opcode="perf_controller", params={"controller_type": "bool"}).model_dump(mode="json"),
+    ])
+    for index, instrument in enumerate(instruments):
+        instrument["performanceControllerValues"].update(count=-2 if index == 0 else 1, enabled=1 if index == 0 else 0)
+
+
 @pytest.mark.parametrize("archive_format", ["json", "zip"])
-def test_native_bundle_roundtrip_preserves_controller_definitions_and_overrides(tmp_path, archive_format):
+@pytest.mark.parametrize("controller_type", ["float", "integer", "bool", "mixed"])
+def test_native_bundle_roundtrip_preserves_controller_definitions_and_overrides(tmp_path, archive_format, controller_type):
     payload = _performance_csd_export_payload()["performanceExport"]
     payload["patch_definitions"][0]["graph"] = controller_patch(params={"label": "Attack", "min": 0.01, "max": 10, "default": 0.1, "scale": "logarithmic"}).graph.model_dump(mode="json", by_alias=True)
     payload["performance"]["config"] = {"version": 12, "instruments": [
         {"id": "one", "patchId": "patch-1", "midiChannel": 1, "performanceControllerValues": {"setting": 0.3}},
         {"id": "two", "patchId": "patch-1", "midiChannel": 2, "performanceControllerValues": {}},
     ]}
+    if controller_type in ("integer", "bool"):
+        payload["patch_definitions"][0]["graph"]["nodes"][0]["params"] = {"controller_type": controller_type}
+        payload["performance"]["config"]["instruments"][0]["performanceControllerValues"] = {"setting": 1}
+    if controller_type == "mixed":
+        add_mixed_controllers(payload["patch_definitions"][0]["graph"], payload["performance"]["config"]["instruments"])
     with _client(tmp_path) as client:
         exported = client.post("/api/bundles/export/performance", json=payload)
         assert exported.status_code == 200
@@ -175,7 +191,8 @@ def test_native_bundle_roundtrip_preserves_controller_definitions_and_overrides(
 
 @pytest.mark.parametrize("mode", ["midiFile", "score"])
 @pytest.mark.parametrize("with_mixer", [False, True])
-def test_both_export_modes_render_instance_settings_without_client(tmp_path, mode, with_mixer):
+@pytest.mark.parametrize("controller_type", ["float", "integer", "bool", "mixed"])
+def test_both_export_modes_render_instance_settings_without_client(tmp_path, mode, with_mixer, controller_type):
     if not shutil.which("csound"):
         pytest.skip("Csound executable is not installed")
     payload = _performance_csd_export_payload()
@@ -186,6 +203,12 @@ def test_both_export_modes_render_instance_settings_without_client(tmp_path, mod
         {"id": "one", "patchId": "patch-1", "midiChannel": 1, "performanceControllerValues": {"setting": 0.2}},
         {"id": "two", "patchId": "patch-1", "midiChannel": 2, "performanceControllerValues": {"setting": 0.3}},
     ]}
+    if controller_type in ("integer", "bool"):
+        exported["patch_definitions"][0]["graph"]["nodes"][0]["params"] = {"controller_type": controller_type}
+        for instrument in exported["performance"]["config"]["instruments"]:
+            instrument["performanceControllerValues"] = {"setting": 1}
+    if controller_type == "mixed":
+        add_mixed_controllers(exported["patch_definitions"][0]["graph"], exported["performance"]["config"]["instruments"])
     if with_mixer:
         exported["performance"]["config"].update(
             audioGraph={"routes": [], "masterId": None, "insertOwners": {}},
@@ -218,6 +241,60 @@ def test_both_export_modes_render_instance_settings_without_client(tmp_path, mod
             samples = np.frombuffer(chunk, dtype="<f4")
         offset += 8 + size + (size % 2)
     assert samples is not None and len(samples) > 0
-    assert samples.max() == pytest.approx(0.1 if with_mixer else 0.5, abs=1e-7)
+    expected = (0.1 if with_mixer else 0.5) if controller_type in ("float", "mixed") else (0.5 if with_mixer else 2)
+    assert samples.max() == pytest.approx(expected, abs=1e-7)
     # The retained defaults in the patch definition are independent of performance overrides.
-    assert exported["patch_definitions"][0]["graph"]["nodes"][0]["params"] == {}
+    assert exported["patch_definitions"][0]["graph"]["nodes"][0]["params"] == ({} if controller_type in ("float", "mixed") else {"controller_type": controller_type})
+
+
+@pytest.mark.parametrize("params", [
+    {"controller_type": "unknown"}, {"controller_type": None},
+    {"controller_type": "integer", "min": -1.5}, {"controller_type": "integer", "max": 1.5},
+    {"controller_type": "integer", "default": 0.5}, {"controller_type": "integer", "max": 2**53},
+    {"controller_type": "integer", "scale": "logarithmic", "min": 1, "max": 3, "default": 1},
+    {"controller_type": "bool", "default": 0.5}, {"controller_type": "bool", "default": True},
+    {"controller_type": "bool", "min": -1}, {"controller_type": "bool", "max": 2},
+    {"controller_type": "bool", "scale": "logarithmic"},
+])
+def test_invalid_discrete_definitions_fail_compilation(params):
+    with pytest.raises((CompilationError, ValidationError)):
+        compile_targets([PatchInstrumentTarget(controller_patch(params=params), 1)])
+
+
+@pytest.mark.parametrize("controller_type", ["integer", "bool"])
+def test_discrete_defaults_manifests_and_strict_values(controller_type):
+    target = PatchInstrumentTarget(controller_patch(params={"controller_type": controller_type}), 1)
+    artifact = compile_targets([target])
+    definition = artifact.manifest["performanceControllers"]["instrument-1"]["setting"]
+    assert definition["controller_type"] == controller_type
+    assert definition["value"] == definition["default"] == 0
+    for invalid in [0.5, -1, 2, float("nan"), float("inf"), True]:
+        target.performance_controller_values = {"setting": invalid}
+        with pytest.raises(CompilationError):
+            compile_targets([target])
+
+
+@pytest.mark.parametrize("controller_type,initial,changed", [("integer", -2, 1), ("bool", 0, 1)])
+@pytest.mark.parametrize("always_on", [False, True])
+@pytest.mark.parametrize("mixer", [False, True])
+def test_discrete_audio_values_and_initialization(controller_type, initial, changed, always_on, mixer):
+    params = {"controller_type": controller_type, "default": initial}
+    if controller_type == "integer":
+        params.update(min=-3, max=3)
+    target = PatchInstrumentTarget(controller_patch(always_on=always_on, params=params), 0 if always_on else 1,
+                                   assignment_id="one", always_on=always_on)
+    artifact = compile_targets([target], mixer=mixer)
+    binding = artifact.manifest["performanceControllers"]["one"]["setting"]
+    ref = artifact.manifest.get("instrumentReferences", {"one": "1"})["one"]
+    gain = 0.5 if mixer else 1
+    with engine(artifact, "" if always_on else f'i {ref} 0 1\nf 0 2') as cs:
+        np.testing.assert_allclose(render(cs, 3), initial * gain, atol=1e-9)
+        cs.setControlChannel(binding["channel"], changed)
+        np.testing.assert_allclose(render(cs, 3), initial * gain, atol=1e-9)
+        if not always_on:
+            cs.inputMessage(f'i {ref} 0 1')
+            np.testing.assert_allclose(render(cs, 3)[-1], (initial + changed) * gain, atol=1e-9)
+    if always_on:
+        target.performance_controller_values = {"setting": changed}
+        with engine(compile_targets([target], mixer=mixer)) as cs:
+            np.testing.assert_allclose(render(cs, 3), changed * gain, atol=1e-9)

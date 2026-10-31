@@ -560,8 +560,11 @@ export interface SessionInstrumentAssignment {
   effect_routes?: SessionEffectRoute[];
 }
 
+export type PerformanceControllerType = "float" | "integer" | "bool";
+
 export interface PerformanceControllerDefinition {
   node_id: string;
+  controller_type?: PerformanceControllerType;
   min: number;
   max: number;
   default: number;

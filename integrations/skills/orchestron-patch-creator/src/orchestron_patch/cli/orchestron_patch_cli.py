@@ -880,10 +880,20 @@ def build_patch_payload(
 
 
 def performance_controller_params(raw: dict[str, Any]) -> dict[str, Any]:
-    params = {"min": 0, "max": 1, "default": 0.5, "scale": "linear", "label": "Parameter", **raw}
+    controller_type = raw.get("controller_type", "float")
+    if controller_type not in ("float", "integer", "bool"):
+        raise PatchCliError("invalid_performance_controller", "Use float, integer or bool controller_type.")
+    params = {"controller_type": controller_type, "min": 0, "max": 1,
+              "default": 0.5 if controller_type == "float" else 0, "scale": "linear", "label": "Parameter", **raw}
     numbers = [params[key] for key in ("min", "max", "default")]
     if not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in numbers):
         raise PatchCliError("invalid_performance_controller", "Minimum, maximum and default must be finite numbers.")
+    if controller_type != "float" and params["scale"] != "linear":
+        raise PatchCliError("invalid_performance_controller", "Integer and bool controllers require linear scale.")
+    if controller_type == "integer" and not all(value == int(value) and abs(value) <= 2**53 - 1 for value in numbers):
+        raise PatchCliError("invalid_performance_controller", "Integer controller minimum, maximum and default must be safe integers.")
+    if controller_type == "bool" and (params["min"] != 0 or params["max"] != 1 or params["default"] not in (0, 1)):
+        raise PatchCliError("invalid_performance_controller", "Bool requires minimum 0, maximum 1 and default 0 or 1.")
     if not params["min"] < params["max"] or not params["min"] <= params["default"] <= params["max"]:
         raise PatchCliError("invalid_performance_controller", "Require min < max and default within the range.")
     if params["scale"] not in ("linear", "logarithmic") or (params["scale"] == "logarithmic" and params["min"] <= 0):
@@ -902,8 +912,8 @@ def apply_performance_controllers(graph: dict[str, Any], definitions: Any) -> di
     nodes_by_id = {node["id"]: node for node in graph["nodes"]}
     targets = set()
     for index, definition in enumerate(definitions):
-        if not isinstance(definition, dict) or set(definition) - {"id", "target", "min", "max", "default", "scale", "label"}:
-            raise PatchCliError("invalid_performance_controller", "Use id, target, min, max, default, scale and label fields.")
+        if not isinstance(definition, dict) or set(definition) - {"id", "target", "controller_type", "min", "max", "default", "scale", "label"}:
+            raise PatchCliError("invalid_performance_controller", "Use id, target, controller_type, min, max, default, scale and label fields.")
         node_id = definition.get("id")
         if not isinstance(node_id, str) or not node_id.strip() or node_id in nodes_by_id:
             raise PatchCliError("invalid_performance_controller", "Each controller needs a unique, nonempty node id.")

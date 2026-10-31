@@ -9165,3 +9165,51 @@ def test_score_exports_chase_sustains_and_preserve_independent_durations(tmp_pat
                 csd = archive.read("Offline_Export/Offline_Export.csd").decode()
                 events = [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith("i 1 ")]
                 assert sorted(events) == sorted([[0, .25, 60, 96], [0, .25, 64, 80], [.25, .125, 60, 110]])
+
+
+def test_performance_controller_types_api_and_running_definition_changes(tmp_path):
+    payload = _audio_source_patch_payload()
+    payload["graph"]["nodes"].extend([
+        {"id": "count", "opcode": "perf_controller", "params": {"controller_type": "integer", "min": -3, "max": 3}},
+        {"id": "enabled", "opcode": "perf_controller", "params": {"controller_type": "bool"}},
+        {"id": "legacy", "opcode": "perf_controller", "params": {}},
+    ])
+    with _client(tmp_path) as client:
+        saved_response = client.post("/api/patches", json=payload)
+        assert saved_response.status_code == 201, saved_response.text
+        saved = saved_response.json()
+        listed = next(p for p in client.get("/api/patches").json() if p["id"] == saved["id"])
+        assert [(d["controller_type"], d["default"]) for d in listed["performance_controllers"]] == [
+            ("integer", 0), ("bool", 0), ("float", 0.5)]
+        response = client.post("/api/sessions", json={"instruments": [
+            {"id": "one", "patch_id": saved["id"], "midi_channel": 1,
+             "performance_controller_values": {"count": -2, "enabled": 1}},
+            {"id": "two", "patch_id": saved["id"], "midi_channel": 2,
+             "performance_controller_values": {"count": 2, "enabled": 0}},
+        ]})
+        assert response.status_code == 201, response.text
+        session = response.json()["session_id"]
+        endpoint = f"/api/sessions/{session}/instruments/one/performance-controllers"
+        started = client.post(f"/api/sessions/{session}/start")
+        assert started.status_code == 200, started.text
+        for values in ({"count": 0.5}, {"count": 2**53}, {"enabled": 0.5}, {"enabled": True}, {"enabled": 2}):
+            assert client.put(endpoint, json={"values": values}).status_code == 422
+        values = {"count": -1, "enabled": 0}
+        assert client.put(endpoint, json={"values": values}).json() == {"values": values}
+        state = client.get(f"/api/sessions/{session}").json()
+        assert state["instruments"][1]["performance_controller_values"] == {"count": 2, "enabled": 0}
+        # Bool -> integer keeps all existing range/default/scale fields identical.
+        graph = saved["graph"]
+        next(n for n in graph["nodes"] if n["id"] == "enabled")["params"]["controller_type"] = "integer"
+        assert client.put(f'/api/patches/{saved["id"]}', json={"graph": graph}).status_code == 200
+        assert client.put(endpoint, json={"values": values}).status_code == 409
+        assert client.put(endpoint, json={"values": {"enabled": 1}}).status_code == 409
+        assert client.post(f"/api/sessions/{session}/stop").status_code == 200
+        assert client.put(endpoint, json={"values": {}}).json() == {"values": {}}
+        compiled = client.post(f"/api/sessions/{session}/compile").json()
+        assert compiled["manifest"]["performanceControllers"]["one"]["enabled"]["controller_type"] == "integer"
+        assert compiled["manifest"]["performanceControllers"]["one"]["count"]["value"] == 0
+        config = {"version": 21, "instruments": [{"id": "one", "patchId": saved["id"], "midiChannel": 1,
+                                                    "performanceControllerValues": values}]}
+        performance = client.post("/api/performances", json={"name": "Typed controllers", "config": config}).json()
+        assert client.get(f'/api/performances/{performance["id"]}').json()["config"] == config

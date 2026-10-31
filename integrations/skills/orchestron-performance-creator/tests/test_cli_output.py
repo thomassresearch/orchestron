@@ -846,3 +846,28 @@ def test_piano_roll_autochord_survives_cli_normalization_and_edit_session(tmp_pa
     session_file = tmp_path / "autochord.json"
     orchestron_cli.save_edit_session(session_file, {"config": normalized})
     assert orchestron_cli.load_edit_session(session_file)["config"]["sequencer"]["pianoRolls"] == rolls
+
+
+@pytest.mark.parametrize("controller_type,valid,invalid", [("integer", -2, -1.5), ("bool", 1, 0.5)])
+def test_discrete_controller_commands_validate_types(tmp_path, monkeypatch, capsys, controller_type, valid, invalid):
+    config, patches = _controller_fixture()
+    definition = patches[0]["performance_controllers"][0]
+    definition.update(controller_type=controller_type, min=-3 if controller_type == "integer" else 0,
+                      max=3 if controller_type == "integer" else 1, default=0, scale="linear")
+    ctx = _ctx(json_output=True)
+    ctx.session_file = tmp_path / "edit.json"
+    orchestron_cli.save_edit_session(ctx.session_file, {"config": config})
+    monkeypatch.setattr(orchestron_cli.ApiClient, "get", lambda self, path: patches)
+    args = argparse.Namespace(controller_command="set", binding="bass", node="attack", value=valid)
+    orchestron_cli.command_edit_performance_controllers(args, ctx)
+    result = json.loads(capsys.readouterr().out)["result"]
+    assert result["controllers"][0]["controller_type"] == controller_type
+    assert result["performanceControllerValues"] == {"attack": valid}
+    args.value = invalid
+    with pytest.raises(OrchestronCliError):
+        orchestron_cli.command_edit_performance_controllers(args, ctx)
+    assert orchestron_cli.load_edit_session(ctx.session_file)["config"]["instruments"][0]["performanceControllerValues"] == {"attack": valid}
+    # A manually edited staged value is rejected before backend validation/commit.
+    config["instruments"][0]["performanceControllerValues"] = {"attack": invalid}
+    with pytest.raises(OrchestronCliError):
+        orchestron_cli.validate_edit_session({"config": config}, argparse.Namespace(get=lambda path: patches))

@@ -1,9 +1,18 @@
-import type { PatchGraph, PerformanceControllerDefinition, SequencerInstrumentBinding } from "../types";
+import type { PatchGraph, PerformanceControllerDefinition, PerformanceControllerType, SequencerInstrumentBinding } from "../types";
 
-export const performanceControllerDefaults = { min: 0, max: 1, default: 0.5, scale: "linear" as const, label: "Parameter" };
+export const performanceControllerDefaults = { controller_type: "float" as const, min: 0, max: 1, default: 0.5, scale: "linear" as const, label: "Parameter" };
+
+export function controllerDefaults(controllerType: PerformanceControllerType = "float") {
+  return { ...performanceControllerDefaults, controller_type: controllerType, default: controllerType === "float" ? 0.5 : 0 };
+}
 
 export function controllerConfigurationError(config: Omit<PerformanceControllerDefinition, "node_id">): string | null {
+  const type = config.controller_type === undefined ? "float" : config.controller_type;
+  if (!["float", "integer", "bool"].includes(type)) return "invalidType";
   if (![config.min, config.max, config.default].every(Number.isFinite)) return "finite";
+  if (type !== "float" && config.scale !== "linear") return "linearOnly";
+  if (type === "integer" && ![config.min, config.max, config.default].every(Number.isSafeInteger)) return "integerRequired";
+  if (type === "bool" && (config.min !== 0 || config.max !== 1 || ![0, 1].includes(config.default))) return "boolRequired";
   if (config.min >= config.max) return "range";
   if (config.default < config.min || config.default > config.max) return "defaultRange";
   if (config.scale !== "linear" && config.scale !== "logarithmic") return "scale";
@@ -14,7 +23,7 @@ export function controllerConfigurationError(config: Omit<PerformanceControllerD
 
 export function performanceControllersForGraph(graph: PatchGraph): PerformanceControllerDefinition[] {
   return graph.nodes.filter((node) => node.opcode === "perf_controller").map((node) => {
-    const config = { ...performanceControllerDefaults, ...node.params, node_id: node.id } as PerformanceControllerDefinition;
+    const config = { ...controllerDefaults(node.params.controller_type as PerformanceControllerType | undefined), ...node.params, node_id: node.id } as PerformanceControllerDefinition;
     const error = controllerConfigurationError(config);
     // Invalid imported fields must still produce a safe, disabled rack control.
     return error ? { ...performanceControllerDefaults, node_id: node.id, error } : { ...config, error: null };
@@ -26,13 +35,19 @@ export function normalizeControllerValues(raw: unknown): Record<string, number> 
   return Object.fromEntries(Object.entries(raw).filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1])));
 }
 
+export function normalizeControllerValue(value: number, definition: PerformanceControllerDefinition): number {
+  if (definition.controller_type === "bool") return value < 0.5 ? 0 : 1;
+  const clamped = Math.min(definition.max, Math.max(definition.min, value));
+  return definition.controller_type === "integer" ? Math.round(clamped) : clamped;
+}
+
 export function reconcileControllerValues(binding: SequencerInstrumentBinding, definitions?: PerformanceControllerDefinition[]): SequencerInstrumentBinding {
   const previous = normalizeControllerValues(binding.performanceControllerValues);
   if (!definitions) return { ...binding, performanceControllerValues: previous };
   const byId = new Map(definitions.map((definition) => [definition.node_id, definition]));
   const values = Object.fromEntries(Object.entries(previous).flatMap(([id, value]) => {
     const definition = byId.get(id);
-    return definition ? [[id, definition.error ? value : Math.min(definition.max, Math.max(definition.min, value))]] : [];
+    return definition ? [[id, definition.error ? value : normalizeControllerValue(value, definition)]] : [];
   }));
   const changed = JSON.stringify(values) !== JSON.stringify(previous);
   return { ...binding, performanceControllerValues: values, performanceControllerNotice: changed || binding.performanceControllerNotice };

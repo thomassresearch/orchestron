@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { controllerConfigurationError, controllerPosition, controllerTicks, controllerValue, performanceControllersForGraph, reconcileControllerValues } from "./performanceControllers";
+import { controllerConfigurationError, controllerDefaults, normalizeControllerValue, controllerPosition, controllerTicks, controllerValue, performanceControllersForGraph, reconcileControllerValues } from "./performanceControllers";
 import { audioTemplate } from "./audioTemplates";
 import { cleanBindings, emptyAudioGraph, emptyMixer } from "./audioRouting";
 import { remapSnapshotPatchIds, toPatchListItem } from "./patchCatalog";
 import { buildSequencerConfigSnapshot, defaultSequencerState, normalizePersistedSequencerInstruments, normalizeSessionInstrumentAssignments, parseSequencerConfigSnapshot, sameAssignments } from "../store/appStoreModel";
-import type { PerformanceControllerDefinition, SequencerInstrumentBinding } from "../types";
+import type { NodeInstance, PerformanceControllerDefinition, SequencerInstrumentBinding } from "../types";
 
 const definition: PerformanceControllerDefinition = { node_id: "attack", min: 0.01, max: 10, default: 0.1, scale: "logarithmic", label: "Attack" };
 const binding: SequencerInstrumentBinding = { id: "one", patchId: "patch", midiChannel: 1, level: 10, effectRoutes: [], effectSourceIds: [] };
@@ -45,7 +45,7 @@ describe("performance controller ranges", () => {
   it("keeps malformed imported fields safe to display in the rack", () => {
     const graph = audioTemplate("empty").graph;
     graph.nodes = [{ id: "invalid", opcode: "perf_controller", position: { x: 0, y: 0 }, params: { min: "bad", label: 42 } }];
-    expect(performanceControllersForGraph(graph)[0]).toEqual({ node_id: "invalid", min: 0, max: 1, default: 0.5, scale: "linear", label: "Parameter", error: "finite" });
+    expect(performanceControllersForGraph(graph)[0]).toEqual({ node_id: "invalid", controller_type: "float", min: 0, max: 1, default: 0.5, scale: "linear", label: "Parameter", error: "finite" });
   });
 });
 
@@ -79,5 +79,42 @@ describe("instance override persistence", () => {
     const parsed = parseSequencerConfigSnapshot({ version, instruments: [], sequencer: {}, audioGraph: graph }, [patch], "patch");
     expect(parsed.instruments).toEqual([]);
     expect(parsed.audioGraph).toEqual(graph);
+  });
+});
+
+
+describe("discrete controller types", () => {
+  const integer = { ...controllerDefaults("integer"), node_id: "count", min: -3, max: 3 };
+  const bool = { ...controllerDefaults("bool"), node_id: "enabled" };
+  it("defaults legacy nodes to float and new discrete nodes to zero", () => {
+    const graph = audioTemplate("empty").graph;
+    graph.nodes = [undefined, "integer", "bool"].map((type, i) => ({ id: String(i), opcode: "perf_controller", position: { x: 0, y: 0 }, params: (type ? { controller_type: type } : {}) as NodeInstance["params"] }));
+    expect(performanceControllersForGraph(graph).map(d => [d.controller_type, d.default, d.error])).toEqual([
+      ["float", 0.5, null], ["integer", 0, null], ["bool", 0, null]
+    ]);
+  });
+  it("rejects fractional or unsafe integers, logarithmic discrete controls, and invalid bool fields", () => {
+    for (const key of ["min", "max", "default"] as const) {
+      expect(controllerConfigurationError({ ...integer, [key]: 0.5 })).toBe("integerRequired");
+      expect(controllerConfigurationError({ ...integer, [key]: 2 ** 53 })).toBe("integerRequired");
+    }
+    expect(controllerConfigurationError({ ...integer, scale: "logarithmic" })).toBe("linearOnly");
+    expect(controllerConfigurationError({ ...bool, default: 0.5 })).toBe("boolRequired");
+    expect(controllerConfigurationError({ ...bool, max: 2 })).toBe("boolRequired");
+    expect(controllerConfigurationError({ ...bool, scale: "logarithmic" })).toBe("linearOnly");
+  });
+  it("rounds ties toward positive infinity and preserves exact safe endpoints", () => {
+    expect([-9, -1.5, -0.5, 0.5, 1.5, 9].map(v => normalizeControllerValue(v, integer))).toEqual([-3, -1, -0, 1, 2, 3]);
+    expect(normalizeControllerValue(Number.MAX_SAFE_INTEGER, { ...integer, max: Number.MAX_SAFE_INTEGER })).toBe(Number.MAX_SAFE_INTEGER);
+    expect([-9, 0.49999, 0.5, 9].map(v => normalizeControllerValue(v, bool))).toEqual([0, 0, 1, 1]);
+  });
+  it("converts saved overrides with notice while leaving untouched defaults implicit", () => {
+    const result = reconcileControllerValues({ ...binding, performanceControllerValues: { count: -1.5, enabled: 0.5, removed: 1 } }, [integer, bool]);
+    expect(result.performanceControllerValues).toEqual({ count: -1, enabled: 1 });
+    expect(result.performanceControllerNotice).toBe(true);
+    expect(reconcileControllerValues(binding, [integer, bool]).performanceControllerValues).toEqual({});
+    const typedPatch = { ...patch, performance_controllers: [integer, bool] };
+    const snapshot = buildSequencerConfigSnapshot(defaultSequencerState(), [result], emptyAudioGraph(), emptyMixer());
+    expect(parseSequencerConfigSnapshot(JSON.parse(JSON.stringify(snapshot)), [typedPatch], null).instruments[0].performanceControllerValues).toEqual({ count: -1, enabled: 1 });
   });
 });

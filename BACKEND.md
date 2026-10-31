@@ -532,6 +532,23 @@ The service accepts a stable id, backend selector, or literal input name. A succ
 
 Sessions are the runtime bridge between saved patch documents and a live Csound worker. They are not stored in SQLite.
 
+#### Performance controller types
+
+`PerformanceControllerDefinition.controller_type` is `float` (legacy default),
+`integer`, or `bool`. Definitions originate in `perf_controller` node parameters
+and are included in patch listings and compiler manifests. Float retains finite
+linear/logarithmic ranges. Integer requires linear scale and safe integral
+min/max/default values (±(2^53−1)); Bool fixes min/max to 0/1, scale to linear,
+and permits only numeric default 0/1. Discrete types default to 0.
+
+Overrides remain numeric maps keyed by controller node ID. Definition/value
+validation is shared by compile, export and session updates; external fractional
+Integer values and non-binary Bool values fail validation. Frontend reconciliation
+rounds/clamps saved Integer values and thresholds Bool at 0.5 with a notice.
+Type is part of the running-manifest compatibility check, so a change requires
+restart even if the numeric definition is otherwise identical. All types retain
+I-rate initialization, independent instance channels, and native/CSD persistence.
+
 #### Session lifecycle endpoints
 
 | Method | Path | Request body | Response | Notes |

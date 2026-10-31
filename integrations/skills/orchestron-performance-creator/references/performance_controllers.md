@@ -1,10 +1,22 @@
 # Customize Instruments Per Performance
 
-`perf_controller` is an Orchestron virtual opcode exposed as a knob beneath a rack instrument's patch/channel controls. It produces one I-rate output (`iout`) for instrument settings such as ADSR times, sustain, or distortion gain. It is independent of MIDI CC numbers, controller sequencers, and MIDI learn. Use it when the user wants a different sound configuration for a performance or for two instances of one patch.
+`perf_controller` is an Orchestron virtual opcode exposed as a knob, integer stepper or on/off toggle beneath a rack instrument's patch/channel controls. It produces one I-rate output (`iout`) for instrument settings such as ADSR times, sustain, or distortion gain. It is independent of MIDI CC numbers, controller sequencers, and MIDI learn. Use it when the user wants a different sound configuration for a performance or for two instances of one patch.
+
+## Controller types
+
+Use `controller_type: float | integer | bool`. Missing type means `float` and preserves the previous behavior. All outputs remain numeric I-rate values through `iout`; Bool uses numeric `0`/`1`, not JSON booleans. Node IDs and per-instance numeric override maps are unchanged; no persistence-version change is required.
+
+- **Float:** finite min/max/default, linear or logarithmic scale; defaults `0`, `1`, `0.5`, linear.
+- **Integer:** safe whole-number min/max/default (−9007199254740991 through 9007199254740991), `min < max`, default within range, linear only; defaults `0`, `1`, `0`. Perform shows triangle buttons and direct integer entry.
+- **Bool:** configure `default: 0` (Off) or `default: 1` (On), plus Label. Omitted default is `0`; min/max/scale are fixed to `0`, `1`, linear. Perform shows an on/off toggle.
+
+For example, a controller definition can use `controller_type: integer, min: -2, max: 2, default: 0` for octaves, or `controller_type: bool, default: 1` for a switch. Preserve the usual `id`, `target`, and `label` fields when authoring a patch spec. CLI `set --value` accepts whole numbers for Integer and `0`/`1` for Bool; invalid values are rejected before saving the staged edit.
+
+The GUI converts existing overrides after patch edits: Integer rounds ties toward positive infinity and clamps; Bool uses a `0.5` threshold. It reports adjustments. API/CLI submissions must already satisfy the selected type. A controller type change while running requires a rack restart, even when min/max/default stay unchanged. Reset removes an override; merely choosing the default value does not remove an existing override.
 
 ## Discover and stage settings
 
-The patch must already contain the controls. `GET /patches` includes ordered `performance_controllers` definitions with `node_id`, `label`, `min`, `max`, `default`, `scale`, and optional `error`. `edit instruments list` includes that metadata and current overrides in its JSON output. If the required control is absent, add it to the patch using the patch-creator skill; do not invent an ID or repurpose a MIDI controller.
+The patch must already contain the controls. `GET /patches` includes ordered `performance_controllers` definitions with `node_id`, `controller_type`, `label`, `min`, `max`, `default`, `scale`, and optional `error`. `edit instruments list` includes that metadata and current overrides in its JSON output. If the required control is absent, add it to the patch using the patch-creator skill; do not invent an ID or repurpose a MIDI controller.
 
 From this skill's directory, with a staged edit session:
 
