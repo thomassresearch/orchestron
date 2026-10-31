@@ -54,7 +54,7 @@ restores their original timing. Different pitches sustain independently;
 same-pitch retriggers replace the preceding release. Seeking or exporting from
 inside a note starts its remaining duration.
 
-The CLI writes performance v21 and accepts v1–21. Older documents normalize to
+The CLI writes performance v22 and accepts v1–22. Older documents normalize to
 an empty `sequencer.scoreTracks`. Save/load, cloning, native JSON/ZIP and runtime
 conversion retain all notes and pad definitions. Session requests use
 `score_tracks`, `start_ticks`, `duration_ticks` and the corresponding snake_case

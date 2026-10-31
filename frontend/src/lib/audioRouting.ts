@@ -77,7 +77,7 @@ export function migrateAudio(bindings: SequencerInstrumentBinding[], patches: Pa
   return { audioGraph, mixer: result, migrationNotice: bindings.length > 0 };
 }
 export function cleanBindings(bindings: SequencerInstrumentBinding[]) {
-  return bindings.map((b) => ({ id: b.id, patchId: b.patchId, midiChannel: b.midiChannel, performanceControllerValues: { ...b.performanceControllerValues } }));
+  return bindings.map((b) => ({ id: b.id, patchId: b.patchId, midiChannel: b.midiChannel, performanceControllerValues: { ...b.performanceControllerValues }, ...(b.performanceControllerMidiCCs ? { performanceControllerMidiCCs: { ...b.performanceControllerMidiCCs } } : {}) }));
 }
 export function suggestedInterface(patch: PatchListItem): AudioInterface {
   const groups = (["input", "output"] as const).flatMap((direction) => {

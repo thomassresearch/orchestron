@@ -115,9 +115,45 @@ with large Amount values. Update the instrument and restart the rack to clear
 invalid delay-buffer contents. Merely enlarging the buffer does not prevent
 negative tap times.
 
+## Receive MIDI CC in a Performance
+
+Each controller in the Perform rack has a **MIDI CC** selector: **Off** or **1–50**.
+The assignment is saved on that rack instance in the performance. It does not change
+the instrument definition. All controls receive on the instrument’s MIDI channel,
+set once at the top of its rack slot; choose several target channels in a controller sequencer
+to control several instances together. Multiple controls can share the same CC.
+Continuous instruments and effects have no MIDI channel, so assignment is unavailable.
+
+The engine must be running, although the arranger may be stopped. External input
+uses the selected session MIDI input; manual MIDI controller lanes and controller
+sequencers also work. Ordinary MIDI delivery continues, including any patch-authored
+CC response. Muted controller lanes do not change mapped settings.
+
+| Type | Incoming CC value 0–127 |
+| --- | --- |
+| Float | Scale across Minimum–Maximum using the controller’s LIN/LOG scale |
+| Integer | Scale across Minimum–Maximum and round to the nearest integer; ties go toward positive infinity |
+| Bool | 0–63 is Off; 64–127 is On |
+
+Values 0 and 127 reach the exact endpoints. MIDI has 128 positions, so large integer
+ranges skip some values. Widgets follow incoming MIDI, and Save Performance stores
+the resulting values. Mouse and keyboard edits remain available; the next matching
+CC can change the value again. Repeated CC messages apply even if their raw value
+is unchanged. Assignments can change during playback without restarting the rack.
+A new assignment waits for the next delivered CC. Off keeps the current value;
+Reset to patch default keeps the assignment.
+
+These remain I-rate settings: new notes and new legato phrases use the changed
+value, while held notes retain their initialized setting. Mapping CC does not add
+continuous modulation to an already sounding note. Native bundles preserve the
+assignments. Both CSD export modes preserve authored CC-driven changes; external
+hardware gestures are not recorded into the arrangement.
+
+![Per-performance MIDI CC assignments on float, integer and bool controls](../../screenshots/performance_controller_midi_assignments.png)
+
 ## Save, Reload, and Export
 
-Untouched controls follow the patch default. After a value changes, an explicit instance override remains until reset, including when it is subsequently set to the current default. App state retains edits immediately through the existing persistence workflow; Save Performance is required to update a saved performance. Native JSON/ZIP bundles and both CSD (MIDI) and CSD (SCORE) exports preserve instance values. The CSD contains its initial settings and runs without a controller client. These controls do not send MIDI CC and do not become MIDI automation.
+Untouched controls follow the patch default. After a value changes, an explicit instance override remains until reset, including when it is subsequently set to the current default. App state retains edits immediately through the existing persistence workflow; Save Performance is required to update a saved performance. Native JSON/ZIP bundles and both CSD (MIDI) and CSD (SCORE) exports preserve instance values. The CSD contains its initial settings and runs without a controller client. Mouse edits do not send MIDI CC. Optional assignments receive CC input as described above.
 
 Node IDs identify controls; duplicate labels are allowed. Changing the selected patch clears its overrides. Editing a patch range clamps saved values. Changing to Integer rounds overrides to the nearest integer (ties toward positive infinity) and clamps to the range. Changing to Bool maps values below `0.5` to `0` and values at least `0.5` to `1`. Deleting a controller removes its override. These adjustments show a notice in the rack; untouched defaults remain implicit. External API and CLI submissions must already satisfy the selected type: fractional Integer values and Bool values other than `0`/`1` are rejected. Standalone patch export and isolated audition use defaults; audition within a performance uses the selected instance’s values.
 

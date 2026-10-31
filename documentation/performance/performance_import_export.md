@@ -262,12 +262,12 @@ MIDI and SCORE CSD exports use the same arpeggiator scheduler as live audio, inc
 
 ## Per-note timing (version 16)
 
-Current saves and exports write performance config **21** and accept versions **1–21**. Melodic steps and drummer cells store `timingOffsetPercent`, an integer from −50 to +50; missing values mean zero. Browser app state is version 4 (reads 1–4) and the native bundle envelope remains version 1. MIDI and SCORE exports use the same shifted attacks and releases as live playback, within each format's timing resolution.
+Current saves and exports write performance config **22** and accept versions **1–22**. Melodic steps and drummer cells store `timingOffsetPercent`, an integer from −50 to +50; missing values mean zero. Browser app state is version 4 (reads 1–4) and the native bundle envelope remains version 1. MIDI and SCORE exports use the same shifted attacks and releases as live playback, within each format's timing resolution.
 
 
 ## Arrangement compatibility and temporary audition
 
-The arrangement uses performance format v21, with imports of v1–21. Root sequences, group/supergroup references and pause tokens retain their meaning. Unused and empty draft definitions survive round trips. An imported enabled empty arrangement becomes an explicit occurrence of its previous active pad, retaining its repeat behavior. New empty lanes use Manual pads.
+The arrangement uses performance format v22, with imports of v1–22. Root sequences, group/supergroup references and pause tokens retain their meaning. Unused and empty draft definitions survive round trips. An imported enabled empty arrangement becomes an explicit occurrence of its previous active pad, retaining its repeat behavior. New empty lanes use Manual pads.
 
 Save, autosave, native bundles and both CSD modes read authored configuration. Temporary audition selection, queued commands, playback position and active-pad/enablement overrides are excluded; edits to musical content still save normally.
 
@@ -277,7 +277,7 @@ Optional `padLoopPattern.definitionColors` stores per-definition display colours
 
 Before normalization, legacy /8 melodic/drum/controller tracks double local beat lengths and halve steps per beat. Notes, holds, velocities, offsets, curve positions and speed ratios are retained. Rests, nested phrases, workspace drafts and arranger history (including its basis and before/after pads) convert together. New lengths support 1–16 melodic/drum beats and 1–32 controller beats; rests include 32. Derived counts and compiled sequences are rebuilt. The 128-step capacity remains enforced. Migration is idempotent and preserves on-grid schedules and arrangement positions; timing-offset rounding stays within the previous clock precision.
 
-Performance config v17 introduced the new meter-beat meaning, retained in v21; app state uses v4. The native JSON/ZIP envelope remains v1. New session requests explicitly use `beat_unit: "meter"`; omission preserves quarter-beat interpretation for older API clients. See [Sequencer timing](sequencer_timing.md).
+Performance config v17 introduced the new meter-beat meaning, retained in v22; app state uses v4. The native JSON/ZIP envelope remains v1. New session requests explicitly use `beat_unit: "meter"`; omission preserves quarter-beat interpretation for older API clients. See [Sequencer timing](sequencer_timing.md).
 
 
 ### Drummer ratchets (v18)
@@ -300,8 +300,28 @@ Controller sequencers save `controllerMode` (`curve` or `step`, default `curve`)
 Sparse `scoreTracks` preserve stable note IDs, tick timing, velocities, all eight
 pads, their lengths and scales, launch quantization and arrangement metadata.
 Earlier supported formats load with an empty score collection. Current saves
-write performance v21 and app-state v4; the native bundle envelope stays v1.
+write performance v22 and app-state v4; the native bundle envelope stays v1.
 Hidden notes survive native export and load. MIDI and SCORE renders chase notes
 spanning the export start and clip at score and export boundaries using the live
 scheduler. Score-assigned instruments and downstream arpeggiators participate in
 instrument selection and event budgets. See [Score Sequencers](score_sequencers.md).
+
+## Performance Controller MIDI Assignments
+
+Performance configuration v22 stores optional CC 1–50 assignments per controller
+and rack instance. Older performances load with assignments Off. Native JSON/ZIP
+bundles and autosave preserve assignments and current values; standalone instrument
+exports retain their definitions and defaults.
+
+Both CSD modes include channel-setting events generated from authored CC input,
+including enabled manual-controller initial values and controller-sequencer curves
+or steps. MIDI exports align these events to the accompanying MIDI file’s ticks
+and encoded tempo; SCORE exports use the captured sample timeline. Ordinary CC
+messages remain available to the patch. Mapped values apply at new-note or
+new-phrase initialization, including CC changes at the same time as a note.
+External hardware gestures are not recorded. If you edit a MIDI file externally,
+re-export its mapped parameter changes from Orchestron to regenerate the matching
+channel-setting events in the CSD.
+
+See [Performance Controllers](performance_controllers.md#receive-midi-cc-in-a-performance)
+for the selector, fixed channel and conversion rules.

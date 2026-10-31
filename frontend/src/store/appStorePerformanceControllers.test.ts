@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import { emptyAudioGraph } from "../lib/audioRouting";
 import { audioTemplate } from "../lib/audioTemplates";
 import { toPatchListItem } from "../lib/patchCatalog";
 import { createPerformanceControllerActions } from "./appStorePerformanceControllers";
 import type { AppStore } from "./appStoreTypes";
+import type { PerformanceControllerSnapshot } from "../types";
 import { useAppStore } from "./useAppStore";
 
 function setup() {
@@ -17,74 +18,102 @@ function setup() {
     sequencerInstruments: [{ id: "one", patchId: patch.id, midiChannel: 1, level: 10, effectRoutes: [], effectSourceIds: [] }],
     activeSessionInstruments: [{ id: "one", patch_id: patch.id, midi_channel: 1 }] }));
   const actions = createPerformanceControllerActions(store.setState, store.getState);
-  const update = vi.spyOn(api, "updatePerformanceControllers").mockImplementation(async (_id, _assignment, values) => ({ values }));
-  return { store, actions, update };
+  const remote: PerformanceControllerSnapshot = { values: {}, midi_ccs: {}, revisions: { setting: 0 } };
+  const read = vi.spyOn(api, "getPerformanceControllers").mockImplementation(async () => ({ one: structuredClone(remote) }));
+  const update = vi.spyOn(api, "patchPerformanceControllers").mockImplementation(async (_id, _assignment, delta) => {
+    for (const node of new Set([...Object.keys(delta.values ?? {}), ...Object.keys(delta.midi_ccs ?? {})])) {
+      for (const key of ["values", "midi_ccs"] as const) {
+        const value = delta[key]?.[node];
+        if (value === null) delete remote[key][node]; else if (value !== undefined) remote[key][node] = value;
+      }
+      remote.revisions[node]++;
+    }
+    return structuredClone(remote);
+  });
+  actions.receivePerformanceControllers("session", { one: structuredClone(remote) });
+  return { store, actions, update, read, remote };
 }
 
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.restoreAllMocks(); });
 describe("performance controller synchronization", () => {
-  it("coalesces rapid changes and flushes the last precise value", async () => {
+  it("coalesces edits, keeps assignment through reset, and sends only changed fields", async () => {
     const { store, actions, update } = setup();
     for (let i = 0; i < 100; i++) actions.setPerformanceControllerValue("one", "setting", i / 100);
+    actions.setPerformanceControllerMidiCC("one", "setting", 21);
     expect(update).not.toHaveBeenCalled();
     await actions.flushPerformanceControllers();
-    expect(update).toHaveBeenCalledExactlyOnceWith("session", "one", { setting: 0.99 });
+    expect(update).toHaveBeenCalledExactlyOnceWith("session", "one", { values: { setting: .99 }, midi_ccs: { setting: 21 }, revisions: { setting: 0 } });
+    actions.setPerformanceControllerValue("one", "setting", null);
+    await actions.flushPerformanceControllers();
+    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({});
+    expect(store.getState().sequencerInstruments[0].performanceControllerMidiCCs).toEqual({ setting: 21 });
     expect(store.getState().activeSessionState).toBe("running");
-    expect(store.getState().activeSessionId).toBe("session");
-    actions.setPerformanceControllerValue("one", "setting", 0.5);
-    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: 0.5 });
-    actions.setPerformanceControllerValue("one", "setting", null);
-    await actions.flushPerformanceControllers();
-    expect(update).toHaveBeenLastCalledWith("session", "one", {});
   });
-  it.each(["integer", "bool"] as const)("normalizes %s edits and removes overrides on reset", async controller_type => {
+  it.each(["integer", "bool"] as const)("normalizes %s", async controller_type => {
+    const { store, actions } = setup();
+    store.setState(s => ({ patches: s.patches.map(p => ({ ...p, performance_controllers: p.performance_controllers?.map(d => ({ ...d, controller_type, default: 0 })) })) }));
+    actions.setPerformanceControllerValue("one", "setting", .5);
+    await actions.flushPerformanceControllers();
+    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: 1 });
+  });
+  it("receives MIDI without echo and rejects stale replies and other sessions", async () => {
     const { store, actions, update } = setup();
-    store.setState(state => ({ patches: state.patches.map(patch => ({ ...patch,
-      performance_controllers: patch.performance_controllers?.map(definition => ({ ...definition, controller_type, default: 0 }))
-    })) }));
-    actions.setPerformanceControllerValue("one", "setting", 0.5);
+    actions.receivePerformanceControllers("session", { one: { values: { setting: .8 }, midi_ccs: { setting: 1 }, revisions: { setting: 5 } } });
+    actions.receivePerformanceControllers("session", { one: { values: { setting: .2 }, midi_ccs: {}, revisions: { setting: 4 } } });
+    actions.receivePerformanceControllers("old", { one: { values: {}, midi_ccs: {}, revisions: { setting: 9 } } });
     await actions.flushPerformanceControllers();
-    expect(update).toHaveBeenLastCalledWith("session", "one", { setting: 1 });
-    actions.setPerformanceControllerValue("one", "setting", 0);
-    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: 0 });
-    actions.setPerformanceControllerValue("one", "setting", null);
-    await actions.flushPerformanceControllers();
-    expect(update).toHaveBeenLastCalledWith("session", "one", {});
+    expect(update).not.toHaveBeenCalled();
+    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: .8 });
   });
-  it("serializes writes and sends edits received during an acknowledgment", async () => {
-    const { actions, update } = setup();
-    let acknowledge!: () => void;
-    update.mockImplementationOnce(async (_id, _assignment, values) => {
-      await new Promise<void>((resolve) => { acknowledge = resolve; });
-      return { values };
-    });
-    actions.setPerformanceControllerValue("one", "setting", 0.1);
-    const flushing = actions.flushPerformanceControllers();
-    actions.setPerformanceControllerValue("one", "setting", 0.2);
-    actions.setPerformanceControllerValue("one", "setting", 0.3);
+  it("resolves a stale edit with the authoritative MIDI snapshot", async () => {
+    const { store, actions, update } = setup();
+    actions.setPerformanceControllerValue("one", "setting", .3);
+    const snapshot = { values: { setting: .9 }, midi_ccs: { setting: 21 }, revisions: { setting: 2 } };
+    update.mockRejectedValueOnce(new ApiError(409, "Conflict", JSON.stringify({ detail: { snapshot } })));
+    await actions.flushPerformanceControllers();
+    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: .9 });
     expect(update).toHaveBeenCalledTimes(1);
-    acknowledge();
-    await flushing;
-    expect(update).toHaveBeenCalledTimes(2);
-    expect(update).toHaveBeenLastCalledWith("session", "one", { setting: 0.3 });
   });
-  it("retains local settings on failure and retries without restarting", async () => {
-    const { store, actions, update } = setup();
+  it("serializes edits made while a request is in flight", async () => {
+    const { actions, update } = setup();
+    let resolve!: (value: PerformanceControllerSnapshot) => void;
+    update.mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    actions.setPerformanceControllerValue("one", "setting", .1);
+    const flushing = actions.flushPerformanceControllers();
+    actions.setPerformanceControllerValue("one", "setting", .3);
+    resolve({ values: { setting: .1 }, midi_ccs: {}, revisions: { setting: 1 } });
+    await flushing;
+    expect(update).toHaveBeenLastCalledWith("session", "one", { values: { setting: .3 }, midi_ccs: {}, revisions: { setting: 1 } });
+  });
+  it("retains edits on failure, refreshes on reconnect and ignores a replaced workspace", async () => {
+    const { store, actions, update, read } = setup();
     update.mockRejectedValueOnce(new Error("Unavailable"));
-    actions.setPerformanceControllerValue("one", "setting", 0.37);
+    actions.setPerformanceControllerValue("one", "setting", .37);
     await expect(actions.flushPerformanceControllers()).rejects.toThrow("Unavailable");
     expect(store.getState().performanceControllerSyncError).toBe("Unavailable");
-    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: 0.37 });
     await actions.flushPerformanceControllers();
     expect(store.getState().performanceControllerSyncError).toBeNull();
-    expect(store.getState().activeSessionId).toBe("session");
+    let resolve!: (snapshots: Record<string, PerformanceControllerSnapshot>) => void;
+    read.mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    const refresh = actions.refreshPerformanceControllers("session");
+    store.setState({ performanceWorkspaceGeneration: 1 });
+    resolve({ one: { values: { setting: 1 }, midi_ccs: {}, revisions: { setting: 100 } } });
+    await refresh;
+    actions.receivePerformanceControllers("session", { one: { values: { setting: 1 }, midi_ccs: { setting: 50 }, revisions: { setting: 101 } } });
+    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: .37 });
+    expect(store.getState().sequencerInstruments[0].performanceControllerMidiCCs).toEqual({});
   });
-  it("keeps edits local when the active session belongs to an older patch graph", async () => {
+  it("keeps edits local for an older active patch and rejects invalid CCs", async () => {
     const { store, actions, update } = setup();
-    store.setState({ activeSessionAudioSignature: "old" });
-    actions.setPerformanceControllerValue("one", "setting", 0.2);
+    for (const cc of [0, 51, 1.5]) actions.setPerformanceControllerMidiCC("one", "setting", cc);
     await actions.flushPerformanceControllers();
     expect(update).not.toHaveBeenCalled();
-    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: 0.2 });
+    store.setState({ activeSessionAudioSignature: "old" });
+    actions.setPerformanceControllerValue("one", "setting", .2);
+    actions.receivePerformanceControllers("session", { one: { values: { setting: .9 }, midi_ccs: { setting: 50 }, revisions: { setting: 99 } } });
+    await actions.flushPerformanceControllers();
+    expect(update).not.toHaveBeenCalled();
+    expect(store.getState().sequencerInstruments[0].performanceControllerValues).toEqual({ setting: .2 });
+    expect(store.getState().sequencerInstruments[0].performanceControllerMidiCCs).toEqual({});
   });
 });

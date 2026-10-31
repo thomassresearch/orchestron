@@ -103,6 +103,7 @@ it("reuses the existing stopped engine session after a display-order change", as
   const before = useAppStore.getState();
   const instruments = normalizeSessionInstrumentAssignments(before.sequencerInstruments);
   useAppStore.setState({ activeSessionId: "existing", activeSessionState: "compiled", activeSessionInstruments: instruments,
+    activeSessionWorkspaceGeneration: before.performanceWorkspaceGeneration,
     activeSessionAudioSignature: JSON.stringify({ graph: before.audioGraph, patches: patches.map(patch => [patch.id, patch.updated_at]) }) });
   vi.spyOn(api, "getSession").mockResolvedValue({ session_id: "existing", patch_id: "lead", instruments, state: "compiled", midi_input: null, created_at: "2026-09-29", started_at: null });
   vi.spyOn(useAppStore.getState(), "flushMixer").mockResolvedValue(undefined);

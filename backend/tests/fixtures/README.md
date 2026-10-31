@@ -153,3 +153,5 @@ was added. `trance_gate.patch.json` includes Stereo; tests verify exact previous
 output at Stereo 0 without reading example files or importing its builder.
 
 `sequencers/score.json` (fixture schema v1) provides matching authored and runtime Score Sequencer forms, independent sustains, a retrigger and hidden material in a ten-minute pad. Frontend, API, CLI and export regressions share this versioned fixture.
+
+- `performance_controller_midi.patch.json` is a small DC-output probe with float, integer, bool and logarithmic controllers for per-instance CC mapping and native CSD export tests.

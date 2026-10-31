@@ -17,7 +17,8 @@ from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.audio import MixerState, MixerUpdate, MixerStrip, MixerSend
 from backend.app.services.compiler_mixer import ResolvedMixerGraph, mixer_control_values, legacy_audio_graph, normalize_audio_inputs
-from backend.app.services.performance_controller_service import controller_definitions, validate_controller_values
+from backend.app.services.performance_controller_service import controller_definitions, validate_controller_values, controller_bindings
+from backend.app.engine.performance_controllers import ControllerRevisionConflict
 from backend.app.models.session import (
     BrowserClockClaimControllerRequest,
     BrowserClockManualMidiRequest,
@@ -333,6 +334,59 @@ class SessionService:
             runtime.worker.queue_mixer_controls(mixer_control_values(manifest, state))
         return await self.get_mixer(session_id)
 
+    async def _ensure_performance_controllers(self, runtime):
+        state = runtime.worker.performance_controllers
+        if not state.configured:
+            resolver = self._resolver_for_patches(runtime.preview_patches)
+            def resolve():
+                return {assignment.id: controller_bindings(resolver.compile_target(assignment), assignment.id)
+                        for assignment in runtime.instruments}
+            try:
+                manifest = await asyncio.to_thread(resolve)
+                state.configure(runtime.instruments, manifest)
+            except CompilationError as error:
+                raise HTTPException(status_code=422, detail=error.detail()) from error
+        return state
+
+    async def get_performance_controllers(self, session_id, assignment_id=None):
+        runtime = await self._get_session(session_id)
+        async with runtime.lifecycle_lock:
+            state = await self._ensure_performance_controllers(runtime)
+            try:
+                return state.snapshot(assignment_id)
+            except KeyError as error:
+                raise HTTPException(status_code=404, detail="Unknown rack instrument.") from error
+
+    async def patch_performance_controllers(self, session_id, assignment_id, update):
+        runtime = await self._get_session(session_id)
+        async with runtime.lifecycle_lock:
+            self._assert_session_open(runtime)
+            state = await self._ensure_performance_controllers(runtime)
+            if runtime.state == SessionState.RUNNING:
+                assignment = next((item for item in runtime.instruments if item.id == assignment_id), None)
+                if assignment is None:
+                    raise HTTPException(status_code=404, detail="Unknown rack instrument.")
+                target = await asyncio.to_thread(self._resolver_for_patches(runtime.preview_patches).compile_target, assignment)
+                definitions = controller_definitions(target.patch.graph, strict=False)
+                bindings = state.bindings.get(assignment_id, {})
+                if set(bindings) != {d.node_id for d in definitions} or any(d.error or any(
+                        bindings[d.node_id].get(key) != getattr(d, key)
+                        for key in ("controller_type", "min", "max", "default", "scale")) for d in definitions):
+                    raise HTTPException(status_code=409, detail="Controller definitions changed; restart the rack.")
+            try:
+                result = state.update(assignment_id, update.values, update.midi_ccs, update.revisions, midi_revisions=update.midi_revisions)
+            except KeyError as error:
+                raise HTTPException(status_code=404, detail="Unknown rack instrument.") from error
+            except ControllerRevisionConflict as error:
+                raise HTTPException(status_code=409, detail={"snapshot": state.snapshot(assignment_id)}) from error
+            except CompilationError as error:
+                raise HTTPException(status_code=422, detail=error.detail()) from error
+            if runtime.state != SessionState.RUNNING:
+                runtime.compile_artifact = None
+                runtime.state = SessionState.IDLE
+            await self._publish(runtime.session_id, "performance_controllers", {assignment_id: result})
+            return result
+
     async def update_performance_controllers(self, session_id: str, assignment_id: str, values: dict[str, float]) -> dict:
         runtime = await self._get_session(session_id)
         async with runtime.lifecycle_lock:
@@ -368,7 +422,10 @@ class SessionService:
             else:
                 runtime.compile_artifact = None
                 runtime.state = SessionState.IDLE
-            assignment.performance_controller_values = normalized
+            state = await self._ensure_performance_controllers(runtime)
+            if runtime.state != SessionState.RUNNING:
+                state.configure(runtime.instruments, {**state.bindings, assignment_id: controller_bindings(target, assignment_id)})
+            state.update(assignment_id, normalized, replace=True)
         return {"values": normalized}
 
     async def compile_session(self, session_id: str) -> CompileResponse:
@@ -400,6 +457,7 @@ class SessionService:
             raise HTTPException(status_code=422, detail=error.detail()) from error
 
         runtime.compile_artifact = artifact
+        runtime.worker.performance_controllers.configure(runtime.instruments, artifact.manifest.get("performanceControllers", {}))
         runtime.state = SessionState.COMPILED
 
         await self._publish(runtime.session_id, "compiled", {"diagnostics": len(artifact.diagnostics)})
@@ -827,6 +885,9 @@ class SessionService:
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Failed to render browser-clock audio: {exc}") from exc
         render_completed_ns = time.perf_counter_ns()
+        controller_changes = runtime.worker.performance_controllers.drain()
+        if controller_changes is not None:
+            await self._publish(runtime.session_id, "performance_controllers", controller_changes)
         final_transport_subunit, _final_running = sequencer.render_transport_state()
         transport_events = sequencer.drain_render_transport_events(
             engine_sample_start=render.engine_sample_start,

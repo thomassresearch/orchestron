@@ -549,6 +549,35 @@ Type is part of the running-manifest compatibility check, so a change requires
 restart even if the numeric definition is otherwise identical. All types retain
 I-rate initialization, independent instance channels, and native/CSD persistence.
 
+#### Performance-controller MIDI bindings
+
+Performance config v22 adds `instruments[].performanceControllerMidiCCs`, a node-ID
+map of strict integers 1–50. Session assignments use `performance_controller_midi_ccs`.
+The assignment MIDI channel is authoritative; continuous/channel-0 instances reject
+bindings. Missing maps mean Off. Native envelope v1 and app-state v4 are unchanged.
+
+`GET /api/sessions/{id}/performance-controllers` returns per-assignment snapshots;
+GET on `/instruments/{assignment}/performance-controllers` returns one snapshot.
+Snapshots contain `values`, `midi_ccs`, per-node `revisions` and `midi_revisions`.
+PATCH accepts partial values/bindings and their expected revisions; binding revisions
+remain stable during MIDI input so ongoing automation cannot prevent reassignment; null resets a value or
+removes a mapping. A stale revision returns 409 with `detail.snapshot`. Legacy PUT
+still replaces the numeric value map, preserving bindings. Session events named
+`performance_controllers` carry coalesced snapshots; reconnect fetches current state.
+Frontend sessions retain their workspace generation. Loading/importing a performance
+invalidates the old session even when rack IDs match; the next start creates a fresh
+session. Notifications from an older workspace or compiled patch are ignored.
+
+The worker maps delivered CCs after lane gating, immediately before Csound's next
+control period. Definitions and routing are cached; only bounded state/channel writes
+occur in rendering. Incoming events update instance overrides and invalidate stale
+GUI revisions, including repeated identical CCs. Render completion publishes changes
+outside the render thread. Float uses its declared scale, Integer rounds with ties
+toward positive infinity, and Bool thresholds at 64. New notes/phrases sample I-rate
+channels. Offline exports add initialization-time setters before note instruments;
+MIDI setter timestamps follow encoded MIDI ticks and tempo. Extra setters count
+against the export budget.
+
 #### Session lifecycle endpoints
 
 | Method | Path | Request body | Response | Notes |
@@ -968,7 +997,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v21 and accept v1–21; app state is v4 (reads v1–4); native envelopes are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v22 and accept v1–22; app state is v4 (reads v1–4); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -1023,7 +1052,7 @@ Melodic steps persist `strumDirection` (`off`/`up`/`down`, default `off`) and `s
 
 `sequencer_strum.py` owns pending attacks and per-pitch releases. Each note preserves the original chord/HOLD duration, shifting its release by the same amount as its attack. Retriggering a pitch replaces its release record; at coincident attacks the later logical step wins for that pitch only. Started gestures snapshot their notes, direction, spacing and timing; live HOLD changes still refresh releases. Same-pad repeats remap owned tails; stop, seek, pad changes, arrangement rests, removal and finite endings cancel them. Source-tagged scheduling preserves mute/solo and independent Manual pads. Both Python and Cython kernels, browser-clock rendering, MIDI capture and SCORE capture use this implementation.
 
-The API rejects active strumming combined with ratchets anywhere in the same track; the melodic GUI does not expose ratchets. Export estimates bound individual attacks and overlapping arpeggiator input, retaining retrigger counts for bypass. Frontend and standalone CLI write v21/read v1–21; app-state v4 and native envelope v1 preserve these fields. Inactive fields, hidden steps and pad/step copies retain settings; clearing resets them. CLI normalization validates/preserves fields and maps them to runtime requests. Author with `edit strum list|set|reset`, score `step_strum` lists, or inline event/progression fields; partial CLI edits preserve omitted settings, reset restores off/0, and invalid edits leave the staged file unchanged. See [CLI strumming](integrations/skills/orchestron-performance-creator/references/step_strum.md).
+The API rejects active strumming combined with ratchets anywhere in the same track; the melodic GUI does not expose ratchets. Export estimates bound individual attacks and overlapping arpeggiator input, retaining retrigger counts for bypass. Frontend and standalone CLI write v22/read v1–22; app-state v4 and native envelope v1 preserve these fields. Inactive fields, hidden steps and pad/step copies retain settings; clearing resets them. CLI normalization validates/preserves fields and maps them to runtime requests. Author with `edit strum list|set|reset`, score `step_strum` lists, or inline event/progression fields; partial CLI edits preserve omitted settings, reset restores off/0, and invalid edits leave the staged file unchanged. See [CLI strumming](integrations/skills/orchestron-performance-creator/references/step_strum.md).
 
 ### Opt-in monophonic phrases
 
@@ -1070,7 +1099,7 @@ Offline selection replaces bypass-only definitions with port metadata before ass
 
 ### Controller step mode (performance v20)
 
-Controller tracks accept `controller_mode: "curve" | "step"` (default `curve`) and `reset_value` (strict integer 0–127, default 0). Pads accept `steps`, at most 128 strict integers 0–127 or null. Missing cells are empty; only the active length is compiled. Frontend `controllerMode`/`resetValue` and 128-cell pad `steps` survive native bundles, app-state v4, performance v21 and CLI runtime conversion. Legacy performances load as curves. Curve and step datasets coexist; clear targets only the active mode, and shorter lengths retain hidden cells.
+Controller tracks accept `controller_mode: "curve" | "step"` (default `curve`) and `reset_value` (strict integer 0–127, default 0). Pads accept `steps`, at most 128 strict integers 0–127 or null. Missing cells are empty; only the active length is compiled. Frontend `controllerMode`/`resetValue` and 128-cell pad `steps` survive native bundles, app-state v4, performance v22 and CLI runtime conversion. Legacy performances load as curves. Curve and step datasets coexist; clear targets only the active mode, and shorter lengths retain hidden cells.
 
 Step events use exact rational local-step offsets without interpolation, implicit zero events, or value deduplication. A runtime occurrence guard survives configuration edits and prevents replay at the current timestamp. Reset initialization precedes step and note events. Start, stop, finite endings, removals, running seeks and preview transitions reset only the chosen CC/channel pairs; stopped seeks do not send. Ordinary loops, pad changes and rests hold the last value. Independent Manual pads retain phase and state through arranger controls. Mute/solo applies through normal MIDI source tagging. Routing edits clean up departing pairs and initialize arriving pairs; unchanged pairs retain their value. Reset-value edits apply at the next reset. Both CSD modes share this scheduler and estimates include repeated values plus lifecycle resets. The compiler caches up to 512 immutable step pads in addition to its existing curve cache.
 
@@ -1085,7 +1114,7 @@ conversion. Eight pads retain independent notes, theory and 1–8,192 local-beat
 lengths. Session and persisted validators enforce 16 tracks, 10,000 notes per pad
 and 50,000 per performance, including hidden notes. Existing JSON/export budgets
 also apply. Old supported documents receive an empty score collection; writers
-emit v21/v4 and native envelopes remain v1. The standalone CLI's
+emit v22/v4 and native envelopes remain v1. The standalone CLI's
 [dedicated score authoring](integrations/skills/orchestron-performance-creator/references/score_sequencer.md)
 does not reinterpret composition-score v1/v2 inputs.
 

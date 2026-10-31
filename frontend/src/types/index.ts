@@ -553,6 +553,7 @@ export interface SessionEffectRoute {
 
 export interface SessionInstrumentAssignment {
   performance_controller_values?: Record<string, number>;
+  performance_controller_midi_ccs?: Record<string, number>;
   id?: string;
   patch_id: string;
   midi_channel: number;
@@ -575,6 +576,7 @@ export interface PerformanceControllerDefinition {
 
 export interface SequencerInstrumentBinding {
   performanceControllerValues?: Record<string, number>;
+  performanceControllerMidiCCs?: Record<string, number>;
   performanceControllerNotice?: boolean;
   id: string;
   patchId: string;
@@ -586,11 +588,12 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
     performanceControllerValues?: Record<string, number>;
+  performanceControllerMidiCCs?: Record<string, number>;
     id?: string;
     patchId: string;
     patchName?: string;
@@ -1343,3 +1346,16 @@ export interface SessionAuditionRequest {
 export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean; workspace_gesture?: string; workspace_active?: boolean; workspace_queued?: boolean; workspace_sequence?: number[]; workspace_position?: number | null }>;
 
 export interface SessionLaneOutputRequest { revision: number; lanes: Record<string, { mute: boolean; solo: boolean }> }
+
+export interface PerformanceControllerSnapshot {
+  values: Record<string, number>;
+  midi_ccs: Record<string, number>;
+  revisions: Record<string, number>;
+  midi_revisions?: Record<string, number>;
+}
+export interface PerformanceControllerDelta {
+  values?: Record<string, number | null>;
+  midi_ccs?: Record<string, number | null>;
+  revisions: Record<string, number>;
+  midi_revisions?: Record<string, number>;
+}

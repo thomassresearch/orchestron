@@ -35,6 +35,14 @@ export function normalizeControllerValues(raw: unknown): Record<string, number> 
   return Object.fromEntries(Object.entries(raw).filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1])));
 }
 
+export function normalizeControllerMidiCCs(raw: unknown): Record<string, number> {
+  return Object.fromEntries(Object.entries(normalizeControllerValues(raw)).filter(([, value]) => Number.isInteger(value) && value >= 1 && value <= 50));
+}
+
+export function controllerMidiValue(value: number, definition: PerformanceControllerDefinition): number {
+  return normalizeControllerValue(controllerValue(Math.min(127, Math.max(0, value)) / 127, definition), definition);
+}
+
 export function normalizeControllerValue(value: number, definition: PerformanceControllerDefinition): number {
   if (definition.controller_type === "bool") return value < 0.5 ? 0 : 1;
   const clamped = Math.min(definition.max, Math.max(definition.min, value));
@@ -43,14 +51,16 @@ export function normalizeControllerValue(value: number, definition: PerformanceC
 
 export function reconcileControllerValues(binding: SequencerInstrumentBinding, definitions?: PerformanceControllerDefinition[]): SequencerInstrumentBinding {
   const previous = normalizeControllerValues(binding.performanceControllerValues);
+  const previousCCs = normalizeControllerMidiCCs(binding.performanceControllerMidiCCs);
   if (!definitions) return { ...binding, performanceControllerValues: previous };
   const byId = new Map(definitions.map((definition) => [definition.node_id, definition]));
   const values = Object.fromEntries(Object.entries(previous).flatMap(([id, value]) => {
     const definition = byId.get(id);
     return definition ? [[id, definition.error ? value : normalizeControllerValue(value, definition)]] : [];
   }));
-  const changed = JSON.stringify(values) !== JSON.stringify(previous);
-  return { ...binding, performanceControllerValues: values, performanceControllerNotice: changed || binding.performanceControllerNotice };
+  const midiCCs = Object.fromEntries(Object.entries(previousCCs).filter(([id]) => binding.midiChannel > 0 && byId.has(id)));
+  const changed = JSON.stringify(values) !== JSON.stringify(previous) || JSON.stringify(midiCCs) !== JSON.stringify(previousCCs);
+  return { ...binding, performanceControllerValues: values, ...(binding.performanceControllerMidiCCs ? { performanceControllerMidiCCs: midiCCs } : {}), performanceControllerNotice: changed || binding.performanceControllerNotice };
 }
 
 export function controllerPosition(value: number, definition: PerformanceControllerDefinition): number {

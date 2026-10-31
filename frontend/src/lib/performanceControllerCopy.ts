@@ -1,6 +1,7 @@
 import type { GuiLanguage } from "../types";
 
 const english = {
+  midiCC: "MIDI CC", midiUnavailable: "No MIDI channel", midiHelp: "Receive CC 1–50 on this instrument’s channel. Saved with this performance. Changes apply to new notes; the engine must be running.",
   type: "Type", float: "Float", integer: "Integer", bool: "Bool", on: "On", off: "Off",
   increase: "Increase", decrease: "Decrease", reset: "Reset to patch default",
   invalidType: "Choose Float, Integer or Bool.", linearOnly: "Integer and Bool controllers require linear scale.",
@@ -16,13 +17,14 @@ const english = {
   labelRequired: "Enter a label of 1–128 characters.", invalid: "Invalid controller configuration. Edit the patch to correct it.",
   help: "Drag vertically or use arrow keys; Shift adjusts finely. Double-click to reset to the patch default. Changes apply to new notes. Save Performance stores your settings.",
   continuous: "Changes take effect after restarting the rack for continuous instruments.",
-  reconciled: "Controller settings were adjusted to match the updated patch types, ranges or removed controllers.",
+  reconciled: "Controller values and MIDI assignments were adjusted for changed types or ranges, removed controllers, or a missing MIDI channel.",
   sync: "Performance controller update failed", retry: "Retry"
 };
 type Copy = Record<keyof typeof english, string>;
 const copies: Record<GuiLanguage, Copy> = {
   english,
   german: {
+    midiCC: "MIDI CC", midiUnavailable: "Kein MIDI-Kanal", midiHelp: "CC 1–50 auf dem Kanal dieses Instruments empfangen. Wird in dieser Performance gespeichert. Gilt für neue Noten bei laufender Engine.",
     type: "Typ", float: "Fließkomma", integer: "Ganzzahl", bool: "Bool", on: "Ein", off: "Aus",
     increase: "Erhöhen", decrease: "Verringern", reset: "Auf Patch-Standard zurücksetzen",
     invalidType: "Fließkomma, Ganzzahl oder Bool wählen.", linearOnly: "Ganzzahl- und Bool-Regler benötigen eine lineare Skala.",
@@ -38,10 +40,11 @@ const copies: Record<GuiLanguage, Copy> = {
     labelRequired: "Eine Beschriftung mit 1–128 Zeichen eingeben.", invalid: "Ungültige Reglerkonfiguration. Bitte im Patch korrigieren.",
     help: "Vertikal ziehen oder Pfeiltasten verwenden; Umschalt erlaubt Feineinstellung. Doppelklick setzt auf den Patch-Standard zurück. Änderungen gelten für neue Noten. Performance speichern sichert die Einstellungen.",
     continuous: "Bei kontinuierlichen Instrumenten gelten Änderungen nach einem Neustart des Racks.",
-    reconciled: "Reglereinstellungen wurden an geänderte Typen, Wertebereiche oder entfernte Regler im Patch angepasst.",
+    reconciled: "Reglerwerte und MIDI-Zuweisungen wurden an geänderte Typen oder Wertebereiche, entfernte Regler oder einen fehlenden MIDI-Kanal angepasst.",
     sync: "Performance-Regler konnte nicht aktualisiert werden", retry: "Erneut versuchen"
   },
   french: {
+    midiCC: "MIDI CC", midiUnavailable: "Aucun canal MIDI", midiHelp: "Recevoir les CC 1–50 sur le canal de cet instrument. Enregistré avec cette performance. Applicable aux nouvelles notes lorsque le moteur fonctionne.",
     type: "Type", float: "Décimal", integer: "Entier", bool: "Booléen", on: "Activé", off: "Désactivé",
     increase: "Augmenter", decrease: "Diminuer", reset: "Rétablir la valeur du patch",
     invalidType: "Choisissez Décimal, Entier ou Booléen.", linearOnly: "Les réglages entiers et booléens exigent une échelle linéaire.",
@@ -57,10 +60,11 @@ const copies: Record<GuiLanguage, Copy> = {
     labelRequired: "Saisissez un libellé de 1 à 128 caractères.", invalid: "Configuration invalide. Corrigez le réglage dans le patch.",
     help: "Glissez verticalement ou utilisez les flèches ; Maj permet un réglage fin. Double-cliquez pour rétablir la valeur par défaut du patch. Les changements concernent les nouvelles notes. Enregistrer la performance conserve vos réglages.",
     continuous: "Pour les instruments continus, les changements prennent effet après le redémarrage du rack.",
-    reconciled: "Les réglages ont été adaptés aux types ou plages modifiés et aux contrôleurs supprimés du patch.",
+    reconciled: "Les valeurs et affectations MIDI ont été adaptées aux types ou plages modifiés, aux contrôleurs supprimés ou à l’absence de canal MIDI.",
     sync: "Échec de la mise à jour du réglage de performance", retry: "Réessayer"
   },
   spanish: {
+    midiCC: "MIDI CC", midiUnavailable: "Sin canal MIDI", midiHelp: "Recibir CC 1–50 en el canal de este instrumento. Se guarda con esta interpretación. Se aplica a notas nuevas con el motor en marcha.",
     type: "Tipo", float: "Decimal", integer: "Entero", bool: "Booleano", on: "Activado", off: "Desactivado",
     increase: "Aumentar", decrease: "Disminuir", reset: "Restablecer el valor del patch",
     invalidType: "Elija Decimal, Entero o Booleano.", linearOnly: "Los controles enteros y booleanos requieren una escala lineal.",
@@ -76,7 +80,7 @@ const copies: Record<GuiLanguage, Copy> = {
     labelRequired: "Introduzca una etiqueta de 1 a 128 caracteres.", invalid: "Configuración no válida. Corríjala en el patch.",
     help: "Arrastre verticalmente o use las flechas; Mayús permite un ajuste fino. Haga doble clic para restablecer el valor del patch. Los cambios se aplican a las notas nuevas. Guardar interpretación conserva los ajustes.",
     continuous: "En instrumentos continuos, los cambios se aplican después de reiniciar el rack.",
-    reconciled: "Los ajustes se adaptaron a los tipos o rangos modificados y controles eliminados del patch.",
+    reconciled: "Los valores y asignaciones MIDI se adaptaron a los tipos o rangos modificados, controles eliminados o la ausencia de canal MIDI.",
     sync: "No se pudo actualizar el control de interpretación", retry: "Reintentar"
   }
 };

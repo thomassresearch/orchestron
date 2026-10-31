@@ -10,6 +10,12 @@ from backend.tools.goa_lead_audio import CUTOFF_ID, Q_ID, SAVED_VALUES, render
 FILTERS = ("f7a78046-4533-4b1b-b6e6-9e93bfaefe68", "c6aada3f-f49d-409f-8055-730cbf5f17ab")
 
 
+@pytest.fixture(autouse=True)
+def native_engine(monkeypatch):
+    # API tests select the mock engine globally; these audio probes need native MIDI callbacks.
+    monkeypatch.delenv("VISUALCSOUND_FORCE_MOCK_ENGINE", raising=False)
+
+
 def evaluate(config, **values):
     expression = render_formula_expression(config["expression"], {key: key for key in values}, "stability probe")
     return eval(expression, {"__builtins__": {}, "abs": np.abs}, values)

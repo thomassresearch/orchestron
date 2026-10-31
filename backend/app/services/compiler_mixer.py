@@ -27,7 +27,7 @@ from backend.app.services.audio_port_names import audio_port_names
 from backend.app.services.audio_routing_service import resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError, CompilationProfile
 from backend.app.services.compiler_graph import compile_graph_context, resolve_shared_engine, validate_target_channels
-from backend.app.services.performance_controller_service import controller_bindings
+from backend.app.services.performance_controller_service import controller_bindings, controller_setter_lines
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.internal_master import MASTER, internal_master_target
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines
@@ -529,10 +529,11 @@ def compile_mixer_bundle(
     if not live_mixer:
         manifest["meters"] = {}
     legato_ids = [identity for identity, target in resolved.by_id.items() if identity not in omitted and has_legato(target.patch)]
+    setter_count = int(not live_mixer and any(t.performance_controller_midi_ccs for t in targets if t.assignment_id not in omitted))
     listener_count = int(bool(legato_ids) and performance_input_mode != "score")
-    legato_refs = {identity: str(index) for index, identity in enumerate(legato_ids, 1 + listener_count)}
-    if legato_refs:
-        manifest["instrumentReferences"] = {identity: str(int(ref) + len(legato_refs) + listener_count)
+    legato_refs = {identity: str(index) for index, identity in enumerate(legato_ids, 1 + listener_count + setter_count)}
+    if legato_refs or setter_count:
+        manifest["instrumentReferences"] = {identity: str(int(ref) + len(legato_refs) + listener_count + setter_count)
                                             for identity, ref in manifest["instrumentReferences"].items()}
         manifest["noteInstrumentReferences"] = {**manifest["instrumentReferences"], **legato_refs}
         manifest["legatoInstanceIds"] = list(legato_refs)
@@ -552,6 +553,8 @@ def compile_mixer_bundle(
         *([RAMP_OPCODE] if live_mixer else []),
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
+    if setter_count:
+        header += controller_setter_lines({t.assignment_id: controller_bindings(t, t.assignment_id) for t in targets if t.assignment_id not in omitted})
     header += waveguide_header([target for target in targets if target.assignment_id not in omitted])
     header += granular_header([target for target in targets if target.assignment_id not in omitted])
     header += swept_gate_header([target for target in targets if target.assignment_id not in omitted])
@@ -564,7 +567,7 @@ def compile_mixer_bundle(
         for identity, ref in legato_refs.items():
             header += collector_lines(identity, int(ref), performance_input_mode)
         if listener_count:
-            header += panic_listener_lines([(identity, resolved.by_id[identity].midi_channel) for identity in legato_ids])
+            header += panic_listener_lines([(identity, resolved.by_id[identity].midi_channel) for identity in legato_ids], instrument_number=1 + setter_count)
     if performance_input_mode == "score":
         header += emitter.score_controller_header_lines()
     else:

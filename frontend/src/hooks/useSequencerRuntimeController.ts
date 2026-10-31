@@ -733,6 +733,7 @@ export function useSequencerRuntimeController({
 
       nextSocket.onopen = () => {
         reconnectAttempts = 0;
+        void useAppStore.getState().refreshPerformanceControllers(sessionId).catch(() => undefined);
         sendHeartbeat();
         heartbeatTimer = window.setInterval(sendHeartbeat, 2000);
         if (effectiveAudioOutputModeRef.current !== "browser_clock" && sequencerRef.current.isPlaying) {
@@ -751,6 +752,10 @@ export function useSequencerRuntimeController({
       nextSocket.onmessage = (message) => {
         try {
           const parsed = JSON.parse(message.data) as SessionEvent;
+          if (parsed.type === "performance_controllers") {
+            useAppStore.getState().receivePerformanceControllers(sessionId, parsed.payload as unknown as Record<string, import("../types").PerformanceControllerSnapshot>);
+            return;
+          }
           if (shouldLogSessionEvent(parsed.type)) {
             pushEvent(parsed);
           }

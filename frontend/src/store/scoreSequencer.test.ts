@@ -53,7 +53,7 @@ it("separates editing, sounding, queued and saved starting pads", () => {
 it("round trips v21, app-state v4 and native bundles with independent notes and stable IDs", () => {
   load(); const s = useAppStore.getState();
   const snapshot = s.buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(21);
+  expect(snapshot.version).toBe(22);
   const exported = buildPerformanceExportPayload({ snapshot, selectedPatches: [], performanceName: "Score", performanceDescription: "" });
   const restored = parsePerformanceExportPayload(JSON.parse(JSON.stringify(exported.payload)))!;
   s.applySequencerConfigSnapshot(restored.performance.config);

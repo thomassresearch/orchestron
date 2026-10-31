@@ -61,7 +61,7 @@ it("round trips v20 and legacy defaults through native bundles and app-state v3"
   s.setControllerSequencerResetValue(id, fixture.controller_tracks[0].reset_value);
   fixture.controller_tracks[0].pads[0].steps.forEach((v, index) => s.setControllerSequencerStep(id, index, v));
   const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();
-  expect(snapshot.version).toBe(21);
+  expect(snapshot.version).toBe(22);
   const native = buildPerformanceExportPayload({ snapshot, selectedPatches: [], performanceName: "Steps", performanceDescription: "" });
   const restored = parsePerformanceExportPayload(JSON.parse(JSON.stringify(native.payload)))!;
   s.applySequencerConfigSnapshot(restored.performance.config);

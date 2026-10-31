@@ -216,6 +216,8 @@ export const api = {
       body: JSON.stringify({ instruments, audio_graph, mixer })
     }),
   createPreview: (payload: { patches: Patch[]; session: { instruments: SessionInstrumentAssignment[]; audio_graph: AudioGraph; mixer: MixerState } }) => request<SessionCreateResponse>("/sessions/preview", { method: "POST", body: JSON.stringify(payload) }),
+  getPerformanceControllers: (id: string) => request<Record<string, import("../types").PerformanceControllerSnapshot>>(`/sessions/${id}/performance-controllers`),
+  patchPerformanceControllers: (id: string, assignment: string, delta: import("../types").PerformanceControllerDelta) => request<import("../types").PerformanceControllerSnapshot>(`/sessions/${id}/instruments/${encodeURIComponent(assignment)}/performance-controllers`, { method: "PATCH", body: JSON.stringify(delta) }),
   updatePerformanceControllers: (id: string, assignmentId: string, values: Record<string, number>) =>
     request<{ values: Record<string, number> }>(`/sessions/${encodeURIComponent(id)}/instruments/${encodeURIComponent(assignmentId)}/performance-controllers`, { method: "PUT", body: JSON.stringify({ values }) }),
   getMixer: (id: string) => request<MixerResponse>(`/sessions/${id}/mixer`),

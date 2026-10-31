@@ -6,7 +6,7 @@ import { emptyArrangerHistory, readArrangerHistory, type ArrangerHistory } from 
 import { normalizeTimingOffset } from "../lib/sequencer";
 import { normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { instrumentMetadata } from "../lib/instrumentTypes";
-import { normalizeControllerValues, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
+import { normalizeControllerValues, normalizeControllerMidiCCs, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
 import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
 import type { AudioGraph, MixerState } from "../types";
@@ -2395,6 +2395,7 @@ export function normalizePersistedSequencerInstruments(
       bindings.push({
         id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
         patchId: candidate.patchId,
+        ...(Object.keys(normalizeControllerMidiCCs(candidate.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(candidate.performanceControllerMidiCCs) } : {}),
         performanceControllerValues: normalizeControllerValues(candidate.performanceControllerValues),
         midiChannel,
         level: normalizeInstrumentLevel(candidate.level),
@@ -2970,7 +2971,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 21,
+    version: 22,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -2980,6 +2981,7 @@ export function buildSequencerConfigSnapshot(
         patchId: instrument.patchId,
         id: instrument.id,
         midiChannel: clampInt(instrument.midiChannel, 0, 16),
+        ...(Object.keys(normalizeControllerMidiCCs(instrument.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(instrument.performanceControllerMidiCCs) } : {}),
         performanceControllerValues: normalizeControllerValues(instrument.performanceControllerValues)
       })),
     sequencer: {
@@ -3196,7 +3198,8 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 18 &&
     payload.version !== 19 &&
     payload.version !== 20 &&
-    payload.version !== 21
+    payload.version !== 21 &&
+    payload.version !== 22
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
@@ -3224,7 +3227,8 @@ export function parseSequencerConfigSnapshot(
     instruments.push({
       id: typeof record.id === "string" && record.id.length > 0 ? record.id : crypto.randomUUID(),
       patchId: record.patchId,
-      performanceControllerValues: normalizeControllerValues(record.performanceControllerValues),
+      ...(Object.keys(normalizeControllerMidiCCs(record.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(record.performanceControllerMidiCCs) } : {}),
+        performanceControllerValues: normalizeControllerValues(record.performanceControllerValues),
       midiChannel,
       level: normalizeInstrumentLevel(record.level),
       effectSourceIds: normalizeEffectSourceIds(record.effectSourceIds),
@@ -3279,6 +3283,7 @@ export function normalizeSessionInstrumentAssignments(
       id: binding.id,
       patch_id: binding.patchId,
       performance_controller_values: normalizeControllerValues(binding.performanceControllerValues),
+      performance_controller_midi_ccs: normalizeControllerMidiCCs(binding.performanceControllerMidiCCs),
       midi_channel: midiChannel,
 
     });

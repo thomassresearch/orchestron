@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { controllerConfigurationError, controllerDefaults, normalizeControllerValue, controllerPosition, controllerTicks, controllerValue, performanceControllersForGraph, reconcileControllerValues } from "./performanceControllers";
+import { controllerConfigurationError, controllerDefaults, controllerMidiValue, normalizeControllerMidiCCs, normalizeControllerValue, controllerPosition, controllerTicks, controllerValue, performanceControllersForGraph, reconcileControllerValues } from "./performanceControllers";
 import { audioTemplate } from "./audioTemplates";
 import { cleanBindings, emptyAudioGraph, emptyMixer } from "./audioRouting";
 import { remapSnapshotPatchIds, toPatchListItem } from "./patchCatalog";
@@ -61,7 +61,7 @@ describe("instance override persistence", () => {
   it("round-trips snapshots, app state, sessions, and import ID remapping independently per instance", () => {
     const bindings = [{ ...binding, performanceControllerValues: { attack: 0.3 } }, { ...binding, id: "two", midiChannel: 2, performanceControllerValues: { attack: 2.7 } }];
     const snapshot = buildSequencerConfigSnapshot(defaultSequencerState(), bindings, emptyAudioGraph(), emptyMixer());
-    expect(snapshot.version).toBe(21);
+    expect(snapshot.version).toBe(22);
     expect(parseSequencerConfigSnapshot(JSON.parse(JSON.stringify(snapshot)), [patch], null).instruments.map((item) => item.performanceControllerValues)).toEqual([{ attack: 0.3 }, { attack: 2.7 }]);
     expect(normalizePersistedSequencerInstruments(cleanBindings(bindings), [patch], null).map((item) => item.performanceControllerValues)).toEqual([{ attack: 0.3 }, { attack: 2.7 }]);
     const assignments = normalizeSessionInstrumentAssignments(bindings);
@@ -117,4 +117,24 @@ describe("discrete controller types", () => {
     const snapshot = buildSequencerConfigSnapshot(defaultSequencerState(), [result], emptyAudioGraph(), emptyMixer());
     expect(parseSequencerConfigSnapshot(JSON.parse(JSON.stringify(snapshot)), [typedPatch], null).instruments[0].performanceControllerValues).toEqual({ count: -1, enabled: 1 });
   });
+});
+
+it("keeps MIDI assignments local through snapshots and removes obsolete mappings", () => {
+  const configured = { ...binding, performanceControllerMidiCCs: { attack: 21, removed: 50 } };
+  const reconciled = reconcileControllerValues(configured, [definition]);
+  expect(reconciled.performanceControllerMidiCCs).toEqual({ attack: 21 });
+  const snapshot = buildSequencerConfigSnapshot(defaultSequencerState(), [reconciled], emptyAudioGraph(), emptyMixer());
+  expect(parseSequencerConfigSnapshot(snapshot, [patch], null).instruments[0].performanceControllerMidiCCs).toEqual({ attack: 21 });
+  expect(reconcileControllerValues({ ...configured, midiChannel: 0 }, [definition]).performanceControllerMidiCCs).toEqual({});
+});
+
+it("maps MIDI endpoints, logarithmic values, integer ties and bool thresholds", () => {
+  expect(controllerMidiValue(0, definition)).toBe(.01);
+  expect(controllerMidiValue(127, definition)).toBe(10);
+  expect(controllerMidiValue(63.5, definition)).toBeCloseTo(Math.sqrt(.1), 12);
+  const integer = { ...controllerDefaults("integer"), node_id: "n", min: -2, max: -1 };
+  expect(controllerMidiValue(63.5, integer)).toBe(-1);
+  const bool = { ...controllerDefaults("bool"), node_id: "b" };
+  expect([0, 63, 64, 127].map(value => controllerMidiValue(value, bool))).toEqual([0, 0, 1, 1]);
+  expect(normalizeControllerMidiCCs({ first: 1, last: 50, zero: 0, high: 51, fraction: 1.5, string: "21", bool: true })).toEqual({ first: 1, last: 50 });
 });

@@ -22,7 +22,7 @@ from urllib import error, parse, request
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
 SESSION_DIR = Path(".orchestron")
 SESSION_FILE = SESSION_DIR / "edit-session.json"
-CURRENT_CONFIG_VERSION = 21
+CURRENT_CONFIG_VERSION = 22
 DEFAULT_PAD_COUNT = 8
 MAX_STEPS_PER_PAD = 128
 PAD_LOOP_PAUSE_BEATS = {1, 2, 4, 8, 16, 32}
@@ -1928,6 +1928,14 @@ def normalize_performance_config(
             field=f"config.instruments[{index}].midiChannel",
         )
         instrument["midiChannel"] = channel
+        ccs = performance_controller_midi_ccs(instrument.get("performanceControllerMidiCCs", {}))
+        if always_on:
+            ccs = {}
+        elif patch is not None:
+            ids = {d["node_id"] for d in patch.get("performance_controllers", [])}
+            ccs = {node: cc for node, cc in ccs.items() if node in ids}
+        if ccs or "performanceControllerMidiCCs" in instrument:
+            instrument["performanceControllerMidiCCs"] = ccs
         raw_id = instrument.get("id")
         assignment_id = raw_id.strip() if isinstance(raw_id, str) else ""
         if not assignment_id or assignment_id in used_ids:
@@ -2180,6 +2188,7 @@ def clear_effect_routes_for_target(config: dict[str, Any], *, target_id: str) ->
 def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, Any]]:
     if "audioGraph" in config:
         return [{"id": i.get("id"), "patch_id": i.get("patchId"), "midi_channel": int(i.get("midiChannel", 1)),
+                 "performance_controller_midi_ccs": performance_controller_midi_ccs(i.get("performanceControllerMidiCCs", {})),
                  "performance_controller_values": performance_controller_values(i.get("performanceControllerValues", {}))} for i in config_instruments(config)]
     assignments: list[dict[str, Any]] = []
     for instrument in config_instruments(config):
@@ -2190,6 +2199,7 @@ def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, An
                 "patch_id": instrument.get("patchId"),
                 "midi_channel": int(instrument.get("midiChannel", 1)),
                 "performance_controller_values": performance_controller_values(instrument.get("performanceControllerValues", {})),
+                "performance_controller_midi_ccs": performance_controller_midi_ccs(instrument.get("performanceControllerMidiCCs", {})),
                 "effect_source_ids": source_ids_from_routes(routes),
                 "effect_routes": [
                     {"source_id": route["sourceId"], "channel": route["channel"]}
@@ -4794,6 +4804,7 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
                 "midiChannel": instrument.get("midiChannel"),
                 "performanceControllers": patch.get("performance_controllers", []),
                 "performanceControllerValues": instrument.get("performanceControllerValues", {}),
+                "performanceControllerMidiCCs": instrument.get("performanceControllerMidiCCs", {}),
                 "gainDb": config["mixer"]["strips"].get(binding_id, {}).get("gainDb", 0),
                 "audioInlets": patch_audio_port_names(patch, opcode="inleta"),
                 "audioOutlets": patch_audio_port_names(patch, opcode="outleta"),
@@ -4816,6 +4827,12 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
         ctx,
         detail_columns=[("audioInlets", "Audio inlets"), ("audioOutputs", "Audio outputs")],
     )
+
+
+def performance_controller_midi_ccs(raw: Any) -> dict[str, int]:
+    if not isinstance(raw, dict) or any(not isinstance(node, str) or type(cc) is not int or not 1 <= cc <= 50 for node, cc in raw.items()):
+        raise OrchestronCliError("invalid_performance_controller", "MIDI CC assignments must be integers from 1 to 50.")
+    return dict(raw)
 
 
 def performance_controller_values(raw: Any) -> dict[str, float]:

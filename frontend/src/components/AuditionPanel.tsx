@@ -55,7 +55,7 @@ export function AuditionPanel({ stopPerformance, buildConfig }: { stopPerformanc
         if (!chosen) throw new Error(t("inPerformance") + ": " + t("source"));
         const row = bindings.find((b) => b.id === chosen); if (!row) throw new Error(t("missing"));
         const previewBindings = bindings.map((binding) => binding.id === chosen
-          ? reconcileControllerValues({ ...binding, performanceControllerValues: binding.patchId === draft.id ? binding.performanceControllerValues : {} }, performanceControllersForGraph(patch.graph)) : binding);
+          ? reconcileControllerValues({ ...binding, performanceControllerValues: binding.patchId === draft.id ? binding.performanceControllerValues : {}, performanceControllerMidiCCs: binding.patchId === draft.id ? binding.performanceControllerMidiCCs : {} }, performanceControllersForGraph(patch.graph)) : binding);
         assignments = normalizeSessionInstrumentAssignments(previewBindings).map((b) => ({ ...b, id: b.id!, patch_id: b.id === chosen ? patch.id : b.patch_id, midi_channel: b.id === chosen ? patch.always_on ? 0 : row.midiChannel || 1 : b.midi_channel }));
         graph = structuredClone(state.audioGraph); mixer = structuredClone(state.mixer); config = buildConfig(structuredClone(state.sequencer));
         for (const controller of state.sequencer.midiControllers.filter((c) => c.enabled)) {

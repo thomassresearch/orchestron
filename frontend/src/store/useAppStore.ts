@@ -176,6 +176,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     performanceDescription: "",
 
     activeSessionId: null,
+    activeSessionWorkspaceGeneration: 0,
     activeSessionState: "idle",
     activeMidiInput: null,
     activeSessionInstruments: [],
@@ -863,15 +864,18 @@ export const useAppStore = create<AppStore>((set, get) => {
       const generation = sessionRequestGeneration;
       const task = (async () => {
         const requestedBindings = get().sequencerInstruments;
+        const workspaceGeneration = get().performanceWorkspaceGeneration;
         const requestedAssignments = normalizeSessionInstrumentAssignments(requestedBindings);
         const audioSignature = JSON.stringify({ graph: get().audioGraph, patches: get().patches.map((p) => [p.id, p.updated_at]) });
         const setupIsCurrent = () => generation === sessionRequestGeneration &&
+          workspaceGeneration === get().performanceWorkspaceGeneration &&
           requestedBindings === get().sequencerInstruments &&
           audioSignature === JSON.stringify({ graph: get().audioGraph, patches: get().patches.map(p => [p.id, p.updated_at]) });
         const sameAudio = get().activeSessionAudioSignature === audioSignature;
+        const sameWorkspace = get().activeSessionWorkspaceGeneration === workspaceGeneration;
         let sessionId = get().activeSessionId;
 
-        if (sessionId && sameAudio && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
+        if (sessionId && sameWorkspace && sameAudio && sameAssignments(requestedAssignments, get().activeSessionInstruments)) {
           try {
             await api.getSession(sessionId);
             await get().flushMixer();
@@ -893,7 +897,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           }
         }
 
-        if (sessionId && (!sameAudio || !sameAssignments(requestedAssignments, get().activeSessionInstruments))) {
+        if (sessionId && (!sameWorkspace || !sameAudio || !sameAssignments(requestedAssignments, get().activeSessionInstruments))) {
           try {
             await api.stopSession(sessionId);
           } catch {
@@ -943,6 +947,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         }
         set({
           activeSessionId: sessionId,
+          activeSessionWorkspaceGeneration: workspaceGeneration,
           activeSessionAudioSignature: audioSignature,
           activeSessionState: session.state,
           activeMidiInput: boundMidiInput,

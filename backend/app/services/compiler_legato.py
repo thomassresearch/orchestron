@@ -131,14 +131,14 @@ def collector_lines(identity: str, number: int, input_mode: str) -> list[str]:
     return lines
 
 
-def panic_listener_lines(identities_and_channels: list[tuple[str, int]]) -> list[str]:
+def panic_listener_lines(identities_and_channels: list[tuple[str, int]], instrument_number: int = 1) -> list[str]:
     """Csound handles CC123 natively but needs explicit CC120 handling.
 
     Count raw note-ons in the same order as automatic MIDI allocation. A panic
     cancels only preceding notes, so a following note-on at this very boundary
     survives. The observer precedes collectors and never emits audio.
     """
-    lines = ["alwayson 1", "instr 1", "VCS_LEGATO_MIDI:", " kStatus, kChannel, kData1, kData2 midiin"]
+    lines = [f"alwayson {instrument_number}", f"instr {instrument_number}", "VCS_LEGATO_MIDI:", " kStatus, kChannel, kData1, kData2 midiin"]
     for identity, channel in identities_and_channels:
         prefix = state_prefix(identity)
         condition = "kChannel > 0" if channel == 0 else f"kChannel == {channel}"

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
 from backend.app.models.audio import MixerUpdate
-from backend.app.models.performance_controller import PerformanceControllerUpdate
+from backend.app.models.performance_controller import PerformanceControllerUpdate, PerformanceControllerDelta
 from backend.app.models.patch import PatchDocument
 from pydantic import BaseModel, Field, model_validator
 from backend.app.models.session import (
@@ -62,6 +62,22 @@ async def get_mixer(session_id: str, container: AppContainer = Depends(get_conta
 @router.put("/{session_id}/mixer")
 async def update_mixer(session_id: str, request_body: MixerUpdate, container: AppContainer = Depends(get_container)):
     return await container.session_service.update_mixer(session_id, request_body)
+
+
+@router.get("/{session_id}/performance-controllers")
+async def get_all_performance_controllers(session_id: str, container: AppContainer = Depends(get_container)):
+    return await container.session_service.get_performance_controllers(session_id)
+
+
+@router.get("/{session_id}/instruments/{assignment_id}/performance-controllers")
+async def get_performance_controllers(session_id: str, assignment_id: str, container: AppContainer = Depends(get_container)):
+    return await container.session_service.get_performance_controllers(session_id, assignment_id)
+
+
+@router.patch("/{session_id}/instruments/{assignment_id}/performance-controllers")
+async def patch_performance_controllers(session_id: str, assignment_id: str,
+        request_body: PerformanceControllerDelta, container: AppContainer = Depends(get_container)):
+    return await container.session_service.patch_performance_controllers(session_id, assignment_id, request_body)
 
 
 @router.put("/{session_id}/instruments/{assignment_id}/performance-controllers", response_model=PerformanceControllerUpdate)

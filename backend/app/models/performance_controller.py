@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, model_validator
 
 ControllerNumber = Annotated[float, Field(strict=True, allow_inf_nan=False)]
+PerformanceMidiCC = Annotated[int, Field(strict=True, ge=1, le=50)]
 MAX_SAFE_INTEGER = 2**53 - 1
 
 
@@ -50,3 +51,10 @@ class PerformanceControllerDefinition(BaseModel):
 
 class PerformanceControllerUpdate(BaseModel):
     values: dict[str, ControllerNumber] = Field(default_factory=dict)
+
+
+class PerformanceControllerDelta(BaseModel):
+    values: dict[str, ControllerNumber | None] = Field(default_factory=dict)
+    midi_ccs: dict[str, PerformanceMidiCC | None] = Field(default_factory=dict)
+    revisions: dict[str, Annotated[int, Field(strict=True, ge=0)]] = Field(default_factory=dict)
+    midi_revisions: dict[str, Annotated[int, Field(strict=True, ge=0)]] = Field(default_factory=dict)

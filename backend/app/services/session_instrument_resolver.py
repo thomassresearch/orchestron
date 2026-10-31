@@ -12,6 +12,7 @@ from backend.app.models.session import (
 )
 from backend.app.services.audio_routing_service import ResolvedAudioRoute, resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError, PatchInstrumentTarget
+from backend.app.services.performance_controller_service import controller_definitions, validate_controller_midi_ccs
 
 
 class PatchDocumentLookup(Protocol):
@@ -41,6 +42,12 @@ class SessionInstrumentResolver:
 
         for index, assignment in enumerate(instruments):
             patch = self._runtime_patch(assignment.patch_id)
+            if assignment.performance_controller_midi_ccs:
+                try:
+                    validate_controller_midi_ccs(controller_definitions(patch.graph),
+                        assignment.performance_controller_midi_ccs, 0 if patch.always_on else assignment.midi_channel)
+                except CompilationError as error:
+                    raise HTTPException(status_code=422, detail=error.detail()) from error
             assignment_id = assignment.id or f"rack-{index + 1}"
             if patch.always_on:
                 effect_routes = self._unique_effect_routes(
@@ -58,6 +65,7 @@ class SessionInstrumentResolver:
                     SessionInstrumentAssignment(
                         id=assignment_id,
                         performance_controller_values=assignment.performance_controller_values,
+                        performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
                         patch_id=assignment.patch_id,
                         midi_channel=0,
                         effect_source_ids=source_ids,
@@ -88,6 +96,7 @@ class SessionInstrumentResolver:
                     id=assignment_id,
                     patch_id=assignment.patch_id,
                     performance_controller_values=assignment.performance_controller_values,
+                    performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
                     midi_channel=midi_channel,
                     effect_source_ids=[],
                     effect_routes=[],
@@ -105,6 +114,7 @@ class SessionInstrumentResolver:
             midi_channel=0 if patch.always_on else assignment.midi_channel,
             assignment_id=assignment.id,
             performance_controller_values=assignment.performance_controller_values,
+            performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
             always_on=patch.always_on,
             effect_source_ids=tuple(assignment.effect_source_ids if patch.always_on else []),
             effect_routes=tuple(

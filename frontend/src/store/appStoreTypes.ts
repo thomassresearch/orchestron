@@ -87,6 +87,7 @@ export interface AppStore {
   mixer: MixerState;
   migrationNotice: boolean;
   activeSessionAudioSignature: string;
+  activeSessionWorkspaceGeneration: number;
   mixerSyncError: string | null;
   setAudioGraph: (graph: AudioGraph) => void;
   setMixerStrip: (id: string, update: Partial<MixerStrip>) => void;
@@ -95,6 +96,9 @@ export interface AppStore {
   performanceControllerSyncError: string | null;
   setPerformanceControllerValue: (bindingId: string, nodeId: string, value: number | null) => void;
   flushPerformanceControllers: () => Promise<void>;
+  setPerformanceControllerMidiCC: (bindingId: string, nodeId: string, cc: number | null) => void;
+  receivePerformanceControllers: (sessionId: string, snapshots: Record<string, import("../types").PerformanceControllerSnapshot>) => void;
+  refreshPerformanceControllers: (sessionId: string) => Promise<void>;
   ensureMaster: () => string;
 
   currentPerformanceId: string | null;

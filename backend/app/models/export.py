@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.app.models.performance_controller import ControllerNumber
+from backend.app.models.performance_controller import ControllerNumber, PerformanceMidiCC
 
 from backend.app.models.audio import AudioGraph, MixerState
 
@@ -65,6 +65,7 @@ class ExportPerformanceEffectRoute(BaseModel):
 
 class ExportPerformanceInstrumentAssignment(BaseModel):
     performance_controller_values: dict[str, ControllerNumber] = Field(default_factory=dict, alias="performanceControllerValues")
+    performance_controller_midi_ccs: dict[str, PerformanceMidiCC] = Field(default_factory=dict, alias="performanceControllerMidiCCs")
     id: str | None = Field(default=None, min_length=1, max_length=128)
     patch_id: str = Field(alias="patchId", min_length=1)
     patch_name: str | None = Field(default=None, alias="patchName")
@@ -89,7 +90,7 @@ class ExportPerformanceConfig(BaseModel):
 
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=21)
+    version: int = Field(default=1, ge=1, le=22)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -212,11 +213,17 @@ class PerformanceCsdExportRequest(BaseModel):
         playback_end_subunit = (
             self.sequencer_config.playback_start_step + max(1, int(playback_steps))
         ) * _OFFLINE_TRANSPORT_SUBUNITS_PER_STEP
-        event_count = len({
+        mapped_pairs = {}
+        for assignment in self.performance_export.performance.config.instruments:
+            for cc in assignment.performance_controller_midi_ccs.values():
+                pair = (assignment.midi_channel, cc)
+                mapped_pairs[pair] = mapped_pairs.get(pair, 0) + 1
+        initial_pairs = {
             (channel, controller.controller_number)
             for controller in self.midi_controllers if controller.enabled
             for channel in controller.target_channels
-        })
+        }
+        event_count = sum(1 + mapped_pairs.get(pair, 0) for pair in initial_pairs)
         note_activity_events: dict[int, list[tuple[int, str, tuple[int, ...]]]] = {}
         note_event_counts: dict[int, int] = {}
         arpeggiator_input_channels = {
@@ -252,6 +259,13 @@ class PerformanceCsdExportRequest(BaseModel):
                 playback_start_subunit=playback_start_subunit,
                 playback_end_subunit=playback_end_subunit,
             )
+            for channel in set(track.target_channels or fallback_channels):
+                extra = mapped_pairs.get((channel, track.controller_number), 0)
+                if extra:
+                    event_count += extra * _estimate_controller_track_events(
+                        track.model_copy(update={"target_channels": [channel]}),
+                        fallback_channels={channel}, consumed_input_channels=arpeggiator_input_channels,
+                        playback_start_subunit=playback_start_subunit, playback_end_subunit=playback_end_subunit)
             if event_count > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
                 return event_count
 

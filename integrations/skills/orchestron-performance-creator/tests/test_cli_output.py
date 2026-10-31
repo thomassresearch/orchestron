@@ -58,11 +58,27 @@ def test_controller_values_survive_normalization_runtime_and_patch_id_remap(vers
     config, patches = _controller_fixture()
     config["version"] = version
     restored = normalize_performance_config(json.loads(json.dumps(config)), patches)
-    assert restored["version"] == 21
+    assert restored["version"] == 22
     assignments = orchestron_cli.session_assignments_from_config(restored)
     assert [a["performance_controller_values"] for a in assignments] == [{"attack": 0.04}, {"attack": 1.2}]
     remapped = orchestron_cli.remap_snapshot_patch_ids(restored, {"patch": "copy"}, [{**patches[0], "id": "copy"}])
     assert [(a["patchId"], a["performanceControllerValues"]) for a in remapped["instruments"]] == [("copy", {"attack": 0.04}), ("copy", {"attack": 1.2})]
+
+
+def test_controller_midi_assignments_round_trip_and_reconcile():
+    config, patches = _controller_fixture()
+    config["instruments"][0]["performanceControllerMidiCCs"] = {"attack": 21, "deleted": 22}
+    config["instruments"][1]["performanceControllerMidiCCs"] = {"attack": 50}
+    restored = normalize_performance_config(json.loads(json.dumps(config)), patches)
+    assert restored["version"] == 22
+    assert [a["performance_controller_midi_ccs"] for a in orchestron_cli.session_assignments_from_config(restored)] == [{"attack": 21}, {"attack": 50}]
+    remapped = orchestron_cli.remap_snapshot_patch_ids(restored, {"patch": "copy"}, [{**patches[0], "id": "copy"}])
+    assert remapped["instruments"][0]["performanceControllerMidiCCs"] == {"attack": 21}
+    continuous = normalize_performance_config(config, [{**patches[0], "always_on": True}])
+    assert all(not a["performanceControllerMidiCCs"] for a in continuous["instruments"])
+    for value in (0, 51, 1.5, True, "21"):
+        with pytest.raises(OrchestronCliError):
+            orchestron_cli.performance_controller_midi_ccs({"attack": value})
 
 
 def test_controller_commands_discover_set_reset_and_validate_without_losing_other_instances(tmp_path, monkeypatch, capsys):
@@ -378,7 +394,7 @@ def test_version_ten_normalization_expands_legacy_effect_sources() -> None:
 
     normalize_performance_config(config, patches)
 
-    assert config["version"] == 21
+    assert config["version"] == 22
     assert config["instruments"][0]["id"] == "instrument-1"
     assert config["instruments"][1]["midiChannel"] == 0
     assert [{"sourceId": r["sourceId"], "channel": r["sourcePort"]} for r in config["audioGraph"]["routes"]] == [
@@ -770,7 +786,7 @@ def test_controller_channel_defaults_and_roundtrip(version):
     del curve["targetChannels"]
     del manual["targetChannels"]
     normalized = normalize_performance_config(json.loads(json.dumps(config)), [])
-    assert normalized["version"] == 21
+    assert normalized["version"] == 22
     assert normalized["sequencer"]["midiControllers"][0]["targetChannels"] == list(range(1, 17))
     assert orchestron_cli.build_runtime_config(normalized)["controller_tracks"][0]["target_channels"] == list(range(1, 17))
     normalized["sequencer"]["controllerSequencers"][0]["targetChannels"] = [16, 1, 16, 0, True, "2"]
@@ -802,7 +818,7 @@ def test_arpeggiator_pad_migration_and_runtime_contract():
     assert wire["pads"][3]["length_beats"] == 7
     assert wire["pads"][3]["steps"][0]["ratchets"] == 3
     assert wire["pad_loop_sequence"] == [0]
-    assert normalize_performance_config(config, [])["version"] == 21
+    assert normalize_performance_config(config, [])["version"] == 22
 
 
 def test_note_offsets_survive_cli_normalization_and_runtime_conversion():
@@ -813,7 +829,7 @@ def test_note_offsets_survive_cli_normalization_and_runtime_conversion():
         "pads": [{"rows": [{"rowId": "snare", "steps": [{"active": True, "timingOffsetPercent": 25}]}]}]}]
     restored = normalize_performance_config(json.loads(json.dumps(config)), [])
     runtime = orchestron_cli.build_runtime_config(restored)
-    assert restored["version"] == 21
+    assert restored["version"] == 22
     assert runtime["tracks"][0]["pads"][0]["steps"][0]["timing_offset_percent"] == -20
     assert runtime["tracks"][1]["pads"][0]["steps"][0]["timing_offset_percent"] == 25
 
@@ -825,7 +841,7 @@ def test_drummer_ratchets_survive_cli_normalization_and_runtime_conversion():
             {'rowId': 'kick', 'steps': [{'active': True, 'velocity': 100, 'ratchets': 4, 'ratchetEndVelocity': 40}]}]}]
     }]}}
     result = normalize_performance_config(copy.deepcopy(performance), [])
-    assert result['version'] == 21
+    assert result['version'] == 22
     assert result['sequencer']['drummerTracks'] == performance['sequencer']['drummerTracks']
     runtime = orchestron_cli.build_runtime_config(result)
     assert runtime['tracks'][0]['pads'][0]['steps'][0] == {
@@ -841,7 +857,7 @@ def test_piano_roll_autochord_survives_cli_normalization_and_edit_session(tmp_pa
              {"id": "piano-2", "autoChordEnabled": False, "autoChordSize": 5}]
     config["sequencer"]["pianoRolls"] = rolls
     normalized = normalize_performance_config(copy.deepcopy(config), [])
-    assert normalized["version"] == 21
+    assert normalized["version"] == 22
     assert normalized["sequencer"]["pianoRolls"] == rolls
     session_file = tmp_path / "autochord.json"
     orchestron_cli.save_edit_session(session_file, {"config": normalized})

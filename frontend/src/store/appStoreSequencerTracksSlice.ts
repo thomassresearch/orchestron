@@ -221,6 +221,7 @@ export function createSequencerTrackStoreActions(
                   ...binding,
                   patchId,
                   performanceControllerValues: binding.patchId === patchId ? binding.performanceControllerValues : {},
+                  performanceControllerMidiCCs: binding.patchId === patchId ? binding.performanceControllerMidiCCs : {},
                   performanceControllerNotice: false,
                   midiChannel:
                     patch?.always_on === true

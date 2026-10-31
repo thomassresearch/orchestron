@@ -9213,3 +9213,31 @@ def test_performance_controller_types_api_and_running_definition_changes(tmp_pat
                                                     "performanceControllerValues": values}]}
         performance = client.post("/api/performances", json={"name": "Typed controllers", "config": config}).json()
         assert client.get(f'/api/performances/{performance["id"]}').json()["config"] == config
+
+
+def test_performance_controller_midi_assignment_api_and_revisions(tmp_path):
+    from backend.tests.csound_test_support import load_patch_fixture
+    patch = load_patch_fixture("performance_controller_midi")
+    with _client(tmp_path) as client:
+        saved = client.post("/api/patches", json=patch.model_dump(mode="json", by_alias=True)).json()
+        assert client.post("/api/sessions", json={"instruments": [{"id": "one", "patch_id": saved["id"],
+            "midi_channel": 1, "performance_controller_midi_ccs": {"unknown": 21}}]}).status_code == 422
+        created = client.post("/api/sessions", json={"instruments": [{"id": "one", "patch_id": saved["id"], "midi_channel": 1}]}).json()
+        session = created["session_id"]
+        endpoint = f"/api/sessions/{session}/instruments/one/performance-controllers"
+        snapshot = client.get(endpoint).json()
+        for invalid in [0, 51, 1.5, True, "21"]:
+            assert client.patch(endpoint, json={"midi_ccs": {"setting": invalid}, "revisions": snapshot["revisions"]}).status_code == 422
+        assert client.patch(endpoint, json={"midi_ccs": {"unknown": 1}}).status_code == 422
+        changed = client.patch(endpoint, json={"midi_ccs": {"setting": 21}, "revisions": snapshot["revisions"]})
+        assert changed.status_code == 200, changed.text
+        assert changed.json()["midi_ccs"] == {"setting": 21}
+        assert client.patch(endpoint, json={"values": {"setting": .3}, "revisions": snapshot["revisions"]}).status_code == 409
+        assert client.put(endpoint, json={"values": {"setting": .7}}).json() == {"values": {"setting": .7}}
+        assert client.get(endpoint).json()["midi_ccs"] == {"setting": 21}
+        assert client.post(f"/api/sessions/{session}/start").status_code == 200
+        snapshot = client.get(endpoint).json()
+        changed = client.patch(endpoint, json={"midi_ccs": {"setting": 50}, "revisions": snapshot["revisions"]})
+        assert changed.status_code == 200
+        assert client.get(f"/api/sessions/{session}").json()["state"] == "running"
+        assert client.get(f"/api/sessions/{session}/performance-controllers").json()["one"]["midi_ccs"] == {"setting": 50}

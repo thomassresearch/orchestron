@@ -92,6 +92,8 @@ Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compil
 
 Use up to **16 sequencers of each type**—melodic, score, drummer and controller—in one performance. Save/load, native bundles and autosave recovery preserve all of them, including their channels, patterns and arrangements.
 
+Assign **MIDI CC 1–50** to individual [performance controls](documentation/performance/performance_controllers.md#receive-midi-cc-in-a-performance) in the rack. Hardware MIDI, manual controller lanes and controller sequencers move their knobs, integer values and toggles on the channel selected at the top of the instrument’s rack slot. Assignments belong to the performance; new notes adopt the mapped values, and both CSD export modes preserve authored changes.
+
 Draw long, polyphonic passages in the **[Score Sequencer](documentation/performance/score_sequencers.md)**. Each of eight pads holds independent note durations and velocities on a scrollable, scale-highlighted score with a fixed piano keyboard. Add chords, edit with snapping and undo, and grow a score to cover a whole performance. Shortening preserves hidden notes for later expansion. Manual pad changes launch at the next local bar, with End of score available; each score stays one whole arranger occurrence.
 
 ![Score Sequencer with a vertical piano keyboard, independent note durations and eight pattern pads](screenshots/score-sequencer.jpg)

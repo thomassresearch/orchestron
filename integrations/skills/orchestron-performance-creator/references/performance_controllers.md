@@ -59,7 +59,7 @@ Two bindings may refer to the same patch while owning different values:
 
 This is an assignment excerpt; preserve the performance's sequencer, `audioGraph`, mixer, and other configuration fields. Node IDs identify controls; duplicate labels and moved nodes remain independent. An omitted key follows the patch default. Never materialize defaults into every assignment, because that would freeze untouched settings. If replacing a binding's patch, clear its overrides; copying/importing a patch preserves node IDs and corresponding overrides even when its patch ID is remapped.
 
-The CLI reads performance versions 1–21 and saves version 21 while retaining routing migrations. Overrides survive staged edits, commit/load, native JSON/ZIP imports/exports, and runtime creation. Both CSD (MIDI) and CSD (SCORE) exports initialize resolved instance settings without a controller client or MIDI CC events. Standalone patch compilation/export and isolated audition use defaults; audition within a performance uses that instance's overrides.
+The CLI reads performance versions 1–22 and saves version 22 while retaining routing migrations. Overrides survive staged edits, commit/load, native JSON/ZIP imports/exports, and runtime creation. Both CSD (MIDI) and CSD (SCORE) exports initialize resolved instance settings without a controller client or MIDI CC events. Standalone patch compilation/export and isolated audition use defaults; audition within a performance uses that instance's overrides.
 
 ## Live updates
 
@@ -104,3 +104,5 @@ Live writes do not save the performance. Commit separately to preserve changes. 
 Patch definitions have fixed `min`, `max`, `default`, `scale` (`linear` or `logarithmic`), and `label`, with no input sockets. Defaults are 0, 1, 0.5, linear, and Parameter. Numbers must be finite, `min < max`, and default within range. Logarithmic controls require positive minimum; zero-inclusive and bipolar ranges must be linear. Labels must contain 1–128 characters and cannot be blank.
 
 After editing a patch, discover its definitions again. The GUI clamps changed ranges and removes deleted overrides with a visible notice. The CLI preserves explicit staged settings and backend validation rejects stale or out-of-range values; use `set` to choose a valid value or `reset` to remove an obsolete override, then validate and commit. Keep IDs stable when relabeling or moving nodes. Use patch defaults as reusable starting points and performance overrides for instance-specific choices.
+
+Optional `performanceControllerMidiCCs` maps controller node IDs to CC numbers 1–50 on the instance MIDI channel. The CLI preserves these per-performance mappings in normalization, sessions and exports. Continuous instances have no mapping. Both CSD modes preserve authored mapped CC changes; settings remain I-rate.

@@ -49,6 +49,7 @@ def validate_controller_values(definitions, values: dict[str, float]) -> dict[st
 def controller_bindings(target, fallback_identity: str) -> dict:
     definitions = controller_definitions(target.patch.graph)
     values = validate_controller_values(definitions, target.performance_controller_values)
+    validate_controller_midi_ccs(definitions, target.performance_controller_midi_ccs, target.midi_channel)
     identity = target.assignment_id or fallback_identity
     return {
         definition.node_id: {
@@ -58,3 +59,42 @@ def controller_bindings(target, fallback_identity: str) -> dict:
         }
         for definition in definitions
     }
+
+
+def validate_controller_midi_ccs(definitions, bindings: dict[str, int], midi_channel: int) -> dict[str, int]:
+    by_id = {definition.node_id for definition in definitions}
+    for node_id, cc in bindings.items():
+        if node_id not in by_id:
+            raise CompilationError([f"Unknown performance controller '{node_id}'."])
+        if type(cc) is not int or not 1 <= cc <= 50 or not 1 <= midi_channel <= 16:
+            raise CompilationError(["Performance controller MIDI CC requires 1–50 and an instrument MIDI channel."])
+    return dict(bindings)
+
+
+def controller_midi_value(value: int, definition) -> float:
+    """The same seven-bit mapping is used by live delivery and offline capture."""
+    if definition.controller_type == "bool":
+        return float(value >= 64)
+    if value <= 0:
+        return definition.min
+    if value >= 127:
+        return definition.max
+    t = value / 127
+    if definition.scale == "logarithmic":
+        result = math.exp((1 - t) * math.log(definition.min) + t * math.log(definition.max))
+    else:
+        result = (1 - t) * definition.min + t * definition.max
+    if definition.controller_type == "integer":
+        result = math.floor(result) + (result - math.floor(result) >= 0.5)
+    return min(definition.max, max(definition.min, result))
+
+
+# Reserved ahead of note instruments only in offline bundles with CC mappings.
+def controller_setter_lines(manifest: dict) -> list[str]:
+    lines = ["instr 1"]
+    channels = [binding["channel"] for bindings in manifest.values() for binding in bindings.values()]
+    for index, channel in enumerate(channels):
+        lines.extend([f" {'if' if index == 0 else 'elseif'} p4 == {index} then", f'  chnset p5, "{channel}"'])
+    if channels:
+        lines.append(" endif")
+    return [*lines, "endin"]

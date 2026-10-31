@@ -32,5 +32,6 @@ it("does not advance on transport, edits or first save, and never persists the c
   await useAppStore.getState().saveCurrentPerformance();
   expect(useAppStore.getState().currentPerformanceId).toBe("saved"); expect(generation()).toBe(before);
   expect(buildPersistedAppStateSnapshot(useAppStore.getState())).not.toHaveProperty("performanceWorkspaceGeneration");
+  expect(buildPersistedAppStateSnapshot(useAppStore.getState())).not.toHaveProperty("activeSessionWorkspaceGeneration");
   expect(useAppStore.getState().buildSequencerConfigSnapshot()).not.toHaveProperty("performanceWorkspaceGeneration");
 });

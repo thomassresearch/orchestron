@@ -26,6 +26,7 @@ from backend.app.services.adsyn_analysis import validate_adsyn_analysis
 from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
 from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 from backend.app.services.performance_export_selection import select_performance_csd_instruments
+from backend.app.services.performance_controller_service import controller_definitions, controller_midi_value
 from backend.app.services.master_migration import normalize_master_bundle
 
 OFFLINE_RENDER_SR = 48_000
@@ -262,6 +263,8 @@ class PerformanceExportService:
                 midi_file_name=midi_file_name,
                 output_wave_name=output_wave_name,
                 duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
+                controller_score_lines=[line for _, line in self._mapped_controller_lines(
+                    captured_events, targets, compile_artifact.manifest, midi_tempo=request.sequencer_config.timing.tempo_bpm)],
             )
             midi_bytes = self._encode_midi_file(
                 tempo_bpm=request.sequencer_config.timing.tempo_bpm,
@@ -339,6 +342,7 @@ class PerformanceExportService:
                     midi_channel=0 if definition.always_on else instrument.midi_channel,
                     assignment_id=instrument.id,
                     performance_controller_values=instrument.performance_controller_values,
+                    performance_controller_midi_ccs=instrument.performance_controller_midi_ccs,
                     always_on=definition.always_on,
                     effect_source_ids=tuple(instrument.effect_source_ids if definition.always_on else []),
                     effect_routes=tuple(
@@ -500,6 +504,7 @@ class PerformanceExportService:
         midi_file_name: str,
         output_wave_name: str,
         duration_seconds: float,
+        controller_score_lines: list[str] | None = None,
     ) -> str:
         return "\n".join(
             [
@@ -517,6 +522,7 @@ class PerformanceExportService:
                 "</CsInstruments>",
                 "<CsScore>",
                 "f 1 0 16384 10 1",
+                *(controller_score_lines or []),
                 f"f 0 {PerformanceExportService._format_duration(duration_seconds)}",
                 "</CsScore>",
                 "</CsoundSynthesizer>",
@@ -730,6 +736,41 @@ class PerformanceExportService:
                 "Enable at least one sequencer or arranger track before exporting."
             )
 
+    @staticmethod
+    def _mapped_controller_lines(events, targets, manifest, *, midi_tempo=None):
+        routes = {}
+        bindings = manifest.get("performanceControllers", {})
+        channel_indices = {binding["channel"]: index for index, binding in enumerate(
+            binding for controllers in bindings.values() for binding in controllers.values())}
+        for index, target in enumerate(targets, 1):
+            identity = target.assignment_id or f"instrument-{index}"
+            definitions = {d.node_id: d for d in controller_definitions(target.patch.graph)}
+            for node, cc in target.performance_controller_midi_ccs.items():
+                binding = bindings.get(identity, {}).get(node)
+                if binding:
+                    routes.setdefault((target.midi_channel, cc), []).append((channel_indices[binding["channel"]], definitions[node]))
+        result = []
+        def event_time(event):
+            if midi_tempo is None:
+                return event.time_seconds
+            tick = round(event.time_seconds * max(1, midi_tempo) * MIDI_TICKS_PER_QUARTER / 60)
+            tempo_us = max(1, round(60_000_000 / max(1, midi_tempo)))
+            return tick * tempo_us / (1_000_000 * MIDI_TICKS_PER_QUARTER)
+        started = _monotonic_seconds()
+        for event in sorted(events, key=lambda item: (event_time(item), item.sequence)):
+            status, cc, value = event.message
+            if status & 0xF0 != 0xB0:
+                continue
+            for channel, definition in routes.get(((status & 15) + 1, cc), ()):
+                if len(events) + len(result) >= OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
+                    raise OfflineMidiExportBudgetExceededError("Mapped performance controllers exceed the offline event limit.")
+                if _monotonic_seconds() - started > OFFLINE_CSD_EXPORT_MAX_WALL_SECONDS:
+                    raise OfflineMidiExportTimeoutError("Mapped performance controllers exceeded the export time limit.")
+                time = event_time(event)
+                mapped = controller_midi_value(value, definition)
+                result.append((time, f'i 1 {time:.10f} {1 / OFFLINE_RENDER_SR:.10f} {channel} {mapped:.17g}'))
+        return result
+
     def _build_score_lines(
         self,
         *,
@@ -760,7 +801,7 @@ class PerformanceExportService:
         controller_events = self._score_controller_events(events, deduplicate=deduplicate_controllers)
         setter_duration = 1.0 / float(OFFLINE_RENDER_SR)
         lines = ["f 1 0 16384 10 1"]
-        timed_lines: list[tuple[float, str]] = []
+        timed_lines: list[tuple[float, str]] = self._mapped_controller_lines(events, targets, manifest or {})
 
         for event in controller_events:
             index = OrchestraEmitter.score_controller_index(event.midi_channel, event.controller_number)

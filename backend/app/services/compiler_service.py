@@ -16,7 +16,7 @@ from backend.app.services.compiler_graph import compile_graph_context, resolve_s
 from backend.app.services.compiler_orchestra import OrchestraEmitter, wrap_csd
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.opcode_service import OpcodeService
-from backend.app.services.performance_controller_service import controller_bindings
+from backend.app.services.performance_controller_service import controller_bindings, controller_setter_lines
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines, validate_legato
 from backend.app.services.compiler_waveguide import waveguide_header
@@ -97,9 +97,10 @@ class CompilerService:
 
         instrument_names = self._instrument_names(targets)
         legato_targets = {index: target for index, target in enumerate(targets, 1) if has_legato(target.patch)}
+        setter_count = int(profile == CompilationProfile.OFFLINE and any(t.performance_controller_midi_ccs for t in targets))
         listener_count = int(bool(legato_targets) and performance_input_mode != "score")
-        collector_refs = {index: str(number) for number, index in enumerate(legato_targets, 1 + listener_count)}
-        offset = len(legato_targets) + listener_count
+        collector_refs = {index: str(number) for number, index in enumerate(legato_targets, 1 + listener_count + setter_count)}
+        offset = len(legato_targets) + listener_count + setter_count
         note_refs = {target.assignment_id or f"instrument-{index}": collector_refs.get(index, str(index + offset))
                      for index, target in enumerate(targets, 1)}
 
@@ -110,6 +111,8 @@ class CompilerService:
             f"0dbfs = {engine.zero_dbfs}",
             "",
         ]
+        if setter_count:
+            orc_lines.extend(controller_setter_lines(controller_manifest))
         orc_lines.extend(waveguide_header(targets))
         orc_lines.extend(granular_header(targets))
         orc_lines.extend(swept_gate_header(targets))
@@ -119,10 +122,10 @@ class CompilerService:
                 orc_lines.extend(collector_lines(f"{index}_{target.patch.id}", int(collector_refs[index]), performance_input_mode))
             if listener_count:
                 orc_lines.extend(panic_listener_lines([(f"{index}_{target.patch.id}", target.midi_channel)
-                                                      for index, target in legato_targets.items()]))
+                                                      for index, target in legato_targets.items()], instrument_number=1 + setter_count))
         if performance_input_mode == "score":
             orc_lines.extend([*self._orchestra_emitter.score_controller_header_lines(), ""])
-        elif legato_targets:
+        elif legato_targets or setter_count:
             orc_lines.append("massign 0, 0")
             for index, target in enumerate(targets, 1):
                 if not target.always_on and (target.midi_channel > 0 or len(targets) == 1):
@@ -145,7 +148,7 @@ class CompilerService:
             compiled_lines = self._orchestra_emitter.compile_instrument_lines(
                 target.patch,
                 graph_context=graph_context,
-                instrument_number=instrument_number,
+                instrument_number=instrument_number + offset,
                 instrument_name=instrument_names[instrument_number - 1] if instrument_names is not None else None,
                 global_scope_key=f"{instrument_number}_{target.patch.id}",
                 allow_packaged_asset_paths=allow_packaged_asset_paths,
@@ -176,7 +179,7 @@ class CompilerService:
 
         for instrument_number, target, compiled_lines in compiled_instruments:
             instrument_ref = (
-                instrument_names[instrument_number - 1] if instrument_names is not None else str(instrument_number)
+                instrument_names[instrument_number - 1] if instrument_names is not None else str(instrument_number + offset)
             )
             orc_lines.extend(
                 [
@@ -197,7 +200,7 @@ class CompilerService:
             hardware_buffer=engine.hardware_buffer,
         )
         manifest = {"performanceControllers": controller_manifest} if controller_manifest else {}
-        if legato_targets:
+        if legato_targets or setter_count:
             manifest["instrumentReferences"] = {target.assignment_id or f"instrument-{index}": str(index + offset)
                                                 for index, target in enumerate(targets, 1)}
             manifest["noteInstrumentReferences"] = note_refs

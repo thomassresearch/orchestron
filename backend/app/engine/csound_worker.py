@@ -11,6 +11,7 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from backend.app.engine.performance_controllers import PerformanceControllers
 from backend.app.engine.browser_audio_pcm import (
     DEFAULT_BROWSER_AUDIO_SAMPLE_RATE,
     create_csound_spout_copier,
@@ -79,6 +80,7 @@ class CsoundWorker:
         self._host_midi_lock = threading.Lock()
         self._host_midi_callbacks: dict[str, Any] = {}
         self._midi_scheduler = EngineMidiScheduler()
+        self.performance_controllers = PerformanceControllers(self.queue_control_channels)
         self._midi_output = EngineMidiOutputAdapter(
             enqueue_message=self.queue_midi_message,
             output_name="engine:internal",
@@ -511,6 +513,7 @@ class CsoundWorker:
                     before_block(block_index, block_start_sample)
                 else:
                     before_block(block_index)
+            self._prepare_host_midi_block(block_start_sample=block_start_sample, block_end_sample=block_start_sample + source_ksmps)
             with self._lock:
                 self._render_sample_cursor = block_start_sample + source_ksmps
         sample_end = self._render_sample_cursor
@@ -694,6 +697,7 @@ class CsoundWorker:
             block_start_sample=block_start_sample,
             block_end_sample=block_end_sample,
         )
+        self.performance_controllers.deliver(events)
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
             for event in events:

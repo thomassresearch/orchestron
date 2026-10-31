@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import { useAppStore } from "./useAppStore";
 import type { Patch, SessionCreateResponse } from "../types";
+import { normalizeSessionInstrumentAssignments } from "./appStoreModel";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -105,4 +106,21 @@ it("shares overlapping engine starts and sends compile/start only once", async (
   expect(compile).toHaveBeenCalledExactlyOnceWith("shared");
   expect(start).toHaveBeenCalledExactlyOnceWith("shared");
   expect(useAppStore.getState().activeSessionState).toBe("running");
+});
+
+it("creates a fresh session for a loaded performance even when its rack IDs match", async () => {
+  const instruments = [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [],
+    performanceControllerValues: { setting: .3 }, performanceControllerMidiCCs: { setting: 21 } }];
+  const assignments = normalizeSessionInstrumentAssignments(instruments);
+  const state = useAppStore.getState();
+  useAppStore.setState({ sequencerInstruments: instruments, activeSessionId: "previous", activeSessionState: "compiled",
+    activeSessionInstruments: assignments, performanceWorkspaceGeneration: 1,
+    activeSessionAudioSignature: JSON.stringify({ graph: state.audioGraph, patches: state.patches.map(p => [p.id, p.updated_at]) }) });
+  vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "previous", state: "compiled", detail: "stopped" });
+  const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
+  const create = vi.spyOn(api, "createSession").mockResolvedValue({ session_id: "fresh", instruments: assignments, state: "idle", patch_id: "patch" });
+  expect(await useAppStore.getState().ensureSession()).toBe("fresh");
+  expect(remove).toHaveBeenCalledWith("previous");
+  expect(create).toHaveBeenCalledWith(assignments, state.audioGraph, state.mixer);
+  expect(useAppStore.getState().activeSessionWorkspaceGeneration).toBe(1);
 });
