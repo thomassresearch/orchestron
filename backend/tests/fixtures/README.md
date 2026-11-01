@@ -21,6 +21,10 @@ Instrument patches used by tests live in `patches/`. Load a fresh `PatchDocument
 with `backend.tests.csound_test_support.load_patch_fixture` so tests can modify
 their own in-memory copy.
 
+- `branch_controller.patch.json` isolates a mapped setting in a note-selected
+  Switch case. Export regressions cover unrelated notes, Default cases,
+  sample-boundary writes, held voices and lossless reuse of numeric score fields.
+
 - `parametric_equalizer_original.patch.json` preserves the original three-band
   parallel-sum fault. `parametric_equalizer.patch.json` freezes its seven-band
   stereo cascade with linear dB controls and symmetric gain-compensated Q.

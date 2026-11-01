@@ -131,6 +131,53 @@ def test_export_setter_timing_uses_encoded_midi_ticks_or_exact_score_samples():
     assert [float(line.split()[-1]) for _, line in midi] == [0, -3, 0, .001, 1, 3, 1, 1000]
 
 
+@pytest.mark.parametrize('offset', [-1, 0, 1])
+def test_sparse_score_setters_render_identical_note_initialization(monkeypatch, offset):
+    from backend.app.engine.ctcsound_loader import load_ctcsound_module
+    from backend.app.models.session import SessionSequencerTimingConfig
+    from backend.app.services.compiler_common import CompilationProfile
+
+    _, _, targets, _ = configured()
+    for target in targets:
+        target.patch.graph.engine_config.ksmps = 1
+    artifact = CompilerService(OpcodeService(icon_prefix='/static/icons')).compile_patch_bundle(
+        targets, midi_input='0', rtmidi_module='none', performance_input_mode='score',
+        profile=CompilationProfile.OFFLINE)
+    messages = [(0, [0xB0, 21, 20]), (0, [0xB0, 21, 20]), (.01, [0x90, 60, 100]),
+                (.03, [0x80, 60, 0]), (.05 + offset / 48000, [0x90, 62, 100]),
+                (.09, [0x80, 62, 0]), (.12, [0xB0, 21, 0])]
+    messages += [(step / 1000, [0xB0, 21, step]) for step in range(11, 80)]
+    messages += [(.05, [0xB0, 21, 100]), (.05, [0xB0, 21, 90])]
+    events = [CapturedMidiEvent(time, bytes(message), sequence)
+              for sequence, (time, message) in enumerate(messages)]
+    service = PerformanceExportService(None, None)
+    args = dict(events=events, targets=targets, manifest=artifact.manifest, orchestra=artifact.orc,
+                duration_seconds=.15, timing=SessionSequencerTimingConfig())
+    compact, _ = service._build_score_lines(**args)
+    monkeypatch.setattr(PerformanceExportService, '_compact_mapped_controller_events', staticmethod(lambda events, _: events))
+    original, _ = service._build_score_lines(**args)
+    assert len(compact) < len(original)
+
+    def render(lines):
+        csd = '\n'.join(['<CsoundSynthesizer>', '<CsOptions>', '-n -d -m0', '</CsOptions>',
+            '<CsInstruments>', artifact.orc, '</CsInstruments>', '<CsScore>', *lines,
+            '</CsScore>', '</CsoundSynthesizer>'])
+        cs = load_ctcsound_module().Csound()
+        try:
+            assert cs.compileCsdText(csd) == 0
+            assert cs.start() == 0
+            samples = []
+            while cs.performKsmps() == 0:
+                samples.append(cs.spout().copy())
+            return np.array(samples)
+        finally:
+            cs.cleanup()
+            cs.reset()
+    before, after = render(original), render(compact)
+    assert np.max(before) > 0
+    np.testing.assert_array_equal(after, before)
+
+
 @pytest.mark.parametrize('ksmps', [1, 32])
 def test_native_delivery_is_due_gated_and_precedes_note_initialization(monkeypatch, ksmps):
     monkeypatch.delenv('VISUALCSOUND_FORCE_MOCK_ENGINE', raising=False)

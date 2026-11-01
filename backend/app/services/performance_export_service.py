@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
+from collections import defaultdict
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path, PurePosixPath
@@ -28,6 +30,11 @@ from backend.app.services.sequencer_runtime import SessionSequencerRuntime
 from backend.app.services.performance_export_selection import select_performance_csd_instruments
 from backend.app.services.performance_controller_service import controller_definitions, controller_midi_value
 from backend.app.services.master_migration import normalize_master_bundle
+from backend.app.services.performance_export_compaction import compact_score_macros, controller_note_filters
+from backend.app.services.performance_export_curves import (
+    DEFAULT_CURVE_TOLERANCE, approximate_controller_events, curve_controller_indices, curve_orchestra_lines,
+    is_curve_score_line,
+)
 
 OFFLINE_RENDER_SR = 48_000
 OFFLINE_RENDER_KSMPS = 1
@@ -205,12 +212,12 @@ class PerformanceExportService:
         )
 
         playback_duration_seconds = self._playback_duration_seconds(request)
+        controller_default_channels = tuple(
+            sorted({target.midi_channel for target in targets if 1 <= target.midi_channel <= 16})
+        ) or (1,)
         captured_events = self._capture_offline_midi_events(
             request=request,
-            controller_default_channels=tuple(
-                sorted({target.midi_channel for target in targets if 1 <= target.midi_channel <= 16})
-            )
-            or (1,),
+            controller_default_channels=controller_default_channels,
         )
         from backend.app.services.audio_port_names import audio_port_names
         from backend.app.services.compiler_mixer import ResolvedMixerGraph, _reachable, OUTPUT
@@ -236,10 +243,17 @@ class PerformanceExportService:
                 duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
                 timing=request.sequencer_config.timing,
                 playback_start_step=request.sequencer_config.playback_start_step,
+                orchestra=compile_artifact.orc,
+                curve_indices=curve_controller_indices(request.sequencer_config.controller_tracks, controller_default_channels)
+                    if request.approximate_controller_curves else set(),
+                curve_tolerance=request.controller_curve_tolerance,
             )
             warnings.extend(score_warnings)
             csd = self._build_offline_score_csd(
-                orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
+                orc=self._rewrite_orc_for_offline_render(compile_artifact.orc) + (
+                    "\n" + "\n".join(curve_orchestra_lines(request.controller_curve_tolerance))
+                    if any(is_curve_score_line(line) for line in score_lines) else ""
+                ),
                 performance_title=request.performance_export.performance.name,
                 performance_description=request.performance_export.performance.description,
                 created_at=request.performance_export.exported_at,
@@ -556,7 +570,7 @@ class PerformanceExportService:
                 *(score_controller_initializer_lines or []),
                 "</CsInstruments>",
                 "<CsScore>",
-                *score_lines,
+                *compact_score_macros(score_lines),
                 "</CsScore>",
                 "</CsoundSynthesizer>",
             ]
@@ -737,18 +751,33 @@ class PerformanceExportService:
             )
 
     @staticmethod
-    def _mapped_controller_lines(events, targets, manifest, *, midi_tempo=None):
+    def _mapped_controller_lines(events, targets, manifest, *, midi_tempo=None, note_events=None):
         routes = {}
+        read_times = {}
+        note_times_by_channel = defaultdict(set)
+        note_times_by_pitch = defaultdict(lambda: defaultdict(set))
+        for note in note_events or ():
+            note_times_by_channel[note.midi_channel].add(note.start_seconds)
+            note_times_by_pitch[note.midi_channel][note.note].add(note.start_seconds)
+        note_times_by_channel = {channel: sorted(times) for channel, times in note_times_by_channel.items()}
         bindings = manifest.get("performanceControllers", {})
         channel_indices = {binding["channel"]: index for index, binding in enumerate(
             binding for controllers in bindings.values() for binding in controllers.values())}
         for index, target in enumerate(targets, 1):
             identity = target.assignment_id or f"instrument-{index}"
             definitions = {d.node_id: d for d in controller_definitions(target.patch.graph)}
+            note_filters = controller_note_filters(target.patch.graph) if note_events is not None else {}
             for node, cc in target.performance_controller_midi_ccs.items():
                 binding = bindings.get(identity, {}).get(node)
                 if binding:
-                    routes.setdefault((target.midi_channel, cc), []).append((channel_indices[binding["channel"]], definitions[node]))
+                    slot = channel_indices[binding["channel"]]
+                    routes.setdefault((target.midi_channel, cc), []).append((slot, definitions[node]))
+                    # Legato voices reinitialize after their note collector runs;
+                    # retain their full stream rather than infer phrase timing.
+                    if note_events is not None and not target.always_on and identity not in manifest.get("legatoInstanceIds", []):
+                        pitches = note_filters.get(node)
+                        read_times[slot] = (note_times_by_channel.get(target.midi_channel, []) if pitches is None else
+                            sorted({time for pitch in pitches for time in note_times_by_pitch[target.midi_channel][pitch]}))
         result = []
         def event_time(event):
             if midi_tempo is None:
@@ -768,8 +797,61 @@ class PerformanceExportService:
                     raise OfflineMidiExportTimeoutError("Mapped performance controllers exceeded the export time limit.")
                 time = event_time(event)
                 mapped = controller_midi_value(value, definition)
-                result.append((time, f'i 1 {time:.10f} {1 / OFFLINE_RENDER_SR:.10f} {channel} {mapped:.17g}'))
-        return result
+                result.append((time, channel, mapped))
+        if read_times:
+            result = PerformanceExportService._compact_mapped_controller_events(result, read_times)
+        return [(time, f'i 1 {time:.10f} {1 / OFFLINE_RENDER_SR:.10f} {channel} {mapped:.17g}')
+                for time, channel, mapped in result]
+
+    @staticmethod
+    def _compact_mapped_controller_events(events, read_times):
+        """Keep exact I-rate snapshots, without moving or approximating a write."""
+        by_slot = defaultdict(list)
+        for index, (time, slot, value) in enumerate(events):
+            by_slot[slot].append((time, index, value))
+        retained = set()
+        # Score notes use six decimal places, setters ten. Keep both sides of
+        # coincident sample boundaries, including the value preceding the guard.
+        guard = 2 / OFFLINE_RENDER_SR
+        for slot, stream in by_slot.items():
+            if slot not in read_times:
+                retained.update(index for _, index, _ in stream)
+                continue
+            times = [time for time, _, _ in stream]
+            chosen = {index for index, time in enumerate(times) if time == 0}
+            chosen.add(len(stream) - 1)  # Preserve final/reset state as well.
+            for time in read_times[slot]:
+                first = bisect_left(times, time - guard)
+                last = bisect_right(times, time + guard)
+                chosen.update(range(max(0, first - 1), last))
+            previous = None
+            for index in sorted(chosen):
+                time, original_index, value = stream[index]
+                if time == 0 or value != previous:
+                    retained.add(original_index)
+                    previous = value
+        return [event for index, event in enumerate(events) if index in retained]
+
+    @staticmethod
+    def _score_controller_read_indices(orchestra: str) -> set[int] | None:
+        """Recognize literal emitted reads; unknown/dynamic access retains all CCs.
+
+        Inspect the compiled orchestra, including continuous/routed instruments,
+        rather than assuming a CC is unused because its MIDI channel has no notes.
+        """
+        array = re.escape(SCORE_CONTROLLER_ARRAY_NAME)
+        indices = set()
+        for line in orchestra.splitlines():
+            code = line.split(";", 1)[0].strip()
+            if SCORE_CONTROLLER_ARRAY_NAME not in code:
+                continue
+            # Remove only an assignment destination, still inspecting its RHS.
+            code = re.sub(rf"^{array}\[[^\[\]]*\]\s+(?:init\s+|=\s*)", "", code)
+            for match in re.finditer(rf"{array}\[(\d+)\]", code):
+                indices.add(int(match[1]))
+            if SCORE_CONTROLLER_ARRAY_NAME in re.sub(rf"{array}\[\d+\]", "", code):
+                return None
+        return indices
 
     def _build_score_lines(
         self,
@@ -781,6 +863,9 @@ class PerformanceExportService:
         playback_start_step: int = 0,
         manifest: dict | None = None,
         allow_continuous: bool = False,
+        orchestra: str | None = None,
+        curve_indices: set[int] | None = None,
+        curve_tolerance: int = DEFAULT_CURVE_TOLERANCE,
     ) -> tuple[list[str], list[str]]:
         warnings: list[str] = []
         note_events = self._score_note_events(events, targets=targets, warnings=warnings, manifest=manifest)
@@ -799,9 +884,37 @@ class PerformanceExportService:
             for target in targets
         )
         controller_events = self._score_controller_events(events, deduplicate=deduplicate_controllers)
+        used_indices = self._score_controller_read_indices(orchestra) if orchestra is not None else None
+        if used_indices is not None:
+            controller_events = [event for event in controller_events if event.time_seconds == 0 or
+                                 OrchestraEmitter.score_controller_index(event.midi_channel, event.controller_number)
+                                 in used_indices]
+        curve_lines = []
+        if curve_indices and deduplicate_controllers:
+            controller_events, curve_lines = approximate_controller_events(
+                controller_events, curve_indices, OFFLINE_RENDER_SR, tolerance=curve_tolerance,
+            )
+            if curve_lines:
+                warnings.append("SCORE controller curves use piecewise linear linseg approximation "
+                                f"with a maximum error of {curve_tolerance} MIDI "
+                                f"{'unit' if curve_tolerance == 1 else 'units'} (0–127) at 48 kHz/ksmps=1. "
+                                "Step lanes, abrupt jumps, resets and mapped I-rate values retain exact events.")
         setter_duration = 1.0 / float(OFFLINE_RENDER_SR)
         lines = ["f 1 0 16384 10 1"]
-        timed_lines: list[tuple[float, str]] = self._mapped_controller_lines(events, targets, manifest or {})
+        # Independently scheduled/reinitialized notes can read between captured
+        # attacks. Unknown scheduling keeps the original mapped stream too.
+        code = "\n".join(line.split(";", 1)[0] for line in (orchestra or "").splitlines())
+        known_note_starts = not re.search(r"\b(?:reinit|event\w*|schedule\w*|schedk?when)\b", code)
+        # Patch-authored channel access could observe/overwrite a reserved
+        # performance channel outside its owning note's initialization.
+        known_note_starts = known_note_starts and not any(
+            node.opcode.startswith(("chnget", "chnset")) or node.opcode in {"alwayson", "turnon"}
+            for target in targets for node in target.patch.graph.nodes
+        )
+        timed_lines: list[tuple[float, str]] = self._mapped_controller_lines(
+            events, targets, manifest or {}, note_events=note_events if known_note_starts else None,
+        )
+        timed_lines.extend(curve_lines)
 
         for event in controller_events:
             index = OrchestraEmitter.score_controller_index(event.midi_channel, event.controller_number)

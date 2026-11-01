@@ -13,6 +13,8 @@ import { createPerformanceEditorStore } from "./components/sequencer/Performance
 
 import { api } from "./api/client";
 import { ConfirmationListDialog } from "./components/ConfirmationListDialog";
+import { CsdExportAccuracyDialog } from "./components/CsdExportAccuracyDialog";
+import { useCsdExportAccuracyDialog } from "./hooks/useCsdExportAccuracyDialog";
 import { HelpIconButton } from "./components/HelpIconButton";
 import { ImportDialogs } from "./components/ImportDialogs";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
@@ -328,6 +330,8 @@ export default function App() {
   const [activeHelpDocumentation, setActiveHelpDocumentation] = useState<HelpDocId | null>(null);
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
+  const { open: csdExportAccuracyOpen, request: requestCsdExportAccuracy, close: closeCsdExportAccuracy } = useCsdExportAccuracyDialog();
+  const csdExportInProgress = useRef(false);
   const [instrumentPatchIoError, setInstrumentPatchIoError] = useState<string | null>(null);
   const [newFromTemplateDialogOpen, setNewFromTemplateDialogOpen] = useState(false);
   const [selectedTemplatePatchId, setSelectedTemplatePatchId] = useState("");
@@ -1178,6 +1182,8 @@ export default function App() {
   ]);
 
   const onExportPerformanceCsd = useCallback(async (eventSource: "midiFile" | "score" = "midiFile") => {
+    if (csdExportInProgress.current) return;
+    csdExportInProgress.current = true;
     try {
       const { exportedPerformanceName, payload, exportState } = await buildCurrentPerformanceExport("csd");
       const exportPayload: PerformanceCsdExportRequestPayload = {
@@ -1193,6 +1199,11 @@ export default function App() {
             enabled: controller.enabled
           }))
       };
+      if (eventSource === "score" && exportState.controllerSequencers.length > 0) {
+        const tolerance = await requestCsdExportAccuracy();
+        if (tolerance === null) return;
+        exportPayload.controllerCurveTolerance = tolerance;
+      }
       const { blob } = await api.exportPerformanceCsdBundle(exportPayload as unknown as Record<string, unknown>);
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -1205,11 +1216,14 @@ export default function App() {
       setSequencerError(null);
     } catch (error) {
       setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToExportPerformanceCsd);
+    } finally {
+      csdExportInProgress.current = false;
     }
   }, [
     appCopy.errors.failedToExportPerformanceCsd,
     buildBackendSequencerConfig,
-    buildCurrentPerformanceExport
+    buildCurrentPerformanceExport,
+    requestCsdExportAccuracy
   ]);
 
   const onImportSequencerConfig = useCallback(
@@ -2053,6 +2067,8 @@ export default function App() {
           maxWidthClassName="max-w-xl"
         />
       )}
+
+      {csdExportAccuracyOpen && <CsdExportAccuracyDialog guiLanguage={guiLanguage} onClose={closeCsdExportAccuracy} />}
 
       <ImportDialogs
         importDialogCopy={importDialogCopy}

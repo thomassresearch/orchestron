@@ -27,6 +27,60 @@ def captured_events(messages):
     return [CapturedMidiEvent(time, bytes(message), sequence) for sequence, (time, message) in enumerate(messages)]
 
 
+@pytest.mark.parametrize("reader, expected", [
+    ("kcut = gk_vcs_score_cc[10] / 127\nkres = gk_vcs_score_cc[139]", {10, 139}),
+    ("kcut = gk_vcs_score_cc[ichannel * 128 + 10]", None),
+    ("kcopy[] = gk_vcs_score_cc", None),
+    ("gk_vcs_score_cc[10] init gk_vcs_score_cc[11]", {11}),
+    ("; gk_vcs_score_cc[123] is only a comment", set()),
+])
+def test_score_controller_usage_is_conservative(exporter, reader, expected):
+    from backend.app.services.compiler_orchestra import OrchestraEmitter
+
+    orchestra = "\n".join([*OrchestraEmitter.score_controller_header_lines(), reader])
+    assert exporter._score_controller_read_indices(orchestra) == expected
+
+
+def test_unread_cc_pruning_keeps_startup_continuous_readers_and_notes(exporter, targets):
+    events = captured_events([
+        (0, [0xB0, 20, 5]), (0, [0x90, 60, 100]),
+        (.01, [0xB0, 20, 6]), (.02, [0xB0, 10, 7]),
+        (.03, [0xB1, 11, 8]), (.04, [0xB0, 20, 0]),
+        (.05, [0xB0, 10, 0]), (.06, [0xB1, 11, 0]), (.1, [0x80, 60, 0]),
+    ])
+    args = dict(events=events, targets=targets, duration_seconds=.2, timing=SessionSequencerTimingConfig())
+    original, _ = exporter._build_score_lines(**args)
+    compact, _ = exporter._build_score_lines(**args, orchestra=(
+        "kcut = gk_vcs_score_cc[10]\nkres = gk_vcs_score_cc[139]"))
+    assert [row for row in compact if not row.startswith("i 9000 ")] == [
+        row for row in original if not row.startswith("i 9000 ")]
+    assert [row for row in compact if row.startswith("i 9000 ")] == [
+        row for row in original if row.startswith("i 9000 ") and
+        (row.split()[2] == "0" or row.split()[4] in {"10", "139"})]
+
+
+def test_mapped_compaction_preserves_boundaries_competing_writes_and_final_state(exporter):
+    sample = 1 / OFFLINE_RENDER_SR
+    # Two destinations sharing input, with different note starts. Include a
+    # same-time competing lane, one-sample neighbors, silence and a final reset.
+    stream = [(0, 0, .2), (0, 0, .2), (.1, 0, .3), (.2, 0, .4),
+              (.5 - sample, 0, .6), (.5, 0, .7), (.5, 0, .8), (.5 + sample, 0, .9),
+              (.6, 0, .4), (.7, 0, .2), (1, 0, .2), (2, 0, 0)]
+    stream += [(time, 1, value) for time, _, value in stream]
+    stream.sort(key=lambda event: event[0])
+    reads = {0: [.5, 1.5], 1: [.15, .25, .5]}
+    compact = exporter._compact_mapped_controller_events(stream, reads)
+    assert len(compact) < len(stream)
+    assert [event for event in compact if event[0] == 0] == [event for event in stream if event[0] == 0]
+    for slot, times in reads.items():
+        # Check both sides of each attack, not just its final simultaneous write.
+        for time in [t + delta * sample for t in times for delta in (-1, 0, 1)] + [2]:
+            assert [v for t, s, v in compact if s == slot and t <= time][-1] == [
+                v for t, s, v in stream if s == slot and t <= time][-1]
+    # With unknown readers, the stream is retained verbatim.
+    assert exporter._compact_mapped_controller_events(stream, {}) == stream
+
+
 @pytest.mark.parametrize("sample_rate,ksmps", [(48000, 1), (48000, 16), (48000, 32), (44100, 64), (48000, 128)])
 def test_score_step_gate_renders_every_value_with_larger_control_blocks(exporter, sample_rate, ksmps):
     import numpy as np

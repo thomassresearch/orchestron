@@ -265,6 +265,48 @@ Compaction is disabled if an exported note-triggered patch contains `initc7`:
 its inputs may be expressions, and later note/legato initialization can overwrite
 shared state. Always-on initializers run at startup and remain safe to compact.
 
+After merging/deduplication, the SCORE exporter inspects the compiled orchestra
+for literal `gk_vcs_score_cc` reads, including routed/continuous consumers. It
+omits unread destinations after time zero; unknown/dynamic array access retains
+all destinations. Initial-state seeding is unchanged. Mapped `perf_controller`
+setters retain startup, final state, the preceding write and a two-sample guard
+around each score note's initialization. Values/timestamps are never rounded or
+approximated by this pass. Legato instances and orchestras with independent
+scheduling/reinitialization retain full mapped streams. MIDI-file mode is unchanged.
+
+`performance_export_compaction.py` narrows these observation times when all direct
+consumers of a mapped controller belong to Switch cases selected by an unmodified
+`notnum` connection. It includes formula bindings and unions the notes of all
+consuming cases; Default covers the remaining MIDI pitches. Root/shared uses,
+If blocks and calculated/unknown selectors retain all note starts. Startup,
+sample-boundary guards and final state still apply.
+
+Before serializing SCORE, identical setter and `linseg` p-fields are factored into
+native Csound score macros when their definitions plus references save bytes.
+Occurrences retain their instrument number, start time and ordering; expansion
+restores the exact original numeric strings, including durations and precision.
+No runtime tables, new interpolation, or changes to instrument code/comments are
+introduced. MIDI-file export remains unchanged.
+
+`PerformanceCsdExportRequest.approximateControllerCurves` defaults to `true` and
+affects SCORE only. `performance_export_curves.py` fits eligible single-owner
+Curve Mode destinations with the requested maximum vertical error against
+both ends of every captured sample-held interval. `controllerCurveTolerance`
+defaults to 1 and accepts strict integers from 1 through 10, in MIDI CC units.
+The selected value reaches fitting, the CSD header and export warnings. The
+frontend asks for it on each SCORE export when controller sequencers are present;
+cancel dismisses without an export request. MIDI exports bypass this dialog and
+ignore the tolerance. Ramer-Douglas-Peucker uses
+overlapping 1,024-point windows to bound worst-case work. Up to 16 segments share
+a `linseg` score event, with helpers 8984–8999 running before ordinary setters
+(9000) and after note readers. All durations derive from integer samples at the
+export's 48 kHz/ksmps=1. Startup, coincident writes, jumps greater than one unit,
+run endpoints and resets remain explicit; unprofitable runs remain events.
+Step lanes, competing destinations and note-triggered `initc7` disable fitting.
+Mapped I-rate setters always use the original capture. Approximate exports emit
+a warning; `false` retains exact continuous events and the other compactions.
+Live capture, the bounded event estimates and native performance data are unchanged.
+
 SCORE setters extend their duration at initialization to at least `1 / kr`.
 External hosts can use larger control blocks, in which the exported one-sample
 events would otherwise initialize without performing. Retain the k-rate write

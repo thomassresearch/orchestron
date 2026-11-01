@@ -8506,6 +8506,10 @@ def test_controller_step_api_rejects_invalid_values(tmp_path: Path, field, value
 @pytest.mark.parametrize("source", ["midi", "score"])
 def test_controller_step_csd_exports_compact_score_only_and_preserve_resets(tmp_path: Path, source) -> None:
     payload = _performance_csd_export_payload()
+    # The explicit-channel reader also covers dynamic CC lookup fallback.
+    payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
+        "id": "reader", "opcode": "ctrl7", "params": {"ichan": 1, "ictlno": 1},
+    })
     payload["eventSource"] = "midiFile" if source == "midi" else source
     payload["performanceExport"]["performance"]["config"]["version"] = 20
     track = payload["sequencerConfig"]["controller_tracks"][0]
@@ -8535,6 +8539,9 @@ def test_controller_step_csd_exports_compact_score_only_and_preserve_resets(tmp_
 
 def test_controller_step_score_export_preserves_double_speed_gate(tmp_path: Path) -> None:
     payload = _performance_csd_export_payload()
+    payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
+        "id": "reader", "opcode": "ctrl7", "params": {"ichan": 16, "ictlno": 24},
+    })
     payload["eventSource"] = "score"
     config = json.loads((Path(__file__).parent / "fixtures/sequencers/trance_gate_steps.json").read_text())
     payload["sequencerConfig"].update(config)
@@ -8557,6 +8564,9 @@ def test_controller_step_score_export_preserves_double_speed_gate(tmp_path: Path
 
 def test_controller_step_score_retains_repeated_writes_with_note_initc7(tmp_path: Path) -> None:
     payload = _performance_csd_export_payload()
+    payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
+        "id": "reader", "opcode": "midictrl", "params": {"inum": 1},
+    })
     payload["eventSource"] = "score"
     payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
         "id": "init", "opcode": "initc7", "params": {"ichan": 1, "ictlno": 1, "ivalue": 1},
@@ -8576,6 +8586,9 @@ def test_controller_step_score_compaction_preserves_overlapping_lanes_and_pad_ch
     import copy
 
     payload = _performance_csd_export_payload()
+    payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
+        "id": "reader", "opcode": "ctrl7", "params": {"ichan": 4, "ictlno": 1},
+    })
     payload["eventSource"] = "score"
     payload["midiControllers"] = [{"controllerNumber": 1, "value": 32, "targetChannels": [1, 4]}]
     config = payload["sequencerConfig"]
@@ -8617,6 +8630,186 @@ def test_controller_step_score_compaction_preserves_overlapping_lanes_and_pad_ch
     assert [line for line in compact.splitlines() if line.startswith(("i 1 ", "f 0 "))] == [
         line for line in original.splitlines() if line.startswith(("i 1 ", "f 0 "))
     ]
+
+
+@pytest.mark.parametrize("source", ["score", "midiFile"])
+def test_csd_export_prunes_only_unobserved_controller_values(tmp_path, monkeypatch, source):
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    payload = _performance_csd_export_payload()
+    payload["approximateControllerCurves"] = False
+    payload["eventSource"] = source
+    exported = payload["performanceExport"]
+    graph = load_patch_fixture("performance_controller_midi").graph.model_dump(mode="json", by_alias=True)
+    graph["nodes"].append({"id": "cutoff", "opcode": "midictrl", "params": {"inum": 10}})
+    exported["patch_definitions"][0]["graph"] = graph
+    exported["performance"]["config"] = {"version": 22, "instruments": [{
+        "id": "one", "patchId": "patch-1", "midiChannel": 1,
+        "performanceControllerMidiCCs": {"setting": 21},
+    }]}
+    config = payload["sequencerConfig"]
+    config["controller_tracks"][0].update(controller_number=21, target_channels=[1])
+    config["tracks"][0]["pads"][0]["steps"][2] = {"note": 64, "velocity": 100}
+    import copy
+    cutoff = copy.deepcopy(config["controller_tracks"][0])
+    cutoff.update(track_id="continuous-cutoff", controller_number=10)
+    config["controller_tracks"].append(cutoff)
+
+    def extract(response):
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            return {name: archive.read(name) for name in archive.namelist()}
+
+    with _client(tmp_path) as client:
+        compact = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+        monkeypatch.setattr(PerformanceExportService, "_score_controller_read_indices", staticmethod(lambda _: None))
+        monkeypatch.setattr(PerformanceExportService, "_compact_mapped_controller_events", staticmethod(lambda events, _: events))
+        original = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+    if source == "midiFile":
+        assert compact == original  # No MIDI tick quantization or captured event changes.
+        return
+    name = "Offline_Export/Offline_Export.csd"
+    before, after = original[name].decode().splitlines(), compact[name].decode().splitlines()
+    assert len(after) < len(before)
+    for prefix in ("i 2 ", "f 0 "):
+        assert [row for row in after if row.startswith(prefix)] == [row for row in before if row.startswith(prefix)]
+    assert [row for row in after if row.startswith("i 9000 ") and row.split()[4] == "10"] == [
+        row for row in before if row.startswith("i 9000 ") and row.split()[4] == "10"]
+    assert not any(row.startswith("i 9000 ") and row.split()[4] == "21" and float(row.split()[2]) > 0 for row in after)
+    assert sum(row.startswith("i 1 ") for row in after) < sum(row.startswith("i 1 ") for row in before)
+
+
+@pytest.mark.parametrize("source", ["score", "midiFile"])
+def test_csd_export_reuses_controller_fields_and_limits_branch_reads(tmp_path, monkeypatch, source):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_performance_export_compaction import expand_score_macros
+
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = source
+    exported = payload["performanceExport"]
+    graph = load_patch_fixture("branch_controller").graph.model_dump(mode="json", by_alias=True)
+    graph["nodes"].append({"id": "cutoff", "opcode": "midictrl", "params": {"inum": 10}})
+    exported["patch_definitions"][0].update(graph=graph, schema_version=2)
+    exported["performance"]["config"] = {"version": 22, "instruments": [{
+        "id": "kit", "patchId": "patch-1", "midiChannel": 1,
+        "performanceControllerMidiCCs": {"amount": 21},
+    }]}
+    config = payload["sequencerConfig"]
+    config["playback_end_step"] = 128
+    config["tracks"][0]["pads"][0]["steps"] = [
+        {"note": pitch, "velocity": 100} for pitch in [36, 42, 42, 42]]
+    track = config["controller_tracks"][0]
+    track.update(controller_number=21, target_channels=[1])
+    import copy
+    cutoff = copy.deepcopy(track)
+    cutoff.update(track_id="cutoff", controller_number=10)
+    config["controller_tracks"].append(cutoff)
+
+    def extract(response):
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            return {name: archive.read(name) for name in archive.namelist()}
+
+    with _client(tmp_path) as client:
+        packed = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+        monkeypatch.setattr("backend.app.services.performance_export_service.controller_note_filters", lambda _: {})
+        monkeypatch.setattr("backend.app.services.performance_export_service.compact_score_macros", lambda lines: lines)
+        original = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+    if source == "midiFile":
+        assert packed == original
+        return
+    name = "Offline_Export/Offline_Export.csd"
+    before, after = original[name].decode(), packed[name].decode()
+    assert len(after) < len(before)
+    assert "#define VCS" in after
+    assert after.split("<CsScore>")[0] == before.split("<CsScore>")[0]  # Includes all instrument comments.
+    rows = expand_score_macros(after.splitlines())
+    expected = before.splitlines()
+    assert [line for line in rows if not line.startswith("i 1 ")] == [
+        line for line in expected if not line.startswith("i 1 ")]
+    assert sum(line.startswith("i 1 ") for line in rows) < sum(line.startswith("i 1 ") for line in expected) / 2
+
+
+@pytest.mark.parametrize("mode", ["curve", "step", "initc7", "midiFile"])
+def test_csd_curve_approximation_default_exact_option_and_fallbacks(tmp_path, mode):
+    from backend.app.services.performance_export_curves import is_curve_score_line
+
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "midiFile" if mode == "midiFile" else "score"
+    graph = payload["performanceExport"]["patch_definitions"][0]["graph"]
+    graph["nodes"].append({"id": "reader", "opcode": "midictrl", "params": {"inum": 1}})
+    if mode == "initc7":
+        graph["nodes"].append({"id": "init", "opcode": "initc7", "params": {"ichan": 1, "ictlno": 1, "ivalue": .5}})
+    track = payload["sequencerConfig"]["controller_tracks"][0]
+    track["target_channels"] = [1]
+    if mode == "step":
+        track["controller_mode"] = "step"
+        track["pads"][0]["steps"] = [0, 127, 0, 127]
+
+    def extract(response):
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            return {name: archive.read(name) for name in archive.namelist()}
+
+    with _client(tmp_path) as client:
+        approximate = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+        payload["approximateControllerCurves"] = False
+        exact = extract(client.post("/api/bundles/export/performance-csd", json=payload))
+        payload["approximateControllerCurves"] = "yes"
+        assert client.post("/api/bundles/export/performance-csd", json=payload).status_code == 422
+    if mode != "curve":
+        assert approximate == exact
+        return
+    before = exact["Offline_Export/Offline_Export.csd"].decode().splitlines()
+    after = approximate["Offline_Export/Offline_Export.csd"].decode().splitlines()
+    assert any(is_curve_score_line(line) for line in after)
+    assert not any(is_curve_score_line(line) for line in before)
+    assert "maximum error of 1 MIDI unit" in approximate["Offline_Export/WARNINGS.txt"].decode()
+    assert len([line for line in after if line.startswith("i ")]) < len([line for line in before if line.startswith("i ")])
+    assert [line for line in after if line.startswith(("i 1 ", "f 0 "))] == [
+        line for line in before if line.startswith(("i 1 ", "f 0 "))]
+
+
+@pytest.mark.parametrize("value", [0, 11, 1.5, "5", True, None])
+def test_csd_curve_tolerance_rejects_invalid_values(tmp_path, value):
+    payload = _performance_csd_export_payload()
+    payload["controllerCurveTolerance"] = value
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+    assert response.status_code == 422
+    assert "controllerCurveTolerance" in response.text
+
+
+def test_csd_curve_tolerance_reduces_file_size_and_records_selected_accuracy(tmp_path):
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = "score"
+    payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
+        "id": "reader", "opcode": "midictrl", "params": {"inum": 1},
+    })
+    payload["sequencerConfig"]["playback_end_step"] = 128
+    track = payload["sequencerConfig"]["controller_tracks"][0]
+    track.update(target_channels=[1], length_beats=16)
+    track["pads"][0].update(length_beats=16, keypoints=[
+        {"position": position, "value": value} for position, value in
+        [(0, 20), (.25, 110), (.5, 30), (.75, 90), (1, 20)]
+    ])
+    results = []
+    with _client(tmp_path) as client:
+        for tolerance in (1, 5, 10):
+            if tolerance != 1:  # Omitted setting must still default to 1.
+                payload["controllerCurveTolerance"] = tolerance
+            response = client.post("/api/bundles/export/performance-csd", json=payload)
+            assert response.status_code == 200, response.text
+            with zipfile.ZipFile(BytesIO(response.content)) as archive:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                warnings = archive.read("Offline_Export/WARNINGS.txt").decode()
+            assert f"maximum error {tolerance}/127" in csd
+            assert f"maximum error of {tolerance} MIDI" in warnings
+            results.append(csd)
+    assert len(results[2]) < len(results[1]) < len(results[0])
+    def musical_lines(csd):
+        return [line for line in csd.splitlines() if line.startswith(("i 1 ", "f 0 "))]
+    assert musical_lines(results[0]) == musical_lines(results[1]) == musical_lines(results[2])
 
 
 def test_capture_and_ctrl7_opcode_api(tmp_path):
@@ -8801,6 +8994,10 @@ def test_input_value_precedence_reset_and_native_roundtrip(tmp_path: Path) -> No
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
 def test_performance_exports_preserve_independent_curve_endpoints(tmp_path: Path, event_source: str) -> None:
     payload = _performance_csd_export_payload()
+    payload["approximateControllerCurves"] = False
+    payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
+        "id": "reader", "opcode": "midictrl", "params": {"inum": 1},
+    })
     payload["eventSource"] = event_source
     payload["sequencerConfig"]["playback_end_step"] = 16
     track = payload["sequencerConfig"]["controller_tracks"][0]
