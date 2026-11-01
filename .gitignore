@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.playwright-cli/
 build/
 dist/
 backend/app/services/_sequencer_playback*.so
@@ -19,6 +20,7 @@ host-midi-helper/target/debug/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/.tmp*
 
 backend/data/
 backend/.coverage

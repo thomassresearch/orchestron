@@ -31,6 +31,7 @@ from backend.app.services.performance_export_selection import select_performance
 from backend.app.services.performance_controller_service import controller_definitions, controller_midi_value
 from backend.app.services.master_migration import normalize_master_bundle
 from backend.app.services.performance_export_compaction import compact_score_macros, controller_note_filters
+from backend.app.services.performance_export_splines import SplineCapture, SplineExport, SPLINE_INSTRUMENT
 from backend.app.services.performance_export_curves import (
     DEFAULT_CURVE_TOLERANCE, approximate_controller_events, curve_controller_indices, curve_orchestra_lines,
     is_curve_score_line,
@@ -215,9 +216,13 @@ class PerformanceExportService:
         controller_default_channels = tuple(
             sorted({target.midi_channel for target in targets if 1 <= target.midi_channel <= 16})
         ) or (1,)
+        spline_capture = (SplineCapture(request, controller_default_channels, OFFLINE_RENDER_SR)
+                          if request.event_source == "score" and request.use_original_controller_curves
+                          and request.approximate_controller_curves else None)
         captured_events = self._capture_offline_midi_events(
             request=request,
             controller_default_channels=controller_default_channels,
+            **({"spline_capture": spline_capture} if spline_capture is not None else {}),
         )
         from backend.app.services.audio_port_names import audio_port_names
         from backend.app.services.compiler_mixer import ResolvedMixerGraph, _reachable, OUTPUT
@@ -235,6 +240,19 @@ class PerformanceExportService:
 
         warnings = list(compile_artifact.diagnostics)
         if request.event_source == "score":
+            spline_export = None
+            orchestra = compile_artifact.orc
+            if spline_capture is not None and not any(
+                not target.always_on and any(node.opcode == "initc7" for node in target.patch.graph.nodes)
+                for target in targets
+            ):
+                mapped_indices = {(target.midi_channel - 1) * 128 + cc
+                    for target in targets for cc in target.performance_controller_midi_ccs.values()
+                    if not target.always_on and (target.assignment_id not in compile_artifact.manifest.get("legatoInstanceIds", []))
+                    and self._known_mapped_note_starts(orchestra, targets)}
+                spline_export = SplineExport(spline_capture, captured_events,
+                    self._score_controller_read_indices(orchestra), mapped_indices)
+                orchestra = spline_export.rewrite(orchestra, targets, compile_artifact.manifest)
             score_lines, score_warnings = self._build_score_lines(
                 manifest=compile_artifact.manifest,
                 allow_continuous=continuous_source,
@@ -247,10 +265,11 @@ class PerformanceExportService:
                 curve_indices=curve_controller_indices(request.sequencer_config.controller_tracks, controller_default_channels)
                     if request.approximate_controller_curves else set(),
                 curve_tolerance=request.controller_curve_tolerance,
+                spline_export=spline_export,
             )
             warnings.extend(score_warnings)
             csd = self._build_offline_score_csd(
-                orc=self._rewrite_orc_for_offline_render(compile_artifact.orc) + (
+                orc=self._rewrite_orc_for_offline_render(orchestra) + (
                     "\n" + "\n".join(curve_orchestra_lines(request.controller_curve_tolerance))
                     if any(is_curve_score_line(line) for line in score_lines) else ""
                 ),
@@ -634,6 +653,7 @@ class PerformanceExportService:
         *,
         request: PerformanceCsdExportRequest,
         controller_default_channels: tuple[int, ...],
+        spline_capture: SplineCapture | None = None,
     ) -> list[CapturedMidiEvent]:
         capture = _MidiCaptureService(max_events=OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS)
         self._append_initial_midi_controller_events(
@@ -683,6 +703,8 @@ class PerformanceExportService:
                 capture.current_time_seconds = scheduled_time
                 capture.current_sample = int(round(scheduled_time * OFFLINE_RENDER_SR))
                 block_start_sample = capture.current_sample
+                if spline_capture is not None:
+                    spline_capture.observe(runtime, config, current_subunit, scheduled_time)
                 scheduled_time += runtime._perform_subunit_event(
                     config,
                     current_subunit,
@@ -701,6 +723,8 @@ class PerformanceExportService:
         finally:
             router.shutdown()
         capture.raise_if_event_budget_exceeded()
+        if spline_capture is not None:
+            spline_capture.finish(capture.current_sample)
 
         with runtime._lock:
             config = runtime._config
@@ -853,6 +877,13 @@ class PerformanceExportService:
                 return None
         return indices
 
+    @staticmethod
+    def _known_mapped_note_starts(orchestra, targets):
+        code = "\n".join(line.split(";", 1)[0] for line in (orchestra or "").splitlines())
+        return not re.search(r"\b(?:reinit|event\w*|schedule\w*|schedk?when)\b", code) and not any(
+            node.opcode.startswith(("chnget", "chnset")) or node.opcode in {"alwayson", "turnon"}
+            for target in targets for node in target.patch.graph.nodes)
+
     def _build_score_lines(
         self,
         *,
@@ -866,6 +897,7 @@ class PerformanceExportService:
         orchestra: str | None = None,
         curve_indices: set[int] | None = None,
         curve_tolerance: int = DEFAULT_CURVE_TOLERANCE,
+        spline_export: SplineExport | None = None,
     ) -> tuple[list[str], list[str]]:
         warnings: list[str] = []
         note_events = self._score_note_events(events, targets=targets, warnings=warnings, manifest=manifest)
@@ -889,6 +921,9 @@ class PerformanceExportService:
             controller_events = [event for event in controller_events if event.time_seconds == 0 or
                                  OrchestraEmitter.score_controller_index(event.midi_channel, event.controller_number)
                                  in used_indices]
+        if spline_export is not None:
+            controller_events = [event for event in controller_events if event.time_seconds == 0 or
+                (event.midi_channel - 1) * 128 + event.controller_number not in spline_export.raw_indices]
         curve_lines = []
         if curve_indices and deduplicate_controllers:
             controller_events, curve_lines = approximate_controller_events(
@@ -903,17 +938,15 @@ class PerformanceExportService:
         lines = ["f 1 0 16384 10 1"]
         # Independently scheduled/reinitialized notes can read between captured
         # attacks. Unknown scheduling keeps the original mapped stream too.
-        code = "\n".join(line.split(";", 1)[0] for line in (orchestra or "").splitlines())
-        known_note_starts = not re.search(r"\b(?:reinit|event\w*|schedule\w*|schedk?when)\b", code)
-        # Patch-authored channel access could observe/overwrite a reserved
-        # performance channel outside its owning note's initialization.
-        known_note_starts = known_note_starts and not any(
-            node.opcode.startswith(("chnget", "chnset")) or node.opcode in {"alwayson", "turnon"}
-            for target in targets for node in target.patch.graph.nodes
-        )
+        known_note_starts = self._known_mapped_note_starts(orchestra, targets)
         timed_lines: list[tuple[float, str]] = self._mapped_controller_lines(
             events, targets, manifest or {}, note_events=note_events if known_note_starts else None,
         )
+        if spline_export is not None:
+            timed_lines = [(time, line) for time, line in timed_lines
+                           if time == 0 or int(line.split()[4]) not in spline_export.mapped_slots]
+            if spline_export.raw_indices:
+                timed_lines.append((0, f"i {SPLINE_INSTRUMENT} 0 {duration_seconds:.10f}"))
         timed_lines.extend(curve_lines)
 
         for event in controller_events:

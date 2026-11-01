@@ -56,6 +56,7 @@ export interface PerformanceCsdExportRequestPayload {
   sequencerConfig: SessionSequencerConfigRequest;
   eventSource?: "midiFile" | "score";
   approximateControllerCurves?: boolean;
+  useOriginalControllerCurves?: boolean;
   controllerCurveTolerance?: number;
   midiControllers?: Array<{
     controllerNumber: number;

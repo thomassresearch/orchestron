@@ -5,30 +5,30 @@ import { ModalFrame } from "./ModalFrame";
 const COPY = {
   english: {
     title: "CSD export accuracy",
-    description: "Choose how closely the exported controller curves follow the original.",
+    description: "Original controller curves are preserved whenever possible.",
     label: "Maximum deviation", accurate: "More accurate", smaller: "Smaller file",
-    help: "1 CC is the most accurate setting. Higher values reduce file size but can change the sound more. Step patterns and resets remain exact.",
+    help: "This limit applies only to curves that need approximation. Original curves, including note-start parameters, keep their sampled values. Higher limits can reduce fallback curve data but change the sound more. Step patterns and resets remain exact.",
     cancel: "Cancel", export: "Export CSD"
   },
   german: {
     title: "Genauigkeit des CSD-Exports",
-    description: "Wähle, wie genau die exportierten Controller-Kurven dem Original folgen.",
+    description: "Originale Controller-Kurven bleiben nach Möglichkeit erhalten.",
     label: "Maximale Abweichung", accurate: "Genauer", smaller: "Kleinere Datei",
-    help: "1 CC ist die genaueste Einstellung. Höhere Werte verkleinern die Datei, können den Klang aber stärker verändern. Step-Patterns und Rücksetzwerte bleiben exakt.",
+    help: "Diese Grenze gilt nur für Kurven, die angenähert werden müssen. Originalkurven behalten ihre abgetasteten Werte, auch für Parameter beim Notenstart. Höhere Grenzen können die Näherungsdaten verkleinern, aber den Klang stärker verändern. Step-Patterns und Rücksetzwerte bleiben exakt.",
     cancel: "Abbrechen", export: "CSD exportieren"
   },
   french: {
     title: "Précision de l’export CSD",
-    description: "Choisissez la précision des courbes de contrôleur exportées par rapport à l’original.",
+    description: "Les courbes de contrôleur originales sont conservées lorsque c’est possible.",
     label: "Écart maximal", accurate: "Plus précis", smaller: "Fichier plus petit",
-    help: "1 CC est le réglage le plus précis. Les valeurs plus élevées réduisent la taille du fichier, mais peuvent modifier davantage le son. Les motifs Step et les réinitialisations restent exacts.",
+    help: "Cette limite concerne uniquement les courbes nécessitant une approximation. Les courbes originales conservent leurs valeurs échantillonnées, y compris pour les paramètres au début des notes. Une limite plus élevée peut réduire les données approximatives, mais modifier davantage le son. Les motifs Step et les réinitialisations restent exacts.",
     cancel: "Annuler", export: "Exporter CSD"
   },
   spanish: {
     title: "Precisión de exportación CSD",
-    description: "Elige con qué precisión las curvas de controlador exportadas siguen el original.",
+    description: "Las curvas de controlador originales se conservan siempre que sea posible.",
     label: "Desviación máxima", accurate: "Más preciso", smaller: "Archivo más pequeño",
-    help: "1 CC es el ajuste más preciso. Los valores más altos reducen el tamaño del archivo, pero pueden cambiar más el sonido. Los patrones Step y los reinicios permanecen exactos.",
+    help: "Este límite solo afecta a las curvas que necesitan aproximación. Las curvas originales mantienen sus valores muestreados, incluidos los parámetros al inicio de las notas. Un límite mayor puede reducir los datos aproximados, pero cambiar más el sonido. Los patrones Step y los reinicios permanecen exactos.",
     cancel: "Cancelar", export: "Exportar CSD"
   }
 } satisfies Record<GuiLanguage, Record<string, string>>;

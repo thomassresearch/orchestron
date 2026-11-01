@@ -285,27 +285,46 @@ Before serializing SCORE, identical setter and `linseg` p-fields are factored in
 native Csound score macros when their definitions plus references save bytes.
 Occurrences retain their instrument number, start time and ordering; expansion
 restores the exact original numeric strings, including durations and precision.
-No runtime tables, new interpolation, or changes to instrument code/comments are
-introduced. MIDI-file export remains unchanged.
+Macro expansion does not change instrument code/comments. MIDI-file export remains unchanged.
 
-`PerformanceCsdExportRequest.approximateControllerCurves` defaults to `true` and
-affects SCORE only. `performance_export_curves.py` fits eligible single-owner
-Curve Mode destinations with the requested maximum vertical error against
-both ends of every captured sample-held interval. `controllerCurveTolerance`
-defaults to 1 and accepts strict integers from 1 through 10, in MIDI CC units.
-The selected value reaches fitting, the CSD header and export warnings. The
-frontend asks for it on each SCORE export when controller sequencers are present;
-cancel dismisses without an export request. MIDI exports bypass this dialog and
-ignore the tolerance. Ramer-Douglas-Peucker uses
-overlapping 1,024-point windows to bound worst-case work. Up to 16 segments share
-a `linseg` score event, with helpers 8984–8999 running before ordinary setters
-(9000) and after note readers. All durations derive from integer samples at the
-export's 48 kHz/ksmps=1. Startup, coincident writes, jumps greater than one unit,
-run endpoints and resets remain explicit; unprofitable runs remain events.
-Step lanes, competing destinations and note-triggered `initc7` disable fitting.
-Mapped I-rate setters always use the original capture. Approximate exports emit
-a warning; `false` retains exact continuous events and the other compactions.
-Live capture, the bounded event estimates and native performance data are unchanged.
+`PerformanceCsdExportRequest.useOriginalControllerCurves` defaults to `true`.
+For SCORE exports, `performance_export_splines.py` observes pad/phase/rest changes
+inside the existing offline capture runtime and shares normalized Catmull–Rom
+keypoints, pad lengths and occurrence schedules in bounded Csound arrays. It
+reconstructs the sequencer's 168-subunit sample-and-hold clock, Python's tie-to-even
+CC rounding and 0–127 clamp. Each destination must reproduce capture's changed
+values and sample boundaries before substitution; ambiguous clock boundaries,
+competing lanes and note-triggered `initc7` retain the existing fallback path.
+No live scheduler or native performance data changes are involved.
+
+A shared K-rate evaluator writes continuous CC state after note readers, matching
+ordinary SCORE setters. A matching I-rate evaluator lets eligible mapped
+`perf_controller` readers query the curve at their score onset, then applies the
+original linear/logarithmic/integer/bool mapping. Six-decimal note timestamps and
+ten-decimal setter ordering are preserved even within one sample. Existing
+channel initialization remains authoritative before a curve's first occurrence.
+Legato, independent scheduling and patch-authored channel access retain explicit
+mapped writes. Curves hold their last sampled value through rests and after a
+finite end; partial exports and rational track timing use the captured phase.
+Instrument comments are retained verbatim. Arrays are initialized in bounded
+chunks rather than taking table numbers from patches.
+
+`approximateControllerCurves: false` disables both original-curve substitution
+and approximation, retaining exact events plus lossless compaction. Setting only
+`useOriginalControllerCurves: false` selects the previous piecewise-linear path.
+`controllerCurveTolerance` remains a strict integer from 1–10 (default 1), but
+applies only to fallback approximation, never to original curves. MIDI exports
+ignore all curve-export settings.
+
+Fallback `performance_export_curves.py` fits eligible single-owner Curve Mode
+streams with a vertical CC-error bound at both ends of every held interval.
+Ramer-Douglas-Peucker uses overlapping 1,024-point windows. Up to 16 segments
+share a `linseg` event (helpers 8984–8999); the original-curve writer uses 8983,
+ordinary setters 9000. Startup, coincident writes, jumps greater than one unit,
+run endpoints and resets remain explicit. Step lanes, competing destinations
+and note-triggered `initc7` disable fitting; mapped I-rate fallback writes remain
+exact. Only exports that actually approximate curves emit the accuracy warning.
+The accuracy dialog explains that its setting applies to fallback curves.
 
 SCORE setters extend their duration at initialization to at least `1 / kr`.
 External hosts can use larger control blocks, in which the exported one-sample

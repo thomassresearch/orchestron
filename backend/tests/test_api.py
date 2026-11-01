@@ -8685,6 +8685,7 @@ def test_csd_export_reuses_controller_fields_and_limits_branch_reads(tmp_path, m
     from backend.tests.test_performance_export_compaction import expand_score_macros
 
     payload = _performance_csd_export_payload()
+    payload["useOriginalControllerCurves"] = False
     payload["eventSource"] = source
     exported = payload["performanceExport"]
     graph = load_patch_fixture("branch_controller").graph.model_dump(mode="json", by_alias=True)
@@ -8735,6 +8736,7 @@ def test_csd_curve_approximation_default_exact_option_and_fallbacks(tmp_path, mo
     from backend.app.services.performance_export_curves import is_curve_score_line
 
     payload = _performance_csd_export_payload()
+    payload["useOriginalControllerCurves"] = False
     payload["eventSource"] = "midiFile" if mode == "midiFile" else "score"
     graph = payload["performanceExport"]["patch_definitions"][0]["graph"]
     graph["nodes"].append({"id": "reader", "opcode": "midictrl", "params": {"inum": 1}})
@@ -8782,6 +8784,7 @@ def test_csd_curve_tolerance_rejects_invalid_values(tmp_path, value):
 
 def test_csd_curve_tolerance_reduces_file_size_and_records_selected_accuracy(tmp_path):
     payload = _performance_csd_export_payload()
+    payload["useOriginalControllerCurves"] = False
     payload["eventSource"] = "score"
     payload["performanceExport"]["patch_definitions"][0]["graph"]["nodes"].append({
         "id": "reader", "opcode": "midictrl", "params": {"inum": 1},
@@ -8810,6 +8813,39 @@ def test_csd_curve_tolerance_reduces_file_size_and_records_selected_accuracy(tmp
     def musical_lines(csd):
         return [line for line in csd.splitlines() if line.startswith(("i 1 ", "f 0 "))]
     assert musical_lines(results[0]) == musical_lines(results[1]) == musical_lines(results[2])
+
+
+def test_csd_exports_original_curves_and_irate_parameters_by_default(tmp_path):
+    from backend.tests.test_performance_export_splines import spline_payload
+
+    payload = spline_payload()
+    results = []
+    with _client(tmp_path) as client:
+        for tolerance in (1, 10):
+            payload["controllerCurveTolerance"] = tolerance
+            response = client.post("/api/bundles/export/performance-csd", json=payload)
+            assert response.status_code == 200, response.text
+            with zipfile.ZipFile(BytesIO(response.content)) as archive:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                assert "Offline_Export/WARNINGS.txt" not in archive.namelist()
+            assert "opcode VcsSplineI" in csd and "opcode VcsSplineK" in csd
+            assert "i_vcs_cc VcsSplineI" in csd
+            assert " kvalue linseg " not in csd
+            assert sum(line.startswith("i 1 ") for line in csd.splitlines()) <= 1
+            results.append(csd)
+        assert results[0] == results[1]  # Exact authored curves do not use tolerance.
+        payload["useOriginalControllerCurves"] = False
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            legacy = archive.read("Offline_Export/Offline_Export.csd").decode()
+        assert "opcode VcsSplineI" not in legacy
+        assert " kvalue linseg " in legacy
+        for invalid in ("yes", 1, None):
+            payload["useOriginalControllerCurves"] = invalid
+            response = client.post("/api/bundles/export/performance-csd", json=payload)
+            assert response.status_code == 422
+            assert "useOriginalControllerCurves" in response.text
 
 
 def test_capture_and_ctrl7_opcode_api(tmp_path):
