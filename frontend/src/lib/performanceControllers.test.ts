@@ -45,7 +45,7 @@ describe("performance controller ranges", () => {
   it("keeps malformed imported fields safe to display in the rack", () => {
     const graph = audioTemplate("empty").graph;
     graph.nodes = [{ id: "invalid", opcode: "perf_controller", position: { x: 0, y: 0 }, params: { min: "bad", label: 42 } }];
-    expect(performanceControllersForGraph(graph)[0]).toEqual({ node_id: "invalid", controller_type: "float", min: 0, max: 1, default: 0.5, scale: "linear", label: "Parameter", error: "finite" });
+    expect(performanceControllersForGraph(graph)[0]).toEqual({ node_id: "invalid", controller_type: "float", min: 0, max: 1, default: 0.5, scale: "linear", label: "Parameter", controller_group: "", error: "finite" });
   });
 });
 
@@ -137,4 +137,18 @@ it("maps MIDI endpoints, logarithmic values, integer ties and bool thresholds", 
   const bool = { ...controllerDefaults("bool"), node_id: "b" };
   expect([0, 63, 64, 127].map(value => controllerMidiValue(value, bool))).toEqual([0, 0, 1, 1]);
   expect(normalizeControllerMidiCCs({ first: 1, last: 50, zero: 0, high: 51, fraction: 1.5, string: "21", bool: true })).toEqual({ first: 1, last: 50 });
+});
+
+ it("validates and normalizes controller groups without changing instance overrides", () => {
+  expect(controllerConfigurationError({ ...definition, controller_group: 42 } as unknown as PerformanceControllerDefinition)).toBe("groupInvalid");
+  expect(controllerConfigurationError({ ...definition, controller_group: "x".repeat(129) })).toBe("groupInvalid");
+  expect(controllerConfigurationError({ ...definition, controller_group: "😀".repeat(128) })).toBeNull();
+  const graph = audioTemplate("empty").graph;
+  graph.nodes = [{ id: "attack", opcode: "perf_controller", position: { x: 0, y: 0 }, params: { controller_group: " Envelope " } }];
+  expect(performanceControllersForGraph(graph)[0].controller_group).toBe("Envelope");
+  const values = { ...binding, performanceControllerValues: { attack: .3 }, performanceControllerMidiCCs: { attack: 12 } };
+  const updated = reconcileControllerValues(values, [{ ...definition, controller_group: "New group" }]);
+  expect(updated.performanceControllerValues).toEqual(values.performanceControllerValues);
+  expect(updated.performanceControllerMidiCCs).toEqual(values.performanceControllerMidiCCs);
+  expect(updated.performanceControllerNotice).toBeFalsy();
 });

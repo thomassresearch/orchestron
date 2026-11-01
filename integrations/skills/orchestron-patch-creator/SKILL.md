@@ -89,7 +89,7 @@ The CLI enforces these defaults in generated graphs:
 
 ## Performance Customization
 
-Use the Orchestron virtual opcode `perf_controller` for settings that vary between performances or rack instances. Its fixed fields are `min`, `max`, `default`, `scale` (`linear` or `logarithmic`), and `label`; its only output is I-rate `iout`, and it has no input sockets. Add definitions through the patch spec's `performance_controllers` list; see [the schema and working example](references/performance_controllers.md).
+Use the Orchestron virtual opcode `perf_controller` for settings that vary between performances or rack instances. Its fixed fields are `min`, `max`, `default`, `scale` (`linear` or `logarithmic`), `label`, and optional `controller_group`; its only output is I-rate `iout`, and it has no input sockets. Add definitions through the patch spec's `performance_controllers` list; see [the schema and working example](references/performance_controllers.md).
 
 Keep node IDs stable when editing a patch: performance overrides refer to those IDs, not labels. Set useful patch defaults, then store instance choices in the performance rather than changing the shared patch. These knobs do not send MIDI CC. New notes read updated values; held notes retain theirs, and always-on instruments need a rack restart. Standalone compilation and isolated audition use defaults.
 

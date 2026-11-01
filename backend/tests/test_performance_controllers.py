@@ -72,6 +72,22 @@ def test_duplicate_labels_keep_independent_node_identities():
     assert controllers["setting"]["channel"] != controllers["second"]["channel"]
 
 
+@pytest.mark.parametrize("group", [42, True, "x" * 129])
+def test_invalid_controller_groups_fail_compilation(group):
+    with pytest.raises(CompilationError):
+        compile_targets([PatchInstrumentTarget(controller_patch(params={"controller_group": group}), 1)])
+
+
+@pytest.mark.parametrize("controller_type", ["float", "integer", "bool"])
+def test_controller_group_is_normalized_display_metadata(controller_type):
+    patch = controller_patch(params={"controller_type": controller_type})
+    before = compile_targets([PatchInstrumentTarget(patch, 1)])
+    patch.graph.nodes[0].params["controller_group"] = "  Envelope  "
+    after = compile_targets([PatchInstrumentTarget(patch, 1)])
+    assert after.orc == before.orc
+    assert after.manifest["performanceControllers"]["instrument-1"]["setting"]["controller_group"] == "Envelope"
+
+
 @pytest.mark.parametrize("mixer", [False, True])
 @pytest.mark.parametrize("ksmps", [1, 32])
 def test_i_rate_held_notes_next_notes_and_independent_instances(mixer, ksmps):
@@ -171,6 +187,7 @@ def test_native_bundle_roundtrip_preserves_controller_definitions_and_overrides(
         payload["performance"]["config"]["instruments"][0]["performanceControllerValues"] = {"setting": 1}
     if controller_type == "mixed":
         add_mixed_controllers(payload["patch_definitions"][0]["graph"], payload["performance"]["config"]["instruments"])
+    payload["patch_definitions"][0]["graph"]["nodes"][0]["params"]["controller_group"] = "Envelope"
     with _client(tmp_path) as client:
         exported = client.post("/api/bundles/export/performance", json=payload)
         assert exported.status_code == 200

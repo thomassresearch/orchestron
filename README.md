@@ -19,6 +19,12 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
+The Perform rack uses the full available width and automatically sizes instrument
+cards to fit their controllers. Add **Controller Group** names to organize related
+settings inside thin labeled borders. [Controller and rack guide](documentation/performance/performance_controllers.md).
+
+![Grouped performance controllers in the adaptive rack](screenshots/performance_controller_groups_rack.png)
+
 [Granular Synthesis](examples/instruments/granular_synthesis/README.md) is a
 sample-free stereo instrument with 30 performance controls for pitched clouds,
 sparse particles, metallic textures and sync-like tones. Its guide includes

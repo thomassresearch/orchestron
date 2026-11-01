@@ -885,6 +885,10 @@ def performance_controller_params(raw: dict[str, Any]) -> dict[str, Any]:
         raise PatchCliError("invalid_performance_controller", "Use float, integer or bool controller_type.")
     params = {"controller_type": controller_type, "min": 0, "max": 1,
               "default": 0.5 if controller_type == "float" else 0, "scale": "linear", "label": "Parameter", **raw}
+    group = params.get("controller_group", "")
+    if not isinstance(group, str) or len(group.strip()) > 128:
+        raise PatchCliError("invalid_performance_controller", "Controller group must be a string of at most 128 characters.")
+    params["controller_group"] = group.strip()
     numbers = [params[key] for key in ("min", "max", "default")]
     if not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in numbers):
         raise PatchCliError("invalid_performance_controller", "Minimum, maximum and default must be finite numbers.")
@@ -912,8 +916,8 @@ def apply_performance_controllers(graph: dict[str, Any], definitions: Any) -> di
     nodes_by_id = {node["id"]: node for node in graph["nodes"]}
     targets = set()
     for index, definition in enumerate(definitions):
-        if not isinstance(definition, dict) or set(definition) - {"id", "target", "controller_type", "min", "max", "default", "scale", "label"}:
-            raise PatchCliError("invalid_performance_controller", "Use id, target, controller_type, min, max, default, scale and label fields.")
+        if not isinstance(definition, dict) or set(definition) - {"id", "target", "controller_type", "min", "max", "default", "scale", "label", "controller_group"}:
+            raise PatchCliError("invalid_performance_controller", "Use id, target, controller_type, min, max, default, scale, label and controller_group fields.")
         node_id = definition.get("id")
         if not isinstance(node_id, str) or not node_id.strip() or node_id in nodes_by_id:
             raise PatchCliError("invalid_performance_controller", "Each controller needs a unique, nonempty node id.")

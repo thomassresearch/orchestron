@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, StringConstraints, model_validator
 
 ControllerNumber = Annotated[float, Field(strict=True, allow_inf_nan=False)]
 PerformanceMidiCC = Annotated[int, Field(strict=True, ge=1, le=50)]
@@ -21,6 +21,7 @@ class PerformanceControllerDefinition(BaseModel):
     default: ControllerNumber = 0.5
     scale: Literal["linear", "logarithmic"] = "linear"
     label: str = Field(default="Parameter", min_length=1, max_length=128)
+    controller_group: Annotated[str, StringConstraints(strict=True, strip_whitespace=True, max_length=128)] = ""
     error: str | None = None
 
     @model_validator(mode="before")

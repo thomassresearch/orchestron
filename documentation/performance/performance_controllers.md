@@ -10,9 +10,9 @@ Add `perf_controller` from Constants in Instrument Design. Click its gear button
 
 | Type | Configuration | Perform control |
 | --- | --- | --- |
-| Float | Minimum, Maximum, Default, linear/logarithmic Scale, Label | Existing knob with exact numeric entry |
-| Integer | Whole-number Minimum, Maximum and Default, Label; linear only | Up triangle, editable number, down triangle |
-| Bool | On/Off Default and Label | On/off toggle, output `0` or `1` |
+| Float | Minimum, Maximum, Default, linear/logarithmic Scale, Label, Controller Group | Existing knob with exact numeric entry |
+| Integer | Whole-number Minimum, Maximum and Default, Label, Controller Group; linear only | Up triangle, editable number, down triangle |
+| Bool | On/Off Default, Label, Controller Group | On/off toggle, output `0` or `1` |
 
 The Type selector initially chooses **Float**. Existing patches without a stored type also use Float. Float defaults remain minimum `0`, maximum `1`, default `0.5`, linear scale and label `Parameter`. Integer definitions without numeric fields use minimum `0`, maximum `1`, default `0`. Bool defaults to **Off** and uses a fixed internal `0–1` linear range.
 
@@ -22,11 +22,31 @@ Changing Type to Integer rounds the numeric fields to the nearest integer, with 
 
 For a logarithmic attack-time control, choose Float, minimum `0.001`, maximum `5`, default `0.01`, and label `Attack (s)`. Connect `iout` to the envelope’s I-rate attack input, then save the patch. All three types use the same numeric I-rate output and existing compatible connections.
 
-![Integer performance controller configuration](../../screenshots/performance_controller_integer_configuration.png)
+![Controller Group in the controller configuration dialog](../../screenshots/performance_controller_group_configuration.png)
 
 ## Tune a Rack Instrument
 
-Controllers appear in patch-node order beneath patch and channel. Controls wrap onto additional rows to fit the available card width.
+Set **Controller Group** in the gear dialog to organize related controls, for example
+**Oscillator**, **Filter** or **Envelope**. This optional field applies to every type
+and accepts up to 128 characters. Surrounding whitespace is ignored; names are
+case-sensitive. Leave it blank for controls without a group border.
+
+Each instrument instance displays matching names inside one thin labeled border.
+Groups follow their first occurrence in patch-node order; controls retain their
+order within each group. Ungrouped controls share an unbordered block at their
+first occurrence. Groups remain expanded and can sit beside one another or wrap.
+
+Perform uses the available browser width. Instrument cards and controller groups
+automatically choose widths and rows to reduce rack height while retaining the
+saved instrument order. Large instruments can span the rack; small instruments
+can share a row. Controls retain their normal size and remain fully visible.
+Resizing preserves focus and unfinished value edits.
+
+Group names belong to the instrument definition, survive native export/import,
+and do not change controller identity, saved values, MIDI assignments or sound.
+Changing only a group name does not require restarting the rack.
+
+![Grouped controllers in a full-width adaptive instrument rack](../../screenshots/performance_controller_groups_rack.png)
 
 **Float** retains its knob, caption, scale dashes, endpoints, LIN/LOG indicator and current value. Linear ticks are equally spaced; logarithmic ticks follow ratios and mark decade boundaries.
 

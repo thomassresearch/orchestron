@@ -1,6 +1,6 @@
 import type { PatchGraph, PerformanceControllerDefinition, PerformanceControllerType, SequencerInstrumentBinding } from "../types";
 
-export const performanceControllerDefaults = { controller_type: "float" as const, min: 0, max: 1, default: 0.5, scale: "linear" as const, label: "Parameter" };
+export const performanceControllerDefaults = { controller_type: "float" as const, controller_group: "", min: 0, max: 1, default: 0.5, scale: "linear" as const, label: "Parameter" };
 
 export function controllerDefaults(controllerType: PerformanceControllerType = "float") {
   return { ...performanceControllerDefaults, controller_type: controllerType, default: controllerType === "float" ? 0.5 : 0 };
@@ -18,6 +18,7 @@ export function controllerConfigurationError(config: Omit<PerformanceControllerD
   if (config.scale !== "linear" && config.scale !== "logarithmic") return "scale";
   if (config.scale === "logarithmic" && config.min <= 0) return "positive";
   if (typeof config.label !== "string" || !config.label.trim() || config.label.length > 128) return "labelRequired";
+  if (config.controller_group !== undefined && (typeof config.controller_group !== "string" || [...config.controller_group.trim()].length > 128)) return "groupInvalid";
   return null;
 }
 
@@ -26,7 +27,7 @@ export function performanceControllersForGraph(graph: PatchGraph): PerformanceCo
     const config = { ...controllerDefaults(node.params.controller_type as PerformanceControllerType | undefined), ...node.params, node_id: node.id } as PerformanceControllerDefinition;
     const error = controllerConfigurationError(config);
     // Invalid imported fields must still produce a safe, disabled rack control.
-    return error ? { ...performanceControllerDefaults, node_id: node.id, error } : { ...config, error: null };
+    return error ? { ...performanceControllerDefaults, node_id: node.id, error } : { ...config, controller_group: config.controller_group?.trim() ?? "", error: null };
   });
 }
 

@@ -12,7 +12,7 @@ export function PerformanceControllerEditor({ node, language, onClose, onSave }:
   const config = { controller_type: fields.controller_type as PerformanceControllerType,
     min: fields.min.trim() ? Number(fields.min) : NaN, max: fields.max.trim() ? Number(fields.max) : NaN,
     default: fields.default.trim() ? Number(fields.default) : NaN,
-    scale: fields.scale as "linear" | "logarithmic", label: fields.label };
+    scale: fields.scale as "linear" | "logarithmic", label: fields.label, controller_group: fields.controller_group.trim() };
   const error = controllerConfigurationError(config);
   const changeType = (controllerType: PerformanceControllerType) => {
     const next: Record<string, string> = { ...fields, controller_type: controllerType };
@@ -36,6 +36,9 @@ export function PerformanceControllerEditor({ node, language, onClose, onSave }:
     <div className="grid grid-cols-2 gap-3">
       <label className="col-span-2 text-xs text-slate-300">{copy.label}<input autoFocus className={fieldClass} maxLength={128} value={fields.label}
         onChange={(event) => setFields({ ...fields, label: event.target.value })} /></label>
+      <label className="col-span-2 text-xs text-slate-300">{copy.group}<input aria-label={copy.group} className={fieldClass} value={fields.controller_group}
+        onChange={(event) => setFields({ ...fields, controller_group: event.target.value })} />
+        <span className="mt-1 block text-slate-400">{copy.groupHelp}</span></label>
       <label className="col-span-2 text-xs text-slate-300">{copy.type}<select className={fieldClass} value={fields.controller_type}
         onChange={(event) => changeType(event.target.value as PerformanceControllerType)}>
         <option value="float">{copy.float}</option><option value="integer">{copy.integer}</option><option value="bool">{copy.bool}</option>

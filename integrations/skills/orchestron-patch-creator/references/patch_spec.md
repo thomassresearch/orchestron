@@ -13,7 +13,7 @@ Use YAML or JSON. YAML is easier for authoring; JSON works without PyYAML. The C
 - `effects`: Optional mono effect chain.
 - `output`: Output pan configuration.
 - `formulas`: Optional opcode input formulas stored in `graph.ui_layout.input_formulas`.
-- `performance_controllers`: Optional ordered list of rack knob definitions; each has `id`, `target` (`NODE.PORT`), `min`, `max`, `default`, `scale`, and `label`. See [performance controllers](performance_controllers.md) for the schema, validation, and an executable example.
+- `performance_controllers`: Optional ordered list of rack knob definitions; each has `id`, `target` (`NODE.PORT`), `min`, `max`, `default`, `scale`, `label`, and optional `controller_group`. See [performance controllers](performance_controllers.md) for the schema, validation, and an executable example.
 - `is_template`: Optional boolean. Use only for intentionally incomplete or starter patches.
 
 ## Envelope

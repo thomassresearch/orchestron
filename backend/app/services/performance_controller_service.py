@@ -20,7 +20,7 @@ def controller_definitions(graph, *, strict=True) -> list[PerformanceControllerD
         try:
             definition = PerformanceControllerDefinition.model_validate({
                 "node_id": node.id,
-                **{key: node.params[key] for key in ("controller_type", "min", "max", "default", "scale", "label") if key in node.params},
+                **{key: node.params[key] for key in ("controller_type", "min", "max", "default", "scale", "label", "controller_group") if key in node.params},
             })
         except ValidationError as exc:
             message = f"perf_controller '{node.id}': " + "; ".join(e["msg"] for e in exc.errors())

@@ -1690,7 +1690,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1700px] space-y-3">
+      <div className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
         <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
           <div className="flex flex-1 items-center gap-3">
             <img

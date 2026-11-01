@@ -30,7 +30,7 @@ Usage note: Generated patches use `const_i` nodes for fixed init-rate values. Ke
 
 Purpose: Expose an instrument setting as a rack knob, independently configurable per performance instance. Examples: attack/release times, sustain, distortion gain.
 
-Inputs: none. Fixed node parameters: `min=0`, `max=1`, `default=0.5`, `scale="linear"`, `label="Parameter"`. `scale` also accepts `"logarithmic"`, which requires a positive minimum. Require finite numbers, `min < max`, and default within range.
+Inputs: none. Fixed node parameters: `min=0`, `max=1`, `default=0.5`, `scale="linear"`, `label="Parameter"`, optional `controller_group=""`. Group names are trimmed, case-sensitive display metadata of at most 128 characters. `scale` also accepts `"logarithmic"`, which requires a positive minimum. Require finite numbers, `min < max`, and default within range.
 
 Output: `iout` (`i`). Read at note initialization; held notes retain their value. Always-on instruments take changes after rack restart. This is an editor construct compiled to initialized Csound software channels and I-rate `chnget`, not a native Csound opcode or MIDI CC source. See [authoring and identity rules](performance_controllers.md).
 

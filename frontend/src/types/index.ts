@@ -565,6 +565,7 @@ export type PerformanceControllerType = "float" | "integer" | "bool";
 
 export interface PerformanceControllerDefinition {
   node_id: string;
+  controller_group?: string;
   controller_type?: PerformanceControllerType;
   min: number;
   max: number;

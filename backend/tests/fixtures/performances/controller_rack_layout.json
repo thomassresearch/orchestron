@@ -1,0 +1,1183 @@
+{
+  "cards": [
+    {
+      "definitions": []
+    },
+    {
+      "definitions": [
+        {
+          "node_id": "control-0",
+          "controller_type": "float",
+          "controller_group": "",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 1"
+        },
+        {
+          "node_id": "control-1",
+          "controller_type": "integer",
+          "controller_group": "",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 2"
+        },
+        {
+          "node_id": "control-2",
+          "controller_type": "bool",
+          "controller_group": "",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 3"
+        },
+        {
+          "node_id": "control-3",
+          "controller_type": "float",
+          "controller_group": "",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 4"
+        }
+      ]
+    },
+    {
+      "definitions": [
+        {
+          "node_id": "control-0",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 1"
+        },
+        {
+          "node_id": "control-1",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 2"
+        },
+        {
+          "node_id": "control-2",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 3"
+        },
+        {
+          "node_id": "control-3",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 4"
+        },
+        {
+          "node_id": "control-4",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 5"
+        },
+        {
+          "node_id": "control-5",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 6"
+        },
+        {
+          "node_id": "control-6",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 7"
+        },
+        {
+          "node_id": "control-7",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 8"
+        },
+        {
+          "node_id": "control-8",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 9"
+        },
+        {
+          "node_id": "control-9",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 10"
+        },
+        {
+          "node_id": "control-10",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 11"
+        },
+        {
+          "node_id": "control-11",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 12"
+        },
+        {
+          "node_id": "control-12",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 13"
+        },
+        {
+          "node_id": "control-13",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 14"
+        },
+        {
+          "node_id": "control-14",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 15"
+        },
+        {
+          "node_id": "control-15",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 16"
+        }
+      ]
+    },
+    {
+      "definitions": [
+        {
+          "node_id": "control-0",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 1"
+        },
+        {
+          "node_id": "control-1",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 2"
+        },
+        {
+          "node_id": "control-2",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 3"
+        },
+        {
+          "node_id": "control-3",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 4"
+        },
+        {
+          "node_id": "control-4",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 5"
+        },
+        {
+          "node_id": "control-5",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 6"
+        },
+        {
+          "node_id": "control-6",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 7"
+        },
+        {
+          "node_id": "control-7",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 8"
+        },
+        {
+          "node_id": "control-8",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 9"
+        },
+        {
+          "node_id": "control-9",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 10"
+        },
+        {
+          "node_id": "control-10",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 11"
+        },
+        {
+          "node_id": "control-11",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 12"
+        },
+        {
+          "node_id": "control-12",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 13"
+        },
+        {
+          "node_id": "control-13",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 14"
+        },
+        {
+          "node_id": "control-14",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 15"
+        },
+        {
+          "node_id": "control-15",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 16"
+        },
+        {
+          "node_id": "control-16",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 17"
+        },
+        {
+          "node_id": "control-17",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 18"
+        },
+        {
+          "node_id": "control-18",
+          "controller_type": "float",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 19"
+        },
+        {
+          "node_id": "control-19",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 20"
+        },
+        {
+          "node_id": "control-20",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 21"
+        },
+        {
+          "node_id": "control-21",
+          "controller_type": "float",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 22"
+        },
+        {
+          "node_id": "control-22",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 23"
+        },
+        {
+          "node_id": "control-23",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 24"
+        },
+        {
+          "node_id": "control-24",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 25"
+        },
+        {
+          "node_id": "control-25",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 26"
+        },
+        {
+          "node_id": "control-26",
+          "controller_type": "bool",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 27"
+        },
+        {
+          "node_id": "control-27",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 28"
+        },
+        {
+          "node_id": "control-28",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 29"
+        },
+        {
+          "node_id": "control-29",
+          "controller_type": "bool",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 30"
+        },
+        {
+          "node_id": "control-30",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 31"
+        },
+        {
+          "node_id": "control-31",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 32"
+        }
+      ]
+    },
+    {
+      "definitions": [
+        {
+          "node_id": "control-0",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 1"
+        },
+        {
+          "node_id": "control-1",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 2"
+        },
+        {
+          "node_id": "control-2",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 3"
+        },
+        {
+          "node_id": "control-3",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 4"
+        },
+        {
+          "node_id": "control-4",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 5"
+        },
+        {
+          "node_id": "control-5",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 6"
+        },
+        {
+          "node_id": "control-6",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 7"
+        },
+        {
+          "node_id": "control-7",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 8"
+        },
+        {
+          "node_id": "control-8",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 9"
+        },
+        {
+          "node_id": "control-9",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 10"
+        },
+        {
+          "node_id": "control-10",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 11"
+        },
+        {
+          "node_id": "control-11",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 12"
+        },
+        {
+          "node_id": "control-12",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 13"
+        },
+        {
+          "node_id": "control-13",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 14"
+        },
+        {
+          "node_id": "control-14",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 15"
+        },
+        {
+          "node_id": "control-15",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 16"
+        },
+        {
+          "node_id": "control-16",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 17"
+        },
+        {
+          "node_id": "control-17",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 18"
+        },
+        {
+          "node_id": "control-18",
+          "controller_type": "float",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 19"
+        },
+        {
+          "node_id": "control-19",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 20"
+        },
+        {
+          "node_id": "control-20",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 21"
+        },
+        {
+          "node_id": "control-21",
+          "controller_type": "float",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 22"
+        },
+        {
+          "node_id": "control-22",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 23"
+        },
+        {
+          "node_id": "control-23",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 24"
+        },
+        {
+          "node_id": "control-24",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 25"
+        },
+        {
+          "node_id": "control-25",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 26"
+        },
+        {
+          "node_id": "control-26",
+          "controller_type": "bool",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 27"
+        },
+        {
+          "node_id": "control-27",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 28"
+        },
+        {
+          "node_id": "control-28",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 29"
+        },
+        {
+          "node_id": "control-29",
+          "controller_type": "bool",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 30"
+        },
+        {
+          "node_id": "control-30",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 31"
+        },
+        {
+          "node_id": "control-31",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 32"
+        },
+        {
+          "node_id": "control-32",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 33"
+        },
+        {
+          "node_id": "control-33",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 34"
+        },
+        {
+          "node_id": "control-34",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 35"
+        },
+        {
+          "node_id": "control-35",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 36"
+        },
+        {
+          "node_id": "control-36",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 37"
+        },
+        {
+          "node_id": "control-37",
+          "controller_type": "integer",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 38"
+        },
+        {
+          "node_id": "control-38",
+          "controller_type": "bool",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 39"
+        },
+        {
+          "node_id": "control-39",
+          "controller_type": "float",
+          "controller_group": "Oscillator",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 40"
+        },
+        {
+          "node_id": "control-40",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 41"
+        },
+        {
+          "node_id": "control-41",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 42"
+        },
+        {
+          "node_id": "control-42",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 43"
+        },
+        {
+          "node_id": "control-43",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 44"
+        },
+        {
+          "node_id": "control-44",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 45"
+        },
+        {
+          "node_id": "control-45",
+          "controller_type": "float",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 46"
+        },
+        {
+          "node_id": "control-46",
+          "controller_type": "integer",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 47"
+        },
+        {
+          "node_id": "control-47",
+          "controller_type": "bool",
+          "controller_group": "Filter",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 48"
+        },
+        {
+          "node_id": "control-48",
+          "controller_type": "float",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 49"
+        },
+        {
+          "node_id": "control-49",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 50"
+        },
+        {
+          "node_id": "control-50",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 51"
+        },
+        {
+          "node_id": "control-51",
+          "controller_type": "float",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 52"
+        },
+        {
+          "node_id": "control-52",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 53"
+        },
+        {
+          "node_id": "control-53",
+          "controller_type": "bool",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 54"
+        },
+        {
+          "node_id": "control-54",
+          "controller_type": "float",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 55"
+        },
+        {
+          "node_id": "control-55",
+          "controller_type": "integer",
+          "controller_group": "Envelope",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 56"
+        },
+        {
+          "node_id": "control-56",
+          "controller_type": "bool",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 57"
+        },
+        {
+          "node_id": "control-57",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 58"
+        },
+        {
+          "node_id": "control-58",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 59"
+        },
+        {
+          "node_id": "control-59",
+          "controller_type": "bool",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 60"
+        },
+        {
+          "node_id": "control-60",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 61"
+        },
+        {
+          "node_id": "control-61",
+          "controller_type": "integer",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 62"
+        },
+        {
+          "node_id": "control-62",
+          "controller_type": "bool",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 63"
+        },
+        {
+          "node_id": "control-63",
+          "controller_type": "float",
+          "controller_group": "Output",
+          "min": 0,
+          "max": 1,
+          "default": 0,
+          "scale": "linear",
+          "label": "Parameter 64"
+        }
+      ]
+    }
+  ]
+}

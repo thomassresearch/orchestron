@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PerformanceControllerRack } from "./PerformanceControllerRack";
 import { useAppStore } from "../../store/useAppStore";
 import type { PatchListItem, SequencerInstrumentBinding } from "../../types";
@@ -10,7 +10,8 @@ const patch = { id: "patch", performance_controllers: [
   { node_id: "count", controller_type: "integer", min: 0, max: 4, default: 1, scale: "linear", label: "Count" },
   { node_id: "enabled", controller_type: "bool", min: 0, max: 1, default: 0, scale: "linear", label: "Enabled" }
 ] } as PatchListItem;
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+beforeEach(() => vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} }));
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 it("offers only Off and 1–50 without repeating the instrument channel", () => {
   const setCC = vi.spyOn(useAppStore.getState(), "setPerformanceControllerMidiCC");
   render(<PerformanceControllerRack binding={binding} patch={patch} language="english" />);
@@ -27,4 +28,33 @@ it("offers only Off and 1–50 without repeating the instrument channel", () => 
 it("disables assignments for continuous instruments", () => {
   render(<PerformanceControllerRack binding={{ ...binding, midiChannel: 0 }} patch={{ ...patch, always_on: true }} language="english" />);
   expect(screen.getAllByRole("combobox").every(element => (element as HTMLSelectElement).disabled)).toBe(true);
+});
+
+it("groups mixed controls by name within each instrument and preserves edits on resize", () => {
+  const grouped = { ...patch, performance_controllers: patch.performance_controllers!.map((d, i) => ({ ...d, controller_group: i === 1 ? "" : "Tone" })) };
+  const { rerender } = render(<PerformanceControllerRack binding={binding} patch={grouped} language="english" />);
+  expect(screen.getByRole("group", { name: "Tone" }).querySelectorAll("[data-performance-controller]")).toHaveLength(2);
+  const input = screen.getByRole("spinbutton", { name: "Gain · Performance controller" }) as HTMLInputElement;
+  fireEvent.change(input, { target: { value: "0.1234" } });
+  input.focus();
+  rerender(<PerformanceControllerRack binding={{ ...binding, performanceControllerValues: { gain: .8 } }} patch={grouped} language="english" />);
+  expect(document.activeElement).toBe(input);
+  expect(input.value).toBe("0.1234");
+});
+
+it("equalizes slots across groups and releases space when an error hint disappears", () => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const bodyHeight = this.dataset.performanceController === "gain" ? 165 : 177;
+    const height = this.hasAttribute("data-performance-controller") ? bodyHeight
+      : this.hasAttribute("data-rack-controller-footer") ? (this.textContent?.includes("Invalid") ? 104 : 40) : 0;
+    return { width: 1000, height, x: 0, y: 0, top: 0, bottom: height, left: 0, right: 1000, toJSON() {} };
+  });
+  const grouped = { ...patch, performance_controllers: patch.performance_controllers!.map(d => ({ ...d, controller_group: d.label })) };
+  const { container, rerender } = render(<PerformanceControllerRack binding={binding} patch={grouped} language="english" />);
+  const heights = () => [...container.querySelectorAll<HTMLElement>("[data-rack-controller-tile]")].map(tile => tile.style.minHeight);
+  expect(heights()).toEqual(["225px", "225px", "225px"]);
+  rerender(<PerformanceControllerRack binding={binding} patch={{ ...grouped, performance_controllers: grouped.performance_controllers.map((d, i) => i === 0 ? { ...d, error: "Invalid" } : d) }} language="english" />);
+  expect(heights()).toEqual(["277px", "277px", "277px"]);
+  rerender(<PerformanceControllerRack binding={binding} patch={grouped} language="english" />);
+  expect(heights()).toEqual(["225px", "225px", "225px"]);
 });

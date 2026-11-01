@@ -9241,3 +9241,33 @@ def test_performance_controller_midi_assignment_api_and_revisions(tmp_path):
         assert changed.status_code == 200
         assert client.get(f"/api/sessions/{session}").json()["state"] == "running"
         assert client.get(f"/api/sessions/{session}/performance-controllers").json()["one"]["midi_ccs"] == {"setting": 50}
+
+
+def test_controller_group_save_list_and_running_updates(tmp_path: Path) -> None:
+    from backend.tests.test_performance_controllers import controller_patch
+
+    with _client(tmp_path) as client:
+        patch = controller_patch(params={"controller_group": "  Envelope  "}).model_dump(mode="json", by_alias=True)
+        response = client.post("/api/patches", json=patch)
+        assert response.status_code == 201, response.text
+        saved = response.json()
+        listed = next(item for item in client.get("/api/patches").json() if item["id"] == saved["id"])
+        assert listed["performance_controllers"][0]["controller_group"] == "Envelope"
+        session_response = client.post("/api/sessions", json={"instruments": [{
+            "id": "one", "patch_id": saved["id"], "midi_channel": 1,
+            "performance_controller_values": {"setting": 0.3}, "performance_controller_midi_ccs": {"setting": 12},
+        }]})
+        assert session_response.status_code == 201, session_response.text
+        session = session_response.json()["session_id"]
+        assert client.post(f"/api/sessions/{session}/start").status_code == 200
+        saved["graph"]["nodes"][0]["params"]["controller_group"] = "Tone"
+        changed = client.put(f"/api/patches/{saved['id']}", json=saved)
+        assert changed.status_code == 200, changed.text
+        endpoint = f"/api/sessions/{session}/instruments/one/performance-controllers"
+        snapshot = client.get(endpoint).json()
+        updated = client.patch(endpoint, json={"values": {"setting": 0.4}, "revisions": snapshot["revisions"]})
+        assert updated.status_code == 200, updated.text
+        assert updated.json()["values"]["setting"] == 0.4
+        assert updated.json()["midi_ccs"]["setting"] == 12
+        assert client.get(f"/api/sessions/{session}").json()["state"] == "running"
+        assert client.post(f"/api/sessions/{session}/stop").status_code == 200

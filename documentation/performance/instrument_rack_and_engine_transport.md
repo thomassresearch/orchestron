@@ -4,6 +4,20 @@
 
 The Instrument Rack is the top section of the Perform page and controls the live session, instrument assignments, and performance metadata.
 
+## Adaptive Expanded Rack
+
+Perform fills the available browser width with normal outer margins. Instrument
+cards automatically share rows or span the full rack according to their controller
+content. The layout reduces vertical space while keeping the saved instrument
+order and the divider between note-triggered and continuous instruments.
+
+Optional **Controller Group** names in Instrument Design give related controls a
+thin labeled border. Groups remain expanded; cards and groups wrap without
+shrinking the controls. Narrow windows use a single column and a wrapping header.
+See [Performance Controllers](performance_controllers.md) for grouping rules.
+
+![Adaptive instrument widths and labeled controller groups](../../screenshots/performance_controller_groups_rack.png)
+
 ## Compact Rack
 
 When collapsed, the rack keeps Add Instrument and Start/Stop available. A single horizontally scrolling row shows MIDI channel and patch name for every instance, including duplicates; continuous instruments show Continuous instead of a channel. Long names have full-name tooltips. Note-triggered instruments appear first, followed by continuous instruments, with a thin vertical divider when both groups are present. The row follows the saved rack order; expand the rack to reorder instruments. Focus the row and use the arrow keys to scroll. Metadata, file actions and detailed controls return when expanded.

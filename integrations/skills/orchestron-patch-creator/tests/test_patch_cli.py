@@ -49,7 +49,7 @@ class PatchCliTests(unittest.TestCase):
         graph = build_patch_payload({"performance_controllers": [{"id": "sustain", "target": "amp_madsr.islev"}],
                                      "formulas": [{"target": "amp_madsr.islev", "expression": "0.5 * in1"}]})["graph"]
         node = next(n for n in graph["nodes"] if n["id"] == "sustain")
-        self.assertEqual(node["params"], {"controller_type": "float", "min": 0, "max": 1, "default": 0.5, "scale": "linear", "label": "Parameter"})
+        self.assertEqual(node["params"], {"controller_type": "float", "min": 0, "max": 1, "default": 0.5, "scale": "linear", "label": "Parameter", "controller_group": ""})
         self.assertIn("amp_madsr::islev", graph["ui_layout"]["input_formulas"])
 
     def test_discrete_performance_controllers(self) -> None:
@@ -65,6 +65,15 @@ class PatchCliTests(unittest.TestCase):
                     build_patch_payload({"performance_controllers": [
                         {"id": "setting", "target": "amp_madsr.islev", "controller_type": controller_type, **change}
                     ]})
+
+    def test_controller_groups_are_normalized_and_validated(self) -> None:
+        for controller_type in ("float", "integer", "bool"):
+            definition = {"id": "grouped", "target": "amp_madsr.islev", "controller_type": controller_type, "controller_group": " Envelope "}
+            graph = build_patch_payload({"performance_controllers": [definition]})["graph"]
+            self.assertEqual(next(node for node in graph["nodes"] if node["id"] == "grouped")["params"]["controller_group"], "Envelope")
+            for invalid in (12, None, "x" * 129):
+                with self.assertRaises(PatchCliError):
+                    build_patch_payload({"performance_controllers": [{**definition, "controller_group": invalid}]})
 
     def test_invalid_performance_controllers_are_rejected_before_backend_writes(self) -> None:
         invalid = [{"min": 1, "max": 1}, {"default": 2}, {"min": float("nan")}, {"max": float("inf")},

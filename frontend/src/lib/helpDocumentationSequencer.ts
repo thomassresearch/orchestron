@@ -19,6 +19,8 @@ export const sequencerHelpDocuments: HelpDocumentSet<SequencerHelpDocId> = {
 
 Manage performance-level instrument assignments.
 
+Controller Group is optional for every type (up to 128 characters). Surrounding whitespace is ignored; names are case-sensitive and scoped to each instrument. Matching names share a thin labeled border. Groups follow their first occurrence in patch-node order, and controls retain their order within each group. Blank groups remain unbordered. Groups stay expanded. Perform uses the available screen width and automatically sizes cards and groups to reduce vertical space while retaining rack order. Group names do not change sound, values or MIDI assignments.
+
 - Set performance name and description.
 - The description shows three automatically wrapped lines. Scroll vertically for longer text, or hover over the field to see the full description.
 - Load and save performance presets.
@@ -34,6 +36,8 @@ Manage performance-level instrument assignments.
       markdown: `## Instrument Rack
 
 Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
+
+Die Reglergruppe ist für jeden Typ optional (bis zu 128 Zeichen). Leerzeichen am Anfang und Ende werden ignoriert; Groß-/Kleinschreibung wird unterschieden. Gruppen gelten pro Instrument. Gleiche Namen erhalten einen dünnen beschrifteten Rahmen. Gruppen folgen ihrem ersten Auftreten in der Knotenreihenfolge; innerhalb jeder Gruppe bleibt die Reglerreihenfolge erhalten. Leere Gruppen bleiben ohne Rahmen. Gruppen bleiben aufgeklappt. Perform nutzt die verfügbare Bildschirmbreite und passt Karten und Gruppen automatisch an, um Höhe zu sparen und die Rack-Reihenfolge zu erhalten. Gruppennamen ändern weder Klang noch Werte oder MIDI-Zuweisungen.
 
 - Performance-Name und Beschreibung setzen.
 - Die Beschreibung zeigt drei Zeilen mit automatischem Zeilenumbruch. Längeren Text vertikal scrollen oder mit der Maus über das Feld fahren, um die vollständige Beschreibung anzuzeigen.
@@ -51,6 +55,8 @@ Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
 
 Gestion des affectations d'instruments au niveau performance.
 
+Le groupe de contrôleurs est facultatif pour chaque type (128 caractères maximum). Les espaces aux extrémités sont ignorés ; les noms sont sensibles à la casse et propres à chaque instrument. Un même nom réunit les contrôleurs dans un cadre fin nommé. Les groupes suivent leur première occurrence dans l’ordre des nœuds ; les contrôleurs conservent leur ordre dans chaque groupe. Un groupe vide reste sans cadre. Les groupes restent ouverts. Perform utilise la largeur disponible et adapte les cartes et groupes pour réduire la hauteur tout en conservant l’ordre du rack. Les groupes ne modifient ni le son, ni les valeurs, ni les affectations MIDI.
+
 - Définir nom et description de performance.
 - La description affiche trois lignes avec retour automatique à la ligne. Faites défiler verticalement les textes plus longs ou survolez le champ pour voir la description complète.
 - Charger et enregistrer des presets de performance.
@@ -64,6 +70,8 @@ Gestion des affectations d'instruments au niveau performance.
     spanish: {
       title: "Rack de instrumentos",
       markdown: `## Rack de instrumentos
+
+El grupo de controles es opcional para todos los tipos (máximo 128 caracteres). Se ignoran los espacios iniciales y finales; los nombres distinguen mayúsculas y pertenecen a cada instrumento. Los nombres iguales comparten un borde fino con etiqueta. Los grupos siguen su primera aparición en el orden de nodos; los controles conservan su orden dentro de cada grupo. Los grupos vacíos no tienen borde. Los grupos permanecen abiertos. Perform utiliza el ancho disponible y ajusta automáticamente tarjetas y grupos para reducir la altura conservando el orden del rack. Los grupos no modifican el sonido, los valores ni las asignaciones MIDI.
 
 Gestiona asignaciones de instrumentos a nivel de performance.
 

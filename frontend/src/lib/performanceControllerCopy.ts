@@ -1,6 +1,7 @@
 import type { GuiLanguage } from "../types";
 
 const english = {
+  group: "Controller Group", groupHelp: "Optional. Controllers with the same group share a labeled border in the rack.", groupInvalid: "Controller Group must contain at most 128 characters.",
   midiCC: "MIDI CC", midiUnavailable: "No MIDI channel", midiHelp: "Receive CC 1–50 on this instrument’s channel. Saved with this performance. Changes apply to new notes; the engine must be running.",
   type: "Type", float: "Float", integer: "Integer", bool: "Bool", on: "On", off: "Off",
   increase: "Increase", decrease: "Decrease", reset: "Reset to patch default",
@@ -24,6 +25,7 @@ type Copy = Record<keyof typeof english, string>;
 const copies: Record<GuiLanguage, Copy> = {
   english,
   german: {
+    group: "Reglergruppe", groupHelp: "Optional. Regler derselben Gruppe erhalten einen gemeinsamen beschrifteten Rahmen im Rack.", groupInvalid: "Die Reglergruppe darf höchstens 128 Zeichen enthalten.",
     midiCC: "MIDI CC", midiUnavailable: "Kein MIDI-Kanal", midiHelp: "CC 1–50 auf dem Kanal dieses Instruments empfangen. Wird in dieser Performance gespeichert. Gilt für neue Noten bei laufender Engine.",
     type: "Typ", float: "Fließkomma", integer: "Ganzzahl", bool: "Bool", on: "Ein", off: "Aus",
     increase: "Erhöhen", decrease: "Verringern", reset: "Auf Patch-Standard zurücksetzen",
@@ -44,6 +46,7 @@ const copies: Record<GuiLanguage, Copy> = {
     sync: "Performance-Regler konnte nicht aktualisiert werden", retry: "Erneut versuchen"
   },
   french: {
+    group: "Groupe de contrôleurs", groupHelp: "Facultatif. Les contrôleurs du même groupe partagent un cadre nommé dans le rack.", groupInvalid: "Le groupe doit contenir au plus 128 caractères.",
     midiCC: "MIDI CC", midiUnavailable: "Aucun canal MIDI", midiHelp: "Recevoir les CC 1–50 sur le canal de cet instrument. Enregistré avec cette performance. Applicable aux nouvelles notes lorsque le moteur fonctionne.",
     type: "Type", float: "Décimal", integer: "Entier", bool: "Booléen", on: "Activé", off: "Désactivé",
     increase: "Augmenter", decrease: "Diminuer", reset: "Rétablir la valeur du patch",
@@ -64,6 +67,7 @@ const copies: Record<GuiLanguage, Copy> = {
     sync: "Échec de la mise à jour du réglage de performance", retry: "Réessayer"
   },
   spanish: {
+    group: "Grupo de controles", groupHelp: "Opcional. Los controles del mismo grupo comparten un borde con nombre en el rack.", groupInvalid: "El grupo debe contener como máximo 128 caracteres.",
     midiCC: "MIDI CC", midiUnavailable: "Sin canal MIDI", midiHelp: "Recibir CC 1–50 en el canal de este instrumento. Se guarda con esta interpretación. Se aplica a notas nuevas con el motor en marcha.",
     type: "Tipo", float: "Decimal", integer: "Entero", bool: "Booleano", on: "Activado", off: "Desactivado",
     increase: "Aumentar", decrease: "Disminuir", reset: "Restablecer el valor del patch",

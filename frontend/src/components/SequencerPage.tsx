@@ -22,6 +22,7 @@ import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { PatchPicker } from "./PatchPicker";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
+import { AdaptiveInstrumentRack } from "./sequencer/AdaptiveInstrumentRack";
 import { PerformMixer } from "./PerformMixer";
 import { audioCopy } from "../lib/audioCopy";
 import { canReorderRackInstruments, groupRackInstruments, type RackInstrumentBindingRow } from "../lib/rackOrdering";
@@ -1193,8 +1194,8 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
       >
         {dropTarget?.id === binding.id && !instrumentsRunning && <div aria-hidden="true" data-rack-drop-position={dropTarget.position}
           className={`pointer-events-none absolute inset-x-0 border-t-2 border-accent ${dropTarget.position === "before" ? "-top-1" : "-bottom-1"}`} />}
-        <div className="grid grid-cols-[minmax(0,_1fr)_110px_auto] items-end gap-2">
-          <div className="flex min-w-0 flex-col gap-1">
+        <div data-rack-card-header className="grid grid-cols-[minmax(0,_1fr)_110px_auto] items-end gap-2 [@container(max-width:359px)]:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex min-w-0 flex-col gap-1 [@container(max-width:359px)]:col-span-2">
             <div className="flex items-center gap-2">
               <button type="button" draggable={!instrumentsRunning} disabled={instrumentsRunning}
                 aria-label={`${name}: ${ui.reorderInstrument}`}
@@ -1385,16 +1386,12 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
       ) : (
         <>
           {rackInstrumentRows.standard.length > 0 ? (
-            <div className="grid items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-              {rackInstrumentRows.standard.map(renderRackInstrumentRow)}
-            </div>
+            <AdaptiveInstrumentRack rows={rackInstrumentRows.standard} patches={patchById} language={guiLanguage} renderCard={renderRackInstrumentRow} />
           ) : null}
           {rackInstrumentRows.alwaysOn.length > 0 ? (
             <>
               {rackInstrumentRows.standard.length > 0 && <hr className="!my-3 border-0 border-t border-slate-600/60" />}
-              <div className="grid items-start gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-                {rackInstrumentRows.alwaysOn.map(renderRackInstrumentRow)}
-              </div>
+              <AdaptiveInstrumentRack rows={rackInstrumentRows.alwaysOn} patches={patchById} language={guiLanguage} renderCard={renderRackInstrumentRow} />
             </>
           ) : null}
         </>

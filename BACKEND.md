@@ -549,6 +549,13 @@ Type is part of the running-manifest compatibility check, so a change requires
 restart even if the numeric definition is otherwise identical. All types retain
 I-rate initialization, independent instance channels, and native/CSD persistence.
 
+`controller_group` is optional display metadata on controller definitions and node
+parameters. It defaults to empty, trims surrounding whitespace, and accepts at most
+128 Unicode characters. Frontend and patch CLI apply the same validation. It is
+included in patch listings and compiler manifests, preserved in native bundles,
+and excluded from running-definition compatibility checks. Channel identity remains
+assignment/node-ID based; grouping does not change orchestra emission or values.
+
 #### Performance-controller MIDI bindings
 
 Performance config v22 adds `instruments[].performanceControllerMidiCCs`, a node-ID
