@@ -11,6 +11,8 @@ backend/app/services/_sequencer_playback*.pyd
 backend/app/services/_sequencer_playback*.so.json
 backend/app/services/_sequencer_playback*.pyd.json
 
+host-midi-helper/target/debug/
+
 .venv/
 .env
 
