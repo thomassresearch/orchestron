@@ -110,11 +110,20 @@ library controls and their saved overrides remain valid. New notes adopt changes
 ## Granular Synthesis
 
 [Granular Synthesis](../../examples/instruments/granular_synthesis/README.md)
-exposes 32 settings for its two `grain3` streams: harmonic source shaping, grain
+exposes 30 settings for its two `grain3` streams: harmonic source shaping, grain
 windows, density and duration, pitch and phase scatter, random distributions,
-internal motion, filters, ADSR, stereo width, pan and output level. Settings
-apply to new notes; held notes continue their initialized internal modulation.
+internal motion, filters, ADSR and stereo width. Pan and level use the rack mixer.
+The controls are grouped into Source, Grains, Pitch, Grain Position, Motion,
+Stereo, Filter and Envelope. Settings apply to new notes; held notes continue their initialized internal modulation.
 The guide includes controller ranges and five reproducible sound recipes.
+
+![Granular Synthesis controller groups](../../screenshots/granular_controller_groups.png)
+
+Minimoog Monophonic also groups its 40 controls by oscillator, modulation, noise,
+filter, envelopes and performance settings. Ambient Wavetable Cloud groups its
+14 controls into Wavetable, Motion, Stereo, Envelope and Output & MIDI. These
+group names only organize the rack; sounds, controller IDs and saved settings
+remain unchanged.
 
 ## Stereo Chorus Depth
 

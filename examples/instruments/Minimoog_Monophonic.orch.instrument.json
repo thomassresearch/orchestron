@@ -613,7 +613,7 @@
           "default": 0.005,
           "scale": "logarithmic",
           "controller_type": "float",
-          "controller_group": "Amp Envelope"
+          "controller_group": "Loudness"
         },
         "position": {
           "x": 2520,
@@ -630,7 +630,7 @@
           "default": 0.3,
           "scale": "logarithmic",
           "controller_type": "float",
-          "controller_group": "Amp Envelope"
+          "controller_group": "Loudness"
         },
         "position": {
           "x": 2520,
@@ -647,7 +647,7 @@
           "default": 0.8,
           "scale": "linear",
           "controller_type": "float",
-          "controller_group": "Amp Envelope"
+          "controller_group": "Loudness"
         },
         "position": {
           "x": 2520,

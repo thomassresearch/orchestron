@@ -34,6 +34,13 @@ same phrase-start behavior. Note velocity remains live within the phrase.
 
 ## Performance controls
 
+The rack groups the 40 controls into **Tuning & Articulation**, **Modulation**,
+**Oscillator 1**, **Oscillator 2**, **Oscillator 3**, **Noise & Mixer**, **Filter**,
+**Filter Envelope**, **Loudness** and **Output**. Each oscillator keeps its
+level and mixer switch alongside its tuning and waveform controls.
+
+![Minimoog controller groups](../../../screenshots/minimoog_controller_groups.png)
+
 | Section | Controls | Range / default |
 | --- | --- | --- |
 | Tuning | Master tune | −100…+100 cents / 0 |

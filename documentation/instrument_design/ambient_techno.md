@@ -60,6 +60,12 @@ amplitude without changing pitch; Pulse Rate is in Hz and does not follow tempo.
 
 ### Wavetable Cloud
 
+The 14 performance controls use five rack groups: **Wavetable** (position, shimmer,
+tone), **Motion** (scan depth, rate, drift), **Stereo** (detune, width), **Envelope**
+(ADSR), and **Output & MIDI** (level, control channel).
+
+![Ambient Wavetable Cloud controller groups](../../screenshots/ambient_cloud_controller_groups.png)
+
 | Control | Performance range | Default | MIDI CC | At CC127 |
 | --- | --- | --- | --- | --- |
 | Wave Position | 0–1 | 0.3 | 102 | Position 1 |

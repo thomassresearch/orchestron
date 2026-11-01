@@ -21,7 +21,8 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 The Perform rack uses the full available width and automatically sizes instrument
 cards to fit their controllers. Add **Controller Group** names to organize related
-settings inside thin labeled borders. [Controller and rack guide](documentation/performance/performance_controllers.md).
+settings inside thin labeled borders. Minimoog Monophonic, Granular Synthesis and
+Ambient Wavetable Cloud include groups organized by synthesis function. [Controller and rack guide](documentation/performance/performance_controllers.md).
 
 ![Grouped performance controllers in the adaptive rack](screenshots/performance_controller_groups_rack.png)
 

@@ -23,7 +23,7 @@ CONTROLLER_GROUPS = {
         "Noise & Mixer": ("noise_level", "noise_enabled", "noise_pink", "mixer_drive"),
         "Filter": ("cutoff", "resonance", "contour", "filter_key1", "filter_key2"),
         "Filter Envelope": ("filter_attack", "filter_decay", "filter_sustain"),
-        "Amp Envelope": ("amp_attack", "amp_decay", "amp_sustain"),
+        "Loudness": ("amp_attack", "amp_decay", "amp_sustain"),
         "Output": ("velocity_amount", "output_volume"),
     }.items()
     for node_id in node_ids
