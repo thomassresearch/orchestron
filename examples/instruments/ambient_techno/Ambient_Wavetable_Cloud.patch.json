@@ -1,6 +1,6 @@
 {
   "name": "Ambient Wavetable Cloud",
-  "description": "Four-wave morphing synth with three detuned voices, slow scan/drift and an octave shimmer layer. Suggested MIDI 36\u201384. Dry stereo output; add rack delay/reverb to taste. Velocity-sensitive. Performance controls apply to new notes; MIDI controls affect held notes and releases. Control channel defaults to 16 (independent of note channel). CC102 Wave Position, CC103 Scan Depth, CC104 Motion Rate (Hz), CC105 Drift (cents), CC106 Detune (cents), CC107 Stereo Width, CC108 Shimmer, CC109 Tone (Hz). CC0 preserves the base setting; higher values add intensity, with 30 ms smoothing. Use controller-sequencer Reset Value 0. Notes never reset CCs; instances sharing a control channel share automation. Route Stereo Output through the mixer to Master.",
+  "description": "Four-wave morphing synth with three detuned voices, slow scan/drift and an octave shimmer layer. Suggested MIDI 36–84. Dry stereo output; add rack delay/reverb to taste. Velocity-sensitive. Performance controls apply to new notes; MIDI controls affect held notes and releases. Control channel defaults to 16 (independent of note channel). CC102 Wave Position, CC103 Scan Depth, CC104 Motion Rate (Hz), CC105 Drift (cents), CC106 Detune (cents), CC107 Stereo Width, CC108 Shimmer, CC109 Tone (Hz). CC0 preserves the base setting; higher values add intensity, with 30 ms smoothing. Use controller-sequencer Reset Value 0. Notes never reset CCs; instances sharing a control channel share automation. Route Stereo Output through the mixer to Master.",
   "is_template": false,
   "always_on": false,
   "instrument_type": "melody",
@@ -73,7 +73,8 @@
           "min": 0,
           "max": 1,
           "default": 0.3,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Wavetable"
         },
         "position": {
           "x": -1150.0,
@@ -88,7 +89,8 @@
           "min": 0,
           "max": 0.5,
           "default": 0.15,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -865.0,
@@ -103,7 +105,8 @@
           "min": 0.005,
           "max": 1,
           "default": 0.04,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -580.0,
@@ -118,7 +121,8 @@
           "min": 0,
           "max": 8,
           "default": 1.5,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -295.0,
@@ -133,7 +137,8 @@
           "min": 0,
           "max": 20,
           "default": 5,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Stereo"
         },
         "position": {
           "x": -1150.0,
@@ -148,7 +153,8 @@
           "min": 0,
           "max": 1,
           "default": 0.65,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Stereo"
         },
         "position": {
           "x": -865.0,
@@ -163,7 +169,8 @@
           "min": 0,
           "max": 0.5,
           "default": 0.1,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Wavetable"
         },
         "position": {
           "x": -580.0,
@@ -178,7 +185,8 @@
           "min": 200,
           "max": 12000,
           "default": 3500,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Wavetable"
         },
         "position": {
           "x": -295.0,
@@ -193,7 +201,8 @@
           "min": 0.05,
           "max": 12,
           "default": 2,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -1150.0,
@@ -208,7 +217,8 @@
           "min": 0.1,
           "max": 12,
           "default": 3,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -865.0,
@@ -223,7 +233,8 @@
           "min": 0,
           "max": 1,
           "default": 0.85,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -580.0,
@@ -238,7 +249,8 @@
           "min": 0.1,
           "max": 20,
           "default": 6,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -295.0,
@@ -253,7 +265,8 @@
           "min": -24,
           "max": 0,
           "default": -6,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Output & MIDI"
         },
         "position": {
           "x": -1150.0,
@@ -268,7 +281,8 @@
           "min": 1,
           "max": 16,
           "default": 16,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Output & MIDI"
         },
         "position": {
           "x": -865.0,

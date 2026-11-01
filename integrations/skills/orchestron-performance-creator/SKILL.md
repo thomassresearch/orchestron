@@ -140,6 +140,7 @@ CLI and data formats:
 
 Composition and genre guidance:
 
+- For choosing chord progressions, emotional tendencies and concrete audition examples, read the shared [Composition Creator progression guide](../orchestron-composition-creator/references/chord_progressions.md). If skills are installed separately, resolve that reference from the available `orchestron-composition-creator` skill. Apply it when composing or when reharmonization is requested; preserve accepted composition handoffs.
 - For the end-to-end pattern-based writing process, read `references/composition_workflow.md`.
 - For groove, syncopation, phrase lengths, pad-loop hierarchy, and layer roles, read `references/rhythm_layering.md`.
 - For chord color, voicing, bass relationships, and arpeggiator use, read `references/harmony_arpeggiation.md`.

@@ -17,7 +17,8 @@
           "max": 100,
           "default": 0,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Tuning & Articulation"
         },
         "position": {
           "x": 0,
@@ -33,7 +34,8 @@
           "max": 1,
           "default": 1,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Tuning & Articulation"
         },
         "position": {
           "x": 0,
@@ -49,7 +51,8 @@
           "max": 2,
           "default": 0.065,
           "scale": "logarithmic",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Tuning & Articulation"
         },
         "position": {
           "x": 0,
@@ -65,7 +68,8 @@
           "max": 1,
           "default": 1,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Tuning & Articulation"
         },
         "position": {
           "x": 0,
@@ -81,7 +85,8 @@
           "max": 1,
           "default": 0,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Modulation"
         },
         "position": {
           "x": 0,
@@ -97,7 +102,8 @@
           "max": 1,
           "default": 0,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Modulation"
         },
         "position": {
           "x": 0,
@@ -113,7 +119,8 @@
           "max": 1,
           "default": 0,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Modulation"
         },
         "position": {
           "x": 0,
@@ -129,7 +136,8 @@
           "max": 1,
           "default": 0,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Modulation"
         },
         "position": {
           "x": 0,
@@ -145,7 +153,8 @@
           "max": 5,
           "default": 3,
           "scale": "linear",
-          "controller_type": "integer"
+          "controller_type": "integer",
+          "controller_group": "Oscillator 1"
         },
         "position": {
           "x": 360,
@@ -161,7 +170,8 @@
           "max": 6,
           "default": 3,
           "scale": "linear",
-          "controller_type": "integer"
+          "controller_type": "integer",
+          "controller_group": "Oscillator 1"
         },
         "position": {
           "x": 360,
@@ -177,7 +187,8 @@
           "max": 1,
           "default": 0.8,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Oscillator 1"
         },
         "position": {
           "x": 360,
@@ -193,7 +204,8 @@
           "max": 1,
           "default": 1,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Oscillator 1"
         },
         "position": {
           "x": 360,
@@ -209,7 +221,8 @@
           "max": 5,
           "default": 3,
           "scale": "linear",
-          "controller_type": "integer"
+          "controller_type": "integer",
+          "controller_group": "Oscillator 2"
         },
         "position": {
           "x": 720,
@@ -225,7 +238,8 @@
           "max": 6,
           "default": 3,
           "scale": "linear",
-          "controller_type": "integer"
+          "controller_type": "integer",
+          "controller_group": "Oscillator 2"
         },
         "position": {
           "x": 720,
@@ -241,7 +255,8 @@
           "max": 7,
           "default": 0.07,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Oscillator 2"
         },
         "position": {
           "x": 720,
@@ -257,7 +272,8 @@
           "max": 1,
           "default": 0.6,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Oscillator 2"
         },
         "position": {
           "x": 720,
@@ -273,7 +289,8 @@
           "max": 1,
           "default": 1,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Oscillator 2"
         },
         "position": {
           "x": 720,
@@ -289,7 +306,8 @@
           "max": 5,
           "default": 3,
           "scale": "linear",
-          "controller_type": "integer"
+          "controller_type": "integer",
+          "controller_group": "Oscillator 3"
         },
         "position": {
           "x": 1080,
@@ -305,7 +323,8 @@
           "max": 6,
           "default": 1,
           "scale": "linear",
-          "controller_type": "integer"
+          "controller_type": "integer",
+          "controller_group": "Oscillator 3"
         },
         "position": {
           "x": 1080,
@@ -321,7 +340,8 @@
           "max": 7,
           "default": -0.05,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Oscillator 3"
         },
         "position": {
           "x": 1080,
@@ -337,7 +357,8 @@
           "max": 1,
           "default": 0.35,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Oscillator 3"
         },
         "position": {
           "x": 1080,
@@ -353,7 +374,8 @@
           "max": 1,
           "default": 1,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Oscillator 3"
         },
         "position": {
           "x": 1080,
@@ -369,7 +391,8 @@
           "max": 1,
           "default": 1,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Oscillator 3"
         },
         "position": {
           "x": 1080,
@@ -385,7 +408,8 @@
           "max": 1,
           "default": 0.15,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Noise & Mixer"
         },
         "position": {
           "x": 1440,
@@ -401,7 +425,8 @@
           "max": 1,
           "default": 0,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Noise & Mixer"
         },
         "position": {
           "x": 1440,
@@ -417,7 +442,8 @@
           "max": 1,
           "default": 0,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Noise & Mixer"
         },
         "position": {
           "x": 1440,
@@ -433,7 +459,8 @@
           "max": 5,
           "default": 1.35,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Noise & Mixer"
         },
         "position": {
           "x": 1440,
@@ -449,7 +476,8 @@
           "max": 20000,
           "default": 900,
           "scale": "logarithmic",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Filter"
         },
         "position": {
           "x": 1800,
@@ -465,7 +493,8 @@
           "max": 1,
           "default": 0.25,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Filter"
         },
         "position": {
           "x": 1800,
@@ -481,7 +510,8 @@
           "max": 8,
           "default": 3,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Filter"
         },
         "position": {
           "x": 1800,
@@ -497,7 +527,8 @@
           "max": 1,
           "default": 1,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Filter"
         },
         "position": {
           "x": 1800,
@@ -513,7 +544,8 @@
           "max": 1,
           "default": 0,
           "scale": "linear",
-          "controller_type": "bool"
+          "controller_type": "bool",
+          "controller_group": "Filter"
         },
         "position": {
           "x": 1800,
@@ -529,7 +561,8 @@
           "max": 10,
           "default": 0.008,
           "scale": "logarithmic",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Filter Envelope"
         },
         "position": {
           "x": 2160,
@@ -545,7 +578,8 @@
           "max": 10,
           "default": 0.28,
           "scale": "logarithmic",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Filter Envelope"
         },
         "position": {
           "x": 2160,
@@ -561,7 +595,8 @@
           "max": 1,
           "default": 0.2,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Filter Envelope"
         },
         "position": {
           "x": 2160,
@@ -577,7 +612,8 @@
           "max": 10,
           "default": 0.005,
           "scale": "logarithmic",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Amp Envelope"
         },
         "position": {
           "x": 2520,
@@ -593,7 +629,8 @@
           "max": 10,
           "default": 0.3,
           "scale": "logarithmic",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Amp Envelope"
         },
         "position": {
           "x": 2520,
@@ -609,7 +646,8 @@
           "max": 1,
           "default": 0.8,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Amp Envelope"
         },
         "position": {
           "x": 2520,
@@ -625,7 +663,8 @@
           "max": 1,
           "default": 0.35,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Output"
         },
         "position": {
           "x": 2520,
@@ -641,7 +680,8 @@
           "max": 1,
           "default": 0.7,
           "scale": "linear",
-          "controller_type": "float"
+          "controller_type": "float",
+          "controller_group": "Output"
         },
         "position": {
           "x": 2520,

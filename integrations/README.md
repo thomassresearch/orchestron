@@ -22,7 +22,7 @@ Or run `make -C integrations` from the repository root. The build requires Make
 and Python 3.9 or newer, uses only the Python standard library, and needs no
 network or installed skill dependencies. Set `PYTHON=/path/to/python3` if needed.
 
-The output is `plugin-dist/orchestron-0.1.3.zip`; the filename comes from the
+The output is `plugin-dist/orchestron-0.1.4.zip`; the filename comes from the
 name and version in [`plugin.json`](plugin.json). Each build reports its path
 and compressed size. The archive contains one `orchestron/` directory with:
 

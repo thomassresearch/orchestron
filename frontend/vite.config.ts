@@ -65,7 +65,10 @@ export default defineConfig(({ command }) => ({
   plugins: [react(), opcodeDocsChunks()],
   build: {
     rolldownOptions: {
+      // Manual chunks exclude dependencies below; preserve initialization order across chunk cycles.
+      preserveEntrySignatures: "allow-extension",
       output: {
+        strictExecutionOrder: true,
         codeSplitting: {
           // Shared UI helpers must not pull their documentation consumers into startup imports.
           includeDependenciesRecursively: false,

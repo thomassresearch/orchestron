@@ -1,6 +1,6 @@
 ---
 name: orchestron-composition-creator
-description: Compose and develop melodies through an interactive listen-select-refine workflow using music21 and arvo, with playable MIDI previews, saved candidate branches, locked passages, and machine-readable scores for Orchestron Performance Creator. Use for melodic idea exploration and algorithmic composition; use Performance Creator for instrument assignment, routing and saving performances.
+description: Compose and develop melodies and chord progressions through an interactive listen-select-refine workflow using music21 and arvo, with playable MIDI previews, saved candidate branches, locked passages, and machine-readable scores for Orchestron Performance Creator. Use for melodic exploration, harmony choices and algorithmic composition; use Performance Creator for instrument assignment, routing and saving performances.
 ---
 
 # Orchestron Composition Creator
@@ -16,6 +16,10 @@ or authoring custom material; it covers the recorder and portable ancestry.
 For a promising opening with an unresolved ending or accompaniment, read
 [motif comparisons](references/motif_comparisons.md): preserve the opening, compare
 four purposeful endings, then compare two harmonic settings of the selected melody.
+For progression choices, emotional tendencies, reharmonization and concrete
+voicings, read [choosing chord progressions](references/chord_progressions.md).
+Use its listening comparisons to test a musical intention; mood labels are not
+guaranteed effects.
 
 ## Entry point
 

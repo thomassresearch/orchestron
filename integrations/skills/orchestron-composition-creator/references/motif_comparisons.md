@@ -104,6 +104,8 @@ Each chord is held for the complete phrase, with its bass one octave below the
 specified degree. These are static diatonic settings; use authored scores for
 changing chords, chromatic harmony or detailed voice leading. Long held chords
 must still fit the exact export pad limits.
+For progression families, emotional tendencies and a changing-chord comparison,
+read [choosing chord progressions](chord_progressions.md).
 
 Listen in mix mode; solo previews should sound identical. Keep renderer, level
 and listening conditions consistent. Fixed renderer gain does not guarantee equal

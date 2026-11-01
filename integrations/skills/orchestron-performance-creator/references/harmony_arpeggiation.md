@@ -2,6 +2,11 @@
 
 Use this reference when generating melodic sequencers, chord pads, bass relationships, arpeggiators, or harmonic score specs.
 
+For selecting a progression to match a brief, read Composition Creator's shared
+[chord progression guide](../../orchestron-composition-creator/references/chord_progressions.md).
+It provides concrete sequences, emotional tendencies and controlled listening
+comparisons. Use the guidance below to realize that harmony in the performance.
+
 ## Harmony serves motion
 
 In ambient, techno, trance, Goa, and psytrance, harmony is usually subordinate to rhythm, texture, and energy architecture. Frequent chord changes are rarely the main event.

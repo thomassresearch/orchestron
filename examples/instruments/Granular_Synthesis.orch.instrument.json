@@ -63,7 +63,8 @@
           "min": 0,
           "max": 1,
           "default": 0.55,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Source"
         },
         "position": {
           "x": -1700.0,
@@ -78,7 +79,8 @@
           "min": 0,
           "max": 1,
           "default": 0.65,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Source"
         },
         "position": {
           "x": -1360.0,
@@ -93,7 +95,8 @@
           "min": 1,
           "max": 5,
           "default": 2,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Grains"
         },
         "position": {
           "x": -1020.0,
@@ -108,7 +111,8 @@
           "min": 2,
           "max": 240,
           "default": 48,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Grains"
         },
         "position": {
           "x": -680.0,
@@ -123,7 +127,8 @@
           "min": 4,
           "max": 400,
           "default": 90,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Grains"
         },
         "position": {
           "x": -1700.0,
@@ -138,7 +143,8 @@
           "min": 0,
           "max": 1.5,
           "default": 0.025,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Pitch"
         },
         "position": {
           "x": -1360.0,
@@ -153,7 +159,8 @@
           "min": 0,
           "max": 1,
           "default": 0.25,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Grain Position"
         },
         "position": {
           "x": -1020.0,
@@ -168,7 +175,8 @@
           "min": 0,
           "max": 0.5,
           "default": 0.5,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Grain Position"
         },
         "position": {
           "x": -680.0,
@@ -183,7 +191,8 @@
           "min": -0.95,
           "max": 0.95,
           "default": 0,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Pitch"
         },
         "position": {
           "x": -1700.0,
@@ -198,7 +207,8 @@
           "min": -0.95,
           "max": 0.95,
           "default": 0,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Grain Position"
         },
         "position": {
           "x": -1360.0,
@@ -213,7 +223,8 @@
           "min": 0,
           "max": 1,
           "default": 0,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Grains"
         },
         "position": {
           "x": -1020.0,
@@ -228,7 +239,8 @@
           "min": 0,
           "max": 1,
           "default": 1,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -680.0,
@@ -243,7 +255,8 @@
           "min": -24,
           "max": 24,
           "default": 0,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Pitch"
         },
         "position": {
           "x": -1700.0,
@@ -258,7 +271,8 @@
           "min": 0,
           "max": 30,
           "default": 7,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Stereo"
         },
         "position": {
           "x": -1360.0,
@@ -273,7 +287,8 @@
           "min": 0.02,
           "max": 8,
           "default": 0.18,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -1020.0,
@@ -288,7 +303,8 @@
           "min": 0,
           "max": 0.5,
           "default": 0.12,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -680.0,
@@ -303,7 +319,8 @@
           "min": 0,
           "max": 0.8,
           "default": 0.15,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -1700.0,
@@ -318,7 +335,8 @@
           "min": 0,
           "max": 0.8,
           "default": 0.1,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -1360.0,
@@ -333,7 +351,8 @@
           "min": 0,
           "max": 100,
           "default": 3,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Motion"
         },
         "position": {
           "x": -1020.0,
@@ -348,7 +367,8 @@
           "min": 80,
           "max": 18000,
           "default": 6500,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Filter"
         },
         "position": {
           "x": -680.0,
@@ -363,7 +383,8 @@
           "min": 0,
           "max": 0.75,
           "default": 0.12,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Filter"
         },
         "position": {
           "x": -1700.0,
@@ -378,7 +399,8 @@
           "min": 0,
           "max": 3,
           "default": 0.4,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Filter"
         },
         "position": {
           "x": -1360.0,
@@ -393,7 +415,8 @@
           "min": 0,
           "max": 3,
           "default": 0.25,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Filter"
         },
         "position": {
           "x": -1020.0,
@@ -408,7 +431,8 @@
           "min": 20,
           "max": 2000,
           "default": 35,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Filter"
         },
         "position": {
           "x": -680.0,
@@ -423,7 +447,8 @@
           "min": 0.002,
           "max": 5,
           "default": 0.35,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -1700.0,
@@ -438,7 +463,8 @@
           "min": 0.01,
           "max": 5,
           "default": 0.7,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -1360.0,
@@ -453,7 +479,8 @@
           "min": 0,
           "max": 1,
           "default": 0.8,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -1020.0,
@@ -468,7 +495,8 @@
           "min": 0.02,
           "max": 8,
           "default": 1.6,
-          "scale": "logarithmic"
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
         },
         "position": {
           "x": -680.0,
@@ -483,7 +511,8 @@
           "min": 0,
           "max": 1,
           "default": 0.85,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Stereo"
         },
         "position": {
           "x": -1700.0,
@@ -520,7 +549,8 @@
           "min": 1,
           "max": 10000,
           "default": 137,
-          "scale": "linear"
+          "scale": "linear",
+          "controller_group": "Grains"
         },
         "position": {
           "x": -680.0,

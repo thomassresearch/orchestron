@@ -12,6 +12,23 @@ NAME = "Minimoog Monophonic"
 BUNDLE_ID = str(uuid5(NAMESPACE_URL, "orchestron:instruments:minimoog-monophonic"))
 DB_OCTAVE = 6.020599913279624
 
+CONTROLLER_GROUPS = {
+    node_id: group
+    for group, node_ids in {
+        "Tuning & Articulation": ("master_tune", "glide_enabled", "legato_time", "decay_enabled"),
+        "Modulation": ("mod_mix", "mod_amount", "osc_mod", "filter_mod"),
+        "Oscillator 1": ("osc1_range", "osc1_wave", "osc1_level", "osc1_enabled"),
+        "Oscillator 2": ("osc2_range", "osc2_wave", "osc2_tune", "osc2_level", "osc2_enabled"),
+        "Oscillator 3": ("osc3_range", "osc3_wave", "osc3_tune", "osc3_level", "osc3_enabled", "osc3_keyboard"),
+        "Noise & Mixer": ("noise_level", "noise_enabled", "noise_pink", "mixer_drive"),
+        "Filter": ("cutoff", "resonance", "contour", "filter_key1", "filter_key2"),
+        "Filter Envelope": ("filter_attack", "filter_decay", "filter_sustain"),
+        "Amp Envelope": ("amp_attack", "amp_decay", "amp_sustain"),
+        "Output": ("velocity_amount", "output_volume"),
+    }.items()
+    for node_id in node_ids
+}
+
 
 def build():
     nodes, connections, formulas = [], [], {}
@@ -34,7 +51,8 @@ def build():
 
     def control(identity, label, low, high, default, group, row, kind="float", scale="linear"):
         node(identity, "perf_controller", group * 360, -2100 + row * 310,
-             label=label, min=low, max=high, default=default, scale=scale, controller_type=kind)
+             label=label, min=low, max=high, default=default, scale=scale, controller_type=kind,
+             controller_group=CONTROLLER_GROUPS[identity])
 
     def toggle(identity, label, default, group, row):
         control(identity, label, 0, 1, default, group, row, "bool")

@@ -35,6 +35,18 @@ CLOUD_CONTROLS = [
     ("shimmer", "Shimmer", 0, .5, .1, 108, "amount", .5),
     ("tone", "Tone (Hz)", 200, 12000, 3500, 109, "frequency", 16000),
 ]
+CLOUD_CONTROLLER_GROUPS = {
+    key: group
+    for group, keys in {
+        "Wavetable": ("position", "shimmer", "tone"),
+        "Motion": ("scan", "motion", "drift"),
+        "Stereo": ("detune", "width"),
+        "Envelope": ("attack", "decay", "sustain", "release"),
+        "Output & MIDI": ("output", "channel"),
+    }.items()
+    for key in keys
+}
+
 WAVES = [
     [1, 0, 0, 0, 0, 0, 0, 0],
     [1, .35, .15, .07, .03, .02, .01, 0],
@@ -126,7 +138,8 @@ class Instrument:
         # Compact rows of controls above the signal path; stable IDs are instance keys.
         i = self.control_count
         self.node(key, "perf_controller", -1150 + (i % 4) * 285, -1200 + (i // 4) * 240,
-                  label=label, min=lo, max=hi, default=default, scale=scale)
+                  label=label, min=lo, max=hi, default=default, scale=scale,
+                  **({"controller_group": CLOUD_CONTROLLER_GROUPS[key]} if self.cloud else {}))
         self.control_count += 1
 
     def formula(self, target, expression, **sources):
