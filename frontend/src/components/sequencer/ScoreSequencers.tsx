@@ -1,4 +1,5 @@
-import { createContext, memo, useContext, useEffect, useMemo, useState } from "react";
+import { memo, useContext, useEffect, useMemo, useState } from "react";
+import { ScoreTransportContext } from "./ScoreTransportContext";
 import type { GuiLanguage, ScorePadState, ScoreTrackState, SequencerState, SequencerTimingConfig } from "../../types";
 import { useAppStore } from "../../store/useAppStore";
 import { addScoreTrack, removeScoreTrack, selectScorePad, updateScoreTrack } from "../../store/scoreActions";
@@ -18,7 +19,6 @@ import { MODE_LABELS, SCALE_TYPE_LABELS } from "./sequencerUiCopy";
 import { ARRANGEMENT_ITEM_MIME, beginArrangementDrag, endArrangementDrag } from "../../lib/arrangementDrag";
 import { sequencerEditingView } from "../../store/sequencerEdits";
 
-export const ScoreTransportContext = createContext<{ play: (id: string, playing: boolean) => Promise<void>; queue: (id: string, pad: number | null) => Promise<void> } | null>(null);
 const button = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-cyan-300 disabled:opacity-40";
 const input = "rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200";
 

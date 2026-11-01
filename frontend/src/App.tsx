@@ -1,4 +1,4 @@
-import { ScoreTransportContext } from "./components/sequencer/ScoreSequencers";
+import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
 import { scoreTrackConfig } from "./lib/scoreSequencer";
 import { PerformanceAuditionContext } from "./components/sequencer/PerformanceAudition";
 import { useMidiControllerRouting } from "./hooks/useMidiControllerRouting";

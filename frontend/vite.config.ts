@@ -27,9 +27,14 @@ function matchesAnyPattern(id: string, patterns: string[]): boolean {
   return patterns.some((pattern) => id.includes(pattern));
 }
 
-function manualChunkName(id: string): string | undefined {
+function chunkName(id: string): string | undefined {
   const opcodeDataChunk = opcodeDocsChunkName(id);
   if (opcodeDataChunk) return opcodeDataChunk;
+
+  // Keep the large built-in template independently cacheable without changing its synchronous API.
+  if (id.endsWith("/examples/instruments/template/analog_drumkit.patch.json")) {
+    return "drumkit-template";
+  }
 
   if (matchesAnyPattern(id, DOCS_SHARED_PATTERNS)) {
     return "docs-shared";
@@ -59,9 +64,13 @@ export default defineConfig(({ command }) => ({
   base: command === "build" ? "/client/" : "/",
   plugins: [react(), opcodeDocsChunks()],
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: manualChunkName
+        codeSplitting: {
+          // Shared UI helpers must not pull their documentation consumers into startup imports.
+          includeDependenciesRecursively: false,
+          groups: [{ name: chunkName }]
+        }
       }
     }
   },

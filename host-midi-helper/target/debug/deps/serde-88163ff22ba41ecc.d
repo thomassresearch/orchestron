@@ -1,0 +1,14 @@
+/Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/deps/serde-88163ff22ba41ecc.d: /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/build/serde-7cb620e44cc644da/out/private.rs
+
+/Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/deps/libserde-88163ff22ba41ecc.rlib: /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/build/serde-7cb620e44cc644da/out/private.rs
+
+/Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/deps/libserde-88163ff22ba41ecc.rmeta: /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/build/serde-7cb620e44cc644da/out/private.rs
+
+/Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/thuber/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/build/serde-7cb620e44cc644da/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/thuber/Projekte/VisualCSound/host-midi-helper/target/debug/build/serde-7cb620e44cc644da/out

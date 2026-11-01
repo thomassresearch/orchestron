@@ -34,6 +34,15 @@ Compatibility note:
 - Rete.js for graph editing
 - browser WebSocket controller for render requests, sequencer control, and timing telemetry
 
+Production builds use Vite's `build.rolldownOptions.output.codeSplitting` in
+`frontend/vite.config.ts`. Graph editing, Perform, configuration, and documentation
+load through dynamic imports. Shared contexts, including `ScoreTransportContext`,
+live outside deferred editor modules so importing a provider does not eagerly load
+its editor. React, Rete, documentation payloads, and the built-in drumkit JSON have
+separate cacheable chunks; the drumkit template API remains synchronous. Keep the
+default 500 kB chunk warning enabled and inspect production build output after
+adding large modules or shared imports.
+
 ### Backend
 
 - Python 3.13
