@@ -1857,14 +1857,14 @@ def normalize_arpeggiator_pad(raw: dict[str, Any]) -> dict[str, Any]:
     return pad
 
 
-def normalize_arpeggiator(arp: dict[str, Any]) -> dict[str, Any]:
+def normalize_arpeggiator(arp: dict[str, Any], pad_count: int = 8) -> dict[str, Any]:
     pads = arp.get("pads")
     if not pads:
         arp.update(playbackMode="arranger", holdMode="off", restartMode="free", latch=False)
         pads = [normalize_arpeggiator_pad(arp)]
-    if not isinstance(pads, list) or len(pads) > 8:
+    if not isinstance(pads, list) or len(pads) > pad_count:
         raise OrchestronCliError("invalid_arp_pads", "An arpeggiator supports eight pads.")
-    arp["pads"] = [normalize_arpeggiator_pad(pads[index] if index < len(pads) else {}) for index in range(8)]
+    arp["pads"] = [normalize_arpeggiator_pad(pads[index] if index < len(pads) else {}) for index in range(pad_count)]
     for key, value in {"playbackMode": "arranger", "holdMode": "off", "processingMode": "active",
                        "restartMode": "free", "activePad": 0, "padLoopEnabled": True,
                        "padLoopRepeat": True, "launchQuantize": "cycle",
@@ -1876,8 +1876,8 @@ def normalize_arpeggiator(arp: dict[str, Any]) -> dict[str, Any]:
     return arp
 
 
-def arpeggiator_runtime_config(arp: dict[str, Any]) -> dict[str, Any]:
-    arp = normalize_arpeggiator(copy.deepcopy(arp))
+def arpeggiator_runtime_config(arp: dict[str, Any], clip_projection: bool = False) -> dict[str, Any]:
+    arp = normalize_arpeggiator(copy.deepcopy(arp), len(arp["pads"]) if clip_projection else 8)
     def wire(value):
         if isinstance(value, list):
             return [wire(item) for item in value]
@@ -1897,14 +1897,14 @@ def normalize_performance_config(
     config: dict[str, Any],
     patches: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    if config.get("version", 1) not in range(1, CURRENT_CONFIG_VERSION + 1):
+    if config.get("version", 1) not in range(1, 24):
         raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
     from orchestron.timing_migration import migrate_sequencer_timing
     migrated = migrate_sequencer_timing(config)
     if migrated is not config:
         config.clear()
         config.update(migrated)
-    config["version"] = CURRENT_CONFIG_VERSION
+    config["version"] = 23 if config.get("sequencer", {}).get("clipArrangement") is not None else CURRENT_CONFIG_VERSION
     graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
     graph["masterId"] = graph.get("masterId") or "$master"
     mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})
@@ -4143,10 +4143,14 @@ def timing_to_runtime(timing: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
+def build_runtime_config(config: dict[str, Any], *, clip_projection: bool = False) -> dict[str, Any]:
+    if config.get("sequencer", {}).get("clipArrangement") is not None:
+        from orchestron.clip_arrangement import project_clips, attach_schedules
+        projected, schedules, end = project_clips(config)
+        return attach_schedules(build_runtime_config(projected, clip_projection=True), schedules, end)
     sequencer = ensure_sequencer(config)
     timing = sequencer.get("timing") or default_timing()
-    score_tracks = [score_track_runtime(track) for track in normalize_score_tracks(sequencer["scoreTracks"], timing)]
+    score_tracks = [score_track_runtime(track) for track in (sequencer["scoreTracks"] if clip_projection else normalize_score_tracks(sequencer["scoreTracks"], timing))]
     tracks = []
     for track in sequencer.get("tracks", []):
         if not isinstance(track, dict):
@@ -4282,7 +4286,7 @@ def build_runtime_config(config: dict[str, Any]) -> dict[str, Any]:
                 ],
             }
         )
-    arpeggiators = [arpeggiator_runtime_config(arp) for arp in sequencer.get("arpeggiators", []) if isinstance(arp, dict)]
+    arpeggiators = [arpeggiator_runtime_config(arp, clip_projection) for arp in sequencer.get("arpeggiators", []) if isinstance(arp, dict)]
     if not tracks and not score_tracks and not controller_tracks and not arpeggiators:
         raise OrchestronCliError(
             "runtime_config_empty",
@@ -4717,7 +4721,12 @@ def update_session_config(ctx: CliContext, mutator) -> dict[str, Any]:
     config = session.get("config")
     if not isinstance(config, dict):
         raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config.")
+    before = copy.deepcopy(config)
     result = mutator(config)
+    if before.get("sequencer", {}).get("clipArrangement") is not None:
+        keys = ("tracks", "scoreTracks", "drummerTracks", "controllerSequencers", "arpeggiators")
+        if any(before["sequencer"].get(key) != config["sequencer"].get(key) for key in keys):
+            raise OrchestronCliError("clip_editor_required", "Edit clip source definitions in the arranger. Legacy pad commands cannot change a clip performance.")
     session["config"] = config
     session["updatedAt"] = now_iso()
     session["dirty"] = True

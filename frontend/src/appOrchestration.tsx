@@ -1,3 +1,4 @@
+import { clipRuntimeView, runtimeSchedule } from "./lib/clipArranger/runtime";
 import { expandControlFlowDeletion } from "./lib/controlFlow";
 import { deleteAudioGraphItems, resolveStereoMembers } from "./lib/audioBlocks";
 import { readInputFormulaMap } from "./lib/graphFormula";
@@ -71,7 +72,9 @@ export function buildBackendArpeggiatorPad(pad: ArpeggiatorPadState): SessionArp
 }
 
 export function buildBackendArpeggiatorConfigs(state: SequencerState): SessionArpeggiatorConfigRequest["arpeggiators"] {
+  state = clipRuntimeView(state);
   return state.arpeggiators.map(arp => ({
+    ...(state.clipArrangement?.lanes.find(l => l.id === arp.id) ? { clip_schedule: runtimeSchedule(state, state.clipArrangement.lanes.find(l => l.id === arp.id)!) } : {}),
     ...buildBackendArpeggiatorPad(arp.pads[arp.activePad]),
     arpeggiator_id: arp.id, enabled: arp.enabled, input_channel: arp.inputChannel, target_channel: arp.targetChannel,
     latch: false, restart_mode: arp.restartMode, playback_mode: arp.playbackMode, processing_mode: arp.processingMode,

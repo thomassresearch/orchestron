@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from fractions import Fraction
 from functools import lru_cache
 
+from backend.app.models.clip_arrangement import PreparedClipSchedule
 from backend.app.services.sequencer_runtime_models import SequencerPadRuntime, SequencerTimingRuntime, SequencerTrackRuntime
 
 
@@ -50,7 +51,7 @@ def compile_score_track(request, tempo):
     timing = SequencerTimingRuntime(**{**request.timing.model_dump(), "tempo_bpm": tempo, "beat_unit": "meter"})
     supplied = {p.pad_index: p for p in request.pads}
     pads = {}
-    for index in range(8):
+    for index in sorted(set(range(8)) | set(supplied)):
         p = supplied.get(index)
         pads[index] = prepare_pad(tuple((n.id, n.pitch, n.velocity, n.start_ticks, n.duration_ticks) for n in p.notes) if p else (),
             p.length_beats if p else request.length_beats, timing.meter_numerator, timing.meter_denominator,
@@ -62,6 +63,7 @@ def compile_score_track(request, tempo):
         step_count=pad.step_count, transport_subunit_count=pad.transport_subunit_count,
         velocity=request.velocity, gate_ratio=1, sync_to_track_id=None,
         enabled=request.enabled, configured_enabled=request.enabled, queued_enabled=request.queued_enabled,
+        clip_schedule=PreparedClipSchedule(request.clip_schedule) if request.clip_schedule else None,
         pads=pads, active_pad=request.active_pad, configured_active_pad=request.active_pad,
         queued_pad=request.queued_pad, configured_queued_pad=request.queued_pad,
         pad_loop_enabled=request.pad_loop_enabled, pad_loop_repeat=request.pad_loop_repeat,

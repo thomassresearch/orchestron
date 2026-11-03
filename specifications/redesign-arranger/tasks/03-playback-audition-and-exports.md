@@ -1,6 +1,8 @@
 # Task 03 — Clip playback, audition and export parity
 
-Status: planned. Depends on: [Task 02](02-clip-model-and-migration.md). Gate: G3. Required before audio-enabled [Task 04](04-arranger-and-previews.md) and [Task 05](05-editors-save-scope-and-live-inputs.md).
+Status: Clip scheduling, audition integration and exports implemented; container-audition limits and full stress/parity acceptance remain open. Depends on: [Task 02](02-clip-model-and-migration.md). Gate: G3. Required before audio-enabled [Task 04](04-arranger-and-previews.md) and [Task 05](05-editors-save-scope-and-live-inputs.md).
+
+Evidence and remaining work: [implementation record](../implementation-record.md).
 
 ## Result
 

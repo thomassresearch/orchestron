@@ -1065,7 +1065,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v22 and accept v1–22; app state is v4 (reads v1–4); native envelopes are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance config v23 when a clip arrangement is present, otherwise v22, and accept v1–23. App state writes v5 for clips, otherwise v4 (reads v1–5); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -1228,3 +1228,14 @@ were 0.161 ms; the largest start sample was 1.227 ms against a 1.333 ms block
 budget (all 99th percentiles below 0.14 ms). These are observations, not portable
 performance guarantees or synthesis benchmarks. The existing browser-clock and
 boundary benchmarks remain available through `make benchmark-runtime`.
+
+
+### Clip arranger development preview (performance v23, app state v5)
+
+`sequencer.clipArrangement` version 1 is authoritative for fixed clip windows, independent content duration and reusable pattern/group/supergroup definitions. Existing device records retain lane-wide settings. Legacy pads remain compatibility shadows; new-format runtime compilation projects definitions into up to 512 slots and attaches bounded `clip_schedule` spans. Do not normalize these projected slots back to eight pads.
+
+The frontend and standalone CLI compile the same integer 20,160-quarter-tick schedule contract; backend `clip_validation.py` validates authored persistence, and `clip_arrangement.py` validates/prepares the runtime schedule. `clip_playback.py` applies crop/gap/offset boundaries in the existing sequencer runtime. Live and offline exports use the same musical engines; long loops are resolved lazily. Clip-aware editor workspace auditions survive song start/stop/seek, while legacy audition behavior stays unchanged.
+
+The rollout flag controls new creation and explicit migration, not the ability to read saved v23 data. New data always opens in the compatible clip path. Original configurations are downloaded before conversion; unsupported independent/manual sources and multiple keyboards retain the compatibility view. Session drafts, audition state and input ownership never enter authored exports. Legacy CLI pad mutations reject new-format clip performances instead of changing unused shadow pads.
+
+See the [implementation record](specifications/redesign-arranger/implementation-record.md) for exact limits, source seams, tests, intentional preview limitations and outstanding release gates. Version references in earlier feature histories describe the format in which those features originally shipped.

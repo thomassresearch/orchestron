@@ -86,11 +86,12 @@ class ExportPerformanceConfig(BaseModel):
     @classmethod
     def validate_scores(cls, value):
         from backend.app.models.score_validation import validate_authored_scores
-        return validate_authored_scores(value)
+        from backend.app.models.clip_validation import validate_authored_clips
+        return validate_authored_clips(validate_authored_scores(value))
 
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=22)
+    version: int = Field(default=1, ge=1, le=23)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")

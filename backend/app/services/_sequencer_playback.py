@@ -138,6 +138,13 @@ def _following_note_track(self, track: SequencerTrackRuntime, boundary: int) -> 
     if not track.enabled or track.queued_enabled is False:
         return None
     following = copy(track)
+    if track.clip_schedule is not None:
+        from backend.app.services import clip_playback
+        origin = self.sources.track_origin(track) if self.sources.active else 0
+        clip_playback.position(following, max(0, boundary - origin))
+        following.phase_offset_subunit += origin
+        following.clip_boundary += origin
+        return None if following.clip_silent else following
     manual = track.queued_pad is not None and track.queued_pad != track.active_pad
     if manual:
         following.active_pad = track.queued_pad
@@ -162,6 +169,9 @@ def _timed_attacks(self, track: SequencerTrackRuntime, now: int, config: Sequenc
     if local == 0 and pad.note_offsets and pad.note_offsets[0] < 0:
         positions.insert(0, (0, pad.note_step_indices[0]))
     attacks = [(base + offset, base, index, pad.steps[index]) for offset, index in positions]
+    if track.clip_schedule is not None:
+        # Do not anticipate a later clip or release pending attacks beyond this window.
+        return [attack for attack in attacks if attack[0] < track.clip_boundary]
     boundary = base + pad.transport_subunit_count
     song_boundary = self.sources.next_boundary() if self.sources.active and self.sources.is_arrangement(track) else None
     if song_boundary is not None:
@@ -204,6 +214,8 @@ def _nominal_note_end(self, track: SequencerTrackRuntime, base: int, after: int)
         if index < len(terminals):
             return base + terminals[index] * span
         boundary = base + pad.transport_subunit_count
+        if track.clip_schedule is not None:
+            return min(boundary, track.clip_boundary)
         following = self._following_note_track(candidate, boundary)
         if following is None:
             return boundary
@@ -390,6 +402,8 @@ def _transport_subunit_count_for_loop_token(
 def _active_pad_runtime(
     track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
 ) -> SequencerPadRuntime | ControllerSequencerPadRuntime | None:
+    if track.clip_schedule is not None and track.clip_silent:
+        return None
     token = _current_pad_loop_token(track)
     if token is not None:
         return track.pads.get(token)
@@ -451,6 +465,8 @@ def _next_track_cycle_boundary_subunit(
     track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
     current_subunit: int,
 ) -> int:
+    if track.clip_schedule is not None and track.clip_boundary is not None and track.clip_boundary > current_subunit:
+        return track.clip_boundary
     cycle_length = max(1, _active_pad_transport_subunit_count(track))
     cycle_offset = _local_transport_offset_for(track, current_subunit)
     return current_subunit - cycle_offset + cycle_length
@@ -480,6 +496,8 @@ def _next_cycle_event_subunit_locked(self, config: SequencerRuntimeConfig, curre
 def _next_event_subunit_locked(self, config: SequencerRuntimeConfig, current_subunit: int) -> int:
     candidates = [((current_subunit // _TRANSPORT_SUBUNITS_PER_STEP) + 1) * _TRANSPORT_SUBUNITS_PER_STEP]
     for track in config.tracks.values():
+        if track.clip_schedule is not None and track.clip_boundary is not None and track.clip_boundary > current_subunit:
+            candidates.append(track.clip_boundary)
         if track.enabled:
             duration = _active_pad_transport_subunit_count(track)
             local_offset = (current_subunit - track.phase_offset_subunit) % duration
@@ -503,6 +521,8 @@ def _next_event_subunit_locked(self, config: SequencerRuntimeConfig, current_sub
                     if sounding is not None and sounding.release_subunit is not None and sounding.release_subunit > current_subunit:
                         candidates.append(sounding.release_subunit)
     for track in config.controller_tracks.values():
+        if track.clip_schedule is not None and track.clip_boundary is not None and track.clip_boundary > current_subunit:
+            candidates.append(track.clip_boundary)
         if not track.enabled:
             continue
         candidates.append(self._next_track_cycle_boundary_subunit(track, current_subunit))

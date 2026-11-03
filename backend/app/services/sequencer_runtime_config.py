@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from backend.app.models.clip_arrangement import PreparedClipSchedule
 
 from backend.app.models.controller_curve import (
     clamp_controller_value as clamp_controller_value,
@@ -168,6 +169,8 @@ def _transport_extent_for_track(
     track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
     step_quantum: int,
 ) -> int:
+    if track.clip_schedule:
+        return track.clip_schedule.schedule.end
     if track.pad_loop_enabled and track.pad_loop_sequence:
         return max(
             step_quantum,
@@ -316,6 +319,7 @@ def compile_sequencer_runtime_config(
             queued_enabled=track_request.queued_enabled,
             configured_queued_enabled=track_request.queued_enabled,
             pads=pads,
+            clip_schedule=PreparedClipSchedule(track_request.clip_schedule) if track_request.clip_schedule else None,
             active_pad=active_pad,
             configured_active_pad=active_pad,
             queued_pad=queued_pad,
@@ -381,6 +385,7 @@ def compile_sequencer_runtime_config(
             enabled=track_request.enabled,
             configured_enabled=track_request.enabled,
             pads=pads,
+            clip_schedule=PreparedClipSchedule(track_request.clip_schedule) if track_request.clip_schedule else None,
             active_pad=active_pad,
             configured_active_pad=active_pad,
             queued_pad=queued_pad,
@@ -402,6 +407,13 @@ def compile_sequencer_runtime_config(
                 default=subunit_quantum,
             ),
         )
+
+    for track in [*tracks.values(), *controller_tracks.values()]:
+        if track.clip_schedule is not None:
+            for clip in track.clip_schedule.schedule.clips:
+                for span in clip.content:
+                    if span.pad is not None and span.length != track.pads[span.pad].transport_subunit_count:
+                        raise ValueError("Clip span duration must equal the native pattern duration.")
 
     return SequencerRuntimeConfig(
         timing=timing,

@@ -1,6 +1,8 @@
 # Task 04 — Arranger surface and type-specific previews
 
-Status: planned. Depends on: [Task 02](02-clip-model-and-migration.md); [Task 03](03-playback-audition-and-exports.md) before real playback integration. Gate: G4. Next: [Task 05](05-editors-save-scope-and-live-inputs.md).
+Status: Arranger surface and previews implemented; dense, responsive and accessibility release review remains open. Depends on: [Task 02](02-clip-model-and-migration.md); [Task 03](03-playback-audition-and-exports.md) before real playback integration. Gate: G4. Next: [Task 05](05-editors-save-scope-and-live-inputs.md).
+
+Evidence and remaining work: [implementation record](../implementation-record.md).
 
 ## Result
 

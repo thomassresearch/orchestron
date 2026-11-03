@@ -486,6 +486,8 @@ export interface ArrangerLoopSelection {
 }
 
 export interface SequencerState {
+  clipArrangement?: import("../lib/clipArranger/model").ClipArrangement;
+  clipHistory?: import("../lib/clipArranger/model").ClipHistory;
   isPlaying: boolean;
   timing: SequencerTimingConfig;
   stepCount: number;
@@ -589,7 +591,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -617,6 +619,8 @@ export interface SequencerConfigSnapshot {
     graph: PatchGraph;
   }>;
   sequencer: {
+    clipArrangement?: import("../lib/clipArranger/model").ClipArrangement;
+    clipHistory?: import("../lib/clipArranger/model").ClipHistory;
     timing?: SequencerTimingConfig;
     tempoBPM?: number;
     meterNumerator?: SequencerMeterNumerator;
@@ -756,7 +760,7 @@ export interface BrowserClockLatencySettings {
 
 export interface PersistedAppState {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4;
+  version: 1 | 2 | 3 | 4 | 5;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;
@@ -851,6 +855,7 @@ export interface SessionControllerSequencerPadConfig {
 }
 
 export interface SessionSequencerTrackConfig {
+  clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   track_id: string;
   midi_channel: number;
   timing: SessionSequencerTimingConfig;
@@ -879,6 +884,7 @@ export interface SessionScoreTrackConfig extends Omit<SessionSequencerTrackConfi
 }
 
 export interface SessionControllerSequencerTrackConfig {
+  clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   controller_mode?: ControllerSequencerMode;
   reset_value?: number;
   track_id: string;
@@ -943,6 +949,7 @@ export interface SessionArpeggiatorPadConfig {
 }
 
 export interface SessionArpeggiatorConfig extends SessionArpeggiatorPadConfig {
+  clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   arpeggiator_id: string;
   enabled: boolean;
   input_channel: number;

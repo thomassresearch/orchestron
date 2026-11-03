@@ -2,7 +2,7 @@
 
 [Specification index](../README.md) · [Implementation plan and gates](../implementation-plan.md)
 
-These six tasks are planned, not completed. Each has a bounded result and a review gate. Implement the chosen arranger interaction while retaining the actual musical editor and live-input interfaces.
+The six tasks now have an integrated preview implementation. Their acceptance gates are not all closed; see the [implementation record](../implementation-record.md). Each has a bounded result and a review gate. Implement the chosen arranger interaction while retaining the actual musical editor and live-input interfaces.
 
 | Order | Task | Dependency | Gate |
 | --- | --- | --- | --- |

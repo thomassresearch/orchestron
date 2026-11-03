@@ -1,6 +1,8 @@
 # Task 01 — Baseline and compatibility contracts
 
-Status: planned. Depends on: none. Gate: G1. Next: [Task 02](02-clip-model-and-migration.md).
+Status: Contracts adopted and integration seams implemented; complete baseline characterization remains open. Depends on: none. Gate: G1. Next: [Task 02](02-clip-model-and-migration.md).
+
+Evidence and remaining work: [implementation record](../implementation-record.md).
 
 ## Result
 

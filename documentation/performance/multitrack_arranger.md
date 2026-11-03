@@ -1,5 +1,7 @@
 # Multitrack Arranger
 
+A development preview of the clip-based performance workflow is described in [Clip arranger preview](clip_arranger_preview.md). The reference below describes the existing compatibility arranger.
+
 **Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
 
 The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit pad contents; melodic and drummer devices assemble reusable phrases in their upper-right pattern workspace. In the arranger, edit phrases by ungrouping, rearranging, and regrouping timeline material. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.

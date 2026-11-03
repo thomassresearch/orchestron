@@ -1,3 +1,4 @@
+import { resolveClipDrafts } from "../lib/clipArranger/draftResolution";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { createArrangerHistoryActions, emptyArrangerHistory, historyMatches, readArrangerHistory } from "./arrangerHistory";
 import { reconcileLaneOutput } from "../lib/laneOutput";
@@ -49,6 +50,7 @@ import {
   defaultParams,
   defaultSequencerInstruments,
   defaultSequencerState,
+  defaultPianoRoll,
   emptyPerformanceSequencerState,
   hasPersistableStateChange,
   hydrateEmbeddedPerformancePatches,
@@ -163,6 +165,9 @@ export const useAppStore = create<AppStore>((set, get) => {
     sequencer: initialSequencerState,
     sequencerRuntime: initialSequencerRuntimeState,
     sequencerEditRevision: 0,
+    clipDrafts: {},
+    clipEditingKey: null,
+    clipAuditionDraft: null,
     arrangerHistory: emptyArrangerHistory(),
     arrangerHistoryNotice: false,
     arrangerHistoryRestoreRevision: 0,
@@ -315,7 +320,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
             const payload = migrateSequencerTiming(persistedState, true) as Partial<PersistedAppState>;
-            if (payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
+            if (payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
               const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
               if (restoredTabs.length > 0) {
                 instrumentTabs = restoredTabs;
@@ -377,7 +382,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           const resolvedGuiLanguage = guiLanguageChangedDuringBootstrap ? latestState.guiLanguage : guiLanguage;
 
           const baselineSnapshot: PersistedAppState = {
-            version: APP_STATE_VERSION,
+            version: sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
@@ -504,6 +509,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     loadPerformance: async (performanceId) => {
+      if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts, true)) return;
       if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       set({ loading: true, error: null });
       try {
@@ -594,8 +600,13 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     newPerformanceWorkspace: async () => {
+      if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts, true)) return;
       if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       const nextSequencer = emptyPerformanceSequencerState();
+      if (import.meta.env.VITE_CLIP_ARRANGER === "1") {
+        nextSequencer.clipArrangement = { version: 1, revision: 0, end: 20160 * 16, lanes: [] };
+        nextSequencer.pianoRolls = [defaultPianoRoll()];
+      }
       set({
         performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
         sequencerEditingPads: {},
@@ -724,6 +735,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     saveCurrentPerformance: async () => {
+      if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts)) return;
       const state = get();
       const name = state.performanceName.trim();
       if (name.length === 0) {
@@ -1193,6 +1205,9 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
 
 // Invalidate outside the component lifetime, including edits made while collapsed.
 useAppStore.subscribe((state, previous) => {
+  if (state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) {
+    useAppStore.setState({ clipDrafts: {}, clipEditingKey: null, clipAuditionDraft: null });
+  }
   if (state.sequencer !== previous.sequencer && state.arrangerHistory === previous.arrangerHistory &&
       state.arrangerHistory.entries.length && !historyMatches(state.sequencer, state.arrangerHistory)) {
     useAppStore.setState({ arrangerHistory: emptyArrangerHistory(), arrangerHistoryNotice: true });

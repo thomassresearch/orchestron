@@ -1,6 +1,8 @@
 # Task 06 — Compatibility verification, documentation and cutover
 
-Status: planned. Depends on: Tasks [01](01-baseline-and-contracts.md), [02](02-clip-model-and-migration.md), [03](03-playback-audition-and-exports.md), [04](04-arranger-and-previews.md) and [05](05-editors-save-scope-and-live-inputs.md). Gate: G6.
+Status: Integration verification and documentation performed; G6 has not passed and default activation remains off. Depends on: Tasks [01](01-baseline-and-contracts.md), [02](02-clip-model-and-migration.md), [03](03-playback-audition-and-exports.md), [04](04-arranger-and-previews.md) and [05](05-editors-save-scope-and-live-inputs.md). Gate: G6.
+
+Evidence and remaining work: [implementation record](../implementation-record.md).
 
 ## Result
 

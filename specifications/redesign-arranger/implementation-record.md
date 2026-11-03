@@ -1,0 +1,91 @@
+# Integrated preview implementation record
+
+Date: 2026-11-03. Baseline: `d82c682`. Status: integrated, opt-in development preview; **not default-cutover acceptance**. This record supplements the original six task definitions rather than marking unperformed checks complete.
+
+## Activation and compatibility
+
+Start the frontend with `VITE_CLIP_ARRANGER=1 npm --prefix frontend run dev`. New performances then receive an empty clip model and one fixed keyboard. The compatibility view offers explicit conversion and downloads the original configuration before applying it. Existing Manual-pad sources, Live-clock arpeggiators and multiple-keyboard performances remain in the compatibility view with conversion reasons. This restriction applies to automatic migration; a new clip arpeggiator retains its legitimate Arranger/Live clock control.
+
+The flag is off by default. Saved clip performances always open through the clip-capable reader/editor, including when the flag is off; they cannot silently fall through to legacy writing. Restoration uses the downloaded original, not an invented downgrade of the new model. No production database, user examples or original performance files were modified during verification. Actual audio verification used an isolated temporary SQLite database and versioned test patches. Nothing was published through Sites.
+
+## Implementation decisions adopted
+
+These are engineering decisions taken under the specification's proposed contracts, not a claim of separate user sign-off.
+
+| Area | Implemented contract |
+| --- | --- |
+| Versions | Performance v23 and app state v5 when `clipArrangement` exists; otherwise existing v22/v4 writers. Readers accept prior supported versions. Native envelope unchanged. Clip model and clip history each carry version 1. |
+| Time | Integer 20,160 ticks per quarter note, exact rational source timing. Clip start/length/source offset are independent of native content duration. UI positions use master beats. |
+| Hierarchy | Stable IDs for definitions, clip windows and child occurrences; patterns, groups containing patterns/rests, supergroups containing groups/patterns/rests. No cycles or cross-lane references. Unused definitions remain saved. |
+| Bounds | At most 72 lanes, 512 definitions per lane, 256 children per container, 2,048 clips per lane and 65,536 resolved leaves per content traversal. Tick bound is one million quarter notes. Backend musical validators also apply. |
+| Windows | Same-lane overlaps reject atomically. Once leaves silence after content ends; Loop repeats within a fixed window. Left trim maintains source phase. Fit is explicit. Remove clip leaves a gap and retains definitions. |
+| Sharing | All-linked save updates the definition revision. Local save copies the selected definition and only necessary shared ancestors. Child occurrence IDs distinguish duplicate uses. One generated repeat is isolated into before/edited/after windows in one transaction. |
+| Drafts | Session-only definitions, staged child definitions, selected occurrence paths and revision/fingerprint conflict checks. Real musical editors project the selected draft into their existing pad adapter. Save/cancel never leaks draft payload into authored state. |
+| History | Up to 25 atomic clip transactions; persisted snapshots validated before use. Source topology creation/removal clears clip history because device objects are outside those snapshots. Editor-local score history is keyed by occurrence context. |
+| Source ownership | One foreground editor audition replaces its lane. Song Play/Stop/seek preserves it. Stop edit restores authored playback at current song position, or silence while stopped. Existing quantization, preparation and browser-clock infrastructure remain in charge. |
+| Human inputs | Existing keyboard and manual controllers below arranger/editor, full-width rows. Fixed keyboard cannot be added/removed in the new path. Existing Start/Stop and Auto/Live/Listening policy remain. |
+| Migration | Deterministic pattern/group/supergroup conversion, explicit rests, colors and unused definitions retained. Legacy repeating lanes retain an independent cycle; an explicit operation materializes their repeats across the current song extent. Unsupported independent-source cases do not silently convert. |
+| CLI | Normalize/round-trip/runtime/export support v23. Legacy source/pad mutation commands reject clip performances before writing; they do not edit obsolete shadow data. Mixer/routing operations remain separate. |
+
+## Delivered source seams
+
+- [Clip domain](../../frontend/src/lib/clipArranger/model.ts), [operations](../../frontend/src/lib/clipArranger/operations.ts), [migration](../../frontend/src/lib/clipArranger/migration.ts), [runtime projection](../../frontend/src/lib/clipArranger/runtime.ts): fixed windows, exact resolution, reusable references, range copy/paste/insert/close, cycle conversion and scope/history transactions.
+- [Store actions](../../frontend/src/store/clipActions.ts), [existing edit adapter](../../frontend/src/store/sequencerEdits.ts), [persistence](../../frontend/src/store/appStoreModel.ts): draft separation, existing factories/defaults, source creation/removal, save/load/app-state integration and version guards.
+- [Arranger](../../frontend/src/components/clipArranger/ClipArranger.tsx), [contextual integration](../../frontend/src/components/clipArranger/ClipPerformance.tsx), [previews](../../frontend/src/components/clipArranger/PatternPreview.tsx), [scope dialog](../../frontend/src/components/clipArranger/SaveScopeDialog.tsx): compact lanes, expanded nesting, window edits, shared scope and real editor hosting.
+- [Inline curve](../../frontend/src/components/clipArranger/InlineCurve.tsx) uses [the production curve editor](../../frontend/src/components/sequencer/ControllerSequencerCurveEditor.tsx), including independent endpoints and snapping. Numeric point controls and cropped source coordinates share its draft. Component instance IDs prevent duplicate SVG gradient IDs when both editor views are mounted.
+- [Performance shell](../../frontend/src/components/SequencerPage.tsx), [Score](../../frontend/src/components/sequencer/ScoreSequencers.tsx) and [Arpeggiator](../../frontend/src/components/sequencer/ArpeggiatorEditor.tsx): contextual wrappers replace the old pad workspace/source controls only. Existing musical controls, live input components, rack, mixer and instrument settings remain.
+- [Authored validator](../../backend/app/models/clip_validation.py), [runtime schedule](../../backend/app/models/clip_arrangement.py), [clip playback](../../backend/app/services/clip_playback.py), [source transport](../../backend/app/services/sequencer_source_transport.py): bounded validation, lazy schedule lookup, exact source phase, owned-note boundaries and audition restoration.
+- [Standalone CLI projection](../../integrations/skills/orchestron-performance-creator/src/orchestron/clip_arrangement.py): no backend package dependency; same authored/runtime schedule representation. Existing exports retain rack, routing, mixer and instrument ownership rules.
+
+## Verification evidence
+
+### Automated checks
+
+| Check | Result |
+| --- | --- |
+| `npm --prefix frontend run check` | Lint, 92 test files / 957 tests, TypeScript and production build passed. |
+| Clip domain/store/component tests | Exact timing across supported ratios; offsets/crops/partial repeats; local ancestor forks and duplicate children; fixed windows on shared duration changes; history/range edits; source creation/removal; real melodic/curve draft capture; local-default scope and cancel; undo-branch conflict rejection. |
+| Backend clip suite + clip API cases | 21 passed. Exact window scheduling; lazy long loops; >8 definitions; score chase/crop; controller gaps; song/audition coexistence including Live-clock arp; save/read/malformed-write rejection; native bundle round trip; both CSD modes preserve cropped score sustain. |
+| Full backend suite | 2,637 passed, 3 failed in saxophone signal tests. The complete saxophone suite passed in an isolated rerun (22 passed). The full run is recorded as having failures, not green. New/updated clip API regressions passed separately. |
+| Performance CLI suite | 344 passed, including >8-definition round trips and rejection of legacy pad mutation before any write. |
+| `make backend-check` | Passed (Ruff). |
+| Runtime benchmarks | Completed render ratio, boundary and score benchmarks; results below. No matched pre-change dense-clip baseline was captured, so these numbers are not a no-regression claim. |
+| Preparation benchmark | Completed cold/cached/one-pad compiler-process measurements using versioned fixtures. |
+
+Reproducible targeted checks:
+
+```sh
+.venv/bin/pytest backend/tests/test_clip_arrangement.py backend/tests/test_api.py -k clip_ -q
+PYTHONPATH=integrations/skills/orchestron-performance-creator/src \
+  .venv/bin/pytest integrations/skills/orchestron-performance-creator/tests -q
+make benchmark-runtime
+.venv/bin/python -m backend.tools.benchmark_sequencer_preparation
+```
+
+Measured runtime render/audio ratios (median) were 0.002/0.005/0.007 at 16/64/128 tracks. Boundary processing medians were 0.034/0.123/0.241 ms; corresponding maxima were 0.047/0.146/0.273 ms. Controller preparation cold/cached/one-pad medians were 4.013/0.156/0.942 ms; compiler-process round-trip medians were 25.631/21.099/21.101 ms. These are local machine samples, not throughput guarantees.
+
+### Actual browser and audio checks
+
+The production app was served against an isolated FastAPI/Csound instance, with a fixture-derived nested performance and a versioned test instrument. Play song automatically started instruments, opened the browser-clock PCM WebSocket and produced nonzero rendered audio. Play edit used the actual melodic editor/runtime. Song Play/Stop left editor audition active; Stop edit ended it. The existing manual-controller Start/Stop and keyboard Stop controls were also exercised; instruments were stopped after verification. This is actual engine/browser integration, distinct from the UI-only harness and deterministic MIDI event tests. It is not a subjective listening assessment or a hardware MIDI test.
+
+The UI harness at `frontend/tests/performance/clip-arranger.html` uses production components and a versioned performance fixture. It is for reproducible layout/interaction inspection, not simulated evidence of audio correctness. Screenshots show compact lanes, expanded supergroup/group/pattern containment, the contextual editor, scope choices and input rows. Native save/add dialogs support Escape and focus restoration. A 600-pixel viewport review exposed an inline-curve sizing issue, which was fixed. Cropped pointer verification also exposed stale SVG resize coordinates; a regression test now proves a visible midpoint in the 50–100% crop adds a point at source position 75%, including the short inline height. The English manual PDF was rebuilt (54 source documents collected, 195 PDF pages); preview pages 31–34 were rendered and visually inspected. Markdown links and `git diff --check` pass. See the [user guide](../../documentation/performance/clip_arranger_preview.md).
+
+## Remaining gates before default cutover
+
+The preview is deliberately not marked fully accepted. The following work is still required by the six-task plan:
+
+1. **Container audition capacity and exact rests:** the existing audition protocol accepts up to 256 tokens and whole local-beat rest tokens. Clip scheduling itself accepts exact tick rests and larger bounded hierarchies. A container with fractional local-beat rests or more audition tokens needs an explicit clip-aware audition payload; currently it reports failure rather than approximating timing. Audition also needs capacity reserved when a lane already reaches the definition limit.
+2. **Complete preservation/migration matrix:** exercise every musical control through each contextual editor, including drummer row topology, score hidden notes/local undo, arpeggiator presets/seeds and controller modes, followed by all round trips. Existing source components and regression suites remain, but that is not proof of the entire new interaction matrix. Rehearse downloaded-original restoration across legacy fixture categories.
+3. **Transport/input stress:** deliberate failed preparation, rapid switching/cancellation, reconnect, finite end/selected loops, independently started engine ownership, sustain/held-note removal and actual external MIDI hardware alongside song/editor playback. Existing tests and the actual playback smoke test cover a subset.
+4. **Dense/responsive/accessibility acceptance:** compare nested preview and preparation costs to a matched baseline; review narrow widths, text zoom, all dialogs, labels/help in EN/DE/FR/ES, coarse pointers and screen-reader descriptions. Rendering filters offscreen clips and nested preview content, but traversal and lower zoom need measured limits.
+5. **Full-suite stability and release review:** resolve/reproduce the full-run saxophone signal failures and rerun affected checks. Default activation must follow G1–G6 acceptance, not merely the presence of the new UI.
+
+These are concrete release blockers/verification gaps. Keep the gate off while addressing them. Retain format readers and original backups even if UI activation is rolled back. No dead-code cleanup or publication is part of this preview delivery.
+
+## Drummer clip regression fix (2026-11-03)
+
+The first interactive drummer report exposed an adapter error: spreading the pattern payload onto the track replaced `{ id, key }` track rows with `{ rowId, steps }` pad rows. The editor then displayed empty keys, addressed multiple cells with the same missing row ID, and emitted duplicate `drumrow:<track>:undefined` runtime IDs. The clip editor now projects only drummer length/step-count mirrors; track row identities and MIDI keys stay on the track, and per-row hits stay in the selected pattern draft.
+
+Regression coverage follows the reported workflow: add a drummer clip, select keys 35 and 38, remove the other rows, toggle independent hits, change one velocity, construct the actual audition/runtime requests, save using each scope, and reload. Both source IDs and drum notes survive. A related bootstrap correction preserves app-state v5 when a clip performance needs a legacy mixer migration; that path previously attempted a v4 write and could receive another 422.
+
+Verification: 960 frontend tests passed, followed by a successful TypeScript/production build and Docker `frontend-build` with `VITE_CLIP_ARRANGER=1`. The final fixture metadata correction was checked again with the 13 focused store tests. In the isolated production browser/Csound session, the reported key/delete/toggle sequence succeeded, Play edit submitted two distinct row IDs and received HTTP 200, and Csound rendered nonzero audio. Stop edit, scoped Save, v5 autosave and browser reload also succeeded. No user Docker database was accessed or changed. The intended editor layout and musical controls are unchanged by this fix.

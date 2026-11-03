@@ -90,3 +90,14 @@ it.each(["pointerCancel", "lostPointerCapture", "blur"] as const)("clears snappi
   change.mockClear(); move(2, -30);
   expect(change).not.toHaveBeenCalled();
 });
+
+it("maps clicks after resizing a cropped inline curve to its original source coordinates", () => {
+  vi.mocked(SVGElement.prototype.getBoundingClientRect).mockReturnValue(
+    { x: -960, y: 0, left: -960, top: 0, right: 960, bottom: 72, width: 1920, height: 72, toJSON() {} });
+  const add = vi.fn();
+  const view = render(<ControllerSequencerCurveEditor ui={SEQUENCER_UI_COPY.english}
+    controllerSequencer={defaultControllerSequencer()} playbackTransport={null} height={72}
+    onAddPoint={add} onPointChange={vi.fn()} onPointRemove={vi.fn()} />);
+  fireEvent.pointerDown(view.container.querySelector("svg rect")!, { button: 0, clientX: 480, clientY: 36 });
+  expect(add).toHaveBeenCalledWith(.75, 64);
+});

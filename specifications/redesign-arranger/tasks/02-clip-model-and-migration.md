@@ -1,6 +1,8 @@
 # Task 02 — Clip model, transactions and migration
 
-Status: planned. Depends on: [Task 01](01-baseline-and-contracts.md). Gate: G2. Next: [Task 03](03-playback-audition-and-exports.md); [Task 04](04-arranger-and-previews.md) may begin read-only integration.
+Status: Core model, transactions, persistence and conservative migration implemented; exhaustive legacy-fixture acceptance remains open. Depends on: [Task 01](01-baseline-and-contracts.md). Gate: G2. Next: [Task 03](03-playback-audition-and-exports.md); [Task 04](04-arranger-and-previews.md) may begin read-only integration.
+
+Evidence and remaining work: [implementation record](../implementation-record.md).
 
 ## Result
 

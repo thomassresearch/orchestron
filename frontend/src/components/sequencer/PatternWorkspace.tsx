@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { ClipEditingContext } from "../clipArranger/context";
+import { useContext, useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import type { GuiLanguage, PadLoopPatternItem, PadLoopPatternState } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { compileDefinition, createDefinition, definitionItem, definitionUses, type DefinitionRef } from "../../lib/arrangementEditing";
@@ -23,7 +24,7 @@ type Menu = ArrangerMenuTarget & { ref?: DefinitionRef; palette?: boolean; index
 const refKey = (ref: DefinitionRef) => `${ref.kind}:${ref.id}`;
 const itemRef = (item: PadLoopPatternItem): DefinitionRef | undefined => item.type === "group" ? { kind: "group", id: item.groupId } : item.type === "super" ? { kind: "super", id: item.superGroupId } : undefined;
 
-export function PatternWorkspace({ track, language, onPatternChange, onSourceChange, padHasContent, hideArrangement = false }: {
+function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChange, padHasContent, hideArrangement = false }: {
   track: { id: string; activePad: number; padLoopEnabled: boolean; padLoopPattern: PadLoopPatternState; pads: Array<{ lengthBeats: number }> }; language: GuiLanguage;
   padHasContent: (index: number) => boolean; hideArrangement?: boolean;
   onPatternChange: (pattern: PadLoopPatternState) => void; onSourceChange: (enabled: boolean) => void;
@@ -218,4 +219,9 @@ export function PatternWorkspace({ track, language, onPatternChange, onSourceCha
       </>}
     </ArrangerContextMenu>}
   </section>;
+}
+
+export function PatternWorkspace(props: Parameters<typeof LegacyPatternWorkspace>[0]) {
+  const contextual = useContext(ClipEditingContext);
+  return contextual ? null : <LegacyPatternWorkspace {...props} />;
 }

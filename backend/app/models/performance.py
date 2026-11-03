@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, JsonValue, field_validator
 
 
 from backend.app.models.score_validation import validate_authored_scores
+from backend.app.models.clip_validation import validate_authored_clips
 
 
 class PerformanceBase(BaseModel):
@@ -18,7 +19,7 @@ class PerformanceBase(BaseModel):
     @field_validator("config")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_scores(value)
+        return validate_authored_clips(validate_authored_scores(value))
 
 
 class PerformanceCreateRequest(PerformanceBase):
@@ -34,7 +35,7 @@ class PerformanceUpdateRequest(BaseModel):
     @field_validator("config")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_scores(value)
+        return validate_authored_clips(validate_authored_scores(value))
 
 
 class MasterRepairRequest(BaseModel):
@@ -44,7 +45,7 @@ class MasterRepairRequest(BaseModel):
     @field_validator("config")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_scores(value)
+        return validate_authored_clips(validate_authored_scores(value))
 
 
 class PerformanceResponse(PerformanceBase):

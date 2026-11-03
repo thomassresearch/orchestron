@@ -1,3 +1,5 @@
+import { resolveClipDrafts } from "./lib/clipArranger/draftResolution";
+import { clipRuntimeView, attachClipSchedules, clipAuditionState } from "./lib/clipArranger/runtime";
 import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
 import { scoreTrackConfig } from "./lib/scoreSequencer";
 import { PerformanceAuditionContext } from "./components/sequencer/PerformanceAudition";
@@ -368,7 +370,9 @@ export default function App() {
       mode: "runtime" | "export" = "runtime",
       arrangerActive = useAppStore.getState().sequencerRuntime.arrangerActive ?? false
     ): SessionSequencerConfigRequest => {
-      const resolvedState = state ?? useAppStore.getState().sequencer;
+      const authored = state ?? useAppStore.getState().sequencer;
+      const draft = mode === "runtime" ? useAppStore.getState().clipAuditionDraft : null;
+      const resolvedState = clipRuntimeView(draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored);
       const transportStepCount = transportStepCountFromPerformanceSequencers(
         resolvedState.timing,
         resolvedState.tracks,
@@ -517,7 +521,7 @@ export default function App() {
           )
         );
       }
-      return {
+      return attachClipSchedules(resolvedState, {
         timing: {
           tempo_bpm: resolvedState.timing.tempoBPM,
           meter_numerator: resolvedState.timing.meterNumerator,
@@ -535,12 +539,14 @@ export default function App() {
         arpeggiators: buildBackendArpeggiatorConfigs(resolvedState).map((arp, index) => ({
           ...arp, enabled: exportMode && arp.playback_mode === "arranger" ? resolvedState.arpeggiators[index].padLoopEnabled : arp.enabled
         }))
-      };
+      });
     },
     [appCopy.errors]
   );
   const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
-    const resolvedState = state ?? useAppStore.getState().sequencer;
+    const authored = state ?? useAppStore.getState().sequencer;
+    const draft = useAppStore.getState().clipAuditionDraft;
+    const resolvedState = draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored;
     return {
       tempo_bpm: resolvedState.timing.tempoBPM,
       arpeggiators: buildBackendArpeggiatorConfigs(resolvedState)
@@ -870,6 +876,7 @@ export default function App() {
   const onImportInstrumentDefinitionFile = useCallback(
     (file: File) => {
       void (async () => {
+        if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts, true)) return;
         const parsed = await api.expandImportBundle(file, true);
         const patchDefinitions = extractImportPatchDefinitions(parsed);
 
@@ -1160,6 +1167,7 @@ export default function App() {
   }, [buildSequencerConfigSnapshot, performanceDescription, performanceName]);
 
   const onExportSequencerConfig = useCallback(async () => {
+    if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts)) return;
     try {
       const { exportedPerformanceName, payload } = await buildCurrentPerformanceExport();
       const { blob, headers } = await api.exportPerformanceBundle(payload as unknown as Record<string, unknown>);
@@ -1183,6 +1191,7 @@ export default function App() {
 
   const onExportPerformanceCsd = useCallback(async (eventSource: "midiFile" | "score" = "midiFile") => {
     if (csdExportInProgress.current) return;
+    if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts)) return;
     csdExportInProgress.current = true;
     try {
       const { exportedPerformanceName, payload, exportState } = await buildCurrentPerformanceExport("csd");
@@ -1229,6 +1238,7 @@ export default function App() {
   const onImportSequencerConfig = useCallback(
     (file: File) => {
       void (async () => {
+        if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts, true)) return;
         const parsed = await api.expandImportBundle(file, true);
         const exported = parsePerformanceExportPayload(parsed);
 

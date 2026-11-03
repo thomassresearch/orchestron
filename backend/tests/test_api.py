@@ -9504,3 +9504,82 @@ def test_controller_group_save_list_and_running_updates(tmp_path: Path) -> None:
         assert updated.json()["midi_ccs"]["setting"] == 12
         assert client.get(f"/api/sessions/{session}").json()["state"] == "running"
         assert client.post(f"/api/sessions/{session}/stop").status_code == 200
+
+
+def _clip_score_config():
+    from copy import deepcopy
+    track = deepcopy(_score_fixture()["authored"])
+    pattern = {"id": "clip-pattern", "name": "Score", "revision": 0, "kind": "pattern", "source": "score", "payload": track["pads"][0]}
+    model = {"version": 1, "revision": 0, "end": 4 * 20160, "lanes": [{"id": track["id"], "source": "score", "cycleTicks": None,
+        "definitions": [pattern], "clips": [{"id": "clip-window", "name": "Crop", "start": 0, "length": 20160, "offset": 0, "mode": "once", "children": [{"id": "clip-use", "definitionId": "clip-pattern"}]}]}]}
+    return {"version": 23, "sequencer": {"scoreTracks": [track], "clipArrangement": model}}
+
+
+def test_clip_performance_round_trip_and_atomic_invalid_reference_rejection(tmp_path):
+    from copy import deepcopy
+    config = _clip_score_config()
+    with _client(tmp_path) as client:
+        response = client.post("/api/performances", json={"name": "Nested clips", "config": config})
+        assert response.status_code == 201, response.text
+        identity = response.json()["id"]
+        assert client.get(f"/api/performances/{identity}").json()["config"] == config
+        for mutation in ("reference", "overlap", "version", "duplicate", "timing", "note", "start", "malformed"):
+            bad = deepcopy(config)
+            lane = bad["sequencer"]["clipArrangement"]["lanes"][0]
+            if mutation == "reference":
+                lane["clips"][0]["children"][0]["definitionId"] = "missing"
+            elif mutation == "overlap":
+                lane["clips"].append({**deepcopy(lane["clips"][0]), "id": "overlap"})
+            elif mutation == "version":
+                bad["version"] = 22
+            elif mutation == "duplicate":
+                lane["definitions"].append(deepcopy(lane["definitions"][0]))
+            elif mutation == "timing":
+                bad["sequencer"]["scoreTracks"][0]["timing"]["beatRateNumerator"] = 0
+            elif mutation == "note":
+                lane["definitions"][0]["payload"]["notes"] = [None]
+            elif mutation == "start":
+                lane["clips"][0]["start"] = "invalid"
+            else:
+                lane["definitions"] = [None]
+            rejected = client.put(f"/api/performances/{identity}", json={"config": bad})
+            assert rejected.status_code == 422, rejected.text
+            assert client.get(f"/api/performances/{identity}").json()["config"] == config
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_clip_exports_crop_score_sustain_at_fixed_window(tmp_path, event_source):
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    authored = _clip_score_config()
+    payload["performanceExport"]["performance"]["config"].update(authored)
+    runtime = _score_fixture()["runtime"]
+    runtime.update(pad_loop_enabled=True, pad_loop_sequence=[], queued_pad=None)
+    length = runtime["pads"][0]["length_beats"]
+    runtime["pads"][0]["notes"] = [{"id": "long", "pitch": 60, "velocity": 96, "start_ticks": 0, "duration_ticks": 2 * 20160}]
+    runtime["clip_schedule"] = {"version": 1, "end": 2 * 20160, "clips": [{"id": "crop", "start": 0, "length": 10080, "offset": 10080, "mode": "once", "content": [{"pad": 0, "length": length * 20160}]}]}
+    payload["sequencerConfig"].update(tracks=[], score_tracks=[runtime], playback_start_step=0, playback_end_step=16)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == "midiFile":
+                events = [(tick, msg.type, msg.note) for tick, msg in _midi_messages_with_absolute_ticks(archive.read("Offline_Export/Offline_Export.mid")) if msg.type in {"note_on", "note_off"}]
+                assert events == [(0, "note_on", 60), (240, "note_off", 60)]
+            else:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                events = [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith("i 1 ")]
+                assert events == [[0, .25, 60, 96]]
+
+
+def test_clip_native_bundle_retains_shared_definitions_and_fixed_windows(tmp_path):
+    config = _clip_score_config()
+    payload = {"format": "orchestron.performance", "version": 1,
+        "performance": {"name": "Clip round trip", "description": "", "config": config}, "patch_definitions": []}
+    with _client(tmp_path) as client:
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200, exported.text
+        restored = client.post("/api/bundles/import/expand", content=exported.content,
+            headers={"X-File-Name": "clips.orch.json", "Content-Type": "application/json"})
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["performance"]["config"] == config

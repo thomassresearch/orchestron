@@ -1,3 +1,5 @@
+import { clipEditorView } from "../lib/clipArranger/editorAdapter";
+import type { DefinitionDraft, PatternDefinition } from "../lib/clipArranger/model";
 import type { StoreApi } from "zustand";
 import type { SequencerState, SequencerTrackPlaybackState, SessionSequencerConfigRequest } from "../types";
 import { parseDrummerRowRuntimeTrackId } from "../lib/sequencerRuntime";
@@ -38,7 +40,7 @@ export function sequencerEditingView(state: SequencerState, selections: Record<s
 
 /** Only edits to the displayed pad are committed; editor selection is never playback intent. */
 export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: () => AppStore, editSelection = true) {
-  const read = (): AppStore => { const state = get(); return { ...state, sequencer: sequencerEditingView(mergedSequencerState(state.sequencer, state.sequencerRuntime), editSelection ? { ...Object.fromEntries([...state.sequencer.tracks, ...state.sequencer.scoreTracks, ...state.sequencer.drummerTracks, ...state.sequencer.controllerSequencers].map(t => [t.id, t.activePad])), ...state.sequencerEditingPads } : {}) }; };
+  const read = (): AppStore => { const state = get(); return { ...state, sequencer: clipEditorView(sequencerEditingView(mergedSequencerState(state.sequencer, state.sequencerRuntime), editSelection ? { ...Object.fromEntries([...state.sequencer.tracks, ...state.sequencer.scoreTracks, ...state.sequencer.drummerTracks, ...state.sequencer.controllerSequencers].map(t => [t.id, t.activePad])), ...state.sequencerEditingPads } : {}), state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined) }; };
   const write: StoreApi<AppStore>["setState"] = (update) => {
     const state = get();
     const displayed = read();
@@ -48,7 +50,9 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
     const edited = delta.sequencer;
     const authored = changedFields(state.sequencer, displayed.sequencer, edited) as unknown as SequencerState;
     let runtime = state.sequencerRuntime;
-    for (const [kind, runtimeKey] of [["tracks", "trackStateById"], ["scoreTracks", "trackStateById"], ["drummerTracks", "drummerStateById"], ["controllerSequencers", "controllerStateById"]] as const) {
+    let clipDrafts = state.clipDrafts;
+    const draft = state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined;
+    for (const [kind, runtimeKey] of [["tracks", "trackStateById"], ["scoreTracks", "trackStateById"], ["drummerTracks", "drummerStateById"], ["controllerSequencers", "controllerStateById"], ["arpeggiators", "arpeggiatorStatusById"]] as const) {
       const before = new Map(displayed.sequencer[kind].map(t => [t.id, t]));
       const source = new Map(state.sequencer[kind].map(t => [t.id, t]));
       const overrides = { ...runtime[runtimeKey] };
@@ -56,9 +60,26 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
         const view = before.get(track.id); const original = source.get(track.id);
         if (!view || !original) return track;
         const result = changedFields(original, view, track);
+        if (draft?.target.laneId === track.id && draft.definition.kind === "pattern") {
+          const payload = track.pads[0];
+          if (JSON.stringify(payload) !== JSON.stringify(draft.definition.payload)) {
+            const definition = { ...draft.definition, payload } as PatternDefinition;
+            clipDrafts = { ...clipDrafts, [state.clipEditingKey!]: { ...draft, definition } as DefinitionDraft };
+          }
+          if ("padPresetIds" in track && "padPresetIds" in original) {
+            const current = clipDrafts[state.clipEditingKey!] ?? draft;
+            clipDrafts = { ...clipDrafts, [state.clipEditingKey!]: { ...current, definition: { ...current.definition, presetId: track.padPresetIds[0] } as PatternDefinition } };
+            for (const key of Object.keys(draft.definition.payload)) result[key] = (original as unknown as RecordValue)[key];
+          }
+          result.pads = original.pads;
+          result.activePad = original.activePad;
+          for (const key of mirrors) if (key in original) result[key] = (original as unknown as RecordValue)[key];
+          if ("padPresetIds" in original) result.padPresetIds = original.padPresetIds;
+        }
         const pad = (result.pads as RecordValue[])[result.activePad as number];
         if (pad) for (const key of mirrors) if (key in pad && key in result) result[key] = pad[key];
-        const values: SequencerTrackPlaybackState = { ...overrides[track.id] };
+        if (kind === "arpeggiators") return result;
+        const values: SequencerTrackPlaybackState = { ...runtime[runtimeKey as "trackStateById"][track.id] };
         for (const key of playbackKeys) {
           if ((track as unknown as RecordValue)[key] !== (view as unknown as RecordValue)[key]) delete values[key];
         }
@@ -69,7 +90,7 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
       runtime = { ...runtime, [runtimeKey]: overrides };
     }
     const changed = sequencerEditSignature(authored) !== sequencerEditSignature(state.sequencer);
-    set({ ...delta, sequencer: authored, sequencerEditRevision: state.sequencerEditRevision + Number(changed),
+    set({ ...delta, clipDrafts, sequencer: authored, sequencerEditRevision: state.sequencerEditRevision + Number(changed),
       sequencerRuntime: state.sequencerRuntime.isPlaying ? runtime : delta.sequencerRuntime ?? runtime });
   };
   return { get: read, set: write };

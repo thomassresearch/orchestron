@@ -105,6 +105,8 @@ Use up to **16 sequencers of each type**—melodic, score, drummer and controlle
 
 Assign **MIDI CC 1–50** to individual [performance controls](documentation/performance/performance_controllers.md#receive-midi-cc-in-a-performance) in the rack. Hardware MIDI, manual controller lanes and controller sequencers move their knobs, integer values and toggles on the channel selected at the top of the instrument’s rack slot. Assignments belong to the performance; new notes adopt the mapped values, and both CSD export modes preserve authored changes.
 
+An opt-in [clip arranger preview](documentation/performance/clip_arranger_preview.md) adds compact tracks, nested reusable content, fixed clip windows and contextual editing with the existing sequencers. Local/all-occurrence saves keep shared patterns explicit; the keyboard and manual controllers remain below the arranger.
+
 Draw long, polyphonic passages in the **[Score Sequencer](documentation/performance/score_sequencers.md)**. Each of eight pads holds independent note durations and velocities on a scrollable, scale-highlighted score with a fixed piano keyboard. Add chords, edit with snapping and undo, and grow a score to cover a whole performance. Shortening preserves hidden notes for later expansion. Manual pad changes launch at the next local bar, with End of score available; each score stays one whole arranger occurrence.
 
 ![Score Sequencer with a vertical piano keyboard, independent note durations and eight pattern pads](screenshots/score-sequencer.jpg)

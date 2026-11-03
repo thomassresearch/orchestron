@@ -4,20 +4,21 @@ import { arrangementCopy } from "../../lib/arrangementCopy";
 import { useAppStore } from "../../store/useAppStore";
 
 export type PreviewCommand = { action: "preview_arm" | "preview_start" | "preview_end"; gestureId: string; item?: PadLoopPatternItem };
-export type WorkspaceCommand = { action: "workspace_start" | "workspace_end"; gestureId: string; items?: PadLoopPatternItem[] };
+export type WorkspaceCommand = { action: "workspace_start" | "workspace_end"; gestureId: string; items?: PadLoopPatternItem[]; clipDraft?: import("../../lib/clipArranger/model").DefinitionDraft };
 export type AuditionDevice = (id: string, itemOrAction: PadLoopPatternItem | "cancel" | "stop" | "return" | PreviewCommand | WorkspaceCommand) => Promise<void>;
 export const PerformanceAuditionContext = createContext<AuditionDevice | null>(null);
 export const usePerformanceAudition = () => useContext(PerformanceAuditionContext);
 
-export function PerformanceAuditionControls({ id, language, item, manualLaunch, editingPad, playingPad, queuedPad, playing = false, compact = false }: {
+export function PerformanceAuditionControls({ id, language, item, manualLaunch, editingPad, playingPad, queuedPad, playing = false, compact = false, hidden = false }: {
   id: string; language: GuiLanguage; item?: PadLoopPatternItem; manualLaunch?: () => void;
   editingPad?: number; playingPad?: number; queuedPad?: number | null; playing?: boolean;
-  compact?: boolean;
+  compact?: boolean; hidden?: boolean;
 }) {
   const audition = usePerformanceAudition();
   const status = useAppStore(state => state.performanceAuditions[id]);
   const c = arrangementCopy(language);
   const button = "rounded border border-slate-600 px-2 py-1 text-xs hover:border-cyan-300 disabled:opacity-40";
+  if (hidden) return null;
   return <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
     {editingPad !== undefined && <span>{c.editing}: #{editingPad + 1}</span>}
     {playing && playingPad !== undefined && <span className="text-emerald-300">{c.playing}: #{playingPad + 1}</span>}

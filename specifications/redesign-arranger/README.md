@@ -1,6 +1,6 @@
 # Performance view and multitrack arranger redesign
 
-Status: design specification; implementation has not started. Captured 2026-11-03 against repository revision `d82c682`.
+Status: integrated development preview, 2026-11-03. Implementation is based on repository revision `d82c682`; default cutover remains gated. See the [implementation record](implementation-record.md) for delivered behavior, verification and remaining acceptance work.
 
 The multitrack arranger becomes the main place to compose a performance. Clips define when a source plays; reusable patterns, groups and supergroups define what it plays. Selecting a clip opens the existing sequencer or arpeggiator editor in that timeline context. A fixed piano keyboard and the existing manual MIDI controllers remain below the arranger.
 
@@ -14,6 +14,7 @@ The multitrack arranger becomes the main place to compose a performance. Clips d
 | [UI design](ui-design.md) | Layout, compact previews, nested editing, save dialog and preservation requirements |
 | [Data and playback contracts](data-and-playback-contracts.md) | Clip timing, references, drafts, transport, migration and export behavior |
 | [Implementation plan](implementation-plan.md) | Existing code seams, sequencing, risk controls and acceptance matrix |
+| [Implementation record](implementation-record.md) | Implemented contracts, verification evidence and remaining release gates |
 | [Task index](tasks/README.md) | Six independently reviewable implementation tasks and their gates |
 | [Mockup reference](reference/README.md) | Durable copies of the chosen interactive mockup, provenance and limitations |
 
@@ -41,4 +42,4 @@ Decisions marked **chosen** express the requested design. Decisions marked **pro
 
 All new behavior stays behind a development/rollout gate until the corresponding checks pass. A UI rollback is not a downgrade of the saved data format. Preserve recoverable originals before migration and never open a new-format performance for writing through an incompatible old path.
 
-This specification package changes no frontend, backend, runtime, existing manual or performance data.
+The original mockup remains a reference artifact. The integrated implementation now changes frontend, backend and format readers/writers; no user performance data is automatically migrated.

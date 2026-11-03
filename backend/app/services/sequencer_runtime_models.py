@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from backend.app.models.clip_arrangement import PreparedClipSchedule
 from typing import Any, Literal
 
 from backend.app.services.sequencer_runtime_constants import (
@@ -93,6 +94,10 @@ class SequencerTrackRuntime:
     pad_loop_position: int | None = None
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
+    clip_schedule: PreparedClipSchedule | None = None
+    clip_silent: bool = False
+    clip_boundary: int | None = None
+    clip_occurrence: tuple | None = None
     has_timing_offsets: bool = False
     has_strums: bool = False
     is_score: bool = False
@@ -121,6 +126,10 @@ class ControllerSequencerTrackRuntime:
     pad_loop_position: int | None = None
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
+    clip_schedule: PreparedClipSchedule | None = None
+    clip_silent: bool = False
+    clip_boundary: int | None = None
+    clip_occurrence: tuple | None = None
     last_value: int | None = None
     controller_mode: str = "curve"
     reset_value: int = 0

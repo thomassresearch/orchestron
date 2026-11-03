@@ -1,5 +1,5 @@
 import { sequencerBeatGroups } from "../../lib/sequencerTimingPresentation";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useId, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent
@@ -38,6 +38,8 @@ interface ControllerSequencerCurveEditorProps {
         transportSubunitDurationMs: number;
       }
     | null;
+  height?: number;
+  showHint?: boolean;
   onAddPoint: (position: number, value: number) => void;
   onPointChange: (keypointId: string, position: number, value: number) => void;
   onPointRemove: (keypointId: string) => void;
@@ -49,11 +51,13 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
   playbackTransport,
   onAddPoint,
   onPointChange,
-  onPointRemove
+  onPointRemove,
+  height = 150,
+  showHint = true
 }: ControllerSequencerCurveEditorProps) {
+  const gradientId = useId();
   const [width, setWidth] = useState(960);
   const [snapValue, setSnapValue] = useState<number | null>(null);
-  const height = 150;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<
     | {
@@ -187,7 +191,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
       x: Math.max(0, Math.min(width, x)),
       y: Math.max(0, Math.min(height, y))
     };
-  }, []);
+  }, [width, height]);
 
   const handleBackgroundPointerDown = useCallback(
     (event: ReactPointerEvent<SVGRectElement>) => {
@@ -205,7 +209,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
       }
       onAddPoint(position, value);
     },
-    [getSvgPoint, onAddPoint]
+    [getSvgPoint, onAddPoint, width, height]
   );
 
   const releaseDrag = useCallback((pointerId: number) => {
@@ -385,12 +389,13 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         preserveAspectRatio="none"
         role="img"
         aria-label={ui.curveEditorHint}
-        className="h-40 w-full cursor-crosshair overflow-visible rounded-lg border border-slate-700 bg-slate-950"
+        style={{ height: height === 150 ? 160 : height }}
+        className="w-full cursor-crosshair overflow-visible rounded-lg border border-slate-700 bg-slate-950"
       >
         <defs>
           {/* Flat curves have no bounding-box height, so anchor the gradient to the editor. */}
           <linearGradient
-            id={`controller-curve-${controllerSequencer.id}`}
+            id={gradientId}
             gradientUnits="userSpaceOnUse"
             x1={0}
             y1={0}
@@ -446,7 +451,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         <path
           d={path}
           fill="none"
-          stroke={`url(#controller-curve-${controllerSequencer.id})`}
+          stroke={`url(#${gradientId})`}
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -511,7 +516,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         })}
       </svg>
       <div className="mt-2 flex flex-wrap justify-between gap-2 text-[10px] text-slate-500">
-        <span>{ui.curveEditorHint}</span>
+        {showHint && <span>{ui.curveEditorHint}</span>}
         {snapValue !== null ? <span role="status" className="font-medium text-amber-300">
           {ui.curveSnapIndicator}: {snapValue}
         </span> : null}
@@ -533,5 +538,5 @@ function areControllerSequencerCurveEditorPropsEqual(
       previousPlayback.transportSubunit === nextPlayback.transportSubunit &&
       previousPlayback.transportSubunitDurationMs === nextPlayback.transportSubunitDurationMs);
 
-  return previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
+  return previous.showHint === next.showHint && previous.height === next.height && previous.onAddPoint === next.onAddPoint && previous.onPointChange === next.onPointChange && previous.onPointRemove === next.onPointRemove && previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
 }

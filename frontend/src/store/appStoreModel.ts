@@ -1,3 +1,7 @@
+import { readClipHistory } from "../lib/clipArranger/operations";
+import { sourceKeys } from "../lib/clipArranger/migration";
+import { validateArrangement } from "../lib/clipArranger/model";
+import { arrangementTimings } from "../lib/clipArranger/migration";
 import { normalizeScoreTrack, validateScoreTracks, persistedScoreTracks } from "../lib/scoreSequencer";
 import { normalizePianoRollChordSize } from "../lib/pianoRollChord";
 import { normalizeStrumDirection, normalizeStrumSpread } from "../lib/sequencerStrum";
@@ -2202,7 +2206,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
     sequencerTransportStepsPerBeat(timing)
   );
 
-  return {
+  const result: SequencerState = {
     ...defaults,
     timing,
     stepCount: normalizedTransportStepCount,
@@ -2218,6 +2222,16 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
     pianoRolls: normalizedRolls,
     midiControllers: normalizedControllers
   };
+  if (sequencer.clipArrangement !== undefined) {
+    result.clipArrangement = structuredClone(sequencer.clipArrangement) as SequencerState["clipArrangement"];
+    validateArrangement(result.clipArrangement!, arrangementTimings(result));
+    for (const lane of result.clipArrangement!.lanes) {
+      if (!result[sourceKeys[lane.source]].some(track => track.id === lane.id)) throw new Error("Missing clip source lane.");
+      Object.assign(result, { [sourceKeys[lane.source]]: result[sourceKeys[lane.source]].map(track => track.id === lane.id ? { ...track, padLoopEnabled: true } : track) });
+    }
+    result.clipHistory = readClipHistory(sequencer.clipHistory, result.clipArrangement!, arrangementTimings(result));
+  }
+  return result;
 }
 
 export function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): EngineConfig {
@@ -2463,7 +2477,7 @@ export function sequencerSnapshotForPersistence(sequencer: SequencerState): Sequ
 
 export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   return {
-    version: APP_STATE_VERSION,
+    version: state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
     arrangerHistory: structuredClone(state.arrangerHistory),
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
@@ -2971,7 +2985,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: 22,
+    version: sequencer.clipArrangement ? 23 : 22,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -2985,6 +2999,7 @@ export function buildSequencerConfigSnapshot(
         performanceControllerValues: normalizeControllerValues(instrument.performanceControllerValues)
       })),
     sequencer: {
+      ...(sequencer.clipArrangement ? { clipArrangement: structuredClone(sequencer.clipArrangement), clipHistory: structuredClone(sequencer.clipHistory) } : {}),
       timing,
       tempoBPM: timing.tempoBPM,
       meterNumerator: timing.meterNumerator,
@@ -3012,7 +3027,7 @@ export function buildSequencerConfigSnapshot(
         mode: normalizeSequencerMode(track.mode),
         activePad: normalizePadIndex(track.activePad),
         queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
-        padLoopEnabled: track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
+        padLoopEnabled: !!sequencer.clipArrangement || track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
         padLoopRepeat: track.padLoopRepeat !== false,
         padLoopSequence: normalizePadLoopSequence(track.padLoopSequence),
         padLoopPattern: track.padLoopPattern,
@@ -3062,7 +3077,7 @@ export function buildSequencerConfigSnapshot(
           stepCount: normalizeTransportStepCount(track.stepCount),
           activePad: normalizePadIndex(track.activePad),
           queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
-          padLoopEnabled: track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
+          padLoopEnabled: !!sequencer.clipArrangement || track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
           padLoopRepeat: track.padLoopRepeat !== false,
           padLoopSequence: normalizePadLoopSequence(track.padLoopSequence),
           padLoopPattern: track.padLoopPattern,
@@ -3108,7 +3123,7 @@ export function buildSequencerConfigSnapshot(
         stepCount: normalizeTransportStepCount(controllerSequencer.stepCount),
         activePad: normalizePadIndex(controllerSequencer.activePad),
         queuedPad: controllerSequencer.queuedPad === null ? null : normalizePadIndex(controllerSequencer.queuedPad),
-        padLoopEnabled: controllerSequencer.padLoopEnabled === true && controllerSequencer.padLoopPattern.rootSequence.length > 0,
+        padLoopEnabled: !!sequencer.clipArrangement || controllerSequencer.padLoopEnabled === true && controllerSequencer.padLoopPattern.rootSequence.length > 0,
         padLoopRepeat: controllerSequencer.padLoopRepeat !== false,
         padLoopSequence: normalizePadLoopSequence(controllerSequencer.padLoopSequence),
         padLoopPattern: controllerSequencer.padLoopPattern,
@@ -3153,7 +3168,7 @@ export function buildSequencerConfigSnapshot(
         holdMode: arpeggiator.holdMode, latch: false, restartMode: arpeggiator.restartMode,
         launchQuantize: arpeggiator.launchQuantize, activePad: arpeggiator.activePad,
         pads: arpeggiator.pads.map(normalizeArpeggiatorSettings), padPresetIds: [...arpeggiator.padPresetIds],
-        padLoopEnabled: arpeggiator.padLoopEnabled && arpeggiator.padLoopPattern.rootSequence.length > 0, padLoopRepeat: arpeggiator.padLoopRepeat,
+        padLoopEnabled: !!sequencer.clipArrangement || arpeggiator.padLoopEnabled && arpeggiator.padLoopPattern.rootSequence.length > 0, padLoopRepeat: arpeggiator.padLoopRepeat,
         padLoopPattern: arpeggiator.padLoopPattern
       })),
       arpeggiatorPresets: sequencer.arpeggiatorPresets
@@ -3199,11 +3214,13 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 19 &&
     payload.version !== 20 &&
     payload.version !== 21 &&
-    payload.version !== 22
+    payload.version !== 22 &&
+    payload.version !== 23
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
 
+  if ((payload.sequencer as Record<string, unknown>)?.clipArrangement && payload.version !== 23) throw new Error("Clip arrangements require performance version 23.");
   const sequencer = normalizeSequencerState(payload.sequencer);
   const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
   const patchById = new Map(availablePatches.map((patch) => [patch.id, patch]));

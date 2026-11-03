@@ -1,8 +1,9 @@
+import { ClipEditingContext } from "../clipArranger/context";
 import { transportStartButtonClass, transportStopButtonClass } from "./transportButtonStyles";
 import { patternPadClass } from "../../lib/patternItemPresentation";
 import { PerformanceAuditionControls } from "./PerformanceAudition";
 import { useAppStore } from "../../store/useAppStore";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useContext, useId, useRef, useState, type ReactNode } from "react";
 import type { ArpeggiatorCommand, ArpeggiatorPadState, ArpeggiatorPresetState, ArpeggiatorState, ArpeggiatorStep, GuiLanguage, PatchListItem, SequencerInstrumentBinding } from "../../types";
 import { ARPEGGIATOR_PATTERNS, ARPEGGIATOR_RATES, normalizeArpeggiatorSettings } from "../../store/appStoreModel";
 import { PatternWorkspace } from "./PatternWorkspace";
@@ -30,6 +31,7 @@ type Props = {
 
 export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, instruments, patches, canRemove,
   engineRunning, onChange, onEnabled, onRemove, onCommand, onPreset, onSave }: Props) {
+  const clipEditing = useContext(ClipEditingContext);
   const c = arpeggiatorCopy(language);
   const [commandRevision, setCommandRevision] = useState(0);
   const command = (value: ArpeggiatorCommand) => { setCommandRevision(revision => revision + 1); onCommand(value); };
@@ -62,8 +64,8 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
   const section = (key: keyof typeof c, children: ReactNode) => <details className="rounded-lg border border-slate-700 p-2" open={expanded[key] ?? false} onToggle={e => { const open = e.currentTarget.open; if (open !== !!expanded[key]) setExpanded(v => ({ ...v, [key]: open })); }}><summary className="cursor-pointer text-xs font-semibold text-slate-300">{c[key]}</summary><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{children}</div></details>;
   return <article id={`sequencer-${arp.id}`} className="min-w-0 space-y-3 rounded-xl border border-slate-700 bg-slate-900/65 p-3">
     <header className="flex flex-wrap items-center gap-2">{name}<span role="status" className="rounded-full border border-cyan-900 px-2 py-1 text-xs text-cyan-100">{hasTarget ? c[state] : c.missing}</span>
-      <button type="button" className={devicePlaying ? transportStopButtonClass : transportStartButtonClass} onClick={() => onEnabled(!devicePlaying)}>{devicePlaying ? ui.stop : ui.start}</button>
-      <button className={`${button} ml-auto text-rose-200`} disabled={!canRemove} onClick={onRemove}>{ui.remove}</button>{help}</header>
+      <button hidden={clipEditing} type="button" className={devicePlaying ? transportStopButtonClass : transportStartButtonClass} onClick={() => onEnabled(!devicePlaying)}>{devicePlaying ? ui.stop : ui.start}</button>
+      <button hidden={clipEditing} className={`${button} ml-auto text-rose-200`} disabled={!canRemove} onClick={onRemove}>{ui.remove}</button>{help}</header>
     <div className="grid gap-3 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
     <div className="min-w-0 space-y-2">
     <div className="grid gap-2 sm:grid-cols-2">
@@ -79,7 +81,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
     <div className="flex flex-wrap items-center gap-2 text-xs"><span>{ui.heldNotes}: <span className="font-mono text-cyan-100">{arp.heldNotes.map(noteName).join(" ") || "—"}</span></span><span>{ui.activeNote}: {(runtime?.active_notes ?? (arp.activeNote === null ? [] : [arp.activeNote])).map(noteName).join(" ") || "—"}</span><button className={`${button} ml-auto`} onClick={() => command({ command: "clear" })}>{c.clear}</button></div>
     </div>
     <div className="min-w-0 space-y-2">
-      <PerformanceAuditionControls compact id={arp.id} language={language} editingPad={editingPad} playingPad={playingPad} queuedPad={runtime?.queued_pad}
+      <PerformanceAuditionControls hidden={clipEditing} compact id={arp.id} language={language} editingPad={editingPad} playingPad={playingPad} queuedPad={runtime?.queued_pad}
         playing={devicePlaying}
         manualLaunch={arp.playbackMode === "live" || !arp.padLoopEnabled ? () => { if (!devicePlaying && arp.playbackMode === "arranger") { onEnabled(true); return; } if (!devicePlaying) onEnabled(true); command({ command: "launch", pad_index: editingPad }); } : undefined} />
       <PatternWorkspace key={previewContext} track={{ ...arp, activePad: editingPad }} language={language} hideArrangement={arp.playbackMode === "live"}
@@ -87,7 +89,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
         onSourceChange={padLoopEnabled => onChange({ padLoopEnabled })} onPatternChange={padLoopPattern => onChange({ padLoopPattern })} />
     </div>
     </div>
-    <div className="grid grid-cols-4 gap-1 sm:grid-cols-8" aria-label={c.editing}>{arp.pads.map((_, i) => <div key={i} className={`flex min-w-0 rounded-lg border ${patternPadClass(manualPlayback ? playingPad === i : editingPad === i, runtime?.queued_pad === i, arpeggiatorPadHasSound(arp.pads[i]))}`}>
+    <div className={clipEditing ? "hidden" : "grid grid-cols-4 gap-1 sm:grid-cols-8"} aria-label={c.editing}>{arp.pads.map((_, i) => <div key={i} className={`flex min-w-0 rounded-lg border ${patternPadClass(manualPlayback ? playingPad === i : editingPad === i, runtime?.queued_pad === i, arpeggiatorPadHasSound(arp.pads[i]))}`}>
       <button draggable className="min-w-0 flex-1 px-1 py-2 text-xs" aria-label={`${c.editing} #${i + 1}`} aria-pressed={editingPad === i} onClick={() => {
         setEditingPad(i); setSelection(0);
         if (manualPlayback) command(i === playingPad ? { command: "cancel" } : { command: "launch", pad_index: i });

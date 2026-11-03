@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import { useAppStore } from "./useAppStore";
 import type { Patch, SessionCreateResponse } from "../types";
-import { normalizeSessionInstrumentAssignments } from "./appStoreModel";
+import { buildPersistedAppStateSnapshot, normalizeSessionInstrumentAssignments } from "./appStoreModel";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -123,4 +123,26 @@ it("creates a fresh session for a loaded performance even when its rack IDs matc
   expect(remove).toHaveBeenCalledWith("previous");
   expect(create).toHaveBeenCalledWith(assignments, state.audioGraph, state.mixer);
   expect(useAppStore.getState().activeSessionWorkspaceGeneration).toBe(1);
+});
+
+
+it("retains clip app-state v5 when bootstrap saves a legacy mixer migration", async () => {
+  const patch = { ...savedPatch(), is_template: false, instrument_type: "melody" as const };
+  const app = buildPersistedAppStateSnapshot(useAppStore.getState());
+  app.version = 5;
+  delete app.audioGraph;
+  delete app.mixer;
+  app.sequencer.clipArrangement = { version: 1, revision: 0, end: 322560, lanes: [] };
+  app.sequencerInstruments = [{ id: "drum-instrument", patchId: patch.id, midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }];
+  vi.spyOn(api, "listOpcodes").mockResolvedValue([]);
+  vi.mocked(api.listPatches).mockResolvedValue([{ ...patch, audio_inlet_names: [], audio_outlet_names: [] }]);
+  vi.spyOn(api, "getPatch").mockResolvedValue(patch);
+  vi.spyOn(api, "listPerformances").mockResolvedValue([]);
+  vi.spyOn(api, "listMidiInputs").mockResolvedValue([]);
+  vi.spyOn(api, "getAppState").mockResolvedValue({ state: app, updated_at: "2026-11-03" });
+  const save = vi.spyOn(api, "saveAppState").mockResolvedValue(undefined);
+  await useAppStore.getState().loadBootstrap();
+  expect(useAppStore.getState().error).toBeNull();
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ version: 5, sequencer: expect.objectContaining({ clipArrangement: app.sequencer.clipArrangement }) }));
+  useAppStore.setState({ hasLoadedBootstrap: false });
 });

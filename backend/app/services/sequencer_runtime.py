@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services import clip_playback
+
 from bisect import bisect_right
 from copy import copy, deepcopy
 import logging
@@ -282,6 +284,7 @@ class SessionSequencerRuntime:
         return (
             track.configured_enabled, track.configured_active_pad, track.pad_loop_enabled,
             track.pad_loop_repeat, track.pad_loop_sequence,
+            track.clip_schedule.schedule.model_dump_json() if track.clip_schedule else None,
             track.timing.beat_rate_numerator, track.timing.beat_rate_denominator, track.timing.beat_unit,
             tuple((index, pad.transport_subunit_count) for index, pad in sorted(track.pads.items())),
             getattr(track, "sync_to_track_id", None),
@@ -293,6 +296,9 @@ class SessionSequencerRuntime:
         track.sequence_ended = False
         track.pad_loop_position = None
         if not track.enabled:
+            return
+        if track.clip_schedule is not None:
+            clip_playback.position(track, position)
             return
         sequence = track.pad_loop_sequence if track.pad_loop_enabled else ()
         if not sequence:
@@ -327,7 +333,7 @@ class SessionSequencerRuntime:
 
     @staticmethod
     def _authored_track_fields(track):
-        fields = ("configured_enabled", "configured_active_pad", "pad_loop_enabled", "pad_loop_repeat", "pad_loop_sequence")
+        fields = ("configured_enabled", "configured_active_pad", "pad_loop_enabled", "pad_loop_repeat", "pad_loop_sequence", "clip_schedule")
         result = {key: getattr(track, key) for key in fields}
         if isinstance(track, SequencerTrackRuntime):
             result["sync_to_track_id"] = track.sync_to_track_id
@@ -335,6 +341,9 @@ class SessionSequencerRuntime:
 
     @staticmethod
     def _overlay_audition(track, sequence):
+        track.clip_schedule = None
+        track.clip_silent = False
+        track.clip_boundary = None
         track.pad_loop_enabled = track.pad_loop_repeat = track.configured_enabled = True
         track.pad_loop_sequence = tuple(sequence)
         track.queued_pad = None
@@ -1077,6 +1086,9 @@ class SessionSequencerRuntime:
         self,
         track: SequencerTrackRuntime | ControllerSequencerTrackRuntime,
     ) -> None:
+        if track.clip_schedule is not None:
+            clip_playback.position(track, 0)
+            return
         if not track.pad_loop_enabled or not track.pad_loop_sequence:
             track.pad_loop_position = None
             return
@@ -1251,6 +1263,10 @@ class SessionSequencerRuntime:
             if self._apply_audition_command(track, next_subunit):
                 switch_payloads.append({"track_id": track_id, "active_pad": track.active_pad, "cycle": next_cycle})
                 continue
+            if track.clip_schedule is not None:
+                if clip_playback.advance(self, track, next_subunit, release=release_notes, delay=delivery_delay_seconds):
+                    switch_payloads.append({"track_id": track_id, "active_pad": track.active_pad, "cycle": next_cycle})
+                continue
             previous_position = track.pad_loop_position
             previous_switch_count = len(switch_payloads)
             local_boundary_reached = self._track_cycle_boundary_reached_for_next_subunit(track, next_subunit)
@@ -1389,6 +1405,10 @@ class SessionSequencerRuntime:
         for track in config.controller_tracks.values():
             if self._apply_audition_command(track, next_subunit):
                 switch_payloads.append({"track_id": track.track_id, "active_pad": track.active_pad, "cycle": next_cycle})
+                continue
+            if track.clip_schedule is not None:
+                if clip_playback.advance(self, track, next_subunit, delay=delivery_delay_seconds):
+                    switch_payloads.append({"track_id": track.track_id, "active_pad": track.active_pad, "cycle": next_cycle})
                 continue
             local_boundary_reached = self._track_cycle_boundary_reached_for_next_subunit(track, next_subunit)
             manual_pad_switch_applied = False

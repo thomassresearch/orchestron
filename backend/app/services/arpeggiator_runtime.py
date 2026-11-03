@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.clip_arrangement import PreparedClipSchedule
+
 from dataclasses import dataclass, field
 from collections import deque
 import random
@@ -66,6 +68,7 @@ class PendingInputEvent:
 @dataclass(slots=True)
 class ArpeggiatorRuntimeState:
     config: SessionArpeggiatorConfig
+    clip_schedule: PreparedClipSchedule | None = None
     source_playing: bool | None = None
     source_origin: Fraction = Fraction(0)
     preview: dict[str, Any] | None = None
@@ -252,7 +255,8 @@ class PerformanceMidiRouter:
             for config in configs:
                 state = self._states.get(config.arpeggiator_id)
                 if state is None:
-                    state = ArpeggiatorRuntimeState(config=config, active_pad=config.active_pad)
+                    state = ArpeggiatorRuntimeState(config=config, active_pad=config.active_pad,
+                        clip_schedule=PreparedClipSchedule(config.clip_schedule) if config.clip_schedule else None)
                     if self._source_mode and config.playback_mode == "arranger":
                         state.source_playing = False
                     if config.playback_mode == "arranger" and self._arranger_running:
@@ -269,6 +273,7 @@ class PerformanceMidiRouter:
                         state.anchor_beat = None
                         state.step_index = state.note_index = state.phrase_offset = 0
                     state.config = config
+                    state.clip_schedule = PreparedClipSchedule(config.clip_schedule) if config.clip_schedule else None
                     if old.playback_mode != config.playback_mode:
                         state.source_playing = False if self._source_mode and config.playback_mode == "arranger" else None
                     if reset or not old.enabled and config.enabled:
@@ -286,7 +291,7 @@ class PerformanceMidiRouter:
                         # Rate edits retain the current musical position; do not replay past steps.
                         while self._step_beat(state) < self._beat(self._sample):
                             state.step_index += 1
-                    if (old.pad_loop_sequence != config.pad_loop_sequence or old.pad_loop_enabled != config.pad_loop_enabled
+                    if (old.clip_schedule != config.clip_schedule or old.pad_loop_sequence != config.pad_loop_sequence or old.pad_loop_enabled != config.pad_loop_enabled
                             or [p.length_beats for p in old.pads] != [p.length_beats for p in config.pads]):
                         state.boundary_beat = self._beat(self._sample)
                     if state.source_playing and old.pad_loop_enabled != config.pad_loop_enabled:
@@ -643,7 +648,7 @@ class PerformanceMidiRouter:
 
     def _running(self, state: ArpeggiatorRuntimeState) -> bool:
         enabled = state.source_playing if state.source_playing is not None else (
-            state.config.enabled and (state.config.playback_mode == "live" or self._arranger_running))
+            state.config.enabled and (state.config.playback_mode == "live" and state.clip_schedule is None or self._arranger_running))
         return not state.audition_stopped and (bool(state.audition_sequence) or enabled)
 
     @property
@@ -654,9 +659,13 @@ class PerformanceMidiRouter:
     def source_arrangement_playing(self) -> bool:
         return any(state.source_playing and state.config.pad_loop_enabled for state in self._states.values())
 
+    @property
+    def has_clip_schedules(self) -> bool:
+        return any(state.clip_schedule is not None for state in self._states.values())
+
     def source_uses_arrangement(self, identity: str) -> bool:
         state = self._states.get(identity)
-        if state is None or state.config.playback_mode != "arranger":
+        if state is None or state.config.playback_mode != "arranger" and state.clip_schedule is None:
             raise ValueError("Device must be an Arranger-mode arpeggiator.")
         return state.config.pad_loop_enabled
 
@@ -668,11 +677,17 @@ class PerformanceMidiRouter:
             sample = self._current_engine_sample()
             beat = self._beat(sample)
             for state in self._states.values():
-                if state.config.playback_mode != "arranger":
+                if state.config.playback_mode != "arranger" and state.clip_schedule is None:
                     continue
                 if state.source_playing is None:
                     state.source_playing = state.config.enabled and self._arranger_running
                 if not (request.arranger and state.config.pad_loop_enabled or state.config.arpeggiator_id == request.arpeggiator_id):
+                    continue
+                if request.arranger and state.clip_schedule is not None and state.workspace:
+                    state.source_playing = request.action == "play"
+                    state.workspace["running"] = state.source_playing
+                    if state.source_playing:
+                        state.source_origin = beat - Fraction(position)
                     continue
                 self._cancel_overrides(state, beat, sample)
                 self._release(state, sample)
@@ -703,13 +718,18 @@ class PerformanceMidiRouter:
         beat = self._beat(sample)
         self._source_song_origin = beat - position
         for state in self._states.values():
-            if state.config.playback_mode != "arranger":
+            if state.config.playback_mode != "arranger" and state.clip_schedule is None:
                 continue
             if state.source_playing is None:
                 state.source_playing = False
             if not state.config.pad_loop_enabled:
                 continue
             state.source_origin = self._source_song_origin
+            if state.clip_schedule is not None and state.workspace:
+                if not running:
+                    state.source_playing = False
+                    state.workspace["running"] = False
+                continue
             if reset and running and (state.audition_pending or state.audition_sequence):
                 self._release(state, sample)
                 for snapshot in (state.preview, state.workspace):
@@ -751,6 +771,23 @@ class PerformanceMidiRouter:
 
     def _locate(self, state: ArpeggiatorRuntimeState, beat: Fraction, *, reset: bool = False) -> None:
         config = state.config
+        if state.clip_schedule is not None and not state.audition_sequence:
+            resolved = state.clip_schedule.locate(max(0, int((beat - state.source_origin) * TRANSPORT_SUBUNITS_PER_BEAT)))
+            state.boundary_beat = state.source_origin + Fraction(resolved.boundary, TRANSPORT_SUBUNITS_PER_BEAT)
+            paused = state.paused
+            state.paused = resolved.pad is None
+            if state.paused:
+                self._release(state, self._sample)
+                return
+            if reset or paused or resolved.pad != state.active_pad or state.anchor_beat is None:
+                self._release(state, self._sample)
+                state.active_pad = resolved.pad
+                state.anchor_beat = state.source_origin + Fraction(resolved.source_start, TRANSPORT_SUBUNITS_PER_BEAT)
+                state.step_index = self._index_at_or_after(state, beat)
+                state.phrase_offset = 0
+                state.last_restart = -1
+                state.note_index = self._note_cursor_before(state, state.step_index)
+            return
         if not state.audition_sequence and (not config.pad_loop_enabled or state.manual_override or config.playback_mode == "live"):
             state.boundary_beat = None
             state.paused = False

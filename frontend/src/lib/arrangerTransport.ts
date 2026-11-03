@@ -126,8 +126,9 @@ function controllerSequencerTransportExtent(track: ControllerSequencerState): nu
 }
 
 export function arrangerTransportExtent(
-  sequencer: Pick<SequencerState, "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing"> & Partial<Pick<SequencerState, "scoreTracks">>
+  sequencer: Pick<SequencerState, "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing"> & Partial<Pick<SequencerState, "scoreTracks" | "clipArrangement">>
 ): number {
+  if (sequencer.clipArrangement) return Math.ceil(sequencer.clipArrangement.end / 2520);
   const stepQuantum = arrangerStepQuantum(sequencer);
   let maxStep = stepQuantum;
   for (const track of [...sequencer.tracks, ...(sequencer.scoreTracks ?? [])]) {
@@ -172,7 +173,7 @@ export function normalizeArrangerLoopSelection(
 }
 
 export function arrangerPlaybackBounds(
-  sequencer: Pick<SequencerState, "arrangerLoopSelection" | "arrangerSongLoopEnabled" | "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing"> & Partial<Pick<SequencerState, "scoreTracks">>
+  sequencer: Pick<SequencerState, "arrangerLoopSelection" | "arrangerSongLoopEnabled" | "tracks" | "drummerTracks" | "controllerSequencers" | "arpeggiators" | "timing"> & Partial<Pick<SequencerState, "scoreTracks" | "clipArrangement">>
 ): {
   arrangementEndStep: number;
   selection: ArrangerLoopSelection | null;

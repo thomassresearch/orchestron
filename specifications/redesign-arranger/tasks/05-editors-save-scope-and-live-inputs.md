@@ -1,6 +1,8 @@
 # Task 05 — Existing editors, save scopes and live inputs
 
-Status: planned. Depends on: [Task 03](03-playback-audition-and-exports.md), [Task 04](04-arranger-and-previews.md). Gate: G5. Next: [Task 06](06-verification-and-cutover.md).
+Status: Existing-editor adapters, scoped drafts, curve editing and live-input placement implemented; full capability/hardware acceptance remains open. Depends on: [Task 03](03-playback-audition-and-exports.md), [Task 04](04-arranger-and-previews.md). Gate: G5. Next: [Task 06](06-verification-and-cutover.md).
+
+Evidence and remaining work: [implementation record](../implementation-record.md).
 
 ## Result
 

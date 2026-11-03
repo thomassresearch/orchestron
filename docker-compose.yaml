@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Vite embeds this flag at build time; rebuild the image after changing it.
+        VITE_CLIP_ARRANGER: ${VITE_CLIP_ARRANGER:-1}
     image: visualcsound-browser-clock:local
     # Use explicit port publishing so the API is reachable on macOS Docker Desktop.
     # (Host networking is not a good default on macOS.)

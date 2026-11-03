@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, JsonValue, field_validator
 
 
 from backend.app.models.score_validation import validate_authored_scores
+from backend.app.models.clip_validation import validate_authored_clips
 
 
 class AppStateUpdateRequest(BaseModel):
@@ -15,7 +16,7 @@ class AppStateUpdateRequest(BaseModel):
     @field_validator("state")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_scores(value)
+        return validate_authored_clips(validate_authored_scores(value))
 
 
 class AppStateResponse(BaseModel):

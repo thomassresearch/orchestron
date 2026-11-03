@@ -114,6 +114,8 @@ class SequencerSourceTransport:
         origin = self.track_origin(track)
         self.runtime._position_prepared_track(track, max(0, at - origin))
         track.phase_offset_subunit += origin
+        if track.clip_boundary is not None:
+            track.clip_boundary += origin
 
     def begin(self, position: int):
         start, end, _ = self.bounds
@@ -145,6 +147,16 @@ class SequencerSourceTransport:
         track.queued_pad = None
 
     def set_playing(self, track, playing: bool, pad: int | None = None):
+        overlay = self.runtime._auditions.get(track.track_id)
+        if overlay and overlay["authored"].get("clip_schedule") is not None:
+            overlay["authored"]["configured_enabled"] = playing
+            if overlay.get("workspace"):
+                overlay["workspace"]["running"] = playing
+            if playing:
+                self.playing.add(track.track_id)
+            else:
+                self.playing.discard(track.track_id)
+            return
         self.clear_device_audition(track)
         self.release(track)
         if playing:
@@ -186,10 +198,12 @@ class SequencerSourceTransport:
         self.activate()
         play = request.action == "play"
         if request.arranger:
-            runtime.clear_auditions()
-            clear = getattr(runtime._midi_service, "clear_auditions", None)
-            if clear:
-                clear()
+            clip_mode = getattr(runtime._midi_service, "has_clip_schedules", False) or any(t.clip_schedule is not None or runtime._auditions.get(t.track_id, {}).get("authored", {}).get("clip_schedule") is not None for t in tracks.values())
+            if not clip_mode:
+                runtime.clear_auditions()
+                clear = getattr(runtime._midi_service, "clear_auditions", None)
+                if clear:
+                    clear()
             targets = [track for track in tracks.values() if track.pad_loop_enabled]
             self.arranger_active = play
             if play:
@@ -235,6 +249,8 @@ class SequencerSourceTransport:
             if not self.is_arrangement(track):
                 continue
             state = runtime._auditions.get(identity)
+            if state and state["authored"].get("clip_schedule") is not None:
+                continue
             if state:
                 self.release(track)
                 runtime._reset_audition_origins(state, runtime._absolute_subunit)

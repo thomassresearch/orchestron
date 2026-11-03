@@ -8,6 +8,7 @@ COPY examples/instruments/template/analog_drumkit.patch.json ../examples/instrum
 COPY backend/app/data/opcodes.json ../backend/app/data/
 # TypeScript checks frontend tests too, including their shared fixture imports.
 COPY backend/tests/fixtures/ ../backend/tests/fixtures/
+ARG VITE_CLIP_ARRANGER=0
 RUN npm run build
 
 FROM python:3.13-slim-bookworm AS backend-base
