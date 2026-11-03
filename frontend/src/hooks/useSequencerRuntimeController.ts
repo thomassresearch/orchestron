@@ -15,9 +15,10 @@ import { api, wsBaseUrl } from "../api/client";
 import {
   absoluteTransportStep as sequencerAbsoluteTransportStep,
   arrangerPlaybackBounds,
+  arrangerStepQuantum,
   clampArrangerSeekStep
 } from "../lib/arrangerTransport";
-import { sequencerTransportStepsPerBeat, sequencerTransportSubunitsPerStep } from "../lib/sequencer";
+import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import {
   drummerRowRuntimeTrackId,
   aggregateDrummerRuntimeTrackLocalSteps,
@@ -164,6 +165,7 @@ export function useSequencerRuntimeController({
   const auditionCommandVersion = useRef(new Map<string, number>());
   const deviceCommandVersions = useRef(new Map<string, number>());
   const deviceCommandQueue = useRef(Promise.resolve());
+  const pendingArrangerStop = useRef(Promise.resolve());
   const arrangerStartedSession = useRef<string | null>(null);
   const clipEditorStartedSession = useRef<string | null>(null);
   const previewGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string; definition?: AuditionDefinition }>());
@@ -181,9 +183,17 @@ export function useSequencerRuntimeController({
       if (previous.generation !== workspaceGeneration || previous.state === "running") {
         for (const [id, version] of deviceCommandVersions.current) deviceCommandVersions.current.set(id, version + 1);
       }
-      for (const id of auditionCommandVersion.current.keys()) auditionCommandVersion.current.set(id, auditionCommandVersion.current.get(id)! + 1);
+      // A Play edit request can itself replace a stopped session after loading
+      // a performance. Keep that unbound request alive until startSession returns.
+      const startingWorkspaces = new Set(previous.generation === workspaceGeneration && previous.state !== "running"
+        ? [...workspaceGestures.current].filter(([, entry]) => !entry.session).map(([id]) => id) : []);
+      for (const id of auditionCommandVersion.current.keys()) {
+        if (!id.startsWith("workspace:") || !startingWorkspaces.has(id.slice("workspace:".length))) {
+          auditionCommandVersion.current.set(id, auditionCommandVersion.current.get(id)! + 1);
+        }
+      }
       previewGestures.current.clear();
-      workspaceGestures.current.clear();
+      for (const id of workspaceGestures.current.keys()) if (!startingWorkspaces.has(id)) workspaceGestures.current.delete(id);
       cancelArrangerPreviewGestures();
     }
   }, [activeSessionId, activeSessionState, workspaceGeneration]);
@@ -896,7 +906,11 @@ export function useSequencerRuntimeController({
     };
     // Starts prepare serially, so starting several backing devices retains every
     // command. Stop bypasses this queue to cancel preparation already in flight.
-    if (!playing) return run();
+    if (!playing) {
+      const task = run();
+      if (!deviceId) pendingArrangerStop.current = task;
+      return task;
+    }
     const task = deviceCommandQueue.current.then(run);
     deviceCommandQueue.current = task;
     return task;
@@ -912,7 +926,7 @@ export function useSequencerRuntimeController({
       const currentState = mergedSequencerState(store.sequencer, store.sequencerRuntime);
       const { arrangementEndStep, selection } = arrangerPlaybackBounds(currentState);
       const targetStep = clampArrangerSeekStep(
-        positionStep, selection, arrangementEndStep, sequencerTransportStepsPerBeat(currentState.timing)
+        positionStep, selection, arrangementEndStep, arrangerStepQuantum(currentState)
       );
       const moveCursor = () => {
         if (store.sequencerRuntime.independentSources) {
@@ -975,7 +989,7 @@ export function useSequencerRuntimeController({
         currentAbsoluteStep + deltaSteps,
         selection,
         arrangementEndStep,
-        sequencerTransportStepsPerBeat(currentState.timing)
+        arrangerStepQuantum(currentState)
       );
 
       if (!currentState.isPlaying) {
@@ -1049,6 +1063,12 @@ export function useSequencerRuntimeController({
       const current = () => auditionContext(deviceId) === context && useAppStore.getState().performanceWorkspaceGeneration === generation && auditionCommandVersion.current.get(versionKey) === version &&
         (command.action === "workspace_start" ? workspaceGestures.current.get(deviceId) === entry : !workspaceGestures.current.has(deviceId));
       try {
+        // An arranger Stop can still be shutting down the engine when Play edit
+        // is pressed. Wait before deciding whether its session can be reused.
+        if (command.action === "workspace_start" && command.clipDraft) {
+          await pendingArrangerStop.current;
+          if (!current()) return;
+        }
         const initial = useAppStore.getState();
         const device = [...initial.sequencer.tracks, ...initial.sequencer.scoreTracks, ...initial.sequencer.drummerTracks, ...initial.sequencer.controllerSequencers, ...initial.sequencer.arpeggiators].find(d => d.id === deviceId);
         if (!device) return;
@@ -1389,7 +1409,12 @@ export function useSequencerRuntimeController({
   ]);
 
   useEffect(() => {
-    if (useAppStore.getState().sequencerRuntime.independentSources || !sequencer.isPlaying || sequencerConfigSyncPendingRef.current) {
+    const state = useAppStore.getState();
+    // Auditions can run a source whose authored enable switch is off (notably
+    // arpeggiators). They still own the clock until their explicit Stop edit.
+    const auditionActive = state.clipAuditionDraft || Object.values(state.performanceAuditions).some(a =>
+      a.active || a.queued || a.workspace_queued || a.preview_active);
+    if (state.sequencerRuntime.independentSources || auditionActive || !sequencer.isPlaying || sequencerConfigSyncPendingRef.current) {
       return;
     }
     if (

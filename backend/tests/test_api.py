@@ -7235,6 +7235,39 @@ def test_workspace_audition_http_websocket_layers_and_validation(tmp_path: Path)
             assert client.post(base + "/audition", json=start).status_code == 409
 
 
+def test_clip_audition_render_markers_stay_bounded_beyond_finite_song_end(tmp_path: Path) -> None:
+    # A short silent peer used to schedule a new event every musical tick after
+    # its end, flooding browser-clock JSON while the audition kept playing.
+    config = {"playback_end_step": 1, "tracks": [{"track_id": name,
+        "length_beats": 1, "enabled": False, "pad_loop_enabled": True,
+        "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60, None, 62, None]}],
+        "clip_schedule": {"end": 1260, "clips": [{"id": "short", "start": 0,
+            "length": 1260, "content": [{"pad": 0, "length": 20160}]}]}}
+        for name in ["edit", "inactive"]]}
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Clip audition markers")
+        base = f"/api/sessions/{session_id}/sequencer"
+        response = client.put(base + "/config", json=config)
+        assert response.status_code == 200, response.text
+        response = client.post(base + "/audition", json={"action": "workspace_start",
+            "gesture_id": "draft", "revision": 1, "track_ids": ["edit"], "sequence": [0]})
+        assert response.status_code == 200, response.text
+        with client.websocket_connect(f"/ws/sessions/{session_id}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 32})
+            assert socket.receive_json()["type"] == "stream_config"
+            rendered = 0
+            while rendered < 48000:
+                socket.send_json({"type": "request_render", "block_count": 32})
+                metadata = socket.receive_json()
+                assert metadata["type"] == "render_chunk"
+                socket.receive_bytes()
+                rendered += metadata["target_frame_count"]
+                assert len(metadata["transport_events"]) < 64
+            status = client.get(base + "/status").json()
+            assert status["running"] and status["auditions"]["edit"]["workspace_active"]
+
+
 @pytest.mark.parametrize("preview", [False, True])
 def test_device_play_after_arranger_stop_renders_real_csound_audio(tmp_path, monkeypatch, preview):
     import numpy as np

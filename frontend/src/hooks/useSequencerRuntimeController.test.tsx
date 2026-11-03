@@ -13,6 +13,7 @@ import { useAppStore } from "../store/useAppStore";
 import type { SequencerState, SessionSequencerConfigRequest, SessionSequencerStatus } from "../types";
 import { useBrowserClockAudioController } from "./useBrowserClockAudioController";
 import { useSequencerRuntimeController } from "./useSequencerRuntimeController";
+import { addClipLane } from "../store/clipActions";
 
 vi.mock("./useBrowserClockAudioController");
 const noop = () => {};
@@ -137,6 +138,16 @@ it("moves stopped playback locally without starting or contacting the runtime", 
   expect(sequencerRuntime.transportSubunit).toBe(24 * sequencerTransportSubunitsPerStep());
   expect(sequencerRuntime.isPlaying).toBe(false);
   expect(api.seekSessionSequencer).not.toHaveBeenCalled();
+});
+
+it.each([false, true])("seeks to exact fractional clip song bounds when playing=%s", async playing => {
+  useAppStore.setState(s => ({ sequencer: { ...s.sequencer, arrangerLoopSelection: null,
+    clipArrangement: { version: 1, revision: 0, end: 6 * sequencerTransportSubunitsPerStep(), lanes: [] } } }));
+  const { result } = setup(playing);
+  await act(() => result.current.seekSequencerTransport(99));
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(6 * sequencerTransportSubunitsPerStep());
+  await act(() => result.current.seekSequencerTransport(2));
+  expect(useAppStore.getState().sequencerRuntime.transportSubunit).toBe(2 * sequencerTransportSubunitsPerStep());
 });
 
 it("seeks running playback with the newly cleared loop and suppresses its debounced config request", async () => {
@@ -525,4 +536,80 @@ it("stops an engine whose startup completes after composer Stop", async () => {
   await act(async () => { finish(); await Promise.all([play, stopping]); });
   expect(stop).toHaveBeenCalledTimes(1);
   expect(deviceTransport.mock.calls.every(([, request]) => request.action === "stop")).toBe(true);
+});
+
+it("waits for an in-flight song Stop before starting clip audition instruments", async () => {
+  useAppStore.setState(s => ({ activeSessionId: null, activeSessionState: "idle", sequencer: { ...s.sequencer,
+    clipArrangement: { version: 1, revision: 0, end: 322560, lanes: [] },
+    pianoRolls: s.sequencer.pianoRolls.map(p => ({ ...p, enabled: false })), midiControllers: [] } }));
+  addClipLane("sequencer", useAppStore.getState().addSequencerTrack);
+  const draft = useAppStore.getState().clipDrafts[useAppStore.getState().clipEditingKey!];
+  const { start, stop } = mockInstrumentLifecycle();
+  let finishStop!: () => void;
+  stop.mockImplementationOnce(() => new Promise<void>(resolve => { finishStop = () => {
+    useAppStore.setState({ activeSessionState: "idle" }); resolve();
+  }; }));
+  const { result } = setup(false);
+  await act(() => result.current.transportDevice(null, true));
+  let stopping!: Promise<void>, editing!: Promise<void>;
+  await act(async () => { stopping = result.current.transportDevice(null, false); await Promise.resolve(); });
+  expect(stop).toHaveBeenCalledOnce();
+  await act(async () => {
+    useAppStore.setState({ clipAuditionDraft: draft });
+    editing = result.current.auditionDevice(draft.target.laneId, { action: "workspace_start", gestureId: "edit", clipDraft: draft });
+    await Promise.resolve();
+  });
+  expect(audition).not.toHaveBeenCalled();
+  await act(async () => { finishStop(); await Promise.all([stopping, editing]); });
+  expect(start).toHaveBeenCalledTimes(2);
+  expect(audition).toHaveBeenCalledExactlyOnceWith("composer-session", expect.objectContaining({ action: "workspace_start" }));
+  expect(useAppStore.getState().activeSessionState).toBe("running");
+});
+
+it("keeps a disabled arpeggiator's clip audition clock running until Stop edit", async () => {
+  useAppStore.setState(s => ({ sequencer: { ...s.sequencer, tracks: [], drummerTracks: [], scoreTracks: [], controllerSequencers: [], arpeggiators: [],
+    clipArrangement: { version: 1, revision: 0, end: 322560, lanes: [] } } }));
+  addClipLane("arpeggiator", useAppStore.getState().addArpeggiator);
+  const draft = useAppStore.getState().clipDrafts[useAppStore.getState().clipEditingKey!], id = draft.target.laneId;
+  useAppStore.setState(s => ({ clipAuditionDraft: draft,
+    sequencer: { ...s.sequencer, arpeggiators: s.sequencer.arpeggiators.map(a => ({ ...a, enabled: false })) } }));
+  audition.mockResolvedValueOnce({ ...status(12), arranger_active: false,
+    auditions: { [id]: { active: true, queued: null, workspace_active: true, workspace_sequence: [1] } },
+    arpeggiators: [{ arpeggiator_id: id, enabled: false, input_channel: 6, target_channel: 1, held_notes: [60, 64, 67],
+      active_note: 64, step_index: 2, last_velocity: 100, active_pad: 1, state: "playing" }] });
+  const { result } = setup(false);
+  await act(() => result.current.auditionDevice(id, { action: "workspace_start", gestureId: "edit", clipDraft: draft }));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(true);
+  expect(useAppStore.getState().performanceAuditions[id]?.workspace_active).toBe(true);
+  // Runtime audition status also protects legacy workspace/preview clocks.
+  act(() => useAppStore.setState({ clipAuditionDraft: null }));
+  await act(() => vi.advanceTimersByTimeAsync(100));
+  expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(true);
+  audition.mockResolvedValueOnce({ ...status(12, false), auditions: {} });
+  await act(() => result.current.auditionDevice(id, { action: "workspace_end", gestureId: "edit" }));
+  expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(false);
+});
+
+it.each([false, true])("retains a pending clip audition across stopped-session replacement (reload=%s)", async reload => {
+  useAppStore.setState(s => ({ activeSessionState: "idle", sequencer: { ...s.sequencer,
+    clipArrangement: { version: 1, revision: 0, end: 322560, lanes: [] } } }));
+  addClipLane("sequencer", useAppStore.getState().addSequencerTrack);
+  const { result } = setup(false);
+  if (reload) act(() => useAppStore.getState().applySequencerConfigSnapshot(useAppStore.getState().buildSequencerConfigSnapshot()));
+  const lane = useAppStore.getState().sequencer.clipArrangement!.lanes[0];
+  const draft = { baseRevision: 0, target: { laneId: lane.id, clipId: lane.clips[0].id, path: [lane.clips[0].children[0].id], pass: 0 }, definition: lane.definitions[0] };
+  let finish!: () => void;
+  useAppStore.setState({ startSession: vi.fn(() => {
+    useAppStore.setState({ activeSessionId: "replacement", activeSessionState: "running" });
+    return new Promise<void>(resolve => { finish = resolve; });
+  }), clipAuditionDraft: draft });
+  let play!: Promise<void>;
+  await act(async () => {
+    play = result.current.auditionDevice(lane.id, { action: "workspace_start", gestureId: "edit", clipDraft: draft });
+    await Promise.resolve();
+  });
+  await act(async () => { finish(); await play; });
+  expect(api.configureSessionSequencer).toHaveBeenCalledWith("replacement", expect.anything());
+  expect(audition).toHaveBeenCalledExactlyOnceWith("replacement", expect.objectContaining({ action: "workspace_start" }));
 });

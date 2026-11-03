@@ -1043,7 +1043,9 @@ export default function App() {
     (selection: SequencerState["arrangerLoopSelection"], positionStep?: number) => {
       setSequencerArrangerLoopSelection(selection);
       const runtime = useAppStore.getState().sequencerRuntime;
-      const currentStep = sequencerAbsoluteTransportStep(runtime.playhead, runtime.cycle, runtime.stepCount);
+      const currentStep = runtime.arrangerTransportSubunit !== undefined
+        ? Math.floor(runtime.arrangerTransportSubunit / sequencerTransportSubunitsPerStep())
+        : sequencerAbsoluteTransportStep(runtime.playhead, runtime.cycle, runtime.stepCount);
       const targetStep = positionStep ?? (
         selection && (currentStep < selection.startStep || currentStep >= selection.endStep)
           ? selection.startStep

@@ -115,7 +115,7 @@ export function createTransportStoreActions(
           arrangerLoopSelection: normalizeArrangerLoopSelection(
             selection,
             Number.MAX_SAFE_INTEGER,
-            sequencerTransportStepsPerBeat(sequencer.timing)
+            sequencer.clipArrangement ? 1 : sequencerTransportStepsPerBeat(sequencer.timing)
           )
         }
       });

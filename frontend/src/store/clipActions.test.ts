@@ -6,7 +6,10 @@ import { buildSequencerConfigSnapshot, parseSequencerConfigSnapshot } from "./ap
 import { attachClipSchedules, clipAuditionState, clipRuntimeView, runtimeSchedule } from "../lib/clipArranger/runtime";
 import { clipEditorView } from "../lib/clipArranger/editorAdapter";
 import { buildDrummerRowTrackConfigs } from "../appOrchestration";
-import { addScoreTrack } from "./scoreActions";
+import { addScoreTrack, updateScoreTrack } from "./scoreActions";
+import { sourceKeys } from "../lib/clipArranger/migration";
+import type { SourceKind } from "../lib/clipArranger/model";
+import { buildSequencerPlaybackRange } from "../appOrchestration";
 
 beforeEach(() => {
   useAppStore.setState(useAppStore.getInitialState(), true);
@@ -14,6 +17,18 @@ beforeEach(() => {
   s.tracks.forEach(t => { t.padLoopEnabled = true; t.padLoopPattern.rootSequence = [{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 0 }]; });
   s.clipArrangement = migrateClipArrangement(s).model!;
   useAppStore.setState({ sequencer: s });
+});
+
+it("keeps fractional-beat clip loop bounds through playback compilation and reload", () => {
+  useAppStore.getState().setSequencerArrangerLoopSelection({ startStep: 2, endStep: 6 });
+  const state = useAppStore.getState().sequencer;
+  expect(state.arrangerLoopSelection).toEqual({ startStep: 2, endStep: 6 });
+  const runtime = clipRuntimeView(state);
+  const range = buildSequencerPlaybackRange(runtime, "runtime", true);
+  expect(range).toEqual({ playback_start_step: 2, playback_end_step: 6, playback_loop: true });
+  const restored = parseSequencerConfigSnapshot(buildSequencerConfigSnapshot(state, []), [], null).sequencer;
+  expect(restored.arrangerLoopSelection).toEqual(state.arrangerLoopSelection);
+  expect(buildSequencerPlaybackRange(clipRuntimeView(restored), "runtime", true)).toEqual(range);
 });
 
 it("keeps real melodic edits out of authored data and runtime until scoped save", () => {
@@ -67,6 +82,57 @@ it("removes a source and its drafts without leaving dependent sync references", 
   expect(useAppStore.getState().sequencer.tracks[0].syncToTrackId).toBeNull();
   expect(useAppStore.getState().clipEditingKey).toBeNull();
   expect(useAppStore.getState().sequencer.clipArrangement!.lanes.some(l => l.id === added)).toBe(false);
+});
+
+it.each((["sequencer", "score", "controller", "arpeggiator"] as SourceKind[]).flatMap(kind =>
+  (["local", "all"] as const).map(scope => ({ kind, scope }))))("preserves $kind edits through audition, $scope scope and reload", ({ kind, scope }) => {
+  const actions = useAppStore.getState();
+  const create = { sequencer: actions.addSequencerTrack, score: () => addScoreTrack("Score"),
+    drummer: actions.addDrummerSequencerTrack, controller: actions.addControllerSequencer, arpeggiator: actions.addArpeggiator };
+  addClipLane(kind, create[kind]);
+  const initial = useAppStore.getState(), key = initial.clipEditingKey!, target = initial.clipDrafts[key].target;
+  const lane = initial.sequencer.clipArrangement!.lanes.find(l => l.id === target.laneId)!;
+  const id = lane.id, source = sourceKeys[kind];
+  // A second linked clip distinguishes a local save from a shared definition edit.
+  lane.clips.push({ ...structuredClone(lane.clips[0]), id: "linked-clip", start: lane.clips[0].length,
+    children: lane.clips[0].children.map(item => ({ ...item, id: "linked-child" })) });
+  initial.sequencer.clipArrangement!.end = Math.max(initial.sequencer.clipArrangement!.end, lane.clips[0].length * 2);
+  const original = structuredClone(lane.definitions[0]);
+  const pads = structuredClone(initial.sequencer[source].find(t => t.id === id)!.pads);
+  if (kind === "sequencer") {
+    actions.setSequencerTrackStepNote(id, 0, 72);
+    actions.setSequencerTrackStepChord(id, 0, "maj7");
+    actions.setSequencerTrackStepVelocity(id, 0, 89);
+    actions.setSequencerTrackStepTimingOffset(id, 0, 20);
+  } else if (kind === "score") {
+    updateScoreTrack(id, track => ({ ...track, pads: track.pads.map((pad, i) => i ? pad : { ...pad,
+      notes: [{ id: "score-note", pitch: 67, velocity: 93, startTicks: 5040, durationTicks: 30240 }] }) }));
+  } else if (kind === "controller") {
+    actions.setControllerSequencerMode(id, "step");
+    actions.setControllerSequencerStep(id, 2, 91);
+    actions.setControllerSequencerMode(id, "curve");
+    const point = clipEditorView(useAppStore.getState().sequencer, useAppStore.getState().clipDrafts[key]).controllerSequencers.find(t => t.id === id)!.keypoints[0];
+    actions.setControllerSequencerKeypoint(id, point.id, 0, 123);
+  } else {
+    actions.updateArpeggiator(id, { pattern: "down", octaves: 3 });
+  }
+  const state = useAppStore.getState(), draft = state.clipDrafts[key];
+  expect(draft.definition).not.toEqual(original);
+  expect(state.sequencer[source].find(t => t.id === id)!.pads).toEqual(pads);
+  expect(state.sequencer.clipArrangement!.lanes.find(l => l.id === id)!.definitions[0]).toEqual(original);
+  const audition = clipAuditionState(state.sequencer, draft);
+  expect(clipRuntimeView(audition.state)[source].find(t => t.id === id)!.pads[audition.sequence[0]]).toEqual(
+    draft.definition.kind === "pattern" ? draft.definition.payload : null);
+  saveClipDraft(scope, "Edited pattern");
+  const saved = useAppStore.getState().sequencer;
+  const restored = parseSequencerConfigSnapshot(buildSequencerConfigSnapshot(saved, []), [], null).sequencer;
+  expect(restored.clipArrangement).toEqual(saved.clipArrangement);
+  const restoredLane = restored.clipArrangement!.lanes.find(l => l.id === id)!;
+  const schedule = runtimeSchedule(restored, restoredLane);
+  const runtime = clipRuntimeView(restored)[source].find(t => t.id === id)!;
+  expect(runtime.pads[schedule.clips[0].content[0].pad!]).toEqual(draft.definition.kind === "pattern" ? draft.definition.payload : null);
+  expect(runtime.pads[schedule.clips[1].content[0].pad!]).toEqual(scope === "all" && draft.definition.kind === "pattern"
+    ? draft.definition.payload : original.kind === "pattern" ? original.payload : null);
 });
 
 

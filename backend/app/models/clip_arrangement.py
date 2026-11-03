@@ -67,7 +67,7 @@ class ClipSchedule(BaseModel):
 class ClipPosition:
     pad: int | None
     source_start: int
-    boundary: int
+    boundary: int | None
     occurrence: tuple[str, int, int] | None
 
 
@@ -95,14 +95,19 @@ class PreparedClipSchedule:
         if index < 0 or position >= self.starts[index] + schedule.clips[index].length:
             following = index + 1
             boundary = cycle_origin + self.starts[following] if following < len(self.starts) else cycle_end
-            return ClipPosition(None, at, max(at + 1, boundary), None)
+            # A silent span has one stable phase. After a finite song ends there
+            # is no next clip event, even if a manual source/audition keeps the
+            # shared clock running. Scheduling at + 1 floods the render path.
+            rest_start = cycle_origin + (self.starts[index] + schedule.clips[index].length if index >= 0 else 0)
+            return ClipPosition(None, rest_start, boundary if boundary > at else None, None)
         clip = schedule.clips[index]
         ends = self.content_ends[index]
         raw = clip.offset + position - clip.start
         duration = ends[-1]
         clip_end = cycle_origin + clip.start + clip.length
         if clip.mode == "once" and raw >= duration:
-            return ClipPosition(None, at, clip_end, (clip.id, 0, -1))
+            rest_start = cycle_origin + clip.start + max(0, duration - clip.offset)
+            return ClipPosition(None, rest_start, clip_end, (clip.id, 0, -1))
         turn, offset = divmod(raw, duration) if clip.mode == "loop" else (0, raw)
         leaf_index = bisect_right(ends, offset)
         leaf_start = ends[leaf_index - 1] if leaf_index else 0

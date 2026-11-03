@@ -773,7 +773,8 @@ class PerformanceMidiRouter:
         config = state.config
         if state.clip_schedule is not None and not state.audition_sequence:
             resolved = state.clip_schedule.locate(max(0, int((beat - state.source_origin) * TRANSPORT_SUBUNITS_PER_BEAT)))
-            state.boundary_beat = state.source_origin + Fraction(resolved.boundary, TRANSPORT_SUBUNITS_PER_BEAT)
+            state.boundary_beat = (state.source_origin + Fraction(resolved.boundary, TRANSPORT_SUBUNITS_PER_BEAT)
+                                   if resolved.boundary is not None else None)
             paused = state.paused
             state.paused = resolved.pad is None
             if state.paused:

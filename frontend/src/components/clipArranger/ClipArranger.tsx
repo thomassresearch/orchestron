@@ -15,6 +15,7 @@ export type ClipArrangerProps = {
   model: ClipArrangement; sequencer: SequencerState; language: GuiLanguage;
   onChange: (model: ClipArrangement, label: string) => void;
   onEdit: (target: OccurrenceTarget) => void;
+  editingTarget?: OccurrenceTarget;
   inlineEditor?: { laneId: string; content: ReactNode };
   position?: number; onSeek?: (step: number) => void; onLoopChange?: (range: { startStep: number; endStep: number } | null) => void;
   transport?: ReactNode; laneControls?: (id: string) => ReactNode;
@@ -22,10 +23,14 @@ export type ClipArrangerProps = {
   onAddLane?: (source: ClipLane["source"]) => void;
 };
 
-export function ClipArranger({ model, sequencer, language, onChange, onEdit, transport, laneControls, onAddLane, inlineEditor, position = 0, onSeek, onLoopChange, onRemoveLane }: ClipArrangerProps) {
+export function ClipArranger({ model, sequencer, language, onChange, onEdit, editingTarget, transport, laneControls, onAddLane, inlineEditor, position = 0, onSeek, onLoopChange, onRemoveLane }: ClipArrangerProps) {
   const c = clipCopy(language), timings = useMemo(() => arrangementTimings(sequencer), [sequencer]);
   const [expanded, setExpanded] = usePerformanceEditorState<string | null>("arranger", "clipExpandedLane", null);
   const [selected, select] = usePerformanceEditorState<{ laneId: string; clipId: string } | null>("arranger", "clipSelection", null);
+  const editingLane = editingTarget?.laneId, editingClip = editingTarget?.clipId;
+  useEffect(() => {
+    if (editingLane && editingClip) { select({ laneId: editingLane, clipId: editingClip }); setExpanded(editingLane); }
+  }, [editingLane, editingClip, select, setExpanded]);
   const [zoom, setZoom] = usePerformanceEditorState("arranger", "clipZoom", 40);
   const [scroll, setScroll] = useState(0);
   const viewport = useRef<HTMLDivElement>(null), [viewportWidth, setViewportWidth] = useState(1200);
@@ -53,6 +58,21 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, tra
   const attempt = (action: () => ClipArrangement, label: string) => { try { onChange(action(), label); setError(null); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
   const pick = (lane: ClipLane, clip: Clip) => { select({ laneId: lane.id, clipId: clip.id }); setExpanded(lane.id); };
   const selectedLane = model.lanes.find(l => l.id === selected?.laneId), selectedClip = selectedLane?.clips.find(cl => cl.id === selected?.clipId);
+  const loopStart = sequencer.arrangerLoopSelection?.startStep, loopEnd = sequencer.arrangerLoopSelection?.endStep;
+  useEffect(() => {
+    // Selection is session-only. Give loaded performances a usable loop target
+    // even when looping was saved off, without opening or expanding an editor.
+    if (selectedClip || editingClip) return;
+    const candidates = model.lanes.flatMap(lane => lane.clips.map(clip => ({ lane, clip })))
+      .sort((a, b) => a.clip.start - b.clip.start);
+    const target = candidates.find(({ clip }) => loopStart !== undefined && loopEnd !== undefined &&
+      clip.start === loopStart * 2520 && clip.start + clip.length === loopEnd * 2520)
+      ?? candidates.find(({ clip }) => clip.start <= position && position < clip.start + clip.length)
+      ?? candidates[0];
+    if (target) select({ laneId: target.lane.id, clipId: target.clip.id });
+  }, [selectedClip, editingClip, loopStart, loopEnd, model.lanes, position, select]);
+  const lastClipEnd = Math.max(Q / 4, ...model.lanes.flatMap(lane => lane.clips.map(clip => clip.start + clip.length)));
+  const setSongEnd = (end: number) => attempt(() => ({ ...model, revision: model.revision + 1, end }), c.songEnd);
   const open = (lane: ClipLane, clip: Clip, path: string[], pass: number) => { pick(lane, clip); onEdit({ laneId: lane.id, clipId: clip.id, path, pass }); };
   const startDrag = (event: React.PointerEvent, lane: ClipLane, clip: Clip, mode: "move" | "left" | "right") => {
     if (event.button !== 0) return;
@@ -92,13 +112,17 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, tra
   return <section className="mt-4 min-w-0 rounded-xl border border-slate-700 bg-slate-950/85 p-3" aria-label={c.title}>
     <div className="mb-3 flex flex-wrap items-center gap-2"><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}
       {onSeek && <label className="text-xs text-slate-400">{c.position} <input className={clipInput} type="number" min={0} step={.25} key={Math.floor(position / Q)} defaultValue={Math.round(position / Q * 100) / 100} onBlur={e => onSeek(Math.round(Number(e.target.value) * 8))} /></label>}
-      {onLoopChange && <button className={clipButton} aria-pressed={!!sequencer.arrangerLoopSelection} disabled={!selectedClip && !sequencer.arrangerLoopSelection} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : selectedClip ? { startStep: selectedClip.start / 2520, endStep: (selectedClip.start + selectedClip.length) / 2520 } : null)}>{c.loop} · {c.window}</button>}
+      {onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} disabled={!selectedClip && !sequencer.arrangerLoopSelection} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : selectedClip ? { startStep: selectedClip.start / 2520, endStep: (selectedClip.start + selectedClip.length) / 2520 } : null)}>{c.loop} · {c.window}</button>}
       <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="12" max="100" value={zoom} onChange={e => setZoom(Number(e.target.value))} /></label>
       {onAddLane && <label className="text-xs text-slate-400">{c.newLane} <select className={clipInput} value="" onChange={e => onAddLane(e.target.value as ClipLane["source"])}><option value="">+</option>{Object.keys(sourceKeys).map(kind => <option key={kind} value={kind}>{c[kind === "sequencer" ? "melodic" : kind as Exclude<ClipLane["source"], "sequencer">]}</option>)}</select></label>}
     </div>
+    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+      <label>{c.songEnd} · {c.beats} <input className={clipInput} aria-label={c.songEnd} type="number" min={lastClipEnd / Q} step="0.25" key={model.end} defaultValue={model.end / Q} onBlur={e => { const end = Number(e.target.value) * Q; if (end !== model.end) setSongEnd(end); }} /></label>
+      <button className={clipButton} disabled={model.end === lastClipEnd} onClick={() => setSongEnd(lastClipEnd)}>{c.fitSong}</button>
+    </div>
     <div ref={viewport} className="overflow-x-auto" onScroll={e => setScroll(e.currentTarget.scrollLeft)}>
       <div style={{ width: width + 192, minWidth: "100%" }}>
-        <div className="relative ml-48 h-6 cursor-crosshair border-b border-slate-800" aria-hidden onClick={e => onSeek?.(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * 2))}>{Array.from({ length: Math.min(400, Math.ceil(1200 / zoom) + 4) }, (_, n) => n + Math.floor(scroll / zoom)).filter(n => n * zoom < width).map(beat => <span key={beat} className="absolute text-[10px] text-slate-500" style={{ left: beat * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : "·"}</span>)}</div>
+        <div className="relative ml-48 h-6 cursor-crosshair border-b border-slate-800" aria-hidden onClick={e => onSeek?.(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * 2))}>{sequencer.arrangerLoopSelection && <span className="pointer-events-none absolute inset-y-0 border-x border-amber-300 bg-amber-400/20" style={{ left: sequencer.arrangerLoopSelection.startStep * 2520 * unit, width: (sequencer.arrangerLoopSelection.endStep - sequencer.arrangerLoopSelection.startStep) * 2520 * unit }} />}{Array.from({ length: Math.min(400, Math.ceil(1200 / zoom) + 4) }, (_, n) => n + Math.floor(scroll / zoom)).filter(n => n * zoom < width).map(beat => <span key={beat} className="absolute text-[10px] text-slate-500" style={{ left: beat * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : "·"}</span>)}</div>
         {model.lanes.map(lane => {
           const track = sequencer[sourceKeys[lane.source]].find(t => t.id === lane.id);
           const detailed = expanded === lane.id;
@@ -110,6 +134,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, tra
             <div className="relative flex-1" style={{ backgroundSize: `${zoom}px 100%`, backgroundImage: "linear-gradient(to right, #1e293b 1px, transparent 1px)" }} onDoubleClick={e => {
               if (e.target === e.currentTarget) { setAddStart(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * Q / 4)); setAdding(lane.id); setDefinitionId(lane.definitions[0]?.id ?? ""); }
             }}>
+              <div className="pointer-events-none absolute inset-y-0 z-10 border-l border-dashed border-amber-400/80" title={c.songEnd} style={{ left: model.end * unit }} />
               <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-cyan-300" style={{ left: position * unit }} />
               {lane.clips.filter(clip => (clip.start + clip.length) * unit > scroll - 192 && clip.start * unit < scroll + 1800).map(clip => {
                 const duration = contentLength(lane, clip.children, timings[lane.id]);

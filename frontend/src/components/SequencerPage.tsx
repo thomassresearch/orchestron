@@ -1,3 +1,4 @@
+import { ClipTransport } from "./clipArranger/ClipTransport";
 import { useContext } from "react";
 import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
 import { addScoreTrack } from "../store/scoreActions";
@@ -930,9 +931,9 @@ function SequencerPageContent(props: SequencerPageProps) {
 
         {sequencer.clipArrangement ? <ClipPerformance language={guiLanguage}
           laneControls={id => <LaneOutputButtons id={id} language={guiLanguage} />}
-          position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(null, step)}
+          position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(sequencer.arrangerLoopSelection, step)}
           onLoopChange={onSequencerArrangerLoopSelectionChange}
-          transport={<><button className={transportStartButtonClass} onClick={handleStartAll}>{clipCopy(guiLanguage).songPlay}</button><button className={transportStopButtonClass} onClick={handleStopAll}>{clipCopy(guiLanguage).songStop}</button></>}
+          transport={<ClipTransport language={guiLanguage} copy={arrangerCopy} onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward} />}
           onAddLane={source => { try { addClipLane(source, { sequencer: onAddSequencerTrack, drummer: onAddDrummerSequencerTrack, controller: onAddControllerSequencer, arpeggiator: onAddArpeggiator, score: () => addScoreTrack("Score") }[source]); } catch (e) { useAppStore.setState({ error: String(e) }); } }}
           renderEditor={(kind, id, state) => {
             const view = { ...state, tracks: state.tracks.filter(t => t.id === id), scoreTracks: state.scoreTracks.filter(t => t.id === id), drummerTracks: state.drummerTracks.filter(t => t.id === id), controllerSequencers: state.controllerSequencers.filter(t => t.id === id), arpeggiators: state.arpeggiators.filter(t => t.id === id) };

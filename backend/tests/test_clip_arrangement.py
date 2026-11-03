@@ -40,6 +40,47 @@ def test_large_loop_is_not_expanded():
     assert prepared.locate(800000 * Q).boundary > 800000 * Q
 
 
+def test_silent_gaps_have_stable_origins_and_finite_song_end_has_no_next_boundary():
+    prepared = PreparedClipSchedule(schedule())
+    assert prepared.locate(21 * Q) == prepared.locate(23 * Q)
+    assert prepared.locate(29 * Q) == prepared.locate(31 * Q)
+    ended = prepared.locate(40 * Q)
+    assert ended.pad is None and ended.boundary is None
+    assert prepared.locate(800000 * Q) == ended
+    cyclic = PreparedClipSchedule(schedule(cycle_ticks=40 * Q))
+    assert cyclic.locate(39 * Q).boundary == 40 * Q
+    assert cyclic.locate(40 * Q).pad == 0
+
+
+@pytest.mark.parametrize("peer", ["note", "score", "controller"])
+def test_standalone_audition_past_song_end_does_not_flood_transport_events(peer):
+    from backend.app.models.session import SessionAuditionRequest, SessionSequencerConfigRequest
+    from backend.tests.test_sequencer_note_timing import make_runtime, advance, notes
+    wire = {"end": Q, "clips": [{"id": "clip", "start": 0, "length": Q,
+                               "content": [{"pad": 0, "length": Q}]}]}
+    runtime, capture, config = make_runtime([60, None, 62, None], pad_loop_enabled=True, clip_schedule=wire)
+    payload = config.model_dump()
+    if peer == "note":
+        payload["tracks"].append({**payload["tracks"][0], "track_id": "inactive"})
+    elif peer == "score":
+        payload["score_tracks"] = [{"track_id": "inactive", "length_beats": 1, "enabled": False,
+            "pad_loop_enabled": True, "pads": [{"pad_index": 0, "length_beats": 1, "notes": []}], "clip_schedule": wire}]
+    else:
+        payload["controller_tracks"] = [{"track_id": "inactive", "controller_number": 1, "length_beats": 1, "enabled": False,
+            "pad_loop_enabled": True, "pads": [{"pad_index": 0, "length_beats": 1}], "clip_schedule": wire}]
+    runtime.stop()
+    runtime.configure(SessionSequencerConfigRequest.model_validate(payload))
+    runtime.audition(SessionAuditionRequest(action="workspace_start", track_ids=["lead"],
+        sequence=[0], gesture_id="edit", revision=1))
+    advance(runtime, capture, 7500)  # Over twice the finite song length.
+    assert runtime.status().running
+    assert any(at >= 6720 and message[0] == 0x90 for at, message in notes(capture))
+    inactive = (runtime._config.controller_tracks if peer == "controller" else runtime._config.tracks)["inactive"]
+    assert inactive.clip_boundary is None
+    # There should be audible step/cycle markers, never one update per 20,160th beat.
+    assert len(runtime._render_transport_events) < 30
+
+
 @pytest.mark.parametrize("change", [
     {"version": 2}, {"end": 0}, {"cycle_ticks": 8 * Q},
     {"clips": [{"id": "bad", "start": 0.5, "length": Q, "content": [{"pad": 0, "length": Q}]}]},
@@ -137,6 +178,28 @@ def test_clip_editor_audition_survives_song_start_stop_seek_and_restores_authore
     engine.audition(SessionAuditionRequest(action="workspace_end", track_ids=["lead"], gesture_id="draft", revision=2))
     assert track(engine, "lead").clip_schedule is not None
     assert not track(engine, "lead").enabled
+
+
+@pytest.mark.parametrize("clock", ["arranger", "live"])
+def test_arpeggiator_clip_has_no_future_boundary_after_finite_song_end(clock):
+    from backend.app.models.session import SessionArpeggiatorConfig, SessionDeviceTransportRequest
+    from backend.tests.test_arpeggiator_runtime import _CaptureMidi, _router, _advance_router
+    capture = _CaptureMidi()
+    router = _router(capture)
+    wire = {"end": Q, "clips": [{"id": "clip", "start": 0, "length": Q,
+                               "content": [{"pad": 0, "length": 4 * Q}]}]}
+    router.configure([SessionArpeggiatorConfig(arpeggiator_id="arp", enabled=True, input_channel=2,
+        target_channel=1, playback_mode=clock, pads=[{}], clip_schedule=wire)], tempo_bpm=120)
+    router.source_device_transport(SessionDeviceTransportRequest(action="play", arranger=True), position=0)
+    router.route_message([0x91, 60, 100], source="keyboard")
+    _advance_router(router, end=48000)
+    state = router._states["arp"]
+    assert state.paused and state.boundary_beat is None
+    attacks = [message for message, _ in capture.messages if message[0] == 0x90]
+    assert attacks
+    capture.current_sample = 48000
+    _advance_router(router, start=48000, end=96000)
+    assert [message for message, _ in capture.messages if message[0] == 0x90] == attacks
 
 
 @pytest.mark.parametrize("clock", ["arranger", "live"])

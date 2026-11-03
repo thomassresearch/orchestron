@@ -5,11 +5,12 @@ import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration
 import { draftKey } from "../../lib/clipArranger/editorAdapter";
 import { usePerformanceAudition } from "../sequencer/PerformanceAudition";
 import { ClipEditingContext } from "./context";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { mergedSequencerState } from "../../lib/mergedSequencerState";
 import type { GuiLanguage, SequencerState } from "../../types";
 import type { SourceKind } from "../../lib/clipArranger/model";
 import { contentLength, resolveContent, localBeatTicks } from "../../lib/clipArranger/model";
-import { clipEditorView } from "../../lib/clipArranger/editorAdapter";
+import { clipEditorView, clipEditorPlaybackView } from "../../lib/clipArranger/editorAdapter";
 import { useAppStore } from "../../store/useAppStore";
 import { clipHistoryStep, commitClipArrangement, openClipEditor, saveClipDraft, updateClipDraft, removeClipLane } from "../../store/clipActions";
 import { ClipArranger, clipButton } from "./ClipArranger";
@@ -27,8 +28,14 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   transport?: ReactNode; laneControls?: (id: string) => ReactNode; onAddLane?: (source: SourceKind) => void;
 }) {
   const sequencer = useAppStore(s => s.sequencer), drafts = useAppStore(s => s.clipDrafts), key = useAppStore(s => s.clipEditingKey);
+  const runtime = useAppStore(s => s.sequencerRuntime);
+  const auditionDraft = useAppStore(s => s.clipAuditionDraft);
+  // Editors need audible runtime markers, while arrangement edits retain authored state.
+  const playback = useMemo(() => mergedSequencerState(sequencer, runtime), [sequencer, runtime]);
   const audition = usePerformanceAudition();
+  const auditionRef = useRef(audition); auditionRef.current = audition;
   const statuses = useAppStore(s => s.performanceAuditions);
+  const songPosition = useAppStore(s => s.sequencerRuntime.arrangerTransportSubunit);
   const active = useRef<{ id: string; gesture: string; key: string; last: unknown } | null>(null);
   const [auditioning, setAuditioning] = useState(false);
   const stopEdit = async () => {
@@ -38,9 +45,9 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   };
   useEffect(() => () => {
     const previous = active.current;
-    if (previous) void audition?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
+    if (previous) void auditionRef.current?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
     useAppStore.setState({ clipAuditionDraft: null });
-  }, [audition]);
+  }, []);
   const [saving, setSaving] = useState(false), [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const current = active.current;
@@ -79,7 +86,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   const attempt = (action: () => void) => { try { action(); setError(null); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
   return <>
     <DraftResolutionDialog language={language} />
-    <ClipArranger language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={target => attempt(() => openClipEditor(target))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={position} onSeek={onSeek} onLoopChange={onLoopChange}
+    <ClipArranger editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={target => attempt(() => openClipEditor(target))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
       inlineEditor={curve ? { laneId: curve.id, content: <InlineCurve track={curve} language={language} window={curveWindow} /> } : undefined}
       transport={<>{transport}<button className={clipButton} disabled={!sequencer.clipHistory?.cursor} onClick={() => attempt(() => clipHistoryStep(false))}>{c.undo}</button><button className={clipButton} disabled={!sequencer.clipHistory || sequencer.clipHistory.cursor >= sequencer.clipHistory.entries.length} onClick={() => attempt(() => clipHistoryStep(true))}>{c.redo}</button></>} />
     {draft && lane ? <section className="mt-2 rounded-xl border border-cyan-800 bg-slate-950/80 p-3" aria-label={c.path}>
@@ -96,7 +103,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
         })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButton} onClick={() => setSaving(true)}>{c.save}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
       </header>
       <p className="mb-2 text-[10px] text-slate-500">{c.laneSettings}</p>
-      {draft.definition.kind === "pattern" ? <ClipEditingContext.Provider value>{renderEditor(draft.definition.source, lane.id, clipEditorView(sequencer, draft))}</ClipEditingContext.Provider>
+      {draft.definition.kind === "pattern" ? <ClipEditingContext.Provider value>{renderEditor(draft.definition.source, lane.id, clipEditorPlaybackView(playback, draft, auditionDraft))}</ClipEditingContext.Provider>
         : <ContentEditor lane={{ ...lane, definitions: [...lane.definitions, ...(draft.additions ?? [])] }} items={draft.definition.children} level={draft.definition.kind} sequencer={sequencer} language={language} onChange={(definitions, children) => {
           if (draft.definition.kind !== "pattern") updateClipDraft({ ...draft.definition, children }, definitions.filter(d => !lane.definitions.some(original => original.id === d.id)));
         }} />}

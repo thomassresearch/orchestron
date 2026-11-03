@@ -143,7 +143,8 @@ def _following_note_track(self, track: SequencerTrackRuntime, boundary: int) -> 
         origin = self.sources.track_origin(track) if self.sources.active else 0
         clip_playback.position(following, max(0, boundary - origin))
         following.phase_offset_subunit += origin
-        following.clip_boundary += origin
+        if following.clip_boundary is not None:
+            following.clip_boundary += origin
         return None if following.clip_silent else following
     manual = track.queued_pad is not None and track.queued_pad != track.active_pad
     if manual:

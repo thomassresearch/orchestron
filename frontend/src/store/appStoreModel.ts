@@ -2203,7 +2203,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
   const arrangerLoopSelection = normalizeArrangerLoopSelection(
     rawArrangerLoopSelection,
     Number.MAX_SAFE_INTEGER,
-    sequencerTransportStepsPerBeat(timing)
+    sequencer.clipArrangement ? 1 : sequencerTransportStepsPerBeat(timing)
   );
 
   const result: SequencerState = {
@@ -3010,7 +3010,7 @@ export function buildSequencerConfigSnapshot(
       arrangerLoopSelection: normalizeArrangerLoopSelection(
         sequencer.arrangerLoopSelection,
         Number.MAX_SAFE_INTEGER,
-        sequencerTransportStepsPerBeat(timing)
+        sequencer.clipArrangement ? 1 : sequencerTransportStepsPerBeat(timing)
       ),
       scoreTracks: persistedScoreTracks(sequencer),
       tracks: sequencer.tracks.slice(0, MAX_SEQUENCERS_PER_TYPE).map((track, index) => ({

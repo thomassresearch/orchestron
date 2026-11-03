@@ -19,7 +19,8 @@ def advance(runtime, track, at, *, release=True, delay=None):
     previous = (track.clip_occurrence, track.clip_silent, track.phase_offset_subunit)
     position(track, max(0, at - origin))
     track.phase_offset_subunit += origin
-    track.clip_boundary += origin
+    if track.clip_boundary is not None:
+        track.clip_boundary += origin
     changed = previous != (track.clip_occurrence, track.clip_silent, track.phase_offset_subunit)
     if changed and release:
         if isinstance(track, SequencerTrackRuntime):

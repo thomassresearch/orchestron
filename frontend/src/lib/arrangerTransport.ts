@@ -19,8 +19,9 @@ function normalizeArrangerStepQuantum(stepQuantum: number): number {
 }
 
 export function arrangerStepQuantum(
-  sequencer: Pick<SequencerState, "timing"> | SequencerState["timing"]
+  sequencer: (Pick<SequencerState, "timing"> & Partial<Pick<SequencerState, "clipArrangement">>) | SequencerState["timing"]
 ): number {
+  if ("clipArrangement" in sequencer && sequencer.clipArrangement) return 1;
   return normalizeArrangerStepQuantum(sequencerTransportStepsPerBeat("timing" in sequencer ? sequencer.timing : sequencer));
 }
 
