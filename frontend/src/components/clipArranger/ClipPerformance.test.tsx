@@ -32,7 +32,7 @@ it("uses the looping song cursor instead of the advancing shared clock and toggl
   render(<ClipPerformance language="english" position={20160 * 80} renderEditor={() => null}
     onLoopChange={range => useAppStore.getState().setSequencerArrangerLoopSelection(range)} onSeek={() => {}} />);
   expect((screen.getByRole("spinbutton", { name: "Position" }) as HTMLInputElement).value).toBe("1");
-  const loop = screen.getByRole("button", { name: "Loop · Clip" });
+  const loop = screen.getByRole("button", { name: "Loop" });
   expect((loop as HTMLButtonElement).disabled).toBe(false);
   fireEvent.click(loop);
   expect(loop.getAttribute("aria-pressed")).toBe("true");
@@ -59,7 +59,7 @@ it("dispatches tape transport actions and shows song playback independently from
 it("selects a loop target when loading with looping off, without expanding or editing", () => {
   render(<ClipPerformance language="english" renderEditor={() => null}
     onLoopChange={value => useAppStore.getState().setSequencerArrangerLoopSelection(value)} />);
-  const loop = screen.getByRole("button", { name: "Loop · Clip" }) as HTMLButtonElement;
+  const loop = screen.getByRole("button", { name: "Loop" }) as HTMLButtonElement;
   expect(loop.disabled).toBe(false);
   expect(screen.queryByRole("region", { name: "Editing" })).toBeNull();
   expect(document.querySelector('[data-expanded="true"]')).toBeNull();
@@ -68,6 +68,52 @@ it("selects a loop target when loading with looping off, without expanding or ed
   fireEvent.click(loop);
   expect(loop.getAttribute("aria-pressed")).toBe("false");
   expect(loop.disabled).toBe(false);
+});
+
+it("keeps empty-space deselection through transport changes and loops the whole song, including trailing silence", () => {
+  const model = useAppStore.getState().sequencer.clipArrangement!;
+  model.end += 20160 * 4;
+  const lane = model.lanes[0], clip = lane.clips[0];
+  clip.start = 20160;
+  render(<ClipPerformance language="english" renderEditor={() => null} onSeek={() => {}}
+    onLoopChange={value => useAppStore.getState().setSequencerArrangerLoopSelection(value)} />);
+  const loop = screen.getByRole("button", { name: "Loop" });
+  expect(loop.title).toBe("Loop selected clip");
+  fireEvent.click(document.querySelector("[data-clip-timeline]")!);
+  expect(screen.queryByRole("button", { name: "Remove clip" })).toBeNull();
+  expect(loop.title).toBe("Loop whole song");
+  for (const [playing, position] of [[true, 20160], [false, 20160], [false, 0]] as const) {
+    act(() => useAppStore.setState(s => ({ sequencerRuntime: { ...s.sequencerRuntime,
+      isPlaying: playing, arrangerActive: playing, arrangerTransportSubunit: position } })));
+    expect(loop.title).toBe("Loop whole song");
+  }
+  fireEvent.click(loop);
+  expect(useAppStore.getState().sequencer.arrangerLoopSelection).toEqual({ startStep: 0, endStep: model.end / 2520 });
+  expect(loop.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(loop);
+  expect(useAppStore.getState().sequencer.arrangerLoopSelection).toBeNull();
+  // Clicking the clip body, not just its header, restores a clip loop target.
+  fireEvent.click(document.querySelector(`[data-arranger-clip="${clip.id}"]`)!);
+  expect(loop.title).toBe("Loop selected clip");
+  fireEvent.click(loop);
+  expect(useAppStore.getState().sequencer.arrangerLoopSelection).toEqual({
+    startStep: clip.start / 2520, endStep: (clip.start + clip.length) / 2520
+  });
+});
+
+it("deselects nested content on ruler clicks without discarding its open editor", () => {
+  const lane = useAppStore.getState().sequencer.clipArrangement!.lanes[0], clip = lane.clips[0];
+  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });
+  const seek = vi.fn();
+  render(<ClipPerformance language="english" renderEditor={() => null} onSeek={seek}
+    onLoopChange={value => useAppStore.getState().setSequencerArrangerLoopSelection(value)} />);
+  fireEvent.click(screen.getByRole("button", { name: "▤ S" }));
+  fireEvent.click(document.querySelector("[data-arranger-viewport] [aria-hidden]")!);
+  expect(seek).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("button", { name: "Remove clip" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Editing" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Loop" }).title).toBe("Loop whole song");
+  expect(document.querySelector('[data-structure-node][style*="outline: 2px"]')).toBeNull();
 });
 
 it("exposes retained trailing silence and fits the finite song end explicitly with undo and reload", () => {
@@ -96,7 +142,7 @@ it("can re-enable a loaded clip loop after off, play, stop and rewind without op
   useAppStore.getState().setSequencerArrangerLoopSelection(range);
   render(<ClipPerformance language="english" renderEditor={() => null}
     onLoopChange={value => useAppStore.getState().setSequencerArrangerLoopSelection(value)} />);
-  const loop = screen.getByRole("button", { name: "Loop · Clip" }) as HTMLButtonElement;
+  const loop = screen.getByRole("button", { name: "Loop" }) as HTMLButtonElement;
   expect(loop.getAttribute("aria-pressed")).toBe("true");
   fireEvent.click(loop);
   expect(loop.disabled).toBe(false);

@@ -46,15 +46,15 @@ Arpeggiator **Play edit** waits for incoming notes or a chord on its input chann
 
 ![Drummer editor highlighting the current step during Play edit](../../screenshots/clip-arranger-edit-playback.png)
 
-**Loop · Clip** repeats the selected clip’s time window across all tracks. The button and ruler range turn amber when enabled; click again to turn it off. This is separate from **Loop** in the clip inspector, which repeats its content only within the fixed clip window. The playhead and Position field follow song position through loops and remain stationary during standalone audition. Newly created clips are selected automatically.
+**Loop** repeats the selected clip’s time window across all tracks. With no clip selected, it repeats the whole song from the start through **Song end**, including trailing silence. Click empty timeline space or the ruler outside a clip to deselect it; clicking a clip selects it again. The button and ruler range turn amber when enabled; click again to turn it off. This is separate from **Loop** in the clip inspector, which repeats its content only within the fixed clip window. The playhead and Position field follow song position through loops and remain stationary during standalone audition. Newly created clips are selected automatically.
 
-Loading selects a clip even when looping is off: a matching saved loop takes priority, then a clip at the cursor, then the earliest clip. Tracks stay compact and the editor stays closed. You can toggle the loop without reopening its editor, including after Play, Stop and Rewind. See the [restored loop selection](../../screenshots/clip-arranger-restored-loop.png).
+Loading selects a clip even when looping is off: a matching saved loop takes priority, then a clip at the cursor, then the earliest clip. Tracks stay compact and the editor stays closed. Explicitly clearing the selection stays cleared through Play, Stop and Rewind. You can toggle the loop without reopening its editor. See the [restored loop selection](../../screenshots/clip-arranger-restored-loop.png).
 
 **Song end** shows the actual playback boundary in master beats, marked by a dashed amber line. Moving or shortening clips retains trailing silence. To stop at the last clip instead, press **Fit song to clips**, or enter a Song end at or beyond the final clip. This is an undoable arrangement edit, saved with the performance; it does not cut off clips. Position and Song end use master beats, while the ruler uses bar/beat labels.
 
 ![Explicit song end and fitting to the last clip](../../screenshots/clip-arranger-song-end.png)
 
-![Tape transport with the selected clip loop highlighted](../../screenshots/clip-arranger-transport.png)
+![Loop enabled for the whole song with no clip selected](../../screenshots/clip-arranger-song-loop.png)
 
 The actual piano keyboard and configurable MIDI controller rows sit below the arranger/editor, each full width. They retain Start/Stop, routing, channel/OMNI, scale/autochord, velocity and CC controls. Their existing Auto/Live/Listening buffer policy still applies. An enabled device does not force low-latency buffering indefinitely. Arpeggiator Arranger/Live clock settings remain separate from clip placement.
 
