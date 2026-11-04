@@ -1,0 +1,206 @@
+{
+  "version": 24,
+  "instruments": [],
+  "sequencer": {
+    "controllerSequencers": [
+      {
+        "id": "automation",
+        "controllerNumber": 21,
+        "targetChannels": [
+          1
+        ],
+        "controllerMode": "curve",
+        "automationTarget": {
+          "instrumentId": "one",
+          "controllerNodeIds": [
+            "setting"
+          ]
+        }
+      }
+    ],
+    "clipArrangement": {
+      "version": 2,
+      "revision": 0,
+      "end": 10321920,
+      "lanes": [
+        {
+          "id": "automation",
+          "source": "controller",
+          "cycleTicks": null,
+          "definitions": [
+            {
+              "id": "curve",
+              "name": "Sweep",
+              "revision": 0,
+              "kind": "pattern",
+              "source": "controller",
+              "payload": {
+                "curveDurationTicks": 10321920,
+                "lengthBeats": 4,
+                "stepCount": 16,
+                "steps": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ],
+                "keypoints": [
+                  {
+                    "id": "start",
+                    "position": 0,
+                    "value": 0
+                  },
+                  {
+                    "id": "end",
+                    "position": 1,
+                    "value": 127
+                  }
+                ]
+              }
+            }
+          ],
+          "clips": [
+            {
+              "id": "sweep",
+              "name": "Sweep",
+              "start": 0,
+              "length": 10321920,
+              "offset": 0,
+              "mode": "once",
+              "children": [
+                {
+                  "id": "use",
+                  "definitionId": "curve"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

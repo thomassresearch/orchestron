@@ -1,3 +1,5 @@
+import { automationRouting, mappedControls, reconcileAutomation } from "../lib/clipArranger/automation";
+import { useAutomationMerge } from "../lib/clipArranger/automationMerge";
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
 import { resolveClipDrafts } from "../lib/clipArranger/draftResolution";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
@@ -321,7 +323,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
             const payload = migrateSequencerTiming(persistedState, true) as Partial<PersistedAppState>;
-            if (payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
+            if (payload.version === 6 || payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
               const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
               if (restoredTabs.length > 0) {
                 instrumentTabs = restoredTabs;
@@ -383,7 +385,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           const resolvedGuiLanguage = guiLanguageChangedDuringBootstrap ? latestState.guiLanguage : guiLanguage;
 
           const baselineSnapshot: PersistedAppState = {
-            version: sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+            version: sequencer.clipArrangement?.version === 2 ? 6 : sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
@@ -1204,9 +1206,33 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
   }, APP_STATE_PERSIST_DEBOUNCE_MS);
 }
 
+// Channel/patch/rack changes derive bound routing without re-enabling suspended sources.
+useAppStore.subscribe((state, previous) => {
+  if (state !== useAppStore.getState() || state.sequencer === previous.sequencer && state.sequencerInstruments === previous.sequencerInstruments && state.patches === previous.patches) return;
+  if (state.patches !== previous.patches || state.sequencerInstruments !== previous.sequencerInstruments) {
+    const lostControls = state.sequencer.controllerSequencers.some(t => {
+      if (!t.automationTarget) return false;
+      const before = previous.sequencerInstruments.find(b => b.id === t.automationTarget!.instrumentId);
+      const after = state.sequencerInstruments.find(b => b.id === t.automationTarget!.instrumentId);
+      const oldIds = new Set(before ? mappedControls(before, previous.patches).map(d => d.node_id) : []);
+      const newIds = new Set(after ? mappedControls(after, state.patches).map(d => d.node_id) : []);
+      return t.automationTarget.controllerNodeIds.some(id => oldIds.has(id) && !newIds.has(id));
+    });
+    if (lostControls) {
+      try {
+        const sequencer = reconcileAutomation(state.sequencer, state.sequencerInstruments, state.patches);
+        if (sequencer !== state.sequencer) { useAppStore.setState({ sequencer }); return; }
+      } catch { /* Capacity may prevent a split. Retain the complete source, suspended below. */ }
+    }
+  }
+  const tracks = state.sequencer.controllerSequencers.map(t => automationRouting(t, state.sequencerInstruments, state.patches));
+  if (tracks.some((t, i) => t !== state.sequencer.controllerSequencers[i])) useAppStore.setState({ sequencer: { ...state.sequencer, controllerSequencers: tracks } });
+});
+
 // Invalidate outside the component lifetime, including edits made while collapsed.
 useAppStore.subscribe((state, previous) => {
   if (state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) {
+    useAutomationMerge.getState().resolve?.(null);
     useStructureDraft.setState({draft:null});
     useAppStore.setState({ clipDrafts: {}, clipEditingKey: null, clipAuditionDraft: null });
   }

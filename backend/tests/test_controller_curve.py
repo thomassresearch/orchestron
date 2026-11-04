@@ -74,3 +74,34 @@ def test_live_open_curves_continue_across_pads_without_return_to_start(block):
     assert values == sorted(values)
     assert max(b - a for a, b in zip(values, values[1:])) == 1
     assert len(values) <= 72  # Only changes, plus at most one pad-boundary resend.
+
+
+def test_compact_events_match_dense_sampler():
+    from backend.app.models.sequencer_constants import CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM as quantum
+    rng = random.Random(927)
+    for count in (2, 3, 6, 10):
+        for duration in (1, 167, 168, 169, 20160, 20160 * 33 + 97):
+            for _ in range(8):
+                points = tuple(zip([0., *sorted(rng.random() for _ in range(count - 2)), 1.],
+                                   [rng.randrange(128) for _ in range(count)]))
+                expected = []
+                offsets = range(0, duration, quantum)
+                for at, value in zip(offsets, curve.sample_controller_curve_values(points, (at / float(duration) for at in offsets))):
+                    if not expected or expected[-1][1] != value:
+                        expected.append((at, value))
+                assert curve.compact_controller_events(points, duration, quantum) == tuple(expected)
+
+
+def test_maximum_song_curve_has_bounded_preparation(monkeypatch):
+    calls = 0
+    original = curve.sample_controller_curve_value
+    def sample(points, position):
+        nonlocal calls
+        calls += 1
+        return original(points, position)
+    monkeypatch.setattr(curve, "sample_controller_curve_value", sample)
+    points = tuple((i / 9, 127 if i % 2 else 0) for i in range(10))
+    events = curve.compact_controller_events(points, 20160000000, 168)
+    assert len(events) < 4000
+    assert calls < 100000  # independent of the 120 million possible sample positions
+    assert events[0] == (0, 0)

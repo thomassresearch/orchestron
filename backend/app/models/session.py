@@ -408,6 +408,7 @@ class SessionControllerSequencerKeypointConfig(BaseModel):
 
 
 class SessionControllerSequencerPadConfig(BaseModel):
+    curve_duration_ticks: int | None = Field(default=None, strict=True, ge=1, le=20160000000)
     pad_index: int = Field(ge=0, le=511)
     length_beats: ControllerSequencerPadLengthBeats | None = None
     keypoints: list[SessionControllerSequencerKeypointConfig] = Field(default_factory=list, max_length=256)
@@ -515,7 +516,19 @@ class SessionScoreSequencerTrackConfig(SessionSequencerTrackConfig):
         return self
 
 
+class AutomationTarget(BaseModel):
+    instrument_id: str = Field(min_length=1, max_length=128)
+    controller_node_ids: list[str] = Field(min_length=1, max_length=256)
+
+    @model_validator(mode="after")
+    def validate_nodes(self):
+        if any(not node or len(node) > 256 for node in self.controller_node_ids) or len(set(self.controller_node_ids)) != len(self.controller_node_ids):
+            raise ValueError("Automation controller IDs must be distinct nonempty strings.")
+        return self
+
+
 class SessionControllerSequencerTrackConfig(BaseModel):
+    automation_target: AutomationTarget | None = None
     track_id: str = Field(min_length=1, max_length=256)
     controller_number: int = Field(ge=0, le=127)
     controller_mode: Literal["curve", "step"] = "curve"
@@ -535,6 +548,17 @@ class SessionControllerSequencerTrackConfig(BaseModel):
     @model_validator(mode="after")
     def validate_unique_pad_indexes(self) -> "SessionControllerSequencerTrackConfig":
         _validate_clip_slots(self)
+        if self.automation_target:
+            if self.clip_schedule is None or any(not 2 <= len(pad.keypoints) <= 10 for pad in self.pads):
+                raise ValueError("Bound automation requires clip schedules and 2–10 curve points.")
+            for pad in self.pads:
+                positions = sorted(point.position for point in pad.keypoints)
+                if positions[0] != 0 or positions[-1] != 1 or len(set(positions)) != len(positions):
+                    raise ValueError("Bound automation requires distinct points including both endpoints.")
+            if len(self.target_channels) != 1:
+                raise ValueError("Bound automation requires exactly one instrument MIDI channel.")
+        elif any(pad.curve_duration_ticks is not None for pad in self.pads):
+            raise ValueError("Extended curve duration requires an automation target.")
         if any(length * self.timing.steps_per_beat > 128 for length in
                [self.length_beats, *(pad.length_beats or self.length_beats for pad in self.pads)]):
             raise ValueError("A sequencer pad cannot exceed 128 steps.")
@@ -739,6 +763,13 @@ class SessionSequencerConfigRequest(BaseModel):
             raise ValueError("At least one sequencer, controller, or arpeggiator must be configured.")
         if sum(len(p.notes) for t in self.score_tracks for p in t.pads) > 50000:
             raise ValueError("A performance cannot exceed 50000 score notes.")
+        if sum(t.automation_target is None for t in self.controller_tracks) > 16:
+            raise ValueError("At most 16 generic controller sequencers are allowed.")
+        if any(t.automation_target for t in self.controller_tracks):
+            lanes = {t.track_id.split(":")[1] if t.track_id.startswith("drumrow:") and len(t.track_id.split(":")) == 3 else t.track_id for t in [*self.tracks, *self.score_tracks, *self.controller_tracks]}
+            lanes.update(a.arpeggiator_id for a in self.arpeggiators)
+            if len(lanes) > 72:
+                raise ValueError("Instrument automation cannot exceed the 72-lane arranger limit.")
         seen: set[str] = set()
         for track in [*self.tracks, *self.score_tracks]:
             if track.track_id in seen:
@@ -857,6 +888,7 @@ class SessionScoreSequencerTrackStatus(SessionSequencerTrackStatus):
 
 
 class SessionControllerSequencerTrackStatus(BaseModel):
+    curve_duration_ticks: int | None = None
     track_id: str
     controller_number: int = Field(ge=0, le=127)
     timing: SessionSequencerTimingConfig

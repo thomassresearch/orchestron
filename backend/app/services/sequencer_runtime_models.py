@@ -64,6 +64,7 @@ class ControllerSequencerPadRuntime:
     transport_subunit_count: int
     events: tuple[ControllerSequencerEventRuntime, ...]
     event_offsets: tuple[int, ...] = ()
+    curve_duration_ticks: int | None = None
 
 
 @dataclass(slots=True)
@@ -131,6 +132,7 @@ class ControllerSequencerTrackRuntime:
     clip_boundary: int | None = None
     clip_occurrence: tuple | None = None
     last_value: int | None = None
+    automation_target: object | None = None
     controller_mode: str = "curve"
     reset_value: int = 0
     step_active: bool = False

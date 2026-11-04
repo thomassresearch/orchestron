@@ -55,6 +55,9 @@ class PerformanceControllerUpdate(BaseModel):
 
 
 class PerformanceControllerDelta(BaseModel):
+    # Validated into SessionSequencerConfigRequest by the service to avoid the
+    # existing session -> performance_controller model dependency cycle.
+    sequencer_config: dict | None = None
     values: dict[str, ControllerNumber | None] = Field(default_factory=dict)
     midi_ccs: dict[str, PerformanceMidiCC | None] = Field(default_factory=dict)
     revisions: dict[str, Annotated[int, Field(strict=True, ge=0)]] = Field(default_factory=dict)

@@ -2869,8 +2869,8 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               >
                 {ui.clearSteps}
               </button>
-              <MidiChannelSelector channels={controllerSequencer.targetChannels} ui={ui}
-                onChange={(channels) => onControllerSequencerTargetChannelsChange(controllerSequencer.id, channels)} />
+              {controllerSequencer.automationTarget ? <span className="text-xs text-teal-200">MIDI {controllerSequencer.targetChannels[0]} · CC {controllerSequencer.controllerNumber} 🔒</span> : <MidiChannelSelector channels={controllerSequencer.targetChannels} ui={ui}
+                onChange={(channels) => onControllerSequencerTargetChannelsChange(controllerSequencer.id, channels)} />}
               <button hidden={clipEditing}
                 type="button"
                 onClick={() => onRemoveControllerSequencer(controllerSequencer.id)}
@@ -2908,6 +2908,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                   min={0}
                   max={127}
                   value={controllerSequencer.controllerNumber}
+                  disabled={!!controllerSequencer.automationTarget}
                   onChange={(event) =>
                     onControllerSequencerNumberChange(controllerSequencer.id, Number(event.target.value))
                   }
@@ -2915,12 +2916,12 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                 />
               </label>
 
-              <SequencerTimingControls id={controllerSequencer.id} timing={controllerSequencer.timing} lengthBeats={controllerSequencer.lengthBeats} pads={controllerSequencer.pads} language={guiLanguage} controller
+              {!(controllerSequencer.automationTarget && controllerSequencer.controllerMode === "curve") && <SequencerTimingControls id={controllerSequencer.id} timing={controllerSequencer.timing} lengthBeats={controllerSequencer.lengthBeats} pads={controllerSequencer.pads} language={guiLanguage} controller
                 onMeterNumerator={value => onControllerSequencerMeterNumeratorChange(controllerSequencer.id, value)}
                 onMeterDenominator={value => onControllerSequencerMeterDenominatorChange(controllerSequencer.id, value)}
                 onSubdivision={value => onControllerSequencerStepsPerBeatChange(controllerSequencer.id, value)}
                 onLength={value => onControllerSequencerStepCountChange(controllerSequencer.id, value)}
-                onSpeed={(n, d) => onControllerSequencerBeatRateChange(controllerSequencer.id, n, d)} />
+                onSpeed={(n, d) => onControllerSequencerBeatRateChange(controllerSequencer.id, n, d)} />}
 
               <div className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-xs text-slate-200">
                 CC {controllerSequencer.controllerNumber}
@@ -2992,7 +2993,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               track={controllerSequencer} language={guiLanguage}
               transportSubunit={controllerSequencerIsRunning && playingPad === controllerSequencer.activePad ? sequencerTransportSubunit : null}
               onChange={(step, value) => onControllerSequencerStepChange?.(controllerSequencer.id, step, value)}
-            /> : <ControllerSequencerCurveEditor
+            /> : clipEditing && controllerSequencer.automationTarget ? <p className="text-[10px] text-slate-500">{ui.curveEditorHint}</p> : <ControllerSequencerCurveEditor
               ui={ui}
               controllerSequencer={controllerSequencer}
               playbackTransport={

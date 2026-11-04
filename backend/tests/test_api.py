@@ -9655,3 +9655,133 @@ def test_clip_native_bundle_retains_shared_definitions_and_fixed_windows(tmp_pat
             headers={"X-File-Name": "clips.orch.json", "Content-Type": "application/json"})
         assert restored.status_code == 200, restored.text
         assert restored.json()["performance"]["config"] == config
+
+
+def test_instrument_automation_persistence_native_bundles_and_limits(tmp_path):
+    from copy import deepcopy
+    from backend.tests.test_instrument_automation import automation_document
+    config = automation_document()
+    with _client(tmp_path) as client:
+        response = client.post("/api/performances", json={"name": "Instrument automation", "config": config})
+        assert response.status_code == 201, response.text
+        endpoint = f"/api/performances/{response.json()['id']}"
+        assert client.get(endpoint).json()["config"] == config
+        state = {"version": 6, "sequencer": config["sequencer"]}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"] == state
+        payload = {"format": "orchestron.performance", "version": 1, "performance": {"name": "Automation", "config": config}, "patch_definitions": []}
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200, exported.text
+        restored = client.post("/api/bundles/import/expand", content=exported.content,
+                               headers={"X-File-Name": "automation.orch.json", "Content-Type": "application/json"})
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["performance"]["config"] == config
+        bad = deepcopy(config)
+        bad["sequencer"]["clipArrangement"]["lanes"][0]["definitions"][0]["payload"]["keypoints"] = [
+            {"id": str(i), "position": i / 10, "value": 0} for i in range(11)]
+        assert client.put(endpoint, json={"config": bad}).status_code == 422
+        assert client.get(endpoint).json()["config"] == config
+
+
+def test_instrument_automation_mapping_update_is_revision_checked_and_atomic(tmp_path):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_instrument_automation import automation_wire
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=load_patch_fixture("performance_controller_midi").model_dump(mode="json", by_alias=True)).json()
+        session = client.post("/api/sessions", json={"instruments": [{"id": "one", "patch_id": patch["id"],
+            "midi_channel": 1, "performance_controller_midi_ccs": {"setting": 21}}]}).json()["session_id"]
+        config_url = f"/api/sessions/{session}/sequencer/config"
+        endpoint = f"/api/sessions/{session}/instruments/one/performance-controllers"
+        wire = automation_wire()
+        assert client.put(config_url, json=wire).status_code == 200
+        snapshot = client.get(endpoint).json()
+        wire["controller_tracks"][0]["controller_number"] = 22
+        assert client.put(config_url, json=wire).status_code == 422
+        update = {"midi_ccs": {"setting": 22}, "revisions": snapshot["revisions"], "midi_revisions": snapshot["midi_revisions"], "sequencer_config": wire}
+        changed = client.patch(endpoint, json=update)
+        assert changed.status_code == 200, changed.text
+        assert changed.json()["midi_ccs"] == {"setting": 22}
+        assert client.patch(endpoint, json=update).status_code == 409
+        bad = {**update, "revisions": changed.json()["revisions"], "midi_revisions": changed.json()["midi_revisions"], "midi_ccs": {"setting": 23}}
+        assert client.patch(endpoint, json=bad).status_code == 422
+        assert client.get(endpoint).json()["midi_ccs"] == {"setting": 22}
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_instrument_automation_exports_preserve_long_curve_crop(tmp_path, event_source, monkeypatch):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_instrument_automation import automation_wire, automation_document
+    from backend.app.services.performance_export_splines import SplineCapture
+    captured = []
+    original = SplineCapture.validated
+    def validate(capture, events):
+        result = original(capture, events)
+        captured.extend(span for spans in result.values() for span in spans)
+        return result
+    monkeypatch.setattr(SplineCapture, "validated", validate)
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    patch = load_patch_fixture("performance_controller_midi").model_dump(mode="json", by_alias=True)
+    payload["performanceExport"]["patch_definitions"] = [{**patch, "sourcePatchId": "patch-1"}]
+    config = automation_document()
+    config["instruments"] = [{"id": "one", "patchId": "patch-1", "midiChannel": 1, "performanceControllerMidiCCs": {"setting": 21}}]
+    payload["performanceExport"]["performance"]["config"] = config
+    wire = automation_wire(128 * 20160)
+    wire["tracks"] = payload["sequencerConfig"]["tracks"]
+    wire["playback_end_step"] = 32 * 8
+    schedule = wire["controller_tracks"][0]["clip_schedule"]
+    schedule["end"] = 32 * 20160
+    schedule["clips"][0].update(offset=64 * 20160, length=32 * 20160)
+    payload["sequencerConfig"] = wire
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+    with zipfile.ZipFile(BytesIO(response.content)) as archive:
+        if event_source == "midiFile":
+            events = [(tick / 480 / 2, msg.value) for tick, msg in _midi_messages_with_absolute_ticks(archive.read("Offline_Export/Offline_Export.mid"))
+                      if msg.type == "control_change" and msg.control == 21 and msg.channel == 0]
+        else:
+            from backend.app.services.compiler_orchestra import OrchestraEmitter
+            index = OrchestraEmitter.score_controller_index(1, 21)
+            csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+            events = [(float(parts[2]), int(parts[5])) for line in csd.splitlines() if line.startswith("i 9000 ")
+                      for parts in [line.split()] if int(parts[4]) == index]
+        movement = [(time, value) for time, value in events if value > 0]
+        assert movement[0][1] in (63, 64)
+        if event_source == "midiFile":
+            assert 30 <= len(movement) <= 50
+            assert 95 < movement[-1][1] < 110
+        else:
+            assert captured and all(span.duration == 128 * 20160 for span in captured)
+            assert captured[0].first_offset == 64 * 20160
+            assert "gi_vcs_spline_pads" in csd
+        assert all(0 <= time <= 16 for time, _ in events)
+
+
+@pytest.mark.parametrize("failure", ["preparation", "superseded"])
+def test_instrument_automation_preparation_failure_retains_mapping_and_music(tmp_path, monkeypatch, failure):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_instrument_automation import automation_wire
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=load_patch_fixture("performance_controller_midi").model_dump(mode="json", by_alias=True)).json()
+        session = client.post("/api/sessions", json={"instruments": [{"id": "one", "patch_id": patch["id"], "midi_channel": 1, "performance_controller_midi_ccs": {"setting": 21}}]}).json()["session_id"]
+        endpoint = f"/api/sessions/{session}/instruments/one/performance-controllers"
+        wire = automation_wire()
+        assert client.put(f"/api/sessions/{session}/sequencer/config", json=wire).status_code == 200
+        snapshot = client.get(endpoint).json()
+        service = client.app.state.container.session_service
+        runtime = service._sessions[session]
+        old = runtime.sequencer.status()
+        prepare = service._preparation.prepare
+        async def fail(*args, **kwargs):
+            if failure == "preparation":
+                raise ValueError("intentional preparation failure")
+            result = await prepare(*args, **kwargs)
+            runtime.configuration_generation += 1
+            return result
+        monkeypatch.setattr(service._preparation, "prepare", fail)
+        wire["controller_tracks"][0]["controller_number"] = 22
+        response = client.patch(endpoint, json={"midi_ccs": {"setting": 22}, "revisions": snapshot["revisions"], "sequencer_config": wire})
+        assert response.status_code == (422 if failure == "preparation" else 409), response.text
+        assert client.get(endpoint).json() == snapshot
+        assert runtime.sequencer.status() == old

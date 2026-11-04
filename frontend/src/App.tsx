@@ -1,3 +1,4 @@
+import { registerAutomationRuntime } from "./lib/clipArranger/automationRuntime";
 import { resolveClipDrafts } from "./lib/clipArranger/draftResolution";
 import { clipRuntimeView, attachClipSchedules, clipAuditionState } from "./lib/clipArranger/runtime";
 import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
@@ -440,10 +441,11 @@ export default function App() {
           controllerSequencer.padLoopPattern,
           controllerSequencer.activePad
         );
-        const enabled = enabledForSequencerConfigExport(controllerSequencer, exportMode);
+        const enabled = !controllerSequencer.automationSuspended && enabledForSequencerConfigExport(controllerSequencer, exportMode);
         return {
           track_id: controllerSequencer.id,
           controller_number: controllerSequencer.controllerNumber,
+          ...(controllerSequencer.automationTarget ? { automation_target: { instrument_id: controllerSequencer.automationTarget.instrumentId, controller_node_ids: controllerSequencer.automationTarget.controllerNodeIds } } : {}),
           controller_mode: controllerSequencer.controllerMode,
           reset_value: controllerSequencer.resetValue,
           target_channels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
@@ -466,6 +468,7 @@ export default function App() {
           pads: controllerSequencer.pads.map((pad, padIndex) => ({
             pad_index: padIndex,
             length_beats: pad.lengthBeats,
+            ...(pad.curveDurationTicks !== undefined ? { curve_duration_ticks: pad.curveDurationTicks } : {}),
             steps: pad.steps,
             keypoints: pad.keypoints.map((keypoint) => ({
               position: keypoint.position,
@@ -543,6 +546,7 @@ export default function App() {
     },
     [appCopy.errors]
   );
+  useEffect(() => { registerAutomationRuntime(buildBackendSequencerConfig); return () => registerAutomationRuntime(undefined); }, [buildBackendSequencerConfig]);
   const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
     const authored = state ?? useAppStore.getState().sequencer;
     const draft = useAppStore.getState().clipAuditionDraft;

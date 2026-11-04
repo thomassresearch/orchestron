@@ -101,3 +101,26 @@ it("maps clicks after resizing a cropped inline curve to its original source coo
   fireEvent.pointerDown(view.container.querySelector("svg rect")!, { button: 0, clientX: 480, clientY: 36 });
   expect(add).toHaveBeenCalledWith(.75, 64);
 });
+
+it("maps viewport clicks and drags into a long cropped pattern and updates after scrolling", () => {
+  const track = { ...defaultControllerSequencer(), curveDurationTicks: 20160000000, keypoints: [
+    { id: "start", position: 0, value: 10 }, { id: "middle", position: .5, value: 70 }, { id: "end", position: 1, value: 100 }
+  ] };
+  const add = vi.fn(), change = vi.fn(), remove = vi.fn();
+  const editor = (range: [number, number]) => <ControllerSequencerCurveEditor ui={SEQUENCER_UI_COPY.english}
+    controllerSequencer={track} playbackTransport={null} visibleRange={range} height={127}
+    onAddPoint={add} onPointChange={change} onPointRemove={remove} />;
+  const view = render(editor([.25, .75]));
+  fireEvent.pointerDown(view.container.querySelector("svg rect")!, { button: 0, clientX: 240, clientY: 63 });
+  expect(add).toHaveBeenLastCalledWith(.375, 64);
+  const middle = view.container.querySelector("circle.cursor-move")!;
+  fireEvent.pointerDown(middle, { button: 0, pointerId: 1, clientX: 480, clientY: 57 });
+  fireEvent.pointerMove(middle, { pointerId: 1, clientX: 672, clientY: 47 });
+  expect(change).toHaveBeenLastCalledWith("middle", .6, 80);
+  fireEvent.pointerUp(middle, { pointerId: 1 });
+  fireEvent.doubleClick(middle);
+  expect(remove).toHaveBeenCalledWith("middle");
+  view.rerender(editor([.5, 1]));
+  fireEvent.pointerDown(view.container.querySelector("svg rect")!, { button: 0, clientX: 240, clientY: 63 });
+  expect(add).toHaveBeenLastCalledWith(.625, 64);
+});

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.services.instrument_automation import validate_automation_routing
+
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_BEAT
 
 import asyncio
@@ -374,13 +376,48 @@ class SessionService:
                         for key in ("controller_type", "min", "max", "default", "scale")) for d in definitions):
                     raise HTTPException(status_code=409, detail="Controller definitions changed; restart the rack.")
             try:
-                result = state.update(assignment_id, update.values, update.midi_ccs, update.revisions, midi_revisions=update.midi_revisions)
+                if update.sequencer_config is not None:
+                    request = SessionSequencerConfigRequest.model_validate(update.sequencer_config)
+                    assignment = next((item for item in runtime.instruments if item.id == assignment_id), None)
+                    if assignment is None:
+                        raise KeyError(assignment_id)
+                    mappings = {**assignment.performance_controller_midi_ccs}
+                    for node, cc in update.midi_ccs.items():
+                        if cc is None:
+                            mappings.pop(node, None)
+                        else:
+                            mappings[node] = cc
+                    validate_automation_routing(request, runtime.instruments, {assignment_id: mappings})
+                    with runtime.configuration_lock:
+                        generation = runtime.configuration_generation
+                    prepared = await self._preparation.prepare(request, self._performance_runtime.controller_default_channels(runtime))
+                    def apply_automation():
+                        with runtime.configuration_lock:
+                            if generation != runtime.configuration_generation:
+                                raise ControllerRevisionConflict()
+                            validate_automation_routing(request, runtime.instruments, {assignment_id: mappings})
+                            result = state.update(assignment_id, update.values, update.midi_ccs, update.revisions, midi_revisions=update.midi_revisions)
+                            runtime.configuration_generation += 1
+                            gate = runtime.worker.lane_output
+                            gate.configure(request)
+                            if request.lane_output is not None and request.lane_output.revision > gate.revision:
+                                gate.apply(request.lane_output.revision, {key: value.model_dump() for key, value in request.lane_output.lanes.items()})
+                            self._ensure_sequencer(runtime).apply_prepared(prepared)
+                            self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
+                            return result
+                    result = await asyncio.to_thread(runtime.worker.run_at_render_boundary, apply_automation)
+                else:
+                    if update.midi_ccs and runtime.sequencer and runtime.sequencer.has_automation_mapping(assignment_id, set(update.midi_ccs)):
+                        raise ValueError("Changing an automated mapping requires the coordinated sequencer configuration.")
+                    result = state.update(assignment_id, update.values, update.midi_ccs, update.revisions, midi_revisions=update.midi_revisions)
             except KeyError as error:
                 raise HTTPException(status_code=404, detail="Unknown rack instrument.") from error
             except ControllerRevisionConflict as error:
                 raise HTTPException(status_code=409, detail={"snapshot": state.snapshot(assignment_id)}) from error
             except CompilationError as error:
                 raise HTTPException(status_code=422, detail=error.detail()) from error
+            except ValueError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
             if runtime.state != SessionState.RUNNING:
                 runtime.compile_artifact = None
                 runtime.state = SessionState.IDLE
@@ -1146,6 +1183,10 @@ class SessionService:
         device_command: SessionDeviceTransportRequest | None = None,
         device_generation: tuple[str, int, int] | None = None,
     ) -> SessionSequencerStatus:
+        try:
+            validate_automation_routing(request, runtime.instruments)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
         with runtime.configuration_lock:
             runtime.configuration_generation += 1
             generation = runtime.configuration_generation
@@ -1164,6 +1205,7 @@ class SessionService:
                     if start and arranger_active:
                         sequencer.clear_auditions()
                         self._ensure_midi_router(runtime).clear_auditions()
+                    validate_automation_routing(request, runtime.instruments)
                     gate = runtime.worker.lane_output
                     gate.configure(request)
                     if request.lane_output is not None and request.lane_output.revision > gate.revision:

@@ -189,3 +189,7 @@ Node IDs identify controls; duplicate labels are allowed. Changing the selected 
 `perf_controller` is an Orchestron editor construct lowered to [I-rate chnget](https://csound.com/docs/manual/chnget.html) and channel initialization. It is not a native Csound opcode.
 
 The [Stereo Widener, Bit Crusher, and Harmonizer](../instrument_design/continuous_effects.md) examples expose four, five, and six performance controls respectively. These continuous effects read their settings when the rack starts. Restart the rack after editing them. Harmonizer aligns its dry signal with its measured 32 ms processing delay at 48 kHz.
+
+## Automation from instrument clips
+
+The clip arranger’s **Generate automation** action creates one bound lane per distinct assigned CC. It derives routing from this rack instance and retains suspended automation when assignments are switched Off. Curves support song-length durations, ten points and editing directly inside clips. See [Instrument automation clips](instrument_automation.md) for generation and split/merge rules. I-rate behavior remains unchanged: new notes or phrases adopt the automated value.

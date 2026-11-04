@@ -131,3 +131,66 @@ def sample_controller_curve_values(
         t2 = local_t * local_t
         t3 = t2 * local_t
         yield clamp_controller_value(0.5 * (constant + linear * local_t + quadratic * t2 + cubic * t3))
+
+
+def compact_controller_events(points: tuple[tuple[float, int], ...], duration: int, quantum: int):
+    """Exact sampled changes without visiting every quantum of a long song.
+
+    Each Catmull–Rom segment has at most three monotone intervals. Within each
+    interval the rounded/clamped MIDI value is monotone too, so binary searches
+    find its (at most 127) changes. Boundary samples use the production sampler.
+    """
+    import math
+
+    count = (duration + quantum - 1) // quantum
+    if count <= 0:
+        return ((0, points[0][1]),)
+    cuts = {0, count}
+    for index in range(len(points) - 1):
+        x1, p1 = points[index]
+        x2, p2 = points[index + 1]
+        p0 = points[max(0, index - 1)][1]
+        p3 = points[min(len(points) - 1, index + 2)][1]
+        a = 3 * (-p0 + 3 * p1 - 3 * p2 + p3)
+        b = 2 * (2 * p0 - 5 * p1 + 4 * p2 - p3)
+        c = -p0 + p2
+        roots = []
+        if a:
+            discriminant = b * b - 4 * a * c
+            if discriminant >= 0:
+                roots = [(-b - math.sqrt(discriminant)) / (2 * a), (-b + math.sqrt(discriminant)) / (2 * a)]
+        elif b:
+            roots = [-c / b]
+        for position in [x1, x2, *(x1 + root * (x2 - x1) for root in roots if 0 < root < 1)]:
+            sample = math.floor(position * duration / quantum)
+            # Isolate both neighbours of extrema/segment boundaries, including
+            # floating point rounding at an exactly aligned sample.
+            cuts.update(max(0, min(count, sample + delta)) for delta in (-1, 0, 1, 2))
+    events = []
+
+    def value(index):
+        return sample_controller_curve_value(points, index * quantum / float(duration))
+
+    def append(index, current):
+        if not events or events[-1][1] != current:
+            events.append((index * quantum, current))
+
+    boundaries = sorted(cuts)
+    for lo, stop in zip(boundaries, boundaries[1:]):
+        if stop <= lo:
+            continue
+        current = value(lo)
+        append(lo, current)
+        last = value(stop - 1)
+        while current != last:
+            left, right = lo + 1, stop - 1
+            while left < right:
+                middle = (left + right) // 2
+                if value(middle) == current:
+                    left = middle + 1
+                else:
+                    right = middle
+            lo = left
+            current = value(lo)
+            append(lo, current)
+    return tuple(events)

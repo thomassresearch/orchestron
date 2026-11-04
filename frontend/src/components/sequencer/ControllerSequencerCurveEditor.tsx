@@ -38,6 +38,7 @@ interface ControllerSequencerCurveEditorProps {
         transportSubunitDurationMs: number;
       }
     | null;
+  visibleRange?: [number, number];
   height?: number;
   showHint?: boolean;
   onAddPoint: (position: number, value: number) => void;
@@ -53,8 +54,10 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
   onPointChange,
   onPointRemove,
   height = 150,
-  showHint = true
+  showHint = true,
+  visibleRange
 }: ControllerSequencerCurveEditorProps) {
+  const from = visibleRange?.[0] ?? 0, span = (visibleRange?.[1] ?? 1) - from;
   const gradientId = useId();
   const [width, setWidth] = useState(960);
   const [snapValue, setSnapValue] = useState<number | null>(null);
@@ -101,8 +104,11 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
   }, []);
 
   const path = useMemo(
-    () => buildControllerCurvePath(controllerSequencer.keypoints, width, height),
-    [controllerSequencer.keypoints, height, width]
+    () => !visibleRange ? buildControllerCurvePath(controllerSequencer.keypoints, width, height) : Array.from({ length: 161 }, (_, i) => {
+      const value = sampleControllerCurveValue(controllerSequencer.keypoints, from + i / 160 * span);
+      return `${i ? "L" : "M"}${i / 160 * width},${controllerCurveValueToY(value, height)}`;
+    }).join(" "),
+    [controllerSequencer.keypoints, height, width, from, span, visibleRange]
   );
 
   useEffect(() => {
@@ -157,7 +163,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     }
     const repeatLength = Math.max(
       1,
-      Math.round(sequencerTransportSubunitCount(controllerSequencer.timing, controllerSequencer.lengthBeats))
+      controllerSequencer.curveDurationTicks ?? Math.round(sequencerTransportSubunitCount(controllerSequencer.timing, controllerSequencer.lengthBeats))
     );
     const patternStartStep =
       typeof controllerSequencer.runtimePadStartSubunit === "number" && Number.isFinite(controllerSequencer.runtimePadStartSubunit)
@@ -168,6 +174,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     return clampControllerCurveUiPosition(normalized / repeatLength);
   }, [
     controllerSequencer.lengthBeats,
+    controllerSequencer.curveDurationTicks,
     controllerSequencer.runtimePadStartSubunit,
     controllerSequencer.timing,
     playbackTransport,
@@ -202,14 +209,14 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
       if (!point) {
         return;
       }
-      const position = clampControllerCurveUiPosition(point.x / width);
+      const position = clampControllerCurveUiPosition(from + point.x / width * span);
       const value = controllerCurveYToValue(point.y, height);
       if (position <= 0 || position >= 1) {
         return;
       }
       onAddPoint(position, value);
     },
-    [getSvgPoint, onAddPoint, width, height]
+    [getSvgPoint, onAddPoint, width, height, from, span]
   );
 
   const releaseDrag = useCallback((pointerId: number) => {
@@ -280,7 +287,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
       const isEnd = currentKeypoint.position >= 1 - 1e-6;
       const deltaX = clientX - dragState.startClientX;
       const deltaY = clientY - dragState.startClientY;
-      let nextPosition = clampControllerCurveUiPosition(dragState.startPosition + deltaX / rect.width);
+      let nextPosition = clampControllerCurveUiPosition(dragState.startPosition + deltaX / rect.width * span);
       let nextValue = clampMidiControllerValue(dragState.startValue + (-deltaY / rect.height) * 127);
       const opposite = isStart ? sortedKeypoints[sortedKeypoints.length - 1] : isEnd ? sortedKeypoints[0] : undefined;
       const snapped = !shiftKey && opposite !== undefined && Math.abs(nextValue - opposite.value) <= 3;
@@ -304,7 +311,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
 
       onPointChange(dragState.keypointId, nextPosition, nextValue);
     },
-    [controllerSequencer.keypoints, onPointChange]
+    [controllerSequencer.keypoints, onPointChange, span]
   );
 
   const handlePointPointerMove = useCallback((event: ReactPointerEvent<SVGCircleElement>) => {
@@ -372,7 +379,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     [controllerSequencer.keypoints]
   );
 
-  const beatGroups = sequencerBeatGroups(controllerSequencer.timing, controllerSequencer.stepCount);
+  const beatGroups = controllerSequencer.curveDurationTicks ? [] : sequencerBeatGroups(controllerSequencer.timing, controllerSequencer.stepCount);
   const minimumLabelBeats = Math.ceil(28 * controllerSequencer.lengthBeats / width);
   const labelEvery = minimumLabelBeats <= 1 ? 1
     : Math.ceil(minimumLabelBeats / controllerSequencer.timing.meterNumerator) * controllerSequencer.timing.meterNumerator;
@@ -433,7 +440,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         })}
         {beatGroups.map(group => {
           const index = group.start / controllerSequencer.timing.stepsPerBeat;
-          const x = index / controllerSequencer.lengthBeats * width;
+          const x = (index / controllerSequencer.lengthBeats - from) / span * width;
           return (
             <line
               key={`grid-x-${index}`}
@@ -470,16 +477,16 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         {playbackT !== null && playbackValue !== null ? (
           <>
             <line
-              x1={playbackT * width}
+              x1={(playbackT - from) / span * width}
               y1={0}
-              x2={playbackT * width}
+              x2={(playbackT - from) / span * width}
               y2={height}
               stroke="rgba(103,232,249,0.45)"
               strokeWidth={1.5}
               strokeDasharray="5 4"
             />
             <circle
-              cx={playbackT * width}
+              cx={(playbackT - from) / span * width}
               cy={controllerCurveValueToY(playbackValue, height)}
               r={5}
               fill="#67e8f9"
@@ -490,7 +497,8 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         ) : null}
 
         {visualPoints.map((point) => {
-          const cx = point.position * width;
+          const cx = (point.position - from) / span * width;
+          if (cx < -5 || cx > width + 5) return null;
           const cy = controllerCurveValueToY(point.value, height);
           return (
             <circle
@@ -538,5 +546,5 @@ function areControllerSequencerCurveEditorPropsEqual(
       previousPlayback.transportSubunit === nextPlayback.transportSubunit &&
       previousPlayback.transportSubunitDurationMs === nextPlayback.transportSubunitDurationMs);
 
-  return previous.showHint === next.showHint && previous.height === next.height && previous.onAddPoint === next.onAddPoint && previous.onPointChange === next.onPointChange && previous.onPointRemove === next.onPointRemove && previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
+  return previous.visibleRange?.[0] === next.visibleRange?.[0] && previous.visibleRange?.[1] === next.visibleRange?.[1] && previous.showHint === next.showHint && previous.height === next.height && previous.onAddPoint === next.onAddPoint && previous.onPointChange === next.onPointChange && previous.onPointRemove === next.onPointRemove && previous.ui === next.ui && previous.controllerSequencer === next.controllerSequencer && playbackEqual;
 }

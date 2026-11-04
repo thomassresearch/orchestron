@@ -26,7 +26,7 @@ Typical uses:
 ## Adding / Removing Controller Sequencers
 
 - `Add Controller Sequencer` creates a new controller sequencer card
-- A performance can contain up to 16 controller sequencers
+- A performance can contain up to 16 generic controller sequencers; instrument-bound automation shares the clip arranger’s 72-lane total
 - Each controller sequencer has a `Remove` button
 
 ## Per-Controller-Sequencer Controls
@@ -59,6 +59,10 @@ Selections survive Save/Load Performance, browser reload, native JSON/ZIP export
 This defines the pattern repeat length relative to the controller sequencer's own timing. Step Mode shows `length × subdivision` cells, up to 128; shortening hides trailing cells without deleting them. Keypoints stay normalized across the full pad duration, so the same curve shape stretches automatically when you choose a longer beat length.
 
 `Advanced timing → Playback speed` changes how quickly the controller sequencer moves through that curve relative to the shared transport. Faster ratios create repeating automation polyrhythms without changing the stored keypoint positions.
+
+## Instrument-bound automation
+
+In the clip arranger, **Generate automation** creates controller lanes from the instrument rack’s CC assignments. These lanes lock routing to the rack instance and support song-length curves with at most ten points. Curve duration uses master beats independently of the retained Step Mode grid. See [Instrument automation clips](instrument_automation.md) for inline editing, Save/Discard and mapping changes.
 
 ## Pattern Workspace
 

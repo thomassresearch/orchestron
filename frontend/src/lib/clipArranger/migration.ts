@@ -3,7 +3,7 @@ import { ClipError, QUARTER_TICKS, contentLength, localBeatTicks, validateArrang
 
 export const sourceKeys = { sequencer: "tracks", score: "scoreTracks", drummer: "drummerTracks", controller: "controllerSequencers", arpeggiator: "arpeggiators" } as const;
 export function arrangementTimings(state: SequencerState): LaneTiming {
-  return Object.fromEntries([...state.tracks, ...state.scoreTracks, ...state.drummerTracks, ...state.controllerSequencers].map(track => [track.id, track.timing]));
+  return Object.fromEntries([...state.tracks, ...state.scoreTracks, ...state.drummerTracks, ...state.controllerSequencers].map(track => [track.id, "automationTarget" in track && track.automationTarget ? { ...track.timing, controllerMode: track.controllerMode, automation: true } : track.timing]));
 }
 export type MigrationReport = { model: ClipArrangement | null; reasons: string[]; original: SequencerState; historyReset: boolean };
 

@@ -1,3 +1,4 @@
+import { readAutomationTarget } from "../lib/clipArranger/automation";
 import { readClipHistory } from "../lib/clipArranger/operations";
 import { clipHistoryForPersistence } from "../lib/clipArranger/history";
 import { sourceKeys } from "../lib/clipArranger/migration";
@@ -849,6 +850,7 @@ export function normalizeControllerSteps(raw: unknown): (number | null)[] {
 
 export function cloneControllerSequencerPad(pad: ControllerSequencerPadState): ControllerSequencerPadState {
   return {
+    ...(pad.curveDurationTicks !== undefined ? { curveDurationTicks: pad.curveDurationTicks } : {}),
     lengthBeats: normalizeControllerSequencerLengthBeats(pad.lengthBeats),
     stepCount: normalizeTransportStepCount(pad.stepCount),
     steps: normalizeControllerSteps(pad.steps),
@@ -898,6 +900,7 @@ export function normalizeControllerSequencerPadState(
   return {
     lengthBeats,
     stepCount: fallback.stepCount,
+    ...(typeof pad.curveDurationTicks === "number" ? { curveDurationTicks: pad.curveDurationTicks } : {}),
     steps: normalizeControllerSteps(pad.steps),
     keypoints: keypoints.length > 0 ? keypoints : normalizeControllerCurveKeypoints(fallback.keypoints)
   };
@@ -1355,6 +1358,7 @@ export function normalizeControllerSequencerState(
   }
 
   const controllerSequencer = raw as Record<string, unknown>;
+  if (controllerSequencer.automationTarget && Array.isArray(controllerSequencer.pads) && controllerSequencer.pads.some(p => Array.isArray(p?.keypoints) && p.keypoints.length > 10)) throw new Error("Automation curves allow at most 10 points including endpoints.");
   const controllerTiming = normalizeSequencerInstanceTiming(controllerSequencer, timing);
   const id =
     typeof controllerSequencer.id === "string" && controllerSequencer.id.length > 0
@@ -1431,6 +1435,7 @@ export function normalizeControllerSequencerState(
     id,
     name,
     controllerNumber,
+    automationTarget: readAutomationTarget(controllerSequencer.automationTarget),
     controllerMode: (controllerSequencer.controllerMode ?? controllerSequencer.controller_mode) === "step" ? "step" : "curve",
     resetValue: normalizeControllerValue(controllerSequencer.resetValue ?? controllerSequencer.reset_value),
     targetChannels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
@@ -2094,7 +2099,8 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
 
   const controllerSequencers: ControllerSequencerState[] = [];
   if (Array.isArray(sequencer.controllerSequencers)) {
-    for (let index = 0; index < Math.min(MAX_SEQUENCERS_PER_TYPE, sequencer.controllerSequencers.length); index += 1) {
+    if (sequencer.clipArrangement && sequencer.controllerSequencers.length > 72) throw new Error("Too many controller lanes.");
+    for (let index = 0; index < Math.min(sequencer.clipArrangement ? 72 : MAX_SEQUENCERS_PER_TYPE, sequencer.controllerSequencers.length); index += 1) {
       controllerSequencers.push(
         normalizeControllerSequencerState(sequencer.controllerSequencers[index], index + 1, timing)
       );
@@ -2224,6 +2230,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
     midiControllers: normalizedControllers
   };
   if (sequencer.clipArrangement !== undefined) {
+    if (result.controllerSequencers.filter(t => !t.automationTarget).length > MAX_SEQUENCERS_PER_TYPE) throw new Error("At most 16 generic controller sequencers are allowed.");
     result.clipArrangement = structuredClone(sequencer.clipArrangement) as SequencerState["clipArrangement"];
     validateArrangement(result.clipArrangement!, arrangementTimings(result));
     for (const lane of result.clipArrangement!.lanes) {
@@ -2232,6 +2239,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
     }
     result.clipHistory = readClipHistory(sequencer.clipHistory, result.clipArrangement!, arrangementTimings(result));
   }
+  else if (result.controllerSequencers.some(t => t.automationTarget)) throw new Error("Instrument automation requires a clip arrangement.");
   return result;
 }
 
@@ -2479,7 +2487,7 @@ export function sequencerSnapshotForPersistence(sequencer: SequencerState): Sequ
 
 export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   return {
-    version: state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+    version: state.sequencer.clipArrangement?.version === 2 ? 6 : state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
     arrangerHistory: structuredClone(state.arrangerHistory),
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
@@ -2987,7 +2995,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: sequencer.clipArrangement ? 23 : 22,
+    version: sequencer.clipArrangement?.version === 2 ? 24 : sequencer.clipArrangement ? 23 : 22,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -3110,13 +3118,14 @@ export function buildSequencerConfigSnapshot(
         value: normalizeControllerValue(controller.value),
         enabled: controller.enabled === true
       })),
-      controllerSequencers: sequencer.controllerSequencers.slice(0, MAX_SEQUENCERS_PER_TYPE).map((controllerSequencer, index) => ({
+      controllerSequencers: (sequencer.clipArrangement ? sequencer.controllerSequencers : sequencer.controllerSequencers.slice(0, MAX_SEQUENCERS_PER_TYPE)).map((controllerSequencer, index) => ({
         id: controllerSequencer.id.length > 0 ? controllerSequencer.id : `cc-seq-${index + 1}`,
         name:
           controllerSequencer.name.trim().length > 0
             ? controllerSequencer.name
             : `Controller Sequencer ${index + 1}`,
         controllerNumber: normalizeControllerNumber(controllerSequencer.controllerNumber),
+        automationTarget: controllerSequencer.automationTarget,
         controllerMode: controllerSequencer.controllerMode,
         resetValue: normalizeControllerValue(controllerSequencer.resetValue),
         targetChannels: normalizeControllerTargetChannels(controllerSequencer.targetChannels),
@@ -3142,6 +3151,7 @@ export function buildSequencerConfigSnapshot(
                 }
               : defaultControllerSequencerPad());
           return {
+            ...("curveDurationTicks" in sourcePad ? { curveDurationTicks: sourcePad.curveDurationTicks } : {}),
             lengthBeats: normalizeControllerSequencerLengthBeats(sourcePad.lengthBeats),
             stepCount: normalizeTransportStepCount(sourcePad.stepCount),
             steps: normalizeControllerSteps(sourcePad.steps),
@@ -3217,12 +3227,12 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 20 &&
     payload.version !== 21 &&
     payload.version !== 22 &&
-    payload.version !== 23
+    payload.version !== 23 && payload.version !== 24
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
 
-  if ((payload.sequencer as Record<string, unknown>)?.clipArrangement && payload.version !== 23) throw new Error("Clip arrangements require performance version 23.");
+  if ((payload.sequencer as Record<string, unknown>)?.clipArrangement && payload.version !== 23 && payload.version !== 24) throw new Error("Clip arrangements require performance version 23 or 24.");
   const sequencer = normalizeSequencerState(payload.sequencer);
   const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
   const patchById = new Map(availablePatches.map((patch) => [patch.id, patch]));

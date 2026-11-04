@@ -91,7 +91,7 @@ class ExportPerformanceConfig(BaseModel):
 
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=23)
+    version: int = Field(default=1, ge=1, le=24)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
@@ -182,6 +182,8 @@ class PerformanceCsdExportRequest(BaseModel):
     @model_validator(mode="after")
     def validate_offline_export_budget(self) -> "PerformanceCsdExportRequest":
         config = self.sequencer_config
+        from backend.app.services.instrument_automation import validate_automation_routing
+        validate_automation_routing(config, self.performance_export.performance.config.instruments)
         playback_steps = config.playback_end_step - config.playback_start_step
         if playback_steps > OFFLINE_CSD_EXPORT_MAX_PLAYBACK_STEPS:
             raise ValueError(
@@ -412,6 +414,10 @@ def _token_transport_subunit_count(
     track: SessionSequencerTrackConfig | SessionControllerSequencerTrackConfig,
     token: int,
 ) -> int:
+    if isinstance(track, SessionControllerSequencerTrackConfig) and track.controller_mode == "curve" and token >= 0:
+        pad = _pad_by_index(track.pads).get(token)
+        if pad is not None and pad.curve_duration_ticks is not None:
+            return pad.curve_duration_ticks
     return _transport_subunits_for_length(_pad_length_beats(track, token), track.timing)
 
 
@@ -618,6 +624,9 @@ def _controller_pad_events(
         return tuple((index * transport_subunit_count // count, value)
                      for index, value in enumerate((pad.steps if pad else [])[:count]) if value is not None)
     normalized_keypoints = _normalize_controller_keypoints([] if pad is None else pad.keypoints)
+    if pad is not None and pad.curve_duration_ticks is not None:
+        from backend.app.models.controller_curve import compact_controller_events
+        return compact_controller_events(normalized_keypoints, pad.curve_duration_ticks, _OFFLINE_CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM)
     events: list[tuple[int, int]] = []
 
     event_offset = 0

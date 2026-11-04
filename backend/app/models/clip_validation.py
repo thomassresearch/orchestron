@@ -15,18 +15,25 @@ def _integer(value, minimum=0, maximum=MAX_CLIP_TICKS):
 def validate_authored_clips(document):
     sequencer = document.get("sequencer", {}) if isinstance(document, dict) else {}
     if not isinstance(sequencer, dict) or "clipArrangement" not in sequencer:
+        if isinstance(sequencer, dict) and any(isinstance(t, dict) and t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])):
+            raise ValueError("Instrument automation requires a clip arrangement.")
         return document
-    if document.get("version") not in (5, 23):
-        raise ValueError("Clip arrangements require performance v23 or app state v5.")
+    if document.get("version") not in (5, 6, 23, 24):
+        raise ValueError("Clip arrangements require performance v23–24 or app state v5–6.")
     model = sequencer["clipArrangement"]
-    if not isinstance(model, dict) or model.get("version") != 1:
+    if not isinstance(model, dict) or model.get("version") not in (1, 2):
         raise ValueError("Unsupported clip arrangement version.")
+    if model["version"] == 2 and document.get("version") not in (6, 24):
+        raise ValueError("Instrument automation requires performance v24 or app state v6.")
     _integer(model.get("revision"))
     end = _integer(model.get("end"), 1)
     lanes = model.get("lanes")
     if not isinstance(lanes, list) or len(lanes) > 72:
         raise ValueError("Invalid clip lane count.")
+    if sum(not t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])) > 16:
+        raise ValueError("At most 16 generic controller sequencers are allowed.")
     seen = set()
+    bound_routes = set()
 
     def identity(value):
         if not isinstance(value, str) or not 1 <= len(value) <= 128 or value in seen:
@@ -47,6 +54,27 @@ def validate_authored_clips(document):
         track = next((t for t in tracks if t.get("id") == lane["id"]), None)
         if track is None:
             raise ValueError("Missing clip source lane.")
+        target = track.get("automationTarget")
+        if target is not None:
+            from backend.app.models.session import AutomationTarget
+            if source != "controller" or model["version"] != 2 or not isinstance(target, dict):
+                raise ValueError("Automation targets require controller lanes in clip model v2.")
+            AutomationTarget(instrument_id=target.get("instrumentId"), controller_node_ids=target.get("controllerNodeIds"))
+            instruments = document.get("instruments", document.get("sequencerInstruments", []))
+            owner = next((i for i in instruments if isinstance(i, dict) and i.get("id") == target["instrumentId"]), None)
+            if owner:
+                mappings = owner.get("performanceControllerMidiCCs", {})
+                ccs = {mappings[n] for n in target["controllerNodeIds"] if n in mappings}
+                if len(ccs) == 1 and 1 <= owner.get("midiChannel", 0) <= 16:
+                    cc = next(iter(ccs))
+                    if track.get("controllerNumber") != cc or track.get("targetChannels") != [owner["midiChannel"]]:
+                        raise ValueError("Automation routing must match its rack instance.")
+                    route = (target["instrumentId"], cc)
+                    if route in bound_routes:
+                        raise ValueError("Duplicate instrument/CC automation lane.")
+                    bound_routes.add(route)
+            for pad in track.get("pads", []):
+                _validate_pattern_payload(source, pad, target)
         timing = track.get("timing", {})
         if not isinstance(timing, dict):
             raise ValueError("Invalid clip timing.")
@@ -105,9 +133,10 @@ def validate_authored_clips(document):
                 if d.get("source") != source or not isinstance(d.get("payload"), dict):
                     raise ValueError("Clip pattern source mismatch.")
                 payload = d["payload"]
-                _validate_pattern_payload(source, payload)
+                _validate_pattern_payload(source, payload, target)
                 length = _integer(payload.get("lengthBeats"), 1, 8192 if source == "score" else 32 if source == "controller" else 16)
-                lengths[d["id"]], leaf_counts[d["id"]] = _integer(length * int(beat), 1), 1
+                duration = payload.get("curveDurationTicks") if source == "controller" and track.get("controllerMode", "curve") == "curve" else None
+                lengths[d["id"]], leaf_counts[d["id"]] = _integer(duration if duration is not None else length * int(beat), 1), 1
                 if source == "score":
                     from backend.app.models.session import SessionScoreNoteConfig
                     notes = payload.get("notes", [])
@@ -138,7 +167,7 @@ def validate_authored_clips(document):
     return document
 
 
-def _validate_pattern_payload(source, payload):
+def _validate_pattern_payload(source, payload, target=None):
     """Use existing musical validators without normalizing or dropping authored fields."""
     import re
     from backend.app.models.session import (
@@ -158,6 +187,12 @@ def _validate_pattern_payload(source, payload):
             raise ValueError("Controller patterns require both steps and keypoints.")
         SessionControllerSequencerPadConfig.model_validate({**wire(payload), "pad_index": 0})
         points = payload["keypoints"]
+        if target is not None and len(points) > 10:
+            raise ValueError("Automation curves allow at most 10 points including endpoints.")
+        if payload.get("curveDurationTicks") is not None:
+            if target is None:
+                raise ValueError("Extended curves require an automation target.")
+            _integer(payload["curveDurationTicks"], 1)
         if len(points) < 2 or len({p.get("id") for p in points}) != len(points):
             raise ValueError("Curve points require distinct IDs and both endpoints.")
         positions = sorted(p["position"] for p in points)

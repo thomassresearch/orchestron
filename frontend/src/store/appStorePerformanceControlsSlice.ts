@@ -348,7 +348,7 @@ export function createPerformanceControlStoreActions(
 
     addControllerSequencer: () => {
       const sequencer = get().sequencer;
-      if (sequencer.controllerSequencers.length >= MAX_SEQUENCERS_PER_TYPE) {
+      if (sequencer.controllerSequencers.filter(t => !t.automationTarget).length >= MAX_SEQUENCERS_PER_TYPE) {
         set({ error: `A maximum of ${MAX_SEQUENCERS_PER_TYPE} controller sequencers is supported.` });
         return;
       }
@@ -425,6 +425,7 @@ export function createPerformanceControlStoreActions(
     },
 
     setControllerSequencerTargetChannels: (id, channels) => {
+      if (get().sequencer.controllerSequencers.find(t => t.id === id)?.automationTarget) return;
       if (channels.length === 0) return;
       const targetChannels = normalizeControllerTargetChannels(channels);
       const sequencer = get().sequencer;
@@ -463,6 +464,7 @@ export function createPerformanceControlStoreActions(
     },
 
     setControllerSequencerNumber: (controllerSequencerId, controllerNumber) => {
+      if (get().sequencer.controllerSequencers.find(t => t.id === controllerSequencerId)?.automationTarget) return;
       const normalizedNumber = normalizeControllerNumber(controllerNumber);
       const sequencer = get().sequencer;
       set({
@@ -818,6 +820,8 @@ export function createPerformanceControlStoreActions(
     },
 
     addControllerSequencerKeypoint: (controllerSequencerId, position, value) => {
+      const bound = get().sequencer.controllerSequencers.find(t => t.id === controllerSequencerId);
+      if (bound?.automationTarget && bound.keypoints.length >= 10) return;
       const normalizedPosition = clampControllerCurvePosition(position);
       const normalizedValue = clampControllerCurveValue(value);
       const sequencer = get().sequencer;

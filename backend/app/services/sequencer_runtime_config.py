@@ -78,14 +78,26 @@ def _compile_controller_pad_runtime(
     length_beats: int,
     timing: SequencerTimingRuntime,
     controller_mode: str = "curve",
+    curve_duration_ticks: int | None = None,
     steps: list[int | None] | None = None,
 ) -> ControllerSequencerPadRuntime:
     step_count = _step_count_for_length(length_beats, timing)
-    transport_subunit_count = _transport_subunit_count_for_length(length_beats, timing)
+    transport_subunit_count = curve_duration_ticks if controller_mode == "curve" and curve_duration_ticks is not None else _transport_subunit_count_for_length(length_beats, timing)
     if controller_mode == "step":
         return _compiled_controller_steps(tuple((steps or [])[:step_count]), length_beats, step_count, transport_subunit_count)
     normalized_keypoints = _normalize_controller_keypoints(keypoints)
+    if curve_duration_ticks is not None and controller_mode == "curve":
+        return _compiled_automation_pad(normalized_keypoints, length_beats, step_count, transport_subunit_count)
     return _compiled_controller_pad(normalized_keypoints, length_beats, step_count, transport_subunit_count)
+
+
+@lru_cache(maxsize=512)
+def _compiled_automation_pad(points, length_beats, step_count, duration):
+    from backend.app.models.controller_curve import compact_controller_events
+    events = tuple(ControllerSequencerEventRuntime(offset, value) for offset, value in
+                   compact_controller_events(points, duration, CONTROLLER_AUTOMATION_SUBUNIT_QUANTUM))
+    return ControllerSequencerPadRuntime(length_beats, step_count, duration, events,
+                                        tuple(event.offset_subunit for event in events), duration)
 
 
 @lru_cache(maxsize=512)
@@ -361,6 +373,7 @@ def compile_sequencer_runtime_config(
             )
             pads[pad.pad_index] = _compile_controller_pad_runtime(
                 pad.keypoints,
+                curve_duration_ticks=pad.curve_duration_ticks,
                 length_beats=pad_length_beats,
                 timing=track_timing,
                 controller_mode=track_request.controller_mode,
@@ -372,6 +385,7 @@ def compile_sequencer_runtime_config(
         controller_tracks[track_request.track_id] = ControllerSequencerTrackRuntime(
             track_id=track_request.track_id,
             controller_number=track_request.controller_number,
+            automation_target=track_request.automation_target,
             controller_mode=track_request.controller_mode,
             reset_value=track_request.reset_value,
             target_channels=_normalize_controller_target_channels(

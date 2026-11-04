@@ -1,3 +1,9 @@
+import { AutomationMergeConflict, reconcileAutomation } from "../lib/clipArranger/automation";
+import { chooseAutomationMerge } from "../lib/clipArranger/automationMerge";
+import { automationRuntimeConfig } from "../lib/clipArranger/automationRuntime";
+import { hasChangedClipDrafts } from "../lib/clipArranger/draftResolution";
+import { useStructureDraft } from "../lib/clipArranger/structureStore";
+import { automationCopy } from "../components/clipArranger/automationCopy";
 import type { StoreApi } from "zustand";
 import { api, isApiError } from "../api/client";
 import { onMixerConnected } from "../lib/mixerRuntime";
@@ -14,6 +20,8 @@ export function createPerformanceControllerActions(set: StoreApi<AppStore>["setS
   let session: string | null = null;
   let generation = 0;
   let sequence = 0;
+  let mappingWork: Promise<void> | undefined;
+  const remapping = new Set<string>();
   const known = new Map<string, PerformanceControllerSnapshot>();
   const pending = new Map<string, Map<string, Edit>>();
 
@@ -46,7 +54,7 @@ export function createPerformanceControllerActions(set: StoreApi<AppStore>["setS
         if (incoming.midi_revisions?.[node] !== undefined) merged.midi_revisions![node] = incoming.midi_revisions[node];
         for (const [key, target, field] of [["values", values, "value"], ["midi_ccs", ccs, "cc"]] as const) {
           if (node in incoming[key]) merged[key][node] = incoming[key][node]; else delete merged[key][node];
-          if (pending.get(binding.id)?.get(node)?.[field] !== undefined) continue;
+          if (pending.get(binding.id)?.get(node)?.[field] !== undefined || field === "cc" && remapping.has(binding.id)) continue;
           if (node in incoming[key]) target[node] = incoming[key][node]; else delete target[node];
         }
       }
@@ -140,8 +148,79 @@ export function createPerformanceControllerActions(set: StoreApi<AppStore>["setS
     if (!timer) timer = setTimeout(() => { timer = undefined; void flush().catch(() => undefined); }, 34);
   }
 
+  async function remap(bindingId: string, nodeId: string, cc: number | null) {
+    let initial = context();
+    if (!initial.sequencer.controllerSequencers.some(t => t.automationTarget?.instrumentId === bindingId)) { edit(bindingId, nodeId, { cc }); return; }
+    const choices: Record<string, string> = {};
+    while (true) {
+      initial = context();
+      const epoch = initial.performanceWorkspaceGeneration;
+      const affected = new Set(initial.sequencer.controllerSequencers.filter(t => t.automationTarget?.instrumentId === bindingId).map(t => t.id));
+      if (hasChangedClipDrafts(initial.sequencer.clipArrangement, Object.fromEntries(Object.entries(initial.clipDrafts).filter(([, d]) => affected.has(d.target.laneId)))) ||
+          affected.has(useStructureDraft.getState().draft?.laneId ?? "")) {
+        set({ performanceControllerSyncError: automationCopy(initial.guiLanguage).saveDrafts });
+        return;
+      }
+      const binding = initial.sequencerInstruments.find(b => b.id === bindingId);
+      const definition = initial.patches.find(p => p.id === binding?.patchId)?.performance_controllers?.find(d => d.node_id === nodeId);
+      if (!binding || !definition || definition.error || binding.midiChannel === 0 || cc !== null && (!Number.isInteger(cc) || cc < 1 || cc > 50)) return;
+      const mappings = { ...binding.performanceControllerMidiCCs };
+      if (cc === null) delete mappings[nodeId]; else mappings[nodeId] = cc;
+      const bindings = initial.sequencerInstruments.map(b => b.id === bindingId ? { ...b, performanceControllerMidiCCs: mappings } : b);
+      try {
+        const sequencer = reconcileAutomation(initial.sequencer, bindings, initial.patches, choices);
+        if (initial.activeSessionId && sessionIsCurrent(initial)) {
+          await flush();
+          await refresh(initial.activeSessionId);
+          if (get().performanceWorkspaceGeneration !== epoch || get().activeSessionId !== initial.activeSessionId) return;
+          if (get().sequencer !== initial.sequencer) continue;
+          const snapshot = known.get(bindingId);
+          if (!snapshot) throw new Error("Instrument controller state is unavailable.");
+          remapping.add(bindingId);
+          const result = await api.patchPerformanceControllers(initial.activeSessionId, bindingId, { midi_ccs: { [nodeId]: cc }, revisions: { [nodeId]: snapshot.revisions[nodeId] },
+            midi_revisions: snapshot.midi_revisions ? { [nodeId]: snapshot.midi_revisions[nodeId] } : undefined,
+            sequencer_config: automationRuntimeConfig(sequencer) });
+          const current = get();
+          if (current.performanceWorkspaceGeneration !== epoch || current.activeSessionId !== initial.activeSessionId) { remapping.delete(bindingId); return; }
+          if (current.sequencer !== initial.sequencer) {
+            // A musical edit arrived while preparing. Restore the old assignment together
+            // with that newer music; never overwrite it with the prepared snapshot.
+            await api.patchPerformanceControllers(initial.activeSessionId, bindingId, {
+              midi_ccs: { [nodeId]: binding.performanceControllerMidiCCs?.[nodeId] ?? null },
+              revisions: { [nodeId]: result.revisions[nodeId] },
+              midi_revisions: result.midi_revisions ? { [nodeId]: result.midi_revisions[nodeId] } : undefined,
+              sequencer_config: automationRuntimeConfig(current.sequencer)
+            });
+            remapping.delete(bindingId);
+            continue;
+          }
+        }
+        remapping.delete(bindingId);
+        const current = get();
+        if (current.performanceWorkspaceGeneration !== epoch || current.sequencer !== initial.sequencer) throw new Error("The performance changed while remapping automation. Retry the assignment.");
+        set({ sequencer, sequencerInstruments: current.sequencerInstruments.map(b => b.id === bindingId ? { ...b, performanceControllerMidiCCs: mappings } : b),
+          sequencerEditRevision: current.sequencerEditRevision + 1, performanceControllerSyncError: null });
+        if (current.activeSessionId) await refresh(current.activeSessionId);
+        return;
+      } catch (error) {
+        remapping.delete(bindingId);
+        if (error instanceof AutomationMergeConflict) {
+          const selected = await chooseAutomationMerge(error);
+          if (!selected || get().performanceWorkspaceGeneration !== epoch) return;
+          choices[error.key] = selected;
+        } else {
+          set({ performanceControllerSyncError: error instanceof Error ? error.message : String(error) });
+          return;
+        }
+      }
+    }
+  }
+
   onMixerConnected(id => { if (get().activeSessionId === id) void refresh(id).then(flush).catch(() => undefined); });
   return { setPerformanceControllerValue: (binding, node, value) => edit(binding, node, { value }),
-    setPerformanceControllerMidiCC: (binding, node, cc) => edit(binding, node, { cc }),
-    flushPerformanceControllers: flush, receivePerformanceControllers: receive, refreshPerformanceControllers: refresh };
+    setPerformanceControllerMidiCC: (binding, node, cc) => {
+      if (!get().sequencer.controllerSequencers.some(t => t.automationTarget?.instrumentId === binding)) edit(binding, node, { cc });
+      else mappingWork = (mappingWork ?? Promise.resolve()).then(() => remap(binding, node, cc));
+    },
+    flushPerformanceControllers: () => mappingWork ? mappingWork.then(flush) : flush(), receivePerformanceControllers: receive, refreshPerformanceControllers: refresh };
 }

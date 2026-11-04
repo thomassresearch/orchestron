@@ -450,7 +450,13 @@ export interface ControllerSequencerKeypoint {
 
 export type ControllerSequencerMode = "curve" | "step";
 
+export interface AutomationTarget {
+  instrumentId: string;
+  controllerNodeIds: string[];
+}
+
 export interface ControllerSequencerPadState {
+  curveDurationTicks?: number;
   steps: (number | null)[];
   lengthBeats: ControllerSequencerPadLengthBeats;
   stepCount: number;
@@ -458,6 +464,9 @@ export interface ControllerSequencerPadState {
 }
 
 export interface ControllerSequencerState {
+  automationTarget?: AutomationTarget;
+  automationSuspended?: boolean;
+  curveDurationTicks?: number;
   controllerMode: ControllerSequencerMode;
   resetValue: number;
   id: string;
@@ -591,7 +600,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -690,6 +699,7 @@ export interface SequencerConfigSnapshot {
       enabled: boolean;
     }>;
     controllerSequencers: Array<{
+      automationTarget?: AutomationTarget;
       controllerMode?: ControllerSequencerMode;
       resetValue?: number;
       id: string;
@@ -760,7 +770,7 @@ export interface BrowserClockLatencySettings {
 
 export interface PersistedAppState {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5;
+  version: 1 | 2 | 3 | 4 | 5 | 6;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;
@@ -848,6 +858,7 @@ export interface SessionControllerSequencerKeypointConfig {
 }
 
 export interface SessionControllerSequencerPadConfig {
+  curve_duration_ticks?: number;
   steps?: (number | null)[];
   pad_index: number;
   length_beats?: ControllerSequencerPadLengthBeats;
@@ -884,6 +895,7 @@ export interface SessionScoreTrackConfig extends Omit<SessionSequencerTrackConfi
 }
 
 export interface SessionControllerSequencerTrackConfig {
+  automation_target?: { instrument_id: string; controller_node_ids: string[] };
   clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   controller_mode?: ControllerSequencerMode;
   reset_value?: number;
@@ -1011,6 +1023,7 @@ export interface SessionSequencerTrackStatus {
 }
 
 export interface SessionControllerSequencerTrackStatus {
+  curve_duration_ticks?: number | null;
   track_id: string;
   controller_number: number;
   timing: SessionSequencerTimingConfig;
@@ -1362,6 +1375,7 @@ export interface PerformanceControllerSnapshot {
   midi_revisions?: Record<string, number>;
 }
 export interface PerformanceControllerDelta {
+  sequencer_config?: SessionSequencerConfigRequest;
   values?: Record<string, number | null>;
   midi_ccs?: Record<string, number | null>;
   revisions: Record<string, number>;

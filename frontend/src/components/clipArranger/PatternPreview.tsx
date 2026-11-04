@@ -1,11 +1,11 @@
 import { memo } from "react";
-import { buildControllerCurvePath, buildSequencerStepChordMidiNotes } from "../../lib/sequencer";
+import { buildControllerCurvePath, buildSequencerStepChordMidiNotes, sampleControllerCurveValue } from "../../lib/sequencer";
 import type { PatternDefinition } from "../../lib/clipArranger/model";
 import type { ControllerSequencerMode, SequencerTimingConfig } from "../../types";
 
 /** Fixed velocity/pitch scales keep neighboring clips comparable. No audio work lives here. */
-export const PatternPreview = memo(function PatternPreview({ definition, timing, controllerMode = "curve", height = 24 }: {
-  definition: PatternDefinition; timing?: SequencerTimingConfig; controllerMode?: ControllerSequencerMode; height?: number;
+export const PatternPreview = memo(function PatternPreview({ definition, timing, controllerMode = "curve", height = 24, visibleRange }: {
+  definition: PatternDefinition; timing?: SequencerTimingConfig; controllerMode?: ControllerSequencerMode; height?: number; visibleRange?: [number, number];
 }) {
   const pad = definition.payload, width = 320;
   const steps = pad.lengthBeats * (timing?.stepsPerBeat ?? 4);
@@ -20,7 +20,7 @@ export const PatternPreview = memo(function PatternPreview({ definition, timing,
   return <svg role="img" aria-label={definition.name} width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="overflow-hidden">
     <title>{definition.name}{"scaleRoot" in definition.payload ? ` · ${definition.payload.scaleRoot} ${definition.payload.mode} · MIDI 0–127` : ""}</title>
     {definition.source === "controller" ? controllerMode === "curve"
-      ? <path d={buildControllerCurvePath(definition.payload.keypoints, width, height - 2)} fill="none" stroke="#5eead4" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      ? <path d={visibleRange ? Array.from({ length: 161 }, (_, i) => `${i ? "L" : "M"}${i / 160 * width},${y(sampleControllerCurveValue(definition.payload.keypoints, visibleRange[0] + i / 160 * (visibleRange[1] - visibleRange[0])))}`).join(" ") : buildControllerCurvePath(definition.payload.keypoints, width, height - 2)} fill="none" stroke="#5eead4" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
       : definition.payload.steps.slice(0, steps).map((value, i) => value === null ? null : <rect key={i} x={i / steps * width} y={height - Math.max(1, value / 127 * height)} width={Math.max(1, width / steps - 1)} height={Math.max(1, value / 127 * height)} fill="#5eead4"><title>{`CC ${value}`}</title></rect>)
       : definition.source === "drummer" ? definition.payload.rows.flatMap((row, rowIndex, rows) => row.steps.slice(0, steps).flatMap((cell, i) => {
         if (!cell.active) return [];

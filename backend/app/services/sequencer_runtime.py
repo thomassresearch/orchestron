@@ -1553,6 +1553,13 @@ class SessionSequencerRuntime:
         token = SessionSequencerRuntime._current_pad_loop_token(track)
         return token is not None and SessionSequencerRuntime._pause_beat_count_from_token(token) is not None
 
+    def has_automation_mapping(self, assignment_id: str, nodes: set[str]) -> bool:
+        with self._lock:
+            return bool(self._config and any(track.automation_target is not None and
+                track.automation_target.instrument_id == assignment_id and
+                nodes.intersection(track.automation_target.controller_node_ids)
+                for track in self._config.controller_tracks.values()))
+
     def _controller_track_value_at_current_subunit_locked(
         self,
         track: ControllerSequencerTrackRuntime,
@@ -2128,6 +2135,7 @@ class SessionSequencerRuntime:
         ]
         controller_tracks = [
             SessionControllerSequencerTrackStatus(
+                curve_duration_ticks=getattr(self._active_pad_runtime(track), "curve_duration_ticks", None),
                 track_id=track.track_id,
                 controller_number=track.controller_number,
                 timing=SessionSequencerTimingConfig(

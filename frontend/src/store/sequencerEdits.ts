@@ -7,7 +7,7 @@ import { mergedSequencerState, playbackTrack } from "../lib/mergedSequencerState
 import type { AppStore } from "./appStoreTypes";
 
 const playbackKeys = ["activePad", "queuedPad", "queuedEnabled", "enabled", "padLoopPosition", "runtimePadStartSubunit"] as const;
-const mirrors = ["steps", "lengthBeats", "stepCount", "scaleRoot", "scaleType", "mode", "keypoints"];
+const mirrors = ["curveDurationTicks", "steps", "lengthBeats", "stepCount", "scaleRoot", "scaleType", "mode", "keypoints"];
 type RecordValue = Record<string, unknown>;
 
 /** Compare authored audio data only, independent of transport and display metadata. */
@@ -48,6 +48,7 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
     if (!delta.sequencer) { set(delta); return; }
     if (delta.sequencer === displayed.sequencer) { set({ ...delta, sequencer: state.sequencer }); return; }
     const edited = delta.sequencer;
+    if (edited.controllerSequencers.some(t => t.automationTarget && t.pads.some(p => p.keypoints.length > 10))) return;
     const authored = changedFields(state.sequencer, displayed.sequencer, edited) as unknown as SequencerState;
     let runtime = state.sequencerRuntime;
     let clipDrafts = state.clipDrafts;

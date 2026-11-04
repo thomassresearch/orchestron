@@ -1,4 +1,4 @@
-"""Project version-23 clip definitions into the existing musical wire serializers.
+"""Project version-23/24 clip definitions into the existing musical wire serializers.
 
 The authored document is never rewritten into numeric slots. This module has no
 backend dependency so the installed CLI uses the same compact schedule protocol.
@@ -13,18 +13,52 @@ def project_clips(config):
     result = deepcopy(config)
     sequencer = result["sequencer"]
     model = sequencer.pop("clipArrangement")
-    if config.get("version") != 23 or model.get("version") != 1:
+    if config.get("version") not in (23, 24) or model.get("version") not in (1, 2):
         raise ValueError("Unsupported clip arrangement version.")
+    if model["version"] == 2 and config["version"] != 24:
+        raise ValueError("Clip model v2 requires performance v24.")
+    if sum(not t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])) > 16:
+        raise ValueError("At most 16 generic controller sequencers are allowed.")
     schedules = {}
     if len(model["lanes"]) > 72 or type(model["end"]) is not int or not 0 < model["end"] <= 20160000000:
         raise ValueError("Invalid clip arrangement extent or lane count.")
     for lane in model["lanes"]:
         tracks = sequencer[KEYS[lane["source"]]]
         track = next(t for t in tracks if t["id"] == lane["id"])
+        target = track.get("automationTarget")
+        if target:
+            if model["version"] != 2 or config["version"] != 24 or lane["source"] != "controller":
+                raise ValueError("Instrument automation requires clip model v2 and performance v24.")
+            nodes = target.get("controllerNodeIds")
+            if (not isinstance(target.get("instrumentId"), str) or not 1 <= len(target["instrumentId"]) <= 128
+                    or not isinstance(nodes, list) or not 1 <= len(nodes) <= 256
+                    or any(not isinstance(n, str) or not 1 <= len(n) <= 256 for n in nodes) or len(set(nodes)) != len(nodes)):
+                raise ValueError("Invalid automation target.")
+            binding = next((b for b in result.get("instruments", []) if b.get("id") == target["instrumentId"]), None)
+            mappings = binding.get("performanceControllerMidiCCs", {}) if binding else {}
+            ccs = {mappings[node] for node in target["controllerNodeIds"] if node in mappings}
+            if binding and binding.get("midiChannel", 0) in range(1, 17) and len(ccs) == 1 and all(node in mappings for node in nodes):
+                track["targetChannels"] = [binding["midiChannel"]]
+                track["controllerNumber"] = next(iter(ccs))
+            else:
+                track["enabled"] = False
+                track["targetChannels"] = track.get("targetChannels", [1])[:1] or [1]
         definitions = {d["id"]: d for d in lane["definitions"]}
         if len(definitions) != len(lane["definitions"]) or not 1 <= len(definitions) <= 512 or len(lane["clips"]) > 2048:
             raise ValueError("Invalid clip definition/clip count.")
         patterns = [d for d in lane["definitions"] if d["kind"] == "pattern"]
+        if target and any(not 2 <= len(d["payload"].get("keypoints", [])) <= 10 for d in patterns):
+            raise ValueError("Automation curves require 2–10 points.")
+        if lane["source"] == "controller":
+            for pattern in patterns:
+                payload = pattern["payload"]
+                duration = payload.get("curveDurationTicks")
+                if duration is not None and (not target or type(duration) is not int or not 0 < duration <= 20160000000):
+                    raise ValueError("Invalid instrument automation duration.")
+                if target:
+                    positions = sorted(p["position"] for p in payload["keypoints"])
+                    if positions[0] != 0 or positions[-1] != 1 or len(set(positions)) != len(positions):
+                        raise ValueError("Automation curves require distinct points and both endpoints.")
         slots = {d["id"]: i for i, d in enumerate(patterns)}
         timing = track.get("timing", {})
         beat = Fraction(20160) if lane["source"] == "arpeggiator" else Fraction(20160 * 4 * timing.get("beatRateDenominator", 1), timing.get("meterDenominator", 4) * timing.get("beatRateNumerator", 1))
@@ -43,7 +77,11 @@ def project_clips(config):
                     if not child_rank:
                         if definition["source"] != lane["source"]:
                             raise ValueError("Invalid clip source.")
-                        duration = definition["payload"]["lengthBeats"] * beat
+                        payload = definition["payload"]
+                        extended = payload.get("curveDurationTicks") if lane["source"] == "controller" and track.get("controllerMode", "curve") == "curve" else None
+                        duration = Fraction(extended) if extended is not None else payload["lengthBeats"] * beat
+                        if extended is not None and (not track.get("automationTarget") or len(payload.get("keypoints", [])) > 10 or type(extended) is not int):
+                            raise ValueError("Invalid instrument automation curve.")
                         if duration.denominator != 1:
                             raise ValueError("Clip duration must resolve to exact ticks.")
                         spans.append({"pad": slots[definition["id"]], "length": int(duration)})

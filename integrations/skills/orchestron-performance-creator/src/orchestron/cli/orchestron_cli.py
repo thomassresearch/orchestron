@@ -1897,14 +1897,14 @@ def normalize_performance_config(
     config: dict[str, Any],
     patches: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    if config.get("version", 1) not in range(1, 24):
+    if config.get("version", 1) not in range(1, 25):
         raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
     from orchestron.timing_migration import migrate_sequencer_timing
     migrated = migrate_sequencer_timing(config)
     if migrated is not config:
         config.clear()
         config.update(migrated)
-    config["version"] = 23 if config.get("sequencer", {}).get("clipArrangement") is not None else CURRENT_CONFIG_VERSION
+    config["version"] = (24 if config["sequencer"]["clipArrangement"].get("version") == 2 else 23) if config.get("sequencer", {}).get("clipArrangement") is not None else CURRENT_CONFIG_VERSION
     graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
     graph["masterId"] = graph.get("masterId") or "$master"
     mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})
@@ -4259,6 +4259,7 @@ def build_runtime_config(config: dict[str, Any], *, clip_projection: bool = Fals
             {
                 "track_id": ctrl.get("id", "cc-seq-1"),
                 "controller_number": int(ctrl.get("controllerNumber", 0)),
+                **({"automation_target": {"instrument_id": ctrl["automationTarget"]["instrumentId"], "controller_node_ids": ctrl["automationTarget"]["controllerNodeIds"]}} if ctrl.get("automationTarget") else {}),
                 "controller_mode": ctrl.get("controllerMode", "curve"),
                 "reset_value": ctrl.get("resetValue", 0),
                 "target_channels": normalize_controller_target_channels(ctrl.get("targetChannels")),
@@ -4274,6 +4275,7 @@ def build_runtime_config(config: dict[str, Any], *, clip_projection: bool = Fals
                     {
                         "pad_index": index,
                         "length_beats": int(pad.get("lengthBeats", ctrl.get("lengthBeats", 4))),
+                        **({"curve_duration_ticks": pad["curveDurationTicks"]} if "curveDurationTicks" in pad else {}),
                         "steps": normalize_controller_steps(pad.get("steps")),
                         "keypoints": [
                             {"position": float(point.get("position", 0.0)), "value": int(point.get("value", 0))}
