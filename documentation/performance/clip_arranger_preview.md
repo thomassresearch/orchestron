@@ -26,7 +26,7 @@ Double-click a nested box, or focus its name and press Enter, to open the existi
 
 Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.
 
-**Save** always asks whether to update **Only this occurrence** or **All linked occurrences**. Local is the default. A local variation gets a new definition; shared ancestors are copied only where necessary. Clip boundaries remain fixed after a content-duration change. Cancel retains the draft. Conflicting revisions or invalid content leave the saved arrangement untouched.
+**Save** always asks whether to update **Only this occurrence** or **All linked occurrences**. Local is the default. A local variation gets a new definition; shared ancestors are copied only where necessary. Musical-pattern saves retain clip boundaries. Container assembly uses the structural growth rules described below. Cancel retains the draft. Conflicting revisions or invalid content leave the saved arrangement untouched.
 
 ![Save-scope dialog](../../screenshots/clip-arranger-save-scope.png)
 
@@ -76,4 +76,20 @@ Longer content grows the affected windows if space permits. Loop windows preserv
 
 ![Direct selection and reordering of nested patterns](../../screenshots/clip-arranger-direct-content.png)
 
-The older container editor opened by double-click remains a separate editing path; use the timeline controls for structural growth and combined save-impact previews. Conflicting musical drafts must currently be resolved in their musical editor before structural work can continue. See the [direct-content review](../../specifications/redesign-arranger/direct-content-review.md) for the remaining integration work.
+## Container inspector and musical draft conflicts
+
+Double-click a group or supergroup to open its child inspector. Adopt linked content, add a new pattern or rest, reorder, group, ungroup, rename or remove children there. These controls edit the **same structural draft** as the expanded timeline. **Save structure** shows the same affected definitions, clip boundaries and local/all-linked choices, including collision rejection and empty-container removal. Draft Undo/Redo and Discard apply to both surfaces.
+
+![Container inspector sharing the structural draft](../../screenshots/clip-arranger-container-structure.png)
+
+![Shared structural save and growth preview](../../screenshots/clip-arranger-container-impact.png)
+
+If the pending action intersects an unsaved musical draft, choose Save, Discard or Cancel. Save opens that pattern’s existing occurrence-scope dialog, then resumes the pending edit. Discard removes only the conflicting draft and resumes; Cancel keeps both drafts and leaves the arrangement unchanged. Other musical drafts remain available. If several drafts conflict, resolve them individually. A failed musical save keeps the draft and displays its error inside the dialog.
+
+![Save, Discard or Cancel an intersecting musical draft](../../screenshots/clip-arranger-musical-conflict.png)
+
+When a musical save forks shared parents or splits a loop pass, the pending structural edit follows the new occurrence paths and retains draft Undo/Redo. Following passes created from that same source during resolution still move when its edited portion grows. Independent clips stay in place. If the conflict was found while saving structure, review the refreshed impact preview and press Save again to commit the structural transaction.
+
+Container **Play edit** auditions a snapshot of the current structure. Further structural edits remain visual and do not re-prepare audio; stop and restart Play edit to hear the changed structure. Saving ends the editor audition through the existing lifecycle. Musical sequencer controls retain their existing live-edit behavior.
+
+See the [direct-content review](../../specifications/redesign-arranger/direct-content-review.md) for the implementation and verification record.

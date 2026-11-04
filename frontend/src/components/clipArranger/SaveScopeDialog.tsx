@@ -5,7 +5,7 @@ import { directLinks } from "../../lib/clipArranger/operations";
 import { clipButton, clipInput } from "./ClipArranger";
 import { clipCopy } from "./copy";
 
-export function SaveScopeDialog({ draft, lane, language, onSave, onCancel, timing }: { draft: DefinitionDraft; lane: ClipLane; language: GuiLanguage; timing?: SequencerTimingConfig; onSave: (scope: "local" | "all", name: string) => void; onCancel: () => void }) {
+export function SaveScopeDialog({ draft, lane, language, onSave, onCancel, timing, error, busy = false }: { error?: string | null; busy?: boolean; draft: DefinitionDraft; lane: ClipLane; language: GuiLanguage; timing?: SequencerTimingConfig; onSave: (scope: "local" | "all", name: string) => void; onCancel: () => void }) {
   const c = clipCopy(language), [scope, setScope] = useState<"local" | "all">("local"), [name, setName] = useState(draft.definition.name);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -31,7 +31,7 @@ export function SaveScopeDialog({ draft, lane, language, onSave, onCancel, timin
     const right = Math.min(clip.start + clip.length, clip.start - clip.offset + (draft.target.pass + 1) * duration);
     windows = [[clip.start, left], [left, right], [right, clip.start + clip.length]].filter(([a, b]) => b > a) as [number, number][];
   }
-  return <dialog ref={dialog} aria-labelledby="clip-save-title" onCancel={e => { e.preventDefault(); onCancel(); }} className="w-[min(94vw,480px)] rounded-xl border border-slate-600 bg-slate-900 p-5 text-slate-200 backdrop:bg-black/70">
+  return <dialog ref={dialog} aria-labelledby="clip-save-title" onCancel={e => { e.preventDefault(); if (!busy) onCancel(); }} className="w-[min(94vw,480px)] rounded-xl border border-slate-600 bg-slate-900 p-5 text-slate-200 backdrop:bg-black/70">
     <form onSubmit={e => { e.preventDefault(); onSave(scope, name); }} className="space-y-4">
       <h3 id="clip-save-title" className="text-base font-semibold text-cyan-100">{c.scope}</h3>
       <p className="text-sm">{draft.definition.name} · {draft.definition.kind}</p>
@@ -45,7 +45,8 @@ export function SaveScopeDialog({ draft, lane, language, onSave, onCancel, timin
       {scope === "all" && <p className="text-xs text-slate-300">{c.window} · {linkedClips.length}: {linkedClips.map(window => window.name).join(", ") || "—"}</p>}
       {windows.length > 0 && <div className="flex gap-1" aria-label={c.repeatImpact}>{windows.map(([start, end]) => <span key={start} className="rounded border border-cyan-800 px-2 py-1 text-xs" style={{ flex: end - start }}>{start / 20160}–{end / 20160}</span>)}</div>}
       {scope === "local" && clip?.mode === "loop" && <p className="text-xs text-amber-200">{c.repeatImpact}</p>}
-      <div className="flex justify-end gap-2"><button type="button" className={clipButton} onClick={onCancel}>{c.cancel}</button><button type="submit" className={`${clipButton} !border-cyan-500`}>{c.save}</button></div>
+      {error && <p role="alert" className="text-rose-300">{error}</p>}
+      <div className="flex justify-end gap-2"><button disabled={busy} type="button" className={clipButton} onClick={onCancel}>{c.cancel}</button><button disabled={busy} type="submit" className={`${clipButton} !border-cyan-500`}>{c.save}</button></div>
     </form>
   </dialog>;
 }

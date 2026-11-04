@@ -1,6 +1,6 @@
 # Direct-content review — 2026-11-04
 
-Reviewed the shipped implementation against the agreed direct-manipulation plan. This review adds removal and repairs the transaction, pointer and preview issues below. The overall plan is **not yet fully closed**: two workflow integration gaps remain.
+Reviewed the shipped implementation against the agreed direct-manipulation plan. This review adds removal and repairs the transaction, pointer and preview issues below. The two workflow integration gaps identified in this review have since been implemented; see the follow-up below. The broader preview release gates remain documented separately.
 
 ## Removal and corrected defects
 
@@ -25,9 +25,14 @@ All 1,055 frontend tests in 98 files, ESLint, TypeScript and the production buil
 
 The browser work uses an isolated database populated from repository fixtures. No running Docker performance data was changed.
 
-## Remaining plan gaps
+## Follow-up: unified container editing and conflict resolution
 
-1. **Legacy container-editor bypass.** Double-clicking a group/supergroup can still open the old `ContentEditor` through `ClipPerformance`. Its child-assembly controls update a single `DefinitionDraft`, rather than the structural transaction service. The new timeline controls and root inspector use the new service, but equivalent edits through the older container editor do not receive the same automatic-growth/combined-impact flow. Unify this path without removing container audition or changing the musical editors.
-2. **Musical-draft conflict UX.** Structural edits/saves correctly block conflicting musical drafts and retain them, but use an error message requiring the user to resolve the musical editor separately. The plan's combined Save/Discard/Cancel transition flow is implemented for structural drafts, not for these musical-draft conflicts. Add a scoped resolver that preserves unrelated drafts and resumes the pending structural action after resolution.
+Both findings are now addressed. The group/supergroup child inspector sends insertion, move, grouping, ungrouping, removal and rename commands to the same structural controller as the timeline. Save structure uses the shared preview, local/all-linked materialization, growth/collision validation and atomic history commit. It no longer writes container children through a musical `DefinitionDraft` save.
+
+Intersecting musical drafts now offer Save/Discard/Cancel. Save uses the existing musical scope dialog; Discard removes only the selected conflicting draft; Cancel retains both drafts. Pending operations resume against the current authored model. Musical saves rebase structural operations and their undo/redo history, retarget unrelated drafts after local ancestor forks or pass splits, and retain conflicting drafts if validation fails. Structural saves detect affected descendants even when only their parent definition changes. When resolution occurs during structural saving, the refreshed impact is reviewed before the final commit.
+
+Session-only provenance retains following passes split by a musical save during resolution, so the pending structural growth moves those generated parts without treating independent clips as movable. The serialized v23/v5 format remains unchanged. Container audition explicitly snapshots the working tree with fresh child identities; further structural previews do not re-prepare audio, and saving ends audition through the existing lifecycle. Stop remains available after emptying the auditioned container.
+
+Follow-up verification: 1,075 tests in 100 frontend files, lint, TypeScript and production build pass. The isolated browser verified group/supergroup saves with both scopes, musical Save/Discard/Cancel before an edit and during structural saving, growth and collisions, and API reload before/after the changes. Real browser-clock container audition activated and stopped on save; further structural edits sent no sequencer configuration requests. See the [implementation record](implementation-record.md#unified-container-saves-and-musical-draft-resolution-2026-11-04) for the current contract.
 
 Cross-track/cross-clip dragging, global libraries and automatic ripple movement remain intentionally outside the agreed scope; they are not missing implementation items.

@@ -9,10 +9,12 @@ import { PerformanceAuditionContext } from "../sequencer/PerformanceAudition";
 import { ClipTransport } from "./ClipTransport";
 import { buildSequencerConfigSnapshot, parseSequencerConfigSnapshot } from "../../store/appStoreModel";
 import { buildSequencerPlaybackRange } from "../../appOrchestration";
+import { useStructureDraft } from "../../lib/clipArranger/structureStore";
 import { clipHistoryStep } from "../../store/clipActions";
 
 beforeEach(() => {
   useAppStore.setState(useAppStore.getInitialState(), true);
+  useStructureDraft.setState({draft:null});
   const s = structuredClone(useAppStore.getState().sequencer), track = s.tracks[0];
   track.padLoopEnabled = true;
   track.padLoopPattern = { groups: [{ id: "G", sequence: [{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 0 }] }], superGroups: [{ id: "S", sequence: [{ type: "group", groupId: "G" }] }], rootSequence: [{ type: "super", superGroupId: "S" }] };
@@ -142,6 +144,7 @@ it("does not restart an audition on transport ticks and coalesces musical draft 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it("expands the nested boxes, opens a container, defaults to local save and preserves a cancelled draft", async () => {
+  useAppStore.getState().sequencer.clipArrangement!.lanes[0].cycleTicks=null;
   const track = useAppStore.getState().sequencer.tracks[0];
   render(<ClipPerformance language="english" renderEditor={() => null} />);
   const toggle = screen.getByRole("button", { name: `▸ ${track.name}` });
@@ -150,13 +153,13 @@ it("expands the nested boxes, opens a container, defaults to local save and pres
   fireEvent.keyDown(screen.getByRole("button", { name: "▤ S" }), { key: "Enter" });
   expect(screen.getByRole("region", { name: "Editing" })).toBeTruthy();
   fireEvent.click(within(screen.getByRole("region", { name: "Editing" })).getByRole("button", { name: "Rest +1" }));
-  fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  let dialog = screen.getByRole("dialog", { name: "Save changes" });
+  fireEvent.click(within(screen.getByRole("region", {name:"Editing"})).getByRole("button", { name: "Save structure" }));
+  let dialog = screen.getByRole("dialog", { name: "Save structure" });
   expect((within(dialog).getByRole("radio", { name: "Only this occurrence" }) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-  expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByText("Unsaved draft")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(screen.queryByRole("dialog", {name:"Save structure"})).toBeNull();
+  expect(within(screen.getByRole("region", {name:"Editing"})).getByText("Unsaved draft")).toBeTruthy();
+  fireEvent.click(within(screen.getByRole("region", {name:"Editing"})).getByRole("button", { name: "Save structure" }));
   dialog = screen.getByRole("dialog");
   await act(async () => fireEvent.click(within(dialog).getByRole("button", { name: "Save" })));
   expect(useAppStore.getState().clipEditingKey).toBeNull();

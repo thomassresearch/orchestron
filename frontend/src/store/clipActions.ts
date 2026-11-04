@@ -3,6 +3,8 @@ import { arrangementTimings, migrateClipArrangement, sourceKeys } from "../lib/c
 import { contentLength, validateArrangement, type ClipArrangement, type Definition, type OccurrenceTarget } from "../lib/clipArranger/model";
 import { beginDraft, emptyClipHistory, recordClipEdit, replayClipEdit, saveDraft } from "../lib/clipArranger/operations";
 import { draftKey } from "../lib/clipArranger/editorAdapter";
+import { rebaseStructure, retainMusicalDrafts } from "../lib/clipArranger/structuralDraftResolution";
+import { useStructureDraft } from "../lib/clipArranger/structureStore";
 
 export function commitClipArrangement(next: ClipArrangement, label: string) {
   const state = useAppStore.getState(), before = state.sequencer.clipArrangement;
@@ -22,15 +24,19 @@ export function updateClipDraft(definition: Definition, additions?: Definition[]
   if (!key || !state.clipDrafts[key]) return;
   useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...state.clipDrafts[key], definition, ...(additions ? { additions } : {}) } } });
 }
-export function saveClipDraft(scope: "local" | "all", name: string) {
-  const state = useAppStore.getState(), key = state.clipEditingKey, model = state.sequencer.clipArrangement;
+export function saveClipDraft(scope: "local" | "all", name: string, resolvingKey?: string) {
+  const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey, model = state.sequencer.clipArrangement;
   if (!key || !model) return;
   const draft = state.clipDrafts[key];
+  if (draft.definition.kind !== "pattern") throw Error("Use Save structure for container edits.");
   const next = saveDraft(model, { ...draft, definition: { ...draft.definition, name } }, scope, arrangementTimings(state.sequencer));
+  const structural = useStructureDraft.getState().draft;
+  if (structural && JSON.stringify(structural.basis) !== JSON.stringify(model.lanes.find(l => l.id === structural.laneId))) throw Error("The track changed. Resolve the structure draft before saving.");
+  const rebased = structural ? rebaseStructure(structural, next, arrangementTimings(state.sequencer)) : null;
+  const retained = retainMusicalDrafts(model, next, state.clipDrafts, key, arrangementTimings(state.sequencer));
   commitClipArrangement(next, name);
-  // Paths can change during a local ancestor fork. Close the target, retain other independent drafts.
-  const remaining = { ...state.clipDrafts }; delete remaining[key];
-  useAppStore.setState({ clipDrafts: remaining, clipEditingKey: null });
+  useStructureDraft.setState({ draft: rebased });
+  useAppStore.setState({ clipDrafts: retained.drafts, clipEditingKey: state.clipEditingKey ? retained.keys.get(state.clipEditingKey) ?? null : null });
 }
 export function clipHistoryStep(forward: boolean) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;

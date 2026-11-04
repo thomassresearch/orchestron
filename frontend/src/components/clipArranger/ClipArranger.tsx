@@ -1,4 +1,4 @@
-import { useStructureEditor } from "./StructureEditor";
+import type { useStructureEditor } from "./StructureEditor";
 import { structurePreview, structureDisplayGeometry } from "../../lib/clipArranger/structure";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { GuiLanguage, SequencerState } from "../../types";
@@ -15,7 +15,7 @@ export const clipInput = "w-24 rounded border border-slate-600 bg-slate-950 px-2
 export type ClipArrangerProps = {
   model: ClipArrangement; sequencer: SequencerState; language: GuiLanguage;
   onChange: (model: ClipArrangement, label: string) => void;
-  beforeStructureSave?: () => Promise<void>;
+  structure: ReturnType<typeof useStructureEditor>; zoom: number; setZoom: (zoom: number) => void;
   onEdit: (target: OccurrenceTarget) => void;
   editingTarget?: OccurrenceTarget;
   inlineEditor?: { laneId: string; content: ReactNode };
@@ -25,11 +25,9 @@ export type ClipArrangerProps = {
   onAddLane?: (source: ClipLane["source"]) => void;
 };
 
-export function ClipArranger({ model, sequencer, language, onChange, onEdit, beforeStructureSave, editingTarget, transport, laneControls, onAddLane, inlineEditor, position = 0, onSeek, onLoopChange, onRemoveLane }: ClipArrangerProps) {
+export function ClipArranger({ model, sequencer, language, onChange, onEdit, structure, zoom, setZoom, editingTarget, transport, laneControls, onAddLane, inlineEditor, position = 0, onSeek, onLoopChange, onRemoveLane }: ClipArrangerProps) {
   const c = clipCopy(language), timings = useMemo(() => arrangementTimings(sequencer), [sequencer]);
-  const [zoom, setZoom] = usePerformanceEditorState("arranger", "clipZoom", 40);
-  const structure = useStructureEditor(model, sequencer, timings, language, beforeStructureSave, zoom / Q);
-  const displayModel = useMemo(() => structure.draft ? structurePreview(model, structure.draft) : model, [model, structure.draft]);
+  const displayModel = useMemo(() => structure.draft ? structurePreview(model, structure.draft, timings) : model, [model, structure.draft, timings]);
   const [expanded, setExpanded] = usePerformanceEditorState<string | null>("arranger", "clipExpandedLane", null);
   const [selected, select] = usePerformanceEditorState<{ laneId: string; clipId: string } | null>("arranger", "clipSelection", null);
   const editingLane = editingTarget?.laneId, editingClip = editingTarget?.clipId;
@@ -77,7 +75,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, bef
   }, [selectedClip, editingClip, loopStart, loopEnd, model.lanes, position, select]);
   const lastClipEnd = Math.max(Q / 4, ...model.lanes.flatMap(lane => lane.clips.map(clip => clip.start + clip.length)));
   const setSongEnd = (end: number) => attempt(() => ({ ...model, revision: model.revision + 1, end }), c.songEnd);
-  const open = (lane: ClipLane, clip: Clip, path: string[], pass: number) => { pick(lane, clip); structure.guard(() => onEdit({ laneId: lane.id, clipId: clip.id, path, pass })); };
+  const open = (lane: ClipLane, clip: Clip, path: string[], pass: number) => { pick(lane, clip); structure.guardEdit({ laneId: lane.id, clipId: clip.id, path, pass }, onEdit); };
   const startDrag = (event: React.PointerEvent, lane: ClipLane, clip: Clip, mode: "move" | "left" | "right") => {
     if (event.button !== 0) return;
     event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); pick(lane, clip);

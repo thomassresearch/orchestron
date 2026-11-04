@@ -7,11 +7,12 @@ export type StructureSelection = { parent: string[]; ids: string[]; anchor: stri
 export type StructureCommand =
   | { kind: 'insert'; target: ContainerTarget; definition: Definition; variation: boolean }
   | { kind: 'rest'; target: ContainerTarget; ticks: number }
+  | { kind: 'rename'; path: string[]; name: string }
   | { kind: 'move'; parent: string[]; ids: string[]; target: ContainerTarget }
   | { kind: 'group'; parent: string[]; ids: string[]; level: 'group' | 'supergroup'; name: string }
   | { kind: 'remove'; parent: string[]; ids: string[] }
   | { kind: 'ungroup'; parent: string[]; ids: string[] };
-export type StructureDraft = { laneId: string; clipId: string; pass: number; basis: ClipLane; roots: StructureNode[]; history: StructureNode[][]; commands: StructureCommand[]; cursor: number; emptied: string[]; emptyHistory: string[][] };
+export type StructureDraft = { laneId: string; clipId: string; pass: number; basis: ClipLane; roots: StructureNode[]; history: StructureNode[][]; commands: StructureCommand[]; cursor: number; emptied: string[]; emptyHistory: string[][]; followingPassClipIds?: string[] };
 const copy = <T,>(value: T): T => structuredClone(value);
 const fail = (message: string): never => { throw new ClipError('invalid', message); };
 function expand(lane: ClipLane, items: ContentItem[]): StructureNode[] {
@@ -63,6 +64,10 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand)
     }
     if (rank(node) >= parentRank(roots, command.target.path)) fail('This content cannot be nested here.');
     items.splice(command.target.index, 0, node);
+  } else if (command.kind === 'rename') {
+    const node = structureChildren(roots, command.path.slice(0, -1)).find(n => n.id === command.path[command.path.length - 1]);
+    if (!node?.definition || node.definition.kind === 'pattern') fail('Select a container to rename.');
+    node!.definition!.name = command.name.trim();
   } else {
     const items = structureChildren(roots, command.parent), indices = selection(items, command.ids), start = indices[0];
     const chosen = items.slice(start, start + indices.length);
@@ -189,6 +194,12 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
       } else candidate.length=Math.max(old.length,duration-old.offset);
     }
   }
+  // A musical local save can split the source loop while resolving a conflict.
+  // These session-only IDs retain which following windows came from that source.
+  const selectedGrowth = Math.max(0, (lane.clips.find(c=>c.id===draft.clipId)?.length ?? original.length) - original.length);
+  if (original.mode==='once' && selectedGrowth) for (const following of lane.clips) {
+    if(draft.followingPassClipIds?.includes(following.id)) following.start += selectedGrowth;
+  }
   lane.clips=lane.clips.filter(c=>c.children.length);
   const sorted=[...lane.clips].sort((a,b)=>a.start-b.start);
   for(let i=1;i<sorted.length;i++) if(sorted[i].start<sorted[i-1].start+sorted[i-1].length) throw new ClipError('collision',`Growth overlaps “${sorted[i-1].name}” and “${sorted[i].name}”. Make room before saving.`);
@@ -197,8 +208,11 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   return {model:next,shared};
 }
 /** Preview uses a private lane; it never enters authored state or audio configuration. */
-export function structurePreview(model:ClipArrangement,draft:StructureDraft):ClipArrangement {
+export function structurePreview(model:ClipArrangement,draft:StructureDraft,timings:LaneTiming={}):ClipArrangement {
   const {lane,children}=materialize(draft,'local',true);
-  lane.clips=lane.clips.map(c=>c.id===draft.clipId?{...c,children}:c);
+  const original=draft.basis.clips.find(c=>c.id===draft.clipId)!;
+  const before=contentLength(draft.basis,original.children,timings[lane.id]),after=contentLength(lane,children,timings[lane.id]);
+  const growth=original.mode==='once'&&after>before?Math.max(0,after-original.offset-original.length):0;
+  lane.clips=lane.clips.map(c=>c.id===draft.clipId?{...c,children}:draft.followingPassClipIds?.includes(c.id)?{...c,start:c.start+growth}:c);
   return {...model,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
 }

@@ -9,7 +9,7 @@ export type StructureDropLayout = { start: number; end: number; origin: number; 
 
 /** Built once at drag start, independently of virtualized preview DOM nodes. */
 export function structureDropLayout(model: ClipArrangement, draft: StructureDraft, timings: LaneTiming): StructureDropLayout {
-  const lane = structurePreview(model, draft).lanes.find(l => l.id === draft.laneId)!;
+  const lane = structurePreview(model, draft, timings).lanes.find(l => l.id === draft.laneId)!;
   const clip = lane.clips.find(c => c.id === draft.clipId)!;
   const original = draft.basis.clips.find(c => c.id === draft.clipId)!;
   const timing = timings[lane.id], defs = definitionMap(lane);
