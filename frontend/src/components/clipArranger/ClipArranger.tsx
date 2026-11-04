@@ -1,3 +1,5 @@
+import { addOffsets, offsetAt } from "../../lib/clipArranger/transposition";
+import { transposePlans } from "../../lib/clipArranger/transposeModel";
 import { AutomationGenerator } from "./AutomationControls";
 import { automationCopy } from "./automationCopy";
 import type { useStructureEditor } from "./StructureEditor";
@@ -119,7 +121,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
         {def?.kind === "pattern" ? boundCurve && visibleRight > visibleLeft ? <div style={{ marginLeft: visibleLeft, width: visibleRight - visibleLeft }} onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
           {renderAutomation?.({ laneId: lane.id, clipId: clip.id, path: itemPath, pass }, [visibleLeft / (duration * unit), visibleRight / (duration * unit)]) ??
             <button className="block w-full" aria-label={`${c.edit}: ${def.name}`} onClick={() => open(lane, clip, itemPath, pass)}><PatternPreview definition={def} timing={timings[lane.id]} height={72} visibleRange={[visibleLeft / (duration * unit), visibleRight / (duration * unit)]} /></button>}
-        </div> : <PatternPreview definition={def} timing={timings[lane.id]} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
+        </div> : <PatternPreview definition={def} offset={addOffsets(transposePlans(lane,clip,itemPath).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass)))} timing={timings[lane.id]} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
           : def ? <div className="relative mt-px">{tree(lane, clip, def.children, itemPath, pass, depth + 1, origin + left)}</div> : null}
       </div>;
     }), structure.boundary({ laneId: lane.id, clipId: clip.id, pass, parent: path }, items.length, cursor * unit, true)];
@@ -172,8 +174,8 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
                     onDoubleClick={() => { const first = clip.children.find(i => "definitionId" in i); if (first) open(lane, clip, [first.id], firstPass); }} onPointerDown={e => startDrag(e, lane, clip, "move")} {...dragHandlers}>{clip.name} {clip.mode === "loop" ? "↻" : ""}</button>
                   <div className="relative" style={{ height: detailed ? expandedHeight - 42 : 24 }}>
                     {Array.from({ length: Math.max(0, lastPass - firstPass) }, (_, index) => firstPass + index).map(pass => <div key={pass} className={`absolute top-0 ${pass > 0 ? "border-l border-dashed border-slate-400" : ""}`} style={{ left: geometry.left(pass) * unit, width: (editingStructure && pass === editingStructure.pass ? draftDuration : duration) * unit }}>
-                      {detailed ? <><span className="block h-4 px-1 text-[9px] text-slate-500">{c.content} · {pass + 1}</span><div className="relative">{tree(lane, clip, editingStructure && pass !== editingStructure.pass ? originalClip.children : clip.children, [], pass, 0, (clip.start + geometry.left(pass)) * unit)}</div></>
-                        : <CompactContent lane={lane} clip={clip} sequencer={sequencer} unit={unit} from={scroll - 192 - (clip.start + pass * duration - clip.offset) * unit} to={scroll + 1800 - (clip.start + pass * duration - clip.offset) * unit} />}
+                      {detailed ? <><span className="block h-4 px-1 text-[9px] text-slate-500">{c.content} · {(clip.repeatIndexBase ?? 0) + pass + 1}</span><div className="relative">{tree(lane, editingStructure && pass !== editingStructure.pass ? originalClip : clip, editingStructure && pass !== editingStructure.pass ? originalClip.children : clip.children, [], pass, 0, (clip.start + geometry.left(pass)) * unit)}</div></>
+                        : <CompactContent pass={pass} lane={lane} clip={clip} sequencer={sequencer} unit={unit} from={scroll - 192 - (clip.start + pass * duration - clip.offset) * unit} to={scroll + 1800 - (clip.start + pass * duration - clip.offset) * unit} />}
                     </div>)}
                   </div>
                   {(["left", "right"] as const).map(edge => <div key={edge} role="separator" aria-label={`${c.length}: ${edge}`} aria-orientation="vertical" tabIndex={0}
@@ -217,16 +219,16 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
   </section>;
 }
 
-function CompactContent({ lane, clip, sequencer, unit, from, to }: { lane: ClipLane; clip: Clip; sequencer: SequencerState; unit: number; from: number; to: number }) {
+function CompactContent({ lane, clip, sequencer, unit, from, to, pass }: { lane: ClipLane; clip: Clip; sequencer: SequencerState; unit: number; from: number; to: number; pass: number }) {
   const timing = arrangementTimings(sequencer)[lane.id], defs = definitionMap(lane);
   let cursor = 0;
-  const render = (items: ContentItem[]): ReactNode[] => items.flatMap<ReactNode>(item => {
+  const render = (items: ContentItem[], path: string[] = []): ReactNode[] => items.flatMap<ReactNode>(item => {
     if ("restTicks" in item) { cursor += item.restTicks; return []; }
     const def = defs.get(item.definitionId)!;
-    if (def.kind !== "pattern") return render(def.children);
+    if (def.kind !== "pattern") return render(def.children,[...path,item.id]);
     const duration = contentLength(lane, [item], timing), left = cursor * unit; cursor += duration;
     if (left + duration * unit < from || left > to) return [];
-    return [<div key={`${item.id}:${left}`} className="absolute top-0" style={{ left, width: duration * unit }}><PatternPreview definition={def} timing={timing} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} /></div>];
+    return [<div key={`${item.id}:${left}`} className="absolute top-0" style={{ left, width: duration * unit }}><PatternPreview definition={def} offset={addOffsets(transposePlans(lane,clip,[...path,item.id]).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass)))} timing={timing} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} /></div>];
   });
   return <>{render(clip.children)}</>;
 }

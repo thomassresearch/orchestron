@@ -139,9 +139,16 @@ class SessionSequencerRuntime:
     def configure(self, request: SessionSequencerConfigRequest) -> SessionSequencerStatus:
         """Synchronous convenience for offline callers; live APIs prepare in a process."""
         prepared = compile_sequencer_runtime_config(
-            request, controller_default_channels=self._controller_default_channels,
+            request, controller_default_channels=self._controller_default_channels, pinned_pairs=self.transposition_pairs(),
         )
         return self.apply_prepared(prepared)
+
+    def transposition_pairs(self):
+        with self._lock:
+            if not self._config:
+                return {}
+            return {t.track_id: t.clip_schedule.variant_pairs() | ({(t.active_pad, t.clip_latched_pair)} if t.clip_latched_pad else set()) | ({(t.active_pad,t.clip_future[2])} if t.clip_future else set())
+                    for t in self._config.tracks.values() if t.clip_schedule}
 
     def apply_prepared(
         self, next_config: SequencerRuntimeConfig, *, position_step: int | None = None,
@@ -170,14 +177,14 @@ class SessionSequencerRuntime:
                     if audition:
                         audition["authored"] = self._authored_track_fields(track)
                         if audition.get("sequence"):
-                            self._overlay_audition(track, audition["sequence"])
+                            self._overlay_audition(track, audition["sequence"], audition.get("clip_context", False))
                     compatible = old is not None and (
                         self._phase_signature(old) == self._phase_signature(track)
                         or (isinstance(track, SequencerTrackRuntime) and track.queued_enabled is not None
                             and self._phase_signature(old)[1:] == self._phase_signature(track)[1:])
                     )
                     if compatible:
-                        for field in ("active_pad", "enabled", "pad_loop_position", "phase_offset_subunit", "sequence_ended"):
+                        for field in ("active_pad", "enabled", "pad_loop_position", "phase_offset_subunit", "sequence_ended", "clip_silent", "clip_boundary", "clip_occurrence"):
                             setattr(track, field, getattr(old, field))
                         if isinstance(track, ControllerSequencerTrackRuntime):
                             track.last_value = old.last_value
@@ -197,6 +204,24 @@ class SessionSequencerRuntime:
                         ):
                             # A timing edit must not undo a manually launched pad.
                             track.active_pad = old.active_pad
+                    if isinstance(track, SequencerTrackRuntime) and old is not None and track.clip_schedule and old.clip_schedule:
+                        if compatible:
+                            track.clip_transpose = old.clip_transpose
+                            track.clip_future = old.clip_future
+                            if old.clip_future:
+                                boundary, occurrence, pair, _ = old.clip_future
+                                future_pad = track.pads[track.active_pad] if pair == (0,0) else track.transpose_variants.get((track.active_pad,pair))
+                                if future_pad is None:
+                                    raise ValueError("Anticipated transposition was not prepared; retry this configuration.")
+                                track.clip_future = (boundary,occurrence,pair,future_pad)
+                            track.clip_source_start = old.clip_source_start
+                        if self._running and position_step is None and track.clip_occurrence == old.clip_occurrence and track.phase_offset_subunit == old.phase_offset_subunit:
+                            pair = old.clip_latched_pair if old.clip_latched_pad is not None else old.clip_transpose
+                            track.clip_latched_pair = pair
+                            track.clip_latched_occurrence = track.clip_occurrence
+                            track.clip_latched_pad = track.pads.get(track.active_pad) if pair == (0, 0) else track.transpose_variants.get((track.active_pad, pair))
+                            if track.clip_latched_pad is None:
+                                raise ValueError("Sounding transposition was not prepared; retry this configuration.")
                     if old is not None:
                         if track.configured_queued_pad == old.configured_queued_pad:
                             track.queued_pad = old.queued_pad
@@ -284,13 +309,17 @@ class SessionSequencerRuntime:
         return (
             track.configured_enabled, track.configured_active_pad, track.pad_loop_enabled,
             track.pad_loop_repeat, track.pad_loop_sequence,
-            track.clip_schedule.schedule.model_dump_json() if track.clip_schedule else None,
+            track.clip_schedule.phase_signature if track.clip_schedule else None,
             track.timing.beat_rate_numerator, track.timing.beat_rate_denominator, track.timing.beat_unit,
             tuple((index, pad.transport_subunit_count) for index, pad in sorted(track.pads.items())),
             getattr(track, "sync_to_track_id", None),
         )
 
     def _position_prepared_track(self, track: SequencerTrackRuntime | ControllerSequencerTrackRuntime, position: int) -> None:
+        if isinstance(track, SequencerTrackRuntime):
+            track.clip_latched_pad = None
+            track.clip_latched_occurrence = None
+            track.clip_future = None
         track.active_pad = track.configured_active_pad
         track.enabled = track.configured_enabled
         track.sequence_ended = False
@@ -340,12 +369,12 @@ class SessionSequencerRuntime:
         return result
 
     @staticmethod
-    def _overlay_audition(track, sequence):
-        track.clip_schedule = None
+    def _overlay_audition(track, sequence, clip_context=False):
+        track.clip_schedule = track.audition_schedule if clip_context else None
         track.clip_silent = False
         track.clip_boundary = None
         track.pad_loop_enabled = track.pad_loop_repeat = track.configured_enabled = True
-        track.pad_loop_sequence = tuple(sequence)
+        track.pad_loop_sequence = () if clip_context else tuple(sequence)
         track.queued_pad = None
         if isinstance(track, SequencerTrackRuntime):
             track.queued_enabled = None
@@ -401,6 +430,8 @@ class SessionSequencerRuntime:
             if any(identity not in all_tracks for identity in request.track_ids):
                 raise ValueError("Audition track is not configured.")
             targets = [all_tracks[identity] for identity in request.track_ids]
+            if request.clip_context and any(track.audition_schedule is None for track in targets):
+                raise ValueError("Clip audition context was not prepared.")
             if any(token >= 0 and token not in track.pads for track in targets for token in request.sequence):
                 raise ValueError("Audition pad is not configured.")
             if request.action.startswith("preview_"):
@@ -429,7 +460,7 @@ class SessionSequencerRuntime:
                 if state is None:
                     state = {"authored": self._authored_track_fields(track)}
                     self._auditions[identity] = state
-                state.update(action=request.action, pending=tuple(request.sequence),
+                state.update(action=request.action, pending=tuple(request.sequence), clip_context=request.clip_context,
                     boundary=self._absolute_subunit if request.action == "stop" else at)
                 if request.action == "stop" or at == self._absolute_subunit:
                     self._apply_audition_command(track, self._absolute_subunit)
@@ -479,7 +510,7 @@ class SessionSequencerRuntime:
             snapshot["gesture"] = request.gesture_id
             authored = state["authored"] if state else self._authored_track_fields(track)
             next_state = {**(base or {}), "authored": authored, "workspace": snapshot,
-                          "action": "start", "pending": tuple(request.sequence), "boundary": boundary}
+                          "action": "start", "pending": tuple(request.sequence), "boundary": boundary, "clip_context": request.clip_context}
             if under_preview:
                 state["preview"]["previous"] = next_state
                 state["workspace"] = snapshot
@@ -501,7 +532,7 @@ class SessionSequencerRuntime:
             sequence = previous.get("pending") if due else previous.get("sequence")
             if sequence:
                 origin = previous["boundary"] if due else previous["origin"]
-                self._overlay_audition(hidden, sequence)
+                self._overlay_audition(hidden, sequence, previous.get("clip_context", False))
                 self._position_prepared_track(hidden, max(0, at - origin))
                 hidden.phase_offset_subunit += origin
                 return self._next_track_cycle_boundary_subunit(hidden, at)
@@ -536,7 +567,7 @@ class SessionSequencerRuntime:
             snapshot["revision"] = request.revision
             authored = state["authored"] if state else self._authored_track_fields(track)
             self._auditions[track.track_id] = {**(state or {}), "authored": authored, "preview": snapshot,
-                "action": "start", "pending": tuple(request.sequence), "boundary": boundary}
+                "action": "start", "pending": tuple(request.sequence), "boundary": boundary, "clip_context": request.clip_context}
             self._apply_audition_command(track, at)
         self._audition_status_tracks.update(request.track_ids)
         self._reset_render_event_cursor_locked(self._ensure_config())
@@ -565,7 +596,7 @@ class SessionSequencerRuntime:
             previous["authored"] = state["authored"]
             self._auditions[track.track_id] = previous
             if previous.get("sequence"):
-                self._overlay_audition(track, previous["sequence"])
+                self._overlay_audition(track, previous["sequence"], previous.get("clip_context", False))
                 origin = previous["origin"]
         elif snapshot["manual"]:
             track.configured_active_pad = snapshot["active_pad"]
@@ -602,7 +633,7 @@ class SessionSequencerRuntime:
                 state["workspace"]["applied"] = True
             state["sequence"] = state["pending"]
             state["origin"] = at
-            self._overlay_audition(track, state["sequence"])
+            self._overlay_audition(track, state["sequence"], state.get("clip_context", False))
             self._position_prepared_track(track, 0)
             track.phase_offset_subunit += at
         else:
@@ -913,9 +944,13 @@ class SessionSequencerRuntime:
             if track is None or not track.enabled or track_id in self._ratchet_rolls:
                 continue
             base = self._absolute_subunit - self._local_transport_offset_for(track, self._absolute_subunit)
+            origin = track
+            if track.clip_future and sounding.nominal_start >= track.clip_future[0]:
+                base = track.clip_future[0]
+                origin = self._following_note_track(track,base) or track
             # A release shifted past an already traversed boundary still belongs to its note.
             if sounding.nominal_end is None or sounding.nominal_end >= base:
-                sounding.nominal_end = self._nominal_note_end(track, base, sounding.nominal_start)
+                sounding.nominal_end = self._nominal_note_end(origin, base, sounding.nominal_start)
             if sounding.release_subunit is not None and sounding.release_subunit <= self._absolute_subunit:
                 self._release_track_notes_locked(track_id, track.midi_channel)
 
@@ -1521,6 +1556,9 @@ class SessionSequencerRuntime:
         return max(min_subunit, min(max_subunit, int(round(absolute_subunit))))
 
     def _reset_track_runtime_for_absolute_subunit_locked(self, track: SequencerTrackRuntime) -> None:
+        track.clip_latched_pad = None
+        track.clip_latched_occurrence = None
+        track.clip_future = None
         track.enabled = track.configured_enabled
         track.active_pad = track.configured_active_pad
         track.phase_offset_subunit = 0
@@ -2089,6 +2127,25 @@ class SessionSequencerRuntime:
         except Exception as exc:  # pragma: no cover - runtime dependent
             logger.warning("Sequencer MIDI batch failed: %s", exc)
 
+    def _transpose_pending(self, track):
+        if not self._running or not track.enabled or not track.clip_schedule or self._auditions.get(track.track_id, {}).get("sequence"):
+            return None
+        origin = self.sources.track_origin(track) if self.sources.active else 0
+        current = track.clip_schedule.locate(max(0,self._absolute_subunit-origin))
+        pair = track.clip_latched_pair if track.clip_latched_pad else track.clip_transpose
+        changed = pair != current.transpose
+        boundary = current.boundary
+        if track.clip_future:
+            future = track.clip_schedule.locate(track.clip_future[0]-origin)
+            changed = changed or track.clip_future[2] != future.transpose
+            boundary = future.boundary
+        if not changed or boundary is None:
+            return None
+        target = track.clip_schedule.locate(boundary)
+        if target.occurrence is None:
+            return None
+        return dict(clip_id=target.occurrence[0],logical_pass=target.logical_pass,leaf_index=target.occurrence[2],at_subunit=boundary+origin)
+
     def _status_locked(self) -> SessionSequencerStatus:
         config = self._config
         if config is None:
@@ -2130,6 +2187,7 @@ class SessionSequencerRuntime:
                 queued_enabled=track.queued_enabled,
                 runtime_pad_start_subunit=track.phase_offset_subunit if track.enabled else None,
                 active_notes=sorted(self._active_notes.get(track.track_id, set())),
+                transpose_pending=self._transpose_pending(track),
             )
             for track in config.tracks.values()
         ]

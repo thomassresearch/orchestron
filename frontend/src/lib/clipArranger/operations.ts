@@ -1,4 +1,5 @@
 import { ClipError, contentLength, definitionMap, exactTick, newClipId, validateArrangement, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type Definition, type DefinitionDraft, type LaneTiming, type OccurrenceTarget } from "./model";
+import { remapPlacementChildren } from './transposeEdits';
 
 type IdFactory = () => string;
 const clone = <T>(value: T): T => structuredClone(value);
@@ -70,6 +71,7 @@ export function deleteClip(model: ClipArrangement, laneId: string, clipId: strin
   return finish(next, timings); // preserve trailing space and all definitions
 }
 const freshChildren = (items: ContentItem[], id: IdFactory) => items.map(item => ({ ...clone(item), id: id() }));
+const freshClip = (clip: Clip, id: IdFactory) => remapPlacementChildren(clone(clip), freshChildren(clip.children, id));
 export function directLinks(lane: ClipLane, definitionId: string): number {
   return [...lane.clips.flatMap(c => c.children), ...lane.definitions.flatMap(d => d.kind === "pattern" ? [] : d.children)]
     .filter(item => "definitionId" in item && item.definitionId === definitionId).length;
@@ -87,11 +89,12 @@ function isolatePass(lane: ClipLane, clip: Clip, pass: number, timing: LaneTimin
   const end = Math.min(clip.start + clip.length, clip.start - clip.offset + (pass + 1) * duration);
   if (end <= start) throw new ClipError("missing", "That pass is not present.");
   const parts: Clip[] = [];
-  if (start > clip.start) parts.push({ ...clone(clip), id: id(), length: start - clip.start, children: freshChildren(clip.children, id) });
-  const selected = { ...clip, start, length: end - start, offset: (clip.offset + start - clip.start) % duration, mode: "once" as const };
+  if (start > clip.start) parts.push({ ...freshClip(clip, id), id: id(), length: start - clip.start });
+  const selected = { ...clip, start, length: end - start, offset: (clip.offset + start - clip.start) % duration, mode: "once" as const,
+    ...(lane.transposeProfiles || clip.repeatIndexBase !== undefined || clip.transposePlacements ? { repeatIndexBase: (clip.repeatIndexBase ?? 0) + pass } : {}) };
   parts.push(selected);
-  if (end < clip.start + clip.length) parts.push({ ...clone(clip), id: id(), start: end, length: clip.start + clip.length - end,
-    offset: clip.offset + end - clip.start, children: freshChildren(clip.children, id) });
+  if (end < clip.start + clip.length) parts.push({ ...freshClip(clip, id), id: id(), start: end, length: clip.start + clip.length - end,
+    offset: clip.offset + end - clip.start });
   lane.clips.splice(lane.clips.indexOf(clip), 1, ...parts);
   return selected;
 }
@@ -107,7 +110,13 @@ export function saveDraft(model: ClipArrangement, draft: DefinitionDraft, scope:
   if (scope === "all") lane.definitions[lane.definitions.findIndex(d => d.id === previous.id)] = replacement;
   else {
     const clip = isolatePass(lane, clipFor(lane, draft.target.clipId), draft.target.pass, timings[lane.id], id);
+    if (next.version === 3) clip.repeatIndexBase = (clipFor(laneFor(model, lane.id), draft.target.clipId).repeatIndexBase ?? 0) + draft.target.pass;
     replacement.id = id(); replacement.revision = 0;
+    if (replacement.transposeProfileId) {
+      const profile = lane.transposeProfiles!.find(p => p.id === replacement.transposeProfileId)!;
+      const variation = { ...clone(profile), id: id(), revision: 0 };
+      lane.transposeProfiles!.push(variation); replacement.transposeProfileId = variation.id;
+    }
     if (replacement.kind !== "pattern") replacement.children = freshChildren(replacement.children, id);
     lane.definitions.push(replacement);
     const fork = (items: ContentItem[], depth: number, sharedParent: boolean): ContentItem[] => items.map(item => {
@@ -128,6 +137,19 @@ export function saveDraft(model: ClipArrangement, draft: DefinitionDraft, scope:
       return { ...item, definitionId: updated.id };
     });
     clip.children = fork(clip.children, 0, false);
+    if (clip.transposePlacements) {
+      const originalLane = laneFor(model, lane.id), originalClip = clipFor(originalLane, draft.target.clipId);
+      clip.transposePlacements = clip.transposePlacements.map(p => {
+        let before = originalClip.children, after = clip.children;
+        return { ...p, path: p.path.map(part => {
+          const index = before.findIndex(i => i.id === part), old = before[index], current = after[index];
+          if (!old || !current || !('definitionId' in old) || !('definitionId' in current)) throw new ClipError('conflict', 'Cannot remap the transposed placement.');
+          const a = originalLane.definitions.find(d => d.id === old.definitionId)!, b = lane.definitions.find(d => d.id === current.definitionId)!;
+          before = a.kind === 'pattern' ? [] : a.children; after = b.kind === 'pattern' ? [] : b.children;
+          return current.id;
+        }) };
+      });
+    }
   }
   return finish(next, timings);
 }
@@ -162,8 +184,8 @@ export function editTime(model: ClipArrangement, laneIds: string[], start: numbe
       if (clip.start < start) pieces.push({ ...clip, length: start - clip.start });
       if (end > cutEnd) {
         const from = Math.max(clip.start, cutEnd);
-        pieces.push({ ...clip, id: pieces.length ? id() : clip.id, start: from + (operation === "insert" ? length : -length),
-          offset: clip.offset + from - clip.start, length: end - from, children: pieces.length ? freshChildren(clip.children, id) : clip.children });
+        pieces.push({ ...(pieces.length ? freshClip(clip, id) : clip), id: pieces.length ? id() : clip.id, start: from + (operation === "insert" ? length : -length),
+          offset: clip.offset + from - clip.start, length: end - from });
       }
       return pieces;
     });
@@ -177,8 +199,8 @@ export { emptyClipHistory, recordClipEdit, replayClipEdit, readClipHistory } fro
 export type ClipSection = { length: number; lanes: { id: string; clips: Clip[] }[] };
 function sliceWindow(clip: Clip, start: number, end: number, id: IdFactory): Clip | null {
   const left = Math.max(start, clip.start), right = Math.min(end, clip.start + clip.length);
-  return right <= left ? null : { ...clone(clip), id: id(), start: left, length: right - left,
-    offset: clip.offset + left - clip.start, children: freshChildren(clip.children, id) };
+  return right <= left ? null : { ...freshClip(clip, id), id: id(), start: left, length: right - left,
+    offset: clip.offset + left - clip.start };
 }
 export function copyClipRange(model: ClipArrangement, laneIds: string[], start: number, length: number, id: IdFactory = newClipId): ClipSection {
   exactTick(start); exactTick(length, true);
@@ -201,7 +223,7 @@ export function pasteClipRange(model: ClipArrangement, section: ClipSection, at:
       if (clip.start + clip.length <= at || clip.start >= at + section.length) return [clip];
       return [sliceWindow(clip, 0, at, id), sliceWindow(clip, at + section.length, next.end, id)].filter((c): c is Clip => c !== null);
     });
-    lane.clips.push(...copied.clips.map(clip => ({ ...clone(clip), id: id(), start: at + clip.start, children: freshChildren(clip.children, id) })));
+    lane.clips.push(...copied.clips.map(clip => ({ ...freshClip(clip, id), id: id(), start: at + clip.start })));
     lane.clips.sort((a, b) => a.start - b.start);
   }
   next.end = Math.max(next.end, at + section.length);
@@ -216,7 +238,7 @@ export function convertLaneCycle(model: ClipArrangement, laneId: string, timings
   if (repeats * lane.clips.length > 2048) throw new ClipError("limit", "The repeating lane exceeds the clip limit. Shorten the song before converting.");
   lane.clips = Array.from({ length: repeats }, (_, pass) => lane.clips.flatMap(clip => {
     const start = clip.start + pass * cycle;
-    return start >= model.end ? [] : [{ ...clip, id: id(), start, length: Math.min(clip.length, model.end - start), children: freshChildren(clip.children, id) }];
+    return start >= model.end ? [] : [{ ...freshClip(clip, id), id: id(), start, length: Math.min(clip.length, model.end - start) }];
   })).flat();
   lane.cycleTicks = null;
   return finish(next, timings);

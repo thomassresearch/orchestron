@@ -339,3 +339,7 @@ channel-setting events in the CSD.
 
 See [Performance Controllers](performance_controllers.md#receive-midi-cc-in-a-performance)
 for the selector, fixed channel and conversion rules.
+
+## Clip transposition
+
+The clip arranger supports [shared repetition transpositions and independent nested offsets](clip_arranger_preview.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.

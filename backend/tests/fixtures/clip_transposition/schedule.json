@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "transpose_plans": [
+    {
+      "base": {
+        "diatonicSteps": 1,
+        "chromaticSemitones": 0
+      },
+      "repetitions": []
+    },
+    {
+      "base": {
+        "diatonicSteps": 0,
+        "chromaticSemitones": 12
+      },
+      "repetitions": []
+    },
+    {
+      "base": {
+        "diatonicSteps": 0,
+        "chromaticSemitones": 0
+      },
+      "repetitions": [
+        {
+          "index": 0,
+          "offset": {
+            "diatonicSteps": 0,
+            "chromaticSemitones": 0
+          }
+        },
+        {
+          "index": 1,
+          "offset": {
+            "diatonicSteps": 2,
+            "chromaticSemitones": 0
+          }
+        },
+        {
+          "index": 2,
+          "offset": {
+            "diatonicSteps": 4,
+            "chromaticSemitones": 0
+          }
+        },
+        {
+          "index": 3,
+          "offset": {
+            "diatonicSteps": -1,
+            "chromaticSemitones": 0
+          }
+        }
+      ]
+    }
+  ],
+  "end": 322560,
+  "cycle_ticks": null,
+  "clips": [
+    {
+      "id": "a",
+      "start": 0,
+      "length": 161280,
+      "offset": 0,
+      "mode": "loop",
+      "content": [
+        {
+          "pad": 0,
+          "length": 20160,
+          "transpose_refs": [
+            0,
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "pad": 0,
+          "length": 20160,
+          "transpose_refs": [
+            0,
+            1,
+            2,
+            0
+          ]
+        }
+      ],
+      "repeat_index_base": 0
+    },
+    {
+      "id": "b",
+      "start": 161280,
+      "length": 161280,
+      "offset": 30240,
+      "mode": "loop",
+      "content": [
+        {
+          "pad": 0,
+          "length": 20160,
+          "transpose_refs": [
+            0,
+            1,
+            2
+          ]
+        },
+        {
+          "pad": 0,
+          "length": 20160,
+          "transpose_refs": [
+            0,
+            1,
+            2,
+            0
+          ]
+        }
+      ],
+      "repeat_index_base": 0
+    }
+  ]
+}

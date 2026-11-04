@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from backend.app.models.clip_transposition import OffsetPlan, RepeatIndex, MAX_TOTAL_ENTRIES, effective_plan
 
 MAX_CLIP_TICKS = 20160 * 1000000
 Tick = Annotated[int, Field(strict=True, ge=0, le=MAX_CLIP_TICKS)]
@@ -20,6 +21,7 @@ class ClipSpan(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     pad: Annotated[int, Field(strict=True, ge=0, le=511)] | None
     length: Duration
+    transpose_refs: list[Annotated[int, Field(strict=True, ge=0)]] = Field(default_factory=list, max_length=9)
 
 
 class RuntimeClip(BaseModel):
@@ -30,6 +32,7 @@ class RuntimeClip(BaseModel):
     offset: Tick = 0
     mode: Literal["once", "loop"] = "once"
     content: list[ClipSpan] = Field(min_length=1, max_length=65536)
+    repeat_index_base: RepeatIndex = 0
 
     @model_validator(mode="after")
     def bounded(self):
@@ -40,17 +43,28 @@ class RuntimeClip(BaseModel):
 
 class ClipSchedule(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
-    version: Literal[1] = 1
+    version: Literal[1, 2] = 1
+    transpose_plans: list[OffsetPlan] = Field(default_factory=list, max_length=65536)
     clips: list[RuntimeClip] = Field(default_factory=list, max_length=2048)
     cycle_ticks: Duration | None = None
     end: Duration
 
     @model_validator(mode="after")
     def valid_intervals(self):
+        if sum(len(p.repetitions) for p in self.transpose_plans) > MAX_TOTAL_ENTRIES:
+            raise ValueError("Runtime transposition entry limit exceeded.")
+        if self.version == 1 and (self.transpose_plans or any(c.repeat_index_base or any(s.transpose_refs for s in c.content) for c in self.clips)):
+            raise ValueError("Transposition requires runtime schedule v2.")
         previous_end = 0
         ids = set()
         leaves = 0
         for clip in self.clips:
+            duration = sum(s.length for s in clip.content)
+            if clip.repeat_index_base + ((clip.offset + clip.length - 1) // duration if clip.mode == "loop" else 0) > 40320000000:
+                raise ValueError("Logical repetition extent exceeded.")
+            for span in clip.content:
+                if any(ref >= len(self.transpose_plans) for ref in span.transpose_refs) or span.pad is None and span.transpose_refs:
+                    raise ValueError("Invalid runtime transposition references.")
             if clip.id in ids or clip.start < previous_end:
                 raise ValueError("Clip identities must be unique and clips ordered without overlap.")
             previous_end = clip.start + clip.length
@@ -69,6 +83,8 @@ class ClipPosition:
     source_start: int
     boundary: int | None
     occurrence: tuple[str, int, int] | None
+    transpose: tuple[int, int] = (0, 0)
+    logical_pass: int = 0
 
 
 class PreparedClipSchedule:
@@ -76,15 +92,29 @@ class PreparedClipSchedule:
 
     def __init__(self, schedule: ClipSchedule):
         self.schedule = schedule
+        self.phase_signature = (schedule.end, schedule.cycle_ticks, tuple((c.id,c.start,c.length,c.offset,c.mode,tuple((s.pad,s.length) for s in c.content)) for c in schedule.clips))
         self.starts = tuple(c.start for c in schedule.clips)
         self.content_ends = []
+        self.effective = {}
+        self.span_plans = []
+        entry_count = 0
         for clip in schedule.clips:
             total = 0
             ends = []
+            plans = []
             for span in clip.content:
+                refs = tuple(span.transpose_refs)
+                if refs not in self.effective:
+                    plan = effective_plan([schedule.transpose_plans[i] for i in refs])
+                    entry_count += len(plan[1])
+                    if entry_count > MAX_TOTAL_ENTRIES:
+                        raise ValueError("Effective transposition entry limit exceeded.")
+                    self.effective[refs] = plan
+                plans.append(self.effective[refs])
                 total += span.length
                 ends.append(total)
             self.content_ends.append(tuple(ends))
+            self.span_plans.append(tuple(plans))
 
     def locate(self, at: int) -> ClipPosition:
         schedule = self.schedule
@@ -112,6 +142,19 @@ class PreparedClipSchedule:
         leaf_index = bisect_right(ends, offset)
         leaf_start = ends[leaf_index - 1] if leaf_index else 0
         source_start = cycle_origin + clip.start - clip.offset + turn * duration + leaf_start
+        base, entries = self.span_plans[index][leaf_index]
+        logical_pass = clip.repeat_index_base + turn
         return ClipPosition(clip.content[leaf_index].pad, source_start,
                             min(clip_end, source_start + clip.content[leaf_index].length),
-                            (clip.id, turn, leaf_index))
+                            (clip.id, turn, leaf_index), entries.get(logical_pass, base), logical_pass)
+
+    def variant_pairs(self):
+        """All potentially selected pairs, including currently hidden authored entries."""
+        result = set()
+        for clip, plans in zip(self.schedule.clips, self.span_plans, strict=True):
+            for span, (base, entries) in zip(clip.content, plans, strict=True):
+                if span.pad is not None:
+                    result.update((span.pad, pair) for pair in {base, *entries.values()} if pair != (0, 0))
+                    if len(result) > 256:
+                        raise ValueError("Lane transposition variant limit exceeded.")
+        return result

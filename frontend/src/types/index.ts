@@ -600,7 +600,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -770,7 +770,7 @@ export interface BrowserClockLatencySettings {
 
 export interface PersistedAppState {
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;
@@ -866,6 +866,7 @@ export interface SessionControllerSequencerPadConfig {
 }
 
 export interface SessionSequencerTrackConfig {
+  audition_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   track_id: string;
   midi_channel: number;
@@ -896,6 +897,7 @@ export interface SessionScoreTrackConfig extends Omit<SessionSequencerTrackConfi
 
 export interface SessionControllerSequencerTrackConfig {
   automation_target?: { instrument_id: string; controller_node_ids: string[] };
+  audition_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   controller_mode?: ControllerSequencerMode;
   reset_value?: number;
@@ -961,6 +963,7 @@ export interface SessionArpeggiatorPadConfig {
 }
 
 export interface SessionArpeggiatorConfig extends SessionArpeggiatorPadConfig {
+  audition_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   arpeggiator_id: string;
   enabled: boolean;
@@ -1006,7 +1009,9 @@ export interface SessionSequencerQueuePadRequest {
   pad_index: number | null;
 }
 
+export interface ClipTransposePending { clip_id: string; logical_pass: number; leaf_index: number; at_subunit: number; }
 export interface SessionSequencerTrackStatus {
+  transpose_pending?: ClipTransposePending | null;
   track_id: string;
   midi_channel: number;
   timing: SessionSequencerTimingConfig;
@@ -1039,6 +1044,7 @@ export interface SessionControllerSequencerTrackStatus {
 }
 
 export interface SessionArpeggiatorStatus {
+  transpose_pending?: ClipTransposePending | null;
   arpeggiator_id: string;
   enabled: boolean;
   input_channel: number;
@@ -1357,6 +1363,7 @@ export interface SessionEvent {
 }
 
 export interface SessionAuditionRequest {
+  clip_context?: boolean;
   action: "start" | "cancel" | "stop" | "return" | "preview_start" | "preview_end" | "workspace_start" | "workspace_end";
   gesture_id?: string;
   revision?: number;

@@ -1,6 +1,6 @@
 # Clip transposition
 
-Status: specified, not implemented. Date: 2026-11-04.
+Status: implemented in the clip-arranger preview; see [implementation and verification record](implementation-record.md). Date: 2026-11-04.
 
 Add nondestructive diatonic and chromatic transposition to melodic, score and arpeggiator content in the clip arranger. Linked definitions share their repetition transpositions. Pattern, group and supergroup placements can add independent offsets without changing the referenced notes.
 
@@ -35,12 +35,12 @@ The specification supplies these engineering defaults:
 - Melodic/score variants are prepared outside the render path; arpeggiators use prepared pitch maps for dynamically generated notes.
 - Drum/controller transposition, independent nested repeat clocks and cycling the transposition plan itself are outside this delivery.
 
-These are implementable defaults, not claims that the feature already exists. Implementation may refine internal representation or proposed resource budgets when measurements justify it; changes to audible behavior, sharing or persistence must update these documents and their acceptance cases together. Routine implementation does not require an additional user-approval checkpoint.
+These contracts are implemented; the implementation record distinguishes executed checks from further platform qualification. Implementation may refine internal representation or proposed resource budgets when measurements justify it; changes to audible behavior, sharing or persistence must update these documents and their acceptance cases together. Routine implementation does not require an additional user-approval checkpoint.
 
 ## Delivery boundaries
 
 The first delivery includes the complete path from edit to save/reload, audition, live playback, native bundles, standalone CLI conversion and both CSD modes. A UI-only transpose button or destructive note-copy workaround is not completion.
 
-The current baseline writes performance v24/app-state v6 for instrument automation and v23/v5 for other clip arrangements. Clip model versions are 1–2 and the runtime clip schedule is v1. This package proposes performance v25, app-state v7, clip model v3 and runtime schedule v2; confirm that these numbers remain unused at implementation time. Native bundle envelope versions need not change solely for this feature.
+The implementation writes performance v25/app-state v7 for clip model v3 and projects runtime schedule v2. Earlier identity-only/automation documents retain their existing writers. Native bundle envelope versions are unchanged.
 
-No application code, user performances, examples or generated user manual are changed by this specification package. Its source links describe the inspected baseline; its tests and benchmarks are future acceptance work, not completed validation.
+Application code, fixtures, tests, screenshots and the generated manual are now updated. User performances and examples were not modified. See the implementation record for measured budgets and exact verification evidence.

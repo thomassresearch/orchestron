@@ -1,4 +1,5 @@
 import { clipAuditionState } from "../lib/clipArranger/runtime";
+import { syncTransposeStatus } from "../lib/clipArranger/transposeStatus";
 import type { LiveInputAction } from "../audio/browserPlaybackPolicy";
 import { playingArrangerSourceChanges } from "../store/arrangerHistory";
 import { acknowledgeLaneOutput, setLaneOutputSender } from "../lib/laneOutput";
@@ -380,6 +381,7 @@ export function useSequencerRuntimeController({
       const preserveLocalEnablement =
         status.running && (options?.preserveLocalEnablement ?? sequencerConfigSyncPendingRef.current);
       const melodicTrackStatuses = [...status.tracks, ...(status.score_tracks ?? [])].filter((track) => parseDrummerRowRuntimeTrackId(track.track_id) === null);
+      syncTransposeStatus(status);
       const drummerTrackStatuses = aggregateDrummerRuntimeTrackStatuses(
         [...status.tracks, ...(status.score_tracks ?? [])],
         sequencerRef.current.drummerTracks as DrummerSequencerTrackState[]
@@ -1090,7 +1092,7 @@ export function useSequencerRuntimeController({
         if (entry.session && entry.session !== session) return;
         entry.session = session;
         const request: SessionAuditionRequest = { action: command.action, gesture_id: command.gestureId, revision: version,
-          ...("playbackMode" in device ? { arpeggiator_id: deviceId } : { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(deviceId, row.id)) : [deviceId] }), sequence };
+          ...("playbackMode" in device ? { arpeggiator_id: deviceId } : { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(deviceId, row.id)) : [deviceId] }), sequence, ...(clipAudition?.clipContext ? { clip_context: true } : {}) };
         if (!previous || command.action === "workspace_end") {
           previewGestures.current.delete(deviceId);
           auditionCommandVersion.current.set(deviceId, (auditionCommandVersion.current.get(deviceId) ?? 0) + 1);

@@ -24,6 +24,11 @@ def prepare_pad(notes, length, numerator, denominator, grid, rate_n, rate_d, roo
     prepared = [ScoreNote(identity, pitch, velocity, round(start * scale),
                           min(duration, round((start + span) * scale)))
                 for identity, pitch, velocity, start, span in notes if velocity > 0]
+    return SequencerPadRuntime(length, length * grid, duration, (), scale_root=root, mode=mode,
+                               **index_score_notes(prepared))
+
+
+def index_score_notes(prepared):
     prepared = sorted((n for n in prepared if n.start < n.end), key=lambda n: (n.start, n.id))
     # Reconciliation needs authored releases: a newly inserted attack in the
     # past must not truncate an already sounding voice in this occurrence.
@@ -41,10 +46,9 @@ def prepare_pad(notes, length, numerator, denominator, grid, rate_n, rate_d, roo
     for pitch in sorted({n.pitch for n in prepared}):
         values = tuple(n for n in prepared if n.pitch == pitch)
         by_pitch.append((tuple(n.start for n in values), values))
-    return SequencerPadRuntime(length, length * grid, duration, (), scale_root=root, mode=mode,
-        score_notes=prepared, score_offsets=tuple(n.start for n in prepared),
-        score_events=tuple(sorted({t for n in prepared for t in (n.start, n.end)})),
-        score_by_pitch=tuple(by_pitch), score_by_id=by_id)
+    return dict(score_notes=prepared, score_offsets=tuple(n.start for n in prepared),
+                score_events=tuple(sorted({t for n in prepared for t in (n.start, n.end)})),
+                score_by_pitch=tuple(by_pitch), score_by_id=by_id)
 
 
 def compile_score_track(request, tempo):
@@ -63,7 +67,8 @@ def compile_score_track(request, tempo):
         step_count=pad.step_count, transport_subunit_count=pad.transport_subunit_count,
         velocity=request.velocity, gate_ratio=1, sync_to_track_id=None,
         enabled=request.enabled, configured_enabled=request.enabled, queued_enabled=request.queued_enabled,
-        clip_schedule=PreparedClipSchedule(request.clip_schedule) if request.clip_schedule else None,
+        audition_schedule=PreparedClipSchedule(request.audition_schedule) if request.audition_schedule else None,
+            clip_schedule=PreparedClipSchedule(request.clip_schedule) if request.clip_schedule else None,
         pads=pads, active_pad=request.active_pad, configured_active_pad=request.active_pad,
         queued_pad=request.queued_pad, configured_queued_pad=request.queued_pad,
         pad_loop_enabled=request.pad_loop_enabled, pad_loop_repeat=request.pad_loop_repeat,

@@ -9657,6 +9657,61 @@ def test_clip_native_bundle_retains_shared_definitions_and_fixed_windows(tmp_pat
         assert restored.json()["performance"]["config"] == config
 
 
+def test_clip_transposition_persistence_history_native_and_atomic_rejection(tmp_path):
+    from copy import deepcopy
+    config = json.loads((Path(__file__).parent / "fixtures/clip_transposition/performance.json").read_text())
+    model = config["sequencer"]["clipArrangement"]
+    config["sequencer"]["clipHistory"] = {"version": 2, "cursor": 1, "basis": deepcopy(model), "entries": [
+        {"label": "Transpose", "changes": [{"kind": "replace", "path": ["revision"], "before": 0, "after": 1}]}]}
+    with _client(tmp_path) as client:
+        response = client.post("/api/performances", json={"name": "Shared transpose", "config": config})
+        assert response.status_code == 201, response.text
+        endpoint = f"/api/performances/{response.json()['id']}"
+        assert client.get(endpoint).json()["config"] == config
+        bad = deepcopy(config)
+        bad["sequencer"]["clipArrangement"]["lanes"][0]["definitions"][0]["transposeProfileId"] = "missing"
+        assert client.put(endpoint, json={"config": bad}).status_code == 422
+        assert client.get(endpoint).json()["config"] == config
+        state = {"version": 7, "sequencer": config["sequencer"]}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"] == state
+        payload = {"format": "orchestron.performance", "version": 1,
+            "performance": {"name": "Shared transpose", "description": "", "config": config}, "patch_definitions": []}
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200, exported.text
+        restored = client.post("/api/bundles/import/expand", content=exported.content,
+            headers={"X-File-Name": "transpose.orch.json", "Content-Type": "application/json"})
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["performance"]["config"] == config
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_transposed_clip_export_chases_and_releases_output_pitch(tmp_path, event_source):
+    from backend.tests.test_clip_transposition import plan
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    payload["performanceExport"]["performance"]["config"].update(_clip_score_config())
+    runtime = _score_fixture()["runtime"]
+    runtime.update(pad_loop_enabled=True, pad_loop_sequence=[], queued_pad=None)
+    length = runtime["pads"][0]["length_beats"]
+    runtime["pads"][0].update(scale_root="C", mode="ionian", notes=[
+        {"id": "long", "pitch": 60, "velocity": 96, "start_ticks": 0, "duration_ticks": 40320}])
+    runtime["clip_schedule"] = {"version": 2, "end": 40320, "transpose_plans": [plan(2, 12)], "clips": [
+        {"id": "crop", "start": 0, "length": 10080, "offset": 10080, "mode": "once", "content": [
+            {"pad": 0, "length": length * 20160, "transpose_refs": [0]}]}]}
+    payload["sequencerConfig"].update(tracks=[], score_tracks=[runtime], playback_start_step=0, playback_end_step=16)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == "midiFile":
+                events = [(tick, msg.type, msg.note) for tick, msg in _midi_messages_with_absolute_ticks(archive.read("Offline_Export/Offline_Export.mid")) if msg.type in {"note_on", "note_off"}]
+                assert events == [(0, "note_on", 76), (240, "note_off", 76)]
+            else:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                assert [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith("i 1 ")] == [[0, .25, 76, 96]]
+
+
 def test_instrument_automation_persistence_native_bundles_and_limits(tmp_path):
     from copy import deepcopy
     from backend.tests.test_instrument_automation import automation_document

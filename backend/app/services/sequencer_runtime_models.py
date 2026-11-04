@@ -95,10 +95,18 @@ class SequencerTrackRuntime:
     pad_loop_position: int | None = None
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
+    audition_schedule: PreparedClipSchedule | None = None
     clip_schedule: PreparedClipSchedule | None = None
     clip_silent: bool = False
     clip_boundary: int | None = None
     clip_occurrence: tuple | None = None
+    clip_transpose: tuple[int, int] = (0, 0)
+    transpose_variants: dict = field(default_factory=dict)
+    clip_latched_pad: SequencerPadRuntime | None = None
+    clip_latched_occurrence: tuple | None = None
+    clip_latched_pair: tuple[int, int] = (0, 0)
+    clip_future: tuple | None = None  # absolute boundary, occurrence, pair, prepared pad
+    clip_source_start: int | None = None
     has_timing_offsets: bool = False
     has_strums: bool = False
     is_score: bool = False
@@ -127,6 +135,7 @@ class ControllerSequencerTrackRuntime:
     pad_loop_position: int | None = None
     phase_offset_subunit: int = 0
     sequence_ended: bool = False
+    audition_schedule: PreparedClipSchedule | None = None
     clip_schedule: PreparedClipSchedule | None = None
     clip_silent: bool = False
     clip_boundary: int | None = None
@@ -189,6 +198,7 @@ class SequencerRuntimeConfig:
     playback_loop: bool = False
     tracks: dict[str, SequencerTrackRuntime] = field(default_factory=dict)
     controller_tracks: dict[str, ControllerSequencerTrackRuntime] = field(default_factory=dict)
+    prepared_arpeggiators: dict = field(default_factory=dict)
     sync_master_track_ids: frozenset[str] = frozenset()
 
 

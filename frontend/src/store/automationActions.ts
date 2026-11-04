@@ -11,7 +11,7 @@ export function generateAutomation(laneId: string, clipId: string, instrumentId:
   const binding = automationCandidates(state.sequencer, laneId, state.sequencerInstruments, state.patches).find(b => b.id === instrumentId);
   if (!model || !clip || !binding) throw new Error("No mapped instrument for this clip.");
   const next = structuredClone(state.sequencer), arrangement = next.clipArrangement!;
-  arrangement.version = 2;
+  arrangement.version = arrangement.version === 3 ? 3 : 2;
   arrangement.revision++;
   const groups = new Map<number, ReturnType<typeof mappedControls>>();
   for (const control of mappedControls(binding, state.patches)) {

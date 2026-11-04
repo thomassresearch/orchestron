@@ -1,6 +1,6 @@
 # Clip transposition acceptance scenarios
 
-Status: required future verification; not yet executed for this feature. Date: 2026-11-04.
+Status: implemented in the clip-arranger preview; see [implementation and verification record](implementation-record.md). Date: 2026-11-04.
 
 Behavior is defined by the [specification](specification.md). Work and gates are in the [implementation plan](implementation-plan.md). Use versioned fixtures independent of developer `examples/`, with exact integer pitch/time assertions wherever possible.
 

@@ -1,11 +1,12 @@
+import { transposePitch, ZERO_OFFSET, type PitchOffset } from "../../lib/clipArranger/transposition";
 import { memo } from "react";
 import { buildControllerCurvePath, buildSequencerStepChordMidiNotes, sampleControllerCurveValue } from "../../lib/sequencer";
 import type { PatternDefinition } from "../../lib/clipArranger/model";
 import type { ControllerSequencerMode, SequencerTimingConfig } from "../../types";
 
 /** Fixed velocity/pitch scales keep neighboring clips comparable. No audio work lives here. */
-export const PatternPreview = memo(function PatternPreview({ definition, timing, controllerMode = "curve", height = 24, visibleRange }: {
-  definition: PatternDefinition; timing?: SequencerTimingConfig; controllerMode?: ControllerSequencerMode; height?: number; visibleRange?: [number, number];
+export const PatternPreview = memo(function PatternPreview({ definition, timing, controllerMode = "curve", height = 24, visibleRange, offset = ZERO_OFFSET }: {
+  definition: PatternDefinition; timing?: SequencerTimingConfig; controllerMode?: ControllerSequencerMode; height?: number; visibleRange?: [number, number]; offset?: PitchOffset;
 }) {
   const pad = definition.payload, width = 320;
   const steps = pad.lengthBeats * (timing?.stepsPerBeat ?? 4);
@@ -32,8 +33,10 @@ export const PatternPreview = memo(function PatternPreview({ definition, timing,
         });
       }))
       : definition.source === "score" ? definition.payload.notes.filter(n => n.startTicks < pad.lengthBeats * 20160 * 4 / (timing?.meterDenominator ?? 4)).map(note => {
+        const pitch = transposePitch(note.pitch, definition.payload.scaleRoot, definition.payload.mode, offset);
+        if (pitch === null) return null;
         const duration = pad.lengthBeats * 20160 * 4 / (timing?.meterDenominator ?? 4);
-        return <rect key={note.id} x={note.startTicks / duration * width} y={y(note.pitch)} width={Math.max(1.5, note.durationTicks / duration * width)} height="2.5" rx="1" fill="#a5b4fc" opacity={alpha(note.velocity)}><title>{`${note.pitch} · velocity ${note.velocity}`}</title></rect>;
+        return <rect key={note.id} x={note.startTicks / duration * width} y={y(pitch)} width={Math.max(1.5, note.durationTicks / duration * width)} height="2.5" rx="1" fill="#a5b4fc" opacity={alpha(note.velocity)}><title>{`${pitch} · velocity ${note.velocity}`}</title></rect>;
       }) : definition.payload.steps.slice(0, steps).flatMap((step, i, all) => {
         const p = definition.payload;
         if (step.hold) return [];
@@ -41,10 +44,12 @@ export const PatternPreview = memo(function PatternPreview({ definition, timing,
         if (step.strumDirection === "down") notes.reverse();
         let duration = 1;
         while (all[i + duration]?.hold) duration++;
-        return notes.map((pitch, j) => {
+        return notes.map((originalPitch, j) => {
+          const pitch = transposePitch(originalPitch,p.scaleRoot,p.mode,offset);
+          if (pitch === null) return null;
           const stagger = step.strumDirection && step.strumDirection !== "off" && notes.length > 1 ? (step.strumSpreadPercent ?? 0) / 100 * j / (notes.length - 1) : 0;
           const x = (i + (step.timingOffsetPercent ?? 0) / 100 + stagger) / steps * width;
-          return <rect key={`${i}:${pitch}`} x={Math.max(0, x)} y={y(pitch)} width={Math.max(1.5, duration / steps * width - 1)} height="2.5" rx="1" fill="#6ee7b7" opacity={alpha(step.velocity)}><title>{`${pitch} · velocity ${step.velocity}`}</title></rect>;
+          return <rect key={`${i}:${j}`} x={Math.max(0, x)} y={y(pitch)} width={Math.max(1.5, duration / steps * width - 1)} height="2.5" rx="1" fill="#6ee7b7" opacity={alpha(step.velocity)}><title>{`${pitch} · velocity ${step.velocity}`}</title></rect>;
         });
       })}
   </svg>;

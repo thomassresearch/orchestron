@@ -1,0 +1,251 @@
+[
+  {
+    "baseline": {
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "preparation_samples": 7,
+      "render_samples": 1000,
+      "results": {
+        "identity_tb303": {
+          "cold": {
+            "median_ms": 2.7261,
+            "p95_ms": 2.7832,
+            "max_ms": 2.8864
+          },
+          "cached": {
+            "median_ms": 0.6004,
+            "p95_ms": 0.6624,
+            "max_ms": 0.8372
+          },
+          "one_entry": {
+            "median_ms": 0.6018,
+            "p95_ms": 0.7102,
+            "max_ms": 0.7219
+          },
+          "serialization_ms": 1.8219,
+          "serialized_bytes": 55626,
+          "render": {
+            "start": {
+              "median_ms": 0.0007,
+              "max_ms": 0.107,
+              "p99_ms": 0.0484,
+              "block_budget_ms": 1.3333
+            },
+            "near_end": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0513,
+              "p99_ms": 0.042,
+              "block_budget_ms": 1.3333
+            }
+          }
+        }
+      }
+    },
+    "current": {
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "preparation_samples": 7,
+      "render_samples": 1000,
+      "results": {
+        "identity_tb303": {
+          "cold": {
+            "median_ms": 2.6916,
+            "p95_ms": 2.7966,
+            "max_ms": 2.9433
+          },
+          "cached": {
+            "median_ms": 0.6236,
+            "p95_ms": 0.68,
+            "max_ms": 0.768
+          },
+          "one_entry": {
+            "median_ms": 0.6814,
+            "p95_ms": 0.7339,
+            "max_ms": 0.7535
+          },
+          "serialization_ms": 1.8905,
+          "serialized_bytes": 56274,
+          "retained_bytes": 273335,
+          "render": {
+            "start": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0889,
+              "p99_ms": 0.0356,
+              "block_budget_ms": 1.3333
+            },
+            "near_end": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0385,
+              "p99_ms": 0.0302,
+              "block_budget_ms": 1.3333
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "baseline": {
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "preparation_samples": 7,
+      "render_samples": 1000,
+      "results": {
+        "identity_tb303": {
+          "cold": {
+            "median_ms": 2.6996,
+            "p95_ms": 2.7989,
+            "max_ms": 2.8741
+          },
+          "cached": {
+            "median_ms": 0.6347,
+            "p95_ms": 0.682,
+            "max_ms": 0.7156
+          },
+          "one_entry": {
+            "median_ms": 0.604,
+            "p95_ms": 0.7096,
+            "max_ms": 0.7288
+          },
+          "serialization_ms": 1.7698,
+          "serialized_bytes": 55626,
+          "render": {
+            "start": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0695,
+              "p99_ms": 0.0464,
+              "block_budget_ms": 1.3333
+            },
+            "near_end": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0527,
+              "p99_ms": 0.0422,
+              "block_budget_ms": 1.3333
+            }
+          }
+        }
+      }
+    },
+    "current": {
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "preparation_samples": 7,
+      "render_samples": 1000,
+      "results": {
+        "identity_tb303": {
+          "cold": {
+            "median_ms": 2.7711,
+            "p95_ms": 2.8023,
+            "max_ms": 2.8539
+          },
+          "cached": {
+            "median_ms": 0.6078,
+            "p95_ms": 0.6725,
+            "max_ms": 0.6738
+          },
+          "one_entry": {
+            "median_ms": 0.6365,
+            "p95_ms": 0.7007,
+            "max_ms": 0.7039
+          },
+          "serialization_ms": 1.7891,
+          "serialized_bytes": 56274,
+          "retained_bytes": 273335,
+          "render": {
+            "start": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0588,
+              "p99_ms": 0.0299,
+              "block_budget_ms": 1.3333
+            },
+            "near_end": {
+              "median_ms": 0.0007,
+              "max_ms": 0.041,
+              "p99_ms": 0.0285,
+              "block_budget_ms": 1.3333
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "baseline": {
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "preparation_samples": 7,
+      "render_samples": 1000,
+      "results": {
+        "identity_tb303": {
+          "cold": {
+            "median_ms": 2.682,
+            "p95_ms": 2.8034,
+            "max_ms": 2.9365
+          },
+          "cached": {
+            "median_ms": 0.5908,
+            "p95_ms": 0.6102,
+            "max_ms": 0.6273
+          },
+          "one_entry": {
+            "median_ms": 0.585,
+            "p95_ms": 0.6394,
+            "max_ms": 0.6806
+          },
+          "serialization_ms": 1.8796,
+          "serialized_bytes": 55626,
+          "render": {
+            "start": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0697,
+              "p99_ms": 0.0455,
+              "block_budget_ms": 1.3333
+            },
+            "near_end": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0497,
+              "p99_ms": 0.0419,
+              "block_budget_ms": 1.3333
+            }
+          }
+        }
+      }
+    },
+    "current": {
+      "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+      "preparation_samples": 7,
+      "render_samples": 1000,
+      "results": {
+        "identity_tb303": {
+          "cold": {
+            "median_ms": 2.6952,
+            "p95_ms": 2.7983,
+            "max_ms": 2.806
+          },
+          "cached": {
+            "median_ms": 0.6217,
+            "p95_ms": 0.6762,
+            "max_ms": 0.758
+          },
+          "one_entry": {
+            "median_ms": 0.6476,
+            "p95_ms": 0.6873,
+            "max_ms": 0.7255
+          },
+          "serialization_ms": 1.9208,
+          "serialized_bytes": 56274,
+          "retained_bytes": 273335,
+          "render": {
+            "start": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0632,
+              "p99_ms": 0.0297,
+              "block_budget_ms": 1.3333
+            },
+            "near_end": {
+              "median_ms": 0.0007,
+              "max_ms": 0.0613,
+              "p99_ms": 0.0296,
+              "block_budget_ms": 1.3333
+            }
+          }
+        }
+      }
+    }
+  }
+]

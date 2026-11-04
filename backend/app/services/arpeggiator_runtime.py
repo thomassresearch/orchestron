@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.clip_transposition import ROOT_PITCH_CLASS as _ROOT_PITCH_CLASS, MODE_INTERVALS as _MODE_INTERVALS
+
 from backend.app.models.clip_arrangement import PreparedClipSchedule
 
 from dataclasses import dataclass, field
@@ -68,7 +70,14 @@ class PendingInputEvent:
 @dataclass(slots=True)
 class ArpeggiatorRuntimeState:
     config: SessionArpeggiatorConfig
+    audition_schedule: PreparedClipSchedule | None = None
+    clip_context: bool = False
+    pending_clip_context: bool = False
     clip_schedule: PreparedClipSchedule | None = None
+    clip_occurrence: tuple | None = None
+    clip_source_start: int | None = None
+    clip_pitch_map: tuple | None = None
+    transpose_maps: dict = field(default_factory=dict)
     source_playing: bool | None = None
     source_origin: Fraction = Fraction(0)
     preview: dict[str, Any] | None = None
@@ -105,36 +114,6 @@ class ArpeggiatorRuntimeState:
         return self.config.pads[self.active_pad]
 
 
-_ROOT_PITCH_CLASS: dict[str, int] = {
-    "C": 0,
-    "C#": 1,
-    "Db": 1,
-    "D": 2,
-    "D#": 3,
-    "Eb": 3,
-    "E": 4,
-    "F": 5,
-    "F#": 6,
-    "Gb": 6,
-    "G": 7,
-    "G#": 8,
-    "Ab": 8,
-    "A": 9,
-    "A#": 10,
-    "Bb": 10,
-    "B": 11,
-    "Cb": 11,
-}
-
-_MODE_INTERVALS: dict[str, tuple[int, ...]] = {
-    "ionian": (0, 2, 4, 5, 7, 9, 11),
-    "dorian": (0, 2, 3, 5, 7, 9, 10),
-    "phrygian": (0, 1, 3, 5, 7, 8, 10),
-    "lydian": (0, 2, 4, 6, 7, 9, 11),
-    "mixolydian": (0, 2, 4, 5, 7, 9, 10),
-    "aeolian": (0, 2, 3, 5, 7, 8, 10),
-    "locrian": (0, 1, 3, 5, 6, 8, 10),
-}
 
 _RATE_BEATS: dict[str, float] = {
     "1/1": 4.0,
@@ -241,11 +220,14 @@ class PerformanceMidiRouter:
             index += 1
         return index
 
-    def configure(self, configs: Iterable[SessionArpeggiatorConfig], *, tempo_bpm: int) -> None:
+    def configure(self, configs: Iterable[SessionArpeggiatorConfig], *, tempo_bpm: int, prepared=None) -> None:
         configs = list(configs)
         channels = [config.input_channel for config in configs]
         if len(channels) != len(set(channels)) or any(c.target_channel in channels for c in configs):
             raise ValueError("Arpeggiators require unique inputs and cannot target another arpeggiator input.")
+        if prepared is None:
+            from backend.app.services.clip_transposition import prepare_arpeggiators
+            prepared = prepare_arpeggiators(configs)
         with self._lock:
             if self.lane_output:
                 self.lane_output.configure_arpeggiators(configs)
@@ -256,7 +238,7 @@ class PerformanceMidiRouter:
                 state = self._states.get(config.arpeggiator_id)
                 if state is None:
                     state = ArpeggiatorRuntimeState(config=config, active_pad=config.active_pad,
-                        clip_schedule=PreparedClipSchedule(config.clip_schedule) if config.clip_schedule else None)
+                        clip_schedule=prepared[config.arpeggiator_id][0], transpose_maps=prepared[config.arpeggiator_id][1], audition_schedule=prepared[config.arpeggiator_id][2])
                     if self._source_mode and config.playback_mode == "arranger":
                         state.source_playing = False
                     if config.playback_mode == "arranger" and self._arranger_running:
@@ -273,7 +255,7 @@ class PerformanceMidiRouter:
                         state.anchor_beat = None
                         state.step_index = state.note_index = state.phrase_offset = 0
                     state.config = config
-                    state.clip_schedule = PreparedClipSchedule(config.clip_schedule) if config.clip_schedule else None
+                    state.clip_schedule, state.transpose_maps, state.audition_schedule = prepared[config.arpeggiator_id]
                     if old.playback_mode != config.playback_mode:
                         state.source_playing = False if self._source_mode and config.playback_mode == "arranger" else None
                     if reset or not old.enabled and config.enabled:
@@ -430,7 +412,7 @@ class PerformanceMidiRouter:
     @staticmethod
     def _override_fields(state):
         return {key: getattr(state, key) for key in (
-            "audition_sequence", "audition_origin", "audition_pending", "audition_stopped",
+            "audition_sequence", "audition_origin", "audition_pending", "audition_stopped", "clip_context", "pending_clip_context",
             "manual_override", "active_pad", "anchor_beat", "queued_pad", "queued_beat",
             "step_index", "note_index", "phrase_offset", "last_restart")}
 
@@ -466,6 +448,7 @@ class PerformanceMidiRouter:
                     anchor = state.anchor_beat if state.anchor_beat is not None else Fraction(0)
                     boundary = anchor + ((beat - anchor) // length + 1) * length
                 immediate = request.action == "stop" or not running
+                state.pending_clip_context = request.clip_context
                 state.audition_pending = (request.action, tuple(request.sequence), beat if immediate else boundary)
                 if immediate:
                     self._apply_audition(state, beat, sample)
@@ -496,8 +479,10 @@ class PerformanceMidiRouter:
         state.workspace.update(gesture=request.gesture_id, revision=request.revision)
         pending = ("start", tuple(request.sequence), boundary)
         if state.preview:
+            state.preview["fields"]["pending_clip_context"] = request.clip_context
             state.preview["fields"]["audition_pending"] = pending
         else:
+            state.pending_clip_context = request.clip_context
             state.audition_pending = pending
             self._apply_audition(state, beat, sample)
         self._status_dirty = True
@@ -538,6 +523,7 @@ class PerformanceMidiRouter:
             if state.preview is None:
                 state.preview = self._snapshot(state, request)
             state.preview.update(gesture=request.gesture_id, revision=request.revision)
+            state.pending_clip_context = request.clip_context
             state.audition_pending = ("start", tuple(request.sequence), boundary)
             self._apply_audition(state, beat, sample)
         elif state.preview and state.preview["gesture"] == request.gesture_id:
@@ -592,6 +578,7 @@ class PerformanceMidiRouter:
             state.workspace["applied"] = True
         state.audition_pending = None
         state.audition_sequence = sequence if action == "start" else ()
+        state.clip_context = state.pending_clip_context if action == "start" else False
         state.audition_stopped = action == "stop"
         state.audition_origin = at
         state.manual_override = False
@@ -771,19 +758,26 @@ class PerformanceMidiRouter:
 
     def _locate(self, state: ArpeggiatorRuntimeState, beat: Fraction, *, reset: bool = False) -> None:
         config = state.config
-        if state.clip_schedule is not None and not state.audition_sequence:
-            resolved = state.clip_schedule.locate(max(0, int((beat - state.source_origin) * TRANSPORT_SUBUNITS_PER_BEAT)))
-            state.boundary_beat = (state.source_origin + Fraction(resolved.boundary, TRANSPORT_SUBUNITS_PER_BEAT)
+        schedule = state.audition_schedule if state.audition_sequence and state.clip_context else state.clip_schedule if not state.audition_sequence else None
+        origin = state.audition_origin if state.audition_sequence else state.source_origin
+        if schedule is not None:
+            resolved = schedule.locate(max(0, int((beat - origin) * TRANSPORT_SUBUNITS_PER_BEAT)))
+            state.boundary_beat = (origin + Fraction(resolved.boundary, TRANSPORT_SUBUNITS_PER_BEAT)
                                    if resolved.boundary is not None else None)
             paused = state.paused
             state.paused = resolved.pad is None
             if state.paused:
                 self._release(state, self._sample)
                 return
-            if reset or paused or resolved.pad != state.active_pad or state.anchor_beat is None:
+            changed_occurrence = state.clip_occurrence != resolved.occurrence or state.clip_source_start != resolved.source_start
+            if reset or changed_occurrence or state.clip_pitch_map is None:
+                state.clip_pitch_map = state.transpose_maps.get((resolved.pad, resolved.transpose)) if resolved.transpose != (0, 0) else tuple(range(128))
+            state.clip_occurrence = resolved.occurrence
+            state.clip_source_start = resolved.source_start
+            if reset or paused or changed_occurrence or resolved.pad != state.active_pad or state.anchor_beat is None:
                 self._release(state, self._sample)
                 state.active_pad = resolved.pad
-                state.anchor_beat = state.source_origin + Fraction(resolved.source_start, TRANSPORT_SUBUNITS_PER_BEAT)
+                state.anchor_beat = origin + Fraction(resolved.source_start, TRANSPORT_SUBUNITS_PER_BEAT)
                 state.step_index = self._index_at_or_after(state, beat)
                 state.phrase_offset = 0
                 state.last_restart = -1
@@ -1178,10 +1172,11 @@ class PerformanceMidiRouter:
         mode = context.mode if context and context.mode else state.pad.mode
         return root, mode
 
-    def _output_note(self, state: ArpeggiatorRuntimeState, held: HeldNote) -> int:
+    def _output_note(self, state: ArpeggiatorRuntimeState, held: HeldNote) -> int | None:
         note = _clamp_midi_note(held.note + state.pad.transpose)
         scale = self._note_scale(state, held)
-        return self._quantize_note_to_scale(note, *scale) if scale else note
+        note = self._quantize_note_to_scale(note, *scale) if scale else note
+        return state.clip_pitch_map[note] if (state.clip_schedule and not state.audition_sequence or state.clip_context) and state.clip_pitch_map else note
 
     def _preview_degree(self, state: ArpeggiatorRuntimeState, held: HeldNote, note: int) -> int | None:
         scale = self._note_scale(state, held)
@@ -1220,7 +1215,7 @@ class PerformanceMidiRouter:
                 state.last_notes = []
                 for note_index, held in enumerate(selected):
                     note = self._output_note(state, held)
-                    if note in state.last_notes:
+                    if note is None or note in state.last_notes:
                         continue
                     state.last_notes.append(note)
                     rng = self._rng(state, phrase_index, 10 + note_index)
@@ -1332,14 +1327,25 @@ class PerformanceMidiRouter:
                 state.note_index = 0
                 for index, step in enumerate(state.pad.steps):
                     notes = [] if step.kind in {"rest", "tie"} else self._select(state, step.kind, step.note_position, index)
-                    output_notes = [self._output_note(state, n) for n in notes]
-                    preview.append(output_notes)
-                    preview_degrees.append([self._preview_degree(state, held, note) for held, note in zip(notes, output_notes)])
+                    outputs = [(held, self._output_note(state, held)) for held in notes]
+                    outputs = [(held, pitch) for held, pitch in outputs if pitch is not None]
+                    preview.append([pitch for _, pitch in outputs])
+                    preview_degrees.append([self._preview_degree(state, held, pitch) for held, pitch in outputs])
                     if step.kind not in {"rest", "tie"} or state.pad.advance_rests:
                         state.note_index += 1
                 state.note_index = cursor
                 active = sorted(state.active_notes)
+                pending = None
+                if state.clip_schedule and not state.audition_sequence and label == "playing" and state.boundary_beat is not None:
+                    at = max(0,int((self._beat(self._sample)-state.source_origin)*TRANSPORT_SUBUNITS_PER_BEAT))
+                    current = state.clip_schedule.locate(at)
+                    desired = state.transpose_maps.get((current.pad,current.transpose)) if current.transpose != (0,0) else tuple(range(128))
+                    if desired != state.clip_pitch_map and current.boundary is not None:
+                        target = state.clip_schedule.locate(current.boundary)
+                        if target.occurrence:
+                            pending = dict(clip_id=target.occurrence[0],logical_pass=target.logical_pass,leaf_index=target.occurrence[2],at_subunit=int(state.boundary_beat*TRANSPORT_SUBUNITS_PER_BEAT))
                 result.append(SessionArpeggiatorStatus(arpeggiator_id=config.arpeggiator_id, enabled=state.source_playing if state.source_playing is not None else config.enabled,
+                    transpose_pending=pending,
                     input_channel=config.input_channel, target_channel=config.target_channel,
                     held_notes=sorted(state.held_notes), active_note=active[0] if active else None,
                     active_notes=active, step_index=state.displayed_step, cycle=max(0, state.step_index - 1) // len(state.pad.steps),

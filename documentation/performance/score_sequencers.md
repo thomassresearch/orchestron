@@ -102,3 +102,7 @@ For CLI authoring, use `edit add-score-sequencer --spec score-track.json` with
 the dedicated [Score Sequencer format](../../integrations/skills/orchestron-performance-creator/references/score_sequencer.md).
 Existing composition-score inputs and `edit apply-score` keep their established
 meaning.
+
+## Clip transposition
+
+The clip arranger supports [shared repetition transpositions and independent nested offsets](clip_arranger_preview.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.

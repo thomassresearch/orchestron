@@ -417,6 +417,9 @@ class SessionControllerSequencerPadConfig(BaseModel):
 
 def _validate_clip_slots(track):
     indexes = {pad.pad_index for pad in track.pads}
+    schedules = [s for s in (track.clip_schedule, track.audition_schedule) if s is not None]
+    if (hasattr(track, 'controller_number') or track.track_id.startswith('drumrow:')) and any(s.transpose_plans for s in schedules):
+        raise ValueError("Pitch transposition is unavailable for drum and controller sources.")
     if track.clip_schedule is None:
         if len(track.pads) > 8 or any(index > 7 for index in indexes) or track.active_pad > 7 or (track.queued_pad or 0) > 7:
             raise ValueError("Legacy sources support eight pads.")
@@ -425,7 +428,7 @@ def _validate_clip_slots(track):
         raise ValueError("Clip sources require arrangement playback without legacy sequence or queued pads.")
     if track.active_pad not in indexes:
         raise ValueError("Missing active clip definition.")
-    for clip in track.clip_schedule.clips:
+    for clip in [*track.clip_schedule.clips, *(track.audition_schedule.clips if track.audition_schedule else [])]:
         for span in clip.content:
             if span.pad is not None and span.pad not in indexes:
                 raise ValueError("Clip references a missing pattern payload.")
@@ -442,6 +445,7 @@ class SessionSequencerTrackConfig(BaseModel):
     velocity: int = Field(default=100, ge=1, le=127)
     gate_ratio: float = Field(default=0.8, gt=0.0, le=1.0)
     sync_to_track_id: str | None = Field(default=None, min_length=1, max_length=256)
+    audition_schedule: ClipSchedule | None = None
     clip_schedule: ClipSchedule | None = None
     active_pad: int = Field(default=0, ge=0, le=511)
     queued_pad: int | None = Field(default=None, ge=0, le=511)
@@ -535,6 +539,7 @@ class SessionControllerSequencerTrackConfig(BaseModel):
     reset_value: int = Field(default=0, strict=True, ge=0, le=127)
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     length_beats: ControllerSequencerPadLengthBeats = 4
+    audition_schedule: ClipSchedule | None = None
     clip_schedule: ClipSchedule | None = None
     active_pad: int = Field(default=0, ge=0, le=511)
     queued_pad: int | None = Field(default=None, ge=0, le=511)
@@ -658,6 +663,7 @@ class SessionArpeggiatorConfig(ArpeggiatorPadConfig):
     latch: bool = False
     hold_mode: Literal["off", "replace", "toggle"] = "off"
     restart_mode: ArpeggiatorRestartMode = "free"
+    audition_schedule: ClipSchedule | None = None
     clip_schedule: ClipSchedule | None = None
     active_pad: int = Field(default=0, ge=0, le=511)
     pad_loop_enabled: bool = True
@@ -671,7 +677,7 @@ class SessionArpeggiatorConfig(ArpeggiatorPadConfig):
         if self.clip_schedule is not None:
             if self.active_pad >= len(self.pads) or not self.pad_loop_enabled:
                 raise ValueError("Clip arpeggiators require a valid pattern and arrangement source.")
-            for clip in self.clip_schedule.clips:
+            for clip in [*self.clip_schedule.clips, *(self.audition_schedule.clips if self.audition_schedule else [])]:
                 for span in clip.content:
                     if span.pad is not None and (span.pad >= len(self.pads) or span.length != self.pads[span.pad].length_beats * 20160):
                         raise ValueError("Invalid arpeggiator clip pattern or duration.")
@@ -840,6 +846,7 @@ class SessionAuditionRequest(BaseModel):
     revision: int | None = Field(default=None, ge=0)
     track_ids: list[str] = Field(default_factory=list, max_length=128)
     arpeggiator_id: str | None = Field(default=None, min_length=1, max_length=256)
+    clip_context: bool = False
     sequence: list[int] = Field(default_factory=list, max_length=256)
 
     @model_validator(mode="after")
@@ -867,6 +874,7 @@ class SessionSequencerQueuePadRequest(BaseModel):
 
 
 class SessionSequencerTrackStatus(BaseModel):
+    transpose_pending: dict[str, int | str] | None = None
     track_id: str
     midi_channel: int
     timing: SessionSequencerTimingConfig
@@ -904,6 +912,7 @@ class SessionControllerSequencerTrackStatus(BaseModel):
 
 
 class SessionArpeggiatorStatus(BaseModel):
+    transpose_pending: dict[str, int | str] | None = None
     arpeggiator_id: str
     enabled: bool
     input_channel: int = Field(ge=1, le=16)

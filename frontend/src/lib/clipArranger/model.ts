@@ -1,3 +1,5 @@
+import { validateTranspositions } from "./transposeModel";
+import type { OffsetPlan, TransposeProfile } from "./transposition";
 import type { ArpeggiatorPadState, ControllerSequencerPadState, DrummerSequencerPadState, ScorePadState, SequencerPadState, SequencerTimingConfig } from "../../types";
 
 /** Authored time uses the existing transport/score timebase, never animation frames. */
@@ -12,19 +14,19 @@ export type PatternPayload = {
   arpeggiator: ArpeggiatorPadState;
 };
 export type PatternDefinition = { [K in SourceKind]: DefinitionIdentity & { kind: "pattern"; source: K; payload: PatternPayload[K]; presetId?: string | null } }[SourceKind];
-export type DefinitionIdentity = { id: string; name: string; revision: number; color?: string };
-export type ContentItem = { id: string; definitionId: string } | { id: string; restTicks: number };
+export type DefinitionIdentity = { id: string; name: string; revision: number; color?: string; transposeProfileId?: string };
+export type ContentItem = { id: string; definitionId: string; transpose?: OffsetPlan } | { id: string; restTicks: number };
 export type ContainerDefinition = DefinitionIdentity & { kind: "group" | "supergroup"; children: ContentItem[] };
 export type Definition = PatternDefinition | ContainerDefinition;
-export type Clip = { id: string; name: string; start: number; length: number; offset: number; mode: "once" | "loop"; children: ContentItem[] };
+export type Clip = { id: string; name: string; start: number; length: number; offset: number; mode: "once" | "loop"; children: ContentItem[]; repeatIndexBase?: number; transposePlacements?: { path: string[]; plan: OffsetPlan }[] };
 export type ClipLane = {
-  id: string; source: SourceKind; definitions: Definition[]; clips: Clip[];
+  id: string; source: SourceKind; transposeProfiles?: TransposeProfile[]; definitions: Definition[]; clips: Clip[];
   /** Legacy repeating lanes repeat their authored cycle, independently of song looping. */
   cycleTicks: number | null;
 };
-export type ClipArrangement = { version: 1 | 2; revision: number; end: number; lanes: ClipLane[] };
+export type ClipArrangement = { version: 1 | 2 | 3; revision: number; end: number; lanes: ClipLane[] };
 export type OccurrenceTarget = { laneId: string; clipId: string; path: string[]; pass: number };
-export type DefinitionDraft = { target: OccurrenceTarget; baseRevision: number; baseFingerprint?: string; definition: Definition; additions?: Definition[] };
+export type DefinitionDraft = { target: OccurrenceTarget; baseRevision: number; baseFingerprint?: string; definition: Definition; additions?: Definition[]; transposeEdits?: import("./transposeEdits").TransposeEdit[]; auditionContext?: { lane: ClipLane; childIds: Record<string,string> } };
 export type ClipHistoryChange =
   | { kind: "replace"; path: (string | number)[]; before?: unknown; after?: unknown }
   | { kind: "splice"; path: (string | number)[]; index: number; before: unknown[]; after: unknown[] };
@@ -101,7 +103,7 @@ export function resolveClip(lane: ClipLane, clip: Clip, from: number, to: number
 
 /** No JSON normalization here: malformed authored content must not be silently discarded. */
 export function validateArrangement(arrangement: ClipArrangement, timings: LaneTiming = {}): void {
-  if (![1, 2].includes(arrangement.version) || !Number.isSafeInteger(arrangement.revision) || arrangement.revision < 0) throw new ClipError("invalid", "Unsupported clip arrangement version or revision.");
+  if (![1, 2, 3].includes(arrangement.version) || !Number.isSafeInteger(arrangement.revision) || arrangement.revision < 0) throw new ClipError("invalid", "Unsupported clip arrangement version or revision.");
   exactTick(arrangement.end, true);
   if (arrangement.lanes.length > CLIP_LIMITS.lanes) throw new ClipError("limit", "Too many lanes.");
   const identities = new Set<string>();
@@ -109,6 +111,7 @@ export function validateArrangement(arrangement: ClipArrangement, timings: LaneT
     if (typeof id !== "string" || !id.length || id.length > 128 || identities.has(id)) throw new ClipError("invalid", "Identities must be unique nonempty strings.");
     identities.add(id);
   };
+  validateTranspositions(arrangement, identity);
   for (const lane of arrangement.lanes) {
     identity(lane.id);
     if (!["sequencer", "score", "drummer", "controller", "arpeggiator"].includes(lane.source)) throw new ClipError("invalid", "Unknown source type.");
@@ -137,7 +140,7 @@ export function validateArrangement(arrangement: ClipArrangement, timings: LaneT
         patternDuration(def, timings[lane.id]);
         if (def.source === "controller" && (timings[lane.id]?.automation || def.payload.curveDurationTicks !== undefined)) {
           if (!timings[lane.id]?.automation) throw new ClipError("invalid", "Extended curves require an automation target.");
-          if (arrangement.version !== 2 || def.payload.keypoints.length < 2 || def.payload.keypoints.length > 10) throw new ClipError("limit", "Automation curves require 2–10 points, including endpoints.");
+          if (arrangement.version < 2 || def.payload.keypoints.length < 2 || def.payload.keypoints.length > 10) throw new ClipError("limit", "Automation curves require 2–10 points, including endpoints.");
           const positions = def.payload.keypoints.map(p => p.position).sort((a, b) => a - b);
           if (positions[0] !== 0 || positions[positions.length - 1] !== 1 || new Set(positions).size !== positions.length) throw new ClipError("invalid", "Automation curves require distinct points and both endpoints.");
           if (def.payload.curveDurationTicks !== undefined) exactTick(def.payload.curveDurationTicks, true);
@@ -153,6 +156,9 @@ export function validateArrangement(arrangement: ClipArrangement, timings: LaneT
       previousEnd = exactTick(clip.start + clip.length);
       if (previousEnd > arrangement.end || lane.cycleTicks !== null && previousEnd > lane.cycleTicks) throw new ClipError("invalid", "Clip extends beyond its song/cycle boundary.");
       children(clip.children, 3);
+      const duration = contentLength(lane, clip.children, timings[lane.id]);
+      const last = (clip.repeatIndexBase ?? 0) + (clip.mode === "loop" ? Math.floor((clip.offset + clip.length - 1) / duration) : 0);
+      if (last > 40320000000) throw new ClipError("limit", "Logical repetition extent exceeded.");
     }
   }
 }

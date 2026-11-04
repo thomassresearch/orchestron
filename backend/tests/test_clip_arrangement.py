@@ -82,7 +82,7 @@ def test_standalone_audition_past_song_end_does_not_flood_transport_events(peer)
 
 
 @pytest.mark.parametrize("change", [
-    {"version": 2}, {"end": 0}, {"cycle_ticks": 8 * Q},
+    {"version": 3}, {"end": 0}, {"cycle_ticks": 8 * Q},
     {"clips": [{"id": "bad", "start": 0.5, "length": Q, "content": [{"pad": 0, "length": Q}]}]},
     {"clips": [{"id": "bad", "start": 0, "length": Q, "content": [{"pad": 512, "length": Q}]}]},
 ])

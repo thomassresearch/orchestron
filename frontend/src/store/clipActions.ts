@@ -5,6 +5,24 @@ import { beginDraft, emptyClipHistory, recordClipEdit, replayClipEdit, saveDraft
 import { draftKey } from "../lib/clipArranger/editorAdapter";
 import { rebaseStructure, retainMusicalDrafts } from "../lib/clipArranger/structuralDraftResolution";
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
+import { saveTransposeEdits } from '../lib/clipArranger/transposeEdits';
+
+export function saveClipTransposition() {
+  const state = useAppStore.getState(), key = state.clipEditingKey, model = state.sequencer.clipArrangement;
+  if (!key || !model || !state.clipDrafts[key]?.transposeEdits?.length) return;
+  const draft = state.clipDrafts[key], timings = arrangementTimings(state.sequencer);
+  const current = beginDraft(model, draft.target);
+  if (draft.baseFingerprint !== current.baseFingerprint) throw Error('The musical definition changed. Resolve that draft before saving transposition.');
+  const next = saveTransposeEdits(model, draft.target, draft.transposeEdits!, timings);
+  const structural = useStructureDraft.getState().draft;
+  const rebased = structural ? rebaseStructure(structural, next, timings) : null;
+  const original = beginDraft(next, draft.target);
+  const remaining = { ...draft, transposeEdits: undefined, baseRevision: original.baseRevision, baseFingerprint: original.baseFingerprint,
+    definition: { ...draft.definition, transposeProfileId: original.definition.transposeProfileId } };
+  commitClipArrangement(next, 'Transpose');
+  useStructureDraft.setState({ draft: rebased });
+  useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: remaining } });
+}
 
 export function commitClipArrangement(next: ClipArrangement, label: string) {
   const state = useAppStore.getState(), before = state.sequencer.clipArrangement;
@@ -27,9 +45,17 @@ export function updateClipDraft(definition: Definition, additions?: Definition[]
 export function saveClipDraft(scope: "local" | "all", name: string, resolvingKey?: string) {
   const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey, model = state.sequencer.clipArrangement;
   if (!key || !model) return;
-  const draft = state.clipDrafts[key];
+  let draft = state.clipDrafts[key];
+  let basis = model;
+  if (draft.transposeEdits?.length) {
+    if (draft.baseFingerprint !== beginDraft(model,draft.target).baseFingerprint) throw Error('The musical definition changed. Reopen the draft before saving.');
+    basis = saveTransposeEdits(model,draft.target,draft.transposeEdits,arrangementTimings(state.sequencer));
+    const updated = beginDraft(basis,draft.target);
+    draft = {...draft,baseRevision:updated.baseRevision,baseFingerprint:updated.baseFingerprint,transposeEdits:undefined,
+      definition:{...draft.definition,transposeProfileId:updated.definition.transposeProfileId}};
+  }
   if (draft.definition.kind !== "pattern") throw Error("Use Save structure for container edits.");
-  const next = saveDraft(model, { ...draft, definition: { ...draft.definition, name } }, scope, arrangementTimings(state.sequencer));
+  const next = saveDraft(basis, { ...draft, definition: { ...draft.definition, name } }, scope, arrangementTimings(state.sequencer));
   const structural = useStructureDraft.getState().draft;
   if (structural && JSON.stringify(structural.basis) !== JSON.stringify(model.lanes.find(l => l.id === structural.laneId))) throw Error("The track changed. Resolve the structure draft before saving.");
   const rebased = structural ? rebaseStructure(structural, next, arrangementTimings(state.sequencer)) : null;

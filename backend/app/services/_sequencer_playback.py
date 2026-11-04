@@ -140,11 +140,15 @@ def _following_note_track(self, track: SequencerTrackRuntime, boundary: int) -> 
     following = copy(track)
     if track.clip_schedule is not None:
         from backend.app.services import clip_playback
-        origin = self.sources.track_origin(track) if self.sources.active else 0
+        audition = self._auditions.get(track.track_id, {})
+        origin = audition["origin"] if audition.get("sequence") else (self.sources.track_origin(track) if self.sources.active else 0)
         clip_playback.position(following, max(0, boundary - origin))
         following.phase_offset_subunit += origin
         if following.clip_boundary is not None:
             following.clip_boundary += origin
+        if track.clip_future and track.clip_future[:2] == (boundary, following.clip_occurrence):
+            following.clip_latched_occurrence = following.clip_occurrence
+            following.clip_latched_pair, following.clip_latched_pad = track.clip_future[2:]
         return None if following.clip_silent else following
     manual = track.queued_pad is not None and track.queued_pad != track.active_pad
     if manual:
@@ -171,8 +175,18 @@ def _timed_attacks(self, track: SequencerTrackRuntime, now: int, config: Sequenc
         positions.insert(0, (0, pad.note_step_indices[0]))
     attacks = [(base + offset, base, index, pad.steps[index]) for offset, index in positions]
     if track.clip_schedule is not None:
-        # Do not anticipate a later clip or release pending attacks beyond this window.
-        return [attack for attack in attacks if attack[0] < track.clip_boundary]
+        attacks = [attack for attack in attacks if attack[0] < track.clip_boundary]
+        boundary = track.clip_boundary
+        following = self._following_note_track(track, boundary)
+        next_pad = _active_pad_runtime(following) if following else None
+        song_boundary = self.sources.next_boundary() if self.sources.active and self.sources.is_arrangement(track) else None
+        if (following and following.active_pad == track.active_pad and following.phase_offset_subunit == boundary
+                and next_pad and next_pad.note_offsets and next_pad.note_offsets[0] < 0
+                and (boundary < config.playback_end_subunit or self._auditions.get(track.track_id, {}).get("sequence"))
+                and (song_boundary is None or boundary < song_boundary)):
+            offset, index = next_pad.note_offsets[0], next_pad.note_step_indices[0]
+            attacks.append((boundary + offset, boundary, index, next_pad.steps[index]))
+        return attacks
     boundary = base + pad.transport_subunit_count
     song_boundary = self.sources.next_boundary() if self.sources.active and self.sources.is_arrangement(track) else None
     if song_boundary is not None:
@@ -306,10 +320,13 @@ def _perform_note_events_locked(self, config: SequencerRuntimeConfig, now: int, 
                 if config.playback_loop and base == config.playback_end_subunit:
                     origin = copy(track)
                     self._position_prepared_track(origin, config.playback_start_subunit)
+                if track.clip_schedule:
+                    pair = origin.clip_latched_pair if origin.clip_latched_pad else origin.clip_transpose
+                    track.clip_future = (base, origin.clip_occurrence, pair, _active_pad_runtime(origin))
             self._release_track_notes_locked(track_id, track.midi_channel, delivery_delay_seconds=delay)
             if step.ratchets > 1:
                 self._ratchet_rolls[track_id] = RatchetRoll(
-                    track.active_pad, base, nominal, now, step.notes, pad.ratchet_strikes[index],
+                    track.active_pad, base, nominal, now, step.notes, _active_pad_runtime(origin).ratchet_strikes[index],
                 )
                 self._perform_ratchet_strike(track, now, delay)
                 continue
@@ -405,6 +422,11 @@ def _active_pad_runtime(
 ) -> SequencerPadRuntime | ControllerSequencerPadRuntime | None:
     if track.clip_schedule is not None and track.clip_silent:
         return None
+    if track.clip_schedule is not None and isinstance(track, SequencerTrackRuntime):
+        if track.clip_latched_pad is not None and track.clip_latched_occurrence == track.clip_occurrence:
+            return track.clip_latched_pad
+        if track.clip_transpose != (0, 0):
+            return track.transpose_variants[(track.active_pad, track.clip_transpose)]
     token = _current_pad_loop_token(track)
     if token is not None:
         return track.pads.get(token)

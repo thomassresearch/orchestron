@@ -97,3 +97,31 @@ When a musical save forks shared parents or splits a loop pass, the pending stru
 Container **Play edit** auditions a snapshot of the current structure. Further structural edits remain visual and do not re-prepare audio; stop and restart Play edit to hear the changed structure. Saving ends the editor audition through the existing lifecycle. Musical sequencer controls retain their existing live-edit behavior.
 
 See the [direct-content review](../../specifications/redesign-arranger/direct-content-review.md) for the implementation and verification record.
+
+## Transpose clips without changing notes
+
+Select a pattern, group or supergroup in an expanded clip, then use **Transpose**. Choose **Diatonic steps** to move through each pattern’s configured scale and mode, or **Semitones** for chromatic movement. Negative values move down. Switching the displayed component preserves the other value. All pattern, group and supergroup contributions add; diatonic steps apply first, then semitones. Notes outside MIDI 0–127 after the complete transform are silent. The musical editor continues to show the original notes; timeline Note maps show the sounding pitches.
+
+Choose the owner before changing a value:
+
+- **Shared transposition** changes the selected definition everywhere it is used, including other clips. Its repetition settings are shared too.
+- **Offset in parent** belongs to this reference inside its parent. Reusing that parent also reuses this offset.
+- **Offset in this placement** belongs only to this nested location in this clip. It adds to the shared and parent settings and does not create a new pattern or split the clip.
+
+The contribution list shows the selected item and its enclosing offsets. The inspector lists affected linked clips, compares saved and draft totals, and reports selected-pattern notes that fall outside the MIDI range. Each leaf pattern uses its own scale and mode, including when a group contains patterns with different scales.
+
+![Shared repetition transposition with independent enclosing offsets](../../screenshots/clip-transposition-shared.png)
+
+Choose **Default** for the plan’s base value, or select a generated repetition in the timeline and edit that **Repetition**. Repetition numbers follow the source content: a cropped clip can begin partway through repetition 2. They do not count how often transport has played. A group’s descendants use the same repetition number as the enclosing clip content.
+
+An explicit repetition replaces its own plan’s default; other plans still add. **Set repetition to zero** stores an explicit zero pair. **Inherit default** removes that repetition entry. **Reset component** clears only the displayed component; **Reset plan** clears the default and every repetition entry. Shortening a clip keeps hidden repetition settings for later extension.
+
+![Independent offset for one nested placement](../../screenshots/clip-transposition-placement.png)
+
+**Save transposition** commits the draft as one undoable edit. **Discard transposition** leaves saved music unchanged. The pattern editor’s **Save** can commit musical and transpose changes together. Shared transposition retains its explicitly selected scope even when musical notes are saved as a local variation; that new variation receives its own copied profile. Conflicting edits report an error instead of overwriting another change.
+
+**Play edit** auditions the full selected definition from its own start, using the selected repetition and all enclosing offsets. It repeats that same transposition until restarted; play the arrangement to hear the progression. Transposition and structural drafts are snapshots for audition. Saving during arrangement playback changes the next occurrence whose notes have not started; an early attack can already belong to the next repetition. A pending indicator names the target clip, repetition and leaf position. Seek or restart uses the latest saved settings immediately.
+
+Melodic, Score and Arpeggiator lanes support these controls. For arpeggiators, the new mapping follows their existing transpose and quantizer, and uses the pattern’s configured scale. Bypass remains unchanged. Drummer, controller and instrument-automation lanes do not offer pitch transposition.
+
+Transposition performances require a version-25-capable reader (app-state version 7, clip model version 3). Native bundles, CLI runtime projection and MIDI/SCORE CSD exports preserve the saved settings. Unsaved transpose drafts and temporary audition state are not exported. Older identity-only clip performances retain their existing format until transposition is saved.

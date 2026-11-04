@@ -1,3 +1,4 @@
+import { TransposeInspector } from "./TransposeInspector";
 import { AutomationDuration, AutomationMergeDialog } from "./AutomationControls";
 import { automationCopy } from "./automationCopy";
 import { ControllerSequencerCurveEditor } from "../sequencer/ControllerSequencerCurveEditor";
@@ -67,11 +68,14 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
     const current = active.current;
     const editing = current ? drafts[current.key] : undefined;
     if (!auditioning || !current || !editing || editing.definition.kind !== "pattern" || current.last === editing) return;
+    const previous = current.last as typeof editing;
+    if (JSON.stringify(previous.definition) === JSON.stringify(editing.definition)) return;
+    const snapshot = { ...editing, transposeEdits: previous.transposeEdits };
     const timer = setTimeout(() => {
       if (active.current !== current) return;
-      current.last = editing;
-      useAppStore.setState({ clipAuditionDraft: editing });
-      void audition?.(current.id, { action: "workspace_start", gestureId: current.gesture, clipDraft: editing }).catch(e => setError(String(e)));
+      current.last = snapshot;
+      useAppStore.setState({ clipAuditionDraft: snapshot });
+      void audition?.(current.id, { action: "workspace_start", gestureId: current.gesture, clipDraft: snapshot }).catch(e => setError(String(e)));
     }, 80);
     return () => clearTimeout(timer);
   }, [drafts, auditioning, audition]);
@@ -145,6 +149,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
           catch (e) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); }
         })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButton} disabled={draft.definition.kind!=="pattern"&&!structure.draft?.cursor} onClick={() => draft.definition.kind==="pattern"?setSaving(true):structure.openSave()}>{draft.definition.kind==="pattern"?c.save:t.save}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
       </header>
+      <TransposeInspector key={key} language={language} stopAudition={stopEdit} />
       <AutomationDuration language={language} />
       {curve?.automationTarget && <button className={`${clipButton} mb-2`} onClick={() => { void stopEdit().then(() => { const state = useAppStore.getState(); const remaining = { ...state.clipDrafts }; if (key) delete remaining[key]; useAppStore.setState({ clipDrafts: remaining, clipEditingKey: null }); }); }}>{automationCopy(language).discard}</button>}
       <p className="mb-2 text-[10px] text-slate-500">{c.laneSettings}</p>

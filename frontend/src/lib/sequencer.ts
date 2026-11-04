@@ -97,7 +97,7 @@ const DEFAULT_SCALE_ROOT: SequencerScaleRoot = "C";
 const DEFAULT_SCALE_TYPE: SequencerScaleType = "minor";
 const DEFAULT_MODE: SequencerMode = "aeolian";
 
-const MODE_INTERVALS: Record<SequencerMode, readonly number[]> = {
+export const MODE_INTERVALS: Record<SequencerMode, readonly number[]> = {
   ionian: [0, 2, 4, 5, 7, 9, 11],
   dorian: [0, 2, 3, 5, 7, 9, 10],
   phrygian: [0, 1, 3, 5, 7, 8, 10],
@@ -107,7 +107,7 @@ const MODE_INTERVALS: Record<SequencerMode, readonly number[]> = {
   locrian: [0, 1, 3, 5, 6, 8, 10]
 };
 
-const SEQUENCER_SCALE_ROOTS: SequencerScaleRootOption[] = [
+export const SEQUENCER_SCALE_ROOTS: SequencerScaleRootOption[] = [
   { value: "C", label: "C", pitchClass: 0, preferFlats: false },
   { value: "C#", label: "C#", pitchClass: 1, preferFlats: false },
   { value: "Db", label: "Db", pitchClass: 1, preferFlats: true },

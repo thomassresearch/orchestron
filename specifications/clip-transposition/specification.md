@@ -1,6 +1,6 @@
 # Clip transposition specification
 
-Status: implementation contract, not implemented. Date: 2026-11-04.
+Status: implemented in the clip-arranger preview; see [implementation and verification record](implementation-record.md). Date: 2026-11-04.
 
 Requirement provenance and scope are recorded in the [package overview](README.md). The [implementation plan](implementation-plan.md) and [acceptance scenarios](acceptance.md) are part of this contract.
 

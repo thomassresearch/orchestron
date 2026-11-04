@@ -1,6 +1,7 @@
 import { contentLength, type ClipArrangement, type DefinitionDraft, type LaneTiming, type OccurrenceTarget } from './model';
 import { beginDraft, definitionAt } from './operations';
 import { hasChangedClipDrafts } from './draftResolution';
+import { transposeFingerprint } from './transposeEdits';
 import { applyStructure, beginStructure, stepStructure, structureChildren, type StructureCommand, type StructureDraft, type StructureNode } from './structure';
 
 /** Musical saves preserve sibling order, but local forks/splits can change occurrence IDs. */
@@ -76,6 +77,7 @@ export function rebaseStructure(draft: StructureDraft, model: ClipArrangement, t
 export function affectedDraftKeys(before: ClipArrangement, after: ClipArrangement, drafts: Record<string, DefinitionDraft>): string[] {
   return Object.entries(drafts).filter(([, draft]) => {
     try {
+      if (draft.transposeEdits?.length && transposeFingerprint(before,draft.target)!==transposeFingerprint(after,draft.target)) return true;
       const oldLane = before.lanes.find(l => l.id === draft.target.laneId)!;
       const newLane = after.lanes.find(l => l.id === draft.target.laneId)!;
       const oldClip = oldLane.clips.find(c => c.id === draft.target.clipId)!;

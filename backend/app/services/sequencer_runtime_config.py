@@ -258,6 +258,7 @@ def compile_sequencer_runtime_config(
     request: SessionSequencerConfigRequest,
     *,
     controller_default_channels: tuple[int, ...],
+    pinned_pairs: dict | None = None,
 ) -> SequencerRuntimeConfig:
     timing = SequencerTimingRuntime(
         tempo_bpm=request.timing.tempo_bpm,
@@ -331,6 +332,7 @@ def compile_sequencer_runtime_config(
             queued_enabled=track_request.queued_enabled,
             configured_queued_enabled=track_request.queued_enabled,
             pads=pads,
+            audition_schedule=PreparedClipSchedule(track_request.audition_schedule) if track_request.audition_schedule else None,
             clip_schedule=PreparedClipSchedule(track_request.clip_schedule) if track_request.clip_schedule else None,
             active_pad=active_pad,
             configured_active_pad=active_pad,
@@ -344,6 +346,9 @@ def compile_sequencer_runtime_config(
     from backend.app.services.score_sequencer import compile_score_track
     for score in request.score_tracks:
         tracks[score.track_id] = compile_score_track(score, request.timing.tempo_bpm)
+
+    from backend.app.services.clip_transposition import prepare_variants
+    prepare_variants(tracks, pinned_pairs)
 
     for track_request in request.controller_tracks:
         track_timing = SequencerTimingRuntime(
@@ -399,6 +404,7 @@ def compile_sequencer_runtime_config(
             enabled=track_request.enabled,
             configured_enabled=track_request.enabled,
             pads=pads,
+            audition_schedule=PreparedClipSchedule(track_request.audition_schedule) if track_request.audition_schedule else None,
             clip_schedule=PreparedClipSchedule(track_request.clip_schedule) if track_request.clip_schedule else None,
             active_pad=active_pad,
             configured_active_pad=active_pad,
@@ -423,13 +429,18 @@ def compile_sequencer_runtime_config(
         )
 
     for track in [*tracks.values(), *controller_tracks.values()]:
-        if track.clip_schedule is not None:
-            for clip in track.clip_schedule.schedule.clips:
+        for schedule in (track.clip_schedule, track.audition_schedule):
+            for clip in schedule.schedule.clips if schedule else ():
                 for span in clip.content:
                     if span.pad is not None and span.length != track.pads[span.pad].transport_subunit_count:
                         raise ValueError("Clip span duration must equal the native pattern duration.")
 
+    from backend.app.services.clip_transposition import prepare_arpeggiators
+    arpeggiators = prepare_arpeggiators(request.arpeggiators)
+    if sum(len(t.transpose_variants) for t in tracks.values()) + sum(len(maps) for _, maps, _ in arpeggiators.values()) > 1024:
+        raise ValueError("Performance transposition variant limit exceeded.")
     return SequencerRuntimeConfig(
+        prepared_arpeggiators=arpeggiators,
         timing=timing,
         step_count=step_quantum,
         playback_start_subunit=request.playback_start_step * TRANSPORT_SUBUNITS_PER_STEP,

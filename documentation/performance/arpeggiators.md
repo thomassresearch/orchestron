@@ -99,3 +99,7 @@ Versions 1–14 load in memory into the new model. Existing settings become #1; 
 Existing performances adopt Arranger mode, Hold Off, Continue, corrected swing and full-range ordering, so they can sound different. Save/export writes version 16; app-state version 2 and native bundle-envelope version 1 stay unchanged. Runtime positions and held notes are not saved.
 
 **Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)
+
+## Clip transposition
+
+The clip arranger supports [shared repetition transpositions and independent nested offsets](clip_arranger_preview.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.

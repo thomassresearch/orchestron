@@ -1,6 +1,6 @@
 # Clip transposition implementation plan
 
-Status: planned; no implementation tasks completed. Date: 2026-11-04.
+Status: implemented in the clip-arranger preview; see [implementation and verification record](implementation-record.md). Date: 2026-11-04.
 
 The [feature specification](specification.md) defines behavior; [acceptance scenarios](acceptance.md) define completion evidence. This plan does not authorize publishing, modifying user performances or enabling the broader clip arranger rollout.
 

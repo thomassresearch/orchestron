@@ -5,7 +5,7 @@ import type { ClipArrangement, DefinitionDraft } from "./model";
 export function hasChangedClipDrafts(model: ClipArrangement | undefined, drafts: Record<string, DefinitionDraft>): boolean {
   return !!model && Object.values(drafts).some(draft => {
     const original = model.lanes.find(l => l.id === draft.target.laneId)?.definitions.find(d => d.id === draft.definition.id);
-    return !!draft.additions?.length || JSON.stringify(original) !== JSON.stringify(draft.definition);
+    return !!draft.transposeEdits?.length || !!draft.additions?.length || JSON.stringify(original) !== JSON.stringify(draft.definition);
   });
 }
 export const useClipResolution = create<{ pending: { replace: boolean; resolve: (accepted: boolean) => void } | null }>(() => ({ pending: null }));

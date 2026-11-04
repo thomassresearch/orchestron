@@ -111,10 +111,13 @@ def perform_strum_events(runtime, track, pad, config, now: int, delay) -> None:
                 from copy import copy
                 origin = copy(track)
                 runtime._position_prepared_track(origin, config.playback_start_subunit)
+            if track.clip_schedule:
+                pair = origin.clip_latched_pair if origin.clip_latched_pad else origin.clip_transpose
+                track.clip_future = (base, origin.clip_occurrence, pair, runtime._active_pad_runtime(origin))
         end = runtime._nominal_note_end(origin, base, nominal)
         release_pitches(runtime, track, state,
                         [note for note, voice in state.voices.items() if not voice.strummed], delay)
-        attacks = pad.strum_attacks[index]
+        attacks = runtime._active_pad_runtime(origin).strum_attacks[index]
         for offset, note in attacks or tuple((0, note) for note in step.notes):
             if step.velocity > 0:
                 state.pending.append(StrumAttack(now + offset, note, step.velocity,
@@ -150,8 +153,12 @@ def refresh_strum_releases(runtime, config) -> None:
         # Keep live HOLD editing; freeze the notes, spacing and timing of a
         # started occurrence. Releases already crossing a boundary remain owned.
         for voice in [*state.voices.values(), *(attack.voice for attack in state.pending)]:
+            origin, voice_base = track, base
+            if track.clip_future and voice.nominal_start >= track.clip_future[0]:
+                voice_base = track.clip_future[0]
+                origin = runtime._following_note_track(track,voice_base) or track
             if voice.nominal_end is None or voice.nominal_end >= base:
-                voice.nominal_end = runtime._nominal_note_end(track, base, voice.nominal_start)
+                voice.nominal_end = runtime._nominal_note_end(origin, voice_base, voice.nominal_start)
         release_pitches(runtime, track, state,
                         [note for note, voice in state.voices.items()
                          if voice.end is not None and voice.end <= runtime._absolute_subunit], None)

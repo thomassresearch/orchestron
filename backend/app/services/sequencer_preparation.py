@@ -17,13 +17,13 @@ class SupersededConfigurationError(Exception):
     """An edit was superseded or its session stopped before application."""
 
 
-def _prepare(request: SessionSequencerConfigRequest, channels: tuple[int, ...]) -> SequencerRuntimeConfig:
+def _prepare(request: SessionSequencerConfigRequest, channels: tuple[int, ...], pinned_pairs=None) -> SequencerRuntimeConfig:
     inputs = {config.input_channel for config in request.arpeggiators}
     if len(inputs) != len(request.arpeggiators):
         raise ValueError("Arpeggiator input channels must be unique.")
     if any(config.target_channel in inputs for config in request.arpeggiators):
         raise ValueError("Arpeggiator target_channel cannot target another arpeggiator input.")
-    return compile_sequencer_runtime_config(request, controller_default_channels=channels)
+    return compile_sequencer_runtime_config(request, controller_default_channels=channels, pinned_pairs=pinned_pairs)
 
 
 def _warmup() -> None:
@@ -36,6 +36,7 @@ class Preparation:
     channels: tuple[int, ...]
     apply: Callable[[SequencerRuntimeConfig], Awaitable[SessionSequencerStatus]]
     result: asyncio.Future[SessionSequencerStatus]
+    pinned_pairs: dict | None = None
 
 
 class SequencerPreparationService:
@@ -56,8 +57,8 @@ class SequencerPreparationService:
     async def start(self) -> None:
         await asyncio.get_running_loop().run_in_executor(self._executor(), _warmup)
 
-    async def prepare(self, request: SessionSequencerConfigRequest, channels: tuple[int, ...]) -> SequencerRuntimeConfig:
-        return await asyncio.get_running_loop().run_in_executor(self._executor(), _prepare, request, channels)
+    async def prepare(self, request: SessionSequencerConfigRequest, channels: tuple[int, ...], pinned_pairs=None) -> SequencerRuntimeConfig:
+        return await asyncio.get_running_loop().run_in_executor(self._executor(), _prepare, request, channels, pinned_pairs)
 
     def invalidate(self, session_id: str) -> None:
         pending = self._pending.pop(session_id, None)
@@ -69,11 +70,12 @@ class SequencerPreparationService:
     async def submit(
         self, session_id: str, request: SessionSequencerConfigRequest, channels: tuple[int, ...],
         apply: Callable[[SequencerRuntimeConfig], Awaitable[SessionSequencerStatus]],
+        pinned_pairs=None,
     ) -> SessionSequencerStatus:
         if self._closed:
             raise RuntimeError("Sequencer compiler is closed")
         self.invalidate(session_id)
-        job = Preparation(request, channels, apply, asyncio.get_running_loop().create_future())
+        job = Preparation(request, channels, apply, asyncio.get_running_loop().create_future(), pinned_pairs)
         self._pending[session_id] = job
         if self._dispatcher is None or self._dispatcher.done():
             self._dispatcher = asyncio.create_task(self._dispatch(), name="sequencer-compiler")
@@ -86,7 +88,7 @@ class SequencerPreparationService:
             try:
                 if job.result.done():
                     continue
-                prepared = await self.prepare(job.request, job.channels)
+                prepared = await self.prepare(job.request, job.channels, job.pinned_pairs) if job.pinned_pairs else await self.prepare(job.request, job.channels)
                 if not job.result.done():
                     status = await job.apply(prepared)
                     if not job.result.done():

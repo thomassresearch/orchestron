@@ -18,13 +18,15 @@ def validate_authored_clips(document):
         if isinstance(sequencer, dict) and any(isinstance(t, dict) and t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])):
             raise ValueError("Instrument automation requires a clip arrangement.")
         return document
-    if document.get("version") not in (5, 6, 23, 24):
+    if document.get("version") not in (5, 6, 7, 23, 24, 25):
         raise ValueError("Clip arrangements require performance v23–24 or app state v5–6.")
     model = sequencer["clipArrangement"]
-    if not isinstance(model, dict) or model.get("version") not in (1, 2):
+    if not isinstance(model, dict) or model.get("version") not in (1, 2, 3):
         raise ValueError("Unsupported clip arrangement version.")
-    if model["version"] == 2 and document.get("version") not in (6, 24):
+    if model["version"] >= 2 and document.get("version") not in (6, 7, 24, 25):
         raise ValueError("Instrument automation requires performance v24 or app state v6.")
+    if model["version"] == 3 and document.get("version") not in (7, 25):
+        raise ValueError("Clip transposition requires performance v25 or app state v7.")
     _integer(model.get("revision"))
     end = _integer(model.get("end"), 1)
     lanes = model.get("lanes")
@@ -57,7 +59,7 @@ def validate_authored_clips(document):
         target = track.get("automationTarget")
         if target is not None:
             from backend.app.models.session import AutomationTarget
-            if source != "controller" or model["version"] != 2 or not isinstance(target, dict):
+            if source != "controller" or model["version"] < 2 or not isinstance(target, dict):
                 raise ValueError("Automation targets require controller lanes in clip model v2.")
             AutomationTarget(instrument_id=target.get("instrumentId"), controller_node_ids=target.get("controllerNodeIds"))
             instruments = document.get("instruments", document.get("sequencerInstruments", []))
@@ -163,7 +165,11 @@ def validate_authored_clips(document):
             if clip.get("mode") not in ("once", "loop") or not isinstance(clip.get("name"), str) or not 1 <= len(clip["name"]) <= 128:
                 raise ValueError("Invalid clip name or mode.")
             previous_end = finish
-            resolve(clip.get("children"), 3, True)
+            duration, _ = resolve(clip.get("children"), 3, True)
+            base = _integer(clip.get("repeatIndexBase", 0), 0, 40320000000)
+            _integer(base + ((clip["offset"] + clip["length"] - 1) // duration if clip["mode"] == "loop" else 0), 0, 40320000000)
+    from backend.app.models.clip_transposition_validation import validate_transpositions
+    validate_transpositions(model, identity)
     return document
 
 

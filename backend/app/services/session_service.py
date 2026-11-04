@@ -390,7 +390,7 @@ class SessionService:
                     validate_automation_routing(request, runtime.instruments, {assignment_id: mappings})
                     with runtime.configuration_lock:
                         generation = runtime.configuration_generation
-                    prepared = await self._preparation.prepare(request, self._performance_runtime.controller_default_channels(runtime))
+                    prepared = await self._preparation.prepare(request, self._performance_runtime.controller_default_channels(runtime), self._ensure_sequencer(runtime).transposition_pairs())
                     def apply_automation():
                         with runtime.configuration_lock:
                             if generation != runtime.configuration_generation:
@@ -403,7 +403,7 @@ class SessionService:
                             if request.lane_output is not None and request.lane_output.revision > gate.revision:
                                 gate.apply(request.lane_output.revision, {key: value.model_dump() for key, value in request.lane_output.lanes.items()})
                             self._ensure_sequencer(runtime).apply_prepared(prepared)
-                            self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
+                            self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm, prepared=prepared.prepared_arpeggiators)
                             return result
                     result = await asyncio.to_thread(runtime.worker.run_at_render_boundary, apply_automation)
                 else:
@@ -1213,7 +1213,7 @@ class SessionService:
                     status = sequencer.apply_prepared(prepared, position_step=position if seek else None,
                                                      device_command=device_command is not None)
                     if arpeggiator_generation == runtime.arpeggiator_generation:
-                        self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm)
+                        self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm, prepared=prepared.prepared_arpeggiators)
                     if device_command:
                         return self._apply_device_transport(runtime, device_command)
                     if start:
@@ -1229,7 +1229,7 @@ class SessionService:
         arpeggiator_generation = runtime.arpeggiator_generation
         try:
             return await self._preparation.submit(
-                runtime.session_id, request, self._performance_runtime.controller_default_channels(runtime), apply,
+                runtime.session_id, request, self._performance_runtime.controller_default_channels(runtime), apply, pinned_pairs=sequencer.transposition_pairs(),
             )
         except SupersededConfigurationError as exc:
             raise HTTPException(status_code=409, detail="Sequencer update superseded or session stopped.") from exc
@@ -1271,12 +1271,14 @@ class SessionService:
             runtime.arpeggiator_generation += 1
             generation = runtime.arpeggiator_generation
         try:
+            from backend.app.services.clip_transposition import prepare_arpeggiators
+            prepared_arpeggiators = await asyncio.to_thread(prepare_arpeggiators, request.arpeggiators)
             def configure_at_boundary():
                 with runtime.configuration_lock:
                     if generation != runtime.arpeggiator_generation:
                         raise HTTPException(status_code=409, detail="Arpeggiator edit superseded.")
                     router = self._ensure_midi_router(runtime)
-                    router.configure(request.arpeggiators, tempo_bpm=request.tempo_bpm)
+                    router.configure(request.arpeggiators, tempo_bpm=request.tempo_bpm, prepared=prepared_arpeggiators)
                     return router.status()
             status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, configure_at_boundary)
         except ValueError as exc:

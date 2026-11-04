@@ -109,6 +109,8 @@ An opt-in [clip arranger preview](documentation/performance/clip_arranger_previe
 
 The clip arranger can [generate instrument automation](documentation/performance/instrument_automation.md) from the rack’s assigned performance-controller CCs. Bound lanes follow the instrument’s MIDI channel, support song-length curves with up to ten points, and expose curve editing directly inside clips with explicit Save/Discard. Step Mode retains its existing grid.
 
+Clip patterns, groups and supergroups also offer [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes): shared per-repetition progressions, independent parent and placement offsets, diatonic steps and chromatic semitones. Timeline previews show the resulting pitches while the original notes stay editable.
+
 ![Instrument automation edited inside a clip](screenshots/clip-arranger-instrument-automation.png)
 
 Draw long, polyphonic passages in the **[Score Sequencer](documentation/performance/score_sequencers.md)**. Each of eight pads holds independent note durations and velocities on a scrollable, scale-highlighted score with a fixed piano keyboard. Add chords, edit with snapping and undo, and grow a score to cover a whole performance. Shortening preserves hidden notes for later expansion. Manual pad changes launch at the next local bar, with End of score available; each score stays one whole arranger occurrence.

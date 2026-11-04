@@ -1,0 +1,109 @@
+{
+  "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+  "preparation_samples": 7,
+  "render_samples": 1000,
+  "results": {
+    "identity_tb303": {
+      "cold": {
+        "median_ms": 2.7517,
+        "p95_ms": 2.8631,
+        "max_ms": 2.8927
+      },
+      "cached": {
+        "median_ms": 0.6415,
+        "p95_ms": 0.6978,
+        "max_ms": 0.7113
+      },
+      "one_entry": {
+        "median_ms": 0.6013,
+        "p95_ms": 0.7331,
+        "max_ms": 0.7907
+      },
+      "serialization_ms": 1.8267,
+      "serialized_bytes": 56274,
+      "retained_bytes": 273335,
+      "render": {
+        "start": {
+          "median_ms": 0.0007,
+          "max_ms": 0.1137,
+          "p99_ms": 0.0309,
+          "block_budget_ms": 1.3333
+        },
+        "near_end": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0425,
+          "p99_ms": 0.0291,
+          "block_budget_ms": 1.3333
+        }
+      }
+    },
+    "sparse_long_loop": {
+      "cold": {
+        "median_ms": 32.5945,
+        "p95_ms": 32.8497,
+        "max_ms": 33.1119
+      },
+      "cached": {
+        "median_ms": 4.776,
+        "p95_ms": 5.3042,
+        "max_ms": 6.0608
+      },
+      "one_entry": {
+        "median_ms": 4.8593,
+        "p95_ms": 6.087,
+        "max_ms": 6.1636
+      },
+      "serialization_ms": 10.7457,
+      "serialized_bytes": 760683,
+      "retained_bytes": 3215903,
+      "render": {
+        "start": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0652,
+          "p99_ms": 0.0107,
+          "block_budget_ms": 1.3333
+        },
+        "near_end": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0366,
+          "p99_ms": 0.0117,
+          "block_budget_ms": 1.3333
+        }
+      }
+    },
+    "dense_200000_records": {
+      "cold": {
+        "median_ms": 2773.439,
+        "p95_ms": 2829.2893,
+        "max_ms": 2915.5573
+      },
+      "cached": {
+        "median_ms": 150.9874,
+        "p95_ms": 152.4934,
+        "max_ms": 153.0873
+      },
+      "one_entry": {
+        "median_ms": 151.3038,
+        "p95_ms": 152.63,
+        "max_ms": 152.6533
+      },
+      "serialization_ms": 606.5907,
+      "serialized_bytes": 17405563,
+      "retained_bytes": 46716847,
+      "render": {
+        "start": {
+          "median_ms": 0.0218,
+          "max_ms": 0.0888,
+          "p99_ms": 0.0375,
+          "block_budget_ms": 1.3333
+        },
+        "near_end": {
+          "median_ms": 0.0255,
+          "max_ms": 0.1145,
+          "p99_ms": 0.0405,
+          "block_budget_ms": 1.3333
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,196 @@
+[
+  {
+    "id": "M01",
+    "pitches": [
+      60,
+      64,
+      67
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 1,
+      "chromaticSemitones": 0
+    },
+    "expected": [
+      62,
+      65,
+      69
+    ]
+  },
+  {
+    "id": "M02",
+    "pitches": [
+      60,
+      64,
+      67
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 0,
+      "chromaticSemitones": 1
+    },
+    "expected": [
+      61,
+      65,
+      68
+    ]
+  },
+  {
+    "id": "M04",
+    "pitches": [
+      60,
+      64,
+      67
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 2,
+      "chromaticSemitones": 12
+    },
+    "expected": [
+      76,
+      79,
+      83
+    ]
+  },
+  {
+    "id": "M05",
+    "pitches": [
+      60
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": -1,
+      "chromaticSemitones": 0
+    },
+    "expected": [
+      59
+    ]
+  },
+  {
+    "id": "M06",
+    "pitches": [
+      60
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": -8,
+      "chromaticSemitones": 0
+    },
+    "expected": [
+      47
+    ]
+  },
+  {
+    "id": "M07",
+    "pitches": [
+      61
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 1,
+      "chromaticSemitones": 0
+    },
+    "expected": [
+      63
+    ]
+  },
+  {
+    "id": "M08",
+    "pitches": [
+      61
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 3,
+      "chromaticSemitones": 0
+    },
+    "expected": [
+      66
+    ]
+  },
+  {
+    "id": "M09",
+    "pitches": [
+      63,
+      64
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 1,
+      "chromaticSemitones": 0
+    },
+    "expected": [
+      65,
+      65
+    ]
+  },
+  {
+    "id": "M10",
+    "pitches": [
+      120
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 7,
+      "chromaticSemitones": -12
+    },
+    "expected": [
+      120
+    ]
+  },
+  {
+    "id": "M11",
+    "pitches": [
+      0
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 0,
+      "chromaticSemitones": -1
+    },
+    "expected": [
+      null
+    ]
+  },
+  {
+    "id": "M12",
+    "pitches": [
+      127
+    ],
+    "root": "C",
+    "mode": "ionian",
+    "offset": {
+      "diatonicSteps": 0,
+      "chromaticSemitones": 1
+    },
+    "expected": [
+      null
+    ]
+  },
+  {
+    "id": "M13",
+    "pitches": [
+      69
+    ],
+    "root": "A",
+    "mode": "aeolian",
+    "offset": {
+      "diatonicSteps": 2,
+      "chromaticSemitones": 0
+    },
+    "expected": [
+      72
+    ]
+  }
+]

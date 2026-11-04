@@ -53,3 +53,22 @@ def test_instrument_automation_round_trip_and_runtime_projection():
     projected, _, _ = project_clips(config)
     assert projected["sequencer"]["controllerSequencers"][0]["targetChannels"] == [7]
     assert projected["sequencer"]["controllerSequencers"][0]["controllerNumber"] == 24
+
+
+def test_transposition_round_trip_shared_wire_fixture_and_validation():
+    import pytest
+    from orchestron.clip_arrangement import project_clips
+    root = Path(__file__).resolve().parents[4] / "backend/tests/fixtures/clip_transposition"
+    config = json.loads((root / "performance.json").read_text())
+    normalized = cli.normalize_performance_config(copy.deepcopy(config), [])
+    assert normalized["version"] == 25
+    assert normalized["sequencer"]["clipArrangement"] == config["sequencer"]["clipArrangement"]
+    _, schedules, _ = project_clips(normalized)
+    assert schedules["transpose-score"] == json.loads((root / "schedule.json").read_text())
+    wire = cli.build_runtime_config(normalized)
+    assert wire["score_tracks"][0]["clip_schedule"] == schedules["transpose-score"]
+    for bad in [True, 1.5, -128, 128]:
+        malformed = copy.deepcopy(config)
+        malformed["sequencer"]["clipArrangement"]["lanes"][0]["transposeProfiles"][0]["plan"]["base"]["diatonicSteps"] = bad
+        with pytest.raises(ValueError):
+            project_clips(malformed)
