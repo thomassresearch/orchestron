@@ -9548,6 +9548,45 @@ def _clip_score_config():
     return {"version": 23, "sequencer": {"scoreTracks": [track], "clipArrangement": model}}
 
 
+def test_compact_clip_history_survives_save_autosave_and_native_bundle(tmp_path):
+    from copy import deepcopy
+
+    config = _clip_score_config()
+    model = config["sequencer"]["clipArrangement"]
+    model["revision"] = 1
+    history = {
+        "version": 2, "cursor": 1, "basis": deepcopy(model),
+        "entries": [{"label": "Edit song end", "changes": [
+            {"kind": "replace", "path": ["revision"], "before": 0, "after": 1},
+            {"kind": "replace", "path": ["end"], "before": 3 * 20160, "after": model["end"]},
+        ]}],
+    }
+    config["sequencer"]["clipHistory"] = history
+    with _client(tmp_path) as client:
+        created = client.post("/api/performances", json={"name": "Compact history", "config": config})
+        assert created.status_code == 201, created.text
+        endpoint = f"/api/performances/{created.json()['id']}"
+        assert client.get(endpoint).json()["config"] == config
+        updated = client.put(endpoint, json={"config": config})
+        assert updated.status_code == 200, updated.text
+        assert updated.json()["config"] == config
+        state = {"version": 5, "sequencer": config["sequencer"]}
+        saved = client.put("/api/app-state", json={"state": state})
+        assert saved.status_code == 200, saved.text
+        assert client.get("/api/app-state").json()["state"] == state
+        payload = {
+            "format": "orchestron.performance", "version": 1,
+            "performance": {"name": "Compact history", "description": "", "config": config},
+            "patch_definitions": [],
+        }
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200, exported.text
+        imported = client.post("/api/bundles/import/expand", content=exported.content,
+                               headers={"X-File-Name": "history.orch.json", "Content-Type": "application/json"})
+        assert imported.status_code == 200, imported.text
+        assert imported.json()["performance"]["config"] == config
+
+
 def test_clip_performance_round_trip_and_atomic_invalid_reference_rejection(tmp_path):
     from copy import deepcopy
     config = _clip_score_config()

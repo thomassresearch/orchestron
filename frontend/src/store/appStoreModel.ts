@@ -1,4 +1,5 @@
 import { readClipHistory } from "../lib/clipArranger/operations";
+import { clipHistoryForPersistence } from "../lib/clipArranger/history";
 import { sourceKeys } from "../lib/clipArranger/migration";
 import { validateArrangement } from "../lib/clipArranger/model";
 import { arrangementTimings } from "../lib/clipArranger/migration";
@@ -2437,6 +2438,7 @@ export function normalizePersistedSequencerInstruments(
 export function sequencerSnapshotForPersistence(sequencer: SequencerState): SequencerState {
   return {
     ...sequencer,
+    ...(sequencer.clipArrangement ? { clipHistory: clipHistoryForPersistence(sequencer.clipHistory, sequencer.clipArrangement, arrangementTimings(sequencer)) } : {}),
     scoreTracks: persistedScoreTracks(sequencer),
     isPlaying: false,
     playhead: 0,
@@ -2999,7 +3001,7 @@ export function buildSequencerConfigSnapshot(
         performanceControllerValues: normalizeControllerValues(instrument.performanceControllerValues)
       })),
     sequencer: {
-      ...(sequencer.clipArrangement ? { clipArrangement: structuredClone(sequencer.clipArrangement), clipHistory: structuredClone(sequencer.clipHistory) } : {}),
+      ...(sequencer.clipArrangement ? { clipArrangement: structuredClone(sequencer.clipArrangement), clipHistory: clipHistoryForPersistence(sequencer.clipHistory, sequencer.clipArrangement, arrangementTimings(sequencer)) } : {}),
       timing,
       tempoBPM: timing.tempoBPM,
       meterNumerator: timing.meterNumerator,

@@ -1,4 +1,4 @@
-import { ClipError, contentLength, definitionMap, exactTick, newClipId, validateArrangement, type Clip, type ClipArrangement, type ClipHistory, type ClipLane, type ContentItem, type Definition, type DefinitionDraft, type LaneTiming, type OccurrenceTarget } from "./model";
+import { ClipError, contentLength, definitionMap, exactTick, newClipId, validateArrangement, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type Definition, type DefinitionDraft, type LaneTiming, type OccurrenceTarget } from "./model";
 
 type IdFactory = () => string;
 const clone = <T>(value: T): T => structuredClone(value);
@@ -172,33 +172,7 @@ export function editTime(model: ClipArrangement, laneIds: string[], start: numbe
   next.end = Math.max(1, extent, operation === "insert" ? next.end + length : next.end - Math.min(length, Math.max(0, next.end - start)));
   return finish(next, timings);
 }
-export const emptyClipHistory = (): ClipHistory => ({ version: 1, cursor: 0, entries: [] });
-export function recordClipEdit(history: ClipHistory, before: ClipArrangement, after: ClipArrangement, label: string): ClipHistory {
-  const entries = [...history.entries.slice(0, history.cursor), { label, before: clone(before), after: clone(after) }].slice(-25);
-  return { version: 1, cursor: entries.length, entries };
-}
-export function replayClipEdit(history: ClipHistory, model: ClipArrangement, forward: boolean): { model: ClipArrangement; history: ClipHistory } {
-  const index = forward ? history.cursor : history.cursor - 1, entry = history.entries[index];
-  if (!entry) return { model, history };
-  if (JSON.stringify(model) !== JSON.stringify(forward ? entry.before : entry.after)) throw new ClipError("conflict", "The arrangement changed outside this history.");
-  return { model: clone(forward ? entry.after : entry.before), history: { ...history, cursor: history.cursor + (forward ? 1 : -1) } };
-}
-
-/** History is optional display/edit metadata; incompatible snapshots must never be replayed. */
-export function readClipHistory(value: unknown, model: ClipArrangement, timings: LaneTiming): ClipHistory {
-  try {
-    const history = value as ClipHistory;
-    if (!history || history.version !== 1 || !Array.isArray(history.entries) || history.entries.length > 25 || !Number.isInteger(history.cursor) || history.cursor < 0 || history.cursor > history.entries.length) return emptyClipHistory();
-    for (const entry of history.entries) {
-      if (typeof entry.label !== "string" || entry.label.length > 256) return emptyClipHistory();
-      validateArrangement(entry.before, timings); validateArrangement(entry.after, timings);
-      if ([entry.before, entry.after].some(snapshot => snapshot.lanes.some(l => !model.lanes.some(current => current.id === l.id && current.source === l.source)))) return emptyClipHistory();
-    }
-    const expected = history.cursor ? history.entries[history.cursor - 1].after : history.entries[0]?.before;
-    if (expected && JSON.stringify(model) !== JSON.stringify(expected)) return emptyClipHistory();
-    return clone(history);
-  } catch { return emptyClipHistory(); }
-}
+export { emptyClipHistory, recordClipEdit, replayClipEdit, readClipHistory } from "./history";
 
 export type ClipSection = { length: number; lanes: { id: string; clips: Clip[] }[] };
 function sliceWindow(clip: Clip, start: number, end: number, id: IdFactory): Clip | null {

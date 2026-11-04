@@ -8,7 +8,7 @@ export function commitClipArrangement(next: ClipArrangement, label: string) {
   const state = useAppStore.getState(), before = state.sequencer.clipArrangement;
   validateArrangement(next, arrangementTimings(state.sequencer));
   useAppStore.setState({ sequencer: { ...state.sequencer, clipArrangement: next,
-    clipHistory: before ? recordClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), before, next, label) : emptyClipHistory() }, sequencerEditRevision: state.sequencerEditRevision + 1 });
+    clipHistory: before ? recordClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), before, next, label, arrangementTimings(state.sequencer)) : emptyClipHistory() }, sequencerEditRevision: state.sequencerEditRevision + 1 });
 }
 export function openClipEditor(target: OccurrenceTarget) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
@@ -35,7 +35,7 @@ export function saveClipDraft(scope: "local" | "all", name: string) {
 export function clipHistoryStep(forward: boolean) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
   if (!model) return;
-  const next = replayClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), model, forward);
+  const next = replayClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), model, forward, arrangementTimings(state.sequencer));
   useAppStore.setState({ sequencer: { ...state.sequencer, clipArrangement: next.model, clipHistory: next.history }, sequencerEditRevision: state.sequencerEditRevision + 1 });
 }
 

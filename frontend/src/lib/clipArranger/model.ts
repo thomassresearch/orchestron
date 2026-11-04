@@ -25,8 +25,12 @@ export type ClipLane = {
 export type ClipArrangement = { version: 1; revision: number; end: number; lanes: ClipLane[] };
 export type OccurrenceTarget = { laneId: string; clipId: string; path: string[]; pass: number };
 export type DefinitionDraft = { target: OccurrenceTarget; baseRevision: number; baseFingerprint?: string; definition: Definition; additions?: Definition[] };
-export type ClipHistoryEntry = { label: string; before: ClipArrangement; after: ClipArrangement };
-export type ClipHistory = { version: 1; cursor: number; entries: ClipHistoryEntry[] };
+export type ClipHistoryChange =
+  | { kind: "replace"; path: (string | number)[]; before?: unknown; after?: unknown }
+  | { kind: "splice"; path: (string | number)[]; index: number; before: unknown[]; after: unknown[] };
+export type ClipHistoryEntry = { label: string; changes: ClipHistoryChange[] };
+/** One current-state basis detects external edits; entries contain only reversible changes. */
+export type ClipHistory = { version: 2; cursor: number; basis: ClipArrangement | null; entries: ClipHistoryEntry[] };
 export type LaneTiming = Readonly<Record<string, SequencerTimingConfig | undefined>>;
 export type ResolvedLeaf = { definition: PatternDefinition | null; path: string[]; start: number; length: number };
 export type ClipSegment = ResolvedLeaf & { clipId: string; pass: number; sourceOffset: number; sourceStart: number };
