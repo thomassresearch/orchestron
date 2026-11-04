@@ -12,7 +12,8 @@ import { transposeCopy } from './transposeCopy';
 import { useTransposeStatus } from '../../lib/clipArranger/transposeStatus';
 import { buildSequencerStepChordMidiNotes } from '../../lib/sequencer';
 import { transposePitch } from '../../lib/clipArranger/transposition';
-import type { ContentItem } from '../../lib/clipArranger/model';
+import type { ContentItem, OccurrenceTarget } from '../../lib/clipArranger/model';
+import { draftKey } from '../../lib/clipArranger/editorAdapter';
 
 function PendingTranspose({laneId,language}:{laneId:string;language:GuiLanguage}) {
   const pending=useTransposeStatus(s=>s.byLane[laneId]);
@@ -23,8 +24,9 @@ function PendingTranspose({laneId,language}:{laneId:string;language:GuiLanguage}
   return pending&&running&&at<pending.at_subunit?<p role="status" className="text-amber-200">{c.pending}: {name} · {c.repeat} {pending.logical_pass+1} · #{pending.leaf_index+1}</p>:null;
 }
 
-export function TransposeInspector({ language, stopAudition }: { language: GuiLanguage; stopAudition: () => Promise<void> }) {
-  const sequencer = useAppStore(s => s.sequencer), clipDrafts = useAppStore(s => s.clipDrafts), key = useAppStore(s => s.clipEditingKey);
+export function TransposeInspector({ language, stopAudition, target, onSaved }: { language: GuiLanguage; stopAudition: () => Promise<void>; target?: OccurrenceTarget; onSaved?: () => void }) {
+  const sequencer = useAppStore(s => s.sequencer), clipDrafts = useAppStore(s => s.clipDrafts), editingKey = useAppStore(s => s.clipEditingKey);
+  const key = target ? draftKey({target}) : editingKey;
   const state = { sequencer, clipDrafts }, model = sequencer.clipArrangement;
   const draft = key ? state.clipDrafts[key] : undefined, lane = model?.lanes.find(l => l.id === draft?.target.laneId);
   const [scope, setScope] = useState<TransposeScope>('shared'), [base, setBase] = useState(false);
@@ -78,7 +80,7 @@ export function TransposeInspector({ language, stopAudition }: { language: GuiLa
       <button type="button" className={clipButton} onClick={()=>setPair({...amount,[component]:0})}>{c.resetComponent}</button>
       {!base && <><button type="button" className={clipButton} onClick={()=>write({...plan,repetitions:plan.repetitions.filter(e=>e.index!==index)})}>{c.inherit}</button><button type="button" className={clipButton} onClick={()=>setPair({diatonicSteps:0,chromaticSemitones:0})}>{c.zero}</button></>}
       <button type="button" className={clipButton} onClick={()=>write(emptyOffsetPlan())}>{c.reset}</button>
-      <button type="button" className={clipButton} disabled={!draft.transposeEdits?.length} onClick={()=>{void stopAudition().then(()=>{try{saveClipTransposition();setError('');}catch(e){setError(String(e));}});}}>{c.save}</button>
+      <button type="button" className={clipButton} disabled={!draft.transposeEdits?.length} onClick={()=>{void stopAudition().then(()=>{saveClipTransposition(key);setError('');onSaved?.();}).catch(e=>setError(String(e)));}}>{c.save}</button>
       <button type="button" className={clipButton} disabled={!draft.transposeEdits?.length} onClick={()=>useAppStore.setState({clipDrafts:{...state.clipDrafts,[key]:{...draft,transposeEdits:undefined}}})}>{c.discard}</button>
       {!!draft.transposeEdits?.length && <span className="text-amber-200">{c.draft}</span>}
     </div>

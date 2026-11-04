@@ -109,7 +109,7 @@ An opt-in [clip arranger preview](documentation/performance/clip_arranger_previe
 
 The clip arranger can [generate instrument automation](documentation/performance/instrument_automation.md) from the rack’s assigned performance-controller CCs. Bound lanes follow the instrument’s MIDI channel, support song-length curves with up to ten points, and expose curve editing directly inside clips with explicit Save/Discard. Step Mode retains its existing grid.
 
-Clip patterns, groups and supergroups also offer [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes): shared per-repetition progressions, independent parent and placement offsets, diatonic steps and chromatic semitones. Timeline previews show the resulting pitches while the original notes stay editable.
+Clip patterns, groups and supergroups also offer [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes): shared per-repetition progressions, independent parent and placement offsets, diatonic steps and chromatic semitones. Arranger badges show effective offsets and open transposition controls directly in the lane. Timeline previews show the resulting pitches while the original notes stay editable.
 
 ![Instrument automation edited inside a clip](screenshots/clip-arranger-instrument-automation.png)
 

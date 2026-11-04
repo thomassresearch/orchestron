@@ -152,6 +152,10 @@ Arpeggiator-specific cases:
 | U10 | Collapse/expand, scroll/zoom, status updates | Draft/selection preserved; hidden visual work suspended; no configuration resubmission |
 | U11 | Narrow viewport, keyboard-only, text zoom, all four UI languages | Controls and scope remain usable; signed values/units and accessible names unambiguous |
 | U12 | Play edit on a pattern visible only through a partial clip crop | Full selected definition auditions from its own start using the selected logical index; arranged playback still honors the crop |
+| U13 | Inspect expanded pattern/group/supergroup boxes and compact pattern previews | Active badges show signed effective D/C totals, including enclosing offsets; zero/narrow boxes expose an accessible ↕ control |
+| U14 | Click a generated repetition badge and save shared or placement changes | Correct logical repetition and scope; linked clips update for shared edits, placement changes remain local; one undo/redo action; no musical editor selection change |
+| U15 | Close/Escape a dirty lane dialog, reopen and discard | Draft survives closure, amber asterisk identifies it, saved totals remain unchanged, focus returns to trigger; Discard resolves only transposition work |
+| U16 | Edit from the lane while another musical draft exists; reopen a clean dialog after a shared musical edit | Unfinished music and editor selection survive; clean snapshots refresh to the latest definition |
 
 For **X01**, compare deterministic live events with MIDI CSD collection and SCORE CSD events from the same authored fixture, including crop/range-start sustain, transposed collisions and arpeggiator input. Compare pitches, times, channels, velocities and releases; account explicitly for existing format-level representation differences.
 

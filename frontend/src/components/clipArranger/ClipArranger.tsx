@@ -13,6 +13,9 @@ import { SectionTools } from "./SectionTools";
 import { PatternPreview } from "./PatternPreview";
 import { clipCopy } from "./copy";
 import { usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
+import { LaneTransposeBadge, LaneTransposeDialog } from './LaneTransposition';
+import { openClipTransposition } from '../../store/clipActions';
+import { useAppStore } from '../../store/useAppStore';
 
 export const clipButton = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-cyan-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 disabled:opacity-40";
 export const clipInput = "w-24 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100";
@@ -21,6 +24,7 @@ export type ClipArrangerProps = {
   onChange: (model: ClipArrangement, label: string) => void;
   structure: ReturnType<typeof useStructureEditor>; zoom: number; setZoom: (zoom: number) => void;
   onEdit: (target: OccurrenceTarget) => void;
+  stopAudition?: () => Promise<void>;
   editingTarget?: OccurrenceTarget;
   renderAutomation?: (target: OccurrenceTarget, range: [number, number]) => ReactNode;
   inlineEditor?: { laneId: string; content: ReactNode };
@@ -30,10 +34,13 @@ export type ClipArrangerProps = {
   onAddLane?: (source: ClipLane["source"]) => void;
 };
 
-export function ClipArranger({ model, sequencer, language, onChange, onEdit, structure, zoom, setZoom, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane }: ClipArrangerProps) {
+export function ClipArranger({ model, sequencer, language, onChange, onEdit, structure, zoom, setZoom, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane, stopAudition = async () => {} }: ClipArrangerProps) {
   const c = clipCopy(language), timings = useMemo(() => arrangementTimings(sequencer), [sequencer]);
   const displayModel = useMemo(() => structure.draft ? structurePreview(model, structure.draft, timings) : model, [model, structure.draft, timings]);
   const [expanded, setExpanded] = usePerformanceEditorState<string | null>("arranger", "clipExpandedLane", null);
+  const [transposing,setTransposing] = useState<{target:OccurrenceTarget;trigger:HTMLButtonElement}|null>(null);
+  const generation = useAppStore(s=>s.performanceWorkspaceGeneration);
+  useEffect(()=>setTransposing(null),[generation,expanded]);
   const [selected, select] = usePerformanceEditorState<{ laneId: string; clipId: string } | null | undefined>("arranger", "clipSelection", undefined);
   const editingLane = editingTarget?.laneId, editingClip = editingTarget?.clipId;
   useEffect(() => {
@@ -82,6 +89,10 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
   const lastClipEnd = Math.max(Q / 4, ...model.lanes.flatMap(lane => lane.clips.map(clip => clip.start + clip.length)));
   const setSongEnd = (end: number) => attempt(() => ({ ...model, revision: model.revision + 1, end }), c.songEnd);
   const open = (lane: ClipLane, clip: Clip, path: string[], pass: number) => { pick(lane, clip); structure.guardEdit({ laneId: lane.id, clipId: clip.id, path, pass }, onEdit); };
+  const openTranspose = (requested:OccurrenceTarget,trigger:HTMLButtonElement) => {
+    structure.cancelDrag();
+    structure.guardEdit(requested,target=>{openClipTransposition(target);setTransposing({target,trigger});});
+  };
   const startDrag = (event: React.PointerEvent, lane: ClipLane, clip: Clip, mode: "move" | "left" | "right") => {
     if (event.button !== 0) return;
     event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); pick(lane, clip);
@@ -112,16 +123,20 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
       const boundCurve = sequencer.controllerSequencers.some(t => t.id === lane.id && t.automationTarget && t.controllerMode === "curve");
       const visibleLeft = Math.max(0, scroll - 192 - origin - left, clip.start * unit - origin - left);
       const visibleRight = Math.min(duration * unit, scroll + viewportWidth - origin - left, (clip.start + clip.length) * unit - origin - left);
+      const headerLeft = Math.max(0, scroll - origin - left, clip.start * unit - origin - left);
+      const headerRight = Math.min(duration * unit, scroll + viewportWidth - 192 - origin - left, (clip.start + clip.length) * unit - origin - left);
       const selectedItem = structure.focus?.laneId === lane.id && structure.focus.clipId === clip.id && structure.focus.pass === pass && JSON.stringify(structure.selection?.parent) === JSON.stringify(path) && structure.selection?.ids.includes(item.id);
+      const offset = def ? addOffsets(transposePlans(lane,clip,itemPath).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass))) : undefined;
       return <div data-structure-node={JSON.stringify({ focus: target, index: itemIndex })} key={item.id} className={`absolute top-0 overflow-hidden rounded border ${color}`} style={{ outline: selectedItem ? "2px solid #67e8f9" : undefined, left, width: duration * unit, height: (boundCurve ? 108 : 46) + (def && def.kind !== "pattern" ? (2 - depth) * 22 : 0) }}>
         {structure.boundary(target, itemIndex, 0)}
-        <button data-structure-key={JSON.stringify([lane.id, clip.id, pass, ...path, item.id])} onPointerDown={e => structure.pointerDown(e, target, item.id)} onContextMenu={e => { e.preventDefault(); structure.contextMenu(target, item.id, e.clientX, e.clientY); }} className="block h-5 w-full truncate px-1 text-left text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" title={def ? `${def.kind}: ${def.name}` : c.rest}
+        <div className="flex h-5 min-w-0 items-center overflow-hidden" style={{marginLeft:headerLeft,width:Math.max(0,headerRight-headerLeft)}}><button data-structure-key={JSON.stringify([lane.id, clip.id, pass, ...path, item.id])} onPointerDown={e => structure.pointerDown(e, target, item.id)} onContextMenu={e => { e.preventDefault(); structure.contextMenu(target, item.id, e.clientX, e.clientY); }} className="block h-5 min-w-0 flex-1 truncate px-1 text-left text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" title={def ? `${def.kind}: ${def.name}` : c.rest}
           onClick={e => { e.stopPropagation(); pick(lane, clip); structure.select(target, item.id, e.shiftKey); }} onDoubleClick={e => { e.stopPropagation(); if (def) open(lane, clip, itemPath, pass); }}
           onKeyDown={e => { if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); e.stopPropagation(); structure.remove(target, item.id); } if (e.shiftKey && ["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); const next = items[itemIndex + (e.key === "ArrowLeft" ? -1 : 1)]; if (next) { structure.select(target, next.id, true); const key = JSON.stringify([lane.id, clip.id, pass, ...path, next.id]); Array.from(e.currentTarget.closest("[data-arranger-viewport]")!.querySelectorAll<HTMLButtonElement>("[data-structure-key]")).find(node => node.dataset.structureKey === key)?.focus(); } } if (e.key === "Enter" && def) { e.stopPropagation(); open(lane, clip, itemPath, pass); } }}>{def ? `${def.kind === "pattern" ? "♪" : def.kind === "group" ? "▣" : "▤"} ${def.name}` : c.rest}</button>
+        {def && ['sequencer','score','arpeggiator'].includes(lane.source) && headerRight>headerLeft && <LaneTransposeBadge target={{laneId:lane.id,clipId:clip.id,path:itemPath,pass}} name={def.name} index={(clip.repeatIndexBase??0)+pass} offset={offset!} width={headerRight-headerLeft} language={language} onOpen={openTranspose}/>}</div>
         {def?.kind === "pattern" ? boundCurve && visibleRight > visibleLeft ? <div style={{ marginLeft: visibleLeft, width: visibleRight - visibleLeft }} onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
           {renderAutomation?.({ laneId: lane.id, clipId: clip.id, path: itemPath, pass }, [visibleLeft / (duration * unit), visibleRight / (duration * unit)]) ??
             <button className="block w-full" aria-label={`${c.edit}: ${def.name}`} onClick={() => open(lane, clip, itemPath, pass)}><PatternPreview definition={def} timing={timings[lane.id]} height={72} visibleRange={[visibleLeft / (duration * unit), visibleRight / (duration * unit)]} /></button>}
-        </div> : <PatternPreview definition={def} offset={addOffsets(transposePlans(lane,clip,itemPath).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass)))} timing={timings[lane.id]} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
+        </div> : <PatternPreview definition={def} offset={offset} timing={timings[lane.id]} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
           : def ? <div className="relative mt-px">{tree(lane, clip, def.children, itemPath, pass, depth + 1, origin + left)}</div> : null}
       </div>;
     }), structure.boundary({ laneId: lane.id, clipId: clip.id, pass, parent: path }, items.length, cursor * unit, true)];
@@ -175,7 +190,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
                   <div className="relative" style={{ height: detailed ? expandedHeight - 42 : 24 }}>
                     {Array.from({ length: Math.max(0, lastPass - firstPass) }, (_, index) => firstPass + index).map(pass => <div key={pass} className={`absolute top-0 ${pass > 0 ? "border-l border-dashed border-slate-400" : ""}`} style={{ left: geometry.left(pass) * unit, width: (editingStructure && pass === editingStructure.pass ? draftDuration : duration) * unit }}>
                       {detailed ? <><span className="block h-4 px-1 text-[9px] text-slate-500">{c.content} · {(clip.repeatIndexBase ?? 0) + pass + 1}</span><div className="relative">{tree(lane, editingStructure && pass !== editingStructure.pass ? originalClip : clip, editingStructure && pass !== editingStructure.pass ? originalClip.children : clip.children, [], pass, 0, (clip.start + geometry.left(pass)) * unit)}</div></>
-                        : <CompactContent pass={pass} lane={lane} clip={clip} sequencer={sequencer} unit={unit} from={scroll - 192 - (clip.start + pass * duration - clip.offset) * unit} to={scroll + 1800 - (clip.start + pass * duration - clip.offset) * unit} />}
+                        : <CompactContent pass={pass} lane={lane} clip={clip} sequencer={sequencer} unit={unit} from={scroll - (clip.start + pass * duration - clip.offset) * unit} to={scroll + viewportWidth - 192 - (clip.start + pass * duration - clip.offset) * unit} language={language} onTranspose={openTranspose} />}
                     </div>)}
                   </div>
                   {(["left", "right"] as const).map(edge => <div key={edge} role="separator" aria-label={`${c.length}: ${edge}`} aria-orientation="vertical" tabIndex={0}
@@ -206,6 +221,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
     <SectionTools model={model} timings={timings} selectedLane={selectedLane?.id} language={language} onChange={onChange} />
     {!model.lanes.length && <p className="py-8 text-center text-sm text-slate-500">{c.empty}</p>}
     {error && <p role="alert" className="mt-2 text-xs text-rose-300">{c.error}: {error}</p>}
+    {transposing && model.lanes.some(l=>l.id===transposing.target.laneId&&l.clips.some(cl=>cl.id===transposing.target.clipId)) && <LaneTransposeDialog key={JSON.stringify(transposing.target)} {...transposing} language={language} stopAudition={stopAudition} onClose={()=>setTransposing(null)}/>}
     {adding && <dialog ref={addDialog} aria-label={c.add} className="w-[min(94vw,400px)] rounded-xl border border-slate-600 bg-slate-900 p-5 backdrop:bg-black/60" onCancel={e => { e.preventDefault(); setAdding(null); }}>
       <form className="space-y-4" onSubmit={e => { e.preventDefault(); const lane = model.lanes.find(l => l.id === adding)!;
         const children = [{ id: newClipId(), definitionId }];
@@ -219,8 +235,9 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
   </section>;
 }
 
-function CompactContent({ lane, clip, sequencer, unit, from, to, pass }: { lane: ClipLane; clip: Clip; sequencer: SequencerState; unit: number; from: number; to: number; pass: number }) {
+function CompactContent({ lane, clip, sequencer, unit, from, to, pass, language, onTranspose }: { lane: ClipLane; clip: Clip; sequencer: SequencerState; unit: number; from: number; to: number; pass: number; language:GuiLanguage; onTranspose:(target:OccurrenceTarget,trigger:HTMLButtonElement)=>void }) {
   const timing = arrangementTimings(sequencer)[lane.id], defs = definitionMap(lane);
+  const windowStart=(clip.offset-(clip.mode==="loop"?pass*contentLength(lane,clip.children,timing):0))*unit;
   let cursor = 0;
   const render = (items: ContentItem[], path: string[] = []): ReactNode[] => items.flatMap<ReactNode>(item => {
     if ("restTicks" in item) { cursor += item.restTicks; return []; }
@@ -228,7 +245,11 @@ function CompactContent({ lane, clip, sequencer, unit, from, to, pass }: { lane:
     if (def.kind !== "pattern") return render(def.children,[...path,item.id]);
     const duration = contentLength(lane, [item], timing), left = cursor * unit; cursor += duration;
     if (left + duration * unit < from || left > to) return [];
-    return [<div key={`${item.id}:${left}`} className="absolute top-0" style={{ left, width: duration * unit }}><PatternPreview definition={def} offset={addOffsets(transposePlans(lane,clip,[...path,item.id]).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass)))} timing={timing} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} /></div>];
+    const offset=addOffsets(transposePlans(lane,clip,[...path,item.id]).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass)));
+    const visibleLeft=Math.max(0,from-left,windowStart-left), visibleWidth=Math.max(0,Math.min(duration*unit,to-left,windowStart+clip.length*unit-left)-visibleLeft);
+    return [<div key={`${item.id}:${left}`} className="absolute top-0 overflow-hidden" style={{ left, width: duration * unit }}><PatternPreview definition={def} offset={offset} timing={timing} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
+      {['sequencer','score','arpeggiator'].includes(lane.source) && visibleWidth>0 && <div className="pointer-events-none absolute top-0 flex justify-end" style={{left:visibleLeft,width:visibleWidth}}><LaneTransposeBadge target={{laneId:lane.id,clipId:clip.id,path:[...path,item.id],pass}} name={def.name} index={(clip.repeatIndexBase??0)+pass} offset={offset} width={visibleWidth} language={language} onOpen={onTranspose}/></div>}
+    </div>];
   });
   return <>{render(clip.children)}</>;
 }

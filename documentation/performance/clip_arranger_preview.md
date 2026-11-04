@@ -100,7 +100,15 @@ See the [direct-content review](../../specifications/redesign-arranger/direct-co
 
 ## Transpose clips without changing notes
 
-Select a pattern, group or supergroup in an expanded clip, then use **Transpose**. Choose **Diatonic steps** to move through each pattern’s configured scale and mode, or **Semitones** for chromatic movement. Negative values move down. Switching the displayed component preserves the other value. All pattern, group and supergroup contributions add; diatonic steps apply first, then semitones. Notes outside MIDI 0–127 after the complete transform are silent. The musical editor continues to show the original notes; timeline Note maps show the sounding pitches.
+Click the transposition badge on a pattern, group or supergroup in the expanded arranger lane. This opens **Transpose in arranger** for that occurrence without opening or replacing the musical editor. Compact lanes also offer badges on their pattern previews; expand the lane to edit a group or supergroup directly. The existing **Transpose** controls in the detail editor remain available.
+
+Active badges show the effective signed offset: **D** means diatonic steps and **C** means chromatic semitones. Enclosing offsets are included, so each pattern shows its complete total. A **↕** button appears when the total is zero or the box is too narrow for the values; hover or focus it to identify the occurrence and its effective offset. Narrow active badges retain their indigo highlight. Click any badge to add or change a transposition, including on a generated repetition.
+
+![Effective transposition badges on patterns, groups and supergroups in the arranger lane](../../screenshots/clip-transposition-lane.png)
+
+Choose **Diatonic steps** to move through each pattern’s configured scale and mode, or **Semitones** for chromatic movement. Negative values move down. Switching the displayed component preserves the other value. All pattern, group and supergroup contributions add; diatonic steps apply first, then semitones. Notes outside MIDI 0–127 after the complete transform are silent. The musical editor continues to show the original notes; timeline Note maps show the sounding pitches.
+
+![Editing a shared repetition directly from its arranger badge](../../screenshots/clip-transposition-lane-editor.png)
 
 Choose the owner before changing a value:
 
@@ -119,6 +127,8 @@ An explicit repetition replaces its own plan’s default; other plans still add.
 ![Independent offset for one nested placement](../../screenshots/clip-transposition-placement.png)
 
 **Save transposition** commits the draft as one undoable edit. **Discard transposition** leaves saved music unchanged. The pattern editor’s **Save** can commit musical and transpose changes together. Shared transposition retains its explicitly selected scope even when musical notes are saved as a local variation; that new variation receives its own copied profile. Conflicting edits report an error instead of overwriting another change.
+
+Saving from the lane closes the dialog and updates affected badges and note previews, including linked clips. **Close**, **Escape**, or clicking the backdrop keeps the unsaved draft; its badge turns amber and gains an asterisk. Reopen it to **Save transposition** or **Discard transposition**. Badge totals continue to show saved settings until Save. Keyboard users can focus a badge and press **Enter** or **Space**; closing the dialog returns focus to that badge. Existing musical drafts are preserved.
 
 **Play edit** auditions the full selected definition from its own start, using the selected repetition and all enclosing offsets. It repeats that same transposition until restarted; play the arrangement to hear the progression. Transposition and structural drafts are snapshots for audition. Saving during arrangement playback changes the next occurrence whose notes have not started; an early attack can already belong to the next repetition. A pending indicator names the target clip, repetition and leaf position. Seek or restart uses the latest saved settings immediately.
 

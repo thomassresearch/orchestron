@@ -7,8 +7,8 @@ import { rebaseStructure, retainMusicalDrafts } from "../lib/clipArranger/struct
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
 import { saveTransposeEdits } from '../lib/clipArranger/transposeEdits';
 
-export function saveClipTransposition() {
-  const state = useAppStore.getState(), key = state.clipEditingKey, model = state.sequencer.clipArrangement;
+export function saveClipTransposition(resolvingKey?: string) {
+  const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey, model = state.sequencer.clipArrangement;
   if (!key || !model || !state.clipDrafts[key]?.transposeEdits?.length) return;
   const draft = state.clipDrafts[key], timings = arrangementTimings(state.sequencer);
   const current = beginDraft(model, draft.target);
@@ -22,6 +22,19 @@ export function saveClipTransposition() {
   commitClipArrangement(next, 'Transpose');
   useStructureDraft.setState({ draft: rebased });
   useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: remaining } });
+}
+
+/** Share the transposition draft without selecting or opening a musical editor. */
+export function openClipTransposition(target: OccurrenceTarget) {
+  const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
+  if (!model) return;
+  const key = draftKey({ target });
+  const existing = state.clipDrafts[key];
+  // A closed, clean inspector may predate a shared edit or undo in another clip.
+  // Refresh that snapshot while preserving unfinished musical/transposition work.
+  if (!existing || (!existing.transposeEdits?.length && !existing.additions?.length && existing.baseFingerprint === JSON.stringify(existing.definition))) {
+    useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: beginDraft(model,target) } });
+  }
 }
 
 export function commitClipArrangement(next: ClipArrangement, label: string) {

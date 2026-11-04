@@ -1,5 +1,17 @@
 # Clip transposition implementation record
 
+## Direct arranger controls follow-up (2026-11-04)
+
+Pattern, group and supergroup headers now expose effective signed D/C badges. Compact lanes expose the same control on leaf previews. Zero or narrow values use an accessible ↕ button; active narrow badges keep their highlight. Cropped boxes keep the controls within their visible window. Pointer events on badges do not initiate structural drags or open the musical editor.
+
+The lane dialog uses the existing transposition draft, scope, validation, save and history paths with an explicit occurrence target. Save updates linked uses and closes the dialog. Close/Escape/backdrop retains the draft and marks its badge with an amber asterisk; Discard clears only transposition edits. Native dialog focus trapping and return-to-trigger support keyboard editing. Opening a clean inspector refreshes its definition snapshot after shared edits; unfinished musical drafts are retained. Labels and help cover EN/DE/FR/ES.
+
+[Lane interaction tests](../../frontend/src/components/clipArranger/LaneTransposition.test.tsx) cover U13–U16: all hierarchy levels, inherited totals, shared repetition updates, independent group/supergroup placements, undo/redo, compact-lane drafts/focus, musical-editor preservation and clean snapshot refresh. Production-browser checks against an isolated fixture database verified shared updates/Undo, Enter/Escape/focus restoration, all four languages and a 520-pixel dialog without horizontal overflow. This follow-up changes no backend or audio scheduling behavior.
+
+Updated [lane badges](../../screenshots/clip-transposition-lane.png), [direct editing](../../screenshots/clip-transposition-lane-editor.png), README and the English manual document the workflow.
+
+Final follow-up verification: `npm --prefix frontend run check` passed lint, **106 test files / 1,132 tests**, TypeScript and the production build. Local Markdown links and `git diff --check` passed. Regenerated the English manual PDF and inspected its transposition pages. Backend/audio suites were not rerun for this UI-only follow-up; the original feature's evidence remains below.
+
 Implemented in the clip-arranger preview on 2026-11-04. Baseline commit: `e37a079`. This change does not enable the broader clip-arranger rollout or migrate user performances automatically.
 
 ## Delivered contract
