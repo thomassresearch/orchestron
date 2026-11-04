@@ -14,6 +14,7 @@ The multitrack arranger becomes the main place to compose a performance. Clips d
 | [UI design](ui-design.md) | Layout, compact previews, nested editing, save dialog and preservation requirements |
 | [Data and playback contracts](data-and-playback-contracts.md) | Clip timing, references, drafts, transport, migration and export behavior |
 | [Implementation plan](implementation-plan.md) | Existing code seams, sequencing, risk controls and acceptance matrix |
+| [Direct-content review](direct-content-review.md) | Removal, transaction/drag/growth fixes, verification and remaining integration gaps |
 | [Implementation record](implementation-record.md) | Implemented contracts, verification evidence and remaining release gates |
 | [Task index](tasks/README.md) | Six independently reviewable implementation tasks and their gates |
 | [Mockup reference](reference/README.md) | Durable copies of the chosen interactive mockup, provenance and limitations |

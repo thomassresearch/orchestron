@@ -1004,3 +1004,11 @@ const directStructureHelp = {
  spanish: "Expande una pista, selecciona cajas contiguas con Mayús-clic y usa Grupo/Supergrupo. Añadir contenido busca las definiciones de la pista. Arrastra la selección a un límite o contenedor compatible. Guardar estructura aplica el alcance elegido de forma atómica. El contenido más largo amplía los clips conservando las repeticiones; una colisión bloquea el guardado sin mover clips posteriores. El borrador es solo visual."
 };
 for (const language of ["english", "german", "french", "spanish"] as const) sequencerHelpDocuments.sequencer_multitrack_arranger[language].markdown += "\n\n" + directStructureHelp[language];
+
+const structureRemovalHelp = {
+ english: "Remove selected, the context menu, or Delete/Backspace removes occurrences inside clips, groups and supergroups. Definitions remain reusable. Empty containers disappear; removing one loop pass locally preserves other passes and leaves a gap. Save structure applies the selected scope.",
+ german: "Auswahl entfernen, das Kontextmenü oder Entf/Rücktaste entfernt Vorkommen in Clips, Gruppen und Supergruppen. Definitionen bleiben wiederverwendbar. Leere Container verschwinden; beim lokalen Entfernen eines Schleifendurchlaufs bleiben andere Durchläufe und eine zeitliche Lücke erhalten. Struktur speichern übernimmt den gewählten Geltungsbereich.",
+ french: "Supprimer la sélection, le menu contextuel ou Suppr/Retour arrière retire les occurrences des clips, groupes et supergroupes. Les définitions restent réutilisables. Les conteneurs vides disparaissent ; supprimer localement une répétition conserve les autres et laisse un silence. Enregistrer la structure applique la portée choisie.",
+ spanish: "Eliminar selección, el menú contextual o Supr/Retroceso elimina apariciones dentro de clips, grupos y supergrupos. Las definiciones siguen disponibles. Los contenedores vacíos desaparecen; eliminar una repetición localmente conserva las demás y deja un hueco. Guardar estructura aplica el alcance elegido."
+};
+for (const language of ["english", "german", "french", "spanish"] as const) sequencerHelpDocuments.sequencer_multitrack_arranger[language].markdown += "\n\n" + structureRemovalHelp[language];

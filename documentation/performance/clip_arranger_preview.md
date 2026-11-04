@@ -66,8 +66,14 @@ Use **Add content** or the **+** insertion markers before, between or after boxe
 
 Drag a box or contiguous selection to an insertion boundary. The cyan target and destination text show where it will go. Compatible containers within the same clip/pass accept moves; overlapping, cross-track, cross-clip and self-nesting moves are rejected. Move arrows and **Move into container** provide keyboard alternatives. Escape or cancelling a pointer gesture leaves the structure unchanged.
 
+Use **Remove selected**, the matching context-menu action, or Delete/Backspace while a box is focused to remove patterns, rests or containers. The same actions work inside groups and supergroups. Removing content closes its position within the container but does not shrink the clip window; unused pattern definitions remain available. Empty containers disappear. Removing an entire clip’s content leaves a timeline gap; removing one loop pass locally preserves its other passes. Save structure still asks which occurrences to change.
+
+![Remove selected in the expanded arranger](../../screenshots/clip-arranger-remove-content.png)
+
 Structural work is a session-only draft: the song continues to play saved content. **Save structure** applies the local/all-linked scope atomically; **Discard** abandons it. Draft Undo/Redo is separate from the arranger's saved history. Performance save/export offers the existing saved definitions when unresolved drafts remain; loading another performance requires resolving them.
 
 Longer content grows the affected windows if space permits. Loop windows preserve their full and partial repetition span. Saving all linked occurrences evaluates every affected clip together. A collision rejects the complete save, retains the draft and names the blocking clips; later independent clips are never shifted. Shortening content does not automatically shrink clips. Valid growth extends Song end when necessary.
 
 ![Direct selection and reordering of nested patterns](../../screenshots/clip-arranger-direct-content.png)
+
+The older container editor opened by double-click remains a separate editing path; use the timeline controls for structural growth and combined save-impact previews. Conflicting musical drafts must currently be resolved in their musical editor before structural work can continue. See the [direct-content review](../../specifications/redesign-arranger/direct-content-review.md) for the remaining integration work.
