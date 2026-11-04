@@ -110,7 +110,7 @@ export function saveDraft(model: ClipArrangement, draft: DefinitionDraft, scope:
   if (scope === "all") lane.definitions[lane.definitions.findIndex(d => d.id === previous.id)] = replacement;
   else {
     const clip = isolatePass(lane, clipFor(lane, draft.target.clipId), draft.target.pass, timings[lane.id], id);
-    if (next.version === 3) clip.repeatIndexBase = (clipFor(laneFor(model, lane.id), draft.target.clipId).repeatIndexBase ?? 0) + draft.target.pass;
+    if (next.version >= 3) clip.repeatIndexBase = (clipFor(laneFor(model, lane.id), draft.target.clipId).repeatIndexBase ?? 0) + draft.target.pass;
     replacement.id = id(); replacement.revision = 0;
     if (replacement.transposeProfileId) {
       const profile = lane.transposeProfiles!.find(p => p.id === replacement.transposeProfileId)!;

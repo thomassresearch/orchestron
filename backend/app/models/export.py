@@ -91,7 +91,7 @@ class ExportPerformanceConfig(BaseModel):
 
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=24)
+    version: int = Field(default=1, ge=1, le=26)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")

@@ -1,0 +1,557 @@
+{
+  "before": {
+    "version": 25,
+    "sequencer": {
+      "scoreTracks": [
+        {
+          "id": "transpose-score",
+          "name": "Long Score",
+          "midiChannel": 1,
+          "timing": {
+            "tempoBPM": 120,
+            "meterNumerator": 4,
+            "meterDenominator": 4,
+            "stepsPerBeat": 4,
+            "beatRateNumerator": 1,
+            "beatRateDenominator": 1
+          },
+          "activePad": 0,
+          "launchQuantization": "bar",
+          "enabled": true,
+          "padLoopEnabled": true,
+          "padLoopRepeat": false,
+          "pads": [
+            {
+              "lengthBeats": 1,
+              "scaleRoot": "C",
+              "scaleType": "major",
+              "mode": "ionian",
+              "notes": [
+                {
+                  "id": "c",
+                  "pitch": 60,
+                  "velocity": 96,
+                  "startTicks": 0,
+                  "durationTicks": 10080
+                },
+                {
+                  "id": "e",
+                  "pitch": 64,
+                  "velocity": 88,
+                  "startTicks": 10080,
+                  "durationTicks": 10080
+                }
+              ]
+            }
+          ],
+          "lengthBeats": 1,
+          "queuedPad": null
+        }
+      ],
+      "clipArrangement": {
+        "version": 3,
+        "revision": 1,
+        "end": 322560,
+        "lanes": [
+          {
+            "id": "transpose-score",
+            "source": "score",
+            "cycleTicks": null,
+            "transposeProfiles": [
+              {
+                "id": "repeat-profile",
+                "revision": 0,
+                "plan": {
+                  "base": {
+                    "diatonicSteps": 0,
+                    "chromaticSemitones": 0
+                  },
+                  "repetitions": [
+                    {
+                      "index": 1,
+                      "offset": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 5
+                      }
+                    },
+                    {
+                      "index": 2,
+                      "offset": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 12
+                      }
+                    },
+                    {
+                      "index": 3,
+                      "offset": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": -3
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "definitions": [
+              {
+                "id": "p",
+                "name": "Motif",
+                "revision": 0,
+                "kind": "pattern",
+                "source": "score",
+                "payload": {
+                  "lengthBeats": 4,
+                  "scaleRoot": "C",
+                  "scaleType": "major",
+                  "mode": "ionian",
+                  "notes": [
+                    {
+                      "id": "repeat-note",
+                      "pitch": 60,
+                      "velocity": 96,
+                      "startTicks": 0,
+                      "durationTicks": 20160
+                    }
+                  ]
+                },
+                "transposeProfileId": "repeat-profile"
+              }
+            ],
+            "clips": [
+              {
+                "id": "repeat-clip",
+                "name": "Four repetitions",
+                "start": 0,
+                "length": 322560,
+                "offset": 0,
+                "mode": "loop",
+                "children": [
+                  {
+                    "id": "repeat-use",
+                    "definitionId": "p",
+                    "transpose": {
+                      "base": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 1
+                      },
+                      "repetitions": [
+                        {
+                          "index": 2,
+                          "offset": {
+                            "diatonicSteps": 0,
+                            "chromaticSemitones": 2
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "instruments": []
+  },
+  "after": {
+    "version": 26,
+    "sequencer": {
+      "scoreTracks": [
+        {
+          "id": "transpose-score",
+          "name": "Long Score",
+          "midiChannel": 1,
+          "timing": {
+            "tempoBPM": 120,
+            "meterNumerator": 4,
+            "meterDenominator": 4,
+            "stepsPerBeat": 4,
+            "beatRateNumerator": 1,
+            "beatRateDenominator": 1
+          },
+          "activePad": 0,
+          "launchQuantization": "bar",
+          "enabled": true,
+          "padLoopEnabled": true,
+          "padLoopRepeat": false,
+          "pads": [
+            {
+              "lengthBeats": 1,
+              "scaleRoot": "C",
+              "scaleType": "major",
+              "mode": "ionian",
+              "notes": [
+                {
+                  "id": "c",
+                  "pitch": 60,
+                  "velocity": 96,
+                  "startTicks": 0,
+                  "durationTicks": 10080
+                },
+                {
+                  "id": "e",
+                  "pitch": 64,
+                  "velocity": 88,
+                  "startTicks": 10080,
+                  "durationTicks": 10080
+                }
+              ]
+            }
+          ],
+          "lengthBeats": 1,
+          "queuedPad": null
+        }
+      ],
+      "clipArrangement": {
+        "version": 4,
+        "revision": 1,
+        "end": 322560,
+        "lanes": [
+          {
+            "id": "transpose-score",
+            "source": "score",
+            "cycleTicks": null,
+            "transposeProfiles": [
+              {
+                "id": "repeat-profile",
+                "revision": 0,
+                "plan": {
+                  "base": {
+                    "diatonicSteps": 0,
+                    "chromaticSemitones": 0
+                  },
+                  "repetitions": [
+                    {
+                      "index": 1,
+                      "offset": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 5
+                      }
+                    },
+                    {
+                      "index": 2,
+                      "offset": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 12
+                      }
+                    },
+                    {
+                      "index": 3,
+                      "offset": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": -3
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "definitions": [
+              {
+                "id": "p",
+                "name": "Motif",
+                "revision": 0,
+                "kind": "pattern",
+                "source": "score",
+                "payload": {
+                  "lengthBeats": 4,
+                  "scaleRoot": "C",
+                  "scaleType": "major",
+                  "mode": "ionian",
+                  "notes": [
+                    {
+                      "id": "repeat-note",
+                      "pitch": 60,
+                      "velocity": 96,
+                      "startTicks": 0,
+                      "durationTicks": 20160
+                    }
+                  ]
+                },
+                "transposeProfileId": "repeat-profile"
+              },
+              {
+                "id": "repeat-group",
+                "kind": "group",
+                "revision": 0,
+                "name": "Middle",
+                "children": [
+                  {
+                    "id": "repeat-use-1",
+                    "definitionId": "p",
+                    "transpose": {
+                      "base": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 1
+                      },
+                      "repetitions": [
+                        {
+                          "index": 2,
+                          "offset": {
+                            "diatonicSteps": 0,
+                            "chromaticSemitones": 2
+                          }
+                        }
+                      ]
+                    },
+                    "repeatIndex": 1
+                  },
+                  {
+                    "id": "repeat-use-2",
+                    "definitionId": "p",
+                    "transpose": {
+                      "base": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 1
+                      },
+                      "repetitions": [
+                        {
+                          "index": 2,
+                          "offset": {
+                            "diatonicSteps": 0,
+                            "chromaticSemitones": 2
+                          }
+                        }
+                      ]
+                    },
+                    "repeatIndex": 2
+                  }
+                ]
+              }
+            ],
+            "clips": [
+              {
+                "id": "repeat-clip",
+                "name": "Four repetitions",
+                "start": 0,
+                "length": 322560,
+                "offset": 0,
+                "mode": "once",
+                "children": [
+                  {
+                    "id": "repeat-use-0",
+                    "definitionId": "p",
+                    "transpose": {
+                      "base": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 1
+                      },
+                      "repetitions": [
+                        {
+                          "index": 2,
+                          "offset": {
+                            "diatonicSteps": 0,
+                            "chromaticSemitones": 2
+                          }
+                        }
+                      ]
+                    },
+                    "repeatIndex": 0
+                  },
+                  {
+                    "id": "repeat-middle",
+                    "definitionId": "repeat-group",
+                    "repeatIndex": 1
+                  },
+                  {
+                    "id": "repeat-use-3",
+                    "definitionId": "p",
+                    "transpose": {
+                      "base": {
+                        "diatonicSteps": 0,
+                        "chromaticSemitones": 1
+                      },
+                      "repetitions": [
+                        {
+                          "index": 2,
+                          "offset": {
+                            "diatonicSteps": 0,
+                            "chromaticSemitones": 2
+                          }
+                        }
+                      ]
+                    },
+                    "repeatIndex": 3
+                  }
+                ],
+                "repeatIndexBase": 0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "instruments": []
+  },
+  "semitones": [
+    1,
+    6,
+    14,
+    -2
+  ],
+  "beforeSchedule": {
+    "version": 2,
+    "end": 322560,
+    "cycle_ticks": null,
+    "transpose_plans": [
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": 0
+        },
+        "repetitions": [
+          {
+            "index": 1,
+            "offset": {
+              "diatonicSteps": 0,
+              "chromaticSemitones": 5
+            }
+          },
+          {
+            "index": 2,
+            "offset": {
+              "diatonicSteps": 0,
+              "chromaticSemitones": 12
+            }
+          },
+          {
+            "index": 3,
+            "offset": {
+              "diatonicSteps": 0,
+              "chromaticSemitones": -3
+            }
+          }
+        ]
+      },
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": 1
+        },
+        "repetitions": [
+          {
+            "index": 2,
+            "offset": {
+              "diatonicSteps": 0,
+              "chromaticSemitones": 2
+            }
+          }
+        ]
+      }
+    ],
+    "clips": [
+      {
+        "id": "repeat-clip",
+        "start": 0,
+        "length": 322560,
+        "offset": 0,
+        "mode": "loop",
+        "repeat_index_base": 0,
+        "content": [
+          {
+            "pad": 0,
+            "length": 80640,
+            "transpose_refs": [
+              0,
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "afterSchedule": {
+    "version": 2,
+    "end": 322560,
+    "cycle_ticks": null,
+    "transpose_plans": [
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": 0
+        },
+        "repetitions": []
+      },
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": 1
+        },
+        "repetitions": []
+      },
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": 5
+        },
+        "repetitions": []
+      },
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": 12
+        },
+        "repetitions": []
+      },
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": 2
+        },
+        "repetitions": []
+      },
+      {
+        "base": {
+          "diatonicSteps": 0,
+          "chromaticSemitones": -3
+        },
+        "repetitions": []
+      }
+    ],
+    "clips": [
+      {
+        "id": "repeat-clip",
+        "start": 0,
+        "length": 322560,
+        "offset": 0,
+        "mode": "once",
+        "repeat_index_base": 0,
+        "content": [
+          {
+            "pad": 0,
+            "length": 80640,
+            "transpose_refs": [
+              0,
+              1
+            ]
+          },
+          {
+            "pad": 0,
+            "length": 80640,
+            "transpose_refs": [
+              2,
+              1
+            ]
+          },
+          {
+            "pad": 0,
+            "length": 80640,
+            "transpose_refs": [
+              3,
+              4
+            ]
+          },
+          {
+            "pad": 0,
+            "length": 80640,
+            "transpose_refs": [
+              5,
+              1
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

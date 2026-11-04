@@ -15,7 +15,7 @@ export type PatternPayload = {
 };
 export type PatternDefinition = { [K in SourceKind]: DefinitionIdentity & { kind: "pattern"; source: K; payload: PatternPayload[K]; presetId?: string | null } }[SourceKind];
 export type DefinitionIdentity = { id: string; name: string; revision: number; color?: string; transposeProfileId?: string };
-export type ContentItem = { id: string; definitionId: string; transpose?: OffsetPlan } | { id: string; restTicks: number };
+export type ContentItem = { id: string; definitionId: string; repeatIndex?: number; transpose?: OffsetPlan } | { id: string; restTicks: number };
 export type ContainerDefinition = DefinitionIdentity & { kind: "group" | "supergroup"; children: ContentItem[] };
 export type Definition = PatternDefinition | ContainerDefinition;
 export type Clip = { id: string; name: string; start: number; length: number; offset: number; mode: "once" | "loop"; children: ContentItem[]; repeatIndexBase?: number; transposePlacements?: { path: string[]; plan: OffsetPlan }[] };
@@ -24,7 +24,7 @@ export type ClipLane = {
   /** Legacy repeating lanes repeat their authored cycle, independently of song looping. */
   cycleTicks: number | null;
 };
-export type ClipArrangement = { version: 1 | 2 | 3; revision: number; end: number; lanes: ClipLane[] };
+export type ClipArrangement = { version: 1 | 2 | 3 | 4; revision: number; end: number; lanes: ClipLane[] };
 export type OccurrenceTarget = { laneId: string; clipId: string; path: string[]; pass: number };
 export type DefinitionDraft = { target: OccurrenceTarget; baseRevision: number; baseFingerprint?: string; definition: Definition; additions?: Definition[]; transposeEdits?: import("./transposeEdits").TransposeEdit[]; auditionContext?: { lane: ClipLane; childIds: Record<string,string> } };
 export type ClipHistoryChange =
@@ -103,7 +103,7 @@ export function resolveClip(lane: ClipLane, clip: Clip, from: number, to: number
 
 /** No JSON normalization here: malformed authored content must not be silently discarded. */
 export function validateArrangement(arrangement: ClipArrangement, timings: LaneTiming = {}): void {
-  if (![1, 2, 3].includes(arrangement.version) || !Number.isSafeInteger(arrangement.revision) || arrangement.revision < 0) throw new ClipError("invalid", "Unsupported clip arrangement version or revision.");
+  if (![1, 2, 3, 4].includes(arrangement.version) || !Number.isSafeInteger(arrangement.revision) || arrangement.revision < 0) throw new ClipError("invalid", "Unsupported clip arrangement version or revision.");
   exactTick(arrangement.end, true);
   if (arrangement.lanes.length > CLIP_LIMITS.lanes) throw new ClipError("limit", "Too many lanes.");
   const identities = new Set<string>();

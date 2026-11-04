@@ -72,3 +72,22 @@ def test_transposition_round_trip_shared_wire_fixture_and_validation():
         malformed["sequencer"]["clipArrangement"]["lanes"][0]["transposeProfiles"][0]["plan"]["base"]["diatonicSteps"] = bad
         with pytest.raises(ValueError):
             project_clips(malformed)
+
+
+def test_grouped_repetitions_keep_v26_and_project_fixed_indices():
+    import pytest
+    from orchestron.clip_arrangement import project_clips
+    root = Path(__file__).resolve().parents[4] / "backend/tests/fixtures/clip_transposition"
+    fixture = json.loads((root / "repetition_grouping.json").read_text())
+    config = fixture["after"]
+    normalized = cli.normalize_performance_config(copy.deepcopy(config), [])
+    assert normalized["version"] == 26
+    assert normalized["sequencer"]["clipArrangement"] == config["sequencer"]["clipArrangement"]
+    _, schedules, _ = project_clips(normalized)
+    assert schedules["transpose-score"] == fixture["afterSchedule"]
+    assert cli.build_runtime_config(normalized)["score_tracks"][0]["clip_schedule"] == fixture["afterSchedule"]
+    for invalid in [True, -1, 1.5, 40320000001]:
+        bad = copy.deepcopy(config)
+        bad["sequencer"]["clipArrangement"]["lanes"][0]["clips"][0]["children"][0]["repeatIndex"] = invalid
+        with pytest.raises(ValueError, match="repetition index"):
+            project_clips(bad)

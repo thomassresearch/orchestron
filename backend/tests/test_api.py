@@ -9840,3 +9840,59 @@ def test_instrument_automation_preparation_failure_retains_mapping_and_music(tmp
         assert response.status_code == (422 if failure == "preparation" else 409), response.text
         assert client.get(endpoint).json() == snapshot
         assert runtime.sequencer.status() == old
+
+
+def test_grouped_repetition_v26_persistence_native_and_rejection(tmp_path):
+    from copy import deepcopy
+    config = json.loads((Path(__file__).parent / "fixtures/clip_transposition/repetition_grouping.json").read_text())["after"]
+    with _client(tmp_path) as client:
+        response = client.post("/api/performances", json={"name": "Grouped repetitions", "config": config})
+        assert response.status_code == 201, response.text
+        endpoint = f"/api/performances/{response.json()['id']}"
+        assert client.get(endpoint).json()["config"] == config
+        for value in (True, -1, 1.5, 40320000001):
+            bad = deepcopy(config)
+            bad["sequencer"]["clipArrangement"]["lanes"][0]["clips"][0]["children"][0]["repeatIndex"] = value
+            assert client.put(endpoint, json={"config": bad}).status_code == 422
+        assert client.get(endpoint).json()["config"] == config
+        state = {"version": 8, "sequencer": config["sequencer"]}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"] == state
+        old = deepcopy(config)
+        old["version"] = 25
+        assert client.put(endpoint, json={"config": old}).status_code == 422
+        payload = {"format": "orchestron.performance", "version": 1,
+            "performance": {"name": "Grouped repetitions", "description": "", "config": config}, "patch_definitions": []}
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200, exported.text
+        restored = client.post("/api/bundles/import/expand", content=exported.content,
+            headers={"X-File-Name": "grouped.orch.json", "Content-Type": "application/json"})
+        assert restored.status_code == 200, restored.text
+        assert restored.json()["performance"]["config"] == config
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_grouped_repetition_export_preserves_each_pitch(tmp_path, event_source):
+    fixture = json.loads((Path(__file__).parent / "fixtures/clip_transposition/repetition_grouping.json").read_text())
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    config = payload["performanceExport"]["performance"]["config"]
+    assignments = config["instruments"]
+    config.update(fixture["after"])
+    config["instruments"] = assignments
+    runtime = _score_fixture()["runtime"]
+    runtime.update(pad_loop_enabled=True, pad_loop_sequence=[], queued_pad=None)
+    runtime["pads"][0].update(length_beats=4, scale_root="C", mode="ionian", notes=[
+        {"id": "grouped", "pitch": 60, "velocity": 96, "start_ticks": 0, "duration_ticks": 20160}])
+    runtime["clip_schedule"] = fixture["afterSchedule"]
+    payload["sequencerConfig"].update(tracks=[], score_tracks=[runtime], playback_start_step=0, playback_end_step=128)
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            if event_source == "midiFile":
+                events = [(tick, msg.type, msg.note) for tick, msg in _midi_messages_with_absolute_ticks(archive.read("Offline_Export/Offline_Export.mid")) if msg.type in {"note_on", "note_off"}]
+                assert events == [(tick, kind, pitch) for index, pitch in enumerate([61, 66, 74, 58]) for tick, kind in [(index * 1920, "note_on"), (index * 1920 + 480, "note_off")]]
+            else:
+                csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+                assert [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith("i 1 ")] == [[index * 2, .5, pitch, 96] for index, pitch in enumerate([61, 66, 74, 58])]

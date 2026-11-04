@@ -1,4 +1,4 @@
-"""Project version-23/24/25 clip definitions into the existing musical wire serializers.
+"""Project version-23–26 clip definitions into the existing musical wire serializers.
 
 The authored document is never rewritten into numeric slots. This module has no
 backend dependency so the installed CLI uses the same compact schedule protocol.
@@ -13,13 +13,15 @@ def project_clips(config):
     result = deepcopy(config)
     sequencer = result["sequencer"]
     model = sequencer.pop("clipArrangement")
-    if config.get("version") not in (23, 24, 25) or model.get("version") not in (1, 2, 3):
+    if config.get("version") not in (23, 24, 25, 26) or model.get("version") not in (1, 2, 3, 4):
         raise ValueError("Unsupported clip arrangement version.")
-    if model["version"] >= 2 and config["version"] not in (24, 25):
+    if model["version"] == 4 and config["version"] != 26:
+        raise ValueError("Content repetition indices require performance v26.")
+    if model["version"] >= 2 and config["version"] not in (24, 25, 26):
         raise ValueError("Clip model v2 requires performance v24.")
     if sum(not t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])) > 16:
         raise ValueError("At most 16 generic controller sequencers are allowed.")
-    if model["version"] == 3 and config["version"] != 25:
+    if model["version"] >= 3 and config["version"] not in (25, 26):
         raise ValueError("Clip transposition requires performance v25.")
     from .clip_transposition import validate_transpositions
     identities = set()
@@ -46,7 +48,7 @@ def project_clips(config):
         track = next(t for t in tracks if t["id"] == lane["id"])
         target = track.get("automationTarget")
         if target:
-            if model["version"] < 2 or config["version"] not in (24, 25) or lane["source"] != "controller":
+            if model["version"] < 2 or config["version"] not in (24, 25, 26) or lane["source"] != "controller":
                 raise ValueError("Instrument automation requires clip model v2 and performance v24.")
             nodes = target.get("controllerNodeIds")
             if (not isinstance(target.get("instrumentId"), str) or not 1 <= len(target["instrumentId"]) <= 128
@@ -83,30 +85,35 @@ def project_clips(config):
         beat = Fraction(20160) if lane["source"] == "arpeggiator" else Fraction(20160 * 4 * timing.get("beatRateDenominator", 1), timing.get("meterDenominator", 4) * timing.get("beatRateNumerator", 1))
         plans, plan_indexes = [], {}
         profiles = {p["id"]: p["plan"] for p in lane.get("transposeProfiles", [])}
-        def intern(plan):
+        def intern(plan, index=None):
             import json
+            if index is not None:
+                plan = {"base": next((e["offset"] for e in plan["repetitions"] if e["index"] == index), plan["base"]), "repetitions": []}
             key = json.dumps(plan, sort_keys=True, separators=(",", ":"))
             if key not in plan_indexes:
                 plan_indexes[key] = len(plans)
                 plans.append(deepcopy(plan))
             return plan_indexes[key]
-        def leaves(items, rank=3, path=(), refs=(), placements=None):
+        def leaves(items, rank=3, path=(), refs=(), placements=None, repeat_index=None):
             if not 1 <= len(items) <= 256:
                 raise ValueError("Invalid clip child count.")
             spans = []
             for item in items:
+                index = item.get("repeatIndex", repeat_index)
+                if "repeatIndex" in item and (model["version"] < 4 or "restTicks" in item or type(index) is not int or not 0 <= index <= 40320000000):
+                    raise ValueError("Invalid content repetition index.")
                 if "restTicks" in item:
-                    spans.append({"pad": None, "length": item["restTicks"], **({"transpose_refs": []} if model["version"] == 3 else {})})
+                    spans.append({"pad": None, "length": item["restTicks"], **({"transpose_refs": []} if model["version"] >= 3 else {})})
                 else:
                     definition = definitions[item["definitionId"]]
                     item_path = (*path, item["id"])
                     contributions = list(refs)
                     if definition.get("transposeProfileId"):
-                        contributions.append(intern(profiles[definition["transposeProfileId"]]))
+                        contributions.append(intern(profiles[definition["transposeProfileId"]], index))
                     if "transpose" in item:
-                        contributions.append(intern(item["transpose"]))
+                        contributions.append(intern(item["transpose"], index))
                     if placements and item_path in placements:
-                        contributions.append(intern(placements[item_path]))
+                        contributions.append(intern(placements[item_path], index))
                     child_rank = {"pattern": 0, "group": 1, "supergroup": 2}[definition["kind"]]
                     if child_rank >= rank:
                         raise ValueError("Invalid clip nesting.")
@@ -120,9 +127,9 @@ def project_clips(config):
                             raise ValueError("Invalid instrument automation curve.")
                         if duration.denominator != 1:
                             raise ValueError("Clip duration must resolve to exact ticks.")
-                        spans.append({"pad": slots[definition["id"]], "length": int(duration), **({"transpose_refs": contributions} if model["version"] == 3 else {})})
+                        spans.append({"pad": slots[definition["id"]], "length": int(duration), **({"transpose_refs": contributions} if model["version"] >= 3 else {})})
                     else:
-                        spans.extend(leaves(definition["children"], child_rank, item_path, contributions, placements))
+                        spans.extend(leaves(definition["children"], child_rank, item_path, contributions, placements, index))
                 if len(spans) > 65536:
                     raise ValueError("Clip expansion limit exceeded.")
             if any(type(s["length"]) is not int or not 0 < s["length"] <= 20160000000 for s in spans):
@@ -130,11 +137,11 @@ def project_clips(config):
             return spans
         clips = []
         for clip in sorted(lane["clips"], key=lambda c: c["start"]):
-            clips.append({**{k: clip[k] for k in ("id", "start", "length", "offset", "mode")}, "content": leaves(clip["children"], placements={tuple(p["path"]):p["plan"] for p in clip.get("transposePlacements", [])}), **({"repeat_index_base": clip.get("repeatIndexBase", 0)} if model["version"] == 3 else {})})
+            clips.append({**{k: clip[k] for k in ("id", "start", "length", "offset", "mode")}, "content": leaves(clip["children"], placements={tuple(p["path"]):p["plan"] for p in clip.get("transposePlacements", [])}), **({"repeat_index_base": clip.get("repeatIndexBase", 0)} if model["version"] >= 3 else {})})
             duration = sum(s["length"] for s in clips[-1]["content"])
             if clip.get("repeatIndexBase", 0) + ((clip["offset"] + clip["length"] - 1) // duration if clip["mode"] == "loop" else 0) > 40320000000:
                 raise ValueError("Logical repetition extent exceeded.")
-        schedules[lane["id"]] = {"version": 2 if model["version"] == 3 else 1, **({"transpose_plans": plans} if model["version"] == 3 else {}), "end": model["end"], "cycle_ticks": lane["cycleTicks"], "clips": clips}
+        schedules[lane["id"]] = {"version": 2 if model["version"] >= 3 else 1, **({"transpose_plans": plans} if model["version"] >= 3 else {}), "end": model["end"], "cycle_ticks": lane["cycleTicks"], "clips": clips}
         track.update(pads=[deepcopy(d["payload"]) for d in patterns], activePad=0, queuedPad=None, queuedEnabled=None,
                      padLoopEnabled=True, padLoopRepeat=False, padLoopPattern={"rootSequence": [], "groups": [], "superGroups": []})
     return result, schedules, model["end"]

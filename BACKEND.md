@@ -1065,7 +1065,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance v25 for clip transposition, v24 for instrument automation, v23 for other clips, otherwise v22 (read v1–25). App state uses v7/v6/v5/v4 respectively (reads v1–7); native envelopes are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance v26 for fixed repetition references, v25 for clip transposition, v24 for instrument automation, v23 for other clips, otherwise v22 (read v1–26). App state uses v8/v7/v6/v5/v4 respectively (reads v1–8); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -1255,3 +1255,19 @@ The revision-checked performance-controller PATCH accepts optional `sequencer_co
 Runtime clip schedule v2 carries an interned sparse plan bank, per-leaf references and source repeat bases. Shared definition profiles, parent references and full-path clip placements add diatonic/chromatic pairs; each leaf uses its configured scale. Prepared melodic/score variants and arpeggiator pitch maps apply before output-note ownership. Live changes retain the current occurrence’s pair, including an anticipated next occurrence, and adopt the latest pair at the next uncommitted boundary. Seek/restart resets this state. Session-only audition schedules freeze the selected context and retain exact rest durations.
 
 Readers validate authored and runtime forms independently. Preparation bounds distinct variants and transformed score records; the content-keyed LRU also has an explicit byte budget. No pitch transformation or cache miss occurs in the render path. See the [implementation record](specifications/clip-transposition/implementation-record.md) for contracts, executable acceptance coverage, measured limits and remaining release evidence.
+
+
+### Fixed repetition references (performance v26, app state v8, clip model v4)
+
+Definition-bearing content references optionally carry a strict integer `repeatIndex`
+(0–40,320,000,000). Descendants inherit the nearest explicit reference index; absent
+an override, the clip base plus source pass remains the default. Each shared, parent
+and placement contribution uses its owning reference’s index. Rest references reject
+this metadata. Earlier formats reject it and retain their existing behavior.
+
+Cross-repetition grouping expands complete intersecting source passes into one Once
+clip while retaining its ID/window and linked definitions. Frontend and standalone
+CLI projection freeze fixed-index contributions into constant plans in runtime
+schedule v2. Authored profiles remain linked, so later profile edits are projected
+again. Persistence, native bundles and both CSD modes accept v26; native envelope
+versions are unchanged. See the [structural contract](specifications/redesign-arranger/implementation-record.md#grouping-across-loop-repetitions).

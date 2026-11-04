@@ -323,7 +323,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
             const payload = migrateSequencerTiming(persistedState, true) as Partial<PersistedAppState>;
-            if (payload.version === 7 || payload.version === 6 || payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
+            if (payload.version === 8 || payload.version === 7 || payload.version === 6 || payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
               const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
               if (restoredTabs.length > 0) {
                 instrumentTabs = restoredTabs;
@@ -385,7 +385,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           const resolvedGuiLanguage = guiLanguageChangedDuringBootstrap ? latestState.guiLanguage : guiLanguage;
 
           const baselineSnapshot: PersistedAppState = {
-            version: sequencer.clipArrangement?.version === 3 ? 7 : sequencer.clipArrangement?.version === 2 ? 6 : sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+            version: sequencer.clipArrangement?.version === 4 ? 8 : sequencer.clipArrangement?.version === 3 ? 7 : sequencer.clipArrangement?.version === 2 ? 6 : sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,

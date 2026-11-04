@@ -159,3 +159,8 @@ output at Stereo 0 without reading example files or importing its builder.
 `sequencers/score.json` (fixture schema v1) provides matching authored and runtime Score Sequencer forms, independent sustains, a retrigger and hidden material in a ten-minute pad. Frontend, API, CLI and export regressions share this versioned fixture.
 
 - `performance_controller_midi.patch.json` is a small DC-output probe with float, integer, bool and logarithmic controllers for per-instance CC mapping and native CSD export tests.
+
+
+`clip_transposition/repetition_grouping.json` pairs a four-pass compact loop with
+its v26 grouped Once representation and matching schedule-v2 projections. Frontend,
+backend and standalone CLI regressions share its per-occurrence pitch expectations.

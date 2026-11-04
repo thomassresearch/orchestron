@@ -228,3 +228,68 @@ def test_arpeggiator_clip_gate_and_audition_coexist_with_song_transport(clock):
     assert state.workspace is not None and router._running(state)
     router.audition(SessionAuditionRequest(action="workspace_end", arpeggiator_id="arp", gesture_id="draft", revision=2))
     assert not router._running(state)
+
+
+def repetition_expansion_schedule(expanded, duration=4 * Q):
+    """Complete source passes retain the crop and a later independent clip."""
+    content = [{"pad": 0, "length": duration}, {"pad": None, "length": duration // 4}]
+    return {"version": 2, "transpose_plans": [], "end": duration * 5, "clips": [
+        {"id": "grouped", "start": 0, "offset": duration // 4, "length": duration * 3,
+         "mode": "once" if expanded else "loop", "content": content * (3 if expanded else 1)},
+        {"id": "neighbor", "start": duration * 4, "length": duration, "mode": "once",
+         "content": [{"pad": 0, "length": duration}]},
+    ]}
+
+
+@pytest.mark.parametrize("source", ["melodic", "drummer", "score", "controller"])
+def test_grouped_repetitions_preserve_every_source_event_with_rests_crop_and_rational_timing(source):
+    from backend.app.models.session import SessionSequencerConfigRequest
+    from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+    from backend.tests.test_sequencer_note_timing import Capture, advance
+
+    captures = []
+    for expanded in (False, True):
+        capture = Capture()
+        runtime = SessionSequencerRuntime("grouping", capture, "internal:loopback", (1,), lambda *_: None, clock_mode="render_driven")
+        duration = 8 * Q // 3
+        common = dict(track_id="drumrow:kit:one" if source == "drummer" else source,
+            timing=dict(beat_rate_numerator=3, beat_rate_denominator=2), length_beats=4,
+            pad_loop_enabled=True, clip_schedule=repetition_expansion_schedule(expanded, duration))
+        pad = dict(pad_index=0, length_beats=4)
+        field = "tracks"
+        if source == "score":
+            field = "score_tracks"
+            pad["notes"] = [dict(id="sustain", pitch=60, velocity=100, start_ticks=0, duration_ticks=2 * Q)]
+        elif source == "controller":
+            field = "controller_tracks"
+            common.update(controller_number=74, controller_mode="step", target_channels=[1])
+            pad["steps"] = [0, 64, 127, None]
+        else:
+            pad["steps"] = [60, None, 62, None]
+        request = SessionSequencerConfigRequest.model_validate({field: [{**common, "pads": [pad]}], "playback_end_step": 128})
+        runtime.configure(request)
+        runtime._running = True
+        advance(runtime, capture, 55000)
+        captures.append(capture.events)
+    assert captures[0]
+    assert captures[1] == captures[0]
+
+
+def test_grouped_arpeggiator_repetitions_preserve_scheduled_attacks_and_releases():
+    from backend.app.models.session import SessionArpeggiatorConfig, SessionDeviceTransportRequest
+    from backend.tests.test_arpeggiator_runtime import _CaptureMidi, _router, _advance_router
+
+    captures = []
+    for expanded in (False, True):
+        capture = _CaptureMidi()
+        router = _router(capture)
+        router.configure([SessionArpeggiatorConfig(arpeggiator_id="arp", enabled=True, input_channel=2,
+            target_channel=1, playback_mode="arranger", pads=[{}],
+            clip_schedule=repetition_expansion_schedule(expanded))], tempo_bpm=120)
+        router.source_device_transport(SessionDeviceTransportRequest(action="play", arranger=True), position=0)
+        router.route_message([0x91, 60, 100], source="keyboard")
+        router.route_message([0x91, 67, 100], source="keyboard")
+        _advance_router(router, end=48000 * 11)
+        captures.append(capture.messages)
+    assert captures[0]
+    assert captures[1] == captures[0]

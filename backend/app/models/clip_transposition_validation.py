@@ -17,7 +17,7 @@ def validate_transpositions(model, identity):
         supported = lane.get("source") in ("sequencer", "score", "arpeggiator")
 
         def feature():
-            if model["version"] != 3 or not supported:
+            if model["version"] < 3 or not supported:
                 raise ValueError("Transposition requires clip v3 and a melodic, score or arpeggiator lane.")
 
         def plan(value):
@@ -59,6 +59,8 @@ def validate_transpositions(model, identity):
 
         def children(items):
             for item in items:
+                if "repeatIndex" in item and (model["version"] < 4 or "restTicks" in item or type(item["repeatIndex"]) is not int or not 0 <= item["repeatIndex"] <= MAX_REPEAT_INDEX):
+                    raise ValueError("Invalid content repetition index.")
                 if "transpose" in item:
                     if "restTicks" in item:
                         raise ValueError("Rests cannot be transposed.")
@@ -76,7 +78,7 @@ def validate_transpositions(model, identity):
         for clip in lane["clips"]:
             children(clip["children"])
             if "repeatIndexBase" in clip and (
-                model["version"] != 3
+                model["version"] < 3
                 or type(clip["repeatIndexBase"]) is not int
                 or not 0 <= clip["repeatIndexBase"] <= MAX_REPEAT_INDEX
             ):
@@ -126,13 +128,14 @@ def validate_derived_transpositions(model):
         variants = set()
         entry_count = 0
 
-        def visit(items, path, inherited, placements):
+        def visit(items, path, inherited, placements, repeat_index=None):
             nonlocal entry_count, total_variants, total_records
             for item in items:
                 if "definitionId" not in item:
                     continue
                 definition = definitions[item["definitionId"]]
                 current = (*path, item["id"])
+                index = item.get("repeatIndex", repeat_index)
                 plans = [*inherited]
                 for p in (
                     profiles.get(definition.get("transposeProfileId")),
@@ -140,12 +143,13 @@ def validate_derived_transpositions(model):
                     placements.get(current),
                 ):
                     if p is not None:
-                        plans.append(p)
+                        plans.append((p, index))
                 if definition["kind"] != "pattern":
-                    visit(definition["children"], current, plans, placements)
+                    visit(definition["children"], current, plans, placements, index)
                     continue
-                key = tuple(id(p) for p in plans)
+                key = tuple((id(p), index) for p, index in plans)
                 if key not in effective:
+                    plans = [p if index is None else {"base": next((e["offset"] for e in p["repetitions"] if e["index"] == index), p["base"]), "repetitions": []} for p, index in plans]
                     base = tuple(
                         sum(p["base"][field] for p in plans) for field in ("diatonicSteps", "chromaticSemitones")
                     )

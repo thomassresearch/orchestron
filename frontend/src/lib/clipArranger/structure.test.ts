@@ -146,3 +146,17 @@ it('uses the grown partial pass for model-based drop targets',()=>{
  expect(structureInsertionAt(layout,20160*3,5)).toEqual({path:[],index:1});
  expect(structureInsertionAt(layout,20160*5,5)).toBeNull();
 });
+
+it('groups only the middle repetitions, preserves one window, and undoes expansion atomically',()=>{
+ const m=fixture(),clip=m.lanes[0].clips[0];clip.length=20160*16;
+ const original=structuredClone(m);
+ const draft=applyStructure(beginStructure(m,'lane','clip',1),{kind:'groupRepetitions',range:{first:{pass:1,id:'a-use'},last:{pass:2,id:'a-use'}},level:'group',name:'Middle'});
+ expect(m).toEqual(original);expect(draft.cursor).toBe(1);expect(draft.roots).toHaveLength(3);
+ expect(draft.roots.map(n=>n.repeatIndex)).toEqual([0,1,3]);expect(draft.roots[1].children!.map(n=>n.repeatIndex)).toEqual([1,2]);
+ const saved=prepareStructure(m,draft,'local',{}).model;
+ expect(saved.version).toBe(4);expect(saved.lanes[0].clips).toHaveLength(1);expect(saved.lanes[0].clips[0]).toMatchObject({id:'clip',start:0,length:20160*16,offset:0,mode:'once'});
+ expect(saved.lanes[0].definitions.filter(d=>d.kind==='pattern')).toEqual(m.lanes[0].definitions);
+ expect(()=>prepareStructure(m,draft,'all',{})).toThrow('only this clip');
+ const undone=stepStructure(draft,-1);expect(undone.roots).toEqual(beginStructure(m,'lane','clip',0).roots);expect(undone.cursor).toBe(0);
+ expect(stepStructure(undone,1).roots).toEqual(draft.roots);
+});

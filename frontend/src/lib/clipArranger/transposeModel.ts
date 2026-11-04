@@ -1,37 +1,52 @@
 import { resolveContent, type Clip, type ClipArrangement, type ClipLane, type ContentItem } from './model';
-import { addOffsets, TRANSPOSE_LIMITS as L, validateOffsetPlan, type OffsetPlan } from './transposition';
+import { addOffsets, offsetAt, TRANSPOSE_LIMITS as L, validateOffsetPlan, type OffsetPlan } from './transposition';
 
 /** Return all three scopes at every level; use full occurrence paths, never definition IDs alone. */
 export function transposePlans(lane: ClipLane, clip: Clip, path: string[]): OffsetPlan[] {
-  return transposeContributions(lane, clip, path).map(c => c.plan);
+  return transposeContributions(lane, clip, path).map(c => c.repeatIndex === undefined ? c.plan : {base:offsetAt(c.plan,c.repeatIndex),repetitions:[]});
 }
 
 export function transposeContributions(lane: ClipLane, clip: Clip, path: string[]) {
-  const plans: { owner: string; scope: 'shared' | 'parent' | 'placement'; plan: OffsetPlan }[] = [];
+  const plans: { owner: string; scope: 'shared' | 'parent' | 'placement'; plan: OffsetPlan; repeatIndex?: number }[] = [];
   let items = clip.children;
+  let repeatIndex: number | undefined;
   path.forEach((id, index) => {
     const item = items.find(i => i.id === id);
     if (!item || !('definitionId' in item)) throw Error('Invalid transposition placement path.');
+    repeatIndex = item.repeatIndex ?? repeatIndex;
     const definition = lane.definitions.find(d => d.id === item.definitionId);
     if (!definition) throw Error('Missing transposition definition.');
     if (definition.transposeProfileId) {
       const profile = lane.transposeProfiles?.find(p => p.id === definition.transposeProfileId);
       if (!profile) throw Error('Missing transposition profile.');
-      plans.push({owner: definition.name, scope:'shared', plan:profile.plan});
+      plans.push({owner: definition.name, scope:'shared', plan:profile.plan, repeatIndex});
     }
-    if (item.transpose) plans.push({owner:definition.name,scope:'parent',plan:item.transpose});
+    if (item.transpose) plans.push({owner:definition.name,scope:'parent',plan:item.transpose, repeatIndex});
     const placement = clip.transposePlacements?.find(p => p.path.length === index+1 && p.path.every((v,i) => v === path[i]));
-    if (placement) plans.push({owner:definition.name,scope:'placement',plan:placement.plan});
+    if (placement) plans.push({owner:definition.name,scope:'placement',plan:placement.plan, repeatIndex});
     items = definition.kind === 'pattern' ? [] : definition.children;
   });
   return plans;
+}
+
+/** Logical index for an occurrence, independent of its new position after grouping. */
+export function logicalRepeatIndex(lane: ClipLane, clip: Clip, path: string[], pass: number): number {
+  let index = (clip.repeatIndexBase ?? 0) + pass, items = clip.children;
+  for (const id of path) {
+    const item = items.find(item => item.id === id);
+    if (!item || !('definitionId' in item)) throw Error('Invalid occurrence path.');
+    index = item.repeatIndex ?? index;
+    const definition = lane.definitions.find(d => d.id === item.definitionId)!;
+    items = definition.kind === 'pattern' ? [] : definition.children;
+  }
+  return index;
 }
 
 export function validateTranspositions(model: ClipArrangement, identity: (id: string) => void): void {
   let entries = 0, placements = 0;
   for (const lane of model.lanes) {
     const supported = ['sequencer', 'score', 'arpeggiator'].includes(lane.source);
-    const feature = () => { if (model.version !== 3 || !supported) throw Error('Transposition requires clip v3 and a melodic, score or arpeggiator lane.'); };
+    const feature = () => { if (model.version < 3 || !supported) throw Error('Transposition requires clip v3 and a melodic, score or arpeggiator lane.'); };
     const plan = (value: unknown) => { feature(); validateOffsetPlan(value); entries += value.repetitions.length; if (entries > L.totalEntries) throw Error('Performance transposition entry limit exceeded.'); };
     if (lane.transposeProfiles !== undefined) {
       feature();
@@ -41,14 +56,14 @@ export function validateTranspositions(model: ClipArrangement, identity: (id: st
         identity(p.id); plan(p.plan);
       }
     }
-    const children = (items: ContentItem[]) => { for (const item of items) if ('transpose' in item) { if ('restTicks' in item) throw Error('Rests cannot be transposed.'); plan(item.transpose); } };
+    const children = (items: ContentItem[]) => { for (const item of items) { if ('repeatIndex' in item && ('restTicks' in item || model.version < 4 || !Number.isSafeInteger(item.repeatIndex) || item.repeatIndex! < 0 || item.repeatIndex! > L.index)) throw Error('Invalid content repetition index.'); if ('transpose' in item) { if ('restTicks' in item) throw Error('Rests cannot be transposed.'); plan(item.transpose); } } };
     for (const def of lane.definitions) {
       if (def.transposeProfileId !== undefined) { feature(); if (!lane.transposeProfiles?.some(p => p.id === def.transposeProfileId)) throw Error('Missing transposition profile.'); }
       if (def.kind !== 'pattern') children(def.children);
     }
     for (const clip of lane.clips) {
       children(clip.children);
-      if (clip.repeatIndexBase !== undefined && (model.version !== 3 || !Number.isSafeInteger(clip.repeatIndexBase) || clip.repeatIndexBase < 0 || clip.repeatIndexBase > L.index)) throw Error('Invalid repetition base.');
+      if (clip.repeatIndexBase !== undefined && (model.version < 3 || !Number.isSafeInteger(clip.repeatIndexBase) || clip.repeatIndexBase < 0 || clip.repeatIndexBase > L.index)) throw Error('Invalid repetition base.');
       if (clip.transposePlacements !== undefined) {
         feature();
         if (!Array.isArray(clip.transposePlacements) || clip.transposePlacements.length > L.placements) throw Error('Clip transposition placement limit exceeded.');
@@ -69,13 +84,16 @@ function validateDerivedTranspositions(model: ClipArrangement) {
   let totalVariants=0,totalRecords=0;
   for(const lane of model.lanes) {
     if(!['sequencer','score','arpeggiator'].includes(lane.source))continue;
-    const planIds=new Map<OffsetPlan,number>(),effective=new Map<string,Set<string>>(),variants=new Set<string>();
+    const effective=new Map<string,Set<string>>(),variants=new Set<string>();
     let entryCount=0;
+    const planIds=new Map<OffsetPlan,number>();
     for(const clip of lane.clips)for(const leaf of resolveContent(lane,clip.children)) {
       if(!leaf.definition)continue;
-      const plans=transposePlans(lane,clip,leaf.path),key=plans.map(p=>{if(!planIds.has(p))planIds.set(p,planIds.size);return planIds.get(p);}).join(',');
+      const contributions=transposeContributions(lane,clip,leaf.path);
+      const key=contributions.map(c=>{if(!planIds.has(c.plan))planIds.set(c.plan,planIds.size);return `${planIds.get(c.plan)}:${c.repeatIndex??'dynamic'}`;}).join('|');
       let pairs=effective.get(key);
       if(!pairs) {
+        const plans=contributions.map(c=>c.repeatIndex===undefined?c.plan:{base:offsetAt(c.plan,c.repeatIndex),repetitions:[]});
         const base=addOffsets(plans.map(p=>p.base)),changes=new Map<number,typeof base>();
         for(const p of plans)for(const entry of p.repetitions) {
           const value=changes.get(entry.index)??{...base};

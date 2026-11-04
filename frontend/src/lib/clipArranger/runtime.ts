@@ -1,4 +1,4 @@
-import { transposePlans } from "./transposeModel";
+import { logicalRepeatIndex, transposePlans } from "./transposeModel";
 import type { OffsetPlan } from "./transposition";
 import { offsetAt } from './transposition';
 import { saveTransposeEdits } from './transposeEdits';
@@ -12,7 +12,7 @@ type AuditionState = SequencerState & { clipAuditionContext?: { laneId: string; 
 export function runtimeSchedule(state: SequencerState, lane: ClipLane): RuntimeClipSchedule {
   const patterns = lane.definitions.filter((d): d is PatternDefinition => d.kind === "pattern");
   const slots = new Map(patterns.map((p, i) => [p.id, i]));
-  const version = state.clipArrangement!.version === 3 ? 2 : 1;
+  const version = state.clipArrangement!.version >= 3 ? 2 : 1;
   const plans: OffsetPlan[] = [], indices = new Map<string, number>();
   const intern = (plan: OffsetPlan) => { const key = JSON.stringify(plan); if (!indices.has(key)) { indices.set(key, plans.length); plans.push(plan); } return indices.get(key)!; };
   const clips = [...lane.clips].sort((a,b) => a.start-b.start).map(clip => ({
@@ -79,17 +79,17 @@ export function clipAuditionState(state: SequencerState, draft: import("./model"
   const beat = timing ? 20160 * 4 / timing.meterDenominator * timing.beatRateDenominator / timing.beatRateNumerator : 20160;
   const sequence: number[] = [];
   // V3 auditions use exact clip timing and a frozen source-repetition context.
-  if (state.clipArrangement.version === 3 || draft.transposeEdits?.length) {
-    next.clipArrangement!.version = 3;
+  if (state.clipArrangement.version >= 3 || draft.transposeEdits?.length) {
+    next.clipArrangement!.version = state.clipArrangement.version === 4 ? 4 : 3;
     const preview = saveTransposeEdits(state.clipArrangement, draft.target, draft.transposeEdits ?? [], arrangementTimings(state));
     const sourceLane = draft.auditionContext?.lane ?? preview.lanes.find(l => l.id === lane.id)!;
     const sourceClip = sourceLane.clips.find(c => c.id === draft.target.clipId)!;
-    const logical = (sourceClip.repeatIndexBase ?? 0) + draft.target.pass;
+    const logical = logicalRepeatIndex(sourceLane,sourceClip,draft.target.path,draft.target.pass);
     const inherited = transposePlans(sourceLane, sourceClip, draft.target.path);
     lane.transposeProfiles = structuredClone(sourceLane.transposeProfiles);
     // The selected level is already included in inherited; descendants add their own scopes.
     delete definition.transposeProfileId;
-    const root = { id: 'audition-root', definitionId: definition.id };
+    const root = { id: 'audition-root', definitionId: definition.id, repeatIndex:logical };
     const contextClip = { ...sourceClip, children: [root], transposePlacements: sourceClip.transposePlacements?.flatMap(p => {
       if (p.path.length <= draft.target.path.length || !draft.target.path.every((id,i)=>p.path[i]===id)) return [];
       const suffix = p.path.slice(draft.target.path.length).map(id => draft.auditionContext?.childIds[id] ?? id);
@@ -102,7 +102,7 @@ export function clipAuditionState(state: SequencerState, draft: import("./model"
     }) };
     const plans: OffsetPlan[] = [], indices = new Map<string,number>();
     const intern = (p: OffsetPlan) => {
-      const frozen = {base:offsetAt(p,logical),repetitions:[]}, key = JSON.stringify(frozen);
+      const frozen = {base:offsetAt(p,(sourceClip.repeatIndexBase??0)+draft.target.pass),repetitions:[]}, key = JSON.stringify(frozen);
       if (!indices.has(key)) { indices.set(key,plans.length); plans.push(frozen); }
       return indices.get(key)!;
     };

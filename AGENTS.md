@@ -125,14 +125,14 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   references for dependency, revision, and note-release contracts.
 - Rack/topology changes lock while instruments run; mixer controls remain live. Direct output
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.
-- Mixer persistence arrived in performance config v11; serializers/CLI write v25 for transposition, v24 for instrument automation, v23 for other clips, otherwise v22; readers accept v1–25.
-  App state writes v7 for transposition, v6 for automation, v5 for other clips, otherwise v4; readers accept v1–7. See the [clip implementation contract](specifications/redesign-arranger/implementation-record.md). Distinguish these from the native bundle envelope version.
+- Mixer persistence arrived in performance config v11; serializers/CLI write v26 for fixed repetition references, v25 for transposition, v24 for instrument automation, v23 for other clips, otherwise v22; readers accept v1–26.
+  App state writes v8 for fixed repetition references, v7 for transposition, v6 for automation, v5 for other clips, otherwise v4; readers accept v1–8. See the [clip implementation contract](specifications/redesign-arranger/implementation-record.md). Distinguish these from the native bundle envelope version.
   Preserve types, device names, routing, mixer state, instance overrides and optional
   `padLoopPattern.definitionColors` display metadata across round trips. Colours never trigger audio preparation.
 - Master is the fixed `$master` endpoint, with no library patch or rack slot. Preserve its
   strip/inserts and direct-output bypass; see routing docs for legacy migration and backups.
 - Clip transposition uses shared profiles plus additive parent/placement plans; preparation owns pitch variants and occurrence latches. See the [transposition contract](specifications/clip-transposition/implementation-record.md).
-- Instrument-bound automation uses clip model v2 (also supported in v3), ten-point curves and independent master-tick duration;
+- Instrument-bound automation uses clip model v2 (also supported in v3–4), ten-point curves and independent master-tick duration;
   routing follows rack/controller identities. See [automation](documentation/performance/instrument_automation.md).
 - `perf_controller` values are per-instance I-rate settings: new notes adopt changes; continuous
   instruments require restart. Per-performance CC 1–50 mappings use the instance MIDI channel;

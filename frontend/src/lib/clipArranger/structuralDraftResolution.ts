@@ -31,6 +31,10 @@ export function remapMusicalTarget(before: ClipArrangement, after: ClipArrangeme
 }
 
 export function remapStructureCommand(command: StructureCommand, before: StructureNode[], after: StructureNode[]): StructureCommand {
+  if(command.kind==='groupRepetitions') {
+    const point=(p:{pass:number;id:string})=>{const index=before.findIndex(n=>n.id===p.id);if(index<0||!after[index])throw Error('The structural selection changed.');return {...p,id:after[index].id};};
+    return {...command,range:{first:point(command.range.first),last:point(command.range.last)}};
+  }
   const path = (ids: string[]) => {
     let oldItems = before, newItems = after;
     return ids.map(id => {
@@ -68,7 +72,7 @@ export function rebaseStructure(draft: StructureDraft, model: ClipArrangement, t
       const definition = command.definition;
       command = { ...command, definition: next.basis.definitions.find(d => d.id === definition.id) ?? definition };
     }
-    next = applyStructure(next, command);
+    next = applyStructure(next, command, timings, model);
   }
   return stepStructure(next, draft.cursor - next.cursor);
 }

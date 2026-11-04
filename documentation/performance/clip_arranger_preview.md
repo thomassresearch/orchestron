@@ -64,7 +64,15 @@ The rollout gate remains off by default until the implementation acceptance matr
 
 ## Assemble content directly on the timeline
 
-Expand a track and click a nested box to select it. Shift-click another sibling to select the inclusive range; Shift+Arrow extends that range with the keyboard. **Group** combines consecutive patterns/rests; **Supergroup** combines consecutive groups. Enter a name in the selection toolbar before grouping. Right-click a box for the same grouping actions. Double-click continues to open the existing musical/container editor.
+Expand a track and click a content header to select it. Shift-click another header to select the inclusive chronological range. Shift+Left/Right extends or contracts the range, including across loop repetitions and beyond the visible area. **Group** combines consecutive patterns/rests; **Supergroup** combines consecutive groups. Enter a name in the selection toolbar before grouping. Right-click provides the same grouping actions. Double-click opens the musical/container editor.
+
+**Content · 1, Content · 2, …** label loop repetitions. For four repetitions `A A A A`, click the pattern in Content 2, Shift-click the pattern in Content 3, choose **Group**, then **Save structure**. The result is one clip containing `A [A A] A`. The outer clip keeps its name, start and length; the selected occurrences become a group. Its patterns remain linked to their original definitions.
+
+Grouping across repetitions converts the clip to **Once** with explicit ordered content. Complete source content from cropped first/last repetitions is retained, including hidden notes and rests. Timing, neighboring clips and Song end stay unchanged. Repetition-specific transposition remains attached to the original occurrences, including after later edits to shared profiles. This save applies only to this clip; it does not offer an all-clips scope. The conversion and grouping form one draft Undo action and one saved arranger Undo action. Undo restores the compact loop.
+
+Cross-repetition selection applies to content directly inside one clip. Nested selection stays within one container occurrence; selection cannot cross clips or tracks. Command/Control and Option/Alt are not range-selection shortcuts. While a selection spans repetitions, dragging, reordering, removing and ungrouping are disabled. Group it first to obtain ordinary editable content. Existing hierarchy limits still apply. Save/Discard/Cancel resolves an existing structural draft before crossing repetitions; if saving changes the selected occurrences, select the range again. Capacity rejection preserves the selection and existing drafts.
+
+![Middle two repetitions grouped inside one unchanged clip](../../screenshots/clip-arranger-repetition-grouping.png)
 
 Use **Add content** or the **+** insertion markers before, between or after boxes to search the track's existing definitions. **Adopt linked** retains sharing; **Create variation** gives the inserted definition its own identity. The picker also offers **New pattern** and explicit rests. Unused saved definitions remain available.
 
@@ -120,7 +128,7 @@ The contribution list shows the selected item and its enclosing offsets. The ins
 
 ![Shared repetition transposition with independent enclosing offsets](../../screenshots/clip-transposition-shared.png)
 
-Choose **Default** for the plan’s base value, or select a generated repetition in the timeline and edit that **Repetition**. Repetition numbers follow the source content: a cropped clip can begin partway through repetition 2. They do not count how often transport has played. A group’s descendants use the same repetition number as the enclosing clip content.
+Choose **Default** for the plan’s base value, or select a generated repetition in the timeline and edit that **Repetition**. Repetition numbers follow the source content: a cropped clip can begin partway through repetition 2. They do not count how often transport has played. Descendants normally inherit their enclosing reference’s repetition number. Grouping across repetitions retains each child’s original number: a new group uses the first selected occurrence’s number, while its children can retain different numbers. Each enclosing offset is evaluated at its own reference’s number.
 
 An explicit repetition replaces its own plan’s default; other plans still add. **Set repetition to zero** stores an explicit zero pair. **Inherit default** removes that repetition entry. **Reset component** clears only the displayed component; **Reset plan** clears the default and every repetition entry. Shortening a clip keeps hidden repetition settings for later extension.
 
@@ -130,7 +138,7 @@ An explicit repetition replaces its own plan’s default; other plans still add.
 
 Saving from the lane closes the dialog and updates affected badges and note previews, including linked clips. **Close**, **Escape**, or clicking the backdrop keeps the unsaved draft; its badge turns amber and gains an asterisk. Reopen it to **Save transposition** or **Discard transposition**. Badge totals continue to show saved settings until Save. Keyboard users can focus a badge and press **Enter** or **Space**; closing the dialog returns focus to that badge. Existing musical drafts are preserved.
 
-**Play edit** auditions the full selected definition from its own start, using the selected repetition and all enclosing offsets. It repeats that same transposition until restarted; play the arrangement to hear the progression. Transposition and structural drafts are snapshots for audition. Saving during arrangement playback changes the next occurrence whose notes have not started; an early attack can already belong to the next repetition. A pending indicator names the target clip, repetition and leaf position. Seek or restart uses the latest saved settings immediately.
+**Play edit** auditions the full selected definition from its own start, using the selected repetition and all enclosing offsets. It retains each reference’s repetition number while auditioning; a group assembled across repetitions therefore preserves its children’s distinct transpositions. Transposition and structural drafts are snapshots for audition. Saving during arrangement playback changes the next occurrence whose notes have not started; an early attack can already belong to the next repetition. A pending indicator names the target clip, repetition and leaf position. Seek or restart uses the latest saved settings immediately.
 
 Melodic, Score and Arpeggiator lanes support these controls. For arpeggiators, the new mapping follows their existing transpose and quantizer, and uses the pattern’s configured scale. Bypass remains unchanged. Drummer, controller and instrument-automation lanes do not offer pitch transposition.
 

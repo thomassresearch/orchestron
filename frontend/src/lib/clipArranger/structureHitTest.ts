@@ -1,5 +1,5 @@
 import { contentLength, definitionMap, type ClipArrangement, type ContentItem, type LaneTiming } from './model';
-import { structureDisplayGeometry, structurePreview, type ContainerTarget, type StructureDraft } from './structure';
+import { isExpandedStructure, structureClip, structureDisplayGeometry, structurePreview, type ContainerTarget, type StructureDraft } from './structure';
 
 // Keep these in sync with the timeline's clip header, pass label and nested rows.
 export const STRUCTURE_TREE_TOP = 4 + 1 + 16 + 16;
@@ -11,9 +11,9 @@ export type StructureDropLayout = { start: number; end: number; origin: number; 
 export function structureDropLayout(model: ClipArrangement, draft: StructureDraft, timings: LaneTiming): StructureDropLayout {
   const lane = structurePreview(model, draft, timings).lanes.find(l => l.id === draft.laneId)!;
   const clip = lane.clips.find(c => c.id === draft.clipId)!;
-  const original = draft.basis.clips.find(c => c.id === draft.clipId)!;
+  const original = structureClip(draft);
   const timing = timings[lane.id], defs = definitionMap(lane);
-  const before = contentLength(draft.basis, original.children, timing);
+  const before = isExpandedStructure(draft) ? draft.expanded!.contentTicks : contentLength(draft.basis, original.children, timing);
   const after = contentLength(lane, clip.children, timing);
   const geometry = structureDisplayGeometry(original, before, after, draft.pass);
   const origin = clip.start + geometry.left(draft.pass);

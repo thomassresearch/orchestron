@@ -23,7 +23,18 @@ for (const source of Object.keys(sourceKeys)) for (const track of authored[sourc
 }
 const report = migrateClipArrangement(authored);
 if (!report.model) throw new Error(report.reasons.join(", "));
+if (new URLSearchParams(location.search).get("selection") === "loop") {
+  for (const lane of report.model.lanes) {
+    const pattern = lane.definitions.find(definition => definition.kind === "pattern");
+    lane.clips[0] = { ...lane.clips[0], mode: "loop", children: [{ id: `${lane.id}:selection-pattern`, definitionId: pattern.id }] };
+  }
+}
 useAppStore.setState({ sequencer: { ...authored, clipArrangement: report.model } });
+const restored = sessionStorage.getItem('clip-repetition-verification');
+if (restored) {
+  sessionStorage.removeItem('clip-repetition-verification');
+  useAppStore.getState().applySequencerConfigSnapshot(JSON.parse(restored));
+}
 window.__clipTest = { store: useAppStore, report, openClipEditor };
 
 const noop = () => {};
@@ -49,6 +60,10 @@ function Page() {
           readPlaybackTransportSubunit: () => null, currentPerformanceId: null,
           performanceName: "Nested clip arranger", performanceDescription: "Production editors / versioned fixtures",
           instrumentsRunning: false, sessionState: "stopped", midiInputName: null, transportError: null }} />
+    <button className="mt-6 text-xs text-slate-400" onClick={() => {
+      sessionStorage.setItem('clip-repetition-verification', JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()));
+      location.reload();
+    }}>Reload saved performance</button>
   </main>;
 }
 const root = createRoot(document.getElementById("root"));

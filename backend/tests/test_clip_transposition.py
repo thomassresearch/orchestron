@@ -406,3 +406,38 @@ def test_pending_status_identifies_next_uncommitted_occurrence():
     )
     r.stop()
     assert r.status().tracks[0].transpose_pending is None
+
+
+@pytest.mark.parametrize("offset", [0, Q, 3 * Q])
+def test_grouped_repetition_schedule_preserves_spans_and_pitch(offset):
+    from copy import deepcopy
+    from backend.app.models.clip_validation import validate_authored_clips
+    fixture = json.loads((Path(__file__).parent / "fixtures/clip_transposition/repetition_grouping.json").read_text())
+    validate_authored_clips(fixture["after"])
+    prepared = []
+    for key in ("beforeSchedule", "afterSchedule"):
+        wire = deepcopy(fixture[key])
+        wire["clips"][0].update(offset=offset, length=13 * Q)
+        prepared.append(PreparedClipSchedule(ClipSchedule.model_validate(wire)))
+    for at in range(0, 13 * Q, 168):
+        before, after = [schedule.locate(at) for schedule in prepared]
+        assert (before.pad, before.source_start, before.boundary, before.transpose) == (after.pad, after.source_start, after.boundary, after.transpose)
+
+
+@pytest.mark.parametrize("live", [False, True])
+def test_grouping_repetitions_preserves_sounding_note_events(live):
+    fixture = json.loads((Path(__file__).parent / "fixtures/clip_transposition/repetition_grouping.json").read_text())
+    captures = []
+    for grouped in (False, True):
+        runtime, capture, config = make_runtime([], pads=[dict(pad_index=0, length_beats=4, steps=[60, *([None] * 15)])],
+            pad_loop_enabled=True, clip_schedule=fixture["beforeSchedule" if live or not grouped else "afterSchedule"])
+        config.playback_end_step = 128
+        runtime.configure(config)
+        if live and grouped:
+            advance(runtime, capture, 2000)
+            config.tracks[0].clip_schedule = ClipSchedule.model_validate(fixture["afterSchedule"])
+            runtime.configure(config)
+        advance(runtime, capture, 55000)
+        captures.append(notes(capture))
+    assert captures[1] == captures[0]
+    assert [msg[1] for _, msg in captures[1] if msg[0] == 144] == [61, 66, 74, 58]

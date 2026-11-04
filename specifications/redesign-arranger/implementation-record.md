@@ -205,3 +205,40 @@ Long-curve compilation splits Catmull–Rom segments at extrema and locates quan
 Writers use performance v24/app-state v6/clip model v2 for this feature; earlier formats and native bundle envelopes retain their contracts. Versioned fixtures cover generation, mapping, persistence and long curves. Frontend lint, all 1,095 tests in 102 files, TypeScript and the production build pass, along with backend lint, targeted API/service regressions and all 345 standalone performance CLI tests. The full backend run passed 2,670 tests with one intermittent native saxophone audio threshold failure. Both saxophone failures observed across runs were reproduced on an isolated clean-HEAD checkout; no saxophone behavior was changed.
 
 Browser checks used the production build and an isolated database populated from versioned fixtures. Verified generation, inline editing and scoped Save, plus actual browser-clock audition, live split/merge, CC retargeting, Off/reassignment, mute, song seeking and transport restoration. Runtime verification does not claim subjective audio quality or external MIDI-hardware testing. README, EN/DE/FR/ES integrated help, the English automation guide and screenshot were updated. The manual was rebuilt from 55 documents to 204 pages; the new workflow and screenshot pages were visually inspected.
+
+
+## Grouping across loop repetitions
+
+Root selection uses clip/pass/child identity; Shift-click and Shift+Left/Right span
+chronological occurrences without depending on rendered DOM nodes. Nested containers,
+clips and lanes remain separate selection domains. Patterns/rests group; adjacent
+groups form a supergroup. Spanning drag, delete and reorder remain disabled.
+
+Grouping materializes all complete passes intersecting the clip window, wraps only
+the selected range, and converts the same clip to Once. The new offset removes only
+complete preceding passes. ID, name, start, length, song end, neighboring clips,
+pattern identities and unchanged container definitions survive. Placement paths and
+editor targets use explicit original-occurrence and preview-path mappings. Draft
+history includes mode, offset, logical base, source pass and node provenance; draft
+Undo restores the compact form. Save is local-only and one arranger history entry.
+Dirty structural drafts use Save/Discard/Cancel and selection is revalidated against
+the result. Capacity preflight covers children, definitions, leaves, ticks, placements
+and entries before expansion; full validation precedes publishing the draft/save.
+
+Clip v4 adds optional `repeatIndex` to definition references. New root occurrences
+carry their original logical index; existing explicit overrides survive. A new
+container uses the first selected index, while children retain their own indices.
+Each transposition contribution resolves at its owning reference. Authored profiles
+remain linked; frontend and CLI preparation project fixed contributions into constant
+plans, keeping runtime schedule v2. Writers use performance v26/app state v8 for v4;
+older models keep their established versions. Automation and subsequent edits retain
+v4. Native envelopes remain unchanged.
+
+Regression fixtures cover exact cropped/rational spans for all five source kinds,
+rests, group/supergroup hierarchy, unique occurrence paths, linked profile edits,
+audition, runtime note events and live configuration replacement. API/CLI tests cover
+strict validation, persistence, native round trips and MIDI/SCORE pitches. Browser
+verification selected the middle two of four repetitions, grouped and saved one clip,
+undid/redid the transaction, then reloaded its serialized performance with the group
+intact. See the [screenshot](../../screenshots/clip-arranger-repetition-grouping.png).
+The opt-in rollout flag and running Docker deployment were not changed.

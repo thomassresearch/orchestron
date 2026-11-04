@@ -93,3 +93,14 @@ Three interleaved matched identity runs had cached medians baseline/current of 0
 ## Verification limits and rollout
 
 This remains part of the existing development preview. No default-rollout flag, publishing, deployment or user-data migration was performed. Tests and measurements cover the local macOS environment. External MIDI hardware, subjective listening, cross-browser/platform certification, long-running soak tests and exhaustive manual combinations of zoom/language/structure are unperformed. Existing broader clip-arranger release gates remain in force. The acceptance matrix remains the regression checklist for further platform qualification; historical tests or screenshots are not substituted for the results above.
+
+
+## Fixed occurrence repetition indices
+
+Clip v4 / performance v26 / app state v8 extend the v3 contract with optional
+`repeatIndex` on definition-bearing references. It overrides the inherited logical
+index for that reference and descendants. Ancestor contributions retain their own
+indices even when a child overrides its index. Badges, inspectors, pending highlights,
+audition and frontend/CLI runtime projection use the same ownership rule. Prepared
+schedule v2 represents fixed contributions as constant plans; the saved profile link
+is retained for future edits. See [cross-repetition grouping](../redesign-arranger/implementation-record.md#grouping-across-loop-repetitions).

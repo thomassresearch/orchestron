@@ -2487,7 +2487,7 @@ export function sequencerSnapshotForPersistence(sequencer: SequencerState): Sequ
 
 export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   return {
-    version: state.sequencer.clipArrangement?.version === 3 ? 7 : state.sequencer.clipArrangement?.version === 2 ? 6 : state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+    version: state.sequencer.clipArrangement?.version === 4 ? 8 : state.sequencer.clipArrangement?.version === 3 ? 7 : state.sequencer.clipArrangement?.version === 2 ? 6 : state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
     arrangerHistory: structuredClone(state.arrangerHistory),
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
@@ -2995,7 +2995,7 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: sequencer.clipArrangement?.version === 3 ? 25 : sequencer.clipArrangement?.version === 2 ? 24 : sequencer.clipArrangement ? 23 : 22,
+    version: sequencer.clipArrangement?.version === 4 ? 26 : sequencer.clipArrangement?.version === 3 ? 25 : sequencer.clipArrangement?.version === 2 ? 24 : sequencer.clipArrangement ? 23 : 22,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -3227,13 +3227,13 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 20 &&
     payload.version !== 21 &&
     payload.version !== 22 &&
-    payload.version !== 23 && payload.version !== 24 && payload.version !== 25
+    payload.version !== 23 && payload.version !== 24 && payload.version !== 25 && payload.version !== 26
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
 
   const clipVersion = ((payload.sequencer as Record<string, unknown>)?.clipArrangement as {version?:number}|undefined)?.version;
-  if (clipVersion && (payload.version < 23 || clipVersion === 2 && payload.version < 24 || clipVersion === 3 && payload.version < 25)) throw new Error("This clip arrangement requires a newer performance format.");
+  if (clipVersion && (payload.version < 23 || clipVersion === 2 && payload.version < 24 || clipVersion === 3 && payload.version < 25 || clipVersion === 4 && payload.version < 26)) throw new Error("This clip arrangement requires a newer performance format.");
   const sequencer = normalizeSequencerState(payload.sequencer);
   const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
   const patchById = new Map(availablePatches.map((patch) => [patch.id, patch]));

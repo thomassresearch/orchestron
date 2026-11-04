@@ -5,11 +5,13 @@ import { newStructurePattern } from "./ContentEditor";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { useStructureDraft } from '../../lib/clipArranger/structureStore';
 import type { GuiLanguage, SequencerState } from '../../types';
-import { type ContainerTarget, type StructureNode, type StructureSelection, type StructureCommand, applyStructure, beginStructure, prepareStructure, stepStructure, structureChildren, structurePreview, type StructureDraft } from '../../lib/clipArranger/structure';
+import { type ContainerTarget, type StructureNode, type StructureSelection, type StructureCommand, applyStructure, isExpandedStructure, beginStructure, prepareStructure, stepStructure, structureChildren, structurePreview, type StructureDraft } from '../../lib/clipArranger/structure';
 import type { ClipArrangement, LaneTiming, OccurrenceTarget } from '../../lib/clipArranger/model';
 import { contentLength, resolveContent } from '../../lib/clipArranger/model';
 import { useAppStore } from '../../store/useAppStore';
 import { hasChangedClipDrafts } from '../../lib/clipArranger/draftResolution';
+import { beginDraft } from '../../lib/clipArranger/operations';
+import { draftKey } from '../../lib/clipArranger/editorAdapter';
 import { affectedDraftKeys, rebaseStructure, remapStructureCommand } from '../../lib/clipArranger/structuralDraftResolution';
 import { SaveScopeDialog } from './SaveScopeDialog';
 import { commitClipArrangement, saveClipDraft } from '../../store/clipActions';
@@ -25,7 +27,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const [picker,setPicker]=useState<ContainerTarget|null>(null),[query,setQuery]=useState(''),[saving,setSaving]=useState(false),[scope,setScope]=useState<'local'|'all'>('local');
  const [menu,setMenu]=useState<{x:number;y:number}|null>(null),[ghost,setGhost]=useState<{x:number;y:number;count:number}|null>(null);
  const [groupName,setGroupName]=useState('');
- const [error,setError]=useState<string|null>(null),[pending,setPending]=useState<((model?:ClipArrangement,draft?:StructureDraft)=>void)|null>(null);
+ const [error,setError]=useState<string|null>(null),[pending,setPending]=useState<((model?:ClipArrangement,draft?:StructureDraft,paths?:{before:string[];after:string[]}[])=>void)|null>(null);
  const [musical,setMusical]=useState<{key:string;resume:(before:ClipArrangement,after:ClipArrangement)=>void}|null>(null);
  const [musicalSaving,setMusicalSaving]=useState(false),[busy,setBusy]=useState(false);
  const musicalDialog=useRef<HTMLDialogElement>(null);
@@ -40,10 +42,15 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  useEffect(()=>{if(picker||saving||pending)dialog.current?.showModal?.();else dialog.current?.close?.();},[picker,saving,pending]);
  useEffect(()=>{setSelection(null);cancelDrag();},[model.revision]);
  const discard=()=>{useStructureDraft.setState({draft:null});setSelection(null);setSaving(false);};
- const guard=(action:(model?:ClipArrangement,draft?:StructureDraft)=>void)=>{if(draft?.cursor){setPending(()=>action);return;} useStructureDraft.setState({draft:null});action();};
- const guardEdit=(requested:OccurrenceTarget,action:(target:OccurrenceTarget)=>void)=>guard((saved,structural)=>{
+ const guard=(action:(model?:ClipArrangement,draft?:StructureDraft,paths?:{before:string[];after:string[]}[])=>void)=>{if(draft?.cursor){setPending(()=>action);return;} useStructureDraft.setState({draft:null});action();};
+ const guardEdit=(requested:OccurrenceTarget,action:(target:OccurrenceTarget)=>void)=>guard((saved,structural,paths)=>{
   try {
    if(saved&&structural&&requested.laneId===structural.laneId&&requested.clipId===structural.clipId&&requested.pass===structural.pass){
+    if(isExpandedStructure(structural)){
+     const mapped=paths?.find(p=>equal(p.before,requested.path));
+     if(!mapped)throw Error(t.containerRemoved);
+     action({...requested,pass:0,path:mapped.after});return;
+    }
     const preview=structurePreview(model,structural,timings),clip=saved.lanes.find(l=>l.id===requested.laneId)?.clips.find(c=>c.id===requested.clipId);
     if(!clip)throw Error(t.containerRemoved);
     const pass=clip.mode==='once'?0:requested.pass;
@@ -76,7 +83,9 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
      if(mapped.kind==='rest')run(remapStructureCommand(command,base.roots,next.roots),{...f,laneId:next.laneId,clipId:next.clipId,pass:next.pass,parent:mapped.target.path});
     });return;
    }
-   const next=applyStructure(base,command);useStructureDraft.setState({draft:next});setFocus(f);setError(null);setSelection(null);
+   const next=applyStructure(base,command,timings,state.sequencer.clipArrangement!);
+   if(command.kind==='groupRepetitions')prepareStructure(state.sequencer.clipArrangement!,next,'local',timings);
+   useStructureDraft.setState({draft:next});setFocus({...f,pass:next.pass});setError(null);setSelection(null);
   }catch(e){setError(String(e));}
  };
  const finishMusical=async(choice:'discard'|'local'|'all',name?:string)=>{
@@ -93,20 +102,57 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    pending.resume(before.sequencer.clipArrangement!,useAppStore.getState().sequencer.clipArrangement!);
   }catch(e){setError(String(e));}finally{setBusy(false);}
  };
+ const spansPasses = !!selection?.range;
+ const isSelected=(f:StructureFocus,id:string)=>{
+  if(!focus||!selection||focus.laneId!==f.laneId||focus.clipId!==f.clipId||!equal(selection.parent,f.parent))return false;
+  if(selection.range){const clip=model.lanes.find(l=>l.id===f.laneId)?.clips.find(c=>c.id===f.clipId);if(!clip)return false;const ordinal=f.pass*clip.children.length+clip.children.findIndex(n=>n.id===id);return ordinal>=selection.range.first&&ordinal<=selection.range.last;}
+  return focus.pass===f.pass&&selection.ids.includes(id);
+ };
  const select=(f:StructureFocus,id:string,shift:boolean)=>{
-  if(suppressClick.current){suppressClick.current=false;return;}
-  const action=()=>{try{const d=target(f),items=structureChildren(d.roots,f.parent);let ids=[id],anchor=id;
-   if(shift&&focus&&equal(f,focus)&&selection){const a=items.findIndex(n=>n.id===selection.anchor),b=items.findIndex(n=>n.id===id);if(a>=0&&b>=0){ids=items.slice(Math.min(a,b),Math.max(a,b)+1).map(n=>n.id);anchor=selection.anchor;}}
-   setFocus(f);setSelection({parent:f.parent,ids,anchor});setError(null);
+  if(suppressClick.current){suppressClick.current=false;return false;}
+  if(shift&&focus&&selection&&(focus.laneId!==f.laneId||focus.clipId!==f.clipId||!equal(focus.parent,f.parent)||f.parent.length&&focus.pass!==f.pass))return false;
+  const action=()=>{try{
+   const current=useAppStore.getState().sequencer.clipArrangement!;
+   const clip=current.lanes.find(l=>l.id===f.laneId)?.clips.find(c=>c.id===f.clipId);
+   if(!clip||clip.mode==='once'&&f.pass!==0)throw Error(t.selectionChanged);
+   const rangeAllowed=!f.parent.length&&clip.mode==='loop'&&!(draft&&isExpandedStructure(draft));
+   if(shift&&focus&&selection&&rangeAllowed){
+    const anchorPass=selection.anchorPass??focus.pass;
+    const a=clip.children.findIndex(n=>n.id===selection.anchor),b=clip.children.findIndex(n=>n.id===id);
+    const duration=contentLength(current.lanes.find(l=>l.id===f.laneId)!,clip.children,timings[f.laneId]);
+    const firstPass=Math.floor(clip.offset/duration),lastPass=Math.floor((clip.offset+clip.length-1)/duration);
+    if(a<0||b<0||anchorPass<firstPass||anchorPass>lastPass||f.pass<firstPass||f.pass>lastPass)throw Error(t.selectionChanged);
+    if(anchorPass!==f.pass){const x=anchorPass*clip.children.length+a,y=f.pass*clip.children.length+b;setFocus(f);setSelection({parent:[],ids:[],anchor:selection.anchor,anchorPass,tip:{pass:f.pass,id},range:{first:Math.min(x,y),last:Math.max(x,y)}});setError(null);return;}
+   }
+   const d=target(f),items=structureChildren(d.roots,f.parent);
+   if(!items.some(n=>n.id===id))throw Error(t.selectionChanged);
+   let ids=[id],anchor=id,anchorPass=f.pass;
+   if(shift&&focus&&selection){const a=items.findIndex(n=>n.id===selection.anchor),b=items.findIndex(n=>n.id===id);if(a>=0&&b>=0){ids=items.slice(Math.min(a,b),Math.max(a,b)+1).map(n=>n.id);anchor=selection.anchor;anchorPass=selection.anchorPass??focus.pass;}}
+   setFocus(f);setSelection({parent:f.parent,ids,anchor,anchorPass,tip:{pass:f.pass,id}});setError(null);
   }catch(e){setError(String(e));}};
   if(draft&&(draft.laneId!==f.laneId||draft.clipId!==f.clipId||draft.pass!==f.pass))guard(action);else action();
+ };
+ const extendSelection=(f:StructureFocus,id:string,direction:number)=>{
+  const current=draft?structurePreview(model,draft,timings):model;
+  const lane=current.lanes.find(l=>l.id===f.laneId)!,clip=lane.clips.find(c=>c.id===f.clipId)!;
+  const nodes=structureChildren((draft&&isExpandedStructure(draft)?draft:beginStructure(current,f.laneId,f.clipId,f.pass)).roots,f.parent);
+  let index=nodes.findIndex(n=>n.id===id)+direction,pass=f.pass;
+  if(!f.parent.length&&clip.mode==='loop'){
+   if(index<0){index=nodes.length-1;pass--;}else if(index>=nodes.length){index=0;pass++;}
+   const duration=contentLength(lane,clip.children,timings[lane.id]);
+   if(pass<Math.floor(clip.offset/duration)||pass>Math.floor((clip.offset+clip.length-1)/duration))return;
+  }
+  const next=nodes[index];if(!next)return;
+  const nextFocus={...f,pass};select(nextFocus,next.id,true);return {focus:nextFocus,id:next.id};
  };
  const add=(f:StructureFocus,index:number)=>{const action=()=>{setFocus(f);setPicker({path:f.parent,index});setQuery('');};if(draft&&(draft.laneId!==f.laneId||draft.clipId!==f.clipId||draft.pass!==f.pass))guard(action);else action();};
  const cancelDrag=()=>{drag.current=null;suppressClick.current=false;setDrop(null);setGhost(null);setMenu(null);if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);scrollFrame.current=null;};
  useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);},[]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape')cancelDrag();};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[]);
  const pointerDown=(e:PointerEvent,f:StructureFocus,id:string)=>{if(e.button!==0)return;e.stopPropagation();
-  if(!focus||!equal(focus,f)||!selection?.ids.includes(id))select(f,id,e.shiftKey);
+  if(e.shiftKey){select(f,id,true);return;}
+  if(spansPasses)return;
+  if(!focus||!equal(focus,f)||!selection?.ids.includes(id)){if(select(f,id,false)===false)return;}
   const viewport=e.currentTarget.closest<HTMLElement>('[data-arranger-viewport]');
   const lane=Array.from(viewport?.querySelectorAll<HTMLElement>('[data-clip-lane]')??[]).find(node=>node.dataset.clipLane===f.laneId);
   if(!viewport||!lane)return;
@@ -142,7 +188,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
   if(viewport)scrollFrame.current=requestAnimationFrame(scroll);
  };
  const pointerUp=(e:PointerEvent)=>{const d=drag.current;if(!d)return;e.stopPropagation();const candidate=d?.active?hitTarget(e.clientX,e.clientY):null;if(d?.active&&candidate)run({kind:'move',parent:d.selection.parent,ids:d.selection.ids,target:candidate.target},d.focus);cancelDrag();if(d?.active){suppressClick.current=true;setTimeout(()=>{suppressClick.current=false;},0);}};
- const remove=(f=focus,id?:string)=>{if(!f)return;const ids=selection&&equal(f,focus)&&(!id||selection.ids.includes(id))?selection.ids:id?[id]:[];if(ids.length)run({kind:'remove',parent:f.parent,ids},f);};
+ const remove=(f=focus,id?:string)=>{if(!f||spansPasses)return;const ids=selection&&equal(f,focus)&&(!id||selection.ids.includes(id))?selection.ids:id?[id]:[];if(ids.length)run({kind:'remove',parent:f.parent,ids},f);};
  const openSave=()=>{setScope('local');setSaving(true);setPicker(null);};
  const boundary=(f:StructureFocus,index:number,left:number,end=false)=>{const data={focus:f,target:{path:f.parent,index}};return <button key={`insert-${index}`} data-structure-target={JSON.stringify(data)} aria-label={`${t.add} ${index+1}`} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();add(f,index);}} className={`absolute top-0 z-20 h-5 w-3 rounded text-xs ${equal(drop,data)?'bg-cyan-300 text-slate-950':'bg-slate-900 text-cyan-300 opacity-30 hover:opacity-100 focus:opacity-100'}`} style={{left:end?left-22:left+(index===0?8:0)}}>+{equal(drop,data)&&<span className="pointer-events-none absolute left-0 top-0 h-24 border-l-2 border-cyan-200"/>}</button>;};
  const source=focus?model.lanes.find(l=>l.id===focus.laneId):undefined;
@@ -150,16 +196,47 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const roots=useMemo(()=>draft?.roots??(focusedLane&&focusedClip&&model.lanes.find(l=>l.id===focusedLane)?.clips.some(c=>c.id===focusedClip)?beginStructure(model,focusedLane,focusedClip,focusedPass).roots:[]),[draft?.roots,model,focusedLane,focusedClip,focusedPass]);
  let items:StructureNode[]=[];try{items=structureChildren(roots,focus?.parent??[]);}catch{/* A save or external undo invalidated the selection. */}
  useEffect(()=>{
-  setSelection(null);
+  if(!draft)return;
+  const last=draft?.cursor?draft.commands[draft.cursor-1]:undefined;
+  const previousDefinitions=new Set<string>();
+  const collect=(nodes:StructureNode[])=>{for(const node of nodes){if(node.definition)previousDefinitions.add(node.definition.id);if(node.children)collect(node.children);}};
+  collect(draft.history[Math.max(0,draft.cursor-1)]);
+  const chosen=last&&(last.kind==='group'||last.kind==='groupRepetitions')
+   ?structureChildren(draft.roots,last.kind==='group'?last.parent:[]).find(n=>n.definition?.kind===last.level&&!previousDefinitions.has(n.definition.id))
+   :undefined;
+  setSelection(chosen?{parent:last?.kind==='group'?last.parent:[],ids:[chosen.id],anchor:chosen.id}:null);
   setFocus(current=>{
-   if(!current||!draft||current.laneId!==draft.laneId||current.clipId!==draft.clipId||current.pass!==draft.pass)return current;
+   if(!current||!draft||current.laneId!==draft.laneId||current.clipId!==draft.clipId)return current;
    const parent=[...current.parent];
    while(parent.length){try{structureChildren(draft.roots,parent);break;}catch{parent.pop();}}
-   return equal(parent,current.parent)?current:{...current,parent};
+   return equal(parent,current.parent)&&current.pass===draft.pass?current:{...current,pass:draft.pass,parent};
   });
  },[draft?.roots]);
- const group=(level:'group'|'supergroup')=>{if(selection)run({kind:'group',parent:selection.parent,ids:selection.ids,level,name:groupName.trim()||`${c[level]} ${Date.now().toString().slice(-4)}`});};
- const moveBy=(direction:number)=>{if(!selection)return;const indexes=selection.ids.map(id=>items.findIndex(n=>n.id===id));run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:selection.parent,index:direction<0?Math.max(0,Math.min(...indexes)-1):Math.min(items.length,Math.max(...indexes)+2)}});};
+ const selectionSize=selection?.range ? selection.range.last-selection.range.first+1 : selection?.ids.length??0;
+ // A range larger than a complete source cycle includes every source child. Avoid
+ // allocating virtual selection nodes just to determine hierarchy compatibility.
+ const selectedNodes=selection?.range
+  ?Array.from({length:Math.min(selectionSize,roots.length)},(_,i)=>roots[(selection.range!.first+i)%roots.length])
+  :items.filter(n=>selection?.ids.includes(n.id));
+ const canGroup=(level:'group'|'supergroup')=>{
+  const requiredKind=level==='group'?'pattern':'group';
+  const compatible=selectedNodes.every(n=>!n.definition||n.definition.kind===requiredKind);
+  const definitions=selection?.range
+   ?Array.from({length:Math.min(selectionSize,roots.length*2)},(_,i)=>roots[(selection.range!.first+i)%roots.length]).filter(n=>n.definition).length
+   :selectedNodes.filter(n=>n.definition).length;
+  const parentAllows=!focus?.parent.length||level==='group'&&focus.parent.length===1&&roots.find(n=>n.id===focus.parent[0])?.definition?.kind==='supergroup';
+  return selectionSize>=2&&compatible&&definitions>=(level==='group'?1:2)&&parentAllows;
+ };
+ const group=(level:'group'|'supergroup')=>{
+  if(!selection||!focus||!canGroup(level))return;
+  const name=groupName.trim()||`${c[level]} ${Date.now().toString().slice(-4)}`;
+  if(selection.range){
+   const clip=model.lanes.find(l=>l.id===focus.laneId)!.clips.find(c=>c.id===focus.clipId)!;
+   const point=(ordinal:number)=>({pass:Math.floor(ordinal/clip.children.length),id:clip.children[ordinal%clip.children.length].id});
+   run({kind:'groupRepetitions',range:{first:point(selection.range.first),last:point(selection.range.last)},level,name},focus);
+  }else run({kind:'group',parent:selection.parent,ids:selection.ids,level,name});
+ };
+ const moveBy=(direction:number)=>{if(!selection||spansPasses)return;const indexes=selection.ids.map(id=>items.findIndex(n=>n.id===id));run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:selection.parent,index:direction<0?Math.max(0,Math.min(...indexes)-1):Math.min(items.length,Math.max(...indexes)+2)}});};
  const destinations:{path:string[];label:string;length:number}[]=[];
  const visit=(nodes:StructureNode[],path:string[],label:string)=>{destinations.push({path,label,length:nodes.length});for(const n of nodes)if(n.children)visit(n.children,[...path,n.id],`${label} / ${n.definition!.name}`);};visit(roots,[],'Clip');
  const containerLabel=(path:string[])=>{
@@ -176,9 +253,10 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    if(conflicting.length){resolveMusical(conflicting[0],()=>setSaving(true));return;}
    setBusy(true);await beforeSave?.();
    if(useAppStore.getState().sequencer.clipArrangement!==model)throw Error(t.changed);
-   const retained={...useAppStore.getState().clipDrafts};for(const key of affected)delete retained[key];
+   const retained={...useAppStore.getState().clipDrafts};let editingKey=state.clipEditingKey;
+   for(const key of affected){const previous=retained[key];delete retained[key];const mapped=isExpandedStructure(draft)?result.occurrences.find(m=>equal(m.from,previous.target)):undefined;if(mapped){const refreshed=beginDraft(result.model,mapped.to),nextKey=draftKey(refreshed);retained[nextKey]=refreshed;if(editingKey===key)editingKey=nextKey;}else if(editingKey===key)editingKey=null;}
    commitClipArrangement(result.model,'Edit clip structure');
-   useAppStore.setState({clipDrafts:retained,clipEditingKey:state.clipEditingKey&&retained[state.clipEditingKey]?state.clipEditingKey:null});discard();setFocus(result.model.lanes.find(l=>l.id===draft.laneId)?.clips.some(c=>c.id===draft.clipId)?{laneId:draft.laneId,clipId:draft.clipId,pass:0,parent:[]}:null);setError(null);const next=pending;setPending(null);next?.(result.model,draft);
+   useAppStore.setState({clipDrafts:retained,clipEditingKey:editingKey&&retained[editingKey]?editingKey:null});discard();setFocus(result.model.lanes.find(l=>l.id===draft.laneId)?.clips.some(c=>c.id===draft.clipId)?{laneId:draft.laneId,clipId:draft.clipId,pass:0,parent:[]}:null);setError(null);const next=pending;setPending(null);next?.(result.model,draft,result.previewPaths);
   }catch(e){setError(String(e));}finally{setBusy(false);}
  };
  const conflictDraft=musical?useAppStore.getState().clipDrafts[musical.key]:undefined;
@@ -190,13 +268,13 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    {error&&<p role="alert">{error}</p>}<div className="flex gap-2"><button disabled={busy} className={clipButton} onClick={()=>setMusicalSaving(true)}>{c.save}</button><button disabled={busy} className={clipButton} onClick={()=>void finishMusical('discard')}>{t.discard}</button><button disabled={busy} className={clipButton} onClick={()=>setMusical(null)}>{c.cancel}</button></div>
   </dialog>):null;
  let preview:ReturnType<typeof prepareStructure>|null=null,saveError='';if(saving&&draft)try{preview=prepareStructure(model,draft,scope,timings);}catch(e){saveError=String(e);}
- let allIssue='';if(saving&&draft)try{if(!prepareStructure(model,draft,'all',timings).shared)allIssue=t.root;}catch(e){allIssue=String(e);}
+ let allIssue='';if(saving&&draft)try{if(!prepareStructure(model,draft,'all',timings).shared)allIssue=t.root;}catch(e){allIssue=draft&&isExpandedStructure(draft)?t.localRepetitions:String(e);}
  const modal=<dialog ref={dialog} aria-label={saving?t.save:pending?t.unsaved:t.add} onCancel={e=>{e.preventDefault();if(busy)return;setSaving(false);setPicker(null);setPending(null);}} className="max-h-[80vh] w-[min(95vw,620px)] overflow-auto rounded-xl border border-slate-600 bg-slate-900 p-4 text-sm text-slate-200 backdrop:bg-black/60">
- {pending&&!saving?<><p>{t.resolve}</p><button className={clipButton} onClick={openSave}>{t.save}</button><button className={clipButton} onClick={()=>{const next=pending;discard();setPending(null);setFocus(null);next();}}>{t.discard}</button><button className={clipButton} onClick={()=>setPending(null)}>{c.cancel}</button></>:saving?<><h3>{t.save}</h3><label className="block"><input type="radio" checked={scope==='local'} onChange={()=>setScope('local')}/>{c.local}</label><label className="block"><input type="radio" disabled={!!allIssue} checked={scope==='all'} onChange={()=>setScope('all')}/>{c.all}</label>{allIssue&&<p>{allIssue}</p>}{preview&&draft&&<ul>{preview.model.lanes.find(l=>l.id===draft.laneId)?.definitions.filter(d=>JSON.stringify(d)!==JSON.stringify(draft.basis.definitions.find(old=>old.id===d.id))).map(d=><li key={d.id}>{d.name} · {c[d.kind]}</li>)}{draft.basis.clips.filter(old=>!preview.model.lanes.find(l=>l.id===draft.laneId)?.clips.some(cl=>cl.id===old.id)).map(old=><li key={old.id}>{c.remove}: {old.name}</li>)}</ul>}{preview&&draft&&preview.model.lanes.find(l=>l.id===draft.laneId)?.clips.map(cl=>{
+ {pending&&!saving?<><p>{t.resolve}</p><button className={clipButton} onClick={openSave}>{t.save}</button><button className={clipButton} onClick={()=>{const next=pending;discard();setPending(null);setFocus(null);next();}}>{t.discard}</button><button className={clipButton} onClick={()=>setPending(null)}>{c.cancel}</button></>:saving?<><h3>{t.save}</h3><label className="block"><input type="radio" checked={scope==='local'} onChange={()=>setScope('local')}/>{c.local}</label>{(!draft||!isExpandedStructure(draft))&&<label className="block"><input type="radio" disabled={!!allIssue} checked={scope==='all'} onChange={()=>setScope('all')}/>{c.all}</label>}{allIssue&&<p>{allIssue}</p>}{preview&&draft&&<ul>{preview.model.lanes.find(l=>l.id===draft.laneId)?.definitions.filter(d=>JSON.stringify(d)!==JSON.stringify(draft.basis.definitions.find(old=>old.id===d.id))).map(d=><li key={d.id}>{d.name} · {c[d.kind]}</li>)}{draft.basis.clips.filter(old=>!preview.model.lanes.find(l=>l.id===draft.laneId)?.clips.some(cl=>cl.id===old.id)).map(old=><li key={old.id}>{c.remove}: {old.name}</li>)}</ul>}{preview&&draft&&preview.model.lanes.find(l=>l.id===draft.laneId)?.clips.map(cl=>{
  const old=draft.basis.clips.find(x=>x.id===cl.id),lane=preview!.model.lanes.find(l=>l.id===draft.laneId)!;
  const changed=!old||cl.length!==old.length||cl.start!==old.start||!equal(resolveContent(draft.basis,old.children,timings[lane.id]),resolveContent(lane,cl.children,timings[lane.id]));
  return changed?<p key={cl.id}>{cl.name} · {c.start}: {cl.start/20160} · {c.length}: {old?`${old.length/20160} → `:''}{cl.length/20160} {c.beats}</p>:null;
  })}{saveError&&<p role="alert">{saveError}</p>}<button disabled={busy||!preview||(scope==='all'&&!!allIssue)} className={clipButton} onClick={submit}>{c.save}</button><button disabled={busy} className={clipButton} onClick={()=>setSaving(false)}>{c.cancel}</button></>:picker&&source?<><input aria-label={t.search} placeholder={t.search} className={`${clipInput} !w-full`} value={query} onChange={e=>setQuery(e.target.value)}/>{source.definitions.filter(d=>{const parent=picker.path.length?structureChildren(roots,picker.path.slice(0,-1)).find(n=>n.id===picker.path[picker.path.length-1]):null;return !parent||d.kind==='pattern'||parent.definition?.kind==='supergroup'&&d.kind==='group';}).filter(d=>d.name.toLowerCase().includes(query.toLowerCase())).map(d=><div key={d.id} className="my-2 rounded border border-slate-700 p-2"><span>{d.name} · {c[d.kind]} · {contentLength(source,[{id:'preview',definitionId:d.id}],timings[source.id])/20160} {c.beats}</span>{d.kind==='pattern'&&<PatternPreview definition={d} timing={timings[source.id]} controllerMode={sequencer.controllerSequencers.find(t=>t.id===source.id)?.controllerMode}/>}<button className={clipButton} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:false});setPicker(null);}}>{c.addContent}</button><button className={clipButton} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:true});setPicker(null);}}>{c.copy}</button></div>)}<button className={clipButton} onClick={()=>{run({kind:'insert',target:picker,definition:newStructurePattern(source,sequencer,language),variation:false});setPicker(null);}}>{c.newPattern}</button><button className={clipButton} onClick={()=>{run({kind:'rest',target:picker,ticks:20160});setPicker(null);}}>{c.rest} +1</button><button className={clipButton} onClick={()=>setPicker(null)}>{c.cancel}</button></>:null}</dialog>;
- const toolbar=<>{ghost&&<div className="pointer-events-none fixed z-50 rounded border border-cyan-300 bg-slate-900 px-3 py-2 text-xs text-cyan-100" style={{left:ghost.x,top:ghost.y}}>{ghost.count} · {c.content}</div>}{menu&&<div role="menu" className="fixed z-50 flex gap-2 rounded border border-slate-500 bg-slate-900 p-2" style={{left:menu.x,top:menu.y}}><button role="menuitem" className={clipButton} disabled={!selection} onClick={()=>remove()}>{t.remove}</button><button role="menuitem" className={clipButton} onClick={()=>group('group')}>{c.group}</button><button role="menuitem" className={clipButton} onClick={()=>group('supergroup')}>{c.supergroup}</button><button role="menuitem" className={clipButton} onClick={()=>selection&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button><button role="menuitem" className={clipButton} onClick={()=>{setMenu(null);if(focus)add(focus,items.length);}}>{c.addContent}</button></div>}<div className="my-2 flex flex-wrap items-center gap-2 text-xs text-slate-200">{focus&&<><input aria-label={c.name} placeholder={c.name} value={groupName} onChange={e=>setGroupName(e.target.value)} className={clipInput}/><button className={clipButton} onClick={()=>add(focus,items.length)}>{t.add}</button><button disabled={!selection} className={clipButton} onClick={()=>remove()}>{t.remove}</button><button disabled={!selection} className={clipButton} onClick={()=>group('group')}>{c.group}</button><button disabled={!selection} className={clipButton} onClick={()=>group('supergroup')}>{c.supergroup}</button><button disabled={!selection} className={clipButton} onClick={()=>selection&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button><button disabled={!selection} className={clipButton} onClick={()=>moveBy(-1)}>←</button><button disabled={!selection} className={clipButton} onClick={()=>moveBy(1)}>→</button><select aria-label={t.move} className={clipInput} value="" onChange={e=>{const dest=destinations[Number(e.target.value)];if(selection)run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:dest.path,index:dest.length}});}}><option value="">{t.move}</option>{destinations.map((d,i)=><option key={i} value={i}>{d.label}</option>)}</select></>}{draft&&<><span className="text-amber-300">{c.unsaved}</span><button className={clipButton} disabled={!draft.cursor} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,-1)})}>{c.undo}</button><button className={clipButton} disabled={draft.cursor===draft.history.length-1} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,1)})}>{c.redo}</button><button className={clipButton} disabled={!draft.cursor} onClick={openSave}>{t.save}</button><button className={clipButton} onClick={discard}>{t.discard}</button></>}</div>{error&&<p role="alert" className="text-rose-300">{error}</p>}{drop&&<p className="text-cyan-300">{t.insert} {drop.target.index+1} · {containerLabel(drop.target.path)}</p>}{modal}{conflictModal}</>;
- return {draft,selection,focus,select,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number)=>{if(!selection?.ids.includes(id)||!equal(focus,f))select(f,id,false);setMenu({x,y});},focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
+ const toolbar=<>{ghost&&<div className="pointer-events-none fixed z-50 rounded border border-cyan-300 bg-slate-900 px-3 py-2 text-xs text-cyan-100" style={{left:ghost.x,top:ghost.y}}>{ghost.count} · {c.content}</div>}{menu&&<div role="menu" className="fixed z-50 flex gap-2 rounded border border-slate-500 bg-slate-900 p-2" style={{left:menu.x,top:menu.y}}><button role="menuitem" className={clipButton} disabled={!selection||spansPasses} onClick={()=>remove()}>{t.remove}</button><button role="menuitem" disabled={!canGroup('group')} className={clipButton} onClick={()=>group('group')}>{c.group}</button><button role="menuitem" disabled={!canGroup('supergroup')} className={clipButton} onClick={()=>group('supergroup')}>{c.supergroup}</button><button role="menuitem" className={clipButton} disabled={spansPasses||!selection} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button><button role="menuitem" className={clipButton} onClick={()=>{setMenu(null);if(focus)add(focus,items.length);}}>{c.addContent}</button></div>}<div className="my-2 flex flex-wrap items-center gap-2 text-xs text-slate-200">{focus&&<><input aria-label={c.name} placeholder={c.name} value={groupName} onChange={e=>setGroupName(e.target.value)} className={clipInput}/><button className={clipButton} onClick={()=>add(focus,items.length)}>{t.add}</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>remove()}>{t.remove}</button><button disabled={!canGroup('group')} className={clipButton} onClick={()=>group('group')}>{c.group}</button><button disabled={!canGroup('supergroup')} className={clipButton} onClick={()=>group('supergroup')}>{c.supergroup}</button><button className={clipButton} disabled={spansPasses||!selection} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(-1)}>←</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(1)}>→</button><select disabled={spansPasses} aria-label={t.move} className={clipInput} value="" onChange={e=>{const dest=destinations[Number(e.target.value)];if(selection)run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:dest.path,index:dest.length}});}}><option value="">{t.move}</option>{destinations.map((d,i)=><option key={i} value={i}>{d.label}</option>)}</select></>}{draft&&<><span className="text-amber-300">{c.unsaved}</span><button className={clipButton} disabled={!draft.cursor} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,-1)})}>{c.undo}</button><button className={clipButton} disabled={draft.cursor===draft.history.length-1} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,1)})}>{c.redo}</button><button className={clipButton} disabled={!draft.cursor} onClick={openSave}>{t.save}</button><button className={clipButton} onClick={discard}>{t.discard}</button></>}</div>{error&&<p role="alert" className="text-rose-300">{error}</p>}{drop&&<p className="text-cyan-300">{t.insert} {drop.target.index+1} · {containerLabel(drop.target.path)}</p>}{modal}{conflictModal}</>;
+ return {draft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number)=>{if(!isSelected(f,id))select(f,id,false);setMenu({x,y});},focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
 }

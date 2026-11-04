@@ -1,12 +1,14 @@
-import { sumPlans, type OffsetPlan } from "./transposition";
+import { sumPlans, offsetAt, TRANSPOSE_LIMITS, type OffsetPlan } from "./transposition";
 import { remapPlacementChildren } from "./transposeEdits";
-import { ClipError, contentLength, definitionMap, newClipId, validateArrangement, type ClipArrangement, type Clip, type ClipLane, type ContentItem, type Definition, type LaneTiming } from './model';
+import { CLIP_LIMITS, ClipError, contentLength, definitionMap, newClipId, validateArrangement, type ClipArrangement, type Clip, type ClipLane, type ContentItem, type Definition, type LaneTiming, type OccurrenceTarget } from './model';
 
 /** Nodes represent occurrences, including repeated uses of the same definition. */
-export type StructureNode = { id: string; definition?: Definition; restTicks?: number; children?: StructureNode[]; transpose?: OffsetPlan; placement?: OffsetPlan; originalPath?: string[]; variationOf?: string };
+export type StructureNode = { id: string; repeatIndex?: number; originalPass?: number; definition?: Definition; restTicks?: number; children?: StructureNode[]; transpose?: OffsetPlan; placement?: OffsetPlan; originalPath?: string[]; variationOf?: string };
 export type ContainerTarget = { path: string[]; index: number };
-export type StructureSelection = { parent: string[]; ids: string[]; anchor: string };
+export type StructureSelection = { parent: string[]; ids: string[]; anchor: string; anchorPass?: number; tip?: {pass:number;id:string}; range?: {first:number;last:number} };
+export type RepetitionRange = { first: {pass:number;id:string}; last: {pass:number;id:string} };
 export type StructureCommand =
+  | { kind: 'groupRepetitions'; range: RepetitionRange; level:'group'|'supergroup'; name:string }
   | { kind: 'insert'; target: ContainerTarget; definition: Definition; variation: boolean }
   | { kind: 'rest'; target: ContainerTarget; ticks: number }
   | { kind: 'rename'; path: string[]; name: string }
@@ -14,13 +16,13 @@ export type StructureCommand =
   | { kind: 'group'; parent: string[]; ids: string[]; level: 'group' | 'supergroup'; name: string }
   | { kind: 'remove'; parent: string[]; ids: string[] }
   | { kind: 'ungroup'; parent: string[]; ids: string[] };
-export type StructureDraft = { laneId: string; clipId: string; pass: number; basis: ClipLane; roots: StructureNode[]; history: StructureNode[][]; commands: StructureCommand[]; cursor: number; emptied: string[]; emptyHistory: string[][]; followingPassClipIds?: string[] };
+export type StructureDraft = { laneId: string; clipId: string; pass: number; basis: ClipLane; roots: StructureNode[]; history: StructureNode[][]; commands: StructureCommand[]; cursor: number; emptied: string[]; emptyHistory: string[][]; followingPassClipIds?: string[]; expanded?: {at:number;sourcePass:number;contentTicks:number;offset:number;repeatIndexBase:number} };
 const copy = <T,>(value: T): T => structuredClone(value);
 const fail = (message: string): never => { throw new ClipError('invalid', message); };
 function expand(lane: ClipLane, items: ContentItem[], clip?: Clip, path: string[] = []): StructureNode[] {
   const defs = definitionMap(lane);
   return items.map(i => 'restTicks' in i ? { id: i.id, restTicks: i.restTicks } : {
-    id: i.id, definition: copy(defs.get(i.definitionId)!), transpose: copy(i.transpose),
+    id: i.id, repeatIndex: i.repeatIndex, definition: copy(defs.get(i.definitionId)!), transpose: copy(i.transpose),
     ...(clip ? { originalPath: [...path,i.id], placement: copy(clip.transposePlacements?.find(p => JSON.stringify(p.path) === JSON.stringify([...path,i.id]))?.plan) } : {}),
     ...(defs.get(i.definitionId)!.kind !== 'pattern' ? { children: expand(lane, (defs.get(i.definitionId)! as Extract<Definition, {kind:'group'|'supergroup'}>).children, clip, [...path,i.id]) } : {})
   });
@@ -39,6 +41,15 @@ export function structureChildren(roots: StructureNode[], path: string[]): Struc
   }
   return items;
 }
+function fixedIndexAt(roots: StructureNode[], path: string[]): number | undefined {
+  let index: number | undefined, nodes = roots;
+  for (const id of path) {
+    const node = nodes.find(n => n.id === id)!;
+    index = node.repeatIndex ?? index;
+    nodes = node.children ?? [];
+  }
+  return index;
+}
 function parentRank(roots: StructureNode[], path: string[]): number {
   if (!path.length) return 3;
   const node = structureChildren(roots, path.slice(0,-1)).find(n => n.id === path[path.length-1])!;
@@ -53,7 +64,9 @@ function selection(items: StructureNode[], ids: string[]) {
 function clean(nodes: StructureNode[], emptied: Set<string>): StructureNode[] {
   return nodes.flatMap(n => { if (!n.children) return [n]; n.children = clean(n.children, emptied); if (!n.children.length && n.definition) emptied.add(n.definition.id); return n.children.length ? [n] : []; });
 }
-export function applyStructure(draft: StructureDraft, command: StructureCommand): StructureDraft {
+export function applyStructure(draft: StructureDraft, command: StructureCommand, timings: LaneTiming = {}, model?: ClipArrangement): StructureDraft {
+  if (command.kind === 'groupRepetitions') return groupRepetitions(draft, command, timings, model);
+  if(draft.expanded&&!isExpandedStructure(draft))draft={...draft,expanded:undefined};
   if (draft.basis.cycleTicks !== null) fail('Convert the repeating lane to song clips first.');
   let roots = copy(draft.roots);
   if (command.kind === 'insert' || command.kind === 'rest') {
@@ -85,20 +98,26 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand)
       // Child IDs are shared inside repeated definitions. Crossing into another
       // occurrence of that definition must not create ambiguous sibling IDs.
       const existingIds = new Set(destination.map(node => node.id));
-      destination.splice(index, 0, ...chosen.map(node => existingIds.has(node.id) ? {...node,id:newClipId()} : node));
+      const inherited = fixedIndexAt(roots, command.parent);
+      destination.splice(index, 0, ...chosen.map(node => ({...node,
+        ...(existingIds.has(node.id) ? {id:newClipId()} : {}),
+        ...(node.definition && inherited !== undefined ? {repeatIndex:node.repeatIndex??inherited} : {})
+      })));
     } else if (command.kind === 'group') {
       const required = command.level==='group' ? 0 : 1;
       if (chosen.length<2 || chosen.some(n=>n.definition && rank(n)!==required) || chosen.filter(n=>n.definition).length < (required ? 2 : 1)) fail('Select adjacent patterns for a group, or adjacent groups for a supergroup.');
       if (required+1>=parentRank(roots,command.parent)) fail('This grouping is not valid at this level.');
       const def: Definition = { id:newClipId(),name:command.name,kind:command.level,revision:0,children:[] };
-      items.splice(start,chosen.length,{id:newClipId(),definition:def,children:chosen});
+      items.splice(start,chosen.length,{id:newClipId(),definition:def,children:chosen,...(chosen[0].repeatIndex !== undefined ? {repeatIndex:chosen[0].repeatIndex} : {})});
     } else {
       if (chosen.some(n=>!n.children)) fail('Select groups to ungroup.');
       items.splice(start,chosen.length,...chosen.flatMap(n=>n.children!.map(child=>{
         const profile = draft.basis.transposeProfiles?.find(p=>p.id===n.definition?.transposeProfileId)?.plan;
-        const plans = [profile,n.transpose,child.transpose].filter((p):p is OffsetPlan=>!!p);
-        const local = [n.placement,child.placement].filter((p):p is OffsetPlan=>!!p);
-        return {...child,id:newClipId(),...(child.definition && plans.length?{transpose:sumPlans(plans)}:{}),...(child.definition && local.length?{placement:sumPlans(local)}:{})};
+        const fixed=n.repeatIndex??fixedIndexAt(roots,command.parent);
+        const freeze = (p:OffsetPlan) => fixed === undefined ? p : {base:offsetAt(p,fixed),repetitions:[]};
+        const plans = [...[profile,n.transpose].filter((p):p is OffsetPlan=>!!p).map(freeze),...(child.transpose?[child.transpose]:[])];
+        const local = [...(n.placement?[freeze(n.placement)]:[]),...(child.placement?[child.placement]:[])];
+        return {...child,id:newClipId(),repeatIndex:child.repeatIndex??fixed,...(child.definition && plans.length?{transpose:sumPlans(plans)}:{}),...(child.definition && local.length?{placement:sumPlans(local)}:{})};
       })));
     }
   }
@@ -109,10 +128,101 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand)
 }
 export function stepStructure(draft: StructureDraft, direction: number): StructureDraft {
   const cursor = Math.max(0,Math.min(draft.history.length-1,draft.cursor+direction));
-  return {...draft,cursor,roots:copy(draft.history[cursor]),emptied:[...draft.emptyHistory[cursor]]};
+  return {...draft,cursor,pass:draft.expanded?(cursor>=draft.expanded.at?0:draft.expanded.sourcePass):draft.pass,roots:copy(draft.history[cursor]),emptied:[...draft.emptyHistory[cursor]]};
 }
+export const isExpandedStructure = (draft:StructureDraft) => !!draft.expanded && draft.cursor >= draft.expanded.at;
+export function structureClip(draft:StructureDraft):Clip {
+  const original = draft.basis.clips.find(c=>c.id===draft.clipId)!;
+  return isExpandedStructure(draft) ? {...original,mode:'once',offset:draft.expanded!.offset,repeatIndexBase:draft.expanded!.repeatIndexBase} : original;
+}
+
+function groupRepetitions(
+  draft: StructureDraft,
+  command: Extract<StructureCommand, {kind:'groupRepetitions'}>,
+  timings: LaneTiming,
+  model?: ClipArrangement
+): StructureDraft {
+  if (draft.cursor || draft.basis.cycleTicks !== null) fail('Save or discard the current structure before grouping repetitions.');
+  const original = draft.basis.clips.find(c => c.id === draft.clipId)!;
+  if (original.mode !== 'loop') fail('The selected repetitions no longer exist.');
+  const duration = contentLength(draft.basis, original.children, timings[draft.laneId]);
+  const firstPass = Math.floor(original.offset / duration);
+  const lastPass = Math.floor((original.offset + original.length - 1) / duration);
+  const passes = lastPass - firstPass + 1;
+  const locate = (point: {pass:number;id:string}) => {
+    const index = original.children.findIndex(i => i.id === point.id);
+    if (!Number.isSafeInteger(point.pass) || point.pass < firstPass || point.pass > lastPass || index < 0) {
+      fail('The selected repetitions changed. Select the range again.');
+    }
+    return (point.pass - firstPass) * original.children.length + index;
+  };
+  const start = locate(command.range.first), end = locate(command.range.last);
+  if (end <= start) fail('Select adjacent content across repetitions.');
+
+  // Bound the complete materialized source before cloning any virtual occurrences.
+  const count = passes * original.children.length;
+  const leaves = resolveContentCount(draft.basis, original.children);
+  if (count - (end-start) > CLIP_LIMITS.children || end-start+1 > CLIP_LIMITS.children ||
+      leaves * passes > CLIP_LIMITS.leaves || draft.basis.definitions.length+1 > CLIP_LIMITS.definitions ||
+      duration * passes > CLIP_LIMITS.ticks || (original.transposePlacements?.length??0) * passes > TRANSPOSE_LIMITS.placements) {
+    fail('Grouping repetitions exceeds the clip content limit. Shorten the clip first.');
+  }
+  preflightRepeatedPlans(model?.lanes ?? [draft.basis], original, passes);
+
+  const roots: StructureNode[] = [];
+  for (let pass = firstPass; pass <= lastPass; pass++) {
+    const nodes = expand(draft.basis, original.children, original);
+    const provenance = (nodes: StructureNode[]) => {
+      for (const node of nodes) {
+        node.originalPass = pass;
+        if (node.children) provenance(node.children);
+      }
+    };
+    provenance(nodes);
+    roots.push(...nodes.map(node => ({...node, id:newClipId(),
+      ...(node.definition ? {repeatIndex:node.repeatIndex??(original.repeatIndexBase??0)+pass} : {})
+    })));
+  }
+  const expanded = {
+    at:draft.cursor+1, sourcePass:draft.pass, contentTicks:duration*passes,
+    offset:original.offset-firstPass*duration, repeatIndexBase:(original.repeatIndexBase??0)+firstPass
+  };
+  const grouped = applyStructure({...draft, roots, expanded:undefined}, {
+    kind:'group', parent:[], ids:roots.slice(start,end+1).map(n => n.id), level:command.level, name:command.name
+  }, timings);
+  // A leading rest has no reference on which to carry its logical index.
+  grouped.roots[start].repeatIndex = roots[start].repeatIndex??(original.repeatIndexBase??0)+command.range.first.pass;
+  return {...grouped, expanded, pass:0,
+    history:[...draft.history.slice(0,draft.cursor+1),copy(grouped.roots)],
+    commands:[...draft.commands.slice(0,draft.cursor),command]
+  };
+}
+function preflightRepeatedPlans(lanes: ClipLane[], original: Clip, passes: number): void {
+  const entries = (plans: OffsetPlan[]) => plans.reduce((count, plan) => count+plan.repetitions.length, 0);
+  const referencePlans = (items: ContentItem[]) => items.flatMap(i => 'definitionId' in i && i.transpose ? [i.transpose] : []);
+  const placements = lanes.flatMap(l => l.clips.flatMap(c => c.transposePlacements??[]));
+  const plans = lanes.flatMap(l => [
+    ...(l.transposeProfiles??[]).map(p => p.plan),
+    ...l.clips.flatMap(c => referencePlans(c.children)),
+    ...l.definitions.flatMap(d => d.kind === 'pattern' ? [] : referencePlans(d.children))
+  ]);
+  const copiedPlans = [...(original.transposePlacements??[]).map(p => p.plan), ...referencePlans(original.children)];
+  const entryCount = entries(plans)+entries(placements.map(p => p.plan))+entries(copiedPlans)*(passes-1);
+  const placementCount = placements.length+(original.transposePlacements?.length??0)*(passes-1);
+  if (placementCount > TRANSPOSE_LIMITS.totalPlacements || entryCount > TRANSPOSE_LIMITS.totalEntries) {
+    fail('Grouping repetitions exceeds the transposition placement/entry limit.');
+  }
+}
+function resolveContentCount(lane: ClipLane, items: ContentItem[]): number {
+  const defs = definitionMap(lane);
+  return items.reduce((count, item) => {
+    const definition = 'definitionId' in item ? defs.get(item.definitionId)! : undefined;
+    return count+(definition && definition.kind !== 'pattern' ? resolveContentCount(lane,definition.children) : 1);
+  }, 0);
+}
+
 /** Materialize occurrence changes without mutating the shared baseline. */
-function materialize(draft: StructureDraft, scope: 'local'|'all', preview = false): { lane: ClipLane; children: ContentItem[]; shared: boolean; placements: NonNullable<Clip['transposePlacements']>; pathRules: Map<string, {before:string[];after:string[]}[]> } {
+function materialize(draft: StructureDraft, scope: 'local'|'all', preview = false): { lane: ClipLane; children: ContentItem[]; shared: boolean; placements: NonNullable<Clip['transposePlacements']>; pathRules: Map<string, {before:string[];after:string[]}[]>; occurrences: {from:OccurrenceTarget;to:OccurrenceTarget}[]; previewPaths: {before:string[];after:string[]}[] } {
   const lane = copy(draft.basis), changes = new Map<string,string>(); let shared=false;
   const pathRules = new Map<string, {before:string[];after:string[]}[]>();
   const visit = (nodes: StructureNode[]): ContentItem[] => nodes.map(n=> {
@@ -125,10 +235,10 @@ function materialize(draft: StructureDraft, scope: 'local'|'all', preview = fals
     }
     if (def.kind!=='pattern') def.children=visit(n.children!);
     const changed = !original || JSON.stringify(def)!==JSON.stringify(original);
-    if (!changed) return {id:n.id,definitionId:def.id,...(n.transpose?{transpose:copy(n.transpose)}:{})};
+    if (!changed) return {id:n.id,definitionId:def.id,...(n.repeatIndex !== undefined ? {repeatIndex:n.repeatIndex} : {}),...(n.transpose?{transpose:copy(n.transpose)}:{})};
     if (original) shared=true;
     if (scope==='all' && original) {
-      const signature=JSON.stringify(def.kind==='pattern'?def:{...def,children:def.children.map(i=>'definitionId' in i?{definitionId:i.definitionId,transpose:i.transpose}:{restTicks:i.restTicks})});
+      const signature=JSON.stringify(def.kind==='pattern'?def:{...def,children:def.children.map(i=>'definitionId' in i?{definitionId:i.definitionId,transpose:i.transpose,repeatIndex:i.repeatIndex}:{restTicks:i.restTicks})});
       if (changes.has(def.id) && changes.get(def.id)!==signature) fail('Different occurrences require incompatible structures. Save only this occurrence.');
       changes.set(def.id,signature); def.revision=original.revision+1;
       if (def.kind!=='pattern') def.children=def.children.map(i=>({...i,id:newClipId()}));
@@ -147,17 +257,21 @@ function materialize(draft: StructureDraft, scope: 'local'|'all', preview = fals
       });
       trace(n.children!,def.children,[]);pathRules.set(original.id,mappings);
     }
-    return {id:n.id,definitionId:def.id,...(n.transpose?{transpose:copy(n.transpose)}:{})};
+    return {id:n.id,definitionId:def.id,...(n.repeatIndex !== undefined ? {repeatIndex:n.repeatIndex} : {}),...(n.transpose?{transpose:copy(n.transpose)}:{})};
   });
   const children=visit(draft.roots).map(i=>preview?i:{...i,id:newClipId()});
   const placements: NonNullable<Clip['transposePlacements']> = [];
-  const collect = (nodes:StructureNode[],items:ContentItem[],path:string[]) => nodes.forEach((n,i)=>{
-    const item=items[i], nextPath=[...path,item.id];
+  const occurrences: {from:OccurrenceTarget;to:OccurrenceTarget}[]=[];
+  const previewPaths: {before:string[];after:string[]}[]=[];
+  const collect = (nodes:StructureNode[],items:ContentItem[],path:string[],previewPath:string[]=[]) => nodes.forEach((n,i)=>{
+    const item=items[i], nextPath=[...path,item.id], before=[...previewPath,n.id];
+    previewPaths.push({before,after:nextPath});
+    if(n.originalPath)occurrences.push({from:{laneId:draft.laneId,clipId:draft.clipId,pass:n.originalPass??draft.pass,path:n.originalPath},to:{laneId:draft.laneId,clipId:draft.clipId,pass:0,path:nextPath}});
     if(n.placement && 'definitionId' in item) placements.push({path:nextPath,plan:copy(n.placement)});
-    if(n.children && 'definitionId' in item){const def=lane.definitions.find(d=>d.id===item.definitionId)!;if(def.kind!=='pattern')collect(n.children,def.children,nextPath);}
+    if(n.children && 'definitionId' in item){const def=lane.definitions.find(d=>d.id===item.definitionId)!;if(def.kind!=='pattern')collect(n.children,def.children,nextPath,before);}
   });
   collect(draft.roots,children,[]);
-  return {lane,children,shared,placements,pathRules};
+  return {lane,children,shared,placements,pathRules,occurrences,previewPaths};
 }
 const scaled = (value: number, before: number, after: number) => Number((BigInt(value)*BigInt(after)+BigInt(Math.floor(before/2)))/BigInt(before));
 /** The timeline preview and local commit must use the same partial-pass geometry. */
@@ -177,7 +291,8 @@ export function structureDisplayGeometry(original:Clip,before:number,after:numbe
   const window=structurePassWindow(original,before,after,pass);
   return {length:original.length+window.growth,left:(index:number)=>index===pass?window.start-original.start-window.newOffset:index*before-original.offset+(index>pass?window.growth:0)};
 }
-export function prepareStructure(model: ClipArrangement, draft: StructureDraft, scope: 'local'|'all', timings: LaneTiming): { model: ClipArrangement; shared: boolean } {
+export function prepareStructure(model: ClipArrangement, draft: StructureDraft, scope: 'local'|'all', timings: LaneTiming): { model: ClipArrangement; shared: boolean; occurrences: {from:OccurrenceTarget;to:OccurrenceTarget}[]; previewPaths: {before:string[];after:string[]}[] } {
+  if(isExpandedStructure(draft)&&scope==='all')fail('Grouping repetitions changes only this clip. Pattern definitions remain linked.');
   const current=model.lanes.find(l=>l.id===draft.laneId);
   if (JSON.stringify(current)!==JSON.stringify(draft.basis)) throw new ClipError('conflict','The track changed. Discard this structure draft and reopen it.');
   const materialized=materialize(draft,scope); const lane=materialized.lane, shared=materialized.shared||draft.emptied.length>0; let children=materialized.children;
@@ -227,12 +342,15 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   const timing=timings[lane.id], before=contentLength(draft.basis,original.children,timing);
   const after=children.length ? contentLength(lane,children,timing) : 0;
   if (original.transposePlacements || materialized.placements.length) clip.transposePlacements=materialized.placements;
-  if (scope==='local' && clip.mode==='loop') {
+  if(isExpandedStructure(draft)) {
+    Object.assign(clip,structureClip(draft),{children,...(original.transposePlacements||materialized.placements.length?{transposePlacements:materialized.placements}:{})});
+    if(after>draft.expanded!.contentTicks)clip.length=Math.max(clip.length,after-clip.offset);
+  } else if (scope==='local' && clip.mode==='loop') {
     const {start,end,newOffset,length,growth}=structurePassWindow(original,before,after,draft.pass);
     const fresh=(items:ContentItem[])=>items.map(i=>({...i,id:newClipId()}));
     lane.clips.splice(lane.clips.indexOf(clip),1,
       ...(start>original.start?[{...remapPlacementChildren(copy(original),fresh(original.children)),id:newClipId(),length:start-original.start}]:[]),
-      ...(after?[{...clip,start,length,offset:newOffset,mode:'once' as const,children,...(model.version===3?{repeatIndexBase:(original.repeatIndexBase??0)+draft.pass}:{})}]:[]),
+      ...(after?[{...clip,start,length,offset:newOffset,mode:'once' as const,children,...(model.version>=3?{repeatIndexBase:(original.repeatIndexBase??0)+draft.pass}:{})}]:[]),
       ...(end<original.start+original.length?[{...remapPlacementChildren(copy(original),fresh(original.children)),id:newClipId(),start:end+growth,length:original.start+original.length-end,offset:original.offset+end-original.start}]:[]));
   } else {
     clip.children=children;
@@ -256,16 +374,16 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   lane.clips=lane.clips.filter(c=>c.children.length);
   const sorted=[...lane.clips].sort((a,b)=>a.start-b.start);
   for(let i=1;i<sorted.length;i++) if(sorted[i].start<sorted[i-1].start+sorted[i-1].length) throw new ClipError('collision',`Growth overlaps “${sorted[i-1].name}” and “${sorted[i].name}”. Make room before saving.`);
-  const next={...copy(model),revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
+  const next:ClipArrangement={...copy(model),version:isExpandedStructure(draft)?4:model.version,revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
   validateArrangement(next,timings);
-  return {model:next,shared};
+  return {model:next,shared,occurrences:materialized.occurrences,previewPaths:materialized.previewPaths};
 }
 /** Preview uses a private lane; it never enters authored state or audio configuration. */
 export function structurePreview(model:ClipArrangement,draft:StructureDraft,timings:LaneTiming={}):ClipArrangement {
   const {lane,children,placements}=materialize(draft,'local',true);
-  const original=draft.basis.clips.find(c=>c.id===draft.clipId)!;
-  const before=contentLength(draft.basis,original.children,timings[lane.id]),after=contentLength(lane,children,timings[lane.id]);
+  const original=structureClip(draft);
+  const before=isExpandedStructure(draft)?draft.expanded!.contentTicks:contentLength(draft.basis,original.children,timings[lane.id]),after=contentLength(lane,children,timings[lane.id]);
   const growth=original.mode==='once'&&after>before?Math.max(0,after-original.offset-original.length):0;
-  lane.clips=lane.clips.map(c=>c.id===draft.clipId?{...c,children,...(c.transposePlacements||placements.length?{transposePlacements:placements}:{})}:draft.followingPassClipIds?.includes(c.id)?{...c,start:c.start+growth}:c);
-  return {...model,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
+  lane.clips=lane.clips.map(c=>c.id===draft.clipId?{...c,...(isExpandedStructure(draft)?original:{}),children,...(c.transposePlacements||placements.length?{transposePlacements:placements}:{})}:draft.followingPassClipIds?.includes(c.id)?{...c,start:c.start+growth}:c);
+  return {...model,version:isExpandedStructure(draft)?4:model.version,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
 }

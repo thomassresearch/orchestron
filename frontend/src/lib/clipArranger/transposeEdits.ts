@@ -36,7 +36,7 @@ export function saveTransposeEdits(model: ClipArrangement, target: OccurrenceTar
   const fingerprint = transposeFingerprint(model, target);
   for (const edit of edits) { validateOffsetPlan(edit.plan); if (edit.fingerprint !== fingerprint) throw Error('Transposition dependencies changed. Reopen the draft before saving.'); }
   const next = structuredClone(model), lane = laneFor(next, target.laneId), clip = clipFor(lane, target.clipId), definition = definitionAt(lane, target);
-  next.version = 3; next.revision++;
+  next.version = next.version === 4 ? 4 : 3; next.revision++;
   for (const edit of edits) {
     const plan = structuredClone(edit.plan);
     if (edit.scope === 'shared') {

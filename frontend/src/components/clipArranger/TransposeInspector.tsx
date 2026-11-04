@@ -5,23 +5,25 @@ import { saveClipTransposition } from '../../store/clipActions';
 import { directLinks } from '../../lib/clipArranger/operations';
 import { readTransposePlan, transposeFingerprint, saveTransposeEdits, type TransposeScope } from '../../lib/clipArranger/transposeEdits';
 import { addOffsets, offsetAt, emptyOffsetPlan, type PitchOffset, type OffsetPlan } from '../../lib/clipArranger/transposition';
-import { transposeContributions } from '../../lib/clipArranger/transposeModel';
+import { logicalRepeatIndex, transposeContributions } from '../../lib/clipArranger/transposeModel';
 import { arrangementTimings } from '../../lib/clipArranger/migration';
 import { clipButton, clipInput } from './ClipArranger';
 import { transposeCopy } from './transposeCopy';
 import { useTransposeStatus } from '../../lib/clipArranger/transposeStatus';
 import { buildSequencerStepChordMidiNotes } from '../../lib/sequencer';
 import { transposePitch } from '../../lib/clipArranger/transposition';
-import type { ContentItem, OccurrenceTarget } from '../../lib/clipArranger/model';
+import { resolveContent, type ContentItem, type OccurrenceTarget } from '../../lib/clipArranger/model';
 import { draftKey } from '../../lib/clipArranger/editorAdapter';
 
 function PendingTranspose({laneId,language}:{laneId:string;language:GuiLanguage}) {
   const pending=useTransposeStatus(s=>s.byLane[laneId]);
   const at=useAppStore(s=>s.sequencerRuntime.transportSubunit),running=useAppStore(s=>s.sequencerRuntime.isPlaying);
   const c=transposeCopy(language);
-  const model=useAppStore(s=>s.sequencer.clipArrangement);
-  const name=model?.lanes.find(l=>l.id===laneId)?.clips.find(clip=>clip.id===pending?.clip_id)?.name??'';
-  return pending&&running&&at<pending.at_subunit?<p role="status" className="text-amber-200">{c.pending}: {name} · {c.repeat} {pending.logical_pass+1} · #{pending.leaf_index+1}</p>:null;
+  const sequencer=useAppStore(s=>s.sequencer),model=sequencer.clipArrangement;
+  const lane=model?.lanes.find(l=>l.id===laneId),clip=lane?.clips.find(clip=>clip.id===pending?.clip_id);
+  const leaf=lane&&clip&&pending?resolveContent(lane,clip.children,arrangementTimings(sequencer)[lane.id])[pending.leaf_index]:undefined;
+  const index=lane&&clip&&leaf?.definition&&pending?logicalRepeatIndex(lane,clip,leaf.path,pending.logical_pass-(clip.repeatIndexBase??0)):pending?.logical_pass??0;
+  return pending&&running&&at<pending.at_subunit?<p role="status" className="text-amber-200">{c.pending}: {clip?.name??''} · {c.repeat} {index+1} · #{pending.leaf_index+1}</p>:null;
 }
 
 export function TransposeInspector({ language, stopAudition, target, onSaved }: { language: GuiLanguage; stopAudition: () => Promise<void>; target?: OccurrenceTarget; onSaved?: () => void }) {
@@ -34,18 +36,19 @@ export function TransposeInspector({ language, stopAudition, target, onSaved }: 
   if (!draft || !key || !lane || !model || !['sequencer','score','arpeggiator'].includes(lane.source)) return null;
   const clip = lane.clips.find(c => c.id === draft.target.clipId);
   if (!clip) return null;
-  const c = transposeCopy(language), index = (clip.repeatIndexBase ?? 0) + draft.target.pass;
+  const c = transposeCopy(language), index = logicalRepeatIndex(lane,clip,draft.target.path,draft.target.pass);
+  const sourceIndex=(clip.repeatIndexBase??0)+draft.target.pass;
   let plan: OffsetPlan;
   try { plan = draft.transposeEdits?.find(e => e.scope === scope)?.plan ?? readTransposePlan(model,draft.target,scope); } catch { return null; }
   const amount = base ? plan.base : offsetAt(plan,index);
   let contributions = transposeContributions(lane,clip,draft.target.path);
-  const savedEffective=addOffsets(contributions.map(p=>offsetAt(p.plan,index)));
+  const savedEffective=addOffsets(contributions.map(p=>offsetAt(p.plan,p.repeatIndex??sourceIndex)));
   try {
     const preview = saveTransposeEdits(model,draft.target,draft.transposeEdits ?? [],arrangementTimings(state.sequencer));
     const previewLane = preview.lanes.find(l => l.id === lane.id)!;
     contributions = transposeContributions(previewLane,previewLane.clips.find(p => p.id === clip.id)!,draft.target.path);
   } catch { /* A stale draft remains visible until explicitly discarded. Save reports the conflict. */ }
-  const effective = addOffsets(contributions.map(p => offsetAt(p.plan,index)));
+  const effective = addOffsets(contributions.map(p => offsetAt(p.plan,p.repeatIndex??sourceIndex)));
   const definition=draft.definition;
   const pitches=definition.kind==='pattern'&&definition.source==='score'?definition.payload.notes.map(n=>n.pitch)
     :definition.kind==='pattern'&&definition.source==='sequencer'?definition.payload.steps.flatMap(s=>s.hold?[]:buildSequencerStepChordMidiNotes(s.note,s.chord,definition.payload.scaleRoot,definition.payload.mode)):[];
@@ -75,7 +78,7 @@ export function TransposeInspector({ language, stopAudition, target, onSaved }: 
     <p className="text-indigo-200">{c.effective}: {!!draft.transposeEdits?.length&&<>{signed(savedEffective.diatonicSteps)} {c.diatonic} · {signed(savedEffective.chromaticSemitones)} {c.chromatic} → </>}{signed(effective.diatonicSteps)} {c.diatonic} · {signed(effective.chromaticSemitones)} {c.chromatic}</p>
     {omitted>0&&<p className="text-amber-200">{c.omitted}: {omitted}</p>}
     <PendingTranspose laneId={lane.id} language={language}/>
-    <ul className="space-y-1 text-slate-300">{contributions.map((entry,i) => {const pair=offsetAt(entry.plan,index);return <li key={i}>{entry.owner} · {c[entry.scope]}: {signed(pair.diatonicSteps)} {c.diatonic} · {signed(pair.chromaticSemitones)} {c.chromatic}</li>;})}</ul>
+    <ul className="space-y-1 text-slate-300">{contributions.map((entry,i) => {const pair=offsetAt(entry.plan,entry.repeatIndex??sourceIndex);return <li key={i}>{entry.owner} · {c[entry.scope]}: {signed(pair.diatonicSteps)} {c.diatonic} · {signed(pair.chromaticSemitones)} {c.chromatic}</li>;})}</ul>
     <div className="flex flex-wrap gap-2">
       <button type="button" className={clipButton} onClick={()=>setPair({...amount,[component]:0})}>{c.resetComponent}</button>
       {!base && <><button type="button" className={clipButton} onClick={()=>write({...plan,repetitions:plan.repetitions.filter(e=>e.index!==index)})}>{c.inherit}</button><button type="button" className={clipButton} onClick={()=>setPair({diatonicSteps:0,chromaticSemitones:0})}>{c.zero}</button></>}
