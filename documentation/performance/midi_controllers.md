@@ -4,6 +4,8 @@
 
 The MIDI Controllers panel provides manual CC control lanes with interactive knobs.
 
+Controllers use compact cards in both arranger layouts: one column on narrow screens, two on small screens, three on wide screens, and four on extra-wide screens. Additional controllers wrap onto the next row.
+
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
 ## Collapse the Panel
@@ -80,6 +82,6 @@ Both can exist in the same performance.
 <p align="center">
   <img src="../../screenshots/perform_midi_controllers_knob_lanes_closeup.png" alt="MIDI controller knob lanes" width="980" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Manual MIDI controller lanes with knobs, CC numbers, and values.</em></p>
+<p align="center"><em>Compact manual MIDI controller cards below the clip arranger, with knobs, CC numbers, channel selections, and values.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](piano_rolls.md) | [Next](performance_import_export.md)

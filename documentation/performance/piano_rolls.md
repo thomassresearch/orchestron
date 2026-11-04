@@ -64,7 +64,9 @@ Each piano roll retains its own toggle and size through Save/Load, Clone, autosa
 
 ## Scale/Mode Following Behavior During Live Playback
 
-When the instrument engine is running and a piano roll is enabled, the piano roll can follow the currently running melodic sequencers for harmonic guidance.
+When the instrument engine is running and a piano roll is enabled, the piano roll follows the currently playing melodic and Score Sequencer patterns for harmonic guidance. Clip playback uses the pattern at the audible song position; Play edit uses the active audition pattern. Selecting or editing a different pattern, or queuing an audition, does not change the keyboard's guidance before it plays.
+
+While following, Scale and Mode show the playing theory and are disabled. Key highlighting and Autochord use that same theory. The keyboard's own scale and mode remain saved separately. When no melodic source is playing—including stopped or paused tracks, clip gaps, rests between patterns and song end—the keyboard restores its own scale and mode and both selectors become editable. Starting the keyboard alone preserves these settings.
 
 ### Shared Scale/Mode Case
 
@@ -131,5 +133,10 @@ The UI tracks held notes and releases them on pointer cancellation, lost capture
   <img src="../../screenshots/perform_piano_roll_mixed_highlighting.png" alt="Piano roll mixed highlighting" width="1100" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>Piano roll with scale-aware key highlighting and mixed-theory display behavior.</em></p>
+
+<p align="center">
+  <img src="../../screenshots/perform_piano_roll_clip_following.png" alt="Live keyboard following an E Aeolian clip with Scale and Mode locked during playback" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>The keyboard follows the playing E Aeolian clip; stopping melodic playback restores its own scale and mode.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](arpeggiators.md) | [Next](midi_controllers.md)

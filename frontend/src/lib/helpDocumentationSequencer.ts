@@ -744,7 +744,8 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 ### Scale Guidance
 
 - The keyboard highlights notes from the selected scale and mode.
-- When running melodic sequencers agree on one theory, the piano roll follows that shared scale/mode for visual guidance.
+- The enabled keyboard follows currently playing melodic and Score Sequencer clips or active Play edit auditions. Selected edits and queued auditions do not take over before playback. Scale and Mode are locked while following; highlighting and Autochord use the same theory.
+- With no melodic source playing (including pause, clip gaps, rests between patterns and song end), the keyboard restores its own saved scale/mode and unlocks both selectors. Starting the keyboard alone preserves these settings.
 - When running sequencers disagree, the UI shows a mixed state and highlights only notes common to the active theories.`,
     german: `### Live-Eingabeverhalten
 
@@ -755,7 +756,8 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 ### Skalenfuehrung
 
 - Die Tastatur markiert Noten der ausgewaehlten Skala und des Modus.
-- Wenn laufende melodische Sequencer dieselbe Theorie teilen, folgt die Piano Roll dieser gemeinsamen Skala/diesem Modus als visuelle Orientierung.
+- Die aktivierte Tastatur folgt den gerade spielenden Clips melodischer und Score-Sequencer oder einer aktiven Entwurfsvorschau. Ausgewählte Änderungen und vorgemerkte Vorschauen übernehmen erst beim Abspielen. Skala und Modus sind beim Folgen gesperrt; Hervorhebung und Autoakkord verwenden dieselbe Theorie.
+- Wenn keine melodische Quelle spielt (auch bei Pause, Clip-Lücken, Pausen zwischen Patterns und Songende), stellt die Tastatur ihre eigene gespeicherte Skala und ihren Modus wieder her und gibt beide Felder frei. Das alleinige Starten der Tastatur behält diese Einstellungen bei.
 - Wenn laufende Sequencer unterschiedliche Theorien haben, zeigt die UI einen Mixed-Zustand und markiert nur die gemeinsamen Noten der aktiven Theorien.`,
     french: `### Comportement en entree live
 
@@ -766,7 +768,8 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 ### Guidage tonal
 
 - Le clavier surligne les notes de la gamme et du mode selectionnes.
-- Quand les sequenceurs melodiques actifs partagent la meme theorie, le piano roll suit cette gamme/ce mode communs pour le guidage visuel.
+- Le clavier activé suit les clips mélodiques et Score Sequencer en cours de lecture ou une audition active du brouillon. Les modifications sélectionnées et auditions en attente ne prennent effet qu’à la lecture. Gamme et Mode sont verrouillés pendant le suivi ; le surlignage et l’accord automatique utilisent la même théorie.
+- Sans source mélodique en lecture (pause, espaces entre clips, silences entre motifs ou fin du morceau), le clavier retrouve sa gamme et son mode enregistrés et déverrouille les deux champs. Démarrer uniquement le clavier conserve ces réglages.
 - Quand les sequenceurs actifs divergent, l'UI affiche un etat mixte et ne surligne que les notes communes aux theories actives.`,
     spanish: `### Comportamiento de entrada en vivo
 
@@ -777,7 +780,8 @@ Los cambios del pad mostrado se agrupan tras 80 ms y se aplican en el siguiente 
 ### Guia tonal
 
 - El teclado resalta las notas de la escala y el modo seleccionados.
-- Cuando los secuenciadores melodicos en marcha comparten una misma teoria, el piano roll sigue esa escala/modo comun para guiar visualmente.
+- El teclado activado sigue los clips melódicos y de Score Sequencer en reproducción o una audición activa del borrador. Las ediciones seleccionadas y audiciones en cola solo se aplican al reproducirse. Escala y Modo quedan bloqueados durante el seguimiento; el resaltado y el acorde automático usan la misma teoría.
+- Sin fuentes melódicas en reproducción (pausa, huecos entre clips, silencios entre patrones o final de canción), el teclado recupera su escala y modo guardados y desbloquea ambos campos. Iniciar solo el teclado conserva estos ajustes.
 - Cuando los secuenciadores activos discrepan, la UI muestra un estado mixto y solo resalta las notas comunes a las teorias activas.`
   },
   sequencer_midi_controllers: {

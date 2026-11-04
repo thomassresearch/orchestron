@@ -1,7 +1,7 @@
 import { parseDrummerRowRuntimeTrackId } from "../sequencerRuntime";
 import type { SequencerState } from "../../types";
 import { arrangementTimings, sourceKeys } from "./migration";
-import { resolveContent, validateArrangement, type ClipLane, type PatternDefinition } from "./model";
+import { resolveContent, validateArrangement, type ClipLane, type DefinitionDraft, type PatternDefinition } from "./model";
 
 export type RuntimeClipSchedule = { version: 1; end: number; cycle_ticks: number | null; clips: { id: string; start: number; length: number; offset: number; mode: "once" | "loop"; content: { pad: number | null; length: number }[] }[] };
 export function runtimeSchedule(state: SequencerState, lane: ClipLane): RuntimeClipSchedule {
@@ -42,16 +42,22 @@ export function attachClipSchedules<T extends import("../../types").SessionSeque
     arpeggiators: config.arpeggiators?.map(track => ({ ...track, ...(schedules.has(track.arpeggiator_id) ? { clip_schedule: schedules.get(track.arpeggiator_id), pad_loop_sequence: [] } : {}) })) };
 }
 
+/** Shared definition order for audition compilation and audible UI slot lookup. */
+export function clipAuditionDefinitions(lane: ClipLane, draft: DefinitionDraft) {
+  const definitions = [...lane.definitions,
+    ...(draft.additions ?? []).filter(d => !lane.definitions.some(existing => existing.id === d.id))];
+  const definition = { ...draft.definition, id: `clip-audition:${draft.definition.id.slice(0,80)}` };
+  if (definition.kind !== "pattern") definition.children = definition.children.map((item, index) => ({ ...item, id: `audition-child:${definition.id}:${index}` }));
+  return [...definitions.filter(d => d.id !== definition.id), definition];
+}
+
 /** Append a temporary definition for audition; arranged references still point to saved data. */
 export function clipAuditionState(state: SequencerState, draft: import("./model").DefinitionDraft): { state: SequencerState; sequence: number[] } {
   if (!state.clipArrangement) throw new Error("A clip audition requires a clip arrangement.");
   const next = structuredClone(state), lane = next.clipArrangement!.lanes.find(l => l.id === draft.target.laneId);
   if (!lane) throw new Error("The audition lane no longer exists.");
-  lane.definitions.push(...structuredClone((draft.additions ?? []).filter(d => !lane.definitions.some(existing => existing.id === d.id))));
-  const definition = structuredClone(draft.definition); definition.id = `clip-audition:${draft.definition.id.slice(0,80)}`;
-  if (definition.kind !== "pattern") definition.children = definition.children.map((item, index) => ({ ...item, id: `audition-child:${definition.id}:${index}` }));
-  lane.definitions = lane.definitions.filter(d => d.id !== definition.id);
-  lane.definitions.push(definition);
+  lane.definitions = structuredClone(clipAuditionDefinitions(lane, draft));
+  const definition = lane.definitions[lane.definitions.length - 1];
   const patterns = lane.definitions.filter(d => d.kind === "pattern"), slots = new Map(patterns.map((p, i) => [p.id, i]));
   const timing = arrangementTimings(next)[lane.id];
   const beat = timing ? 20160 * 4 / timing.meterDenominator * timing.beatRateDenominator / timing.beatRateNumerator : 20160;

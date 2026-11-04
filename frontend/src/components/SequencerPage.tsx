@@ -26,6 +26,7 @@ import { normalizeTimingOffset } from "../lib/sequencer";
 import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
+import { pianoRollFollowingTheories } from "../lib/pianoRollFollowing";
 import { OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
 import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
@@ -275,12 +276,6 @@ function displayedLocalStepFromPlayback(
   return localStepFromTransportPosition(track, absoluteTransportSubunit);
 }
 
-
-interface RunningSequencerTheory {
-  scaleRoot: SequencerScaleRoot;
-  scaleType: SequencerScaleType;
-  mode: SequencerMode;
-}
 
 function scaleLabelFor(
   scaleRoot: SequencerScaleRoot,
@@ -3072,18 +3067,12 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
     onPianoRollNoteOff,
   } = context;
   const pianoRollSelectClass = `${controlFieldClass} h-5 !py-0`;
-  const runningSequencerTheories = useMemo<RunningSequencerTheory[]>(
-    () => {
-      const noteTracks = [...sequencer.tracks, ...sequencer.scoreTracks];
-      const enabledTracks = noteTracks.filter((track) => track.enabled);
-      const sourceTracks = enabledTracks.length > 0 ? enabledTracks : noteTracks;
-      return sourceTracks.map((track) => ({
-        scaleRoot: track.scaleRoot,
-        scaleType: track.scaleType,
-        mode: track.mode
-      }));
-    },
-    [sequencer.tracks, sequencer.scoreTracks]
+  const runtime = useAppStore(state => state.sequencerRuntime);
+  const auditions = useAppStore(state => state.performanceAuditions);
+  const auditionDraft = useAppStore(state => state.clipAuditionDraft);
+  const runningSequencerTheories = useMemo(
+    () => pianoRollFollowingTheories(sequencer, runtime, auditions, auditionDraft),
+    [sequencer, runtime, auditions, auditionDraft]
   );
   const runningSequencerSummary = useMemo(() => {
     if (runningSequencerTheories.length === 0) {
@@ -3294,7 +3283,7 @@ function MidiControllersBody({ context }: { context: ReturnType<typeof useSequen
         {ui.noControllersHint}
       </div>
     ) : (
-      <div className={sequencer.clipArrangement ? "grid gap-2" : "grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"}>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {sequencer.midiControllers.map((controller, controllerIndex) => (
           <article key={controller.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
             <div className="mb-2 flex items-start justify-between gap-2">
