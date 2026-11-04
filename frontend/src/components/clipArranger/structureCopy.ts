@@ -1,0 +1,8 @@
+import type { GuiLanguage } from '../../types';
+const en={add:'Add content',save:'Save structure',discard:'Discard',unsaved:'Unsaved structure',resolve:'Save or discard the structure before continuing.',search:'Search content',move:'Move into container',root:'Root ordering only affects this clip.',insert:'Insert at',draft:'Structure draft',target:'Destination',name:'Group name'};
+export function structureCopy(language:GuiLanguage):typeof en {
+ if(language==='german')return {add:'Inhalt hinzufügen',save:'Struktur speichern',discard:'Verwerfen',unsaved:'Ungespeicherte Struktur',resolve:'Vor dem Fortfahren die Struktur speichern oder verwerfen.',search:'Inhalte suchen',move:'In Container verschieben',root:'Die oberste Reihenfolge gilt nur für diesen Clip.',insert:'Einfügen an',draft:'Strukturentwurf',target:'Ziel',name:'Gruppenname'};
+ if(language==='french')return {add:'Ajouter du contenu',save:'Enregistrer la structure',discard:'Abandonner',unsaved:'Structure non enregistrée',resolve:'Enregistrez ou abandonnez la structure avant de continuer.',search:'Rechercher du contenu',move:'Déplacer dans un conteneur',root:'L’ordre racine ne concerne que ce clip.',insert:'Insérer à',draft:'Brouillon de structure',target:'Destination',name:'Nom du groupe'};
+ if(language==='spanish')return {add:'Añadir contenido',save:'Guardar estructura',discard:'Descartar',unsaved:'Estructura sin guardar',resolve:'Guarda o descarta la estructura antes de continuar.',search:'Buscar contenido',move:'Mover a un contenedor',root:'El orden raíz solo afecta a este clip.',insert:'Insertar en',draft:'Borrador de estructura',target:'Destino',name:'Nombre del grupo'};
+ return en;
+}

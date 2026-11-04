@@ -133,3 +133,11 @@ Keep one fixed keyboard for new performances; compatibility for existing multipl
 Provide keyboard alternatives for draw/move/trim, selection, nesting, grouping and curve points. Focus returns to the initiating item after dialogs. Use visible labels for selected, queued, playing, shared and unsaved state; color alone is insufficient. Nested boxes need meaningful tree/sequence names and an accessible breadcrumb rather than hundreds of tab stops in miniature previews.
 
 On narrow screens, keep timeline horizontal scrolling and move the selected editor below it; retain a full-width playground. Existing dense musical grids may scroll as they do now. Test at text zoom and with coarse pointers. Clip resize handles and curve handles need usable hit areas without changing the displayed musical geometry.
+
+## Direct content manipulation — November 2026 follow-up
+
+The expanded timeline is the primary assembly surface. Single-click and Shift-click select consecutive sibling occurrences in one displayed pass; drag to insertion boundaries or compatible containers within that clip. Patterns/rests form groups; groups form supergroups. A contextual toolbar and right-click menu expose grouping, ungrouping, insertion and keyboard move alternatives. The content picker searches same-track definitions and offers linked adoption, variations, new patterns and rests.
+
+Structural work uses a session-only transaction and draft undo/redo. Save structure resolves local/all-linked scope and commits one arranger history entry. Removing the final child removes its empty container occurrence; reusable definitions remain available. Performance replacement and export/save resolve structural drafts alongside musical drafts.
+
+For these structural operations, the following **chosen growth policy supersedes fixed-window preservation**: lengthening content grows affected windows when space permits; Loop preserves normalized phase and visible full/partial repetition span. All-linked saves evaluate every affected clip. A collision rejects the complete transaction and retains its draft; independent clips never ripple. Local pass edits may shift the following generated portions of their own original clip. Song end grows when needed; shortening content does not shrink windows. Native musical-pattern length edits retain their existing separate behavior.

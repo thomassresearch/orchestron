@@ -7,6 +7,18 @@ import { defaultArpeggiator, defaultControllerSequencerPad, defaultDrummerSequen
 import { clipButton, clipInput } from "./ClipArranger";
 import { clipCopy } from "./copy";
 
+export function newStructurePattern(lane: ClipLane, sequencer: SequencerState, language: GuiLanguage): PatternDefinition {
+  const c = clipCopy(language);
+    const track = sequencer[sourceKeys[lane.source]].find(t => t.id === lane.id)!;
+    const existing = lane.definitions.find((d): d is PatternDefinition => d.kind === "pattern")!;
+    const payload = lane.source === "sequencer" ? defaultSequencerPads(undefined, undefined, undefined, 4, "timing" in track ? track.timing : undefined)[0]
+      : lane.source === "drummer" && "rows" in track ? defaultDrummerSequencerPads(track.rows, 4, track.timing)[0]
+      : lane.source === "controller" ? defaultControllerSequencerPad(4, "timing" in track ? track.timing : undefined)
+      : lane.source === "arpeggiator" ? defaultArpeggiator().pads[0] : { ...existing.payload, notes: [] };
+    const definition = { id: newClipId(), kind: "pattern", source: lane.source, payload, revision: 0, name: `${c.newPattern} ${lane.definitions.filter(d => d.kind === "pattern").length + 1}` } as PatternDefinition;
+  return definition;
+}
+
 /** The same ordered-child controls edit a clip root or a reusable container draft. */
 export function ContentEditor({ lane, items, level, sequencer, language, onChange }: {
   lane: ClipLane; items: ContentItem[]; level: "clip" | "group" | "supergroup";
@@ -17,13 +29,7 @@ export function ContentEditor({ lane, items, level, sequencer, language, onChang
   const run = (fn: () => void) => { try { fn(); setError(null); } catch (e) { setError(String(e)); } };
   const append = (definitionId: string) => onChange(lane.definitions, [...items, { id: newClipId(), definitionId }]);
   const freshPattern = () => {
-    const track = sequencer[sourceKeys[lane.source]].find(t => t.id === lane.id)!;
-    const existing = lane.definitions.find((d): d is PatternDefinition => d.kind === "pattern")!;
-    const payload = lane.source === "sequencer" ? defaultSequencerPads(undefined, undefined, undefined, 4, "timing" in track ? track.timing : undefined)[0]
-      : lane.source === "drummer" && "rows" in track ? defaultDrummerSequencerPads(track.rows, 4, track.timing)[0]
-      : lane.source === "controller" ? defaultControllerSequencerPad(4, "timing" in track ? track.timing : undefined)
-      : lane.source === "arpeggiator" ? defaultArpeggiator().pads[0] : { ...existing.payload, notes: [] };
-    const definition = { id: newClipId(), kind: "pattern", source: lane.source, payload, revision: 0, name: `${c.newPattern} ${lane.definitions.filter(d => d.kind === "pattern").length + 1}` } as PatternDefinition;
+    const definition = newStructurePattern(lane, sequencer, language);
     onChange([...lane.definitions, definition], [...items, { id: newClipId(), definitionId: definition.id }]);
   };
   return <div className="w-full space-y-2 text-xs text-slate-300">

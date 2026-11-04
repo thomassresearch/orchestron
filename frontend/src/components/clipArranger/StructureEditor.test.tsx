@@ -1,0 +1,57 @@
+import { clipHistoryStep } from "../../store/clipActions";
+import fixture from "../../../../backend/tests/fixtures/performances/device_names.json";
+import { sourceKeys } from "../../lib/clipArranger/migration";
+import type { SourceKind } from "../../lib/clipArranger/model";
+// @vitest-environment jsdom
+import { act,cleanup,fireEvent,render,screen,within,waitFor } from '@testing-library/react';
+import { afterEach,beforeEach,expect,it,vi } from 'vitest';
+import { useAppStore } from '../../store/useAppStore';
+import { useStructureDraft } from '../../lib/clipArranger/structureStore';
+import { ClipPerformance } from './ClipPerformance';
+import { migrateClipArrangement } from '../../lib/clipArranger/migration';
+beforeEach(()=>{
+ useAppStore.setState(useAppStore.getInitialState(),true);useStructureDraft.setState({draft:null});
+ const s=structuredClone(useAppStore.getState().sequencer);const t=s.tracks[0];
+ t.padLoopEnabled=true;t.padLoopPattern={groups:[],superGroups:[],rootSequence:[{type:'pad',padIndex:0},{type:'pad',padIndex:1}]};
+ s.clipArrangement=migrateClipArrangement(s).model!;const l=s.clipArrangement.lanes[0];l.cycleTicks=null;l.clips[0].mode='once';
+ useAppStore.setState({sequencer:s});vi.stubGlobal('ResizeObserver',class{observe(){}disconnect(){}});
+ HTMLDialogElement.prototype.showModal=function(){this.open=true;};HTMLDialogElement.prototype.close=function(){this.open=false;};
+});
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
+it.each(([{source:'sequencer'},{source:'score'},{source:'drummer'},{source:'controller',mode:'step'},{source:'controller',mode:'curve'},{source:'arpeggiator'}] as {source:SourceKind;mode?:'step'|'curve'}[]).flatMap(editor=>(['local','all'] as const).map(scope=>({...editor,scope}))))('groups and reorders $source $mode with $scope save/reload',async ({source,mode,scope})=>{
+ useAppStore.getState().applySequencerConfigSnapshot(fixture.config);
+ const state=structuredClone(useAppStore.getState().sequencer);
+ for(const key of Object.values(sourceKeys))for(const device of state[key]){device.padLoopEnabled=true;device.padLoopPattern={groups:[],superGroups:[],rootSequence:[{type:"pad",padIndex:0}]};if("playbackMode" in device)device.playbackMode="arranger";}
+ const track=state[sourceKeys[source]][0];track.padLoopEnabled=true;track.padLoopPattern={groups:[],superGroups:[],rootSequence:[{type:'pad',padIndex:0},{type:'pad',padIndex:1}]};
+ if(mode)state.controllerSequencers[0].controllerMode=mode;
+ state.clipArrangement=migrateClipArrangement(state).model!;
+ const selected=state.clipArrangement.lanes.find(l=>l.source===source)!;selected.cycleTicks=null;selected.clips[0].mode='once';
+ useAppStore.setState({sequencer:state});
+ const before=useAppStore.getState().sequencer;const lane=before.clipArrangement!.lanes.find(l=>l.source===source)!;
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);
+ fireEvent.click(within(document.querySelector(`[data-clip-lane="${lane.id}"]`) as HTMLElement).getByRole('button',{expanded:false}));
+ const buttons=screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
+ expect(buttons).toHaveLength(2);
+ fireEvent.click(buttons[0]);fireEvent.click(buttons[1],{shiftKey:true});
+ fireEvent.change(screen.getByRole('textbox',{name:'Name'}),{target:{value:'Phrase'}});
+ fireEvent.click(screen.getByRole('button',{name:'Group'}));
+ expect(useAppStore.getState().sequencer).toBe(before);
+ expect(useStructureDraft.getState().draft?.roots[0].definition?.name).toBe('Phrase');
+ fireEvent.click(screen.getByRole('button',{name:'Save structure'}));
+ fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
+ await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ expect(useAppStore.getState().sequencer.clipArrangement!.lanes.find(l=>l.id===lane.id)!.clips[0].children).toHaveLength(1);
+ const reordered=screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
+ fireEvent.click(reordered[1]);fireEvent.click(screen.getByRole('button',{name:'←'}));
+ fireEvent.click(screen.getByRole('button',{name:'Save structure'}));
+ const dialog=within(screen.getByRole('dialog',{name:'Save structure'}));
+ fireEvent.click(dialog.getByRole('radio',{name:scope==='all'?'All linked occurrences':'Only this occurrence'}));
+ fireEvent.click(dialog.getByRole('button',{name:'Save'}));
+ await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ const saved=structuredClone(useAppStore.getState().sequencer.clipArrangement);
+ const snapshot=JSON.parse(JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()));
+ act(()=>useAppStore.getState().applySequencerConfigSnapshot(snapshot));
+ expect(useAppStore.getState().sequencer.clipArrangement).toEqual(saved);
+ act(()=>{clipHistoryStep(false);clipHistoryStep(false);});expect(useAppStore.getState().sequencer.clipArrangement!.lanes.find(l=>l.id===lane.id)!.clips[0].children).toHaveLength(2);
+ act(()=>{clipHistoryStep(true);clipHistoryStep(true);});expect(useAppStore.getState().sequencer.clipArrangement).toEqual(saved);
+});

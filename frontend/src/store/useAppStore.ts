@@ -1,3 +1,4 @@
+import { useStructureDraft } from "../lib/clipArranger/structureStore";
 import { resolveClipDrafts } from "../lib/clipArranger/draftResolution";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { createArrangerHistoryActions, emptyArrangerHistory, historyMatches, readArrangerHistory } from "./arrangerHistory";
@@ -1206,6 +1207,7 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
 // Invalidate outside the component lifetime, including edits made while collapsed.
 useAppStore.subscribe((state, previous) => {
   if (state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) {
+    useStructureDraft.setState({draft:null});
     useAppStore.setState({ clipDrafts: {}, clipEditingKey: null, clipAuditionDraft: null });
   }
   if (state.sequencer !== previous.sequencer && state.arrangerHistory === previous.arrangerHistory &&

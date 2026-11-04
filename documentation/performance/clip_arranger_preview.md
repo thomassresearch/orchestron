@@ -57,3 +57,17 @@ The actual piano keyboard and configurable MIDI controller rows sit below the ar
 ## Preview limits and release verification
 
 The rollout gate remains off by default until the implementation acceptance matrix is complete. Do not treat the development preview as a promise of lossless downgrade to an older app. Keep the downloaded original and existing saved performances when evaluating migration. Long/dense visual workloads and the full hardware-input/transport stress matrix require final release review. Group audition currently uses the bounded legacy audition sequence: rests must fit whole local beats, and at most 256 tokens can be auditioned. Arrangement playback itself supports exact tick rests. Legacy CLI pad-edit commands reject clip performances; CLI round trips, runtime compilation and exports support the new format. See the implementation record under `specifications/redesign-arranger/` for the current evidence and remaining gates.
+
+## Assemble content directly on the timeline
+
+Expand a track and click a nested box to select it. Shift-click another sibling to select the inclusive range; Shift+Arrow extends that range with the keyboard. **Group** combines consecutive patterns/rests; **Supergroup** combines consecutive groups. Enter a name in the selection toolbar before grouping. Right-click a box for the same grouping actions. Double-click continues to open the existing musical/container editor.
+
+Use **Add content** or the **+** insertion markers before, between or after boxes to search the track's existing definitions. **Adopt linked** retains sharing; **Create variation** gives the inserted definition its own identity. The picker also offers **New pattern** and explicit rests. Unused saved definitions remain available.
+
+Drag a box or contiguous selection to an insertion boundary. The cyan target and destination text show where it will go. Compatible containers within the same clip/pass accept moves; overlapping, cross-track, cross-clip and self-nesting moves are rejected. Move arrows and **Move into container** provide keyboard alternatives. Escape or cancelling a pointer gesture leaves the structure unchanged.
+
+Structural work is a session-only draft: the song continues to play saved content. **Save structure** applies the local/all-linked scope atomically; **Discard** abandons it. Draft Undo/Redo is separate from the arranger's saved history. Performance save/export offers the existing saved definitions when unresolved drafts remain; loading another performance requires resolving them.
+
+Longer content grows the affected windows if space permits. Loop windows preserve their full and partial repetition span. Saving all linked occurrences evaluates every affected clip together. A collision rejects the complete save, retains the draft and names the blocking clips; later independent clips are never shifted. Shortening content does not automatically shrink clips. Valid growth extends Song end when necessary.
+
+![Direct selection and reordering of nested patterns](../../screenshots/clip-arranger-direct-content.png)

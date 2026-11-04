@@ -996,3 +996,11 @@ const clipEndHelp = {
 for (const language of ["english", "german", "french", "spanish"] as const) {
   sequencerHelpDocuments.sequencer_multitrack_arranger[language].markdown += "\n\n" + clipTransportHelp[language] + "\n\n" + clipEndHelp[language];
 }
+
+const directStructureHelp = {
+ english: "Expand a track, Shift-click adjacent boxes and use Group/Supergroup. Add content searches this track’s definitions. Drag selections to insertion boundaries or compatible containers. Save structure applies local/all-linked changes atomically. Longer content grows affected clips while preserving loop repetitions; collisions reject the save without moving later clips. Unsaved structure is visual only.",
+ german: "Spur erweitern, benachbarte Boxen mit Umschalt-Klick auswählen und Gruppe/Supergruppe verwenden. Inhalt hinzufügen durchsucht die Definitionen dieser Spur. Auswahlen an Einfügegrenzen oder in passende Container ziehen. Struktur speichern übernimmt lokale oder verknüpfte Änderungen atomar. Längerer Inhalt erweitert Clips unter Erhalt ihrer Wiederholungen; Kollisionen verhindern das Speichern, ohne spätere Clips zu verschieben. Ungespeicherte Struktur bleibt rein visuell.",
+ french: "Développez une piste, sélectionnez des cases voisines avec Maj-clic puis utilisez Groupe/Supergroupe. Ajouter du contenu recherche les définitions de la piste. Glissez la sélection vers une limite ou un conteneur compatible. Enregistrer la structure applique atomiquement la portée choisie. Le contenu plus long agrandit les clips en conservant les répétitions ; une collision bloque l’enregistrement sans déplacer les clips suivants. Le brouillon reste visuel.",
+ spanish: "Expande una pista, selecciona cajas contiguas con Mayús-clic y usa Grupo/Supergrupo. Añadir contenido busca las definiciones de la pista. Arrastra la selección a un límite o contenedor compatible. Guardar estructura aplica el alcance elegido de forma atómica. El contenido más largo amplía los clips conservando las repeticiones; una colisión bloquea el guardado sin mover clips posteriores. El borrador es solo visual."
+};
+for (const language of ["english", "german", "french", "spanish"] as const) sequencerHelpDocuments.sequencer_multitrack_arranger[language].markdown += "\n\n" + directStructureHelp[language];
