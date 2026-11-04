@@ -19,6 +19,8 @@ The multitrack arranger becomes the main place to compose a performance. Clips d
 | [Task index](tasks/README.md) | Six independently reviewable implementation tasks and their gates |
 | [Mockup reference](reference/README.md) | Durable copies of the chosen interactive mockup, provenance and limitations |
 
+Planned extension: [Clip transposition](../clip-transposition/README.md) specifies shared per-repetition transpositions and independent pattern, group and supergroup offsets, with a staged implementation plan and acceptance scenarios. It is not part of the implemented preview behavior yet.
+
 Open the [standalone mockup](reference/orchestron-preview.html) locally to inspect the chosen visual design. Its sandbox and CSP are preserved. It is a reference artifact, not app implementation, and has not been published.
 
 ## Authority and interpretation
