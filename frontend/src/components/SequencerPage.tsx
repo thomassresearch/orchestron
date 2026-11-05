@@ -933,7 +933,7 @@ function SequencerPageContent(props: SequencerPageProps) {
           renderEditor={(kind, id, state) => {
             const view = { ...state, tracks: state.tracks.filter(t => t.id === id), scoreTracks: state.scoreTracks.filter(t => t.id === id), drummerTracks: state.drummerTracks.filter(t => t.id === id), controllerSequencers: state.controllerSequencers.filter(t => t.id === id), arpeggiators: state.arpeggiators.filter(t => t.id === id) };
             const editorContext = { ...context, sequencer: view };
-            return kind === "sequencer" ? <MelodicSequencersBody context={editorContext} /> : kind === "drummer" ? <DrummerSequencersBody context={editorContext} /> : kind === "controller" ? <ControllerSequencersBody context={editorContext} /> : kind === "arpeggiator" ? <ArpeggiatorsBody context={editorContext} /> : <ScoreSequencers sequencer={view} language={guiLanguage} collapsed={false} onCollapse={() => {}} readPosition={props.data.readPlaybackTransportSubunit} />;
+            return kind === "sequencer" ? <MelodicSequencersBody context={editorContext} /> : kind === "drummer" ? <DrummerSequencersBody context={editorContext} /> : kind === "controller" ? <ControllerSequencersBody context={editorContext} /> : kind === "arpeggiator" ? <ArpeggiatorsBody context={editorContext} /> : <ScoreSequencers onHelpRequest={onHelpRequest} sequencer={view} language={guiLanguage} collapsed={false} onCollapse={() => {}} readPosition={props.data.readPlaybackTransportSubunit} />;
           }} /> : <>
         {CLIP_ARRANGER_ENABLED && <button className="mt-3 rounded border border-cyan-700 px-3 py-2 text-xs text-cyan-200" onClick={() => {
           const result = migrateClipArrangement(useAppStore.getState().sequencer);
@@ -966,7 +966,7 @@ function SequencerPageContent(props: SequencerPageProps) {
           <MelodicSequencersBody context={context} />
         </CollapsiblePanel>
 
-        <ScoreSequencers sequencer={props.data.sequencer} language={guiLanguage} collapsed={collapsedPanels.score} onCollapse={v => onPanelCollapsedChange("score", v)} readPosition={props.data.readPlaybackTransportSubunit} />
+        <ScoreSequencers onHelpRequest={onHelpRequest} sequencer={props.data.sequencer} language={guiLanguage} collapsed={collapsedPanels.score} onCollapse={v => onPanelCollapsedChange("score", v)} readPosition={props.data.readPlaybackTransportSubunit} />
 
         <CollapsiblePanel unmountOnCollapse
           title={ui.drummerSequencers}

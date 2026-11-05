@@ -1,7 +1,7 @@
 import { ClipEditingContext } from "../clipArranger/context";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { ScoreTransportContext } from "./ScoreTransportContext";
-import type { GuiLanguage, ScorePadState, ScoreTrackState, SequencerState, SequencerTimingConfig } from "../../types";
+import type { GuiLanguage, HelpDocId, ScorePadState, ScoreTrackState, SequencerState, SequencerTimingConfig } from "../../types";
 import { useAppStore } from "../../store/useAppStore";
 import { addScoreTrack, removeScoreTrack, selectScorePad, updateScoreTrack } from "../../store/scoreActions";
 import { normalizeSequencerTiming } from "../../store/appStoreModel";
@@ -9,6 +9,7 @@ import { scoreBeatTicks, scoreHasContent, scoreLengthTicks } from "../../lib/sco
 import { arrangerTransportExtent } from "../../lib/arrangerTransport";
 import { linkedModeForScaleType, linkedScaleTypeForMode, transposeSequencerNoteByScaleDegree, SEQUENCER_MODE_OPTIONS, SEQUENCER_SCALE_OPTIONS } from "../../lib/sequencer";
 import { CollapsiblePanel } from "../CollapsiblePanel";
+import { HelpIconButton } from "../HelpIconButton";
 import { PerformanceDeviceName } from "./PerformanceDeviceName";
 import { PatternWorkspace } from "./PatternWorkspace";
 import { SequencerTimingControls } from "./SequencerTimingControls";
@@ -23,8 +24,9 @@ import { sequencerEditingView } from "../../store/sequencerEdits";
 const button = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-cyan-300 disabled:opacity-40";
 const input = "rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200";
 
-export function ScoreSequencers({ sequencer, language, collapsed, onCollapse, readPosition }: {
+export function ScoreSequencers({ sequencer, language, collapsed, onCollapse, readPosition, onHelpRequest }: {
   sequencer: SequencerState; language: GuiLanguage; collapsed: boolean; onCollapse: (value: boolean) => void; readPosition?: () => number | null;
+  onHelpRequest?: (id: HelpDocId) => void;
 }) {
   const clipEditing = useContext(ClipEditingContext);
   const c = scoreCopy(language);
@@ -32,8 +34,8 @@ export function ScoreSequencers({ sequencer, language, collapsed, onCollapse, re
   const editing = sequencerEditingView(sequencer, selections);
   return <CollapsiblePanel unmountOnCollapse title={c.title} collapsed={collapsed} onCollapsedChange={onCollapse}
     className="mt-4 rounded-xl border border-indigo-800/60 bg-slate-950/85 p-3" titleClassName="text-indigo-200"
-    actions={!clipEditing && <button className={button} disabled={sequencer.scoreTracks.length >= 16} onClick={() => { addScoreTrack(c.name); onCollapse(false); }}>{c.add}</button>}>
-    <details className="mb-3 text-xs text-slate-400"><summary className="cursor-pointer">{c.helpTitle}</summary><p className="mt-2 max-w-4xl leading-relaxed">{c.help}</p></details>
+    help={onHelpRequest ? <HelpIconButton guiLanguage={language} onClick={() => onHelpRequest("sequencer_score_sequencer")} /> : null}
+    actions={!clipEditing && <button type="button" className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50" disabled={sequencer.scoreTracks.length >= 16} onClick={() => { addScoreTrack(c.name); onCollapse(false); }}>{c.add}</button>}>
     {editing.scoreTracks.map(track => <ScoreCard key={track.id} track={track} language={language} readPosition={readPosition}
       soundingPad={sequencer.scoreTracks.find(t => t.id === track.id)?.activePad ?? 0} running={sequencer.isPlaying && track.enabled} />)}
   </CollapsiblePanel>;
@@ -51,7 +53,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
   const basis = useMemo(() => signature(pad), [pad]);
   const [history, setHistory] = usePerformanceEditorState<{ past: ScorePadState[]; future: ScorePadState[]; basis?: string }>(`device:${track.id}`, `scoreHistory:${clipEditing ? clipKey : padIndex}`, { past: [], future: [] });
   useEffect(() => { if (history.basis && history.basis !== basis) setHistory({ past: [], future: [], basis }); }, [basis, history.basis, setHistory]);
-  const attempt = (fn: () => void) => { try { fn(); setError(null); } catch (e) { setError(`${c.error}: ${String(e)}`); } };
+  const attempt = (fn: () => void) => { try { fn(); setError(null); return true; } catch (e) { setError(`${c.error}: ${String(e)}`); return false; } };
   const changePad = (next: ScorePadState) => attempt(() => {
     if (next === pad) return;
     updateScoreTrack(track.id, t => ({ ...t, pads: t.pads.map((p, i) => i === padIndex ? next : p) }));

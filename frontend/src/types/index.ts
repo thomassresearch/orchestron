@@ -7,6 +7,7 @@ export type HelpDocId =
   | "instrument_graph_editor"
   | "instrument_runtime_panel"
   | "sequencer_instrument_rack"
+  | "sequencer_score_sequencer"
   | "sequencer_tracks"
   | "sequencer_track_editor"
   | "sequencer_multitrack_arranger"

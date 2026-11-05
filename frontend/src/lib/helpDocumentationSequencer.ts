@@ -7,12 +7,19 @@ import { patternWorkspaceHelp } from "./helpDocumentationPatternWorkspace";
 import { independentPlaybackHelp } from "./helpDocumentationIndependentPlayback";
 import { arrangementHelp } from "./arrangementHelp";
 import { arpeggiatorHelp } from "./helpDocumentationArpeggiator";
+import { scoreHelp } from "./helpDocumentationScore";
 import { collapsiblePanelHelp } from "./helpDocumentationPanels";
 import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
 import { audioRoutingHelp } from "./helpDocumentationAudio";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, SequencerHelpDocId } from "./helpDocumentationTypes";
 
 export const sequencerHelpDocuments: HelpDocumentSet<SequencerHelpDocId> = {
+  sequencer_score_sequencer: {
+    english: { title: "Score Sequencer", markdown: scoreHelp.english },
+    german: { title: "Score-Sequenzer", markdown: scoreHelp.german },
+    french: { title: "Séquenceur de partition", markdown: scoreHelp.french },
+    spanish: { title: "Secuenciador de partitura", markdown: scoreHelp.spanish }
+  },
   sequencer_instrument_rack: {
     english: {
       title: "Instrument Rack",

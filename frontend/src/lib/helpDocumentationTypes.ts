@@ -18,6 +18,7 @@ export type InstrumentHelpDocId = Extract<
 export type SequencerHelpDocId = Extract<
   HelpDocId,
   | "sequencer_instrument_rack"
+  | "sequencer_score_sequencer"
   | "sequencer_tracks"
   | "sequencer_track_editor"
   | "sequencer_multitrack_arranger"

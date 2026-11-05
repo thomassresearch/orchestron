@@ -569,6 +569,7 @@ export default function App() {
     seekSequencerTransport,
     onApplyBrowserClockLatencySettings,
     primeBrowserClockAudio,
+    previewScoreNote,
     auditionDevice,
     queueSequencerPadRuntime,
     resolveSequencerSessionId,
@@ -1956,7 +1957,7 @@ export default function App() {
 
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
-            <ScoreTransportContext.Provider value={{ play: transportDevice, queue: async (id, pad) => { const session = resolveSequencerSessionId(); if (!session) throw new Error(appCopy.errors.noActiveSessionForPadSwitching); await queueSequencerPadRuntime(session, id, pad); } }}><PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
+            <ScoreTransportContext.Provider value={{ previewNote: previewScoreNote, play: transportDevice, queue: async (id, pad) => { const session = resolveSequencerSessionId(); if (!session) throw new Error(appCopy.errors.noActiveSessionForPadSwitching); await queueSequencerPadRuntime(session, id, pad); } }}><PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
               editorStore={performanceEditors.store}
               collapsedPanels={collapsedPanels}
               onPanelCollapsedChange={setPanelCollapsed}

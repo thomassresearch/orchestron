@@ -1,10 +1,12 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { GuiLanguage, ScoreNoteState, ScorePadState, ScoreTrackState } from "../../types";
 import { buildSequencerChordOptions, scaleDegreeForNote } from "../../lib/sequencer";
-import { scoreBeatTicks, scoreLengthTicks } from "../../lib/scoreSequencer";
+import { SCORE_TICKS_PER_QUARTER, scoreBeatTicks, scoreLengthTicks } from "../../lib/scoreSequencer";
 import { usePerformanceEditorState } from "./PerformanceEditorState";
 import { scoreCopy } from "./scoreCopy";
+import { ScoreTransportContext } from "./ScoreTransportContext";
+import { useAppStore } from "../../store/useAppStore";
 
 const names = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 export const scorePitchLabel = (pitch: number) => `${names[pitch % 12]}${Math.floor(pitch / 12) - 1}`;
@@ -37,7 +39,7 @@ function ScorePlayhead({ track, pad, width, height, readPosition }: {
 
 export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, language, onCommit, readPosition, soundingPad }: {
   track: ScoreTrackState; padIndex: number; pad: ScorePadState; language: GuiLanguage;
-  onCommit: (pad: ScorePadState) => void; readPosition?: () => number | null; soundingPad: number;
+  onCommit: (pad: ScorePadState) => boolean; readPosition?: () => number | null; soundingPad: number;
 }) {
   const c = scoreCopy(language), owner = `device:${track.id}` as const, key = `score:${padIndex}`;
   const [selected, setSelected] = usePerformanceEditorState<string[]>(owner, `${key}:selection`, []);
@@ -47,6 +49,33 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
   const [savedScroll, saveScroll] = usePerformanceEditorState(owner, `${key}:scroll`, { left: 0, top: 50 * 24 });
   const [tool, setTool] = usePerformanceEditorState<"draw" | "select">(owner, "scoreTool", "draw");
   const [position, setPosition] = useState(0);
+  const transport = useContext(ScoreTransportContext);
+  const clipKey = useAppStore(s => s.clipEditingKey);
+  const [appendOverflow, setAppendOverflow] = useState(false);
+  const [pressedPitches, setPressedPitches] = useState<number[]>([]);
+  const heldKeys = useRef(new Map<string, { pitch: number; release: () => void }>());
+  const releaseKey = (input: string) => heldKeys.current.get(input)?.release();
+  const releaseKeys = useCallback(() => {
+    for (const held of [...heldKeys.current.values()]) held.release();
+  }, []);
+  const pressKey = (input: string, pitch: number) => {
+    releaseKey(input);
+    if (!transport) return;
+    const release = transport.previewNote({ trackId: track.id, pitch, midiChannel: track.midiChannel,
+      scaleRoot: pad.scaleRoot, scaleType: pad.scaleType, mode: pad.mode }, () => {
+      heldKeys.current.delete(input);
+      setPressedPitches([...heldKeys.current.values()].map(held => held.pitch));
+    });
+    heldKeys.current.set(input, { pitch, release });
+    setPressedPitches([...heldKeys.current.values()].map(held => held.pitch));
+  };
+  useEffect(() => {
+    const hide = () => { if (document.hidden) releaseKeys(); };
+    window.addEventListener("blur", releaseKeys);
+    document.addEventListener("visibilitychange", hide);
+    return () => { window.removeEventListener("blur", releaseKeys); document.removeEventListener("visibilitychange", hide); releaseKeys(); };
+  }, [track.id, track.midiChannel, padIndex, clipKey, releaseKeys]);
+  useEffect(() => { setAppendOverflow(false); }, [pad]);
   const [propertyId, setPropertyId] = useState<string | null>(null);
   const [preview, setPreview] = useState<ScoreNoteState[] | null>(null);
   const [marquee, setMarquee] = useState<{ a: number; b: number; low: number; high: number } | null>(null);
@@ -131,6 +160,22 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
     const added = clipboard.map(n => ({ ...n, id: crypto.randomUUID(), startTicks: n.startTicks - start + position })).filter(n => n.startTicks < length);
     onCommit({ ...pad, notes: [...pad.notes, ...added] }); setSelected(added.map(n => n.id));
   };
+  const appendNote = (pitch: number) => {
+    const startTicks = pad.notes.reduce((end, note) => Math.max(end, note.startTicks + note.durationTicks), 0);
+    if (startTicks + SCORE_TICKS_PER_QUARTER > length) { setAppendOverflow(true); return; }
+    setAppendOverflow(false);
+    const note = { id: crypto.randomUUID(), pitch, startTicks, durationTicks: SCORE_TICKS_PER_QUARTER, velocity: 100 };
+    if (!onCommit({ ...pad, notes: [...pad.notes, note] })) return;
+    setSelected([note.id]); setPropertyId(null);
+    const el = scroll.current;
+    if (el) {
+      const start = startTicks / beat * zoom, end = (startTicks + note.durationTicks) / beat * zoom;
+      if (start < el.scrollLeft) el.scrollLeft = start;
+      else if (end > el.scrollLeft + view.width - 64) el.scrollLeft = Math.min(start, end - view.width + 64);
+      const next = { left: el.scrollLeft, top: el.scrollTop };
+      saveScroll(next); setView(v => ({ ...v, ...next }));
+    }
+  };
   return <div className="space-y-2">
     <div className="flex flex-wrap items-center gap-2">
       {(["draw", "select"] as const).map(t => <button key={t} className={`${button} ${tool === t ? "!border-cyan-300 !text-cyan-200" : ""}`} aria-pressed={tool === t} onClick={() => setTool(t)}>{c[t]}</button>)}
@@ -139,6 +184,7 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
       <label className="text-xs text-slate-400">{c.zoom} <input aria-label={c.zoom} type="range" min={-4} max={8} step={0.1} value={Math.log2(zoom)} onChange={e => setZoom(2 ** Number(e.target.value))} /></label>
       <label className="text-xs text-slate-400">{c.height} <input aria-label={c.height} type="range" min={14} max={40} value={row} onChange={e => setRow(Number(e.target.value))} /></label>
     </div>
+    {appendOverflow && <p role="alert" className="text-sm text-amber-300">{c.appendOverflow}</p>}
     {property && <div className="flex flex-wrap items-end gap-3 rounded border border-cyan-800 bg-slate-900 p-2" role="group" aria-label={c.properties}>
       <span className="text-sm text-cyan-200">{scorePitchLabel(property.pitch)}</span>
       <label className="text-xs">{c.velocity} <input className="w-16 rounded bg-slate-950 p-1" type="number" min={0} max={127} value={property.velocity} onChange={e => { const velocity = Number(e.target.value); if (Number.isInteger(velocity) && velocity >= 0 && velocity <= 127) onCommit({ ...pad, notes: pad.notes.map(n => n.id === property.id ? { ...n, velocity } : n) }); }} /></label>
@@ -160,6 +206,7 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
           onPointerUp={() => { const next = previewRef.current; cancel(); if (next) onCommit({ ...pad, notes: next }); }}
           onContextMenu={e => { e.preventDefault(); const id = (e.target as Element).closest("[data-note]")?.getAttribute("data-note"); if (id) { setSelected([id]); setPropertyId(id); } }}
           onKeyDown={e => {
+            if ((e.target as Element).closest("[data-keyboard]")) return;
             if (e.key === "Escape") { cancel(); setPropertyId(null); }
             if (e.key === "F10" && e.shiftKey && selected[0]) { e.preventDefault(); setPropertyId(selected[0]); }
             if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); onCommit({ ...pad, notes: pad.notes.filter(n => !selectedSet.has(n.id)) }); }
@@ -184,10 +231,35 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
           </g>; })}
           {marquee && <rect x={64 + marquee.a / beat * zoom} y={(127 - marquee.high) * row + 28} width={(marquee.b - marquee.a) / beat * zoom} height={(marquee.high - marquee.low + 1) * row} fill="#22d3ee22" stroke="#22d3ee" pointerEvents="none" />}
           {soundingPad === padIndex && <ScorePlayhead track={track} pad={pad} width={width} height={height} readPosition={readPosition} />}
-          {rows.map(i => { const pitch = 127 - i, degree = scaleDegreeForNote(pitch, pad.scaleRoot, pad.mode), black = [1,3,6,8,10].includes(pitch % 12); return <g key={i} data-keyboard="true">
-            <rect x={view.left} y={i * row + 28} width={64} height={row} fill={black ? "#0f172a" : "#cbd5e1"} stroke="#475569" />
+          {rows.map(i => { const pitch = 127 - i, degree = scaleDegreeForNote(pitch, pad.scaleRoot, pad.mode), black = [1,3,6,8,10].includes(pitch % 12), pressed = pressedPitches.includes(pitch); return <g key={i} data-keyboard="true"
+            role="button" tabIndex={0} aria-label={scorePitchLabel(pitch)} aria-pressed={pressed} className="cursor-pointer focus:outline focus:outline-2 focus:outline-cyan-300"
+            onPointerDown={e => {
+              if (e.button !== 0) return;
+              e.preventDefault(); e.stopPropagation();
+              e.currentTarget.focus({ preventScroll: true }); e.currentTarget.setPointerCapture(e.pointerId);
+              pressKey(`pointer:${e.pointerId}`, pitch);
+            }}
+            onPointerUp={e => { e.stopPropagation(); releaseKey(`pointer:${e.pointerId}`); }}
+            onPointerCancel={e => { e.stopPropagation(); releaseKey(`pointer:${e.pointerId}`); }}
+            onLostPointerCapture={e => { e.stopPropagation(); releaseKey(`pointer:${e.pointerId}`); }}
+            onDoubleClick={e => { e.preventDefault(); e.stopPropagation(); if (e.button === 0) appendNote(pitch); }}
+            onKeyDown={e => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault(); e.stopPropagation(); if (!e.repeat) pressKey(`key:${pitch}:${e.key}`, pitch);
+              } else if (e.key === "Escape") releaseKeys();
+            }}
+            onKeyUp={e => {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); releaseKey(`key:${pitch}:${e.key}`); }
+            }}
+            onBlur={e => {
+              releaseKey(`key:${pitch}:Enter`); releaseKey(`key:${pitch}: `);
+              if (!(e.relatedTarget instanceof Element) || !e.relatedTarget.closest("[data-keyboard]") ||
+                  !e.currentTarget.ownerSVGElement?.contains(e.relatedTarget)) releaseKeys();
+            }}>
+            <title>{c.keyboardHint}</title>
+            <rect x={view.left} y={i * row + 28} width={64} height={row} fill={pressed ? "#22d3ee" : black ? "#0f172a" : "#cbd5e1"} stroke="#475569" />
             {degree && <rect x={view.left + 57} y={i * row + 29} width={6} height={row - 2} fill={colors[degree - 1]} />}
-            <text x={view.left + 7} y={i * row + 28 + row * 0.7} fontSize={11} fill={black ? "#e2e8f0" : "#0f172a"}>{scorePitchLabel(pitch)}{degree ? ` · ${degree}` : ""}</text>
+            <text x={view.left + 7} y={i * row + 28 + row * 0.7} fontSize={11} fill={black && !pressed ? "#e2e8f0" : "#0f172a"}>{scorePitchLabel(pitch)}{degree ? ` · ${degree}` : ""}</text>
           </g>; })}
           <rect data-keyboard="true" x={view.left} y={view.top} width={view.width} height={26} fill="#0f172a" />
           {beats.filter(b => b % Math.max(track.timing.meterNumerator, Math.ceil(42 / zoom / track.timing.meterNumerator) * track.timing.meterNumerator) === 0).map(b => <text key={b} x={64 + b * zoom + 4} y={view.top + 17} fill="#cbd5e1" fontSize={11}>{Math.floor(b / track.timing.meterNumerator) + 1}</text>)}

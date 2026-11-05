@@ -37,10 +37,15 @@ Examples include:
 - Opcode catalog
 - Graph editor header/area
 - Runtime panel
-- Sequencer sections (rack, tracks, multitrack arranger, piano rolls, MIDI controllers)
+- Sequencer sections (rack, tracks, Score Sequencers, multitrack arranger, piano rolls, MIDI controllers)
 - Config page sections
 
 Clicking a context `?` opens a markdown help modal tailored to that UI area.
+
+The Score Sequencer uses this same top-right button in its panel and clip pattern
+editor, including while collapsed. Its help explains keyboard auditioning,
+double-click quarter-note insertion, drawing, editing and playback in all four
+GUI languages.
 
 On the Instrument Design, Perform, and Config pages, these help modals focus on the current tool, device, transport section, or engine setting panel instead of repeating generic UI conventions.
 

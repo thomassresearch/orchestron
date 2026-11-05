@@ -38,6 +38,12 @@ Select an instrument clip and use **Generate automation** to create one bound co
 
 ## Edit the current musical controls
 
+For a Score track, add a clip, use its inline **+** / **Add content → New pattern**,
+then double-click the nested pattern to open the **Score sequencer**. Hold its
+piano keys to audition pitches or double-click them to append quarter notes.
+Use **Save** to choose a local variation or update all linked occurrences.
+See the [Score pattern walkthrough](score_sequencers.md#create-a-score-pattern-in-the-clip-arranger).
+
 Double-click a nested box, or focus its name and press Enter, to open the existing sequencer or arpeggiator in context. Its separate pattern workspace and old pad-source controls are replaced by the clip breadcrumb, draft status, Play edit and Save. Musical controls remain the production controls: notes/chords/holds/strums, sparse score notes, drum velocities/ratchets, both controller datasets, and arpeggiator parameters/presets. Lane-wide timing, routing and instrument settings affect the whole track.
 
 Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.

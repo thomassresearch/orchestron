@@ -5,6 +5,10 @@ and velocity for every note. Add one in **Perform → Score Sequencers**, choose
 MIDI channel to match a rack instrument, and draw notes in the score. Each device
 has eight pads; a new pad starts at four local bars.
 
+The **?** button at the top right opens the standard help modal in English,
+German, French or Spanish, following the GUI language. It remains available
+while the panel is collapsed and also appears in the clip pattern editor.
+
 The rose **Remove** button sits at the right end of each device header, alongside
 its name and Play/Stop controls, matching the other sequencers.
 
@@ -17,6 +21,8 @@ pitches remain available. Coloured rows and keyboard markers show scale degrees;
 notes outside the selected mode remain editable. Each pad remembers its own
 scale and mode. Changing these controls updates guidance without moving notes.
 
+- **Play a key:** press and hold a vertical piano key to audition its pitch at velocity 100 through this device's MIDI channel. Release to stop; focused keys also respond to Enter and Space. The instrument engine starts automatically if needed, without starting the score or arranger, and remains running until stopped. Releasing during startup cancels that pending note. Collapsing, leaving the editor or losing focus releases held keys.
+- **Collect a melody:** double-click a key to append a quarter note at velocity 100 to the edited pad. Start at zero if empty, otherwise exactly after the latest note end, including hidden notes. Subdivision is ignored: a quarter occupies one local beat in /4 or two in /8. Pattern length stays fixed; increase it first if the whole note will not fit. Each insertion is one Undo action and selects and reveals the new note. Insertion works without audio. Collect pitches, then arrange their rhythm and duration.
 - **Draw:** drag empty space to set a note's start and duration. Drag a note to move it; drag either edge to resize it. Creation, movement and resizing snap to the selected subdivision. Changing subdivision leaves existing notes in place.
 - **Select:** drag a rectangle around notes. Cmd/Ctrl-click adds or removes a note from the selection; dragging selected notes moves them together.
 - **Copy / Paste:** copy selected notes and paste them at the last clicked score position. The clipboard is shared between this device's pads.
@@ -33,6 +39,10 @@ The score has a separate 25-action undo/redo history per pad. Selection,
 clipboard, history, zoom and scroll survive collapse and view switches during
 the session. New, Load and Import reset this temporary editor state. These
 settings are not stored in a performance or its arranger history.
+
+![Score Sequencer help opened with the question-mark button](../../screenshots/score-sequencer-help.png)
+
+<!-- pagebreak -->
 
 ## Duration and hidden notes
 
@@ -106,3 +116,21 @@ meaning.
 ## Clip transposition
 
 The clip arranger supports [shared repetition transpositions and independent nested offsets](clip_arranger_preview.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.
+
+## Create a Score pattern in the clip arranger
+
+In the new [multitrack clip editor](clip_arranger_preview.md), Score patterns open
+this same Score editor. The clip arranger is currently a development preview;
+see its guide for enabling it.
+
+1. Choose **Add track → Score** and match its MIDI channel to a rack instrument.
+2. Add a clip with the track's **+**, or double-click empty lane space.
+3. Use the clip's inline **+** / **Add content**, then **New pattern** to insert a Score pattern. Existing definitions can also be adopted as linked patterns.
+4. Double-click the nested pattern box, or focus its name and press **Enter**. The Score sequencer opens in context with the clip breadcrumb and draft controls.
+5. Hold piano keys to try pitches and double-click to collect quarter notes; then move and resize notes. The **?** opens the same multilingual help.
+6. Use **Play edit** to audition the pattern. **Save** asks whether to update **Only this occurrence** or **All linked occurrences**. A local save creates a variation; cancelling keeps the draft. Save the pattern before saving or exporting the performance to include these edits.
+
+Pattern length and the clip window are independent. Saving musical edits keeps
+the clip boundaries; use **Fit clip to content** when the clip should match its
+content. The clip editor replaces the separate pad workspace and old pad-source
+controls with its draft controls.

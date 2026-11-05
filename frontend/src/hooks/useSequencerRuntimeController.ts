@@ -56,6 +56,8 @@ import type {
 } from "../types";
 
 import { useBrowserClockAudioController } from "./useBrowserClockAudioController";
+import { useScoreKeyboardPreview } from "./useScoreKeyboardPreview";
+import type { PreviewScoreNote } from "../components/sequencer/ScoreTransportContext";
 import type { AudibleBrowserClockTransportEvent } from "../audio/browserClockWorkerProtocol";
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>;
@@ -100,6 +102,7 @@ interface UseSequencerRuntimeControllerParams {
 }
 
 interface UseSequencerRuntimeControllerResult {
+  previewScoreNote: PreviewScoreNote;
   transportDevice: (deviceId: string | null, playing: boolean) => Promise<void>;
   auditionDevice: AuditionDevice;
   cancelPendingArpeggiatorEdits: () => void;
@@ -1461,7 +1464,10 @@ export function useSequencerRuntimeController({
     void stopSequencerTransportRef.current(false);
   }, []);
 
+  const previewScoreNote = useScoreKeyboardPreview(browserClockClientRef, setSequencerError);
+
   return {
+    previewScoreNote,
     transportDevice,
     auditionDevice,
     cancelPendingArpeggiatorEdits,
