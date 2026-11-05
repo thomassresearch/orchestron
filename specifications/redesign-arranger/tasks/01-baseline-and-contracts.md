@@ -1,6 +1,6 @@
 # Task 01 — Baseline and compatibility contracts
 
-Status: Contracts adopted and integration seams implemented; complete baseline characterization remains open. Depends on: none. Gate: G1. Next: [Task 02](02-clip-model-and-migration.md).
+Status (reviewed 2026-11-05): Contracts and integration seams implemented. Remaining: migration-category traceability, targeted editor-capability gaps and matched whole-arranger GUI/audio measurements; transposition preparation baselines already exist. See [priorities 3, 5 and 6](../remaining-work-review.md#recommended-order). Depends on: none. Gate: G1. Next: [Task 02](02-clip-model-and-migration.md).
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

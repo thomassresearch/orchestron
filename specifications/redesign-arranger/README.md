@@ -1,6 +1,6 @@
 # Performance view and multitrack arranger redesign
 
-Status: integrated development preview, 2026-11-03. Implementation is based on repository revision `d82c682`; default cutover remains gated. See the [implementation record](implementation-record.md) for delivered behavior, verification and remaining acceptance work.
+Status: integrated development preview; default cutover remains gated. The original implementation started at `d82c682`. The [2026-11-05 implementation cross-check](remaining-work-review.md), reviewed at `de76638`, prioritizes the current remaining work and supersedes stale backlog descriptions. See the [implementation record](implementation-record.md) for delivery history.
 
 The multitrack arranger becomes the main place to compose a performance. Clips define when a source plays; reusable patterns, groups and supergroups define what it plays. Selecting a clip opens the existing sequencer or arpeggiator editor in that timeline context. A fixed piano keyboard and the existing manual MIDI controllers remain below the arranger.
 
@@ -14,12 +14,13 @@ The multitrack arranger becomes the main place to compose a performance. Clips d
 | [UI design](ui-design.md) | Layout, compact previews, nested editing, save dialog and preservation requirements |
 | [Data and playback contracts](data-and-playback-contracts.md) | Clip timing, references, drafts, transport, migration and export behavior |
 | [Implementation plan](implementation-plan.md) | Existing code seams, sequencing, risk controls and acceptance matrix |
-| [Direct-content review](direct-content-review.md) | Removal, transaction/drag/growth fixes, verification and remaining integration gaps |
+| [Direct-content review](direct-content-review.md) | Removal, transaction/drag/growth fixes and closure of the container/conflict integration gaps |
 | [Implementation record](implementation-record.md) | Implemented contracts, verification evidence and remaining release gates |
+| [Prioritized remaining work](remaining-work-review.md) | Current code/test cross-check, confirmed gaps, completed items and release priorities |
 | [Task index](tasks/README.md) | Six independently reviewable implementation tasks and their gates |
 | [Mockup reference](reference/README.md) | Durable copies of the chosen interactive mockup, provenance and limitations |
 
-Planned extension: [Clip transposition](../clip-transposition/README.md) specifies shared per-repetition transpositions and independent pattern, group and supergroup offsets, with a staged implementation plan and acceptance scenarios. It is not part of the implemented preview behavior yet.
+Implemented extension: [Clip transposition](../clip-transposition/README.md) adds shared per-repetition transpositions and independent pattern, group and supergroup offsets. Its [implementation record](../clip-transposition/implementation-record.md) includes exact-context audition, verification and measurements. The broader default-rollout gate remains unchanged.
 
 Open the [standalone mockup](reference/orchestron-preview.html) locally to inspect the chosen visual design. Its sandbox and CSP are preserved. It is a reference artifact, not app implementation, and has not been published.
 

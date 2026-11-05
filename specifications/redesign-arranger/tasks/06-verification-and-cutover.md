@@ -1,6 +1,6 @@
 # Task 06 — Compatibility verification, documentation and cutover
 
-Status: Integration verification and documentation performed; G6 has not passed and default activation remains off. Depends on: Tasks [01](01-baseline-and-contracts.md), [02](02-clip-model-and-migration.md), [03](03-playback-audition-and-exports.md), [04](04-arranger-and-previews.md) and [05](05-editors-save-scope-and-live-inputs.md). Gate: G6.
+Status (reviewed 2026-11-05): Integration verification and feature documentation performed; later full backend suites passed, superseding the original saxophone reproduction blocker. G6 remains open for the narrowed acceptance matrix and a final release check; default activation remains off. See [prioritized review](../remaining-work-review.md). Depends on: Tasks [01](01-baseline-and-contracts.md), [02](02-clip-model-and-migration.md), [03](03-playback-audition-and-exports.md), [04](04-arranger-and-previews.md) and [05](05-editors-save-scope-and-live-inputs.md). Gate: G6.
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

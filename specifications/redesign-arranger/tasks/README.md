@@ -2,6 +2,8 @@
 
 [Specification index](../README.md) · [Implementation plan and gates](../implementation-plan.md)
 
+Current work order and completion evidence: [2026-11-05 prioritized implementation cross-check](../remaining-work-review.md). The original task bodies below remain acceptance references; they are not six unimplemented work packages.
+
 The six tasks now have an integrated preview implementation. Their acceptance gates are not all closed; see the [implementation record](../implementation-record.md). Each has a bounded result and a review gate. Implement the chosen arranger interaction while retaining the actual musical editor and live-input interfaces.
 
 | Order | Task | Dependency | Gate |

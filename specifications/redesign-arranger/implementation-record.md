@@ -2,6 +2,8 @@
 
 Date: 2026-11-03. Baseline: `d82c682`. Status: integrated, opt-in development preview; **not default-cutover acceptance**. This record supplements the original six task definitions rather than marking unperformed checks complete.
 
+Current backlog: [2026-11-05 implementation cross-check and priorities](remaining-work-review.md), verified against `de76638`. The dated entries below retain delivery history; the review reconciles them with later transposition, CLI and score-editor work.
+
 ## Activation and compatibility
 
 Start the frontend with `VITE_CLIP_ARRANGER=1 npm --prefix frontend run dev`. New performances then receive an empty clip model and one fixed keyboard. The compatibility view offers explicit conversion and downloads the original configuration before applying it. Existing Manual-pad sources, Live-clock arpeggiators and multiple-keyboard performances remain in the compatibility view with conversion reasons. This restriction applies to automatic migration; a new clip arpeggiator retains its legitimate Arranger/Live clock control.
@@ -72,7 +74,7 @@ The UI harness at `frontend/tests/performance/clip-arranger.html` uses productio
 
 ## Remaining gates before default cutover
 
-The preview is deliberately not marked fully accepted. The following work is still required by the six-task plan:
+The preview is deliberately not marked fully accepted. **Historical backlog from 2026-11-03:** the following list is retained to explain the original gate. It is superseded by the [current prioritized review](remaining-work-review.md): exact audition support is now partial (v3/v4), later full backend runs passed, and editor/runtime/export coverage has expanded substantially.
 
 1. **Container audition capacity and exact rests:** the existing audition protocol accepts up to 256 tokens and whole local-beat rest tokens. Clip scheduling itself accepts exact tick rests and larger bounded hierarchies. A container with fractional local-beat rests or more audition tokens needs an explicit clip-aware audition payload; currently it reports failure rather than approximating timing. Audition also needs capacity reserved when a lane already reaches the definition limit.
 2. **Complete preservation/migration matrix:** exercise every musical control through each contextual editor, including drummer row topology, score hidden notes/local undo, arpeggiator presets/seeds and controller modes, followed by all round trips. Existing source components and regression suites remain, but that is not proof of the entire new interaction matrix. Rehearse downloaded-original restoration across legacy fixture categories.
@@ -80,7 +82,7 @@ The preview is deliberately not marked fully accepted. The following work is sti
 4. **Dense/responsive/accessibility acceptance:** compare nested preview and preparation costs to a matched baseline; review narrow widths, text zoom, all dialogs, labels/help in EN/DE/FR/ES, coarse pointers and screen-reader descriptions. Rendering filters offscreen clips and nested preview content, but traversal and lower zoom need measured limits.
 5. **Full-suite stability and release review:** resolve/reproduce the full-run saxophone signal failures and rerun affected checks. Default activation must follow G1–G6 acceptance, not merely the presence of the new UI.
 
-These are concrete release blockers/verification gaps. Keep the gate off while addressing them. Retain format readers and original backups even if UI activation is rolled back. No dead-code cleanup or publication is part of this preview delivery.
+Keep the gate off while addressing the remaining items identified in the current review. Retain format readers and original backups even if UI activation is rolled back. No dead-code cleanup or publication is part of this preview delivery.
 
 ## Drummer clip regression fix (2026-11-03)
 

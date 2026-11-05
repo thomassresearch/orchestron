@@ -1,6 +1,6 @@
 # Task 02 — Clip model, transactions and migration
 
-Status: Core model, transactions, persistence and conservative migration implemented; exhaustive legacy-fixture acceptance remains open. Depends on: [Task 01](01-baseline-and-contracts.md). Gate: G2. Next: [Task 03](03-playback-audition-and-exports.md); [Task 04](04-arranger-and-previews.md) may begin read-only integration.
+Status (reviewed 2026-11-05): Model, transactions, compact history, persistence and conservative migration implemented. Remaining: audition headroom at the authored definition limit and the legacy conversion/recovery matrix; see [priorities 2 and 3](../remaining-work-review.md#recommended-order). Depends on: [Task 01](01-baseline-and-contracts.md). Gate: G2. Next: [Task 03](03-playback-audition-and-exports.md); [Task 04](04-arranger-and-previews.md) is already integrated.
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

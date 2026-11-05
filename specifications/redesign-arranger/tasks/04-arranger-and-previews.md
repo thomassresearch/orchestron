@@ -1,6 +1,6 @@
 # Task 04 — Arranger surface and type-specific previews
 
-Status: Arranger surface and previews implemented; dense, responsive and accessibility release review remains open. Depends on: [Task 02](02-clip-model-and-migration.md); [Task 03](03-playback-audition-and-exports.md) before real playback integration. Gate: G4. Next: [Task 05](05-editors-save-scope-and-live-inputs.md).
+Status (reviewed 2026-11-05): Arranger, previews, direct timed editing, copying/duplication and repeated grouping implemented. Remaining: measured whole-arranger dense performance and responsive/accessibility qualification of the current surface; see [priorities 6 and 7](../remaining-work-review.md#recommended-order). Depends on: [Task 02](02-clip-model-and-migration.md) and [Task 03](03-playback-audition-and-exports.md). Gate: G4. Task 05 is already integrated.
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

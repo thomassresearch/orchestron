@@ -1,6 +1,6 @@
 # Task 05 — Existing editors, save scopes and live inputs
 
-Status: Existing-editor adapters, scoped drafts, curve editing and live-input placement implemented; full capability/hardware acceptance remains open. Depends on: [Task 03](03-playback-audition-and-exports.md), [Task 04](04-arranger-and-previews.md). Gate: G5. Next: [Task 06](06-verification-and-cutover.md).
+Status (reviewed 2026-11-05): Editor adapters, both-scope playback/reload matrix, unified container saves/conflict resolution, curves and live-input placement implemented; recent score keyboard/boundary fixes have regressions. Remaining: targeted contextual capability gaps and real audio/input qualification; see [priorities 4 and 5](../remaining-work-review.md#recommended-order). Depends on: [Task 03](03-playback-audition-and-exports.md), [Task 04](04-arranger-and-previews.md). Gate: G5. Next: [Task 06](06-verification-and-cutover.md).
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 
