@@ -102,7 +102,7 @@ export function resolveClip(lane: ClipLane, clip: Clip, from: number, to: number
 }
 
 /** No JSON normalization here: malformed authored content must not be silently discarded. */
-export function validateArrangement(arrangement: ClipArrangement, timings: LaneTiming = {}): void {
+export function validateArrangement(arrangement: ClipArrangement, timings: LaneTiming = {}, auditionLaneId?: string): void {
   if (![1, 2, 3, 4].includes(arrangement.version) || !Number.isSafeInteger(arrangement.revision) || arrangement.revision < 0) throw new ClipError("invalid", "Unsupported clip arrangement version or revision.");
   exactTick(arrangement.end, true);
   if (arrangement.lanes.length > CLIP_LIMITS.lanes) throw new ClipError("limit", "Too many lanes.");
@@ -115,7 +115,7 @@ export function validateArrangement(arrangement: ClipArrangement, timings: LaneT
   for (const lane of arrangement.lanes) {
     identity(lane.id);
     if (!["sequencer", "score", "drummer", "controller", "arpeggiator"].includes(lane.source)) throw new ClipError("invalid", "Unknown source type.");
-    if (lane.definitions.length > CLIP_LIMITS.definitions || lane.clips.length > CLIP_LIMITS.clips) throw new ClipError("limit", "Lane resource limit exceeded.");
+    if (lane.definitions.length > CLIP_LIMITS.definitions * (lane.id === auditionLaneId ? 2 : 1) || lane.clips.length > CLIP_LIMITS.clips) throw new ClipError("limit", "Lane resource limit exceeded.");
     if (lane.cycleTicks !== null) exactTick(lane.cycleTicks, true);
     const defs = definitionMap(lane);
     const children = (items: ContentItem[], level: number) => {

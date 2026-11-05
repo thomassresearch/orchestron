@@ -186,3 +186,35 @@ it.each(["local", "all"] as const)("keeps kick/snare rows independent through cl
   expect(played[0].pads![savedPad].steps[0]).toMatchObject({ note: 35, velocity: 96 });
   expect(played[1].pads![savedPad].steps[4]).toMatchObject({ note: 38 });
 });
+
+it('attaches song and audition schedules to CLI drum rows with more than eight clip patterns', () => {
+  addClipLane('drummer', useAppStore.getState().addDrummerSequencerTrack);
+  const state = structuredClone(useAppStore.getState().sequencer);
+  const track = state.drummerTracks[0];
+  const lane = state.clipArrangement!.lanes.find(l => l.id === track.id)!;
+  const original = lane.definitions[0];
+  if (original.kind !== 'pattern' || original.source !== 'drummer') throw Error('Expected drum pattern');
+  const rowId = `${track.id}:key35:generated`;
+  const oldRowId = track.rows[0].id;
+  track.rows[0] = { id: rowId, key: 35 };
+  lane.definitions = Array.from({ length: 12 }, (_, i) => ({
+    ...structuredClone(original), id: `pattern-${i}`,
+    payload: { ...structuredClone(original.payload), rows: original.payload.rows.map(row => ({
+      ...structuredClone(row), rowId: row.rowId === oldRowId ? rowId : row.rowId
+    })) }
+  }));
+  lane.clips[0].children = [{ id: 'last-pattern', definitionId: 'pattern-11' }];
+  const compile = (input: typeof state) => {
+    const tracks = buildDrummerRowTrackConfigs(clipRuntimeView(input).drummerTracks[0]);
+    return attachClipSchedules(input, { timing: tracks[0].timing!, step_count: 8, tracks, controller_tracks: [] });
+  };
+  const config = compile(state);
+  expect(config.tracks.every(t => t.pads?.length === 12)).toBe(true);
+  for (const t of config.tracks) expect(t.clip_schedule?.clips[0].content[0].pad).toBe(11);
+  const target = { laneId: lane.id, clipId: lane.clips[0].id, path: ['last-pattern'], pass: 0 };
+  const audition = clipAuditionState(state, { target, baseRevision: state.clipArrangement!.revision, definition: structuredClone(lane.definitions[11]) });
+  for (const t of compile(audition.state).tracks) {
+    expect(t.clip_schedule).toBeDefined();
+    expect(t.audition_schedule?.clips[0].content[0].pad).toBe(12);
+  }
+});

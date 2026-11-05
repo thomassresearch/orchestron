@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from backend.app.models.clip_arrangement import ClipSchedule
+from backend.app.engine.lane_output import lane_id
+from backend.app.models.clip_arrangement import ClipSchedule, MAX_AUTHORED_CLIP_PADS, MAX_RUNTIME_CLIP_PADS
 
 from backend.app.models.performance_controller import ControllerNumber, PerformanceMidiCC
 
@@ -394,7 +395,7 @@ class SessionSequencerTimingConfig(BaseModel):
 
 
 class SessionSequencerPadConfig(BaseModel):
-    pad_index: int = Field(ge=0, le=511)
+    pad_index: int = Field(ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     length_beats: SequencerPadLengthBeats | None = None
     scale_root: SequencerScaleRoot | None = None
     scale_type: SequencerScaleType | None = None
@@ -409,14 +410,26 @@ class SessionControllerSequencerKeypointConfig(BaseModel):
 
 class SessionControllerSequencerPadConfig(BaseModel):
     curve_duration_ticks: int | None = Field(default=None, strict=True, ge=1, le=20160000000)
-    pad_index: int = Field(ge=0, le=511)
+    pad_index: int = Field(ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     length_beats: ControllerSequencerPadLengthBeats | None = None
     keypoints: list[SessionControllerSequencerKeypointConfig] = Field(default_factory=list, max_length=256)
     steps: list[Annotated[int, Field(strict=True, ge=0, le=127)] | None] = Field(default_factory=list, max_length=128)
 
 
+def _validate_audition_capacity(track, indexes):
+    extra = {i for i in indexes if i >= MAX_AUTHORED_CLIP_PADS}
+    if track.clip_schedule and any(s.pad is not None and s.pad >= MAX_AUTHORED_CLIP_PADS
+                                   for c in track.clip_schedule.clips for s in c.content):
+        raise ValueError("Authored clip schedules support 512 pads.")
+    if extra:
+        used = {s.pad for c in track.audition_schedule.clips for s in c.content} if track.audition_schedule else set()
+        if not extra <= used:
+            raise ValueError("Additional runtime pads are reserved for the audition schedule.")
+
+
 def _validate_clip_slots(track):
     indexes = {pad.pad_index for pad in track.pads}
+    _validate_audition_capacity(track, indexes)
     schedules = [s for s in (track.clip_schedule, track.audition_schedule) if s is not None]
     if (hasattr(track, 'controller_number') or track.track_id.startswith('drumrow:')) and any(s.transpose_plans for s in schedules):
         raise ValueError("Pitch transposition is unavailable for drum and controller sources.")
@@ -447,14 +460,14 @@ class SessionSequencerTrackConfig(BaseModel):
     sync_to_track_id: str | None = Field(default=None, min_length=1, max_length=256)
     audition_schedule: ClipSchedule | None = None
     clip_schedule: ClipSchedule | None = None
-    active_pad: int = Field(default=0, ge=0, le=511)
-    queued_pad: int | None = Field(default=None, ge=0, le=511)
+    active_pad: int = Field(default=0, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
+    queued_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     pad_loop_enabled: bool = False
     pad_loop_repeat: bool = True
     pad_loop_sequence: list[int] = Field(default_factory=list, max_length=256)
     enabled: bool = True
     queued_enabled: bool | None = None
-    pads: list[SessionSequencerPadConfig] = Field(default_factory=list, max_length=512)
+    pads: list[SessionSequencerPadConfig] = Field(default_factory=list, max_length=MAX_RUNTIME_CLIP_PADS)
 
     @model_validator(mode="after")
     def validate_unique_pad_indexes(self) -> "SessionSequencerTrackConfig":
@@ -489,7 +502,7 @@ class SessionScoreNoteConfig(BaseModel):
 
 
 class SessionScorePadConfig(BaseModel):
-    pad_index: int = Field(ge=0, le=511)
+    pad_index: int = Field(ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     length_beats: int = Field(default=16, ge=1, le=8192, strict=True)
     scale_root: SequencerScaleRoot | None = None
     scale_type: SequencerScaleType | None = None
@@ -508,7 +521,7 @@ class SessionScoreSequencerTrackConfig(SessionSequencerTrackConfig):
     length_beats: int = Field(default=16, ge=1, le=8192, strict=True)
     gate_ratio: float = 1.0
     launch_quantization: Literal["bar", "score"] = "bar"
-    pads: list[SessionScorePadConfig] = Field(default_factory=list, max_length=512)
+    pads: list[SessionScorePadConfig] = Field(default_factory=list, max_length=MAX_RUNTIME_CLIP_PADS)
 
     @model_validator(mode="after")
     def validate_unique_pad_indexes(self):
@@ -541,13 +554,13 @@ class SessionControllerSequencerTrackConfig(BaseModel):
     length_beats: ControllerSequencerPadLengthBeats = 4
     audition_schedule: ClipSchedule | None = None
     clip_schedule: ClipSchedule | None = None
-    active_pad: int = Field(default=0, ge=0, le=511)
-    queued_pad: int | None = Field(default=None, ge=0, le=511)
+    active_pad: int = Field(default=0, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
+    queued_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     pad_loop_enabled: bool = False
     pad_loop_repeat: bool = True
     pad_loop_sequence: list[int] = Field(default_factory=list, max_length=256)
     enabled: bool = True
-    pads: list[SessionControllerSequencerPadConfig] = Field(default_factory=list, max_length=512)
+    pads: list[SessionControllerSequencerPadConfig] = Field(default_factory=list, max_length=MAX_RUNTIME_CLIP_PADS)
     target_channels: list[int] = Field(default_factory=list, max_length=16)
 
     @model_validator(mode="after")
@@ -665,15 +678,16 @@ class SessionArpeggiatorConfig(ArpeggiatorPadConfig):
     restart_mode: ArpeggiatorRestartMode = "free"
     audition_schedule: ClipSchedule | None = None
     clip_schedule: ClipSchedule | None = None
-    active_pad: int = Field(default=0, ge=0, le=511)
+    active_pad: int = Field(default=0, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     pad_loop_enabled: bool = True
     pad_loop_repeat: bool = True
     pad_loop_sequence: list[int] = Field(default_factory=lambda: [0], max_length=8192)
     launch_quantize: Literal["cycle", "bar"] = "cycle"
-    pads: list[ArpeggiatorPadConfig] = Field(default_factory=list, max_length=512)
+    pads: list[ArpeggiatorPadConfig] = Field(default_factory=list, max_length=MAX_RUNTIME_CLIP_PADS)
 
     @model_validator(mode="after")
     def complete_pads(self):
+        _validate_audition_capacity(self, set(range(len(self.pads))))
         if self.clip_schedule is not None:
             if self.active_pad >= len(self.pads) or not self.pad_loop_enabled:
                 raise ValueError("Clip arpeggiators require a valid pattern and arrangement source.")
@@ -773,7 +787,7 @@ class SessionSequencerConfigRequest(BaseModel):
         if sum(t.automation_target is None for t in self.controller_tracks) > 16:
             raise ValueError("At most 16 generic controller sequencers are allowed.")
         if any(t.automation_target for t in self.controller_tracks):
-            lanes = {t.track_id.split(":")[1] if t.track_id.startswith("drumrow:") and len(t.track_id.split(":")) == 3 else t.track_id for t in [*self.tracks, *self.score_tracks, *self.controller_tracks]}
+            lanes = {lane_id(t.track_id) for t in [*self.tracks, *self.score_tracks, *self.controller_tracks]}
             lanes.update(a.arpeggiator_id for a in self.arpeggiators)
             if len(lanes) > 72:
                 raise ValueError("Instrument automation cannot exceed the 72-lane arranger limit.")
@@ -788,7 +802,7 @@ class SessionSequencerConfigRequest(BaseModel):
             seen.add(track.track_id)
         _validate_arpeggiator_routes(self.arpeggiators)
         if self.lane_output is not None:
-            lane_ids = {t.track_id.split(":")[1] if t.track_id.startswith("drumrow:") and len(t.track_id.split(":")) == 3 else t.track_id for t in [*self.tracks, *self.score_tracks]}
+            lane_ids = {lane_id(t.track_id) for t in [*self.tracks, *self.score_tracks]}
             lane_ids.update(t.track_id for t in self.controller_tracks)
             lane_ids.update(a.arpeggiator_id for a in self.arpeggiators if a.playback_mode == "arranger")
             if self.lane_output.lanes.keys() - lane_ids:
@@ -860,7 +874,7 @@ class SessionAuditionRequest(BaseModel):
             raise ValueError("An audition requires a playable sequence.")
         if self.action.startswith(("preview_", "workspace_")) and (self.gesture_id is None or self.revision is None):
             raise ValueError("A preview requires a gesture identity and revision.")
-        if any(t not in set(range(512)) | {-1, -2, -4, -8, -16, -32} for t in self.sequence):
+        if any(t not in set(range(MAX_RUNTIME_CLIP_PADS if self.clip_context else MAX_AUTHORED_CLIP_PADS)) | {-1, -2, -4, -8, -16, -32} for t in self.sequence):
             raise ValueError("Invalid audition token.")
         return self
 
@@ -882,8 +896,8 @@ class SessionSequencerTrackStatus(BaseModel):
     length_beats: SequencerPadLengthBeats
     step_count: int = Field(ge=1, le=128)
     local_step: int = Field(ge=0)
-    active_pad: int = Field(ge=0, le=511)
-    queued_pad: int | None = Field(default=None, ge=0, le=511)
+    active_pad: int = Field(ge=0, lt=MAX_RUNTIME_CLIP_PADS)
+    queued_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     pad_loop_position: int | None = Field(default=None, ge=0)
     enabled: bool = True
     queued_enabled: bool | None = None
@@ -903,8 +917,8 @@ class SessionControllerSequencerTrackStatus(BaseModel):
     timing: SessionSequencerTimingConfig
     length_beats: ControllerSequencerPadLengthBeats
     step_count: int = Field(ge=1, le=128)
-    active_pad: int = Field(ge=0, le=511)
-    queued_pad: int | None = Field(default=None, ge=0, le=511)
+    active_pad: int = Field(ge=0, lt=MAX_RUNTIME_CLIP_PADS)
+    queued_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     pad_loop_position: int | None = Field(default=None, ge=0)
     enabled: bool = True
     runtime_pad_start_subunit: int | None = None

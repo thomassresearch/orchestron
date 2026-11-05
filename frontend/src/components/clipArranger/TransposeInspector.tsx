@@ -64,13 +64,13 @@ export function TransposeInspector({ language, stopAudition, target, onSaved }: 
   };
   const setPair = (pair: PitchOffset) => write(base ? { ...plan, base: pair } : { ...plan, repetitions: [...plan.repetitions.filter(e => e.index !== index), {index,offset:pair}].sort((a,b)=>a.index-b.index) });
   const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
-  return <fieldset className="mb-3 space-y-2 rounded-lg border border-indigo-700 bg-indigo-950/20 p-3 text-xs">
-    <legend className="px-1 font-semibold text-indigo-200">{c.title} · {draft.definition.name} · {c.repeat} {index+1}</legend>
+  return <fieldset className="mb-3 min-w-0 max-w-full break-words space-y-2 rounded-lg border border-indigo-700 bg-indigo-950/20 p-3 text-xs">
+    <legend className="max-w-full px-1 font-semibold text-indigo-200">{c.title} · {draft.definition.name} · {c.repeat} {index+1}</legend>
     <div className="flex flex-wrap items-end gap-3">
-      <label className="flex flex-col gap-1">{c.title}<select className={`${clipInput} !w-auto`} aria-label={c.scope} value={scope} onChange={e=>setScope(e.target.value as TransposeScope)}>{(['shared','parent','placement'] as const).map(s=><option key={s} value={s}>{c[s]}</option>)}</select></label>
-      <label className="flex flex-col gap-1">{c.repeat}<select className={`${clipInput} !w-auto`} value={base?'base':'repeat'} onChange={e=>setBase(e.target.value==='base')}><option value="repeat">{c.repeat} {index+1}</option><option value="base">{c.base}</option></select></label>
-      <label className="flex flex-col gap-1">{c.title}<select className={`${clipInput} !w-auto`} aria-label={c.component} value={component} onChange={e=>setComponent(e.target.value as keyof PitchOffset)}><option value="diatonicSteps">{c.diatonic}</option><option value="chromaticSemitones">{c.chromatic}</option></select></label>
-      <label className="flex flex-col gap-1">{component==='diatonicSteps'?c.diatonic:c.chromatic}<input type="number" min={-127} max={127} step={1} className={clipInput} value={amount[component]} onChange={e=>{const value=e.currentTarget.valueAsNumber;if(Number.isInteger(value)&&Math.abs(value)<=127)setPair({...amount,[component]:value});}} /></label>
+      <label className="flex min-w-0 max-w-full flex-col gap-1">{c.title}<select className={`${clipInput} !w-auto max-w-full`} aria-label={c.scope} value={scope} onChange={e=>setScope(e.target.value as TransposeScope)}>{(['shared','parent','placement'] as const).map(s=><option key={s} value={s}>{c[s]}</option>)}</select></label>
+      <label className="flex min-w-0 max-w-full flex-col gap-1">{c.repeat}<select className={`${clipInput} !w-auto max-w-full`} value={base?'base':'repeat'} onChange={e=>setBase(e.target.value==='base')}><option value="repeat">{c.repeat} {index+1}</option><option value="base">{c.base}</option></select></label>
+      <label className="flex min-w-0 max-w-full flex-col gap-1">{c.title}<select className={`${clipInput} !w-auto max-w-full`} aria-label={c.component} value={component} onChange={e=>setComponent(e.target.value as keyof PitchOffset)}><option value="diatonicSteps">{c.diatonic}</option><option value="chromaticSemitones">{c.chromatic}</option></select></label>
+      <label className="flex min-w-0 max-w-full flex-col gap-1">{component==='diatonicSteps'?c.diatonic:c.chromatic}<input type="number" min={-127} max={127} step={1} className={clipInput} value={amount[component]} onChange={e=>{const value=e.currentTarget.valueAsNumber;if(Number.isInteger(value)&&Math.abs(value)<=127)setPair({...amount,[component]:value});}} /></label>
       <span>{signed(amount.diatonicSteps)} {c.diatonic} · {signed(amount.chromaticSemitones)} {c.chromatic}</span>
     </div>
     <p>{c[scope]} · {scope==='shared'?`${draft.definition.name} · ${directLinks(lane,draft.definition.id)} ${c.linked}`:scope==='placement'?`${clip.name} / ${draft.target.path.join(' / ')}`:draft.target.path.slice(0,-1).join(' / ')||clip.name}</p>

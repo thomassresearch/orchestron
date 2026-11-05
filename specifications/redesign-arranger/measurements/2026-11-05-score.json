@@ -1,0 +1,149 @@
+{
+  "machine": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+  "scores": [
+    {
+      "minutes": 5,
+      "notes": 128,
+      "existing_tracks": 8,
+      "controllers": 8,
+      "arpeggiators": 0,
+      "preparation": {
+        "cold": {
+          "median_ms": 1.4772,
+          "max_ms": 7.7623
+        },
+        "cached": {
+          "median_ms": 0.9398,
+          "max_ms": 1.0848
+        },
+        "one_pad_edit": {
+          "median_ms": 1.3834,
+          "max_ms": 1.4448
+        }
+      },
+      "cached_process_round_trip_ms": 20.582,
+      "render": {
+        "start": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0533,
+          "p99_ms": 0.0321,
+          "block_budget_ms": 1.3333
+        },
+        "near_end": {
+          "median_ms": 0.0007,
+          "max_ms": 0.054,
+          "p99_ms": 0.034,
+          "block_budget_ms": 1.3333
+        }
+      }
+    },
+    {
+      "minutes": 5,
+      "notes": 10000,
+      "existing_tracks": 8,
+      "controllers": 8,
+      "arpeggiators": 0,
+      "preparation": {
+        "cold": {
+          "median_ms": 36.9379,
+          "max_ms": 53.0439
+        },
+        "cached": {
+          "median_ms": 3.1302,
+          "max_ms": 3.9038
+        },
+        "one_pad_edit": {
+          "median_ms": 36.522,
+          "max_ms": 36.8424
+        }
+      },
+      "cached_process_round_trip_ms": 78.659,
+      "render": {
+        "start": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0584,
+          "p99_ms": 0.037,
+          "block_budget_ms": 1.3333
+        },
+        "near_end": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0763,
+          "p99_ms": 0.039,
+          "block_budget_ms": 1.3333
+        }
+      }
+    },
+    {
+      "minutes": 10,
+      "notes": 128,
+      "existing_tracks": 8,
+      "controllers": 8,
+      "arpeggiators": 0,
+      "preparation": {
+        "cold": {
+          "median_ms": 1.3642,
+          "max_ms": 1.5435
+        },
+        "cached": {
+          "median_ms": 0.9198,
+          "max_ms": 1.0323
+        },
+        "one_pad_edit": {
+          "median_ms": 1.3221,
+          "max_ms": 1.5586
+        }
+      },
+      "cached_process_round_trip_ms": 22.054,
+      "render": {
+        "start": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0435,
+          "p99_ms": 0.0318,
+          "block_budget_ms": 1.3333
+        },
+        "near_end": {
+          "median_ms": 0.0007,
+          "max_ms": 0.0279,
+          "p99_ms": 0.0173,
+          "block_budget_ms": 1.3333
+        }
+      }
+    },
+    {
+      "minutes": 10,
+      "notes": 10000,
+      "existing_tracks": 8,
+      "controllers": 8,
+      "arpeggiators": 0,
+      "preparation": {
+        "cold": {
+          "median_ms": 36.86,
+          "max_ms": 51.7228
+        },
+        "cached": {
+          "median_ms": 3.3481,
+          "max_ms": 3.9545
+        },
+        "one_pad_edit": {
+          "median_ms": 36.8531,
+          "max_ms": 57.9996
+        }
+      },
+      "cached_process_round_trip_ms": 80.48,
+      "render": {
+        "start": {
+          "median_ms": 0.0006,
+          "max_ms": 0.0484,
+          "p99_ms": 0.0342,
+          "block_budget_ms": 1.3333
+        },
+        "near_end": {
+          "median_ms": 0.0006,
+          "max_ms": 0.1407,
+          "p99_ms": 0.0203,
+          "block_budget_ms": 1.3333
+        }
+      }
+    }
+  ]
+}

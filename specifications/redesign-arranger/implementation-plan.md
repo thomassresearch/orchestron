@@ -30,6 +30,10 @@ Do not replace actual sequencer payloads with the mockup's compact event arrays.
 
 ## Dependency and review gates
 
+Release-scope decision, 2026-11-05: external MIDI hardware testing is deferred,
+does not block G3/G5/G6 or default activation, and will be revisited if needed.
+See the [current acceptance record](acceptance-follow-up.md#deferred-external-midi).
+
 | Gate | Required evidence before proceeding |
 | --- | --- |
 | G1 — Contracts | Task 1 maps every current editor field and records timing, audition, legacy conversion and buffer-policy decisions. Representative fixtures and baseline event traces exist. |

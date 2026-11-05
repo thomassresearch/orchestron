@@ -1,6 +1,8 @@
 # Task 05 — Existing editors, save scopes and live inputs
 
-Status (reviewed 2026-11-05): Editor adapters, both-scope playback/reload matrix, unified container saves/conflict resolution, curves and live-input placement implemented; recent score keyboard/boundary fixes have regressions. Remaining: targeted contextual capability gaps and real audio/input qualification; see [priorities 4 and 5](../remaining-work-review.md#recommended-order). Depends on: [Task 03](03-playback-audition-and-exports.md), [Task 04](04-arranger-and-previews.md). Gate: G5. Next: [Task 06](06-verification-and-cutover.md).
+Status (updated 2026-11-05): Contextual hidden-data/metadata and both-scope tests close the identified automated preservation gaps, reusing the production control/highlight/undo suites. Browser audition/reconnect and arp-input export checks pass. External MIDI hardware testing is deferred by user decision and does not block release. See the [acceptance follow-up](../acceptance-follow-up.md). Depends on: [Task 03](03-playback-audition-and-exports.md), [Task 04](04-arranger-and-previews.md). Gate: G5. Next: [Task 06](06-verification-and-cutover.md).
+
+Implementation follow-up: [new regression/browser evidence and remaining gates](../acceptance-follow-up.md).
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

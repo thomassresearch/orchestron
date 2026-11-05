@@ -1,6 +1,6 @@
 # Task 04 — Arranger surface and type-specific previews
 
-Status (reviewed 2026-11-05): Arranger, previews, direct timed editing, copying/duplication and repeated grouping implemented. Remaining: measured whole-arranger dense performance and responsive/accessibility qualification of the current surface; see [priorities 6 and 7](../remaining-work-review.md#recommended-order). Depends on: [Task 02](02-clip-model-and-migration.md) and [Task 03](03-playback-audition-and-exports.md). Gate: G4. Task 05 is already integrated.
+Status (updated 2026-11-05): Transport, sticky-header and transposition-dialog text-zoom defects are fixed. Narrow/localized/coarse-touch/accessibility-tree/focus and paired dense UI/audio checks pass. Native screen-reader/classic-scrollbar certification remains manual acceptance. See the [acceptance follow-up](../acceptance-follow-up.md). Gate: G4.
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

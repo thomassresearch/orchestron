@@ -1,0 +1,174 @@
+{
+  "browser": "156.0.8078.80",
+  "results": [
+    {
+      "label": "compact",
+      "seconds": 30,
+      "before": {
+        "status": "live",
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 54400,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.009326047851562502
+        },
+        "peak": 0,
+        "pcmPeak": 0.07466255128383636,
+        "finite": true,
+        "errors": [],
+        "transport": 501257
+      },
+      "after": {
+        "status": "live",
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 56192,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.007965210937500002
+        },
+        "peak": 0,
+        "pcmPeak": 0.07466255128383636,
+        "finite": true,
+        "errors": [],
+        "transport": 420832
+      },
+      "underruns": 0,
+      "mainThread": {
+        "TaskDuration": 1.7463119999999999,
+        "ScriptDuration": 1.3685109999999998,
+        "LayoutDuration": 0.03818,
+        "RecalcStyleDuration": 0
+      },
+      "nodes": 473
+    },
+    {
+      "label": "dense-expanded",
+      "seconds": 30,
+      "before": {
+        "status": "live",
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 58240,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.006448485351562501
+        },
+        "peak": 0,
+        "pcmPeak": 0.07466255128383636,
+        "finite": true,
+        "errors": [],
+        "transport": 503838
+      },
+      "after": {
+        "status": "live",
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 60032,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.006947630859375001
+        },
+        "peak": 0,
+        "pcmPeak": 0.07466255128383636,
+        "finite": true,
+        "errors": [],
+        "transport": 423843
+      },
+      "underruns": 0,
+      "mainThread": {
+        "TaskDuration": 2.500535,
+        "ScriptDuration": 2.0681640000000003,
+        "LayoutDuration": 0.038167,
+        "RecalcStyleDuration": 0
+      },
+      "nodes": 737
+    },
+    {
+      "label": "dense-collapsed",
+      "seconds": 30,
+      "before": {
+        "status": "live",
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 62592,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.006717896484374999
+        },
+        "peak": 0,
+        "pcmPeak": 0.07466255128383636,
+        "finite": true,
+        "errors": [],
+        "transport": 505343
+      },
+      "after": {
+        "status": "live",
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 64128,
+          "pendingRenderFrames": 0,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.006812742187500001
+        },
+        "peak": 0,
+        "pcmPeak": 0.07466255128383636,
+        "finite": true,
+        "errors": [],
+        "transport": 425348
+      },
+      "underruns": 0,
+      "mainThread": {
+        "TaskDuration": 1.6504139999999996,
+        "ScriptDuration": 1.288456,
+        "LayoutDuration": 0.03545899999999999,
+        "RecalcStyleDuration": 0
+      },
+      "nodes": 557
+    }
+  ],
+  "recovered": {
+    "status": "live",
+    "diagnostics": {
+      "playbackMode": "auto",
+      "playbackState": "listening",
+      "sampleRate": 48000,
+      "queuedFrames": 35200,
+      "pendingRenderFrames": 32768,
+      "underrunCount": 0,
+      "overrunCount": 0,
+      "renderTimeRatio": 0.005875488281250001
+    },
+    "peak": 0,
+    "pcmPeak": 0.07466255128383636,
+    "finite": true,
+    "errors": [],
+    "transport": 686736
+  },
+  "conditions": {
+    "build": "Vite development",
+    "audio": "one native Csound voice, 512 authored pads + one draft pad",
+    "ui": "real nested arranger fixture, 16 versus 16000 beats",
+    "hostLoad": "full backend suite idle; normal desktop and documentation generation active",
+    "limits": "Local paired samples, not a pre-redesign production baseline or maximal-polyphony soak. Meter subscription is inactive (peak=0); pcmPeak reads the actual SharedArrayBuffer."
+  }
+}

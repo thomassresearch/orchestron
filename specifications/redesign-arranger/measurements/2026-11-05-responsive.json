@@ -1,0 +1,147 @@
+{
+  "layout": [
+    {
+      "kind": "layout",
+      "width": 1440,
+      "textScale": 1,
+      "scrollWidth": 1440,
+      "viewportWidth": 1356,
+      "headerWidth": 192
+    },
+    {
+      "kind": "layout",
+      "width": 1440,
+      "textScale": 2,
+      "scrollWidth": 1440,
+      "viewportWidth": 1276,
+      "headerWidth": 192
+    },
+    {
+      "kind": "layout",
+      "width": 520,
+      "textScale": 1,
+      "scrollWidth": 520,
+      "viewportWidth": 436,
+      "headerWidth": 192
+    },
+    {
+      "kind": "layout",
+      "width": 520,
+      "textScale": 2,
+      "scrollWidth": 520,
+      "viewportWidth": 356,
+      "headerWidth": 160
+    },
+    {
+      "kind": "layout",
+      "width": 390,
+      "textScale": 1,
+      "scrollWidth": 390,
+      "viewportWidth": 306,
+      "headerWidth": 137
+    },
+    {
+      "kind": "layout",
+      "width": 390,
+      "textScale": 2,
+      "scrollWidth": 390,
+      "viewportWidth": 226,
+      "headerWidth": 101
+    },
+    {
+      "kind": "density",
+      "beats": 16,
+      "expanded": false,
+      "settleMs": 14.875,
+      "nodes": 449
+    },
+    {
+      "kind": "density",
+      "beats": 16000,
+      "expanded": false,
+      "settleMs": 26.72499990463257,
+      "nodes": 584
+    },
+    {
+      "kind": "density",
+      "beats": 16,
+      "expanded": true,
+      "settleMs": 17.5900000333786,
+      "nodes": 489
+    },
+    {
+      "kind": "density",
+      "beats": 16000,
+      "expanded": true,
+      "settleMs": 26.569999933242798,
+      "nodes": 752
+    }
+  ],
+  "accessibility": [
+    {
+      "language": "english",
+      "layout": {
+        "coarse": true,
+        "viewport": 390,
+        "page": 390,
+        "dialogWidth": 320,
+        "client": 318,
+        "scroll": 318
+      },
+      "visibleAccessibleControls": 12,
+      "unnamed": [],
+      "focusReturned": true,
+      "touchOpenedDialog": true
+    },
+    {
+      "language": "german",
+      "layout": {
+        "coarse": true,
+        "viewport": 390,
+        "page": 390,
+        "dialogWidth": 320,
+        "client": 318,
+        "scroll": 318
+      },
+      "visibleAccessibleControls": 12,
+      "unnamed": [],
+      "focusReturned": true,
+      "touchOpenedDialog": true
+    },
+    {
+      "language": "french",
+      "layout": {
+        "coarse": true,
+        "viewport": 390,
+        "page": 390,
+        "dialogWidth": 320,
+        "client": 318,
+        "scroll": 318
+      },
+      "visibleAccessibleControls": 12,
+      "unnamed": [],
+      "focusReturned": true,
+      "touchOpenedDialog": true
+    },
+    {
+      "language": "spanish",
+      "layout": {
+        "coarse": true,
+        "viewport": 390,
+        "page": 390,
+        "dialogWidth": 320,
+        "client": 318,
+        "scroll": 318
+      },
+      "visibleAccessibleControls": 12,
+      "unnamed": [],
+      "focusReturned": true,
+      "touchOpenedDialog": true
+    }
+  ],
+  "recovery": {
+    "migratedVersion": 1,
+    "recovered": true,
+    "clipModel": null
+  }
+}

@@ -1,6 +1,12 @@
 # Task 06 — Compatibility verification, documentation and cutover
 
-Status (reviewed 2026-11-05): Integration verification and feature documentation performed; later full backend suites passed, superseding the original saxophone reproduction blocker. G6 remains open for the narrowed acceptance matrix and a final release check; default activation remains off. See [prioritized review](../remaining-work-review.md). Depends on: Tasks [01](01-baseline-and-contracts.md), [02](02-clip-model-and-migration.md), [03](03-playback-audition-and-exports.md), [04](04-arranger-and-previews.md) and [05](05-editors-save-scope-and-live-inputs.md). Gate: G6.
+Status (updated 2026-11-05): Code fixes, regression coverage, browser/audio measurements and English manual/screenshots are complete. Default activation remains off: manual release acceptance and a green backend check are still required (final run: 2,750 passed, one unrelated saxophone tuning failure). See the [acceptance follow-up](../acceptance-follow-up.md). Depends on: Tasks [01](01-baseline-and-contracts.md), [02](02-clip-model-and-migration.md), [03](03-playback-audition-and-exports.md), [04](04-arranger-and-previews.md) and [05](05-editors-save-scope-and-live-inputs.md). Gate: G6.
+
+Implementation follow-up: [new regression/browser evidence and remaining gates](../acceptance-follow-up.md).
+
+Remaining manual work is listed in the [concrete manual checklist](../acceptance-follow-up.md#concrete-remaining-manual-checks).
+External MIDI hardware testing is deferred by user decision and is not required
+for release; revisit it if needed.
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

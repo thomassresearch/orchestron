@@ -1,3 +1,4 @@
+import { compilePadLoopPattern } from '../../src/lib/padLoopPattern';
 import { migrateClipArrangement, sourceKeys } from "../../src/lib/clipArranger/migration";
 import { openClipEditor } from "../../src/store/clipActions";
 import React, { useState } from "react";
@@ -20,6 +21,7 @@ for (const source of Object.keys(sourceKeys)) for (const track of authored[sourc
   track.padLoopPattern = { groups: [{ id: "A", sequence: [{ type: "pad", padIndex: 0 }, { type: "pad", padIndex: 1 }] }],
     superGroups: [{ id: "I", sequence: [{ type: "group", groupId: "A" }, { type: "group", groupId: "A" }] }],
     rootSequence: [{ type: "super", superGroupId: "I" }] };
+  if ("padLoopSequence" in track) track.padLoopSequence = compilePadLoopPattern(track.padLoopPattern).sequence;
 }
 const report = migrateClipArrangement(authored);
 if (!report.model) throw new Error(report.reasons.join(", "));
@@ -55,7 +57,7 @@ function Page() {
   return <main className="p-4">
       <SequencerPage {...actions} collapsedPanels={panels}
         onPanelCollapsedChange={(panel, collapsed) => setPanels(previous => ({ ...previous, [panel]: collapsed }))}
-        data={{ guiLanguage: "english", patches: state.patches, performances: [], instrumentBindings: state.sequencerInstruments,
+        data={{ guiLanguage: state.guiLanguage, patches: state.patches, performances: [], instrumentBindings: state.sequencerInstruments,
           sequencer: mergedSequencerState(state.sequencer, state.sequencerRuntime), sequencerTransportSubunit: state.sequencerRuntime.transportSubunit,
           readPlaybackTransportSubunit: () => null, currentPerformanceId: null,
           performanceName: "Nested clip arranger", performanceDescription: "Production editors / versioned fixtures",

@@ -1,6 +1,8 @@
 # Task 02 — Clip model, transactions and migration
 
-Status (reviewed 2026-11-05): Model, transactions, compact history, persistence and conservative migration implemented. Remaining: audition headroom at the authored definition limit and the legacy conversion/recovery matrix; see [priorities 2 and 3](../remaining-work-review.md#recommended-order). Depends on: [Task 01](01-baseline-and-contracts.md). Gate: G2. Next: [Task 03](03-playback-audition-and-exports.md); [Task 04](04-arranger-and-previews.md) is already integrated.
+Status (updated 2026-11-05): Runtime audition headroom now supports full authored lanes without relaxing saved limits. Versioned migration, routing/mixer/native round trips and browser backup recovery pass; same-library recovery is documented. See the [acceptance follow-up](../acceptance-follow-up.md). Depends on: [Task 01](01-baseline-and-contracts.md). Gate: G2. Next: [Task 03](03-playback-audition-and-exports.md); [Task 04](04-arranger-and-previews.md) is already integrated.
+
+Implementation follow-up: [new regression/browser evidence and remaining gates](../acceptance-follow-up.md).
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

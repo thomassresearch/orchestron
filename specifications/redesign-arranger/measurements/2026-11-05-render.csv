@@ -1,0 +1,4 @@
+tracks,median_render_audio_ratio,max_render_audio_ratio
+16,0.002,0.049
+64,0.004,0.005
+128,0.007,0.009

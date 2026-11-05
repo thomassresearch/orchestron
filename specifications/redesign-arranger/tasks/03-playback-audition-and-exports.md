@@ -1,6 +1,6 @@
 # Task 03 — Clip playback, audition and export parity
 
-Status (reviewed 2026-11-05): Scheduling, audition integration and exports implemented. Exact auditions work for v3/v4 but v1/v2 retain fractional-rest/256-token limitations; all versions lack headroom at 512 authored definitions. Remaining stress/parity work is narrowed by existing regression and real-runtime evidence. See [priorities 1, 2 and 4](../remaining-work-review.md#recommended-order). Depends on: [Task 02](02-clip-model-and-migration.md). Gate: G3. Audio integration with Tasks 04/05 is already implemented.
+Status (updated 2026-11-05): Exact audition for every clip version and runtime-only capacity headroom are implemented. Native preparation-failure/stop, 90-second browser audio, reconnect and all-source/chord-arp export checks pass. Longer subjective stress acceptance remains pending. External MIDI hardware testing is deferred by user decision and does not block release. See the [acceptance follow-up](../acceptance-follow-up.md). Gate: G3.
 
 Evidence and remaining work: [implementation record](../implementation-record.md).
 

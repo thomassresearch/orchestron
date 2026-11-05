@@ -12,6 +12,9 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.app.models.clip_transposition import OffsetPlan, RepeatIndex, MAX_TOTAL_ENTRIES, effective_plan
 
+MAX_AUTHORED_CLIP_PADS = 512
+MAX_RUNTIME_CLIP_PADS = 2 * MAX_AUTHORED_CLIP_PADS
+
 MAX_CLIP_TICKS = 20160 * 1000000
 Tick = Annotated[int, Field(strict=True, ge=0, le=MAX_CLIP_TICKS)]
 Duration = Annotated[int, Field(strict=True, gt=0, le=MAX_CLIP_TICKS)]
@@ -19,7 +22,7 @@ Duration = Annotated[int, Field(strict=True, gt=0, le=MAX_CLIP_TICKS)]
 
 class ClipSpan(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
-    pad: Annotated[int, Field(strict=True, ge=0, le=511)] | None
+    pad: Annotated[int, Field(strict=True, ge=0, lt=MAX_RUNTIME_CLIP_PADS)] | None
     length: Duration
     transpose_refs: list[Annotated[int, Field(strict=True, ge=0)]] = Field(default_factory=list, max_length=9)
 

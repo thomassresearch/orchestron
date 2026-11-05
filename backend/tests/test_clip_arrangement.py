@@ -84,7 +84,7 @@ def test_standalone_audition_past_song_end_does_not_flood_transport_events(peer)
 @pytest.mark.parametrize("change", [
     {"version": 3}, {"end": 0}, {"cycle_ticks": 8 * Q},
     {"clips": [{"id": "bad", "start": 0.5, "length": Q, "content": [{"pad": 0, "length": Q}]}]},
-    {"clips": [{"id": "bad", "start": 0, "length": Q, "content": [{"pad": 512, "length": Q}]}]},
+    {"clips": [{"id": "bad", "start": 0, "length": Q, "content": [{"pad": 1024, "length": Q}]}]},
 ])
 def test_invalid_schedules_are_rejected(change):
     with pytest.raises(ValidationError):
@@ -308,3 +308,75 @@ def test_empty_clip_and_timed_content_rests_keep_exact_boundaries():
     assert prepared.locate(Q).pad == 0
     assert prepared.locate(Q).source_start == Q
     assert prepared.locate(4 * Q).pad is None
+
+
+def capacity_audition_config():
+    """512 authored patterns plus one session-only edited pattern."""
+    return {"tracks": [{"track_id": "lead", "enabled": True, "length_beats": 1,
+        "pad_loop_enabled": True,
+        "pads": [{"pad_index": i, "length_beats": 1, "steps": [72 if i == 512 else 60, None, None, None]}
+                 for i in range(513)],
+        "clip_schedule": {"end": Q, "clips": [{"id": "song", "start": 0, "length": Q,
+            "content": [{"pad": 0, "length": Q}]}]},
+        "audition_schedule": {"end": Q + 1, "cycle_ticks": Q + 1,
+            "clips": [{"id": "edit", "start": 0, "length": Q + 1,
+                "content": [{"pad": 512, "length": Q}, {"pad": None, "length": 1}]}]}}]}
+
+
+def test_capacity_audition_plays_edited_pitch_and_restores_authored_schedule():
+    from backend.app.models.session import SessionAuditionRequest, SessionSequencerConfigRequest
+    from backend.app.services.sequencer_runtime import SessionSequencerRuntime
+    from backend.tests.test_sequencer_note_timing import Capture, advance, notes
+    capture = Capture()
+    runtime = SessionSequencerRuntime("capacity", capture, "internal:loopback", (2,), lambda *_: None, clock_mode="render_driven")
+    config = SessionSequencerConfigRequest.model_validate(capacity_audition_config())
+    runtime.configure(config)
+    runtime.audition(SessionAuditionRequest(action="workspace_start", track_ids=["lead"],
+        sequence=[512], clip_context=True, gesture_id="capacity", revision=1))
+    advance(runtime, capture, 7000)
+    assert [m[1] for _, m in notes(capture) if m[0] == 144] == [72, 72, 72]
+    runtime.audition(SessionAuditionRequest(action="workspace_end", track_ids=["lead"], gesture_id="capacity", revision=2))
+    assert runtime._config.tracks["lead"].clip_schedule.schedule == config.tracks[0].clip_schedule
+
+
+@pytest.mark.parametrize("change", ["no_audition", "authored_extra", "unused_extra", "over_budget"])
+def test_extra_runtime_pads_are_only_available_to_bounded_auditions(change):
+    from backend.app.models.session import SessionSequencerConfigRequest
+    config = capacity_audition_config()
+    track = config["tracks"][0]
+    if change == "no_audition":
+        del track["audition_schedule"]
+    elif change == "authored_extra":
+        track["clip_schedule"]["clips"][0]["content"][0]["pad"] = 512
+    elif change == "unused_extra":
+        track["audition_schedule"]["clips"][0]["content"][0]["pad"] = 0
+    else:
+        track["pads"] += [{**track["pads"][0], "pad_index": i} for i in range(513, 1025)]
+    with pytest.raises(ValidationError):
+        SessionSequencerConfigRequest.model_validate(config)
+
+
+@pytest.mark.parametrize("source", ["score_tracks", "controller_tracks", "arpeggiators", "drummer"])
+def test_each_source_reserves_extra_slots_for_exact_auditions(source):
+    from copy import deepcopy
+    import json
+    from pathlib import Path
+    from backend.app.models.session import SessionSequencerConfigRequest
+    wire = json.loads((Path(__file__).parent / "fixtures/performance_creator/all_sources.json").read_text())["wire"]
+    key = "tracks" if source == "drummer" else source
+    track = deepcopy(wire[key][1 if source == "drummer" else 0])
+    pad = deepcopy(track["pads"][0])
+    track["pads"] = [deepcopy(pad) for _ in range(513)]
+    if source != "arpeggiators":
+        for i, item in enumerate(track["pads"]):
+            item["pad_index"] = i
+    track["audition_schedule"] = deepcopy(track["clip_schedule"])
+    for clip in track["audition_schedule"]["clips"]:
+        for span in clip["content"]:
+            if span["pad"] is not None:
+                span["pad"] = 512
+    payload = {key: [track]}
+    SessionSequencerConfigRequest.model_validate(payload)
+    del track["audition_schedule"]
+    with pytest.raises(ValidationError, match="reserved for the audition"):
+        SessionSequencerConfigRequest.model_validate(payload)

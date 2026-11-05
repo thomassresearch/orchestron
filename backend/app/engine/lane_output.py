@@ -6,8 +6,9 @@ from typing import Any
 
 
 def lane_id(track_id: str) -> str:
-    parts = track_id.split(":")
-    return parts[1] if len(parts) == 3 and parts[0] == "drumrow" else track_id
+    # The suffix is an opaque row ID, including any CLI-generated delimiters.
+    parts = track_id.split(":", 2)
+    return parts[1] if len(parts) == 3 and parts[0] == "drumrow" and parts[1].strip() and parts[2].strip() else track_id
 
 
 @dataclass(frozen=True)

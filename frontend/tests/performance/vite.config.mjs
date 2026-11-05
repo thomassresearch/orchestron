@@ -10,8 +10,8 @@ export default defineConfig(environment => mergeConfig(testConfig(environment), 
     host: "127.0.0.1", port: 5178, strictPort: true,
     headers: { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "require-corp" },
     proxy: {
-      "/api": { target: "http://127.0.0.1:8000" },
-      "/ws": { target: "ws://127.0.0.1:8000", ws: true }
+      "/api": { target: process.env.PROFILE_BACKEND_URL ?? "http://127.0.0.1:8000" },
+      "/ws": { target: process.env.PROFILE_BACKEND_URL ?? "ws://127.0.0.1:8000", ws: true }
     }
   },
   plugins: [{

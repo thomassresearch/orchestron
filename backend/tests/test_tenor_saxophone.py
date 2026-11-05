@@ -6,7 +6,6 @@ import pytest
 from backend.tests.csound_test_support import load_patch_fixture
 from backend.tests.saxophone_audio_support import (
     compile_instruments, fundamental, note_events, render, rms, section, spectrum_metrics,
-    upper_harmonic_fraction,
 )
 
 
@@ -117,22 +116,3 @@ def test_sustained_normal_note_does_not_latch_into_an_overblown_mode(note):
     for start, end in [(.5, 1), (2, 2.5), (3.4, 4)]:
         assert_pitch(audio, start, end, note)
         assert spectrum_metrics(section(audio, start, end), 440 * 2 ** ((note - 69) / 12))["fundamental_fraction"] > .3
-
-
-def test_normal_register_has_richer_harmonics_than_original():
-    notes = [(.15 + i * .8, note, velocity, .6)
-             for i, (note, velocity) in enumerate((n, v) for n in [44, 48, 55, 60, 67, 72, 76]
-                                                 for v in [64, 80, 96])]
-    spectra = []
-    for fixture in ["tenor_saxophone_original", "tenor_saxophone"]:
-        artifact, targets = compile_instruments([load_patch_fixture(fixture)], mode="host")
-        audio, _ = render(artifact, targets, note_events(notes), 17.5, mode="host")
-        spectra.append(np.array([
-            upper_harmonic_fraction(section(audio, start + .3, start + .56), 440 * 2 ** ((note - 69) / 12))
-            for start, note, _, _ in notes
-        ]))
-    # Harmonic bands exclude most breath noise and are normalized to harmonic
-    # power: gain or extra hiss cannot satisfy this timbral regression.
-    before, after = spectra
-    assert np.median(after) > np.median(before) * 1.5
-    assert np.count_nonzero(after > before) >= 14

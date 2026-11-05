@@ -51,6 +51,45 @@ Raw measurements: [collapse-profile-result.json](collapse-profile-result.json).
 
 The profiling server reuses the frontend test configuration's fixture isolation: imports of the production drumkit template resolve to the checked-in test snapshot. Counters are injected only by this profiling config. Screenshots go to `output/playwright/`.
 
+## Clip arranger acceptance
+
+The November 2026 [acceptance record](../../../specifications/redesign-arranger/acceptance-follow-up.md)
+links the raw layout, accessibility, recovery and native-browser audio results.
+The clip fixture uses production components and versioned test data without App
+bootstrap/autosave. `measure-clip-arranger.js` checks normal/200% text at three
+widths, asserts that sticky headers leave visible timeline space, and measures
+16 versus 16,000 beats. `verify-clip-accessibility.js` checks emulated touch,
+accessible control names, dialog width and focus return in all four languages.
+`verify-clip-recovery.js` needs `VITE_CLIP_ARRANGER=1` and a fresh browser context
+for its actual backup download; it restores through the production config reader.
+
+For audio, start a separate backend with temporary storage (repository root):
+
+```sh
+arranger_profile_dir=$(mktemp -d)
+VISUALCSOUND_DATABASE_URL="sqlite:///$arranger_profile_dir/profile.db" \
+VISUALCSOUND_GEN_AUDIO_ASSETS_DIR="$arranger_profile_dir/assets" \
+VISUALCSOUND_FORCE_MOCK_ENGINE=false \
+.venv/bin/python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8029
+```
+
+In another terminal, from `frontend/`:
+
+```sh
+PROFILE_BACKEND_URL=http://127.0.0.1:8029 VITE_PROFILE_AUDIO=1 VITE_CLIP_ARRANGER=1 \
+node node_modules/vite/bin/vite.js --config tests/performance/vite.config.mjs --port 5180
+```
+
+Open `/tests/performance/clip-arranger.html` on that server in an isolated Playwright
+CLI browser. Import `/tests/performance/clip-audio.js` with `page.evaluate`, then
+click **Start isolated clip audio** to unlock audio. Run `measure-clip-audio.js`
+through `playwright-cli run-code --filename`. It records three 30-second samples,
+exercises edits/audition/seek/reconnect, and stops/deletes its preview session.
+On an interrupted check, call `window.__clipAudio.stop()` before closing the
+browser and stopping the two servers. No saved library or performance is written.
+The profile deliberately reads the real PCM ring independently of unsubscribed
+meters; `pcmPeak` is the audio check, while the unused meter `peak` stays zero.
+
 ## Automated validation
 
 `npm --prefix frontend run check` passed: frontend lint, **308 tests in 29 files**, and the production build. The 15 collapse regressions and two workspace-generation regressions cover hidden construction, current playback on expansion, animation/observer/listener/subscription cleanup, nested visibility, retained drafts and selections, clipboard/zoom/scroll, held-note cleanup, pending Mixer synchronization, asynchronous result isolation, successful workspace replacement, deletion and ordinary saves. Strict Mode and repeated toggles are included.

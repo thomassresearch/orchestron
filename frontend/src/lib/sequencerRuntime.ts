@@ -335,14 +335,18 @@ export function parseDrummerRowRuntimeTrackId(trackId: string): { drummerTrackId
     return null;
   }
 
-  const parts = trackId.split(":");
-  if (parts.length !== 3 || parts[1].trim().length === 0 || parts[2].trim().length === 0) {
+  const separator = trackId.indexOf(":", "drumrow:".length);
+  if (separator < 0) return null;
+  const drummerTrackId = trackId.slice("drumrow:".length, separator);
+  // CLI-generated row IDs contain colons; the entire suffix is the row identity.
+  const rowId = trackId.slice(separator + 1);
+  if (drummerTrackId.trim().length === 0 || rowId.trim().length === 0) {
     return null;
   }
 
   return {
-    drummerTrackId: parts[1],
-    rowId: parts[2]
+    drummerTrackId,
+    rowId
   };
 }
 

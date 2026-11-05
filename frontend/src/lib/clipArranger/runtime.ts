@@ -5,10 +5,16 @@ import { saveTransposeEdits } from './transposeEdits';
 import { parseDrummerRowRuntimeTrackId } from "../sequencerRuntime";
 import type { SequencerState } from "../../types";
 import { arrangementTimings, sourceKeys } from "./migration";
-import { resolveContent, validateArrangement, type ClipLane, type DefinitionDraft, type PatternDefinition } from "./model";
+import { CLIP_LIMITS, resolveContent, validateArrangement, type ClipLane, type DefinitionDraft, type PatternDefinition } from "./model";
 
 export type RuntimeClipSchedule = { version: 1 | 2; transpose_plans?: OffsetPlan[]; end: number; cycle_ticks: number | null; clips: { id: string; start: number; length: number; offset: number; mode: "once" | "loop"; repeat_index_base?: number; content: { pad: number | null; length: number; transpose_refs?: number[] }[] }[] };
 type AuditionState = SequencerState & { clipAuditionContext?: { laneId: string; schedule: RuntimeClipSchedule } };
+/** The standalone arpeggiator update must carry the same session-only schedule. */
+export function clipAuditionSchedule(state: SequencerState, laneId: string): RuntimeClipSchedule | undefined {
+  const context = (state as AuditionState).clipAuditionContext;
+  return context?.laneId === laneId ? context.schedule : undefined;
+}
+
 export function runtimeSchedule(state: SequencerState, lane: ClipLane): RuntimeClipSchedule {
   const patterns = lane.definitions.filter((d): d is PatternDefinition => d.kind === "pattern");
   const slots = new Map(patterns.map((p, i) => [p.id, i]));
@@ -30,7 +36,7 @@ export function runtimeSchedule(state: SequencerState, lane: ClipLane): RuntimeC
 export function clipRuntimeView(state: SequencerState): SequencerState {
   const model = state.clipArrangement;
   if (!model) return state;
-  validateArrangement(model, arrangementTimings(state));
+  validateArrangement(model, arrangementTimings(state), (state as AuditionState).clipAuditionContext?.laneId);
   const next = { ...state };
   for (const lane of model.lanes) {
     const key = sourceKeys[lane.source];
@@ -60,8 +66,19 @@ export function attachClipSchedules<T extends import("../../types").SessionSeque
 
 /** Shared definition order for audition compilation and audible UI slot lookup. */
 export function clipAuditionDefinitions(lane: ClipLane, draft: DefinitionDraft) {
-  const definitions = [...lane.definitions,
-    ...(draft.additions ?? []).filter(d => !lane.definitions.some(existing => existing.id === d.id))];
+  const additions = new Map((draft.additions ?? []).filter(d => !lane.definitions.some(existing => existing.id === d.id)).map(d => [d.id, d]));
+  const reachable = new Set<string>();
+  const visit = (definition: typeof draft.definition) => {
+    if (definition.kind === 'pattern') return;
+    for (const item of definition.children) {
+      if (!('definitionId' in item) || reachable.has(item.definitionId)) continue;
+      const added = additions.get(item.definitionId);
+      if (added) { reachable.add(added.id); visit(added); }
+    }
+  };
+  visit(draft.definition);
+  if (reachable.size >= CLIP_LIMITS.definitions) throw new Error("Audition draft exceeds the definition budget.");
+  const definitions = [...lane.definitions, ...[...additions.values()].filter(d => reachable.has(d.id))];
   const definition = { ...draft.definition, id: `clip-audition:${draft.definition.id.slice(0,80)}` };
   if (definition.kind !== "pattern") definition.children = definition.children.map((item, index) => ({ ...item, id: `audition-child:${definition.id}:${index}` }));
   return [...definitions.filter(d => d.id !== definition.id), definition];
@@ -76,52 +93,39 @@ export function clipAuditionState(state: SequencerState, draft: import("./model"
   const definition = lane.definitions[lane.definitions.length - 1];
   const patterns = lane.definitions.filter(d => d.kind === "pattern"), slots = new Map(patterns.map((p, i) => [p.id, i]));
   const timing = arrangementTimings(next)[lane.id];
-  const beat = timing ? 20160 * 4 / timing.meterDenominator * timing.beatRateDenominator / timing.beatRateNumerator : 20160;
-  const sequence: number[] = [];
-  // V3 auditions use exact clip timing and a frozen source-repetition context.
-  if (state.clipArrangement.version >= 3 || draft.transposeEdits?.length) {
-    next.clipArrangement!.version = state.clipArrangement.version === 4 ? 4 : 3;
-    const preview = saveTransposeEdits(state.clipArrangement, draft.target, draft.transposeEdits ?? [], arrangementTimings(state));
-    const sourceLane = draft.auditionContext?.lane ?? preview.lanes.find(l => l.id === lane.id)!;
-    const sourceClip = sourceLane.clips.find(c => c.id === draft.target.clipId)!;
-    const logical = logicalRepeatIndex(sourceLane,sourceClip,draft.target.path,draft.target.pass);
-    const inherited = transposePlans(sourceLane, sourceClip, draft.target.path);
-    lane.transposeProfiles = structuredClone(sourceLane.transposeProfiles);
-    // The selected level is already included in inherited; descendants add their own scopes.
-    delete definition.transposeProfileId;
-    const root = { id: 'audition-root', definitionId: definition.id, repeatIndex:logical };
-    const contextClip = { ...sourceClip, children: [root], transposePlacements: sourceClip.transposePlacements?.flatMap(p => {
-      if (p.path.length <= draft.target.path.length || !draft.target.path.every((id,i)=>p.path[i]===id)) return [];
-      const suffix = p.path.slice(draft.target.path.length).map(id => draft.auditionContext?.childIds[id] ?? id);
-      if (definition.kind !== 'pattern' && draft.definition.kind !== 'pattern') {
-        const index = draft.definition.children.findIndex(i=>i.id===p.path[draft.target.path.length]);
-        if (index < 0) throw Error('The audition placement changed. Refresh the draft.');
-        suffix[0] = definition.children[index].id;
-      }
-      return [{...p,path:[root.id,...suffix]}];
-    }) };
-    const plans: OffsetPlan[] = [], indices = new Map<string,number>();
-    const intern = (p: OffsetPlan) => {
-      const frozen = {base:offsetAt(p,(sourceClip.repeatIndexBase??0)+draft.target.pass),repetitions:[]}, key = JSON.stringify(frozen);
-      if (!indices.has(key)) { indices.set(key,plans.length); plans.push(frozen); }
-      return indices.get(key)!;
-    };
-    const content = resolveContent(lane,[root],timing).map(leaf=>({pad:leaf.definition?slots.get(leaf.definition.id)!:null,length:leaf.length,
-      transpose_refs:leaf.definition?[...inherited,...transposePlans(lane,contextClip,leaf.path)].map(intern):[]}));
-    const duration=content.reduce((sum,l)=>sum+l.length,0);
-    const schedule: RuntimeClipSchedule = {version:2,end:duration,cycle_ticks:duration,transpose_plans:plans,
-      clips:[{id:'audition',start:0,length:duration,offset:0,mode:'once',content}]};
-    (next as AuditionState).clipAuditionContext={laneId:lane.id,schedule};
-    // Legacy status tokens identify the selection; timing comes exclusively from the schedule.
-    return {state:next,sequence:[content.find(l=>l.pad!==null)?.pad ?? -1],clipContext:true};
-  }
-  for (const leaf of resolveContent(lane, [{ id: crypto.randomUUID(), definitionId: definition.id }], timing)) {
-    if (leaf.definition) sequence.push(slots.get(leaf.definition.id)!);
-    else {
-      let beats = leaf.length / beat;
-      if (!Number.isInteger(beats)) throw new Error("This rest cannot yet be auditioned on the source grid.");
-      for (const size of [32, 16, 8, 4, 2, 1]) while (beats >= size) { sequence.push(-size); beats -= size; }
+  // Use the exact schedule for every saved format. This view is session-only.
+  next.clipArrangement!.version = state.clipArrangement.version === 4 ? 4 : 3;
+  const preview = saveTransposeEdits(state.clipArrangement, draft.target, draft.transposeEdits ?? [], arrangementTimings(state));
+  const sourceLane = draft.auditionContext?.lane ?? preview.lanes.find(l => l.id === lane.id)!;
+  const sourceClip = sourceLane.clips.find(c => c.id === draft.target.clipId)!;
+  const logical = logicalRepeatIndex(sourceLane,sourceClip,draft.target.path,draft.target.pass);
+  const inherited = transposePlans(sourceLane, sourceClip, draft.target.path);
+  lane.transposeProfiles = structuredClone(sourceLane.transposeProfiles);
+  // The selected level is already included in inherited; descendants add their own scopes.
+  delete definition.transposeProfileId;
+  const root = { id: 'audition-root', definitionId: definition.id, repeatIndex:logical };
+  const contextClip = { ...sourceClip, children: [root], transposePlacements: sourceClip.transposePlacements?.flatMap(p => {
+    if (p.path.length <= draft.target.path.length || !draft.target.path.every((id,i)=>p.path[i]===id)) return [];
+    const suffix = p.path.slice(draft.target.path.length).map(id => draft.auditionContext?.childIds[id] ?? id);
+    if (definition.kind !== 'pattern' && draft.definition.kind !== 'pattern') {
+      const index = draft.definition.children.findIndex(i=>i.id===p.path[draft.target.path.length]);
+      if (index < 0) throw Error('The audition placement changed. Refresh the draft.');
+      suffix[0] = definition.children[index].id;
     }
-  }
-  return { state: next, sequence };
+    return [{...p,path:[root.id,...suffix]}];
+  }) };
+  const plans: OffsetPlan[] = [], indices = new Map<string,number>();
+  const intern = (p: OffsetPlan) => {
+    const frozen = {base:offsetAt(p,(sourceClip.repeatIndexBase??0)+draft.target.pass),repetitions:[]}, key = JSON.stringify(frozen);
+    if (!indices.has(key)) { indices.set(key,plans.length); plans.push(frozen); }
+    return indices.get(key)!;
+  };
+  const content = resolveContent(lane,[root],timing).map(leaf=>({pad:leaf.definition?slots.get(leaf.definition.id)!:null,length:leaf.length,
+    transpose_refs:leaf.definition?[...inherited,...transposePlans(lane,contextClip,leaf.path)].map(intern):[]}));
+  const duration=content.reduce((sum,l)=>sum+l.length,0);
+  const schedule: RuntimeClipSchedule = {version:2,end:duration,cycle_ticks:duration,transpose_plans:plans,
+    clips:[{id:'audition',start:0,length:duration,offset:0,mode:'once',content}]};
+  (next as AuditionState).clipAuditionContext={laneId:lane.id,schedule};
+  // Legacy status tokens identify the selection; timing comes exclusively from the schedule.
+  return {state:next,sequence:[content.find(l=>l.pad!==null)?.pad ?? -1],clipContext:true};
 }

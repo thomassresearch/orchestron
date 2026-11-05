@@ -9970,3 +9970,109 @@ def test_empty_four_beat_clip_persists_without_a_pattern_reference(tmp_path):
         response = client.post("/api/performances", json={"name": "Empty clip", "config": config})
         assert response.status_code == 201, response.text
         assert client.get(f"/api/performances/{response.json()['id']}").json()["config"] == config
+
+
+def test_clip_capacity_audition_api_preserves_authored_schedule(tmp_path):
+    from copy import deepcopy
+    from backend.tests.test_clip_arrangement import capacity_audition_config
+    config = capacity_audition_config()
+    with _client(tmp_path) as client:
+        session_id = _create_running_session(client, patch_name="Capacity audition")
+        base = f"/api/sessions/{session_id}/sequencer"
+        response = client.put(base + "/config", json=config)
+        assert response.status_code == 200, response.text
+        start = {"action": "workspace_start", "gesture_id": "capacity", "revision": 1,
+                 "track_ids": ["lead"], "sequence": [512], "clip_context": True}
+        response = client.post(base + "/audition", json=start)
+        assert response.status_code == 200, response.text
+        assert response.json()["auditions"]["lead"]["workspace_active"]
+        invalid = deepcopy(config)
+        invalid["tracks"][0]["clip_schedule"]["clips"][0]["content"][0]["pad"] = 512
+        assert client.put(base + "/config", json=invalid).status_code == 422
+        assert client.post(base + "/audition", json={**start, "clip_context": False}).status_code == 422
+        response = client.post(base + "/audition", json={"action": "workspace_end", "gesture_id": "capacity",
+                                                        "revision": 2, "track_ids": ["lead"]})
+        assert response.status_code == 200, response.text
+        assert not response.json()["auditions"]
+
+
+def test_clip_capacity_audition_native_pcm_survives_failed_prepare(tmp_path, monkeypatch):
+    import numpy as np
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_clip_arrangement import capacity_audition_config
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        patch = client.post("/api/patches", json=load_patch_fixture("velocity_if").model_dump(mode="json")).json()
+        session = client.post("/api/sessions", json={"patch_id": patch["id"]}).json()["session_id"]
+        assert client.post(f"/api/sessions/{session}/compile").status_code == 200
+        base = f"/api/sessions/{session}/sequencer"
+        config = capacity_audition_config()
+        assert client.post(base + "/device-transport", json={"action": "play", "arranger": True, "config": config}).status_code == 200
+        service = client.app.state.container.session_service
+        assert service._sessions[session].worker.backend == "ctcsound"
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 512})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "audition", "request_id": "start", "action": "workspace_start", "track_ids": ["lead"],
+                "sequence": [512], "clip_context": True, "gesture_id": "capacity", "revision": 1})
+            assert socket.receive_json()["type"] == "sequencer_status"
+
+            def render_seconds(seconds):
+                frames, peak = 0, 0.0
+                while frames < 48000 * seconds:
+                    socket.send_json({"type": "request_render", "block_count": 512})
+                    metadata = socket.receive_json()
+                    assert metadata["type"] == "render_chunk", metadata
+                    samples = np.frombuffer(socket.receive_bytes(), dtype="<f4")
+                    assert np.isfinite(samples).all()
+                    peak = max(peak, float(np.max(np.abs(samples))))
+                    frames += metadata["target_frame_count"]
+                    assert len(metadata["transport_events"]) < 128
+                return peak
+
+            assert render_seconds(10) > .001
+            async def failed_prepare(*_args, **_kwargs):
+                raise RuntimeError("deliberate capacity preparation failure")
+            with monkeypatch.context() as scoped:
+                scoped.setattr(service._preparation, "prepare", failed_prepare)
+                assert client.put(base + "/config", json=config).status_code == 500
+            assert render_seconds(10) > .001
+            assert client.get(base + "/status").json()["auditions"]["lead"]["workspace_active"]
+            socket.send_json({"type": "audition", "request_id": "end", "action": "workspace_end", "track_ids": ["lead"],
+                "gesture_id": "capacity", "revision": 2})
+            assert socket.receive_json()["type"] == "sequencer_status"
+            render_seconds(1)  # Drain release tails after the finite song already ended.
+            assert render_seconds(1) < .00001
+
+
+def test_browser_clock_clip_drummer_with_cli_row_ids_and_twelve_patterns(tmp_path):
+    rows = ["drumrow:rhythm:rhythm:key35:kick", "drumrow:rhythm:rhythm:key37:stick"]
+    config = {"playback_end_step": 32, "tracks": [{
+        "track_id": row, "midi_channel": 1, "enabled": False, "pad_loop_enabled": True,
+        "pads": [{"pad_index": i, "length_beats": 4, "steps": [key, None, None, None]} for i in range(12)],
+        "clip_schedule": {"end": 80640, "clips": [{"id": "last-pattern", "start": 0,
+            "length": 80640, "content": [{"pad": 11, "length": 80640}]}]},
+    } for row, key in zip(rows, [35, 37])],
+        "lane_output": {"revision": 1, "lanes": {"rhythm": {"mute": False, "solo": True}}}}
+    with _client(tmp_path) as client:
+        session = _create_running_session(client)
+        base = f"/api/sessions/{session}/sequencer"
+        # A partial row selection must still be rejected as an incomplete device.
+        response = client.post(base + "/device-transport", json={"action": "play", "track_ids": rows[:1], "config": config})
+        assert response.status_code == 422
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            for target in [{"arranger": True}, {"track_ids": rows}]:
+                socket.send_json({"type": "device_transport", "request_id": "play", "action": "play", "config": config, **target})
+                response = socket.receive_json()
+                assert response["type"] == "sequencer_status", response
+                status = response["sequencer_status"]
+                assert all(t["enabled"] and t["active_pad"] == 11 for t in status["tracks"])
+                assert set(status["lane_output"]["lanes"]) == {"rhythm"}
+                socket.send_json({"type": "device_transport", "request_id": "stop", "action": "stop", **target})
+                response = socket.receive_json()
+                assert response["type"] == "sequencer_status", response
+                assert not any(t["enabled"] for t in response["sequencer_status"]["tracks"])

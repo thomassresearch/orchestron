@@ -1,5 +1,7 @@
 # Remaining work: implementation cross-check
 
+Current follow-up: [implemented fixes, verification and remaining acceptance](acceptance-follow-up.md).
+
 Reviewed 2026-11-05 against `de76638`. This is the current prioritization of the
 original six tasks, superseding their initial blanket acceptance backlog. It is a
 source/test audit, not default-rollout approval. Production behavior and the rollout

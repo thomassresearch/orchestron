@@ -1,5 +1,11 @@
 # Integrated preview implementation record
 
+Current follow-up: [implemented fixes, verification and remaining acceptance](acceptance-follow-up.md).
+
+Release decision, 2026-11-05: [external MIDI hardware testing is deferred](acceptance-follow-up.md#deferred-external-midi)
+and is not a release requirement. This supersedes hardware-test requirements in
+the historical backlog below; revisit if needed.
+
 Date: 2026-11-03. Baseline: `d82c682`. Status: integrated, opt-in development preview; **not default-cutover acceptance**. This record supplements the original six task definitions rather than marking unperformed checks complete.
 
 Current backlog: [2026-11-05 implementation cross-check and priorities](remaining-work-review.md), verified against `de76638`. The dated entries below retain delivery history; the review reconciles them with later transposition, CLI and score-editor work.

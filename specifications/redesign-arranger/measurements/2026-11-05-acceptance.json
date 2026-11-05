@@ -1,0 +1,123 @@
+{
+  "baseline_revision": "6764027",
+  "environment": "Local macOS Chrome; Vite fixture harness, no audio; single samples, not throughput guarantees",
+  "layout_and_density": [
+    {
+      "kind": "layout",
+      "width": 1440,
+      "textScale": 1,
+      "scrollWidth": 1440
+    },
+    {
+      "kind": "layout",
+      "width": 1440,
+      "textScale": 2,
+      "scrollWidth": 1440
+    },
+    {
+      "kind": "layout",
+      "width": 520,
+      "textScale": 1,
+      "scrollWidth": 520
+    },
+    {
+      "kind": "layout",
+      "width": 520,
+      "textScale": 2,
+      "scrollWidth": 520
+    },
+    {
+      "kind": "layout",
+      "width": 390,
+      "textScale": 1,
+      "scrollWidth": 390
+    },
+    {
+      "kind": "layout",
+      "width": 390,
+      "textScale": 2,
+      "scrollWidth": 390
+    },
+    {
+      "kind": "density",
+      "beats": 16,
+      "expanded": false,
+      "settleMs": 4.929999947547913,
+      "nodes": 449
+    },
+    {
+      "kind": "density",
+      "beats": 16000,
+      "expanded": false,
+      "settleMs": 9.40499997138977,
+      "nodes": 584
+    },
+    {
+      "kind": "density",
+      "beats": 16,
+      "expanded": true,
+      "settleMs": 8.735000014305115,
+      "nodes": 489
+    },
+    {
+      "kind": "density",
+      "beats": 16000,
+      "expanded": true,
+      "settleMs": 10.56499993801117,
+      "nodes": 752
+    }
+  ],
+  "languages": [
+    {
+      "language": "english",
+      "width": 390,
+      "scrollWidth": 390,
+      "unlabelledButtons": 0
+    },
+    {
+      "language": "german",
+      "width": 390,
+      "scrollWidth": 390,
+      "unlabelledButtons": 0
+    },
+    {
+      "language": "french",
+      "width": 390,
+      "scrollWidth": 390,
+      "unlabelledButtons": 0
+    },
+    {
+      "language": "spanish",
+      "width": 390,
+      "scrollWidth": 390,
+      "unlabelledButtons": 0
+    }
+  ],
+  "keyboard_dialog": {
+    "opened": true,
+    "closed": true,
+    "focusReturned": true
+  },
+  "preparation": {
+    "machine": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+    "controllers": {
+      "cold": {
+        "median_ms": 3.9,
+        "max_ms": 5.021
+      },
+      "unchanged": {
+        "median_ms": 0.157,
+        "max_ms": 0.177
+      },
+      "one_pad_edit": {
+        "median_ms": 0.907,
+        "max_ms": 1.076
+      }
+    },
+    "complete_process_round_trip_ms": {
+      "cold": 25.661,
+      "unchanged": 20.465,
+      "one_pad_edit": 20.323
+    }
+  }
+}

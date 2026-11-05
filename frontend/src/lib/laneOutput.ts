@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { parseDrummerRowRuntimeTrackId } from "./sequencerRuntime";
 import type { SequencerState, SessionLaneOutputRequest, SessionSequencerConfigRequest, SessionSequencerStatus } from "../types";
 
 type Control = { mute: boolean; solo: boolean };
@@ -50,7 +51,7 @@ export function laneOutputRequest(): SessionLaneOutputRequest {
 
 /** Attach only to runtime requests, never authored data or export compilation. */
 export function withLaneOutput(config: SessionSequencerConfigRequest): SessionSequencerConfigRequest {
-  const ids = new Set([...config.tracks.map(t => t.track_id.startsWith("drumrow:") ? t.track_id.split(":")[1] : t.track_id),
+  const ids = new Set([...config.tracks.map(t => parseDrummerRowRuntimeTrackId(t.track_id)?.drummerTrackId ?? t.track_id),
     ...(config.score_tracks ?? []).map(t => t.track_id),
     ...(config.controller_tracks ?? []).map(t => t.track_id), ...(config.arpeggiators ?? []).filter(a => a.playback_mode === "arranger").map(a => a.arpeggiator_id)]);
   const request = laneOutputRequest();

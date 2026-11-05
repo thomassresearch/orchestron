@@ -41,7 +41,7 @@ export function LaneTransposeDialog({target, language, trigger, stopAudition, on
   },[trigger]);
   return <dialog ref={dialog} aria-label={c.laneTitle} className="w-[min(94vw,720px)] max-h-[85vh] overflow-y-auto rounded-xl border border-indigo-500 bg-slate-950 p-4 text-slate-100 shadow-2xl backdrop:bg-black/40"
     onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)onClose();}}}>
-    <div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-indigo-200">{c.laneTitle}</h3><button type="button" className={clipButton} onClick={onClose}>{c.close}</button></div>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h3 className="text-sm font-semibold text-indigo-200">{c.laneTitle}</h3><button type="button" className={clipButton} onClick={onClose}>{c.close}</button></div>
     <TransposeInspector target={target} language={language} stopAudition={stopAudition} onSaved={onClose}/>
     <p className="text-xs text-slate-400">{c.closeHelp}</p>
   </dialog>;

@@ -134,3 +134,19 @@ def test_muted_render_progress_seek_loop_and_audition_match_unmuted_tracks():
     assert other_attacks(rendered[0][1]) == other_attacks(rendered[1][1])
     assert other_attacks(rendered[1][1])
     assert not any(e.source == "lane:lead" and e.message[0] & 0xf0 == 0x90 for e in rendered[1][1])
+
+
+def test_cli_drum_row_ids_share_lane_mute_and_release_ownership():
+    rows = ["drumrow:rhythm:rhythm:key35:kick", "drumrow:rhythm:rhythm:key37:stick"]
+    value = SimpleNamespace(tracks=[SimpleNamespace(track_id=row, midi_channel=1) for row in rows],
+                            controller_tracks=[], arpeggiators=[])
+    gate = LaneOutputGate()
+    gate.configure(value)
+    assert set(gate.routing) == {"rhythm"}
+    assert gate.allows(f"lane:{rows[0]}", [0x90, 35, 100])
+    gate.apply(1, controls(rhythm="mute"))
+    assert gate.allows(f"lane:{rows[0]}", [0x80, 35, 0])
+    for row, key in zip(rows, [35, 37]):
+        assert not gate.allows(f"lane:{row}", [0x90, key, 100])
+    gate.apply(2, controls(rhythm="solo"))
+    assert all(gate.allows(f"lane:{row}", [0x90, key, 100]) for row, key in zip(rows, [35, 37]))
