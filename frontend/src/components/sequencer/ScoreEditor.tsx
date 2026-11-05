@@ -106,14 +106,16 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
   const rows = Array.from({ length: pitchBottom - pitchTop + 1 }, (_, i) => pitchTop + i);
   const beatStride = zoom < 8 ? track.timing.meterNumerator * Math.ceil(30 / zoom / track.timing.meterNumerator) : 1;
   const beatStart = Math.max(0, Math.floor((view.left - 64) / zoom / beatStride) * beatStride);
-  const beats = Array.from({ length: Math.max(0, Math.min(Math.ceil((pad.lengthBeats - beatStart + 1) / beatStride), Math.ceil(view.width / zoom / beatStride) + 3)) }, (_, i) => i * beatStride + beatStart);
+  const beats = Array.from({ length: Math.max(0, Math.min(Math.ceil((pad.lengthBeats - beatStart + 1) / beatStride), Math.ceil(view.width / zoom / beatStride) + 3)) }, (_, i) => i * beatStride + beatStart).filter(b => b <= pad.lengthBeats);
   const coords = (e: ReactPointerEvent<SVGSVGElement>) => {
     const bounds = e.currentTarget.getBoundingClientRect();
-    return { x: Math.max(0, Math.min(length - step, snap((e.clientX - bounds.left + view.left - 64) / zoom * beat))),
+    return { x: Math.max(0, Math.min(length, snap((e.clientX - bounds.left + view.left - 64) / zoom * beat))),
       pitch: Math.max(0, Math.min(127, 127 - Math.floor((e.clientY - bounds.top + view.top - 28) / row))) };
   };
   const down = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (e.button !== 0 || (e.target as Element).closest("[data-keyboard]")) return;
+    const bounds = e.currentTarget.getBoundingClientRect();
+    if (e.clientX - bounds.left + view.left >= 64 + width && !(e.target as Element).closest("[data-note]")) return;
     e.currentTarget.focus(); e.currentTarget.setPointerCapture(e.pointerId);
     const p = coords(e); setPosition(p.x); setPropertyId(null);
     const element = (e.target as Element).closest("[data-note]");
@@ -128,16 +130,18 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
       gesture.current = { kind: "select", ...p, ids: [], initial: pad.notes };
       setSelected([]);
     } else {
-      const n: ScoreNoteState = { id: crypto.randomUUID(), pitch: p.pitch, startTicks: p.x, durationTicks: step, velocity: 100 };
-      gesture.current = { kind: "draw", ...p, ids: [n.id], initial: pad.notes, note: n };
+      const n: ScoreNoteState = { id: crypto.randomUUID(), pitch: p.pitch, startTicks: Math.min(p.x, length - step), durationTicks: step, velocity: 100 };
+      gesture.current = { kind: "draw", ...p, x: n.startTicks, ids: [n.id], initial: pad.notes, note: n };
       previewRef.current = [...pad.notes, n]; setPreview(previewRef.current); setSelected([n.id]);
     }
   };
   const move = (e: ReactPointerEvent<SVGSVGElement>) => {
     const g = gesture.current; if (!g) return;
-    const p = coords(e), delta = p.x - g.x;
+    const p = coords(e);
+    if (g.kind === "draw") p.x = Math.min(p.x, length - step);
+    const delta = p.x - g.x;
     if (g.kind === "select") {
-      const m = { a: Math.min(g.x, p.x), b: Math.max(g.x, p.x) + step, low: Math.min(g.pitch, p.pitch), high: Math.max(g.pitch, p.pitch) };
+      const m = { a: Math.min(g.x, p.x), b: Math.min(length, Math.max(g.x, p.x) + step), low: Math.min(g.pitch, p.pitch), high: Math.max(g.pitch, p.pitch) };
       setMarquee(m); setSelected(pad.notes.filter(n => n.pitch >= m.low && n.pitch <= m.high && n.startTicks < m.b && n.startTicks + n.durationTicks > m.a).map(n => n.id)); return;
     }
     const selection = new Set(g.ids);
@@ -218,11 +222,12 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
           }}>
           <rect x={view.left} y={view.top} width={view.width} height={view.height} fill="#020617" />
           {rows.map(i => { const pitch = 127 - i, degree = scaleDegreeForNote(pitch, pad.scaleRoot, pad.mode), y = i * row + 28; return <g key={i}>
-            <rect x={view.left + 64} y={y} width={view.width - 64} height={row} fill={degree ? colors[degree - 1] : "#64748b"} opacity={degree === 1 ? 0.14 : degree ? 0.065 : 0.02} />
-            <line x1={view.left + 64} x2={view.left + view.width} y1={y + row} y2={y + row} stroke="#334155" strokeWidth={0.5} />
+            <rect x={view.left + 64} y={y} width={Math.max(0, Math.min(width - view.left, view.width - 64))} height={row} fill={degree ? colors[degree - 1] : "#64748b"} opacity={degree === 1 ? 0.14 : degree ? 0.065 : 0.02} />
+            <line x1={view.left + 64} x2={Math.max(view.left + 64, Math.min(64 + width, view.left + view.width))} y1={y + row} y2={y + row} stroke="#334155" strokeWidth={0.5} />
           </g>; })}
           {beats.map(b => <g key={b}><line x1={64 + b * zoom} x2={64 + b * zoom} y1={view.top} y2={view.top + view.height} stroke={b % track.timing.meterNumerator === 0 ? "#64748b" : "#334155"} />
-            {zoom / track.timing.stepsPerBeat > 6 && Array.from({ length: track.timing.stepsPerBeat - 1 }, (_, j) => <line key={j} x1={64 + (b + (j + 1) / track.timing.stepsPerBeat) * zoom} x2={64 + (b + (j + 1) / track.timing.stepsPerBeat) * zoom} y1={view.top} y2={view.top + view.height} stroke="#1e293b" />)}</g>)}
+            {b < pad.lengthBeats && zoom / track.timing.stepsPerBeat > 6 && Array.from({ length: track.timing.stepsPerBeat - 1 }, (_, j) => <line key={j} x1={64 + (b + (j + 1) / track.timing.stepsPerBeat) * zoom} x2={64 + (b + (j + 1) / track.timing.stepsPerBeat) * zoom} y1={view.top} y2={view.top + view.height} stroke="#1e293b" />)}</g>)}
+          <line data-pattern-end="true" x1={64 + width} x2={64 + width} y1={view.top} y2={view.top + view.height} stroke="#64748b" />
           {visible.map(n => { const x = 64 + n.startTicks / beat * zoom, y = (127 - n.pitch) * row + 29, w = Math.max(3, (Math.min(length, n.startTicks + n.durationTicks) - n.startTicks) / beat * zoom), degree = scaleDegreeForNote(n.pitch, pad.scaleRoot, pad.mode); return <g key={n.id} data-note={n.id}>
             <rect data-note={n.id} x={x} y={y} width={w} height={row - 2} rx={3} fill={degree ? colors[degree - 1] : "#94a3b8"} opacity={0.55 + n.velocity / 127 * 0.4} stroke={selectedSet.has(n.id) ? "#fff" : "#0f172a"} strokeWidth={selectedSet.has(n.id) ? 2 : 1} />
             {w > 28 && <text x={x + 7} y={y + row * 0.65} fontSize={10} fill="#0f172a" pointerEvents="none">{scorePitchLabel(n.pitch)}</text>}
@@ -262,7 +267,7 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
             <text x={view.left + 7} y={i * row + 28 + row * 0.7} fontSize={11} fill={black && !pressed ? "#e2e8f0" : "#0f172a"}>{scorePitchLabel(pitch)}{degree ? ` · ${degree}` : ""}</text>
           </g>; })}
           <rect data-keyboard="true" x={view.left} y={view.top} width={view.width} height={26} fill="#0f172a" />
-          {beats.filter(b => b % Math.max(track.timing.meterNumerator, Math.ceil(42 / zoom / track.timing.meterNumerator) * track.timing.meterNumerator) === 0).map(b => <text key={b} x={64 + b * zoom + 4} y={view.top + 17} fill="#cbd5e1" fontSize={11}>{Math.floor(b / track.timing.meterNumerator) + 1}</text>)}
+          {beats.filter(b => b < pad.lengthBeats && b % Math.max(track.timing.meterNumerator, Math.ceil(42 / zoom / track.timing.meterNumerator) * track.timing.meterNumerator) === 0).map(b => <text key={b} x={64 + b * zoom + 4} y={view.top + 17} fill="#cbd5e1" fontSize={11}>{Math.floor(b / track.timing.meterNumerator) + 1}</text>)}
         </svg>
       </div>
     </div>

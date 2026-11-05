@@ -21,6 +21,8 @@ Choose Add track → Score, then add a clip with the track's + or by double-clic
 
 ## Length, pads and playback
 
+The grid ends at Pattern length. Drawing, resizing the right edge or moving a note can place its end exactly on that boundary; resizing the left edge keeps its end fixed. Empty space beyond the boundary does not create notes.
+
 Each device has eight pads. Meter, subdivision and playback speed apply to the whole device; Pattern length and scale belong to the edited pad. Length supports 1–8,192 whole local beats. Set length to arrangement uses the other arranged lanes. Shortening preserves hidden notes; expand to recover them or use Trim hidden notes to remove/cut them. Each pad supports 10,000 notes; a performance supports 16 Score Sequencers and 50,000 score notes.
 
 Play starts the selected source. Manual pads plays the editing pad; while running, another pad click selects it for editing and queues it at Next bar or End of score. Orange is queued, cyan is playing. Stopped or Arrangement devices only select the editing pad on a pad click. Copy pad to copies notes, length and scale. Assemble phrases in the pattern workspace and song order in the arranger. Hold a speaker for 250 ms to preview a phrase; release restores prior playback.
@@ -45,6 +47,8 @@ Ein Doppelklick hängt eine Viertelnote mit Anschlagstärke 100 an das bearbeite
 Wähle Spur hinzufügen → Partitur und füge mit dem + der Spur oder per Doppelklick in die leere Spur einen Clip hinzu. Im Clip wählst du + / Inhalt hinzufügen → Neues Pattern. Doppelklicke auf das enthaltene Pattern (oder fokussiere seinen Namen und drücke Enter), um diesen Score-Editor zu öffnen. Halte Tasten zum Probehören und sammle Viertelnoten per Doppelklick. Entwurf abspielen spielt das Pattern vor. Speichern bietet Nur dieses Vorkommen (eine neue Variation) oder Alle verknüpften Vorkommen; Abbrechen behält den Entwurf. Speichere das Pattern vor dem Speichern/Exportieren der Performance. Pattern-Länge und Clip-Fenster sind unabhängig; musikalische Änderungen behalten die Clip-Grenzen. Clip an Inhalt anpassen ändert das Fenster. Clip-Pfad und Entwurfssteuerung ersetzen die alte Pad-Arbeitsfläche und Quellenwahl.
 
 ## Länge, Pads und Wiedergabe
+
+Das Raster endet an der Pattern-Länge. Zeichnen, Ziehen am rechten Rand oder Verschieben kann eine Note genau an dieser Grenze enden lassen; Ziehen am linken Rand behält das Ende bei. Im leeren Bereich dahinter entstehen keine Noten.
 
 Jedes Gerät hat acht Pads. Taktart, Raster und Wiedergabegeschwindigkeit gelten geräteweit; Pattern-Länge und Tonleiter gehören zum bearbeiteten Pad. Die Länge umfasst 1–8.192 ganze lokale Beats. Länge an Arrangement anpassen verwendet die anderen arrangierten Spuren. Verkürzen bewahrt verborgene Noten: Verlängern stellt sie wieder her, Verborgene Noten abschneiden entfernt oder kürzt sie. Pro Pad sind 10.000 Noten erlaubt, pro Performance 16 Score-Sequenzer und 50.000 Score-Noten.
 
@@ -71,6 +75,8 @@ Choisissez Ajouter une piste → Partition, puis ajoutez un clip avec le + de la
 
 ## Longueur, pads et lecture
 
+La grille s’arrête à la longueur du motif. Dessiner, tirer le bord droit ou déplacer une note permet de la terminer exactement à cette limite ; tirer le bord gauche conserve sa fin. L’espace vide au-delà ne crée pas de notes.
+
 Chaque appareil possède huit pads. Mesure, subdivision et vitesse s’appliquent à l’appareil ; longueur et gamme appartiennent au pad édité. La longueur accepte 1 à 8 192 temps locaux entiers. Adapter à l’arrangement utilise les autres pistes arrangées. Raccourcir conserve les notes masquées : allongez pour les retrouver ou utilisez Supprimer les notes masquées pour les supprimer/raccourcir. Limites : 10 000 notes par pad, 16 séquenceurs de partition et 50 000 notes de partition par performance.
 
 Lecture démarre la source choisie. Pads manuels joue le pad édité ; pendant la lecture, cliquer sur un autre pad le sélectionne pour l’édition et programme son lancement à Mesure suivante ou Fin de partition. Orange indique l’attente, cyan la lecture. À l’arrêt ou en mode Arrangement, un clic ne change que le pad édité. Copier le pad vers conserve notes, longueur et gamme. Assemblez les phrases dans l’espace de motifs et l’ordre du morceau dans l’arrangeur. Maintenez un haut-parleur 250 ms pour préécouter une phrase ; relâcher restaure la lecture précédente.
@@ -95,6 +101,8 @@ Haz doble clic en una tecla para añadir una negra con velocidad 100 al pad que 
 Elige Añadir pista → Partitura y añade un clip con el + de la pista o con doble clic en la pista vacía. Dentro del clip, elige + / Añadir contenido → Nuevo patrón. Haz doble clic en el patrón anidado (o enfoca su nombre y pulsa Intro) para abrir este editor de partitura. Mantén las teclas para escuchar y haz doble clic para añadir negras. Escuchar borrador permite escuchar el patrón. Guardar ofrece Solo esta aparición (una variación nueva) o Todas las apariciones vinculadas; cancelar conserva el borrador. Guarda el patrón antes de guardar/exportar la performance. La longitud del patrón y la ventana del clip son independientes; las ediciones musicales conservan los límites del clip. Ajustar clip al contenido modifica la ventana. La ruta del clip y los controles del borrador sustituyen el antiguo espacio de pads y el selector de fuente.
 
 ## Longitud, pads y reproducción
+
+La cuadrícula termina en la longitud del patrón. Dibujar, arrastrar el borde derecho o mover una nota permite terminarla exactamente en ese límite; arrastrar el borde izquierdo conserva su final. El espacio vacío posterior no crea notas.
 
 Cada dispositivo tiene ocho pads. Compás, subdivisión y velocidad de reproducción se aplican al dispositivo; longitud y escala pertenecen al pad editado. La longitud admite 1–8192 pulsos locales enteros. Ajustar al arreglo usa las otras pistas arregladas. Acortar conserva las notas ocultas: amplía para recuperarlas o usa Recortar notas ocultas para eliminarlas/recortarlas. Límites: 10 000 notas por pad, 16 secuenciadores de partitura y 50 000 notas de partitura por performance.
 

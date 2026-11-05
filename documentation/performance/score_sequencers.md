@@ -46,6 +46,11 @@ settings are not stored in a performance or its arranger history.
 
 ## Duration and hidden notes
 
+The grid ends exactly at Pattern length. Drawing a note, dragging its right edge,
+or moving it can place its end exactly on that boundary. Resizing its left edge
+keeps the end fixed. Blank space after the boundary is outside the pattern and
+does not create notes.
+
 **Pattern length** accepts 1–8,192 whole local beats and displays bars, beats and
 elapsed time at the current tempo and playback speed. Meter, subdivision and
 speed apply to all pads in the device; length applies only to the selected pad.
@@ -112,6 +117,8 @@ For CLI authoring, use `edit add-score-sequencer --spec score-track.json` with
 the dedicated [Score Sequencer format](../../integrations/skills/orchestron-performance-creator/references/score_sequencer.md).
 Existing composition-score inputs and `edit apply-score` keep their established
 meaning.
+
+<!-- pagebreak -->
 
 ## Clip transposition
 

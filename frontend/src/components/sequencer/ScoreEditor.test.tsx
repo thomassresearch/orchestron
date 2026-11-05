@@ -305,3 +305,39 @@ it("preserves hidden material, makes Trim undoable, and keeps history through co
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));
   expect(useAppStore.getState().sequencer.scoreTracks[0].pads[0].notes).toEqual(track.pads[0].notes);
 });
+
+
+it.each([{ meterDenominator: 4, stepsPerBeat: 4 }, { meterDenominator: 8, stepsPerBeat: 3 }] as const)("reaches the exact pattern boundary by resizing, moving and drawing in $meterDenominator/$stepsPerBeat", timing => {
+  const beat = 20160 * 4 / timing.meterDenominator, end = 8 * beat, commit = vi.fn();
+  const view = render(<Harness length={8} timing={timing} commit={commit} initial={[{ ...note(), startTicks: beat, durationTicks: beat }]} />);
+  drag(rect("root", "end"), 190, 110, 576);
+  expect(commit.mock.lastCall![0].notes[0]).toMatchObject({ startTicks: beat, durationTicks: 7 * beat });
+  drag(rect("root", "end"), 574, 110, 650);
+  expect(commit.mock.lastCall![0].notes[0].startTicks + commit.mock.lastCall![0].notes[0].durationTicks).toBe(end);
+  drag(rect("root", "start"), 129, 110, 193);
+  expect(commit.mock.lastCall![0].notes[0]).toMatchObject({ startTicks: 2 * beat, durationTicks: 6 * beat });
+  view.unmount();
+  const moved = render(<Harness length={8} timing={timing} commit={commit} initial={[{ ...note(), startTicks: beat, durationTicks: beat }]} />);
+  drag(rect(), 160, 110, 544);
+  expect(commit.mock.lastCall![0].notes[0]).toMatchObject({ startTicks: 7 * beat, durationTicks: beat });
+  moved.unmount();
+  render(<Harness length={8} timing={timing} commit={commit} />);
+  drag(svg(), 128, 110, 650);
+  const drawn = commit.mock.lastCall![0].notes[0];
+  expect(drawn.startTicks).toBe(beat);
+  expect(drawn.startTicks + drawn.durationTicks).toBe(end);
+});
+
+it("ends the grid at the configured length and ignores drawing in the space beyond it", () => {
+  const commit = vi.fn(); render(<Harness length={8} commit={commit} />);
+  const boundary = svg().querySelector("[data-pattern-end]")!;
+  expect(boundary.getAttribute("x1")).toBe("576");
+  for (const line of svg().querySelectorAll("line")) {
+    expect(Number(line.getAttribute("x1"))).toBeLessThanOrEqual(576);
+    expect(Number(line.getAttribute("x2"))).toBeLessThanOrEqual(576);
+  }
+  drag(svg(), 600, 110, 650);
+  expect(commit).not.toHaveBeenCalled();
+  drag(svg(), 570, 110, 650);
+  expect(commit.mock.lastCall![0].notes[0]).toMatchObject({ startTicks: 156240, durationTicks: 5040 });
+});
