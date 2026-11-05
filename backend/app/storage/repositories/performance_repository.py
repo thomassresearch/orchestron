@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Sequence
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, update
 
 from backend.app.models.performance import PerformanceDocument, PerformanceListItem
 from backend.app.services.persisted_json_limits import dump_compact_json
@@ -68,6 +68,16 @@ class PerformanceRepository:
                 return False
             db.delete(record)
         return True
+
+    def update_if_current(self, performance_id: str, document: PerformanceDocument, expected_updated_at) -> bool:
+        """Compare and replace in one SQL statement, including across worker processes."""
+        with self._db_session_factory() as db:
+            result = db.execute(update(PerformanceRecord).where(
+                PerformanceRecord.id == performance_id,
+                PerformanceRecord.updated_at == expected_updated_at,
+            ).values(name=document.name, description=document.description,
+                     config_json=dump_compact_json(document.config), updated_at=document.updated_at))
+            return result.rowcount == 1
 
     @staticmethod
     def _to_document(record: PerformanceRecord) -> PerformanceDocument:

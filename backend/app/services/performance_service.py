@@ -77,6 +77,10 @@ class PerformanceService:
         )
 
         self._validate_config(updated.config)
+        if request.expected_updated_at is not None:
+            if not self._repository.update_if_current(performance_id, updated, request.expected_updated_at):
+                raise HTTPException(status_code=409, detail="Performance changed since it was opened. Reload before committing.")
+            return PerformanceResponse.model_validate(updated.model_dump())
         persisted = self._repository.update(performance_id, updated)
         if not persisted:
             raise HTTPException(status_code=404, detail=f"Performance '{performance_id}' not found")

@@ -7,6 +7,8 @@ import sys
 import tempfile
 import unittest
 from zipfile import ZipFile
+import subprocess
+import re
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -93,6 +95,53 @@ class PluginPackageTests(unittest.TestCase):
         manifest["version"] = "0.2.0"
         manifest_path.write_text(json.dumps(manifest))
         self.assertEqual(build_archive(self.root).name, "orchestron-0.2.0.zip")
+
+
+class RealPluginPackageTests(unittest.TestCase):
+    def test_actual_sources_extract_and_run_portable_clip_commands(self):
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            archive = build_archive(root)
+            with ZipFile(archive) as bundle:
+                bundle.extractall(work / "install")
+                names = bundle.namelist()
+            plugin = work / "install/orchestron"
+            skills = plugin / "skills"
+            self.assertEqual(len(list(skills.glob("*/SKILL.md"))), 4)
+            for name in ("song_model", "song_structure", "song_history", "song_runtime", "song_export", "song_schema"):
+                self.assertTrue((skills / "orchestron-performance-creator/src/orchestron" / (name + ".py")).is_file())
+            self.assertFalse(any(part in ("tests", ".venv", "__pycache__", ".orchestron") for name in names for part in Path(name).parts))
+            for markdown in skills.rglob("*.md"):
+                for target in re.findall(r'\]\(([^)\s]+)\)', markdown.read_text()):
+                    if "://" not in target and not target.startswith("#"):
+                        local = target.split("#")[0]
+                        if local and not (markdown.parent / local).exists():
+                            # Existing older musical references sometimes point to
+                            # optional repository examples; new song guides may not.
+                            if markdown.name.startswith("song_") or markdown.name == "SKILL.md":
+                                self.fail(f"Broken packaged reference: {markdown}: {target}")
+            skill = skills / "orchestron-performance-creator"
+            music = work / "music"
+            music.mkdir()
+            env = {**os.environ, "PYTHONPATH": str(skill / "src"), "PYTHONDONTWRITEBYTECODE": "1"}
+            session = music / "draft.json"
+            def run(*args):
+                result = subprocess.run([sys.executable, str(skill / "scripts/orchestron_cli.py"), "--json",
+                    "--session-file", str(session), *args], cwd=music, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                return json.loads(result.stdout)["result"]
+            run("capabilities", "--offline")
+            run("edit", "schema")
+            run("edit", "begin", "--new", "--offline", "--arranger", "clips", "--name", "Packaged song")
+            run("edit", "apply-song", "--file", str(skill / "assets/complete-song.json"), "--offline")
+            summary = run("edit", "inspect")
+            self.assertEqual(summary["counts"]["patterns"], 3)
+            before = session.read_bytes()
+            repeated = run("edit", "apply-song", "--file", str(skill / "assets/complete-song.json"), "--offline")
+            self.assertFalse(repeated["state"]["changed"])
+            self.assertEqual(session.read_bytes(), before)
+            run("edit", "validate", "--offline")
 
 
 if __name__ == "__main__":

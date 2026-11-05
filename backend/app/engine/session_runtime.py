@@ -28,6 +28,7 @@ class RuntimeSession:
     worker: CsoundWorker = field(default_factory=CsoundWorker)
     midi_router: Any = None
     sequencer: Any = None
+    sequencer_request: Any = None
     configuration_generation: int = 0
     arpeggiator_generation: int = 0
     device_transport_epoch: int = 0

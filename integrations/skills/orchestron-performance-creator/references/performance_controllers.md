@@ -1,5 +1,7 @@
 # Customize Instruments Per Performance
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 `perf_controller` is an Orchestron virtual opcode exposed as a knob, integer stepper or on/off toggle beneath a rack instrument's patch/channel controls. It produces one I-rate output (`iout`) for instrument settings such as ADSR times, sustain, or distortion gain. It is independent of MIDI CC numbers, controller sequencers, and MIDI learn. Use it when the user wants a different sound configuration for a performance or for two instances of one patch.
 
 ## Controller types

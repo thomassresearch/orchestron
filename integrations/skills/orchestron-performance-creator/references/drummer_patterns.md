@@ -1,5 +1,7 @@
 # Custom Drum Patterns
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 Use a Drummer Sequencer for drum-kit parts, including Analog Drumkit. Choose MIDI keys from the actual instrument's mapping; the CLI's General MIDI presets are optional. Custom keys automatically add rows shared by all eight pads, alongside the existing default rows.
 
 ## CLI

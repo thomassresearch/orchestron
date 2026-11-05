@@ -403,6 +403,7 @@ class SessionService:
                             if request.lane_output is not None and request.lane_output.revision > gate.revision:
                                 gate.apply(request.lane_output.revision, {key: value.model_dump() for key, value in request.lane_output.lanes.items()})
                             self._ensure_sequencer(runtime).apply_prepared(prepared)
+                            runtime.sequencer_request = request.model_copy(deep=True)
                             self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm, prepared=prepared.prepared_arpeggiators)
                             return result
                     result = await asyncio.to_thread(runtime.worker.run_at_render_boundary, apply_automation)
@@ -1188,6 +1189,8 @@ class SessionService:
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         with runtime.configuration_lock:
+            if request.expected_generation is not None and request.expected_generation != runtime.configuration_generation + runtime.arpeggiator_generation:
+                raise HTTPException(status_code=409, detail="Sequencer configuration changed; refresh the runtime snapshot.")
             runtime.configuration_generation += 1
             generation = runtime.configuration_generation
         sequencer = self._ensure_sequencer(runtime)
@@ -1196,6 +1199,8 @@ class SessionService:
             def at_boundary():
                 with runtime.configuration_lock:
                     if generation != runtime.configuration_generation:
+                        raise SupersededConfigurationError()
+                    if request.expected_generation is not None and arpeggiator_generation != runtime.arpeggiator_generation:
                         raise SupersededConfigurationError()
                     if device_generation and not self._device_command_current(runtime, device_generation):
                         raise SupersededConfigurationError()
@@ -1212,6 +1217,7 @@ class SessionService:
                         gate.apply(request.lane_output.revision, {key: value.model_dump() for key, value in request.lane_output.lanes.items()})
                     status = sequencer.apply_prepared(prepared, position_step=position if seek else None,
                                                      device_command=device_command is not None)
+                    runtime.sequencer_request = request.model_copy(deep=True) if arpeggiator_generation == runtime.arpeggiator_generation else None
                     if arpeggiator_generation == runtime.arpeggiator_generation:
                         self._ensure_midi_router(runtime).configure(request.arpeggiators, tempo_bpm=request.timing.tempo_bpm, prepared=prepared.prepared_arpeggiators)
                     if device_command:
@@ -1279,6 +1285,7 @@ class SessionService:
                         raise HTTPException(status_code=409, detail="Arpeggiator edit superseded.")
                     router = self._ensure_midi_router(runtime)
                     router.configure(request.arpeggiators, tempo_bpm=request.tempo_bpm, prepared=prepared_arpeggiators)
+                    runtime.sequencer_request = None
                     return router.status()
             status = await asyncio.to_thread(runtime.worker.run_at_render_boundary, configure_at_boundary)
         except ValueError as exc:
@@ -1598,6 +1605,13 @@ class SessionService:
         runtime = await self._get_session(session_id)
         sequencer = self._ensure_sequencer(runtime)
         return self._status_with_arpeggiators(runtime, sequencer.status())
+
+    async def get_session_sequencer_configuration(self, session_id: str) -> dict:
+        runtime = await self._get_session(session_id)
+        with runtime.configuration_lock:
+            return {"generation": runtime.configuration_generation + runtime.arpeggiator_generation,
+                    "config": runtime.sequencer_request.model_dump(mode="json", exclude={"expected_generation"})
+                    if runtime.sequencer_request is not None else None}
 
     async def bind_midi_input(self, session_id: str, request: BindMidiInputRequest) -> SessionInfo:
         self._remember_running_loop()

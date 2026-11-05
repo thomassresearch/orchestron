@@ -1,5 +1,7 @@
 # Melodic Chord Strumming
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 Use strumming to play a melodic chord once in pitch order instead of attacking all notes together. `up` plays low to high, `down` high to low, and `off` plays simultaneously. **Spread** is an integer **0–100% of one local grid step**, measured from the first to the last note, not the gap between individual notes or the distance to the next occupied step.
 
 At 120 BPM, 4/4, Subdivision 4 and speed 1×, one step lasts 125 ms. A three-note chord at 40% starts at 0, 25 and 50 ms; at 100%, at 0, 62.5 and 125 ms. The last note at 100% reaches the next grid step. Spread follows global tempo and the sequencer's meter, subdivision and beat ratio. Timing offsets shift the entire strum.

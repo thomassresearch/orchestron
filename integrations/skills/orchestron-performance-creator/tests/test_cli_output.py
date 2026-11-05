@@ -185,7 +185,7 @@ def test_print_table_json_output_keeps_full_patch_description(capsys) -> None:
     )
 
     payload = json.loads(capsys.readouterr().out)
-    assert payload == {"ok": True, "result": rows}
+    assert payload == {"ok": True, "schemaVersion": 1, "result": rows}
 
 
 def _formula_graph() -> dict[str, object]:

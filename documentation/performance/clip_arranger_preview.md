@@ -22,6 +22,18 @@ Undo/Redo retains up to 25 clip edits through performance save/load, autosave re
 
 ## Instrument automation
 
+The [Performance Creator skill](../../integrations/skills/orchestron-performance-creator/SKILL.md)
+can author the same clip model through `orchestron_cli`. Start with
+`edit begin --new --arranger clips`, then apply a versioned song document with
+`edit apply-song --file PATH`. Definitions are shared across clip repetitions;
+pitch-only changes use transposition plans. Inspect returned occurrence targets
+before scoped musical/structural edits, use dry runs and undo, validate online,
+then commit. The CLI protects saved revisions and preserves unused definitions,
+hidden notes and trailing silence. It does not see unsaved GUI editor drafts.
+See the [command cookbook](../../integrations/skills/orchestron-performance-creator/references/song_workflow.md)
+for migration recovery, owned automation, audition and exports. This does not
+change the preview rollout gate.
+
 Select an instrument clip and use **Generate automation** to create one bound controller lane per assigned MIDI CC. Edit song-length curves directly inside expanded clips, with at most ten points and explicit Save/Discard. MIDI channel and CC follow the rack instrument. See [Instrument automation clips](instrument_automation.md) for generation, duration, split/merge and suspended-target behavior.
 
 ## Edit the current musical controls

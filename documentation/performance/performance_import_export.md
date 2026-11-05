@@ -1,5 +1,12 @@
 # Performance Import / Export
 
+Performance Creator can export staged authored clips through
+`edit export --mode native|midi|score --output PATH`. Native export preserves the
+rack and sharing; MIDI/SCORE create the existing CSD archive with render
+instructions. Exports exclude temporary auditions and do not save the staged
+draft to the library. Use a new output filename. See the
+[CLI song workflow](../../integrations/skills/orchestron-performance-creator/references/song_workflow.md).
+
 **Navigation:** [Up](performance.md) | [Prev](midi_controllers.md) | [Next](live_status_and_safety_controls.md)
 
 Performance import/export lets you move complete live setups between machines or save versioned backups.

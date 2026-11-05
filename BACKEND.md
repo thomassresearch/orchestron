@@ -371,6 +371,16 @@ guarantees remain centralized.
 
 ## API Conventions
 
+Performance Creator uses `GET /performances/capabilities` and bounded, read-only
+`POST /performances/validate` for authored/routing validation. Preparation remains
+a separate runtime operation. Performance updates may supply `expected_updated_at`;
+a conditional SQL update rejects stale writes with 409 while preserving legacy
+unconditional clients. `GET /sessions/{id}/sequencer/config` returns the latest
+combined request and a generation token; `expected_generation` on configuration
+requests protects preview preparation. Separate arpeggiator configuration invalidates
+the combined snapshot. See the [Performance Creator implementation record](specifications/performance-creator-arranger/implementation-record.md)
+for CLI transactions, history, exports, verification and package identity.
+
 - REST base prefix: `/api`
 - WebSocket base path: `/ws`
 - Authentication: none

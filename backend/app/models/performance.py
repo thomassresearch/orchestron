@@ -30,6 +30,7 @@ class PerformanceUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=128)
     description: str | None = Field(default=None, max_length=2_048)
     config: dict[str, JsonValue] | None = None
+    expected_updated_at: datetime | None = None
 
 
     @field_validator("config")

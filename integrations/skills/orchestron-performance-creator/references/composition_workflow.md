@@ -1,5 +1,7 @@
 # Composition Workflow
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 Use this reference when creating a new Orchestron performance or reshaping a draft into an electronic-music form. The goal is to turn musical intent into pattern pads, pad loops, controller curves, and score specs without loading genre detail that is not needed.
 
 ## Choose the formal promise first

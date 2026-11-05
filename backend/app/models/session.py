@@ -750,6 +750,7 @@ class BrowserClockLaneOutputRequest(SessionLaneOutputRequest):
 
 
 class SessionSequencerConfigRequest(BaseModel):
+    expected_generation: int | None = Field(default=None, ge=0)
     lane_output: SessionLaneOutputRequest | None = None
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     step_count: int = Field(default=16, ge=1)

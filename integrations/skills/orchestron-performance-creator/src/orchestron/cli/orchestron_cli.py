@@ -17,6 +17,11 @@ import sys
 import textwrap
 from typing import Any
 from urllib import error, parse, request
+from contextlib import nullcontext
+
+if __name__ == "__main__":
+    # Keep exception classes identical when portable helpers import the entry point.
+    sys.modules["orchestron.cli.orchestron_cli"] = sys.modules[__name__]
 
 
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
@@ -174,9 +179,13 @@ class OrchestronCliError(Exception):
     def to_json(self, *, debug: bool = False) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "ok": False,
+            "schemaVersion": 1,
+            "stateChanged": False,
             "error": {
                 "code": self.code,
                 "message": self.message,
+                "stateChanged": False,
+                "retry": self.retry or ["Correct the indicated field; inspect the current draft before retrying."],
             },
         }
         if self.path:
@@ -213,6 +222,9 @@ class ApiClient:
     def put(self, path: str, payload: Any | None = None) -> Any:
         return self._request("PUT", path, payload)
 
+    def patch(self, path: str, payload: Any | None = None) -> Any:
+        return self._request("PATCH", path, payload)
+
     def delete(self, path: str) -> Any:
         return self._request("DELETE", path)
 
@@ -244,10 +256,17 @@ class ApiClient:
             path = "/" + path
         return self.api_url + path
 
-    def _open(self, req: request.Request, *, operation: str) -> Any:
+    def download(self, path: str, payload: Any) -> bytes:
+        req = request.Request(self._url(path), data=json.dumps(payload).encode("utf-8"), method="POST",
+                              headers={"Content-Type": "application/json", "Accept": "application/octet-stream"})
+        return self._open(req, operation=f"POST {path}", binary=True)
+
+    def _open(self, req: request.Request, *, operation: str, binary: bool = False) -> Any:
         try:
             with request.urlopen(req, timeout=self.timeout) as response:
                 raw = response.read()
+                if binary:
+                    return raw
                 if not raw:
                     return None
                 text = raw.decode("utf-8")
@@ -320,7 +339,7 @@ def clamp_int(value: Any, low: int, high: int, *, field: str) -> int:
 
 def print_payload(payload: Any, ctx: CliContext) -> None:
     if ctx.json_output:
-        print(json.dumps({"ok": True, "result": payload}, ensure_ascii=True, indent=2))
+        print(json.dumps({"ok": True, "schemaVersion": 1, "result": payload}, ensure_ascii=True, indent=2))
         return
     if isinstance(payload, str):
         print(payload)
@@ -403,8 +422,8 @@ def load_edit_session(path: Path) -> dict[str, Any]:
 
 
 def save_edit_session(path: Path, session: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(session, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    from orchestron.song_session import atomic_write
+    atomic_write(path, session)
 
 
 def default_timing(tempo: int = 120) -> dict[str, int]:
@@ -4396,6 +4415,10 @@ def validate_edit_session(session: dict[str, Any], client: ApiClient) -> dict[st
     config = session.get("config")
     if not isinstance(config, dict):
         raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config object.")
+    if config.get("sequencer", {}).get("clipArrangement") is not None:
+        from orchestron.song_model import validate
+        validate(config)
+        return client.post("/performances/validate", {"config": config})
     patches = client.get("/patches")
     normalize_performance_config(config, patches)
     instruments = config.get("instruments", [])
@@ -4678,7 +4701,10 @@ def command_performances_copy(args: argparse.Namespace, ctx: CliContext) -> None
 
 def command_edit_begin(args: argparse.Namespace, ctx: CliContext) -> None:
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
-    patches = client.get("/patches")
+    offline = getattr(args, "offline", False)
+    if offline and not args.new:
+        raise OrchestronCliError("offline_load", "Offline creation requires --new; saved performances require the backend.")
+    patches = [] if offline else client.get("/patches")
     if args.performance and args.new:
         raise OrchestronCliError("invalid_edit_begin", "Use either --performance or --new, not both.")
     if args.performance:
@@ -4690,6 +4716,7 @@ def command_edit_begin(args: argparse.Namespace, ctx: CliContext) -> None:
             "createdAt": now_iso(),
             "updatedAt": now_iso(),
             "performanceId": full["id"],
+            "baseUpdatedAt": full["updated_at"],
             "name": full["name"],
             "description": full.get("description", ""),
             "config": normalize_performance_config(copy.deepcopy(full.get("config", {})), patches),
@@ -4714,6 +4741,13 @@ def command_edit_begin(args: argparse.Namespace, ctx: CliContext) -> None:
         }
     else:
         raise OrchestronCliError("invalid_edit_begin", "Use --performance PERFORMANCE_ID or --new --name NAME.")
+    if getattr(args, "arranger", "legacy") == "clips":
+        if not args.new:
+            raise OrchestronCliError("explicit_migration_required", "Use edit migrate to convert an existing legacy performance.")
+        from orchestron.song_model import empty_clip_config
+        session["config"] = empty_clip_config(args.tempo)
+    session["editRevision"] = 0
+    session["patchCatalog"] = patches
     save_edit_session(ctx.session_file, session)
     print_payload({"editSessionFile": str(ctx.session_file), "performanceId": session["performanceId"], "name": session["name"]}, ctx)
 
@@ -4729,7 +4763,10 @@ def update_session_config(ctx: CliContext, mutator) -> dict[str, Any]:
         keys = ("tracks", "scoreTracks", "drummerTracks", "controllerSequencers", "arpeggiators")
         if any(before["sequencer"].get(key) != config["sequencer"].get(key) for key in keys):
             raise OrchestronCliError("clip_editor_required", "Edit clip source definitions in the arranger. Legacy pad commands cannot change a clip performance.")
+    if config == before:
+        return result
     session["config"] = config
+    session["editRevision"] = session.get("editRevision", 0) + 1
     session["updatedAt"] = now_iso()
     session["dirty"] = True
     save_edit_session(ctx.session_file, session)
@@ -4738,6 +4775,10 @@ def update_session_config(ctx: CliContext, mutator) -> dict[str, Any]:
 
 def command_edit_sequencers_list(args: argparse.Namespace, ctx: CliContext) -> None:
     config = load_edit_session(ctx.session_file).get("config", {})
+    if config.get("sequencer", {}).get("clipArrangement") is not None:
+        from orchestron.song_inspect import inspect
+        print_payload(inspect(config), ctx)
+        return
     result = []
     for kind, track in [*note_sequencers(config), *(("score", t) for t in config.get("sequencer", {}).get("scoreTracks", []))]:
         result.append({**summarize_device(track), "type": kind, "activePad": int(track.get("activePad", 0)) + 1,
@@ -4825,6 +4866,14 @@ def command_edit_ratchets(args: argparse.Namespace, ctx: CliContext) -> None:
 
 
 def command_edit_status(args: argparse.Namespace, ctx: CliContext) -> None:
+    session = load_edit_session(ctx.session_file)
+    if session.get("config", {}).get("sequencer", {}).get("clipArrangement") is not None:
+        from orchestron.song_inspect import inspect
+        print_payload({"editSessionFile": str(ctx.session_file), "performanceId": session.get("performanceId"),
+                       "name": session.get("name"), "dirty": session.get("dirty"), "editRevision": session.get("editRevision", 0),
+                       "attachedSessionId": session.get("attachedSessionId"), "runtimeApplied": "unknown",
+                       **inspect(session["config"])}, ctx)
+        return
     session = load_edit_session(ctx.session_file)
     config = session.get("config", {})
     sequencer = ensure_sequencer(config) if isinstance(config, dict) else {}
@@ -5367,13 +5416,15 @@ def command_edit_apply_score(args: argparse.Namespace, ctx: CliContext) -> None:
 
 def command_edit_validate(args: argparse.Namespace, ctx: CliContext) -> None:
     session = load_edit_session(ctx.session_file)
+    if getattr(args, "offline", False):
+        from orchestron.song_model import validate
+        validate(session["config"])
+        print_payload({"valid": None, "stateChanged": False, "validation": {"authored": "passed", "routing": "not_run", "preparation": "not_run"},
+                       "summary": "Local authored checks passed. Run edit validate online for authoritative validation."}, ctx)
+        return
     client = ApiClient(ctx.api_url, timeout=ctx.timeout)
-    before = copy.deepcopy(session.get("config"))
+    session = copy.deepcopy(session)
     result = validate_edit_session(session, client)
-    if session.get("config") != before:
-        session["dirty"] = True
-        session["updatedAt"] = now_iso()
-        save_edit_session(ctx.session_file, session)
     print_payload(result, ctx)
 
 
@@ -5410,12 +5461,21 @@ def command_edit_commit(args: argparse.Namespace, ctx: CliContext) -> None:
     ]
     payload = {"name": session["name"], "description": session.get("description", ""), "config": config}
     if session.get("performanceId"):
+        if config.get("sequencer", {}).get("clipArrangement") is not None:
+            capabilities = client.get("/performances/capabilities")
+            if capabilities.get("conditionalWrites") != "expected_updated_at":
+                raise OrchestronCliError("backend_capability_missing", "This backend does not advertise conditional saves. Update the backend before replacing a saved clip performance.")
+        if session.get("baseUpdatedAt"):
+            payload["expected_updated_at"] = session["baseUpdatedAt"]
+        elif config.get("sequencer", {}).get("clipArrangement") is not None:
+            raise OrchestronCliError("missing_save_precondition", "Reopen the saved performance to obtain its conditional-write token.")
         saved = client.put(f"/performances/{parse.quote(str(session['performanceId']))}", payload)
         action = "update"
     else:
         saved = client.post("/performances", payload)
         action = "create"
     session["performanceId"] = saved["id"]
+    session["baseUpdatedAt"] = saved.get("updated_at")
     session["name"] = saved["name"]
     session["description"] = saved.get("description", "")
     session["config"] = saved["config"]
@@ -5556,8 +5616,15 @@ def command_edit_push_runtime(args: argparse.Namespace, ctx: CliContext) -> None
                 "Run `orchestron_cli edit create-runtime --start` to leave an external session untouched.",
             ],
         )
-    push_performance_controllers(client, str(session_id), config, session_info)
-    status = configure_runtime_if_present(client, str(session_id), config)
+    coordinated = None
+    if config.get("sequencer", {}).get("clipArrangement") is not None:
+        from orchestron.song_runtime import coordinated_push
+        coordinated = coordinated_push(client, str(session_id), config)
+    if coordinated:
+        status = coordinated["status"]
+    else:
+        push_performance_controllers(client, str(session_id), config, session_info)
+        status = configure_runtime_if_present(client, str(session_id), config)
     if args.session_id and args.session_id != session.get("attachedSessionId"):
         session["attachedSessionId"] = args.session_id
         session["runtimeOwnedByCli"] = False
@@ -5621,8 +5688,13 @@ def add_pad_loop_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--pad-loop-repeat", action=argparse.BooleanOptionalAction, default=False, help="Repeat arrangement sequence. Default: off.")
 
 
+class StructuredArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise OrchestronCliError("invalid_arguments", message, retry=["Run this command with --help for supported arguments."])
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = StructuredArgumentParser(
         prog="orchestron_cli",
         description="Backend-only CLI for Orchestron performance creation, editing, import, and live-session control.",
         epilog="Every command supports -h/--help. Start the backend with `make run` before using backend commands.",
@@ -5697,6 +5769,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     edit = sub.add_parser("edit", help="Create and mutate staged performance edit sessions.")
     edit_sub = edit.add_subparsers(dest="edit_command", required=True)
+    from orchestron.cli.song_commands import register
+    register(sub, edit_sub)
     begin = edit_sub.add_parser("begin", help="Start a staged edit session from a performance or a new draft.")
     begin.add_argument("--performance", help="Existing performance ID or exact name.")
     begin.add_argument("--new", action="store_true", help="Start a new performance draft.")
@@ -5704,6 +5778,8 @@ def build_parser() -> argparse.ArgumentParser:
     begin.add_argument("--description", default="", help="Description for a new draft.")
     begin.add_argument("--tempo", type=int, default=120, help="Initial tempo for --new drafts.")
     begin.add_argument("--attach-live", help="Optional runtime session ID to use for push-runtime.")
+    begin.add_argument("--arranger", choices=["legacy", "clips"], default="legacy")
+    begin.add_argument("--offline", action="store_true", help="Create a new draft without backend discovery.")
     begin.set_defaults(func=command_edit_begin)
     status = edit_sub.add_parser("status", help="Show the active staged edit session summary.")
     status.set_defaults(func=command_edit_status)
@@ -5894,6 +5970,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply_score.add_argument("score_spec", help="Path to YAML or JSON score spec.")
     apply_score.set_defaults(func=command_edit_apply_score)
     validate = edit_sub.add_parser("validate", help="Validate staged performance references before commit.")
+    validate.add_argument("--offline", action="store_true", help="Local authored checks only; routing/preparation remain not_run.")
     validate.set_defaults(func=command_edit_validate)
     commit = edit_sub.add_parser("commit", help="Commit staged performance to the backend and embed patch definitions.")
     commit.add_argument("--skip-validate", action="store_true", help="Skip reference validation before commit.")
@@ -5957,19 +6034,31 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    argv = list(sys.argv[1:] if argv is None else argv)
     ctx = CliContext(
-        api_url=args.api_url,
-        json_output=args.json,
-        debug=args.debug,
-        timeout=args.timeout,
-        session_file=Path(args.session_file),
+        api_url=DEFAULT_API_URL, json_output="--json" in argv, debug="--debug" in argv,
+        timeout=20, session_file=SESSION_FILE,
     )
+    from orchestron.song_model import SongError
+    from orchestron.song_session import session_lock
     try:
-        args.func(args, ctx)
+        args = build_parser().parse_args(argv)
+        ctx = CliContext(api_url=args.api_url, json_output=args.json, debug=args.debug,
+                         timeout=args.timeout, session_file=Path(args.session_file))
+        with session_lock(ctx.session_file) if args.command == "edit" else nullcontext():
+            args.func(args, ctx)
         return 0
-    except OrchestronCliError as exc:
+    except Exception as error_value:
+        if isinstance(error_value, OrchestronCliError):
+            exc = error_value
+        elif isinstance(error_value, SongError):
+            exc = OrchestronCliError(error_value.code, str(error_value), path=error_value.path, data=error_value.details)
+        elif isinstance(error_value, (OSError, ValueError, KeyError, TypeError)):
+            exc = OrchestronCliError("invalid_input" if not isinstance(error_value, OSError) else "io_error", str(error_value),
+                                     retry=["Check the input file and indicated values, then retry. The staged transaction was not applied."])
+        else:
+            exc = OrchestronCliError("internal_error", "An unexpected CLI error occurred. Inspect staged and runtime status before retrying.",
+                                    data={"exception": type(error_value).__name__}, backend={"detail": str(error_value)} if ctx.debug else None)
         if ctx.json_output:
             print(json.dumps(exc.to_json(debug=ctx.debug), ensure_ascii=True, indent=2), file=sys.stderr)
         else:
@@ -5982,6 +6071,8 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"  - {item}", file=sys.stderr)
             if ctx.debug and exc.backend:
                 print("Backend:", json.dumps(exc.backend, ensure_ascii=True, indent=2), file=sys.stderr)
+        if exc.code == "invalid_arguments":
+            raise SystemExit(2)
         return 1
 
 

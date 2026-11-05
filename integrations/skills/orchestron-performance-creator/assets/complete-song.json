@@ -1,0 +1,125 @@
+{
+  "schema": "orchestron-song",
+  "version": 1,
+  "id": "test-song",
+  "songMeter": [
+    4,
+    4
+  ],
+  "end": "128bar",
+  "lanes": [
+    {
+      "id": "bass",
+      "source": "sequencer",
+      "channel": 2,
+      "definitions": [
+        {
+          "id": "bass-main",
+          "music": {
+            "lengthBeats": 8,
+            "steps": "s0=C3/4s s4=G3/4s"
+          }
+        }
+      ],
+      "clips": [
+        {
+          "id": "section-0",
+          "start": "0bar",
+          "repeat": 16,
+          "children": [
+            "bass-main"
+          ]
+        },
+        {
+          "id": "section-1",
+          "start": "32bar",
+          "repeat": 16,
+          "children": [
+            "bass-main"
+          ]
+        },
+        {
+          "id": "section-2",
+          "start": "64bar",
+          "repeat": 16,
+          "children": [
+            "bass-main"
+          ]
+        },
+        {
+          "id": "section-3",
+          "start": "96bar",
+          "repeat": 16,
+          "children": [
+            "bass-main"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "drums",
+      "source": "drummer",
+      "channel": 10,
+      "definitions": [
+        {
+          "id": "groove",
+          "music": {
+            "lengthBeats": 8,
+            "groove": "backbeat"
+          }
+        },
+        {
+          "id": "fill",
+          "music": {
+            "lengthBeats": 8,
+            "hits": "36@0:110 38@4:100"
+          }
+        },
+        {
+          "id": "phrase",
+          "kind": "group",
+          "children": [
+            "groove",
+            "groove",
+            "groove",
+            "fill"
+          ]
+        }
+      ],
+      "clips": [
+        {
+          "id": "drums-0",
+          "start": "0bar",
+          "repeat": 4,
+          "children": [
+            "phrase"
+          ]
+        },
+        {
+          "id": "drums-1",
+          "start": "32bar",
+          "repeat": 4,
+          "children": [
+            "phrase"
+          ]
+        },
+        {
+          "id": "drums-2",
+          "start": "64bar",
+          "repeat": 4,
+          "children": [
+            "phrase"
+          ]
+        },
+        {
+          "id": "drums-3",
+          "start": "96bar",
+          "repeat": 4,
+          "children": [
+            "phrase"
+          ]
+        }
+      ]
+    }
+  ]
+}

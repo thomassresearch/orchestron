@@ -1,5 +1,7 @@
 # Per-note Timing and Syncopated Patterns
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 Use per-note timing to push or pull selected melodic notes/chords or individual drum hits while keeping the rest of a straight pattern unchanged. On-grid offbeats, rests and accents can also create syncopation; not every syncopated pattern needs an offset. Keep an anchor such as the kick straight and shift selected snares, hats, bass notes or stabs when the musical brief calls for anticipation or a laid-back feel.
 
 ## Musical meaning

@@ -152,6 +152,11 @@ async def configure_sequencer(
     return await container.session_service.configure_session_sequencer(session_id, request)
 
 
+@router.get("/{session_id}/sequencer/config")
+async def sequencer_configuration(session_id: str, container: AppContainer = Depends(get_container)) -> dict:
+    return await container.session_service.get_session_sequencer_configuration(session_id)
+
+
 @router.put("/{session_id}/arpeggiators/config", response_model=list[SessionArpeggiatorStatus])
 async def configure_arpeggiators(
     session_id: str,

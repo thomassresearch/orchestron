@@ -22,7 +22,7 @@ Or run `make -C integrations` from the repository root. The build requires Make
 and Python 3.9 or newer, uses only the Python standard library, and needs no
 network or installed skill dependencies. Set `PYTHON=/path/to/python3` if needed.
 
-The output is `plugin-dist/orchestron-0.1.4.zip`; the filename comes from the
+The output is `plugin-dist/orchestron-0.1.5.zip`; the filename comes from the
 name and version in [`plugin.json`](plugin.json). Each build reports its path
 and compressed size. The archive contains one `orchestron/` directory with:
 
@@ -85,7 +85,7 @@ The skills are [Patch Creator](skills/orchestron-patch-creator/SKILL.md),
 
 ## Orchestron Performance Creator Skill
 
-The skill lives in [`skills/orchestron-performance-creator`](skills/orchestron-performance-creator). It exposes a backend-only CLI named `orchestron_cli`; the CLI talks to the FastAPI app and does not edit SQLite directly.
+The skill lives in [`skills/orchestron-performance-creator`](skills/orchestron-performance-creator). It exposes `orchestron_cli` with offline staged clip authoring and backend validation, persistence and runtime control. It does not edit SQLite directly.
 
 Run commands from the repository root with the skill project selected:
 
@@ -95,53 +95,37 @@ uv run --locked --project integrations/skills/orchestron-performance-creator orc
 
 The backend must be running and reachable at the default API URL, `http://localhost:8000/api`, unless `--api-url` is supplied.
 
-Typical agent workflow:
-
-1. Check backend health.
-2. List available patches and existing performances.
-3. Start an edit session for a new or existing performance.
-4. Add instrument assignments before sequencers.
-5. Connect exact main/send routes to effects and the built-in Master, and stage mixer levels. Add melodic, drum, Score Sequencer, controller, or arpeggiator tracks with CLI flags or a YAML/JSON spec.
-6. Validate the staged edit.
-7. Commit only after validation succeeds.
-8. Optionally push mixer/controller/sequencer values to a matching live runtime, or rebuild it after rack or route changes.
-
-Common commands:
+New songs use the clip model explicitly. From an external music directory:
 
 ```bash
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json patches list
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json performances list
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json edit begin --new --name "Agent Sketch"
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json edit add-instrument --patch "TB303 using VCO" --channel 2
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json edit add-drummer --channel 10 --groove four_on_floor
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json edit validate
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json edit commit
+uv run --locked --project /absolute/path/to/orchestron-performance-creator orchestron_cli --json capabilities
+uv run --locked --project /absolute/path/to/orchestron-performance-creator orchestron_cli --json edit begin --new --arranger clips --name "Agent Sketch"
+uv run --locked --project /absolute/path/to/orchestron-performance-creator orchestron_cli --json edit apply-song --file /work/song.json
+uv run --locked --project /absolute/path/to/orchestron-performance-creator orchestron_cli --json edit inspect
+uv run --locked --project /absolute/path/to/orchestron-performance-creator orchestron_cli --json edit validate
+uv run --locked --project /absolute/path/to/orchestron-performance-creator orchestron_cli --json edit commit
 ```
 
-Use `edit sequencers list` to discover melodic/drummer track IDs, pads and drum rows. `edit step-timing list|set|reset` reads and edits selected early/late offsets without changing the notes or groove. See [per-note timing](skills/orchestron-performance-creator/references/step_timing.md) for step indexing, drum selection and score examples.
+See the [song cookbook](skills/orchestron-performance-creator/references/song_workflow.md),
+[schema and exact timing](skills/orchestron-performance-creator/references/song_schema.md),
+[scoped editing/history](skills/orchestron-performance-creator/references/song_editing.md)
+and [owned automation](skills/orchestron-performance-creator/references/song_automation.md).
+The shipped `assets/minimal-song.json` and `assets/complete-song.json` need no personal
+patch IDs. Discover and bind instruments separately, preserving requested choices.
+Repeats and pitch changes reuse definitions; intentional musical variations fork locally.
+Composition Creator v1/v2 handoffs use explicit, retry-safe `edit adapt-score`.
 
-Choose a device per musical part: Drummer for percussion, Melodic for repeating bass/riffs and chord patterns, and Score for passages needing longer or independently timed notes. Build song sections from reusable pads and arranger groups. Custom drums use `edit add-drummer --hits "35@0:115 38@4:98" --pad-hits "2=35@0:120 54@7:65"`, or `hits` objects in YAML/JSON scores. See [custom drum patterns](skills/orchestron-performance-creator/references/drummer_patterns.md) for individual velocities, MIDI-key rows and timing.
+Legacy pad commands and `edit apply-score` remain available for legacy drafts.
+Migration is explicit and writes a recoverable original; creating or packaging this
+plugin does not change the arranger's preview rollout gate. Musical formats remain
+performance v1–26 and clip v1–4, independently of client/project versions.
 
-Use `edit add-score-sequencer --spec /absolute/path/score-track.json` to add a
-polyphonic Score Sequencer with eight pads, variable duration, and notes at
-20,160 ticks per quarter note. `edit sequencers list` also includes these tracks.
-See [Score Sequencer authoring](skills/orchestron-performance-creator/references/score_sequencer.md)
-for the JSON/YAML format, limits, launch timing and performance v21 compatibility.
-
-Use `edit ratchets list|set|reset` to create drum rolls with 1–8 hits and optional velocity ramps. For example, `edit ratchets set --track drum-1 --pad 1 --key 38 --step 4 --count 4 --end-velocity 40` adds four hits to an existing snare cell. YAML/JSON scores support the same settings through `step_ratchets`. See [drummer ratchets](skills/orchestron-performance-creator/references/step_ratchets.md); inactive cells retain their activation state.
-
-Use `edit strum list|set|reset` for melodic chords. For example, `edit strum set --track voice-1 --pad 1 --step 0 --direction up --spread 40` spreads a chord's notes over 40% of one local grid step. Direction and spread can be edited separately, and each note retains its duration. Scores support `step_strum` lists and inline event/progression fields. See [melodic strumming](skills/orchestron-performance-creator/references/step_strum.md) for pad targeting, reset and examples.
-
-For larger arrangements, use a score spec and apply it to an active edit session:
-
-```bash
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json edit apply-score path/to/score.yaml
-```
-
-See the skill references for supported melodic step/chord syntax and score-spec fields:
-
-- [`skills/orchestron-performance-creator/references/chord_syntax.md`](skills/orchestron-performance-creator/references/chord_syntax.md)
-- [`skills/orchestron-performance-creator/references/score_spec.md`](skills/orchestron-performance-creator/references/score_spec.md)
+Plugin **0.1.5** includes Performance Creator **0.3.0**. Run `capabilities` from the
+active installed skill and compare `client.version`; backend capability absence is
+reported as unknown. A ZIP rebuild does not update an installed cached copy.
+For read-only installs put the environment outside the plugin using
+`UV_PROJECT_ENVIRONMENT=/absolute/path/to/work/venv`, alongside external session
+and output paths. Never keep local song drafts inside packaged skill trees.
 
 ### Mixer and Master routing
 

@@ -48,6 +48,69 @@ from backend.app.services.sequencer_timing_migration import migrate_sequencer_ti
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
+def test_sequencer_configuration_snapshot_and_conditional_prepare(tmp_path: Path) -> None:
+    fixture = json.loads((Path(__file__).parent / "fixtures/performance_creator/all_sources.json").read_text())
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=_minimal_patch_payload()).json()
+        session = client.post("/api/sessions", json={"patch_id": patch["id"]}).json()
+        path = f"/api/sessions/{session['session_id']}/sequencer/config"
+        snapshot = client.get(path).json()
+        assert snapshot["config"] is None
+        result = client.put(path, json={**fixture["wire"], "expected_generation": snapshot["generation"]})
+        assert result.status_code == 200, result.text
+        current = client.get(path).json()
+        assert current["generation"] > snapshot["generation"]
+        rejected = client.put(path, json={**fixture["wire"], "expected_generation": snapshot["generation"]})
+        assert rejected.status_code == 409, rejected.text
+        assert client.get(path).json() == current
+        assert "expected_generation" not in current["config"]
+
+
+def test_performance_validation_request_is_bounded_before_parsing(tmp_path: Path) -> None:
+    with _client(tmp_path, performance_config_max_bytes=128) as client:
+        response = client.post("/api/performances/validate", content=b"x" * (129 + PERSISTED_JSON_REQUEST_OVERHEAD_BYTES),
+                               headers={"Content-Type": "application/json"})
+        assert response.status_code == 413
+
+
+def test_performance_validation_is_read_only_and_rejects_clip_overlap(tmp_path: Path) -> None:
+    import copy
+    config = json.loads((Path(__file__).parent / "fixtures/clip_transposition/performance.json").read_text())
+    config["instruments"] = []
+    with _client(tmp_path) as client:
+        capabilities = client.get("/api/performances/capabilities")
+        assert capabilities.status_code == 200
+        assert capabilities.json()["conditionalWrites"] == "expected_updated_at"
+        before = client.get("/api/performances").json(), client.get("/api/sessions").json()
+        result = client.post("/api/performances/validate", json={"config": config})
+        assert result.status_code == 200, result.text
+        assert result.json()["validation"] == {"authored": "passed", "routing": "passed", "preparation": "not_run"}
+        invalid = copy.deepcopy(config)
+        lane = invalid["sequencer"]["clipArrangement"]["lanes"][0]
+        clip = copy.deepcopy(lane["clips"][0])
+        clip["id"] = "collision"
+        for index, child in enumerate(clip["children"]):
+            child["id"] = f"collision-ref-{index}"
+        lane["clips"].append(clip)
+        rejected = client.post("/api/performances/validate", json={"config": invalid})
+        assert rejected.status_code == 422, rejected.text
+        assert "overlap" in rejected.text.lower()
+        assert (client.get("/api/performances").json(), client.get("/api/sessions").json()) == before
+
+
+def test_performance_conditional_update_rejects_stale_writer(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Draft", "config": {"version": 22}}).json()
+        path = "/api/performances/" + saved["id"]
+        first = client.put(path, json={"name": "First", "expected_updated_at": saved["updated_at"]})
+        assert first.status_code == 200, first.text
+        stale = client.put(path, json={"name": "Stale", "expected_updated_at": saved["updated_at"]})
+        assert stale.status_code == 409, stale.text
+        assert client.get(path).json()["name"] == "First"
+        fresh = client.put(path, json={"name": "Second", "expected_updated_at": first.json()["updated_at"]})
+        assert fresh.status_code == 200, fresh.text
+
+
 def test_analog_drumkit_cymbal_update_persists_and_compiles(tmp_path: Path) -> None:
     from backend.tests.csound_test_support import load_patch_fixture
 

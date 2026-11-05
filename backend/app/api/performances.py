@@ -19,6 +19,22 @@ from backend.app.services.internal_master import MASTER
 router = APIRouter(prefix="/performances", tags=["performances"])
 
 
+@router.get("/capabilities")
+def performance_capabilities() -> dict:
+    return {"protocolVersion": 1, "performanceVersions": list(range(1, 27)),
+            "clipVersions": [1, 2, 3, 4], "validation": "authored-and-routing",
+            "conditionalWrites": "expected_updated_at", "preparation": "separate-runtime",
+            "features": ["clips", "transposition", "fixed-repetition-references", "instrument-automation"],
+            "runtimeSnapshot": "sequencer/config", "conditionalPreparation": "expected_generation"}
+
+
+@router.post("/validate")
+def validate_performance(request: dict, container: AppContainer = Depends(get_container)) -> dict:
+    # A synchronous route deliberately runs all authored/routing work in the worker pool.
+    from backend.app.services.performance_validation import validate_performance as validate
+    return validate(container, request)
+
+
 @router.post("/repair-master")
 def repair_master(request: MasterRepairRequest, container: AppContainer = Depends(get_container)) -> Response:
     """Explicit, non-persisting replacement of a missing stereo Master."""

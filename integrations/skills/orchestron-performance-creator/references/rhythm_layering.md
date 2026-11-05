@@ -1,5 +1,7 @@
 # Rhythm, Layering, and Pattern Hierarchy
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 Use this reference when designing drum grooves, bass ostinatos, melodic pattern pads, pad loops, and arrangement groups.
 
 ## Rhythm is the form

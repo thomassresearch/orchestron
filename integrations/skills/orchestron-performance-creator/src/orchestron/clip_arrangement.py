@@ -58,14 +58,14 @@ def project_clips(config):
             binding = next((b for b in result.get("instruments", []) if b.get("id") == target["instrumentId"]), None)
             mappings = binding.get("performanceControllerMidiCCs", {}) if binding else {}
             ccs = {mappings[node] for node in target["controllerNodeIds"] if node in mappings}
-            if binding and binding.get("midiChannel", 0) in range(1, 17) and len(ccs) == 1 and all(node in mappings for node in nodes):
+            if not track.get("automationSuspended") and binding and binding.get("midiChannel", 0) in range(1, 17) and len(ccs) == 1 and all(node in mappings for node in nodes):
                 track["targetChannels"] = [binding["midiChannel"]]
                 track["controllerNumber"] = next(iter(ccs))
             else:
                 track["enabled"] = False
                 track["targetChannels"] = track.get("targetChannels", [1])[:1] or [1]
         definitions = {d["id"]: d for d in lane["definitions"]}
-        if len(definitions) != len(lane["definitions"]) or not 1 <= len(definitions) <= 512 or len(lane["clips"]) > 2048:
+        if len(definitions) != len(lane["definitions"]) or not 0 <= len(definitions) <= 512 or len(lane["clips"]) > 2048:
             raise ValueError("Invalid clip definition/clip count.")
         patterns = [d for d in lane["definitions"] if d["kind"] == "pattern"]
         if target and any(not 2 <= len(d["payload"].get("keypoints", [])) <= 10 for d in patterns):
@@ -142,7 +142,10 @@ def project_clips(config):
             if clip.get("repeatIndexBase", 0) + ((clip["offset"] + clip["length"] - 1) // duration if clip["mode"] == "loop" else 0) > 40320000000:
                 raise ValueError("Logical repetition extent exceeded.")
         schedules[lane["id"]] = {"version": 2 if model["version"] >= 3 else 1, **({"transpose_plans": plans} if model["version"] >= 3 else {}), "end": model["end"], "cycle_ticks": lane["cycleTicks"], "clips": clips}
-        track.update(pads=[deepcopy(d["payload"]) for d in patterns], activePad=0, queuedPad=None, queuedEnabled=None,
+        # A newly created empty lane still owns a silent source clock. Its empty
+        # schedule prevents the fallback shadow pad from emitting notes.
+        projected_pads = [deepcopy(d["payload"]) for d in patterns] or deepcopy(track.get("pads", [])[:1])
+        track.update(pads=projected_pads, activePad=0, queuedPad=None, queuedEnabled=None,
                      padLoopEnabled=True, padLoopRepeat=False, padLoopPattern={"rootSequence": [], "groups": [], "superGroups": []})
     return result, schedules, model["end"]
 
@@ -152,8 +155,10 @@ def attach_schedules(wire, schedules, end):
         for track in wire[key]:
             identity = track.get("track_id", track.get("arpeggiator_id"))
             if identity.startswith("drumrow:"):
-                identity = identity.split(":")[1]
+                identity = next((key for key in sorted(schedules, key=len, reverse=True) if identity.startswith("drumrow:" + key + ":")), identity)
             if identity in schedules:
                 track["clip_schedule"] = schedules[identity]
+                if key != "arpeggiators":
+                    track.update(pad_loop_enabled=True, pad_loop_sequence=[], queued_pad=None)
     wire["playback_end_step"] = (end + 2519) // 2520
     return wire

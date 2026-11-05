@@ -1,5 +1,7 @@
 # Score Sequencer authoring
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 `edit add-score-sequencer --spec PATH` appends a dedicated sparse Score Sequencer
 to the staged performance. PATH is a JSON or YAML track object in authored
 camelCase form. This is separate from `edit apply-score`: composition-score v1/v2

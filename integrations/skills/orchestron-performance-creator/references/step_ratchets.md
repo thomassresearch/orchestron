@@ -1,5 +1,7 @@
 # Drummer Ratchets and Velocity Ramps
 
+For clip sessions, use [the clip song workflow](song_workflow.md) and [scoped cell/structure operations](song_editing.md). The pad commands and eight-pad limits below describe legacy sessions; musical syntax and control semantics still apply.
+
 Use ratchets for drum rolls within one local step. Counts are **1–8**; one hit is normal playback. A nullable final velocity selects constant velocity or a linear ramp from the cell's existing velocity. Final velocity accepts **0–127**; zero is a silent strike. Four hits from 100 to 40 produce velocities 100, 80, 60, 40.
 
 ## CLI: inspect, set and reset

@@ -1,6 +1,6 @@
 [project]
 name = "orchestron-performance-creator"
-version = "0.2.0"
+version = "0.3.0"
 description = "CLI utilities for agentic Orchestron performance creation."
 requires-python = ">=3.13,<3.14"
 dependencies = [

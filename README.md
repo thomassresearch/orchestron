@@ -180,7 +180,7 @@ Removing a rack instrument also removes its dedicated inserts and connections; r
 
 For optional instrument, composition and performance creation with a coding agent, see the [Agent Tooling Appendix](documentation/appendix/appendix.md) and its creator skills and command-line utilities.
 
-Performance Creator chooses sequencers by musical role and builds arrangements from reusable patterns. Author custom Drummer pads with individual MIDI keys, hits and velocities through the CLI or YAML/JSON scores; see [custom drum patterns](integrations/skills/orchestron-performance-creator/references/drummer_patterns.md).
+Performance Creator chooses sequencers by musical role and builds songs from reusable clip definitions, compact repetitions, scoped transposition and instrument-bound automation. Its [song workflow](integrations/skills/orchestron-performance-creator/references/song_workflow.md) supports exact timing, section edits, undo, contextual audition and native/MIDI/SCORE export, with structured results after each command. Custom Drummer patterns retain individual MIDI keys, hits and velocities; legacy pad and composition-score commands remain available.
 
 Bundle all four skills as a Codex plugin with `make -C integrations`. See the [plugin build and installation guide](integrations/README.md#build-the-plugin-zip) for the ZIP, prerequisites, and update workflow.
 

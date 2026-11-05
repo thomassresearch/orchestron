@@ -1,70 +1,77 @@
 ---
 name: orchestron-performance-creator
-description: Create, edit, import, validate, save, and live-test Orchestron performances through orchestron_cli, choosing suitable sequencers and reusable patterns, including custom drum hits and velocities, mixer and Master routing, MIDI automation, per-note timing, strumming, ratchets, and per-instance perf_controller settings.
+description: Create, inspect, edit, validate, save and audition Orchestron performances with reusable clip definitions, repetitions, scoped transposition, instrument-bound automation, structural editing and undo. Use orchestron_cli for instrument assignments, routing, mixer and exact Composition Creator score handoffs.
 ---
 
 # Orchestron Performance Creator
 
-Use this skill to create or edit Orchestron performances through the skill-local `orchestron_cli` command. The CLI talks only to the running FastAPI backend; never edit SQLite directly.
+Use the skill-local `orchestron_cli`. It communicates with the FastAPI backend;
+never edit SQLite. Local song operations also work offline.
 
-## CLI Entry Point
+## Run from the music directory
 
-Resolve this skill's directory from the location of this `SKILL.md`, whether it is
-in a plugin installation, a standalone installation, or a repository checkout.
-Python 3.13 and `uv` are required; first use installs the locked dependencies.
-From that directory:
-
-```bash
-uv run --locked orchestron_cli --api-url http://localhost:8000/api -h
-```
-
-From another working directory, add `--project "/absolute/path/to/this-skill"`
-to `uv run --locked`. Prefer running from the user's music working directory:
-the CLI stores edit sessions in `.orchestron/` relative to the working directory.
-When running from the installed skill directory, pass
-`--session-file /absolute/path/to/work/edit-session.json` on every edit command.
-Keep authored scores outside the installed skill and use absolute score paths.
-
-Repository development example, from the repository root:
+Resolve the skill directory from this SKILL.md. Python 3.13 and uv are required.
+Keep song files, edit sessions and exports outside the installed plugin:
 
 ```bash
-uv run --locked --project integrations/skills/orchestron-performance-creator orchestron_cli --json health
+uv run --locked --project /absolute/path/to/orchestron-performance-creator orchestron_cli --json capabilities
 ```
 
-or use the thin wrapper:
+The thin `scripts/orchestron_cli.py` wrapper is also supported. Pass
+`--api-url http://localhost:8000/api` for a different server, and
+`--session-file /absolute/path/to/work/edit.json` when needed. Default sessions
+are in `.orchestron/` under the working directory. A read-only installation can
+use `UV_PROJECT_ENVIRONMENT=/absolute/path/to/work/venv` outside the plugin.
+The plugin supplies clients, not the backend. `capabilities --offline` reports
+client formats and leaves backend support unknown. Check the advertised CLI
+version to detect stale installations before relying on a new command.
 
-```bash
-uv run --locked --project integrations/skills/orchestron-performance-creator \
-  python integrations/skills/orchestron-performance-creator/scripts/orchestron_cli.py --json health
-```
-
-Use `--json` for agent-readable output (`{"ok":true,"result":...}`) and structured `error.retry` hints:
-
-```bash
-uv run --locked orchestron_cli --json health
-```
-
-If the backend is not running, ask for the correct `--api-url` or whether to start it with `make run` from an available Orchestron repository checkout. The plugin contains the client tools, not the backend application.
+Use `--json` before commands. Responses retain `ok` and `result` and add
+`schemaVersion: 1`. Read returned IDs, scope, count changes, revisions,
+validation layers and retry hints. Staged, saved and audible state are distinct.
 
 ## Workflow
 
-1. Check backend health.
-2. List/import patches as needed.
-3. If composing new material, choose the musical brief before writing notes: ambient state, techno process, trance wave, or Goa/psy rise. For interactive melodic exploration, use `orchestron-composition-creator` first. When realising its accepted score, preserve the supplied notes and arrangement and use its channel-to-part mapping to choose instruments. Choose each part's device using the table below before generating lane data.
-4. Start an edit session from an existing performance or a new draft.
-5. Add instruments first, then run `edit instruments list` to discover their stable binding IDs and audio ports.
-   For per-performance sound customization, read `references/performance_controllers.md`, discover the patch's controller node IDs, and stage overrides using `edit performance-controllers set`.
-6. Read `references/effect_routing.md` and `references/mixer.md` to connect main outputs and sends and set strip/return/Master levels. The built-in `$master` needs no patch or rack instance. Use the optional `edit add-standard-effects --send-gain-db -12` only when the user wants dry instruments and reverb feeding a compressor into Master; read `references/standard_effect_patching.md` first. Effects are not mandatory.
-7. Add sequencers/controllers/arpeggiators with explicit flags or a YAML/JSON score spec.
-   For custom percussion, use `edit add-drummer --hits` / `--pad-hits` or drummer `hits` in `edit apply-score`; read [custom drum patterns](references/drummer_patterns.md). Preset grooves are optional starting points, not a limitation to work around with Score Sequencers.
-   For long polyphonic Score Sequencers, use `edit add-score-sequencer --spec PATH`; read [Score Sequencer authoring](references/score_sequencer.md). This dedicated format keeps existing composition-score interpretation unchanged.
-   Read [score specs](references/score_spec.md) for composition handoffs: `edit apply-score` accepts v1/v2, per-event velocity and local track timing. V2 checks explicit event boundaries and overlaps. Independent voices use separate melodic tracks on the same instrument channel, preserving GUI-compatible note/chord cells. Apply a whole-song score once to a fresh staged draft; the command appends tracks.
-   For selected early/late notes or syncopated patterns, read [per-note timing](references/step_timing.md). Use `edit sequencers list` to discover tracks, then `edit step-timing list|set|reset` to inspect or adjust individual melodic steps and drum hits.
-   For drum rolls, read [drummer ratchets](references/step_ratchets.md). Use `edit ratchets list|set|reset` or score `step_ratchets` to set 1–8 hits with optional final velocity. These edits preserve cell activation.
-   For strummed chords, read [melodic strumming](references/step_strum.md). Use `edit strum list|set|reset` or score `step_strum` / inline event and progression fields. Direction is off/up/down; spread is 0–100% of one local step, with each note retaining its duration.
-8. Check that each lane uses a suitable editor, repeating material reuses pads/groups, and accepted notes, velocities and timing remain intact. Then run `edit validate`; this asks the backend to resolve every source outlet to its target inlet and rejects missing ports, invalid targets, and feedback loops.
-9. Commit only after validation succeeds.
-10. For live testing, use `edit create-runtime --start`. After rack, patch-definition, or route changes, use `edit rebuild-runtime`; use `edit push-runtime` when only sequencer, mixer, or performance-controller values changed. Always-on instruments need a rack restart to adopt controller changes.
+1. Check capabilities and discover patches/performances. Establish the musical
+   brief and device choices. Respect requested instruments and accepted notes;
+   use Composition Creator first for interactive melodic/harmonic exploration.
+2. For a new song run `edit begin --new --arranger clips --name NAME`.
+   `--offline` is available for initial composition. To revise a saved song use
+   `edit begin --performance NAME_OR_ID`. Legacy songs remain legacy unless
+   explicitly migrated with a verified recovery file.
+3. Add instrument bindings, inspect their IDs/ports, then route outputs and set
+   mixer levels. The fixed `$master` needs no patch or rack slot. Read the
+   routing/mixer references; optional effects are a musical choice.
+4. Read [song workflow](references/song_workflow.md) and
+   [schema/time](references/song_schema.md). Define each musical motif once,
+   then use clip references and scalar repeats. Use `edit apply-song --file PATH`
+   for a whole-song JSON/YAML document or incremental lane/pattern/clip commands.
+   Start from [minimal](assets/minimal-song.json) or [128 bars](assets/complete-song.json).
+   Use `edit adapt-score --file PATH --id HANDOFF` for accepted Composition Creator
+   v1/v2 documents; do not reinterpret their notes or use append retries.
+5. For pitch-only variation use shared, parent or placement transposition plans.
+   Fork musical definitions only for intentional note/rhythm/dynamics changes.
+   Groups are lane-local; sections coordinate song time across selected lanes.
+   Clip libraries are not limited to eight pads.
+6. For an instrument sweep read [automation](references/song_automation.md),
+   discover controller nodes/mappings, generate owned lanes and edit one long
+   curve. MIDI channel and CC follow the rack instance. Fixed `perf_controller`
+   settings remain separate per-instance I-rate values.
+7. Inspect summary, definitions, clips and occurrence trees. Use returned
+   revision/fingerprint targets for scoped edits. Read
+   [editing/history](references/song_editing.md) for cell edits, structural edits,
+   sections, batch transactions, dry runs and undo. Check that original notes,
+   hidden cells, unused definitions, trailing silence and sharing are retained.
+8. Run `edit validate` online, then `edit commit`. Offline validation checks only
+   authored content. Online validation also resolves routing; audio preparation
+   is a separate runtime operation. A stale saved version fails rather than
+   overwriting another writer. Unsaved GUI editor drafts are not visible here.
+9. Build or attach a runtime. Use `edit push-runtime` for ordinary music/mixer/
+   controller edits, `edit rebuild-runtime` for topology changes. Audition the
+   returned occurrence with `edit audition start --target PATH --scope full`
+   (or `cropped`), inspect status, then stop. Push the intended draft first;
+   audition refuses a mismatched runtime. Do not equate accepted preparation
+   with speaker output. Native and MIDI/SCORE exports use `edit export`.
 
 ## Choose a Device per Part
 
@@ -84,43 +91,14 @@ Give a musical or timing reason when choosing Score over a pattern device. A com
 
 A composition **score document** passed to `edit apply-score` is not a **Score Sequencer**: its track `type` selects melodic, drummer, controller or arpeggiator authoring. `edit add-score-sequencer --spec` uses a separate sparse-note format. Check the part's role during handoff rather than inferring its device from the word “score”.
 
-## Core Commands
+## Legacy compatibility
 
-```bash
-uv run --locked orchestron_cli --json patches list
-uv run --locked orchestron_cli --json patches formulas set "Lead Patch" --target filter.xcf --expression "0.1 * in1"
-uv run --locked orchestron_cli --json performances list
-uv run --locked orchestron_cli --json edit begin --new --name "Agent Sketch"
-uv run --locked orchestron_cli --json edit add-instrument --patch "TB303" --channel 2 --binding-id bass
-uv run --locked orchestron_cli --json edit instruments list
-uv run --locked orchestron_cli --json edit performance-controllers list --binding bass
-# Use an actual node ID reported by the preceding command:
-uv run --locked orchestron_cli --json edit performance-controllers set --binding bass --node attack --value 0.04
-uv run --locked orchestron_cli --json edit performance-controllers reset --binding bass --node attack
-# Optional preset, after confirming the reverb/compressor patches exist:
-uv run --locked orchestron_cli --json edit add-standard-effects --send-gain-db -12
-uv run --locked orchestron_cli --json edit routes list
-uv run --locked orchestron_cli --json edit mixer list
-uv run --locked orchestron_cli --json edit mixer strip set --binding bass --gain-db -6
-uv run --locked orchestron_cli --json edit mixer strip set --binding '$master' --gain-db -3
-uv run --locked orchestron_cli --json edit add-melodic --channel 2 --steps "s0=C3:min7/4s s4=F3:dom7/4s"
-uv run --locked orchestron_cli --json edit sequencers list
-# Replace voice-1 with the melodic track ID reported above:
-uv run --locked orchestron_cli --json edit strum set --track voice-1 --pad 1 --step 0 --step 4 --direction up --spread 40
-uv run --locked orchestron_cli --json edit add-melodic --channel 2 --grid-pattern "C3 . . ." --pad-grid-pattern "2=F3 . . ." --pad-loop "A P4 A" --pad-loop-group "A=1 2"
-uv run --locked orchestron_cli --json edit add-drummer --channel 10 --groove backbeat
-uv run --locked orchestron_cli --json edit add-drummer --channel 10 --hits "35@0:115 38@4:98 54@7:65" --pad-hits "2=35@0:120 38@12:105" --pad-loop "1 1 1 2"
-uv run --locked orchestron_cli --json edit validate
-uv run --locked orchestron_cli --json edit commit
-uv run --locked orchestron_cli --json edit create-runtime --start
-```
-
-Pattern-pad and pad-loop CLI syntax:
-
-- `--pad 1..8` assigns the primary `--steps`, `--grid-pattern`, `--groove`, `--hits`, or `--curve` to that pad.
-- Repeat `--pad-steps`, `--pad-grid-pattern`, `--pad-groove`, `--pad-hits`, or `--pad-curve` as `PAD=VALUE` to define additional pads.
-- Use `--pad-loop "1 2 P4 1"` for root pad-loop sequences. Pad tokens are `1..8`; pause tokens are `P1`, `P2`, `P4`, `P8`, and `P16`.
-- Use repeated `--pad-loop-group "A=1 2"` and `--pad-loop-super-group "I=A A"` for nested sequences.
+The eight-pad commands (`add-melodic`, `add-drummer`, `add-score-sequencer`,
+`apply-score`, `step-timing`, `ratchets`, `strum`, pad-loop flags) remain for
+legacy sessions. They cannot mutate clip-owned shadow pads. New clip workflows
+use definitions and `patterns cells`; the detailed legacy references are labeled.
+Run `edit migrate --dry-run` before explicitly converting a supported legacy
+arrangement with `edit migrate --recovery /work/original.json`.
 
 ## References
 
@@ -146,6 +124,9 @@ Composition and genre guidance:
 - For chord color, voicing, bass relationships, and arpeggiator use, read `references/harmony_arpeggiation.md`.
 - For ambient, techno, trance, Goa trance, and psytrance blueprints, read `references/genre_blueprints.md`.
 
-## Error Handling
+## Recovery
 
-When a command fails, read the structured `error.retry` field and adjust the next command. Do not commit after a failed validation. Use `--debug` only when backend response details are needed.
+Read structured errors and their paths before retrying. Inspect again after a
+stale target; choose a free window after collision. Reapply identical song
+inputs to confirm a no-op. Do not commit a failed validation. Use `--debug` for
+raw backend details, and runtime status after interrupted remote operations.

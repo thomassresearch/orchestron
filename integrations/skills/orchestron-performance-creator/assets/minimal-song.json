@@ -1,0 +1,9 @@
+{
+  "schema": "orchestron-song", "version": 1, "id": "minimal",
+  "songMeter": [4, 4], "tempo": 120, "end": "8bar",
+  "lanes": [{"id": "bass", "source": "sequencer", "channel": 2,
+    "definitions": [{"id": "riff", "name": "Bass riff", "music": {"lengthBeats": 4, "steps": "s0=C3/2s s4=G3/2s s8=Bb3/2s s12=G3/2s"}}],
+    "clips": [{"id": "verse", "start": "0bar", "repeat": 4, "children": ["riff"]},
+              {"id": "chorus", "start": "4bar", "repeat": 4, "children": ["riff"]}]
+  }]
+}
