@@ -30,6 +30,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const [menu,setMenu]=useState<{x:number;y:number}|null>(null),[ghost,setGhost]=useState<{x:number;y:number;count:number}|null>(null);
  const [groupName,setGroupName]=useState('');
  const [resizeFeedback,setResizeFeedback]=useState<string|null>(null);
+ const [previewDraft,setPreviewDraft]=useState<StructureDraft|null>(null);
  const [error,setError]=useState<string|null>(null),[pending,setPending]=useState<((model?:ClipArrangement,draft?:StructureDraft,paths?:{before:string[];after:string[]}[])=>void)|null>(null);
  const [musical,setMusical]=useState<{key:string;resume:(before:ClipArrangement,after:ClipArrangement)=>void}|null>(null);
  const [musicalSaving,setMusicalSaving]=useState(false),[busy,setBusy]=useState(false);
@@ -149,7 +150,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
   const nextFocus={...f,pass};select(nextFocus,next.id,true);return {focus:nextFocus,id:next.id};
  };
  const add=(f:StructureFocus,index:number,ticks?:number)=>{const action=()=>{setFocus(f);setPicker({path:f.parent,index,ticks});setQuery('');};if(draft&&(draft.laneId!==f.laneId||draft.clipId!==f.clipId||draft.pass!==f.pass))guard(action);else action();};
- const cancelDrag=()=>{resizing.current=null;setResizeFeedback(null);drag.current=null;suppressClick.current=false;setDrop(null);setGhost(null);setMenu(null);if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);scrollFrame.current=null;};
+ const cancelDrag=()=>{resizing.current=null;setResizeFeedback(null);setPreviewDraft(null);drag.current=null;suppressClick.current=false;setDrop(null);setGhost(null);setMenu(null);if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);scrollFrame.current=null;};
  useEffect(()=>()=>{if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);},[]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape')cancelDrag();};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[]);
  const pointerDown=(e:PointerEvent,f:StructureFocus,id:string)=>{if(e.button!==0)return;e.stopPropagation();
@@ -199,13 +200,46 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    const snapshot=nodes.map(n=>({...n,...(model.version>=3?{repeatIndex:n.repeatIndex??repeat}:{}),...(inherited.length?{placement:sumPlans([...inherited,...(n.placement?[n.placement]:[])])}:{})}));
    return {kind:'timed',parent:same?d.selection.parent:[],ids:same?d.selection.ids:[],target:candidate.target,...(!same?{nodes:copyNodes(snapshot,base.basis,currentModel.lanes.find(l=>l.id===candidate.focus.laneId)!,useAppStore.getState().sequencer,timings)}:{})};
  };
- const resizing=useRef<{focus:StructureFocus;id:string;edge:'left'|'right';x:number}|null>(null);
- const resize=(f:StructureFocus,id:string,edge:'left'|'right',delta:number)=>{
-  try {const items=structureChildren(target(f).roots,f.parent),index=items.findIndex(n=>n.id===id);const at=items.slice(0,index).reduce((sum,n)=>sum+nodeTicks(n,timings[f.laneId]),0);run({kind:'timed',parent:f.parent,ids:[id],target:{path:f.parent,index,ticks:at},resize:{edge,delta}},f);}catch(e){setError(String(e));}
+ const resizing=useRef<{focus:StructureFocus;id:string;edge:'left'|'right';x:number;scroll:number;viewport:HTMLElement;base:StructureDraft;visibleTicks?:number}|null>(null);
+ const resizeCommand=(base:StructureDraft,f:StructureFocus,id:string,edge:'left'|'right',delta:number,visibleTicks?:number):StructureCommand=>{
+  const items=structureChildren(base.roots,f.parent),index=items.findIndex(n=>n.id===id),node=items[index];
+  if(!node)throw Error(t.selectionChanged);
+  if(node.restTicks!==undefined)return {kind:'resizeRest',parent:f.parent,ids:[id],ticks:Math.round(((visibleTicks??node.restTicks)+delta)/5040)*5040};
+  const at=items.slice(0,index).reduce((sum,n)=>sum+nodeTicks(n,timings[f.laneId]),0);
+  return {kind:'timed',parent:f.parent,ids:[id],target:{path:f.parent,index,ticks:at},resize:{edge,delta}};
+ };
+ const resize=(f:StructureFocus,id:string,edge:'left'|'right',delta:number,visibleTicks?:number)=>{
+  try {run(resizeCommand(target(f),f,id,edge,delta,visibleTicks),f);}catch(e){setError(String(e));}
  };
  const nudge=(f:StructureFocus,id:string,delta:number)=>{try{const items=structureChildren(target(f).roots,f.parent),index=items.findIndex(n=>n.id===id);run({kind:'timed',parent:f.parent,ids:[id],target:{path:f.parent,index,ticks:items.slice(0,index).reduce((sum,n)=>sum+nodeTicks(n,timings[f.laneId]),0)+delta}},f);}catch(e){setError(String(e));}};
- const resizeDown=(e:PointerEvent,f:StructureFocus,id:string,edge:'left'|'right')=>{if(e.button!==0)return;e.stopPropagation();const viewport=e.currentTarget.closest<HTMLElement>('[data-arranger-viewport]');viewport?.setPointerCapture(e.pointerId);resizing.current={focus:f,id,edge,x:e.clientX};};
- const pointerMove=(e:PointerEvent)=>{if(resizing.current){setResizeFeedback(`${c.length}: ${Math.round((e.clientX-resizing.current.x)/unit/20160*100)/100} ${c.beats}`);return;}const d=drag.current;if(!d)return;if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<5&&!d.active)return;if(!d.active)d.viewport.setPointerCapture(e.pointerId);d.active=true;setGhost({x:e.clientX+12,y:e.clientY+12,count:d.selection.ids.length});
+ const resizeDown=(e:PointerEvent,f:StructureFocus,id:string,edge:'left'|'right',visibleTicks?:number)=>{
+  if(e.button!==0)return;e.stopPropagation();
+  const viewport=e.currentTarget.closest<HTMLElement>('[data-arranger-viewport]');if(!viewport)return;
+  try {
+   const base=target(f);viewport.setPointerCapture(e.pointerId);
+   resizing.current={focus:f,id,edge,x:e.clientX,scroll:viewport.scrollLeft,viewport,base,visibleTicks};
+   setError(null);
+  }catch(error){setError(String(error));}
+ };
+ const resizeAt=(x:number)=>{
+  const r=resizing.current!;
+  return resizeCommand(r.base,r.focus,r.id,r.edge,Math.round((x-r.x+r.viewport.scrollLeft-r.scroll)/unit),r.visibleTicks);
+ };
+ const previewResize=(x:number)=>{
+  const r=resizing.current;if(!r)return;
+  try {
+   const command=resizeAt(x),next=x===r.x&&r.viewport.scrollLeft===r.scroll?r.base:applyStructure(r.base,command,timings,model);
+   prepareStructure(model,next,'local',timings);
+   const node=structureChildren(next.roots,r.focus.parent).find(n=>n.id===r.id);
+   setPreviewDraft(next);setResizeFeedback(`${c.length}: ${Math.round((node?nodeTicks(node,timings[r.focus.laneId]):0)/20160*100)/100} ${c.beats}`);setError(null);
+  }catch(error){setResizeFeedback(null);setError(String(error));}
+ };
+ const pointerMove=(e:PointerEvent)=>{if(resizing.current){
+  previewResize(e.clientX);
+  if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);
+  const scroll=()=>{const r=resizing.current;if(!r)return;const bounds=r.viewport.getBoundingClientRect();const direction=e.clientX<bounds.left+45?-1:e.clientX>bounds.right-45?1:0;if(!direction)return;r.viewport.scrollLeft+=direction*12;previewResize(e.clientX);scrollFrame.current=requestAnimationFrame(scroll);};
+  scrollFrame.current=requestAnimationFrame(scroll);return;
+ }const d=drag.current;if(!d)return;if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<5&&!d.active)return;if(!d.active)d.viewport.setPointerCapture(e.pointerId);d.active=true;setGhost({x:e.clientX+12,y:e.clientY+12,count:d.selection.ids.length});
   const update=()=>{const candidate=hitTarget(e.clientX,e.clientY);try{if(candidate){const command=dropCommand(d,candidate);const base=candidate.focus.clipId===d.focus.clipId?target(d.focus):beginStructure(model,candidate.focus.laneId,candidate.focus.clipId,candidate.focus.pass);applyStructure(base,command,timings,model);}setDrop(candidate);}catch{setDrop(null);}};update();
   if(scrollFrame.current!==null)cancelAnimationFrame(scrollFrame.current);
   const viewport=d.viewport;
@@ -213,13 +247,17 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
   if(viewport)scrollFrame.current=requestAnimationFrame(scroll);
  };
  const pointerUp=(e:PointerEvent)=>{
-  if(resizing.current){const r=resizing.current;resizing.current=null;setResizeFeedback(null);e.stopPropagation();resize(r.focus,r.id,r.edge,Math.round((e.clientX-r.x)/unit));return;}
+  if(resizing.current){
+   const r=resizing.current;e.stopPropagation();
+   try {if(e.clientX!==r.x||r.viewport.scrollLeft!==r.scroll){const command=resizeAt(e.clientX);prepareStructure(model,applyStructure(r.base,command,timings,model),'local',timings);run(command,r.focus);}}catch(error){setError(String(error));}
+   cancelDrag();suppressClick.current=true;return;
+  }
   const d=drag.current;if(!d)return;e.stopPropagation();const candidate=d.active?hitTarget(e.clientX,e.clientY):null;
   if(candidate)try{const command=dropCommand(d,candidate);const apply=()=>run(command,candidate.focus);if(draft&&(draft.laneId!==candidate.focus.laneId||draft.clipId!==candidate.focus.clipId))guard((saved,_structural,paths)=>{
     if(!saved||!paths){setError(t.selectionChanged);return;}
     try{const mapped=d.selection.ids.map(id=>paths.find(p=>equal(p.before,[...d.selection.parent,id]))?.after);if(mapped.some(p=>!p))throw Error(t.selectionChanged);const parent=mapped[0]!.slice(0,-1),ids=mapped.map(p=>p![p!.length-1]);const sourceClip=saved.lanes.find(l=>l.id===d.focus.laneId)!.clips.find(c=>c.id===d.focus.clipId)!;const source={...d,focus:{...d.focus,pass:sourceClip.mode==='once'?0:d.focus.pass,parent},selection:{...d.selection,parent,ids}};run(dropCommand(source,candidate),candidate.focus);}catch(error){setError(String(error));}
    });else apply();}catch(e){setError(String(e));}
-  cancelDrag();if(d.active){suppressClick.current=true;setTimeout(()=>{suppressClick.current=false;},0);}
+  cancelDrag();if(d.active){suppressClick.current=true;}
  };
 
  const remove=(f=focus,id?:string)=>{if(!f||spansPasses)return;const ids=selection&&equal(f,focus)&&(!id||selection.ids.includes(id))?selection.ids:id?[id]:[];if(ids.length)run({kind:'remove',parent:f.parent,ids},f);};
@@ -310,5 +348,5 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  return changed?<p key={cl.id}>{cl.name} · {c.start}: {cl.start/20160} · {c.length}: {old?`${old.length/20160} → `:''}{cl.length/20160} {c.beats}</p>:null;
  })}{saveError&&<p role="alert">{saveError}</p>}<button disabled={busy||!preview||(scope==='all'&&!!allIssue)} className={clipButton} onClick={submit}>{c.save}</button><button disabled={busy} className={clipButton} onClick={()=>setSaving(false)}>{c.cancel}</button></>:picker&&source?<><input aria-label={t.search} placeholder={t.search} className={`${clipInput} !w-full`} value={query} onChange={e=>setQuery(e.target.value)}/>{source.definitions.filter(d=>{const parent=picker.path.length?structureChildren(roots,picker.path.slice(0,-1)).find(n=>n.id===picker.path[picker.path.length-1]):null;return !parent||d.kind==='pattern'||parent.definition?.kind==='supergroup'&&d.kind==='group';}).filter(d=>d.name.toLowerCase().includes(query.toLowerCase())).map(d=><div key={d.id} className="my-2 rounded border border-slate-700 p-2"><span>{d.name} · {c[d.kind]} · {contentLength(source,[{id:'preview',definitionId:d.id}],timings[source.id])/20160} {c.beats}</span>{d.kind==='pattern'&&<PatternPreview definition={d} timing={timings[source.id]} controllerMode={sequencer.controllerSequencers.find(t=>t.id===source.id)?.controllerMode}/>}<button className={clipButton} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:false});setPicker(null);}}>{c.addContent}</button><button className={clipButton} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:true});setPicker(null);}}>{c.copy}</button></div>)}<button className={clipButton} onClick={()=>{run({kind:'insert',target:picker,definition:newStructurePattern(source,sequencer,language),variation:false});setPicker(null);}}>{c.newPattern}</button><button className={clipButton} onClick={()=>{run({kind:'rest',target:picker,ticks:20160});setPicker(null);}}>{c.rest} +1</button><button className={clipButton} onClick={()=>setPicker(null)}>{c.cancel}</button></>:null}</dialog>;
  const toolbar=<>{drop&&ghost&&<div aria-hidden className="pointer-events-none fixed z-50 h-16 border-l-2 border-cyan-300" style={{left:drop.screenX??ghost.x-12,top:drop.screenY??ghost.y-12}}/>}{resizeFeedback&&<p role="status" className="text-cyan-300">{resizeFeedback}</p>}{ghost&&<div className="pointer-events-none fixed z-50 rounded border border-cyan-300 bg-slate-900 px-3 py-2 text-xs text-cyan-100" style={{left:ghost.x,top:ghost.y}}>{ghost.count} · {c.content}</div>}{menu&&<div role="menu" className="fixed z-50 flex gap-2 rounded border border-slate-500 bg-slate-900 p-2" style={{left:menu.x,top:menu.y}}><button role="menuitem" className={clipButton} disabled={!selection||spansPasses} onClick={()=>remove()}>{t.remove}</button><button role="menuitem" disabled={!canGroup('group')} className={clipButton} onClick={()=>group('group')}>{c.group}</button><button role="menuitem" disabled={!canGroup('supergroup')} className={clipButton} onClick={()=>group('supergroup')}>{c.supergroup}</button><button role="menuitem" className={clipButton} disabled={spansPasses||!selection} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button><button role="menuitem" className={clipButton} onClick={()=>{setMenu(null);if(focus)add(focus,items.length);}}>{c.addContent}</button></div>}<div className="my-2 flex flex-wrap items-center gap-2 text-xs text-slate-200">{focus&&<><input aria-label={c.name} placeholder={c.name} value={groupName} onChange={e=>setGroupName(e.target.value)} className={clipInput}/><button className={clipButton} onClick={()=>add(focus,items.length)}>{t.add}</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>remove()}>{t.remove}</button><button disabled={!canGroup('group')} className={clipButton} onClick={()=>group('group')}>{c.group}</button><button disabled={!canGroup('supergroup')} className={clipButton} onClick={()=>group('supergroup')}>{c.supergroup}</button><button className={clipButton} disabled={spansPasses||!selection} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(-1)}>←</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(1)}>→</button><select disabled={spansPasses} aria-label={t.move} className={clipInput} value="" onChange={e=>{const dest=destinations[Number(e.target.value)];if(selection)run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:dest.path,index:dest.length}});}}><option value="">{t.move}</option>{destinations.map((d,i)=><option key={i} value={i}>{d.label}</option>)}</select></>}{draft&&<><span className="text-amber-300">{c.unsaved}</span><button className={clipButton} disabled={!draft.cursor} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,-1)})}>{c.undo}</button><button className={clipButton} disabled={draft.cursor===draft.history.length-1} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,1)})}>{c.redo}</button><button className={clipButton} disabled={!draft.cursor} onClick={openSave}>{t.save}</button><button className={clipButton} onClick={discard}>{t.discard}</button></>}</div>{error&&<p role="alert" className="text-rose-300">{error}</p>}{drop&&<p className="text-cyan-300">{t.insert} {drop.target.ticks!==undefined?`${drop.target.ticks/20160} ${c.beats}`:drop.target.index+1} · {containerLabel(drop.target.path)}</p>}{modal}{conflictModal}</>;
- return {add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number)=>{if(!isSelected(f,id))select(f,id,false);setMenu({x,y});},focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current||resizing.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
+ return {startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number)=>{if(!isSelected(f,id))select(f,id,false);setMenu({x,y});},focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current||resizing.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
 }

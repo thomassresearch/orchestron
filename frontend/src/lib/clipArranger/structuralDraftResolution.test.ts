@@ -34,3 +34,12 @@ it('retargets an unrelated dirty draft in a later generated pass after local mus
  expect(Object.values(retained.drafts)).toEqual([{...later,target:mapped}]);
  expect(affectedDraftKeys(m,saved,{later})).toEqual(['later']);
 });
+
+it('replays a trailing-rest resize and its redo after a musical draft save',()=>{
+ const m=fixture(),clip=m.lanes[0].clips[0];clip.mode='once';clip.children.push({id:'tail',restTicks:20160*4});
+ const draft=stepStructure(applyStructure(beginStructure(m,'lane','clip',0),{kind:'resizeRest',parent:[],ids:['tail'],ticks:20160*2}),-1);
+ const musical=beginDraft(m,{laneId:'lane',clipId:'clip',pass:0,path:['a-use']});musical.definition.name='Changed pattern';
+ const saved=saveDraft(m,musical,'local'),rebased=rebaseStructure(draft,saved,{}),redo=stepStructure(rebased,1);
+ expect(redo.roots[0].definition?.name).toBe('Changed pattern');expect(redo.roots.slice(-1)[0]?.restTicks).toBe(20160*2);
+ expect(prepareStructure(saved,redo,'local',{}).model.lanes[0].clips[0].children.slice(-1)[0]).toMatchObject({restTicks:20160*2});
+});

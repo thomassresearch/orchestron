@@ -55,7 +55,7 @@ it('keeps fractional loop phases with rational rounding and rejects stale drafts
  const m=fixture();const clip=m.lanes[0].clips[0];clip.offset=10080;clip.length=100800;
  const d=applyStructure(beginStructure(m,'lane','clip',0),{kind:'insert',target:{path:[],index:1},definition:m.lanes[0].definitions[1],variation:false});
  const saved=prepareStructure(m,d,'all',{}).model.lanes[0].clips[0];expect(saved.offset).toBe(20160);expect(saved.length).toBe(201600);
- const changed=structuredClone(m);changed.lanes[0].clips[0].length++;
+ const changed=structuredClone(m);changed.lanes[0].clips[0].children.push({id:'external-rest',restTicks:20160});
  expect(()=>prepareStructure(changed,d,'all',{})).toThrow('track changed');
 });
 it('reorders a selected range, leaves explicit rests and ignores equivalent drops',()=>{
@@ -191,4 +191,71 @@ describe('timed content edits',()=>{
   const m=fixture(),d=applyStructure(beginStructure(m,'lane','clip',0),{kind:'timed',parent:[],ids:['a-use'],target:{path:[],index:0,ticks:0},resize:{edge:'right',delta:Q}});
   expect(()=>prepareStructure(m,d,'local',{})).toThrow('Growth overlaps');
  });
+});
+
+it.each(['local','all'] as const)('shortens a nested trailing rest with %s scope without moving the next group',scope=>{
+ const m=fixture(),lane=m.lanes[0];
+ lane.definitions.push({id:'g',kind:'group',name:'G',revision:0,children:[{id:'ga',definitionId:'a'},{id:'tail',restTicks:20160*4}]});
+ lane.definitions.push({id:'h',kind:'group',name:'H',revision:0,children:[{id:'ha',definitionId:'a'},{id:'h-tail',restTicks:20160*4}]});
+ lane.clips[0].mode='once';lane.clips[0].length=20160*16;lane.clips[0].children=[{id:'g-use',definitionId:'g'},{id:'next',definitionId:'h'}];
+ const base=beginStructure(m,'lane','clip',0);
+ const draft=applyStructure(base,{kind:'resizeRest',parent:['g-use'],ids:['tail'],ticks:20160*2},{});
+ expect(draft.roots.map(n=>n.definition?.id??n.restTicks)).toEqual(['g',20160*2,'h']);
+ expect(draft.roots[0].children?.slice(-1)[0]?.restTicks).toBe(20160*2);
+ expect(draft.roots[2].children![1].id).toBe('h-tail');
+ expect(stepStructure(draft,-1).roots).toEqual(base.roots);
+ const saved=prepareStructure(m,draft,scope,{}).model;
+ expect(saved.lanes[0].clips[0].length).toBe(20160*16);
+ expect(saved.lanes[0].clips[0].children[1]).toMatchObject({restTicks:20160*2});
+});
+
+it('shortens or removes a trailing rest without recreating it and bounds empty clips',()=>{
+ const m=fixture(),clip=m.lanes[0].clips[0];clip.mode='once';clip.children.push({id:'tail',restTicks:20160*4});
+ const base=beginStructure(m,'lane','clip',0),command={kind:'resizeRest' as const,parent:[],ids:['tail'],ticks:0};
+ const draft=applyStructure(base,command,{});
+ expect(draft.roots).toHaveLength(1);expect(prepareStructure(m,draft,'local',{}).model.lanes[0].clips[0].length).toBe(20160*8);
+ expect(()=>applyStructure(base,{...command,ids:['a-use']})).toThrow('trailing rest');
+ clip.children=[{id:'tail',restTicks:20160*4}];
+ expect(()=>applyStructure(beginStructure(m,'lane','clip',0),command)).toThrow('positive duration');
+ expect(()=>applyStructure(base,{...command,ticks:-1})).toThrow('Invalid rest');
+});
+
+it('refreshes window metadata while preserving structural undo/redo, but rejects changed music',()=>{
+ const m=fixture();m.lanes[0].clips[0].mode='once';m.lanes[0].clips[0].children.push({id:'tail',restTicks:20160*4});
+ const draft=applyStructure(beginStructure(m,'lane','clip',0),{kind:'resizeRest',parent:[],ids:['tail'],ticks:20160*2});
+ const trimmed=structuredClone(m);Object.assign(trimmed.lanes[0].clips[0],{name:'Trimmed',length:20160*6,start:20160,offset:5040});
+ const saved=prepareStructure(trimmed,draft,'local',{}).model.lanes[0].clips[0];
+ expect(saved).toMatchObject({name:'Trimmed',length:20160*6,start:20160,offset:5040});
+ expect(saved.children.slice(-1)[0]).toMatchObject({restTicks:20160*2});
+ const redo=stepStructure(stepStructure(draft,-1),1);
+ expect(redo.roots).toEqual(draft.roots);
+ expect(prepareStructure(trimmed,redo,'local',{}).model.lanes[0].clips[0]).toMatchObject({length:saved.length,offset:saved.offset,start:saved.start,name:saved.name});
+ trimmed.lanes[0].definitions[0].name='Changed music';
+ expect(()=>prepareStructure(trimmed,draft,'local',{})).toThrow('track changed');
+});
+
+it('shortens trailing containers along with their last rest, retaining the clip window',()=>{
+ const m=fixture(),lane=m.lanes[0];lane.clips[0].mode='once';
+ lane.definitions.push({id:'g',kind:'group',name:'G',revision:0,children:[{id:'ga',definitionId:'a'},{id:'tail',restTicks:20160*4}]},{id:'s',kind:'supergroup',name:'S',revision:0,children:[{id:'sg',definitionId:'g'}]});
+ lane.clips[0].children=[{id:'s-use',definitionId:'s'}];
+ const draft=applyStructure(beginStructure(m,'lane','clip',0),{kind:'resizeRest',parent:['s-use','sg'],ids:['tail'],ticks:20160});
+ expect(draft.roots).toHaveLength(1);expect(draft.roots[0].children).toHaveLength(1);
+ expect(draft.roots[0].children![0].children![1].restTicks).toBe(20160);
+ expect(prepareStructure(m,draft,'local',{}).model.lanes[0].clips[0].length).toBe(20160*8);
+});
+
+it('keeps later loop passes fixed when shortening a rest locally and rejects changing every loop length',()=>{
+ const m=fixture(),clip=m.lanes[0].clips[0];clip.length=20160*16;clip.children.push({id:'tail',restTicks:20160*4});
+ const draft=applyStructure(beginStructure(m,'lane','clip',0),{kind:'resizeRest',parent:[],ids:['tail'],ticks:20160});
+ expect(prepareStructure(m,draft,'local',{}).model.lanes[0].clips.map(c=>c.start)).toEqual([0,20160*8]);
+ expect(()=>prepareStructure(m,draft,'all',{})).toThrow('another loop repetition');
+});
+
+it('keeps rendering after trimming away the edited loop pass and retains its draft',()=>{
+ const m=fixture(),clip=m.lanes[0].clips[0];
+ const draft=applyStructure(beginStructure(m,'lane','clip',1),{kind:'timed',parent:[],ids:['a-use'],target:{path:[],index:0,ticks:0},resize:{edge:'right',delta:-20160}});
+ const trimmed=structuredClone(m);trimmed.lanes[0].clips[0].length=20160*4;
+ expect(structureDisplayGeometry(trimmed.lanes[0].clips[0],20160*4,20160*4,1).length).toBe(20160*4);
+ expect(()=>prepareStructure(trimmed,draft,'local',{})).toThrow('pass no longer exists');
+ expect(()=>prepareStructure(m,draft,'local',{})).not.toThrow();expect(clip.length).toBe(20160*8);
 });

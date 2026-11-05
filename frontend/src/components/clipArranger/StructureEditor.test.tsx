@@ -271,3 +271,98 @@ it('extends and contracts across unmounted repetitions without changing authored
  expect(result.current.selection?.range).toEqual({first:0,last:59});
  expect(useAppStore.getState().sequencer).toBe(state);expect(useStructureDraft.getState().draft).toBeNull();
 });
+
+it.each(['left','right'] as const)('previews the %s pattern edge and total duration without committing until release',edge=>{
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);
+ fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
+ vi.stubGlobal('PointerEvent',MouseEvent);HTMLElement.prototype.setPointerCapture=vi.fn();
+ const handle=screen.getAllByRole('separator').find(el=>el.getAttribute('aria-label')?.endsWith(` ${edge}`))!;
+ const node=handle.closest<HTMLElement>('[data-structure-node]')!;
+ const width=parseFloat(node.style.width),delta=(edge==='left'?1:-1)*width/4;
+ const viewport=document.querySelector<HTMLElement>('[data-arranger-viewport]')!;
+ const before=useAppStore.getState().sequencer;
+ fireEvent.pointerDown(handle,{button:0,clientX:300});fireEvent.pointerMove(viewport,{clientX:300+delta});
+ expect(parseFloat(node.style.width)).toBe(width*3/4);
+ expect(parseFloat(node.style.left)).toBe(edge==='left'?width/4:0);
+ expect(screen.getByRole('status').textContent).toBe('Length: 3 master beats');
+ expect(useStructureDraft.getState().draft).toBeNull();expect(useAppStore.getState().sequencer).toBe(before);
+ fireEvent.pointerUp(viewport,{clientX:300+delta});fireEvent.click(viewport);
+ expect(screen.getByRole('spinbutton',{name:'Length · master beats'})).toBeTruthy();
+ expect(useStructureDraft.getState().draft?.cursor).toBe(1);
+ expect(useStructureDraft.getState().draft?.commands).toHaveLength(1);
+ expect(parseFloat(node.style.width)).toBe(width*3/4);
+ expect(useAppStore.getState().sequencer).toBe(before);
+});
+
+it.each(['Escape','pointerCancel','lostPointerCapture'])('cancels live resize with %s',cancel=>{
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
+ vi.stubGlobal('PointerEvent',MouseEvent);HTMLElement.prototype.setPointerCapture=vi.fn();
+ const handle=screen.getAllByRole('separator').find(el=>el.getAttribute('aria-label')?.endsWith(' right'))!;
+ const node=handle.closest<HTMLElement>('[data-structure-node]')!,width=parseFloat(node.style.width),viewport=document.querySelector<HTMLElement>('[data-arranger-viewport]')!;
+ fireEvent.pointerDown(handle,{button:0,clientX:300});fireEvent.pointerMove(viewport,{clientX:300-width/4});
+ expect(parseFloat(node.style.width)).toBe(width*3/4);
+ if(cancel==='Escape')fireEvent.keyDown(window,{key:'Escape'});else if(cancel==='pointerCancel')fireEvent.pointerCancel(viewport);else fireEvent.lostPointerCapture(viewport);
+ fireEvent.pointerUp(viewport,{clientX:300-width/4});
+ expect(parseFloat(node.style.width)).toBe(width);expect(useStructureDraft.getState().draft).toBeNull();expect(screen.queryByRole('status')).toBeNull();
+});
+
+it('resizes the visible trailing rest after trimming, then saves without losing the trimmed window',async()=>{
+ const s=structuredClone(useAppStore.getState().sequencer),lane=s.clipArrangement!.lanes[0],clip=lane.clips[0];
+ clip.children=[clip.children[0],{id:'tail',restTicks:20160*4}];useAppStore.setState({sequencer:s});
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
+ // Start a structural draft, then independently trim the playback window by a beat.
+ const patternHandle=screen.getAllByRole('separator').find(el=>el.getAttribute('aria-label')?.endsWith(' right'))!;
+ fireEvent.keyDown(patternHandle,{key:'ArrowLeft'});
+ fireEvent.click(screen.getAllByRole('button').find(b=>b.title.includes('Drag clip border'))!);
+ const length=screen.getByRole('spinbutton',{name:'Length · master beats'});
+ fireEvent.change(length,{target:{value:'7'}});fireEvent.blur(length);
+ expect(useStructureDraft.getState().draft?.basis.clips[0].length).toBe(20160*7);
+ // The saved rest remains four beats; shortening the pattern made the draft tail five.
+ expect(clip.children[1]).toEqual({id:'tail',restTicks:20160*4});
+ const restHandle=screen.getByRole('separator',{name:'Length: Rest'}),restNode=restHandle.closest<HTMLElement>('[data-structure-node]')!;
+ expect(parseFloat(restHandle.style.left)).toBeLessThan(parseFloat(restNode.style.width)-10);
+ fireEvent.keyDown(restHandle,{key:'ArrowLeft'});
+ expect(useStructureDraft.getState().draft?.roots.slice(-1)[0]?.restTicks).toBe(20160*3.75);
+ fireEvent.click(screen.getByRole('button',{name:'Save structure'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
+ await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ const saved=useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0];
+ expect(saved.length).toBe(20160*7);expect(saved.children.slice(-1)[0]).toMatchObject({restTicks:20160*3.75});
+ act(()=>clipHistoryStep(false));expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0].length).toBe(20160*7);
+ act(()=>clipHistoryStep(true));expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0]).toEqual(saved);
+});
+
+it('removes a trailing rest and saves after trimming an existing structure draft',async()=>{
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
+ const patternHandle=screen.getAllByRole('separator').find(el=>el.getAttribute('aria-label')?.endsWith(' right'))!;
+ fireEvent.keyDown(patternHandle,{key:'ArrowLeft'});
+ fireEvent.keyDown(screen.getByRole('separator',{name:'Length: right'}),{key:'ArrowLeft'});
+ const rest=screen.getAllByRole('button').find(b=>b.title==='Rest')!;
+ fireEvent.keyDown(rest,{key:'Delete'});
+ fireEvent.click(screen.getByRole('button',{name:'Save structure'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
+ await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ expect(screen.queryByRole('alert')).toBeNull();
+ expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0].length).toBe(20160*7.75);
+});
+
+it('accounts for scrolling during resize and keeps one undo step',()=>{
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
+ vi.stubGlobal('PointerEvent',MouseEvent);HTMLElement.prototype.setPointerCapture=vi.fn();
+ const handle=screen.getAllByRole('separator').find(el=>el.getAttribute('aria-label')?.endsWith(' right'))!;
+ const node=handle.closest<HTMLElement>('[data-structure-node]')!,viewport=document.querySelector<HTMLElement>('[data-arranger-viewport]')!;
+ const width=parseFloat(node.style.width);
+ fireEvent.pointerDown(handle,{button:0,clientX:300});
+ fireEvent.scroll(viewport,{target:{scrollLeft:width/8}});
+ fireEvent.pointerMove(viewport,{clientX:300-width*3/8});
+ expect(parseFloat(node.style.width)).toBe(width*3/4);expect(screen.getByRole('status').textContent).toBe('Length: 3 master beats');
+ fireEvent.pointerUp(viewport,{clientX:300-width*3/8});expect(useStructureDraft.getState().draft?.cursor).toBe(1);
+});
+
+it('does not crop an oversized rest from a simple handle click',()=>{
+ const s=structuredClone(useAppStore.getState().sequencer),clip=s.clipArrangement!.lanes[0].clips[0];
+ clip.children=[clip.children[0],{id:'tail',restTicks:20160*4}];clip.length=20160*6;useAppStore.setState({sequencer:s});
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
+ vi.stubGlobal('PointerEvent',MouseEvent);HTMLElement.prototype.setPointerCapture=vi.fn();
+ const handle=screen.getByRole('separator',{name:'Length: Rest'}),viewport=document.querySelector<HTMLElement>('[data-arranger-viewport]')!;
+ fireEvent.pointerDown(handle,{button:0,clientX:300});fireEvent.pointerUp(viewport,{clientX:300});fireEvent.click(viewport);
+ expect(useStructureDraft.getState().draft).toBeNull();expect(useAppStore.getState().sequencer).toBe(s);
+});

@@ -1,3 +1,4 @@
+import { refreshStructureWindows } from '../lib/clipArranger/structure';
 import { useAppStore } from "./useAppStore";
 import { arrangementTimings, migrateClipArrangement, sourceKeys } from "../lib/clipArranger/migration";
 import { contentLength, validateArrangement, type ClipArrangement, type Definition, type OccurrenceTarget } from "../lib/clipArranger/model";
@@ -40,6 +41,8 @@ export function openClipTransposition(target: OccurrenceTarget) {
 export function commitClipArrangement(next: ClipArrangement, label: string) {
   const state = useAppStore.getState(), before = state.sequencer.clipArrangement;
   validateArrangement(next, arrangementTimings(state.sequencer));
+  const structural=useStructureDraft.getState().draft;
+  if(structural)useStructureDraft.setState({draft:refreshStructureWindows(next,structural)});
   useAppStore.setState({ sequencer: { ...state.sequencer, clipArrangement: next,
     clipHistory: before ? recordClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), before, next, label, arrangementTimings(state.sequencer)) : emptyClipHistory() }, sequencerEditRevision: state.sequencerEditRevision + 1 });
 }
@@ -81,6 +84,8 @@ export function clipHistoryStep(forward: boolean) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
   if (!model) return;
   const next = replayClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), model, forward, arrangementTimings(state.sequencer));
+  const structural=useStructureDraft.getState().draft;
+  if(structural)useStructureDraft.setState({draft:refreshStructureWindows(next.model,structural)});
   useAppStore.setState({ sequencer: { ...state.sequencer, clipArrangement: next.model, clipHistory: next.history }, sequencerEditRevision: state.sequencerEditRevision + 1 });
 }
 

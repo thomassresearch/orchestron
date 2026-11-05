@@ -9,6 +9,7 @@ export type ContainerTarget = { path: string[]; index: number; ticks?: number };
 export type StructureSelection = { parent: string[]; ids: string[]; anchor: string; anchorPass?: number; tip?: {pass:number;id:string}; range?: {first:number;last:number} };
 export type RepetitionRange = { first: {pass:number;id:string}; last: {pass:number;id:string} };
 export type StructureCommand =
+  | { kind: 'resizeRest'; parent: string[]; ids: string[]; ticks: number }
   | { kind: 'timed'; parent: string[]; ids: string[]; target: ContainerTarget; nodes?: StructureNode[]; resize?: { edge: 'left'|'right'; delta: number } }
   | { kind: 'groupRepetitions'; range: RepetitionRange; level:'group'|'supergroup'; name:string }
   | { kind: 'insert'; target: ContainerTarget; definition: Definition; variation: boolean }
@@ -33,6 +34,17 @@ export function beginStructure(model: ClipArrangement, laneId: string, clipId: s
   const lane = model.lanes.find(l => l.id === laneId)!, clip = lane.clips.find(c => c.id === clipId)!;
   const roots = expand(lane, clip.children, clip);
   return { laneId, clipId, pass, basis: copy(lane), roots, history: [copy(roots)], commands: [], cursor: 0, emptied: [], emptyHistory: [[]] };
+}
+/** Clip windows can change independently of the content being edited. */
+export function refreshStructureWindows(model: ClipArrangement, draft: StructureDraft): StructureDraft {
+  const current=model.lanes.find(l=>l.id===draft.laneId);
+  if(!current||JSON.stringify(current)===JSON.stringify(draft.basis))return draft;
+  const musical=(lane:ClipLane)=>({...lane,clips:lane.clips.map(({start:_start,length:_length,offset:_offset,name:_name,...content})=>content)});
+  if(JSON.stringify(musical(current))!==JSON.stringify(musical(draft.basis)))return draft;
+  const clip=current.clips.find(c=>c.id===draft.clipId)!;
+  const old=draft.basis.clips.find(c=>c.id===draft.clipId)!;
+  if(draft.expanded&&clip.offset!==old.offset)return draft;
+  return {...draft,basis:copy(current)};
 }
 export function structureChildren(roots: StructureNode[], path: string[]): StructureNode[] {
   let items = roots;
@@ -71,7 +83,14 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
   if(draft.expanded&&!isExpandedStructure(draft))draft={...draft,expanded:undefined};
   if (draft.basis.cycleTicks !== null) fail('Convert the repeating lane to song clips first.');
   let roots = copy(draft.roots);
-  if (command.kind === 'timed') {
+  if(command.kind==='resizeRest') {
+    const items=structureChildren(roots,command.parent),index=selection(items,command.ids)[0];
+    if(command.ids.length!==1||index!==items.length-1||items[index].restTicks===undefined)fail('Select a trailing rest to resize.');
+    if(!Number.isSafeInteger(command.ticks)||command.ticks<0||command.ticks>CLIP_LIMITS.ticks)fail('Invalid rest duration.');
+    if(command.ticks===items[index].restTicks)return draft;
+    if(command.ticks===0){if(items.length===1)fail('Keep a positive duration for an empty clip or container.');items.pop();}
+    else items[index].restTicks=command.ticks;
+  } else if (command.kind === 'timed') {
     const source=structureChildren(roots,command.parent), timing=timings[draft.laneId];
     const indices=command.nodes?[]:selection(source,command.ids);
     let chosen=copy(command.nodes??source.slice(indices[0],indices[0]+indices.length));
@@ -138,16 +157,20 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
       })));
     }
   }
-  if(command.kind==='timed') {
+  if(command.kind==='timed'||command.kind==='resizeRest') {
     // Rebuild only enclosing rows at their old positions; nested growth consumes
     // neighboring silence instead of pushing another container along the song.
-    const paths=[command.parent,command.target.path];
+    const paths=command.kind==='timed'?[command.parent,command.target.path]:[command.parent];
     const repair=(before:StructureNode[],after:StructureNode[],path:string[]):StructureNode[]=>{
+      if(!paths.some(p=>path.every((id,index)=>p[index]===id)))return after;
       for(const n of after){const old=before.find(b=>b.id===n.id);if(n.children&&old?.children)n.children=repair(old.children,n.children,[...path,n.id]);}
       if(paths.some(p=>JSON.stringify(p)===JSON.stringify(path)))return after;
       const timing=timings[draft.laneId];let cursor=0;
       const positions=new Map(before.map(n=>{const at=cursor;cursor+=nodeTicks(n,timing);return [n.id,at] as const;}));
-      let result:StructureNode[]=[{id:newClipId(),restTicks:cursor}];
+      // A shortened trailing rest can shorten trailing ancestors too. Gaps
+      // before unedited siblings still retain their original timeline positions.
+      const extent=command.kind==='resizeRest'?Math.max(...after.map(n=>positions.get(n.id)!+nodeTicks(n,timing))):cursor;
+      let result:StructureNode[]=[{id:newClipId(),restTicks:extent}];
       for(const n of after.filter(n=>n.definition))result=placeAt(result,[n],positions.get(n.id)!,timing);
       return result;
     };
@@ -320,14 +343,18 @@ export function structurePassWindow(original:Clip,before:number,after:number,pas
 }
 export function structureDisplayGeometry(original:Clip,before:number,after:number,pass:number) {
   if(original.mode==='once')return {length:after>before?Math.max(original.length,after-original.offset):original.length, left:(_pass:number)=>-original.offset};
+  // A trim may hide the edited pass; keep rendering the remaining window.
+  // Saving still rejects that missing occurrence until the trim is undone.
+  if((pass+1)*before<=original.offset||pass*before>=original.offset+original.length)return {length:original.length,left:(index:number)=>index*before-original.offset};
   const window=structurePassWindow(original,before,after,pass);
   return {length:original.length+window.growth,left:(index:number)=>index===pass?window.start-original.start-window.newOffset:index*before-original.offset+(index>pass?window.growth:0)};
 }
 export function prepareStructure(model: ClipArrangement, draft: StructureDraft, scope: 'local'|'all', timings: LaneTiming): { model: ClipArrangement; shared: boolean; occurrences: {from:OccurrenceTarget;to:OccurrenceTarget}[]; previewPaths: {before:string[];after:string[]}[] } {
   if(isExpandedStructure(draft)&&scope==='all')fail('Grouping repetitions changes only this clip. Pattern definitions remain linked.');
+  draft=refreshStructureWindows(model,draft);
   const current=model.lanes.find(l=>l.id===draft.laneId);
   if (JSON.stringify(current)!==JSON.stringify(draft.basis)) throw new ClipError('conflict','The track changed. Discard this structure draft and reopen it.');
-  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||('target' in c&&c.target.ticks!==undefined));
+  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||c.kind==='resizeRest'||('target' in c&&c.target.ticks!==undefined));
   const materialized=materialize(draft,scope); const lane=materialized.lane, shared=materialized.shared||draft.emptied.length>0; let children=materialized.children;
   if(scope==='all' && draft.emptied.length){
     const removed=new Set(draft.emptied);
@@ -385,7 +412,7 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
     };
     for(const kind of ['group','supergroup'])for(const def of lane.definitions){const old=draft.basis.definitions.find(d=>d.id===def.id);if(def.kind===kind&&def.kind!=='pattern'&&old&&old.kind!=='pattern')def.children=keepPositions(old.children,def.children);}
     for(const candidate of lane.clips)if(candidate.id!==draft.clipId){const old=draft.basis.clips.find(c=>c.id===candidate.id)!;candidate.children=keepPositions(old.children,candidate.children);}
-    for(const candidate of lane.clips){const old=draft.basis.clips.find(c=>c.id===candidate.id)!;const before=contentLength(draft.basis,old.children,timings[lane.id]),after=contentLength(lane,candidate.id===draft.clipId?children:candidate.children,timings[lane.id]);if(old.mode==='loop'&&after>before&&old.offset+old.length>before)fail('Growth overlaps another loop repetition.');}
+    for(const candidate of lane.clips){const old=draft.basis.clips.find(c=>c.id===candidate.id)!;const before=contentLength(draft.basis,old.children,timings[lane.id]),after=contentLength(lane,candidate.id===draft.clipId?children:candidate.children,timings[lane.id]);if(old.mode==='loop'&&after!==before&&old.offset+old.length>before)fail('Resizing would change another loop repetition. Save only this occurrence.');}
   }
   const original=draft.basis.clips.find(c=>c.id===draft.clipId)!;
   const clip=lane.clips.find(c=>c.id===draft.clipId)!;
@@ -430,7 +457,8 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
 }
 /** Preview uses a private lane; it never enters authored state or audio configuration. */
 export function structurePreview(model:ClipArrangement,draft:StructureDraft,timings:LaneTiming={}):ClipArrangement {
-  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||('target' in c&&c.target.ticks!==undefined));
+  draft=refreshStructureWindows(model,draft);
+  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||c.kind==='resizeRest'||('target' in c&&c.target.ticks!==undefined));
   const {lane,children,placements}=materialize(draft,'local',true);
   const original=structureClip(draft);
   const before=isExpandedStructure(draft)?draft.expanded!.contentTicks:contentLength(draft.basis,original.children,timings[lane.id]),after=contentLength(lane,children,timings[lane.id]);
