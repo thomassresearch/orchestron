@@ -5,6 +5,13 @@ import type { PersistedAppState } from "../types";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("app-state persistence responses", () => {
+  it("requests an empty acknowledgement instead of cancelling a full workspace response", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetch);
+    await api.saveAppState({ version: 1 } as PersistedAppState);
+    expect(fetch).toHaveBeenCalledWith("/api/app-state?return_state=false", expect.objectContaining({ method: "PUT" }));
+  });
+
   it("does not parse the unused full state returned by autosave", async () => {
     const response = new Response(JSON.stringify({ state: { version: 1 } }));
     const parse = vi.spyOn(response, "json");

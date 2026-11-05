@@ -199,6 +199,13 @@ Important consequence: sessions are **not persisted**. Restarting the backend dr
 
 - Reads and overwrites the singleton application state record with id `last`.
 - `GET /api/app-state` returns `404` until something has been saved.
+- App-state request decoding, model validation, persistence and response serialization
+  run in a worker thread, behind the existing pre-parse request-size limit.
+  Autosave uses `PUT /api/app-state?return_state=false` for an empty `204` response;
+  the default still returns `AppStateResponse`. This avoids cancelling a multi-megabyte
+  response and triggering Csound's SIGPIPE handler. Controller-value-only rack updates
+  defer automatic workspace snapshots during song playback, just like sequencer edits;
+  stop flushes the latest values, and explicit saves and other setting changes still work.
 
 ### GenAssetService
 
@@ -485,7 +492,7 @@ Import behavior:
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
 | `GET` | `/api/app-state` | none | `AppStateResponse` | Returns the singleton state record. `404` if nothing has been saved yet. |
-| `PUT` | `/api/app-state` | `AppStateUpdateRequest` | `AppStateResponse` | Creates or overwrites the singleton state record. |
+| `PUT` | `/api/app-state` | `AppStateUpdateRequest` | `AppStateResponse`, or empty `204` with `return_state=false` | Creates or overwrites the singleton state record. |
 
 Schemas:
 
@@ -951,6 +958,12 @@ next-event sample after every heap mutation, including cancellation and reset.
 The sample cursor still advances after every completed period. PCM copying caches
 only borrowed mono/stereo/multichannel layout views within a single render request;
 samples are copied before the next performance call and returned bytes own their data.
+
+When Csound performance logging is disabled, the runtime appends `-m0` to its
+headless CSD options before compilation, then also sets the API message level to
+zero after startup. Csound 6 caches some flags during startup, so changing only
+the API level leaves `rtevent` output active. Explicit diagnostic logging retains
+the compiled verbosity options; native worker tests exercise both settings.
 
 `make benchmark-render-loop` measures real Csound at 48 kHz / `ksmps=1` with
 512-frame requests, including idle, 24 sustained voices and eight sequencer tracks.

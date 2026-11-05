@@ -283,6 +283,7 @@ class CsoundWorker:
                     csd,
                     midi_input=midi_input,
                     rtmidi_module=module,
+                    suppress_messages=not self._csound_performance_logging,
                 )
 
                 csound.setOption("-d")
@@ -291,11 +292,6 @@ class CsoundWorker:
                 csound.setOption(f"-B{hardware_buffer}")
                 csound.setOption(f"-M{midi_input}")
                 csound.setOption(f"-+rtmidi={module}")
-                if not self._csound_performance_logging and not callable(getattr(csound, "setMessageLevel", None)):
-                    # Direct Csound bindings supplied by supported runtimes expose
-                    # setMessageLevel.  Keep this fallback for older bindings,
-                    # where command-line suppression is the only available path.
-                    csound.setOption("-m0")
                 self._apply_gen_audio_search_dir_option(csound)
                 self._configure_host_midi_callbacks(csound)
 
@@ -581,11 +577,11 @@ class CsoundWorker:
 
     @staticmethod
     def _suppress_csound_performance_messages(csound: Any) -> None:
-        """Silence performance-time Csound output without hiding startup diagnostics."""
+        """Keep the API message level aligned with the precompile -m0 option."""
         set_message_level = getattr(csound, "setMessageLevel", None)
         if not callable(set_message_level):
             logger.warning(
-                "CSound binding lacks setMessageLevel; requested -m0 before compile as a compatibility fallback."
+                "CSound binding lacks setMessageLevel; using the precompile -m0 option."
             )
             return
         try:
@@ -840,6 +836,7 @@ class CsoundWorker:
         csd: str,
         midi_input: str,
         rtmidi_module: str,
+        suppress_messages: bool = False,
     ) -> str:
         runtime_csd = cls._apply_runtime_midi_options(
             csd,
@@ -847,10 +844,10 @@ class CsoundWorker:
             rtmidi_module=rtmidi_module,
             rtaudio_option=None,
         )
-        return cls._rewrite_csoptions_for_no_audio_output(runtime_csd)
+        return cls._rewrite_csoptions_for_no_audio_output(runtime_csd, suppress_messages=suppress_messages)
 
     @staticmethod
-    def _rewrite_csoptions_for_no_audio_output(csd: str) -> str:
+    def _rewrite_csoptions_for_no_audio_output(csd: str, *, suppress_messages: bool = False) -> str:
         lines: list[str] = []
         in_options = False
         option_parts: list[str] = []
@@ -876,6 +873,11 @@ class CsoundWorker:
             if stripped == "</CsOptions>":
                 in_options = False
                 option_parts.append("-n")
+                if suppress_messages:
+                    # Csound 6 caches some message flags during compilation/start.
+                    # setMessageLevel(0) afterward does not suppress rtevent output.
+                    # Append last so embedded verbosity options cannot override it.
+                    option_parts.append("-m0")
                 lines.append(" ".join(part for part in option_parts if part).strip())
                 lines.append(line)
                 continue

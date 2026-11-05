@@ -467,7 +467,7 @@ def test_start_ctcsound_sets_ssdir_option_for_gen_audio_assets(monkeypatch, tmp_
     assert f"--env:SADIR={assets_dir.resolve()}" in worker._ctcsound.instance.options
 
 
-def test_headless_runtime_suppresses_csound_messages_after_start(monkeypatch) -> None:
+def test_headless_runtime_suppresses_csound_messages_before_compile_and_after_start(monkeypatch) -> None:
     monkeypatch.setattr("backend.app.engine.csound_worker.sys.platform", "linux")
     monkeypatch.setattr(CsoundWorker, "_configure_host_midi_callbacks", lambda self, csound: None)
 
@@ -480,6 +480,7 @@ def test_headless_runtime_suppresses_csound_messages_after_start(monkeypatch) ->
             return None
 
         def compileCsdText(self, _csd: str) -> int:  # noqa: N802
+            assert CsoundWorker._extract_csoptions_text(_csd).strip().endswith("-m0")
             self.lifecycle.append("compile")
             return 0
 
@@ -585,6 +586,26 @@ def test_headless_runtime_can_keep_csound_performance_messages_for_diagnostics(m
     )
 
     assert worker._ctcsound.instance.message_levels == []
+
+
+@pytest.mark.parametrize("logging_enabled", [False, True])
+def test_native_performance_logging_controls_realtime_event_output(monkeypatch, capfd, logging_enabled):
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+    monkeypatch.setenv("VISUALCSOUND_AUDIO_OUTPUT_MODE", "browser_clock")
+    worker = CsoundWorker(csound_performance_logging=logging_enabled)
+    if worker.backend != "ctcsound":
+        pytest.skip("Native Csound unavailable")
+    csd = (Path(__file__).parent / "fixtures/csound/render_loop.csd").read_text().replace("-m0", "-m7")
+    worker.start(csd, "internal:loopback", "null")
+    try:
+        capfd.readouterr()
+        worker.enqueue_timestamped_midi([0x90, 60, 100], source="manual", target_engine_sample=0)
+        worker.enqueue_timestamped_midi([0x80, 60, 0], source="manual", target_engine_sample=1024)
+        worker.render_blocks(block_count=2048, target_sample_rate=48000)
+        captured = capfd.readouterr()
+        assert ("rtevent:" in captured.out + captured.err) is logging_enabled
+    finally:
+        worker.stop()
 
 
 def test_queue_midi_message_honors_delivery_delay() -> None:

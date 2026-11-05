@@ -2563,8 +2563,15 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
 export function shouldDeferSequencerPersistence(
   current: PersistWatchState, previous: PersistWatchState | null, isPlaying: boolean
 ): boolean {
-  return previous !== null && isPlaying && (current.sequencer !== previous.sequencer || current.arrangerHistory !== previous.arrangerHistory) &&
-    !hasPersistableStateChange({ ...current, sequencer: previous.sequencer, arrangerHistory: previous.arrangerHistory }, previous);
+  if (previous === null || !isPlaying) return false;
+  // Incoming automation CCs update rack values on every render. Do not turn
+  // those updates into full-workspace autosaves while the song is playing.
+  const withoutValues = (key: string, value: unknown) => key === "performanceControllerValues" ? undefined : value;
+  const valuesOnly = current.sequencerInstruments !== previous.sequencerInstruments &&
+    JSON.stringify(current.sequencerInstruments, withoutValues) === JSON.stringify(previous.sequencerInstruments, withoutValues);
+  return (current.sequencer !== previous.sequencer || current.arrangerHistory !== previous.arrangerHistory || valuesOnly) &&
+    !hasPersistableStateChange({ ...current, sequencer: previous.sequencer, arrangerHistory: previous.arrangerHistory,
+      sequencerInstruments: valuesOnly ? previous.sequencerInstruments : current.sequencerInstruments }, previous);
 }
 
 

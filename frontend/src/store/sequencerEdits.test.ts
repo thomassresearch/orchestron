@@ -99,6 +99,22 @@ describe("authored configuration and sounding pads", () => {
     expect(shouldDeferSequencerPersistence(edited, before, false)).toBe(false);
     expect(shouldDeferSequencerPersistence({ ...edited, performanceName: "Renamed performance" }, before, true)).toBe(false);
   });
+
+  it("defers incoming rack values until stop without deferring routing or settings changes", () => {
+    const before = { ...capturePersistWatchState(useAppStore.getState()), sequencerInstruments: [{
+      id: "bass", patchId: "patch", midiChannel: 1, level: 10, effectSourceIds: [], effectRoutes: [],
+      performanceControllerValues: { tone: 100 }, performanceControllerMidiCCs: { tone: 1 }
+    }] };
+    const current = { ...before, sequencerInstruments: [{ ...before.sequencerInstruments[0],
+      performanceControllerValues: { tone: 200 }, performanceControllerMidiCCs: { tone: 1 }
+    }] };
+    expect(shouldDeferSequencerPersistence(current, before, true)).toBe(true);
+    expect(shouldDeferSequencerPersistence(current, before, false)).toBe(false);
+    expect(shouldDeferSequencerPersistence({ ...current, guiLanguage: "german" }, before, true)).toBe(false);
+    expect(shouldDeferSequencerPersistence({ ...current, sequencerInstruments: [{ ...current.sequencerInstruments[0],
+      performanceControllerMidiCCs: { tone: 2 }
+    }] }, before, true)).toBe(false);
+  });
 });
 
 it("keeps the chosen edit target through playback changes and does not persist audition overrides", () => {

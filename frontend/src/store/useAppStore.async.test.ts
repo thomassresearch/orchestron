@@ -76,6 +76,27 @@ it("retries the newest autosave after an older in-flight save fails", async () =
   useAppStore.setState({ hasLoadedBootstrap: false });
 });
 
+it("does not autosave every automation value and flushes the latest rack value on stop", async () => {
+  const save = vi.spyOn(api, "saveAppState").mockResolvedValue(undefined);
+  useAppStore.setState({ hasLoadedBootstrap: true, sequencerInstruments: [{ id: "bass", patchId: "patch",
+    midiChannel: 1, level: 10, effectRoutes: [], effectSourceIds: [], performanceControllerValues: { tone: 100 } }] });
+  await vi.advanceTimersByTimeAsync(400);
+  save.mockClear();
+  useAppStore.getState().syncSequencerRuntime({ isPlaying: true });
+  for (const tone of [200, 300, 400]) {
+    useAppStore.setState(state => ({ sequencerInstruments: state.sequencerInstruments.map(binding => ({
+      ...binding, performanceControllerValues: { tone }
+    })) }));
+    await vi.advanceTimersByTimeAsync(400);
+  }
+  expect(save).not.toHaveBeenCalled();
+  useAppStore.getState().syncSequencerRuntime({ isPlaying: false });
+  await vi.advanceTimersByTimeAsync(400);
+  expect(save).toHaveBeenCalledTimes(1);
+  expect(save.mock.calls[0][0].sequencerInstruments[0].performanceControllerValues).toEqual({ tone: 400 });
+  useAppStore.setState({ hasLoadedBootstrap: false });
+});
+
 it("shares concurrent session creation and deletes a creation cancelled by Stop", async () => {
   useAppStore.setState({ sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
   const pending = deferred<SessionCreateResponse>();

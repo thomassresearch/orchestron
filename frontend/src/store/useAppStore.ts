@@ -1268,8 +1268,8 @@ useAppStore.subscribe((state, previous) => {
   if (!transportStopped && !hasPersistableStateChange(watchState, lastPersistWatchState)) {
     return;
   }
-  // Preserve the existing rule: sequencer-only autosaves wait until transport
-  // stops (or another persistable setting changes). Explicit Save still works.
+  // Sequencer edits and controller-value updates wait until transport stops
+  // (or another persistable setting changes). Explicit Save still works.
   if (shouldDeferSequencerPersistence(watchState, lastPersistWatchState, state.sequencerRuntime.isPlaying)) return;
 
   const snapshot = buildPersistedAppStateSnapshot(state);

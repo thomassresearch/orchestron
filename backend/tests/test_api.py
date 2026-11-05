@@ -48,6 +48,15 @@ from backend.app.services.sequencer_timing_migration import migrate_sequencer_ti
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
+@pytest.mark.parametrize("logging_enabled", [False, True])
+def test_session_uses_configured_csound_performance_logging(tmp_path, monkeypatch, logging_enabled):
+    monkeypatch.setenv("VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING", str(logging_enabled).lower())
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Logging policy")
+        worker = client.app.state.container.session_service._sessions[session].worker
+        assert worker._csound_performance_logging is logging_enabled
+
+
 def test_sequencer_configuration_snapshot_and_conditional_prepare(tmp_path: Path) -> None:
     fixture = json.loads((Path(__file__).parent / "fixtures/performance_creator/all_sources.json").read_text())
     with _client(tmp_path) as client:
@@ -297,6 +306,31 @@ def test_opcodes_include_all_stk_instruments_and_manual_controller_pairs(tmp_pat
                 assert port["signal_type"] == "k"
                 assert port["accepted_signal_types"] == ["k", "i"]
                 assert port["required"] is False
+
+
+def test_app_state_acknowledgement_validates_off_event_loop_and_preserves_errors(tmp_path, monkeypatch):
+    from backend.app.models.app_state import AppStateUpdateRequest
+    original = AppStateUpdateRequest.model_validate_json
+    calls = []
+
+    def validate(cls, body, **kwargs):
+        with pytest.raises(RuntimeError, match="no running event loop"):
+            asyncio.get_running_loop()
+        calls.append(True)
+        return original(body, **kwargs)
+
+    monkeypatch.setattr(AppStateUpdateRequest, "model_validate_json", classmethod(validate))
+    with _client(tmp_path) as client:
+        path = "/api/app-state?return_state=false"
+        response = client.put(path, json={"state": {"version": 4, "performanceName": "Saved"}})
+        assert response.status_code == 204 and response.content == b""
+        assert client.get("/api/app-state").json()["state"]["performanceName"] == "Saved"
+        for body in (b"not-json", b"\xff", b'{"state": []}', b'{}'):
+            invalid = client.put(path, content=body, headers={"Content-Type": "application/json"})
+            assert invalid.status_code == 422
+            assert invalid.json()["detail"][0]["loc"][0] == "body"
+        assert len(calls) == 5
+        assert client.get("/api/app-state").json()["state"]["performanceName"] == "Saved"
 
 
 def test_app_state_round_trip(tmp_path: Path) -> None:

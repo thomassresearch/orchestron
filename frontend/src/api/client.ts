@@ -164,7 +164,7 @@ export const api = {
   getRuntimeConfig: () => request<RuntimeConfigResponse>("/runtime-config"),
   getAppState: () => request<AppStateResponse>("/app-state"),
   saveAppState: (state: PersistedAppState) =>
-    request<void>("/app-state", {
+    request<void>("/app-state?return_state=false", {
       method: "PUT",
       body: JSON.stringify({ state })
     }, true),
