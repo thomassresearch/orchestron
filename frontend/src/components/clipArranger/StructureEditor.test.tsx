@@ -109,19 +109,19 @@ it.each(['local','all'] as const)('moves between linked groups with pointer inpu
  const dest=Array.from(document.querySelectorAll<HTMLElement>('[data-structure-target]')).find(n=>{const d=JSON.parse(n.dataset.structureTarget!);return d.focus.parent.join()==='right-use'&&d.target.index===1;})!;
  Object.defineProperty(document,'elementFromPoint',{value:vi.fn(()=>dest),configurable:true});
  fireEvent.pointerDown(source,{button:0,clientX:0,clientY:0});fireEvent.pointerMove(source,{clientX:100,clientY:10});fireEvent.pointerUp(source,{clientX:100,clientY:10});
- expect(useStructureDraft.getState().draft?.roots.map(n=>n.children!.length)).toEqual([1,2]);
+ expect(useStructureDraft.getState().draft?.roots.map(n=>n.children!.length)).toEqual([2,2]);
  fireEvent.click(screen.getByRole('button',{name:'Save structure'}));const dialog=within(screen.getByRole('dialog',{name:'Save structure'}));
  fireEvent.click(dialog.getByRole('radio',{name:scope==='all'?'All linked occurrences':'Only this occurrence'}));fireEvent.click(dialog.getByRole('button',{name:'Save'}));await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  act(()=>useAppStore.getState().applySequencerConfigSnapshot(JSON.parse(JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()))));
  const saved=useAppStore.getState().sequencer.clipArrangement!.lanes[0];
  const counts=(index:number)=>saved.clips[index].children.map(i=>{const d=saved.definitions.find(d=>'definitionId' in i&&d.id===i.definitionId)!;return d.kind==='pattern'?0:d.children.length;});
- expect(counts(0)).toEqual([1,2]);expect(counts(1)).toEqual(scope==='all'?[1,2]:[2,1]);
+ expect(counts(0)).toEqual([2,2]);expect(counts(1)).toEqual(scope==='all'?[2,2]:[2,1]);
 });
 
 
 it('keeps dragging after scrolling unmounts the source and resolves a model-based destination',()=>{
  const s=structuredClone(useAppStore.getState().sequencer),lane=s.clipArrangement!.lanes[0],clip=lane.clips[0];
- const first=clip.children[0];clip.children=Array.from({length:40},(_,i)=>({...first,id:`item-${i}`}));clip.length=20160*160;s.clipArrangement!.end=clip.length;
+ const first=clip.children[0];clip.children=Array.from({length:40},(_,i)=>({...first,id:`item-${i}`}));clip.children[28]={id:'gap',restTicks:20160*4};clip.length=20160*160;s.clipArrangement!.end=clip.length;
  useAppStore.setState({sequencer:s});render(<ClipPerformance language="english" renderEditor={()=>null}/>);
  fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
  vi.stubGlobal('PointerEvent',MouseEvent);HTMLElement.prototype.setPointerCapture=vi.fn();
@@ -138,7 +138,7 @@ it('keeps dragging after scrolling unmounts the source and resolves a model-base
  expect(viewport.setPointerCapture).toHaveBeenCalled();
  fireEvent.scroll(viewport,{target:{scrollLeft:4000}});
  expect(source.isConnected).toBe(false);
- fireEvent.pointerMove(viewport,{clientX:800,clientY:45});fireEvent.pointerUp(viewport,{clientX:800,clientY:45});
+ fireEvent.pointerMove(viewport,{clientX:672,clientY:45});fireEvent.pointerUp(viewport,{clientX:672,clientY:45});
  expect(useStructureDraft.getState().draft?.roots[28].id).toBe('item-0');
  expect(useAppStore.getState().sequencer).toBe(s);
 });

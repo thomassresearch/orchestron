@@ -8,7 +8,7 @@ For an existing compatible performance, **Multitrack arranger · Preview** downl
 
 ## Arrange fixed windows
 
-Unselected tracks stay compact. Click a track header to expand its clips into nested pattern, group and supergroup boxes. Drag a clip header to move it, or its borders to trim it; the inspector also accepts numeric start, length and source offset in master beats. Double-click empty lane space to add content at that position, or use its **+** button to append. The add dialog also accepts an exact start. Moves and deletion leave other clips in place. Overlap on the same lane is rejected.
+Unselected tracks stay compact. Click a track header to expand its clips into nested pattern, group and supergroup boxes. Drag a clip header to move it, or its borders to trim it; the inspector also accepts numeric start, length and source offset in master beats. Double-click empty lane space to create an empty four-master-beat Once clip immediately, snapped to quarter beats. The track **+** appends the same empty clip. Its inline **+** opens the content picker; inserted content replaces silence, preserving any remaining rest. Longer content can grow the window when space permits. Moves and deletion leave other clips in place. Overlap on the same lane is rejected.
 
 The clip window and content duration are independent. **Once** plays the content from its source offset and leaves silence after its end. **Loop** repeats content within the window. Trimming preserves the original notes and content; **Fit clip to content** explicitly changes the window. A local edit of one generated repeat splits its original window into before, edited and after parts.
 
@@ -76,7 +76,7 @@ Cross-repetition selection applies to content directly inside one clip. Nested s
 
 Use **Add content** or the **+** insertion markers before, between or after boxes to search the track's existing definitions. **Adopt linked** retains sharing; **Create variation** gives the inserted definition its own identity. The picker also offers **New pattern** and explicit rests. Unused saved definitions remain available.
 
-Drag a box or contiguous selection to an insertion boundary. The cyan target and destination text show where it will go. Compatible containers within the same clip/pass accept moves; overlapping, cross-track, cross-clip and self-nesting moves are rejected. Move arrows and **Move into container** provide keyboard alternatives. Escape or cancelling a pointer gesture leaves the structure unchanged.
+Drag a box or contiguous selection to a quarter-beat position. Moves within a clip/pass leave rests at the source and consume silence at the destination; other content stays in place. Overlapping drops are rejected. Between clips on the same track, dragging copies linked content. Between tracks of the same device type, it copies independent definitions using destination timing. Drum keys must have unambiguous destination rows; controller modes must match. Compact clips accept root drops, and hovering expands the destination track. The destination text shows the position. Self-nesting and moves across loop passes are rejected. Left/Right on a focused content header nudges it by a quarter beat. The toolbar move arrows and **Move into container** retain their explicit reorder behavior. Escape or cancelling a pointer gesture leaves the structure unchanged.
 
 Use **Remove selected**, the matching context-menu action, or Delete/Backspace while a box is focused to remove patterns, rests or containers. The same actions work inside groups and supergroups. Removing content closes its position within the container but does not shrink the clip window; unused pattern definitions remain available. Empty containers disappear. Removing an entire clip’s content leaves a timeline gap; removing one loop pass locally preserves its other passes. Save structure still asks which occurrences to change.
 
@@ -143,3 +143,21 @@ Saving from the lane closes the dialog and updates affected badges and note prev
 Melodic, Score and Arpeggiator lanes support these controls. For arpeggiators, the new mapping follows their existing transpose and quantizer, and uses the pattern’s configured scale. Bypass remains unchanged. Drummer, controller and instrument-automation lanes do not offer pitch transposition.
 
 Transposition performances require a version-25-capable reader (app-state version 7, clip model version 3). Native bundles, CLI runtime projection and MIDI/SCORE CSD exports preserve the saved settings. Unsaved transpose drafts and temporary audition state are not exported. Older identity-only clip performances retain their existing format until transposition is saved.
+
+<!-- pagebreak -->
+
+## Resize patterns on the track
+
+In an expanded track, drag the lower left or right border of a pattern. The opposite edge stays fixed; length follows the pattern editor’s supported beat increments. Notes remain relative to the pattern start, and shortening retains hidden notes. Growing consumes adjacent silence; shortening inserts rests. Occupied time cannot be overwritten. Focus a pattern border and use Left/Right for keyboard resizing. Escape cancels a gesture. Clip borders continue to trim the outer playback window.
+
+Placement, copying and pattern resizing share the structural draft and Save/Discard workflow. Save defaults to Only this occurrence. All linked occurrences validates every affected use; collisions retain the draft. New empty clips commit immediately and support arranger Undo.
+
+A reserved strip below the last track keeps the horizontal scrollbar clear of collapsed clips.
+
+![Empty four-beat clip with inline content button](../../screenshots/clip-arranger-empty.jpg)
+
+![Pattern shortened directly on the track, retaining a trailing rest](../../screenshots/clip-arranger-pattern-resize.jpg)
+
+![Content moved into silence with a leading rest](../../screenshots/clip-arranger-timed-content.jpg)
+
+![Collapsed tracks clear of the horizontal scrollbar](../../screenshots/clip-arranger-scrollbar-clearance.jpg)

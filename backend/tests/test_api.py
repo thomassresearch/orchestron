@@ -9896,3 +9896,14 @@ def test_grouped_repetition_export_preserves_each_pitch(tmp_path, event_source):
             else:
                 csd = archive.read("Offline_Export/Offline_Export.csd").decode()
                 assert [list(map(float, line.split()[2:])) for line in csd.splitlines() if line.startswith("i 1 ")] == [[index * 2, .5, pitch, 96] for index, pitch in enumerate([61, 66, 74, 58])]
+
+
+def test_empty_four_beat_clip_persists_without_a_pattern_reference(tmp_path):
+    config = _clip_score_config()
+    lane = config["sequencer"]["clipArrangement"]["lanes"][0]
+    lane["clips"][0].update(length=4 * 20160, offset=0, mode="once",
+                            children=[{"id": "empty-clip-rest", "restTicks": 4 * 20160}])
+    with _client(tmp_path) as client:
+        response = client.post("/api/performances", json={"name": "Empty clip", "config": config})
+        assert response.status_code == 201, response.text
+        assert client.get(f"/api/performances/{response.json()['id']}").json()["config"] == config

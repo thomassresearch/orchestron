@@ -47,12 +47,12 @@ export function remapStructureCommand(command: StructureCommand, before: Structu
   if (command.kind === 'insert' || command.kind === 'rest') return { ...command, target: { ...command.target, path: path(command.target.path) } };
   if (command.kind === 'rename') return { ...command, path: path(command.path) };
   const parent = path(command.parent), oldItems = structureChildren(before, command.parent), newItems = structureChildren(after, parent);
-  const ids = command.ids.map(id => {
+  const ids = command.kind==='timed'&&command.nodes?[]:command.ids.map(id => {
     const item = newItems[oldItems.findIndex(n => n.id === id)];
     if (!item) throw Error('The structural selection changed.');
     return item.id;
   });
-  return command.kind === 'move' ? { ...command, parent, ids, target: { ...command.target, path: path(command.target.path) } } : { ...command, parent, ids };
+  return (command.kind === 'move'||command.kind === 'timed') ? { ...command, parent, ids, target: { ...command.target, path: path(command.target.path) } } : { ...command, parent, ids };
 }
 
 /** Replay every draft-history step, including redo, against a musical-only saved change. */

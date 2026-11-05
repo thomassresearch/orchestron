@@ -211,3 +211,16 @@ it("expands the nested boxes, opens a container, defaults to local save and pres
   expect(useAppStore.getState().clipEditingKey).toBeNull();
   expect(useAppStore.getState().sequencer.clipHistory?.cursor).toBe(1);
 });
+
+it('creates a silent four-beat clip immediately and opens its inline content picker',()=>{
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);
+ const old=useAppStore.getState().sequencer.clipArrangement!.lanes[0];
+ fireEvent.click(screen.getAllByRole('button',{name:/Add clip:/})[0]);
+ const lane=useAppStore.getState().sequencer.clipArrangement!.lanes[0],clip=lane.clips[lane.clips.length-1];
+ expect(clip).toMatchObject({start:Math.max(...old.clips.map(c=>c.start+c.length)),length:4*20160,mode:'once'});
+ expect(clip.children[0]).toMatchObject({restTicks:4*20160});
+ expect(screen.queryByRole('dialog',{name:'Add clip'})).toBeNull();
+ const box=document.querySelector(`[data-arranger-clip="${clip.id}"]`)!;
+ fireEvent.click(within(box as HTMLElement).getByRole('button',{name:'Add content'}));
+ expect(screen.getByRole('dialog',{name:'Add content'})).toBeTruthy();
+});

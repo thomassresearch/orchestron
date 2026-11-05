@@ -293,3 +293,18 @@ def test_grouped_arpeggiator_repetitions_preserve_scheduled_attacks_and_releases
         captures.append(capture.messages)
     assert captures[0]
     assert captures[1] == captures[0]
+
+
+def test_empty_clip_and_timed_content_rests_keep_exact_boundaries():
+    empty = {"id": "empty", "start": 0, "length": 4 * Q, "mode": "once",
+             "content": [{"pad": None, "length": 4 * Q}]}
+    prepared = PreparedClipSchedule(schedule(end=4 * Q, clips=[empty]))
+    assert prepared.locate(0).pad is None
+    assert prepared.locate(Q).boundary == 4 * Q
+    assert prepared.locate(4 * Q).boundary is None
+    empty["content"] = [{"pad": None, "length": Q}, {"pad": 0, "length": 3 * Q}]
+    prepared = PreparedClipSchedule(schedule(end=4 * Q, clips=[empty]))
+    assert prepared.locate(Q - 1).pad is None
+    assert prepared.locate(Q).pad == 0
+    assert prepared.locate(Q).source_start == Q
+    assert prepared.locate(4 * Q).pad is None

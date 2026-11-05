@@ -1,13 +1,15 @@
+import { nodeTicks, placeAt, resizeNode } from './timedStructure';
 import { sumPlans, offsetAt, TRANSPOSE_LIMITS, type OffsetPlan } from "./transposition";
 import { remapPlacementChildren } from "./transposeEdits";
-import { CLIP_LIMITS, ClipError, contentLength, definitionMap, newClipId, validateArrangement, type ClipArrangement, type Clip, type ClipLane, type ContentItem, type Definition, type LaneTiming, type OccurrenceTarget } from './model';
+import { CLIP_LIMITS, ClipError, resolveContent, contentLength, definitionMap, newClipId, validateArrangement, type ClipArrangement, type Clip, type ClipLane, type ContentItem, type Definition, type LaneTiming, type OccurrenceTarget } from './model';
 
 /** Nodes represent occurrences, including repeated uses of the same definition. */
 export type StructureNode = { id: string; repeatIndex?: number; originalPass?: number; definition?: Definition; restTicks?: number; children?: StructureNode[]; transpose?: OffsetPlan; placement?: OffsetPlan; originalPath?: string[]; variationOf?: string };
-export type ContainerTarget = { path: string[]; index: number };
+export type ContainerTarget = { path: string[]; index: number; ticks?: number };
 export type StructureSelection = { parent: string[]; ids: string[]; anchor: string; anchorPass?: number; tip?: {pass:number;id:string}; range?: {first:number;last:number} };
 export type RepetitionRange = { first: {pass:number;id:string}; last: {pass:number;id:string} };
 export type StructureCommand =
+  | { kind: 'timed'; parent: string[]; ids: string[]; target: ContainerTarget; nodes?: StructureNode[]; resize?: { edge: 'left'|'right'; delta: number } }
   | { kind: 'groupRepetitions'; range: RepetitionRange; level:'group'|'supergroup'; name:string }
   | { kind: 'insert'; target: ContainerTarget; definition: Definition; variation: boolean }
   | { kind: 'rest'; target: ContainerTarget; ticks: number }
@@ -69,7 +71,22 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
   if(draft.expanded&&!isExpandedStructure(draft))draft={...draft,expanded:undefined};
   if (draft.basis.cycleTicks !== null) fail('Convert the repeating lane to song clips first.');
   let roots = copy(draft.roots);
-  if (command.kind === 'insert' || command.kind === 'rest') {
+  if (command.kind === 'timed') {
+    const source=structureChildren(roots,command.parent), timing=timings[draft.laneId];
+    const indices=command.nodes?[]:selection(source,command.ids);
+    let chosen=copy(command.nodes??source.slice(indices[0],indices[0]+indices.length));
+    let at=command.target.ticks??0;
+    if(command.resize){
+      const old=nodeTicks(chosen[0],timing);
+      chosen=[resizeNode(chosen[0],old+(command.resize.edge==='right'?command.resize.delta:-command.resize.delta),timing)];
+      if(old===nodeTicks(chosen[0],timing))return draft;
+      if(command.resize.edge==='left')at+=old-nodeTicks(chosen[0],timing);
+    }
+    if(!command.nodes)for(const index of indices)source[index]={id:newClipId(),restTicks:nodeTicks(source[index],timing)};
+    const destination=structureChildren(roots,command.target.path);
+    if(chosen.some(n=>rank(n)>=parentRank(roots,command.target.path)))fail('This content cannot be nested here.');
+    const placed=placeAt(destination,chosen,at,timing);destination.splice(0,destination.length,...placed);
+  } else if (command.kind === 'insert' || command.kind === 'rest') {
     const items = structureChildren(roots, command.target.path);
     let node: StructureNode;
     if (command.kind === 'rest') node = { id: newClipId(), restTicks: command.ticks };
@@ -79,7 +96,7 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
       node = { id: newClipId(), definition: def, ...(command.variation ? { variationOf: command.definition.id } : {}), ...(def.kind !== 'pattern' ? { children: expand(draft.basis, def.children) } : {}) };
     }
     if (rank(node) >= parentRank(roots, command.target.path)) fail('This content cannot be nested here.');
-    items.splice(command.target.index, 0, node);
+    if(command.target.ticks!==undefined){const placed=placeAt(items,[node],command.target.ticks,timings[draft.laneId]);items.splice(0,items.length,...placed);}else items.splice(command.target.index, 0, node);
   } else if (command.kind === 'rename') {
     const node = structureChildren(roots, command.path.slice(0, -1)).find(n => n.id === command.path[command.path.length - 1]);
     if (!node?.definition || node.definition.kind === 'pattern') fail('Select a container to rename.');
@@ -120,6 +137,21 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
         return {...child,id:newClipId(),repeatIndex:child.repeatIndex??fixed,...(child.definition && plans.length?{transpose:sumPlans(plans)}:{}),...(child.definition && local.length?{placement:sumPlans(local)}:{})};
       })));
     }
+  }
+  if(command.kind==='timed') {
+    // Rebuild only enclosing rows at their old positions; nested growth consumes
+    // neighboring silence instead of pushing another container along the song.
+    const paths=[command.parent,command.target.path];
+    const repair=(before:StructureNode[],after:StructureNode[],path:string[]):StructureNode[]=>{
+      for(const n of after){const old=before.find(b=>b.id===n.id);if(n.children&&old?.children)n.children=repair(old.children,n.children,[...path,n.id]);}
+      if(paths.some(p=>JSON.stringify(p)===JSON.stringify(path)))return after;
+      const timing=timings[draft.laneId];let cursor=0;
+      const positions=new Map(before.map(n=>{const at=cursor;cursor+=nodeTicks(n,timing);return [n.id,at] as const;}));
+      let result:StructureNode[]=[{id:newClipId(),restTicks:cursor}];
+      for(const n of after.filter(n=>n.definition))result=placeAt(result,[n],positions.get(n.id)!,timing);
+      return result;
+    };
+    roots=repair(draft.roots,roots,[]);
   }
   const emptied = new Set(draft.emptied);
   roots = clean(roots, emptied);
@@ -295,6 +327,7 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   if(isExpandedStructure(draft)&&scope==='all')fail('Grouping repetitions changes only this clip. Pattern definitions remain linked.');
   const current=model.lanes.find(l=>l.id===draft.laneId);
   if (JSON.stringify(current)!==JSON.stringify(draft.basis)) throw new ClipError('conflict','The track changed. Discard this structure draft and reopen it.');
+  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||('target' in c&&c.target.ticks!==undefined));
   const materialized=materialize(draft,scope); const lane=materialized.lane, shared=materialized.shared||draft.emptied.length>0; let children=materialized.children;
   if(scope==='all' && draft.emptied.length){
     const removed=new Set(draft.emptied);
@@ -337,6 +370,23 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
     }
     candidate.transposePlacements=remapped;
   }
+  if(timed&&scope==='all') {
+    const expected=materialize(draft,'local',true);
+    const beforeLeaves=resolveContent(expected.lane,expected.children,timings[lane.id]);
+    const afterLeaves=resolveContent(lane,children,timings[lane.id]);
+    if(beforeLeaves.some((leaf,index)=>leaf.definition&&afterLeaves[index]?.start!==leaf.start))fail('Linked resizing would move other content. Make room or save only this occurrence.');
+
+    const keepPositions=(old:ContentItem[],items:ContentItem[]):ContentItem[]=>{
+      if(JSON.stringify(old)!==JSON.stringify(items)||old.every(item=>contentLength(draft.basis,[item],timings[lane.id])===contentLength(lane,[item],timings[lane.id])))return items;
+      const timing=timings[lane.id];let at=0;
+      let result:StructureNode[]=[{id:newClipId(),restTicks:contentLength(draft.basis,old,timing)}];
+      for(const item of old){if('definitionId' in item)result=placeAt(result,expand(lane,[item]),at,timing);at+=contentLength(draft.basis,[item],timing);}
+      return result.map(n=>n.definition?{id:n.id,definitionId:n.definition.id,...(n.transpose?{transpose:n.transpose}:{}),...(n.repeatIndex!==undefined?{repeatIndex:n.repeatIndex}:{})}:{id:n.id,restTicks:n.restTicks!});
+    };
+    for(const kind of ['group','supergroup'])for(const def of lane.definitions){const old=draft.basis.definitions.find(d=>d.id===def.id);if(def.kind===kind&&def.kind!=='pattern'&&old&&old.kind!=='pattern')def.children=keepPositions(old.children,def.children);}
+    for(const candidate of lane.clips)if(candidate.id!==draft.clipId){const old=draft.basis.clips.find(c=>c.id===candidate.id)!;candidate.children=keepPositions(old.children,candidate.children);}
+    for(const candidate of lane.clips){const old=draft.basis.clips.find(c=>c.id===candidate.id)!;const before=contentLength(draft.basis,old.children,timings[lane.id]),after=contentLength(lane,candidate.id===draft.clipId?children:candidate.children,timings[lane.id]);if(old.mode==='loop'&&after>before&&old.offset+old.length>before)fail('Growth overlaps another loop repetition.');}
+  }
   const original=draft.basis.clips.find(c=>c.id===draft.clipId)!;
   const clip=lane.clips.find(c=>c.id===draft.clipId)!;
   const timing=timings[lane.id], before=contentLength(draft.basis,original.children,timing);
@@ -351,7 +401,7 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
     lane.clips.splice(lane.clips.indexOf(clip),1,
       ...(start>original.start?[{...remapPlacementChildren(copy(original),fresh(original.children)),id:newClipId(),length:start-original.start}]:[]),
       ...(after?[{...clip,start,length,offset:newOffset,mode:'once' as const,children,...(model.version>=3?{repeatIndexBase:(original.repeatIndexBase??0)+draft.pass}:{})}]:[]),
-      ...(end<original.start+original.length?[{...remapPlacementChildren(copy(original),fresh(original.children)),id:newClipId(),start:end+growth,length:original.start+original.length-end,offset:original.offset+end-original.start}]:[]));
+      ...(end<original.start+original.length?[{...remapPlacementChildren(copy(original),fresh(original.children)),id:newClipId(),start:end+(timed?0:growth),length:original.start+original.length-end,offset:original.offset+end-original.start}]:[]));
   } else {
     clip.children=children;
     for (const candidate of lane.clips) {
@@ -368,22 +418,23 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   // A musical local save can split the source loop while resolving a conflict.
   // These session-only IDs retain which following windows came from that source.
   const selectedGrowth = Math.max(0, (lane.clips.find(c=>c.id===draft.clipId)?.length ?? original.length) - original.length);
-  if (original.mode==='once' && selectedGrowth) for (const following of lane.clips) {
+  if (!timed && original.mode==='once' && selectedGrowth) for (const following of lane.clips) {
     if(draft.followingPassClipIds?.includes(following.id)) following.start += selectedGrowth;
   }
   lane.clips=lane.clips.filter(c=>c.children.length);
   const sorted=[...lane.clips].sort((a,b)=>a.start-b.start);
   for(let i=1;i<sorted.length;i++) if(sorted[i].start<sorted[i-1].start+sorted[i-1].length) throw new ClipError('collision',`Growth overlaps “${sorted[i-1].name}” and “${sorted[i].name}”. Make room before saving.`);
-  const next:ClipArrangement={...copy(model),version:isExpandedStructure(draft)?4:model.version,revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
+  const next:ClipArrangement={...copy(model),version:isExpandedStructure(draft)||timed&&model.version>=3?4:model.version,revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
   validateArrangement(next,timings);
   return {model:next,shared,occurrences:materialized.occurrences,previewPaths:materialized.previewPaths};
 }
 /** Preview uses a private lane; it never enters authored state or audio configuration. */
 export function structurePreview(model:ClipArrangement,draft:StructureDraft,timings:LaneTiming={}):ClipArrangement {
+  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||('target' in c&&c.target.ticks!==undefined));
   const {lane,children,placements}=materialize(draft,'local',true);
   const original=structureClip(draft);
   const before=isExpandedStructure(draft)?draft.expanded!.contentTicks:contentLength(draft.basis,original.children,timings[lane.id]),after=contentLength(lane,children,timings[lane.id]);
   const growth=original.mode==='once'&&after>before?Math.max(0,after-original.offset-original.length):0;
   lane.clips=lane.clips.map(c=>c.id===draft.clipId?{...c,...(isExpandedStructure(draft)?original:{}),children,...(c.transposePlacements||placements.length?{transposePlacements:placements}:{})}:draft.followingPassClipIds?.includes(c.id)?{...c,start:c.start+growth}:c);
-  return {...model,version:isExpandedStructure(draft)?4:model.version,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
+  return {...model,version:isExpandedStructure(draft)||timed&&model.version>=3?4:model.version,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
 }

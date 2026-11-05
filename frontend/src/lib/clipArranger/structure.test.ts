@@ -160,3 +160,35 @@ it('groups only the middle repetitions, preserves one window, and undoes expansi
  const undone=stepStructure(draft,-1);expect(undone.roots).toEqual(beginStructure(m,'lane','clip',0).roots);expect(undone.cursor).toBe(0);
  expect(stepStructure(undone,1).roots).toEqual(draft.roots);
 });
+
+describe('timed content edits',()=>{
+ const Q=20160;
+ const model=()=>{const m=fixture();m.lanes[0].clips[0].mode='once';m.lanes[0].clips[0].children.push({id:'space',restTicks:4*Q});return m;};
+ it('moves into silence and retains old time as a rest, with atomic undo',()=>{
+  const m=model(),base=beginStructure(m,'lane','clip',0);
+  const d=applyStructure(base,{kind:'timed',parent:[],ids:['a-use'],target:{path:[],index:1,ticks:4*Q}});
+  const saved=prepareStructure(m,d,'local',{}).model.lanes[0].clips[0];
+  expect(saved.children[0]).toMatchObject({restTicks:4*Q});expect(saved.children[1]).toHaveProperty('definitionId');expect(saved.length).toBe(8*Q);
+  expect(stepStructure(d,-1).roots).toEqual(base.roots);
+ });
+ it('fills empty clips without appending their placeholder rest',()=>{
+  const m=model();m.lanes[0].clips[0].children=[{id:'empty',restTicks:8*Q}];
+  const d=applyStructure(beginStructure(m,'lane','clip',0),{kind:'insert',target:{path:[],index:0,ticks:0},definition:m.lanes[0].definitions[0],variation:false});
+  expect(d.roots[0].definition?.id).toBe('a');expect(d.roots[1].restTicks).toBe(4*Q);
+ });
+ it('rejects overlaps without changing the source',()=>{
+  const m=model();m.lanes[0].clips[0].children[1]={id:'b-use',definitionId:'b'};const base=beginStructure(m,'lane','clip',0);
+  expect(()=>applyStructure(base,{kind:'timed',parent:[],ids:['a-use'],target:{path:[],index:1,ticks:Q}})).toThrow('overlaps');expect(base.cursor).toBe(0);
+ });
+ it.each(['left','right'] as const)('resizes the %s edge without destroying hidden notes',edge=>{
+  const m=model(),base=beginStructure(m,'lane','clip',0),payload=structuredClone(base.roots[0].definition);
+  const d=applyStructure(base,{kind:'timed',parent:[],ids:['a-use'],target:{path:[],index:0,ticks:0},resize:{edge,delta:edge==='left'?Q:-Q}});
+  const node=d.roots.find(n=>n.definition)!;expect(node.definition?.kind==='pattern'&&node.definition.payload.lengthBeats).toBe(3);
+  if(node.definition?.kind==='pattern'&&payload?.kind==='pattern')expect(node.definition.payload).toMatchObject({...payload.payload,lengthBeats:3,stepCount:12});
+  expect(d.roots.reduce((sum,n)=>sum+(n.restTicks??3*Q),0)).toBe(8*Q);
+ });
+ it('rejects local growth into the following loop pass',()=>{
+  const m=fixture(),d=applyStructure(beginStructure(m,'lane','clip',0),{kind:'timed',parent:[],ids:['a-use'],target:{path:[],index:0,ticks:0},resize:{edge:'right',delta:Q}});
+  expect(()=>prepareStructure(m,d,'local',{})).toThrow('Growth overlaps');
+ });
+});

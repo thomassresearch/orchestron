@@ -242,3 +242,11 @@ verification selected the middle two of four repetitions, grouped and saved one 
 undid/redid the transaction, then reloaded its serialized performance with the group
 intact. See the [screenshot](../../screenshots/clip-arranger-repetition-grouping.png).
 The opt-in rollout flag and running Docker deployment were not changed.
+
+## Direct timed content editing (2026-11-05)
+
+Empty-space double-click and the track append button now create a four-master-beat Once window containing one rest, with an inline content picker. Timed moves leave source rests and consume destination silence. Pattern edge resizing preserves stored notes and editor duration limits. Internal timed commands participate in structural draft undo/rebase/save; existing reorder commands remain available explicitly. Nested growth checks enclosing rows, and local loop growth cannot shift following passes.
+
+Same-track drops copy linked definitions; compatible cross-track drops copy independent hierarchies using destination timing. Drum rows map by MIDI key and reject missing/ambiguous used keys. Controller mode and automation compatibility are checked. Saved model/API versions remain unchanged. The scroll content reserves 16 pixels below its last lane; browser measurement with horizontal overflow reports 20 pixels below the collapsed clip, previously four.
+
+Validation: frontend ESLint, 1,177 tests in 108 files, TypeScript and production build passed. After the final drag-conflict/capture adjustments, the 40 affected tests, lint and build passed again. The focused backend clip/API suite passed 39 tests; Ruff and local documentation links passed. Desktop Chrome verified immediate creation, inline insertion, pointer resizing, gap-preserving movement and collapsed scrollbar clearance. Four screenshots were added and the English manual PDF rebuilt; the new section's rendered page was checked and its orphaned heading corrected. Narrow-screen and classic-scrollbar browser configurations were not exercised in this verification session.
