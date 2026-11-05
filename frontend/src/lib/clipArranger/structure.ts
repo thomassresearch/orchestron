@@ -9,6 +9,7 @@ export type ContainerTarget = { path: string[]; index: number; ticks?: number };
 export type StructureSelection = { parent: string[]; ids: string[]; anchor: string; anchorPass?: number; tip?: {pass:number;id:string}; range?: {first:number;last:number} };
 export type RepetitionRange = { first: {pass:number;id:string}; last: {pass:number;id:string} };
 export type StructureCommand =
+  | { kind: 'duplicate'; parent: string[]; ids: string[]; sourcePass?: number }
   | { kind: 'resizeRest'; parent: string[]; ids: string[]; ticks: number }
   | { kind: 'timed'; parent: string[]; ids: string[]; target: ContainerTarget; nodes?: StructureNode[]; resize?: { edge: 'left'|'right'; delta: number } }
   | { kind: 'groupRepetitions'; range: RepetitionRange; level:'group'|'supergroup'; name:string }
@@ -80,6 +81,8 @@ function clean(nodes: StructureNode[], emptied: Set<string>): StructureNode[] {
 }
 export function applyStructure(draft: StructureDraft, command: StructureCommand, timings: LaneTiming = {}, model?: ClipArrangement): StructureDraft {
   if (command.kind === 'groupRepetitions') return groupRepetitions(draft, command, timings, model);
+  if (command.kind === 'duplicate' && command.sourcePass!==undefined && !isExpandedStructure(draft) && structureClip(draft).mode!=='loop')fail('The selected repetitions changed. Select the content again.');
+  if (command.kind === 'duplicate' && !isExpandedStructure(draft) && structureClip(draft).mode === 'loop') return duplicateRepetitions(draft, command, timings, model);
   if(draft.expanded&&!isExpandedStructure(draft))draft={...draft,expanded:undefined};
   if (draft.basis.cycleTicks !== null) fail('Convert the repeating lane to song clips first.');
   let roots = copy(draft.roots);
@@ -123,7 +126,35 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
   } else {
     const items = structureChildren(roots, command.parent), indices = selection(items, command.ids), start = indices[0];
     const chosen = items.slice(start, start + indices.length);
-    if (command.kind === 'remove') {
+    if (command.kind === 'duplicate') {
+      if (!chosen.some(n => n.definition)) fail('Select musical content to duplicate.');
+      let inherited = (structureClip(draft).repeatIndexBase ?? 0) + draft.pass;
+      let ancestors = roots;
+      const inheritedPlans: OffsetPlan[] = [];
+      for (const id of command.parent) {
+        const node = ancestors.find(n => n.id === id)!;
+        inherited = node.repeatIndex ?? inherited;
+        const profile = draft.basis.transposeProfiles?.find(p => p.id === node.definition?.transposeProfileId)?.plan;
+        for (const plan of [profile, node.transpose, node.placement]) if (plan) inheritedPlans.push({base:offsetAt(plan,inherited),repetitions:[]});
+        ancestors = node.children!;
+      }
+      const duplicates = copy(chosen);
+      const forgetOrigin = (nodes: StructureNode[]) => nodes.forEach(n => {
+        delete n.originalPath; delete n.originalPass;
+        if (n.children) forgetOrigin(n.children);
+      });
+      forgetOrigin(duplicates);
+      for (const node of duplicates) {
+        node.id = newClipId();
+        if (node.definition) {
+          node.repeatIndex ??= inherited;
+          if (inheritedPlans.length) node.placement = sumPlans([...inheritedPlans, ...(node.placement ? [node.placement] : [])]);
+        }
+      }
+      roots = placeAt(roots, duplicates, musicalEnd(roots,timings[draft.laneId]), timings[draft.laneId]);
+      const count=(nodes:StructureNode[]):number=>nodes.reduce((sum,n)=>sum+(n.children?count(n.children):1),0);
+      if(roots.length>CLIP_LIMITS.children||count(roots)>CLIP_LIMITS.leaves||roots.reduce((sum,n)=>sum+nodeTicks(n,timings[draft.laneId]),0)>CLIP_LIMITS.ticks)fail('Duplicating exceeds the clip content limit.');
+    } else if (command.kind === 'remove') {
       items.splice(start, chosen.length);
     } else if (command.kind === 'move') {
       if (command.target.path.length > command.parent.length && command.parent.every((id,i)=>command.target.path[i]===id) && command.ids.includes(command.target.path[command.parent.length])) fail('Cannot move a container into itself.');
@@ -186,9 +217,16 @@ export function stepStructure(draft: StructureDraft, direction: number): Structu
   return {...draft,cursor,pass:draft.expanded?(cursor>=draft.expanded.at?0:draft.expanded.sourcePass):draft.pass,roots:copy(draft.history[cursor]),emptied:[...draft.emptyHistory[cursor]]};
 }
 export const isExpandedStructure = (draft:StructureDraft) => !!draft.expanded && draft.cursor >= draft.expanded.at;
-export function structureClip(draft:StructureDraft):Clip {
+function musicalEnd(nodes:StructureNode[], timing:LaneTiming[string]):number {
+  let cursor=0,end=0;
+  for(const node of nodes){cursor+=nodeTicks(node,timing);if(node.definition)end=cursor;}
+  return end;
+}
+export function structureClip(draft:StructureDraft, timings:LaneTiming={}):Clip {
   const original = draft.basis.clips.find(c=>c.id===draft.clipId)!;
-  return isExpandedStructure(draft) ? {...original,mode:'once',offset:draft.expanded!.offset,repeatIndexBase:draft.expanded!.repeatIndexBase} : original;
+  const clip = isExpandedStructure(draft) ? {...original,mode:'once' as const,offset:draft.expanded!.offset,repeatIndexBase:draft.expanded!.repeatIndexBase} : original;
+  return draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate')
+    ? {...clip,length:Math.max(clip.length,musicalEnd(draft.roots,timings[draft.laneId])-clip.offset)} : clip;
 }
 
 function groupRepetitions(
@@ -224,6 +262,21 @@ function groupRepetitions(
   }
   preflightRepeatedPlans(model?.lanes ?? [draft.basis], original, passes);
 
+  const {roots,expanded}=expandRepetitions(draft,duration,firstPass,lastPass);
+  const grouped = applyStructure({...draft, roots, expanded:undefined}, {
+    kind:'group', parent:[], ids:roots.slice(start,end+1).map(n => n.id), level:command.level, name:command.name
+  }, timings);
+  // A leading rest has no reference on which to carry its logical index.
+  grouped.roots[start].repeatIndex = roots[start].repeatIndex??(original.repeatIndexBase??0)+command.range.first.pass;
+  return {...grouped, expanded, pass:0,
+    history:[...draft.history.slice(0,draft.cursor+1),copy(grouped.roots)],
+    commands:[...draft.commands.slice(0,draft.cursor),command]
+  };
+}
+/** Shared expansion keeps hidden first/last content and logical repetition indices. */
+function expandRepetitions(draft:StructureDraft, duration:number, firstPass:number, lastPass:number) {
+  const original=draft.basis.clips.find(c=>c.id===draft.clipId)!;
+  const passes=lastPass-firstPass+1;
   const roots: StructureNode[] = [];
   for (let pass = firstPass; pass <= lastPass; pass++) {
     const nodes = expand(draft.basis, original.children, original);
@@ -242,16 +295,33 @@ function groupRepetitions(
     at:draft.cursor+1, sourcePass:draft.pass, contentTicks:duration*passes,
     offset:original.offset-firstPass*duration, repeatIndexBase:(original.repeatIndexBase??0)+firstPass
   };
-  const grouped = applyStructure({...draft, roots, expanded:undefined}, {
-    kind:'group', parent:[], ids:roots.slice(start,end+1).map(n => n.id), level:command.level, name:command.name
-  }, timings);
-  // A leading rest has no reference on which to carry its logical index.
-  grouped.roots[start].repeatIndex = roots[start].repeatIndex??(original.repeatIndexBase??0)+command.range.first.pass;
-  return {...grouped, expanded, pass:0,
-    history:[...draft.history.slice(0,draft.cursor+1),copy(grouped.roots)],
-    commands:[...draft.commands.slice(0,draft.cursor),command]
-  };
+  return {roots,expanded};
 }
+
+function duplicateRepetitions(draft:StructureDraft, command:Extract<StructureCommand,{kind:'duplicate'}>, timings:LaneTiming, model?:ClipArrangement):StructureDraft {
+  if(draft.cursor || draft.basis.cycleTicks!==null)fail('Save or discard the current structure before duplicating repetitions.');
+  const sourcePass=command.sourcePass??draft.pass;
+  const original=structureClip(draft),duration=contentLength(draft.basis,original.children,timings[draft.laneId]);
+  const firstPass=Math.floor(original.offset/duration),lastPass=Math.floor((original.offset+original.length-1)/duration),passes=lastPass-firstPass+1;
+  if(sourcePass<firstPass||sourcePass>lastPass)fail('The selected repetition no longer exists.');
+  const items=structureChildren(draft.roots,command.parent),indices=selection(items,command.ids);
+  const chosen=items.slice(indices[0],indices[0]+indices.length);
+  const leaves=(nodes:StructureNode[]):number=>nodes.reduce((sum,n)=>sum+(n.children?leaves(n.children):1),0);
+  if(!chosen.some(n=>n.definition))fail('Select musical content to duplicate.');
+  if(original.children.length*passes+chosen.length-(draft.roots[draft.roots.length-1]?.restTicks!==undefined?1:0)>CLIP_LIMITS.children ||
+      resolveContentCount(draft.basis,original.children)*passes+leaves(chosen)>CLIP_LIMITS.leaves ||
+      duration*passes+chosen.reduce((sum,n)=>sum+nodeTicks(n,timings[draft.laneId]),0)>CLIP_LIMITS.ticks)fail('Duplicating repetitions exceeds the clip content limit. Shorten the clip first.');
+  preflightRepeatedPlans(model?.lanes??[draft.basis],original,passes);
+  const {roots,expanded}=expandRepetitions({...draft,pass:sourcePass},duration,firstPass,lastPass);
+  const rootId=(id:string)=>{const index=draft.roots.findIndex(n=>n.id===id);if(index<0)fail('The structural selection changed.');return roots[(sourcePass-firstPass)*original.children.length+index].id;};
+  const mapped={...command,sourcePass:undefined,parent:command.parent.length?[rootId(command.parent[0]),...command.parent.slice(1)]:[],ids:command.parent.length?command.ids:command.ids.map(rootId)};
+  // Use a Once baseline for the inner transaction, then restore the original
+  // loop basis/history so a single Undo restores the complete compact loop.
+  const basis={...draft.basis,clips:draft.basis.clips.map(c=>c.id===draft.clipId?{...c,mode:'once' as const}:c)};
+  const next=applyStructure({...draft,basis,roots,expanded:undefined},mapped,timings,model);
+  return {...next,basis:draft.basis,expanded,pass:0,history:[...draft.history.slice(0,draft.cursor+1),copy(next.roots)],commands:[...draft.commands.slice(0,draft.cursor),{...command,sourcePass}]};
+}
+
 function preflightRepeatedPlans(lanes: ClipLane[], original: Clip, passes: number): void {
   const entries = (plans: OffsetPlan[]) => plans.reduce((count, plan) => count+plan.repetitions.length, 0);
   const referencePlans = (items: ContentItem[]) => items.flatMap(i => 'definitionId' in i && i.transpose ? [i.transpose] : []);
@@ -279,6 +349,7 @@ function resolveContentCount(lane: ClipLane, items: ContentItem[]): number {
 /** Materialize occurrence changes without mutating the shared baseline. */
 function materialize(draft: StructureDraft, scope: 'local'|'all', preview = false): { lane: ClipLane; children: ContentItem[]; shared: boolean; placements: NonNullable<Clip['transposePlacements']>; pathRules: Map<string, {before:string[];after:string[]}[]>; occurrences: {from:OccurrenceTarget;to:OccurrenceTarget}[]; previewPaths: {before:string[];after:string[]}[] } {
   const lane = copy(draft.basis), changes = new Map<string,string>(); let shared=false;
+  const linkedCopies=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate')?new Map<string,string>():null;
   const pathRules = new Map<string, {before:string[];after:string[]}[]>();
   const visit = (nodes: StructureNode[]): ContentItem[] => nodes.map(n=> {
     if (!n.definition) return {id:n.id,restTicks:n.restTicks!};
@@ -299,7 +370,10 @@ function materialize(draft: StructureDraft, scope: 'local'|'all', preview = fals
       if (def.kind!=='pattern') def.children=def.children.map(i=>({...i,id:newClipId()}));
       lane.definitions[lane.definitions.findIndex(d=>d.id===def.id)]=def;
     } else {
+      const signature=JSON.stringify(def),linkedId=linkedCopies?.get(signature);
+      if(linkedId)return {id:n.id,definitionId:linkedId,...(n.repeatIndex!==undefined?{repeatIndex:n.repeatIndex}:{}),...(n.transpose?{transpose:copy(n.transpose)}:{})};
       if (original) { def.id=newClipId(); def.revision=0; }
+      linkedCopies?.set(signature,def.id);
       if (!preview && def.kind!=='pattern') def.children=def.children.map(i=>({...i,id:newClipId()}));
       if (!lane.definitions.some(d=>d.id===def.id)) lane.definitions.push(def);
     }
@@ -350,11 +424,11 @@ export function structureDisplayGeometry(original:Clip,before:number,after:numbe
   return {length:original.length+window.growth,left:(index:number)=>index===pass?window.start-original.start-window.newOffset:index*before-original.offset+(index>pass?window.growth:0)};
 }
 export function prepareStructure(model: ClipArrangement, draft: StructureDraft, scope: 'local'|'all', timings: LaneTiming): { model: ClipArrangement; shared: boolean; occurrences: {from:OccurrenceTarget;to:OccurrenceTarget}[]; previewPaths: {before:string[];after:string[]}[] } {
-  if(isExpandedStructure(draft)&&scope==='all')fail('Grouping repetitions changes only this clip. Pattern definitions remain linked.');
+  if(isExpandedStructure(draft)&&scope==='all')fail('Expanding repetitions changes only this clip. Definitions remain linked.');
   draft=refreshStructureWindows(model,draft);
   const current=model.lanes.find(l=>l.id===draft.laneId);
   if (JSON.stringify(current)!==JSON.stringify(draft.basis)) throw new ClipError('conflict','The track changed. Discard this structure draft and reopen it.');
-  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||c.kind==='resizeRest'||('target' in c&&c.target.ticks!==undefined));
+  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate'||c.kind==='timed'||c.kind==='resizeRest'||('target' in c&&c.target.ticks!==undefined));
   const materialized=materialize(draft,scope); const lane=materialized.lane, shared=materialized.shared||draft.emptied.length>0; let children=materialized.children;
   if(scope==='all' && draft.emptied.length){
     const removed=new Set(draft.emptied);
@@ -420,7 +494,7 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   const after=children.length ? contentLength(lane,children,timing) : 0;
   if (original.transposePlacements || materialized.placements.length) clip.transposePlacements=materialized.placements;
   if(isExpandedStructure(draft)) {
-    Object.assign(clip,structureClip(draft),{children,...(original.transposePlacements||materialized.placements.length?{transposePlacements:materialized.placements}:{})});
+    Object.assign(clip,structureClip(draft,timings),{children,...(original.transposePlacements||materialized.placements.length?{transposePlacements:materialized.placements}:{})});
     if(after>draft.expanded!.contentTicks)clip.length=Math.max(clip.length,after-clip.offset);
   } else if (scope==='local' && clip.mode==='loop') {
     const {start,end,newOffset,length,growth}=structurePassWindow(original,before,after,draft.pass);
@@ -442,6 +516,7 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
       } else candidate.length=Math.max(old.length,duration-old.offset);
     }
   }
+  if(draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate'))clip.length=Math.max(clip.length,structureClip(draft,timings).length);
   // A musical local save can split the source loop while resolving a conflict.
   // These session-only IDs retain which following windows came from that source.
   const selectedGrowth = Math.max(0, (lane.clips.find(c=>c.id===draft.clipId)?.length ?? original.length) - original.length);
@@ -451,18 +526,18 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   lane.clips=lane.clips.filter(c=>c.children.length);
   const sorted=[...lane.clips].sort((a,b)=>a.start-b.start);
   for(let i=1;i<sorted.length;i++) if(sorted[i].start<sorted[i-1].start+sorted[i-1].length) throw new ClipError('collision',`Growth overlaps “${sorted[i-1].name}” and “${sorted[i].name}”. Make room before saving.`);
-  const next:ClipArrangement={...copy(model),version:isExpandedStructure(draft)||timed&&model.version>=3?4:model.version,revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
+  const next:ClipArrangement={...copy(model),version:isExpandedStructure(draft)||draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate')||timed&&model.version>=3?4:model.version,revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
   validateArrangement(next,timings);
   return {model:next,shared,occurrences:materialized.occurrences,previewPaths:materialized.previewPaths};
 }
 /** Preview uses a private lane; it never enters authored state or audio configuration. */
 export function structurePreview(model:ClipArrangement,draft:StructureDraft,timings:LaneTiming={}):ClipArrangement {
   draft=refreshStructureWindows(model,draft);
-  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='timed'||c.kind==='resizeRest'||('target' in c&&c.target.ticks!==undefined));
+  const timed=draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate'||c.kind==='timed'||c.kind==='resizeRest'||('target' in c&&c.target.ticks!==undefined));
   const {lane,children,placements}=materialize(draft,'local',true);
-  const original=structureClip(draft);
+  const original=structureClip(draft,timings);
   const before=isExpandedStructure(draft)?draft.expanded!.contentTicks:contentLength(draft.basis,original.children,timings[lane.id]),after=contentLength(lane,children,timings[lane.id]);
   const growth=original.mode==='once'&&after>before?Math.max(0,after-original.offset-original.length):0;
   lane.clips=lane.clips.map(c=>c.id===draft.clipId?{...c,...(isExpandedStructure(draft)?original:{}),children,...(c.transposePlacements||placements.length?{transposePlacements:placements}:{})}:draft.followingPassClipIds?.includes(c.id)?{...c,start:c.start+growth}:c);
-  return {...model,version:isExpandedStructure(draft)||timed&&model.version>=3?4:model.version,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
+  return {...model,version:isExpandedStructure(draft)||draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate')||timed&&model.version>=3?4:model.version,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
 }

@@ -1,10 +1,11 @@
+import { structureDropLayout, structureEmptyInsertionAt, STRUCTURE_TREE_TOP } from '../../lib/clipArranger/structureHitTest';
 import { structureCopy } from './structureCopy';
 import { addOffsets, offsetAt } from "../../lib/clipArranger/transposition";
 import { logicalRepeatIndex, transposePlans } from "../../lib/clipArranger/transposeModel";
 import { AutomationGenerator } from "./AutomationControls";
 import { automationCopy } from "./automationCopy";
 import type { useStructureEditor } from "./StructureEditor";
-import { structurePreview, structureClip, isExpandedStructure, structureDisplayGeometry } from "../../lib/clipArranger/structure";
+import { beginStructure, structurePreview, structureClip, isExpandedStructure, structureDisplayGeometry } from "../../lib/clipArranger/structure";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { GuiLanguage, SequencerState } from "../../types";
 import { localBeatTicks, contentLength, definitionMap, newClipId, QUARTER_TICKS as Q, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type OccurrenceTarget } from "../../lib/clipArranger/model";
@@ -198,7 +199,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
               {lane.clips.filter(clip => (clip.start + clip.length) * unit > scroll - 192 && clip.start * unit < scroll + 1800).map(clip => {
                 let originalClip = model.lanes.find(l => l.id === lane.id)?.clips.find(c => c.id === clip.id) ?? clip;
                 const editingStructure = displayDraft?.laneId === lane.id && displayDraft.clipId === clip.id ? displayDraft : null;
-                if(editingStructure&&isExpandedStructure(editingStructure))originalClip=structureClip(editingStructure);
+                if(editingStructure)originalClip=structureClip(editingStructure,timings);
                 const duration = Math.max(1, contentLength(lane, originalClip.children, timings[lane.id]));
                 const draftDuration = contentLength(lane, clip.children, timings[lane.id]);
                 const geometry = editingStructure ? structureDisplayGeometry(originalClip, isExpandedStructure(editingStructure)?editingStructure.expanded!.contentTicks:duration, draftDuration, editingStructure.pass) : {length: clip.length, left: (pass: number) => pass * duration - clip.offset};
@@ -210,8 +211,21 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
                 return <div key={clip.id} data-arranger-clip={clip.id} onPointerDownCapture={() => select({ laneId: lane.id, clipId: clip.id })} onClickCapture={() => { select({ laneId: lane.id, clipId: clip.id }); }} className={`absolute top-1 overflow-hidden rounded border ${selected?.clipId === clip.id ? "border-cyan-300 ring-1 ring-cyan-900" : "border-slate-500"} bg-slate-900/90`} style={{ left: left * unit, width: Math.max(2, length * unit), height: detailed ? expandedHeight - 14 : 40 }}>
                   <button className="relative z-10 block h-4 w-full cursor-grab truncate bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 touch-none" title={`${clip.name} · ${c.boundary}`} onClick={() => pick(lane, clip)}
                     onDoubleClick={() => { const first = clip.children.find(i => "definitionId" in i); if (first) open(lane, clip, [first.id], firstPass); }} onPointerDown={e => startDrag(e, lane, clip, "move")} {...dragHandlers}>{clip.name} {clip.mode === "loop" ? "↻" : ""}</button>
-                  <div className="relative" style={{ height: detailed ? expandedHeight - 42 : 24 }}>
-                    {clip.children.every(i=>'restTicks' in i) && <button aria-label={structureCopy(language).add} className={`absolute z-20 text-lg text-cyan-300 ${detailed?'bottom-1 left-1/2 -translate-x-1/2 px-4':'inset-0'}`} onPointerDown={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();structure.add({laneId:lane.id,clipId:clip.id,pass:0,parent:[]},0,0);}}>+</button>}{(detailed||clip.children.some(i=>'definitionId' in i)) && Array.from({ length: Math.max(0, lastPass - firstPass) }, (_, index) => firstPass + index).map(pass => <div key={pass} className={`absolute top-0 ${pass > 0 ? "border-l border-dashed border-slate-400" : ""}`} style={{ left: geometry.left(pass) * unit, width: (editingStructure && pass === editingStructure.pass ? draftDuration : duration) * unit }}>
+                  <div data-clip-content className="relative" style={{ height: detailed ? expandedHeight - 42 : 24 }} onDoubleClick={e=>{
+                    e.stopPropagation();
+                    if((e.target as Element).closest('button, input, select, [role="separator"]'))return;
+                    const timeline=e.currentTarget.closest('[data-clip-timeline]')!,row=e.currentTarget.closest('[data-clip-lane]')!;
+                    const tick=(e.clientX-timeline.getBoundingClientRect().left)/unit;
+                    for(let pass=firstPass;pass<lastPass;pass++){
+                      const current=editingStructure&&pass===editingStructure.pass?editingStructure:beginStructure(model,lane.id,clip.id,pass);
+                      const layout=structureDropLayout(model,current,timings);
+                      // Other repetitions follow the edited pass's preview geometry.
+                      const origin=clip.start+geometry.left(pass),delta=origin-layout.origin;
+                      const target=structureEmptyInsertionAt({...layout,origin,start:layout.start+delta,end:layout.end+delta},tick,detailed?e.clientY-row.getBoundingClientRect().top-STRUCTURE_TREE_TOP:0);
+                      if(target){structure.add({laneId:lane.id,clipId:clip.id,pass,parent:target.path},target.index,target.ticks);break;}
+                    }
+                  }}>
+                    {clip.children.every(i=>'restTicks' in i) && <button aria-label={structureCopy(language).add} className={`absolute z-20 text-lg text-cyan-300 ${detailed?'bottom-1':'top-0'} left-1/2 -translate-x-1/2 px-4`} onPointerDown={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();structure.add({laneId:lane.id,clipId:clip.id,pass:0,parent:[]},0,0);}}>+</button>}{(detailed||clip.children.some(i=>'definitionId' in i)) && Array.from({ length: Math.max(0, lastPass - firstPass) }, (_, index) => firstPass + index).map(pass => <div key={pass} className={`absolute top-0 ${pass > 0 ? "border-l border-dashed border-slate-400" : ""}`} style={{ left: geometry.left(pass) * unit, width: (editingStructure && pass === editingStructure.pass ? draftDuration : duration) * unit }}>
                       {detailed ? <><span className="block h-4 px-1 text-[9px] text-slate-500">{c.content} · {(clip.repeatIndexBase ?? 0) + pass + 1}</span><div className="relative">{tree(lane, { ...(editingStructure && pass !== editingStructure.pass ? originalClip : clip), length }, editingStructure && pass !== editingStructure.pass ? originalClip.children : clip.children, [], pass, 0, (clip.start + geometry.left(pass)) * unit)}</div></>
                         : <CompactContent pass={pass} lane={lane} clip={clip} sequencer={sequencer} unit={unit} from={scroll - (clip.start + pass * duration - clip.offset) * unit} to={scroll + viewportWidth - 192 - (clip.start + pass * duration - clip.offset) * unit} language={language} onTranspose={openTranspose} />}
                     </div>)}

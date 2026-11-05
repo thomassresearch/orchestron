@@ -4,14 +4,14 @@ import { isExpandedStructure, structureClip, structureDisplayGeometry, structure
 // Keep these in sync with the timeline's clip header, pass label and nested rows.
 export const STRUCTURE_TREE_TOP = 4 + 1 + 16 + 16;
 const CHILD_ROW_TOP = 22;
-type HitItem = { id: string; start: number; length: number; children?: HitItem[] };
+type HitItem = { id: string; start: number; length: number; rest: boolean; children?: HitItem[] };
 export type StructureDropLayout = { start: number; end: number; origin: number; items: HitItem[] };
 
 /** Built once at drag start, independently of virtualized preview DOM nodes. */
 export function structureDropLayout(model: ClipArrangement, draft: StructureDraft, timings: LaneTiming): StructureDropLayout {
   const lane = structurePreview(model, draft, timings).lanes.find(l => l.id === draft.laneId)!;
   const clip = lane.clips.find(c => c.id === draft.clipId)!;
-  const original = structureClip(draft);
+  const original = structureClip(draft,timings);
   const timing = timings[lane.id], defs = definitionMap(lane);
   const before = isExpandedStructure(draft) ? draft.expanded!.contentTicks : contentLength(draft.basis, original.children, timing);
   const after = contentLength(lane, clip.children, timing);
@@ -23,7 +23,7 @@ export function structureDropLayout(model: ClipArrangement, draft: StructureDraf
       const start = cursor, length = contentLength(lane, [item], timing);
       cursor += length;
       const def = 'definitionId' in item ? defs.get(item.definitionId) : undefined;
-      return { id: item.id, start, length, ...(def && def.kind !== 'pattern' ? { children: visit(def.children) } : {}) };
+      return { id: item.id, start, length, rest: !def, ...(def && def.kind !== 'pattern' ? { children: visit(def.children) } : {}) };
     });
   };
   return {
@@ -31,6 +31,22 @@ export function structureDropLayout(model: ClipArrangement, draft: StructureDraf
     end: clip.mode === 'once' ? clip.start + geometry.length : Math.min(clip.start + geometry.length, origin + after),
     origin, items: visit(clip.children),
   };
+}
+
+/** Empty-space insertion uses exact content coordinates, not the nearest edge. */
+export function structureEmptyInsertionAt(layout:StructureDropLayout, x:number, y:number):ContainerTarget|null {
+  if(x<layout.start||x>=layout.end||y<0)return null;
+  const visit=(items:HitItem[],path:string[],offset:number,row:number):ContainerTarget|null=>{
+    const ticks=Math.max(0,Math.round(offset/5040)*5040);
+    for(let index=0;index<items.length;index++){
+      const item=items[index];
+      if(offset>=item.start+item.length)continue;
+      if(item.children&&row>=CHILD_ROW_TOP)return visit(item.children,[...path,item.id],offset-item.start,row-CHILD_ROW_TOP);
+      return item.rest?{path,index,ticks}:null;
+    }
+    return {path,index:items.length,ticks};
+  };
+  return visit(layout.items,[],x-layout.origin,y);
 }
 
 /** x is in lane ticks; y is relative to the root content row in pixels. */
