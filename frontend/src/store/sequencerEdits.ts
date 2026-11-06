@@ -10,17 +10,49 @@ const playbackKeys = ["activePad", "queuedPad", "queuedEnabled", "enabled", "pad
 const mirrors = ["curveDurationTicks", "steps", "lengthBeats", "stepCount", "scaleRoot", "scaleType", "mode", "keypoints"];
 type RecordValue = Record<string, unknown>;
 
-/** Compare authored audio data only, independent of transport and display metadata. */
-export function sequencerEditSignature(state: SequencerState): string {
-  const tracks = (items: Array<object>) => items.map(item => Object.fromEntries(Object.entries(item).filter(([key]) =>
-    !["name", "runtimeLocalStep", "runtimePadStartSubunit", "padLoopPosition", "steps", "keypoints"].includes(key))))
-    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  return JSON.stringify({ timing: state.timing, arrangerLoopSelection: state.arrangerLoopSelection, arrangerSongLoopEnabled: state.arrangerSongLoopEnabled,
-    tracks: tracks(state.tracks), scoreTracks: tracks(state.scoreTracks), drummerTracks: tracks(state.drummerTracks), controllerSequencers: tracks(state.controllerSequencers),
-    arpeggiatorArrangement: state.arpeggiators.filter(arp => arp.playbackMode === "arranger").map(arp => ({
-      id: arp.id, loop: arp.padLoopEnabled, repeat: arp.padLoopRepeat, pattern: arp.padLoopPattern,
-      durations: arp.pads.map(pad => pad.lengthBeats)
-    })) }, (key, value) => key === "definitionColors" ? undefined : value);
+const trackDisplayKeys = new Set(["name", "runtimeLocalStep", "runtimePadStartSubunit", "padLoopPosition", "steps", "keypoints"]);
+
+/** Compare only changed JSON branches; shared pads and steps are constant-time checks. */
+function sameAudioValue(left: unknown, right: unknown, ignored?: ReadonlySet<string>): boolean {
+  if (left === right) return true;
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length &&
+      left.every((value, index) => sameAudioValue(value, right[index]));
+  }
+  const a = left as RecordValue, b = right as RecordValue;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (key !== "definitionColors" && !ignored?.has(key) && !sameAudioValue(a[key], b[key])) return false;
+  }
+  return true;
+}
+
+function sameAudioTracks(left: Array<{ id: string }>, right: Array<{ id: string }>): boolean {
+  if (left === right) return true;
+  if (left.length !== right.length) return false;
+  const previous = new Map(right.map(track => [track.id, track]));
+  return left.every(track => sameAudioValue(track, previous.get(track.id), trackDisplayKeys));
+}
+
+function sequencerAudioChanged(next: SequencerState, previous: SequencerState): boolean {
+  if (next === previous) return false;
+  if (!(["timing", "arrangerLoopSelection", "arrangerSongLoopEnabled"] as const).every(key =>
+    sameAudioValue(next[key], previous[key]))) return true;
+  if (!(["tracks", "scoreTracks", "drummerTracks", "controllerSequencers"] as const).every(key =>
+    sameAudioTracks(next[key], previous[key]))) return true;
+  if (next.arpeggiators === previous.arpeggiators) return false;
+  // Live arpeggiator synthesis uses its separate revision/configuration path.
+  const arrangement = (state: SequencerState) => state.arpeggiators.filter(arp => arp.playbackMode === "arranger").map(arp => ({
+    id: arp.id, loop: arp.padLoopEnabled, repeat: arp.padLoopRepeat, pattern: arp.padLoopPattern,
+    durations: arp.pads.map(pad => pad.lengthBeats)
+  }));
+  return !sameAudioValue(arrangement(next), arrangement(previous));
+}
+
+function sameFields(left: object, right: object): boolean {
+  const a = left as RecordValue, b = right as RecordValue;
+  return Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(key => a[key] === b[key]);
 }
 
 function changedFields(authored: object, displayed: object, edited: object): RecordValue {
@@ -40,7 +72,22 @@ export function sequencerEditingView(state: SequencerState, selections: Record<s
 
 /** Only edits to the displayed pad are committed; editor selection is never playback intent. */
 export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: () => AppStore, editSelection = true) {
-  const read = (): AppStore => { const state = get(); return { ...state, sequencer: clipEditorView(sequencerEditingView(mergedSequencerState(state.sequencer, state.sequencerRuntime), editSelection ? { ...Object.fromEntries([...state.sequencer.tracks, ...state.sequencer.scoreTracks, ...state.sequencer.drummerTracks, ...state.sequencer.controllerSequencers].map(t => [t.id, t.activePad])), ...state.sequencerEditingPads } : {}), state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined) }; };
+  let cachedState: AppStore | undefined;
+  let cachedView: AppStore;
+  const read = (): AppStore => {
+    const state = get();
+    if (state === cachedState) return cachedView;
+    const selections = editSelection ? {
+      ...Object.fromEntries([...state.sequencer.tracks, ...state.sequencer.scoreTracks, ...state.sequencer.drummerTracks,
+        ...state.sequencer.controllerSequencers].map(track => [track.id, track.activePad])), ...state.sequencerEditingPads
+    } : {};
+    cachedState = state;
+    cachedView = { ...state, sequencer: clipEditorView(
+      sequencerEditingView(mergedSequencerState(state.sequencer, state.sequencerRuntime), selections),
+      state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined
+    ) };
+    return cachedView;
+  };
   const write: StoreApi<AppStore>["setState"] = (update) => {
     const state = get();
     const displayed = read();
@@ -54,16 +101,22 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
     let clipDrafts = state.clipDrafts;
     const draft = state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined;
     for (const [kind, runtimeKey] of [["tracks", "trackStateById"], ["scoreTracks", "trackStateById"], ["drummerTracks", "drummerStateById"], ["controllerSequencers", "controllerStateById"], ["arpeggiators", "arpeggiatorStatusById"]] as const) {
+      if (edited[kind] === displayed.sequencer[kind]) {
+        Object.assign(authored, { [kind]: state.sequencer[kind] });
+        continue;
+      }
       const before = new Map(displayed.sequencer[kind].map(t => [t.id, t]));
       const source = new Map(state.sequencer[kind].map(t => [t.id, t]));
-      const overrides = { ...runtime[runtimeKey] };
+      const playbackRuntimeKey = runtimeKey === "arpeggiatorStatusById" ? null : runtimeKey;
+      let overrides = playbackRuntimeKey ? runtime[playbackRuntimeKey] : undefined;
       const next = edited[kind].map(track => {
         const view = before.get(track.id); const original = source.get(track.id);
         if (!view || !original) return track;
+        if (track === view) return original;
         const result = changedFields(original, view, track);
         if (draft?.target.laneId === track.id && draft.definition.kind === "pattern") {
           const payload = track.pads[0];
-          if (JSON.stringify(payload) !== JSON.stringify(draft.definition.payload)) {
+          if (!sameAudioValue(payload, draft.definition.payload)) {
             const definition = { ...draft.definition, payload } as PatternDefinition;
             clipDrafts = { ...clipDrafts, [state.clipEditingKey!]: { ...draft, definition } as DefinitionDraft };
           }
@@ -79,19 +132,29 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
         }
         const pad = (result.pads as RecordValue[])[result.activePad as number];
         if (pad) for (const key of mirrors) if (key in pad && key in result) result[key] = pad[key];
-        if (kind === "arpeggiators") return result;
-        const values: SequencerTrackPlaybackState = { ...runtime[runtimeKey as "trackStateById"][track.id] };
-        for (const key of playbackKeys) {
-          if ((track as unknown as RecordValue)[key] !== (view as unknown as RecordValue)[key]) delete values[key];
+        if (overrides) {
+          const previous = overrides[track.id];
+          if (previous) {
+            const removed = playbackKeys.filter(key => key in previous &&
+              (track as unknown as RecordValue)[key] !== (view as unknown as RecordValue)[key]);
+            if (removed.length) {
+              const values: SequencerTrackPlaybackState = { ...previous };
+              for (const key of removed) delete values[key];
+              overrides = { ...overrides, [track.id]: values };
+            }
+          }
         }
-        overrides[track.id] = values;
-        return result;
+        return sameFields(result, original) ? original : result;
       });
-      Object.assign(authored, { [kind]: next });
-      runtime = { ...runtime, [runtimeKey]: overrides };
+      const original = state.sequencer[kind];
+      Object.assign(authored, { [kind]: next.length === original.length && next.every((track, index) => track === original[index]) ? original : next });
+      if (playbackRuntimeKey && overrides && overrides !== runtime[playbackRuntimeKey]) {
+        runtime = { ...runtime, [playbackRuntimeKey]: overrides };
+      }
     }
-    const changed = sequencerEditSignature(authored) !== sequencerEditSignature(state.sequencer);
-    set({ ...delta, clipDrafts, sequencer: authored, sequencerEditRevision: state.sequencerEditRevision + Number(changed),
+    const sequencer = sameFields(authored, state.sequencer) ? state.sequencer : authored;
+    const changed = sequencerAudioChanged(sequencer, state.sequencer);
+    set({ ...delta, clipDrafts, sequencer, sequencerEditRevision: state.sequencerEditRevision + Number(changed),
       sequencerRuntime: state.sequencerRuntime.isPlaying ? runtime : delta.sequencerRuntime ?? runtime });
   };
   return { get: read, set: write };

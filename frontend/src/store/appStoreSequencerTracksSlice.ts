@@ -670,17 +670,16 @@ export function createSequencerTrackStoreActions(
               return track;
             }
 
-            const pads = track.pads.map((pad) => ({
-              ...pad,
-              steps: cloneSequencerSteps(pad.steps)
-            }));
+            const pads = [...track.pads];
             const activePad = normalizePadIndex(track.activePad);
             const activePadState = pads[activePad] ?? fallbackSequencerPadStateForTrack(track);
-            const steps = cloneSequencerSteps(activePadState.steps);
-            const stepState = steps[index] ?? createEmptySequencerStep();
+            const stepState = activePadState.steps[index] ?? createEmptySequencerStep();
+            const nextNote = normalizeStepNote(note);
+            if (stepState.note === nextNote) return track;
+            const steps = [...activePadState.steps];
             steps[index] = {
               ...stepState,
-              note: normalizeStepNote(note)
+              note: nextNote
             };
             pads[activePad] = {
               ...activePadState,

@@ -8,6 +8,36 @@ import { capturePersistWatchState, shouldDeferSequencerPersistence } from "./app
 describe("authored configuration and sounding pads", () => {
   beforeEach(() => useAppStore.setState(useAppStore.getInitialState(), true));
 
+  it.each([false, true])("copies only the edited note path (playing=%s)", playing => {
+    const store = useAppStore.getState();
+    store.addSequencerTrack();
+    store.addDrummerSequencerTrack();
+    store.addControllerSequencer();
+    const id = useAppStore.getState().sequencer.tracks[0].id;
+    store.selectSequencerEditingPad(id, 2);
+    if (playing) store.syncSequencerRuntime({ isPlaying: true, playhead: 7,
+      tracks: [{ trackId: id, activePad: 1, enabled: true, queuedPad: 3 }] });
+    const before = useAppStore.getState();
+    const snapshot = structuredClone(before.sequencer);
+    store.setSequencerTrackStepNote(id, 0, 77);
+    const after = useAppStore.getState();
+    expect(before.sequencer).toEqual(snapshot);
+    expect(after.sequencer.tracks[1]).toBe(before.sequencer.tracks[1]);
+    for (const kind of ["scoreTracks", "drummerTracks", "controllerSequencers", "arpeggiators"] as const) {
+      expect(after.sequencer[kind]).toBe(before.sequencer[kind]);
+    }
+    expect(after.sequencerRuntime).toBe(before.sequencerRuntime);
+    before.sequencer.tracks[0].pads.forEach((pad, index) => {
+      if (index !== 2) expect(after.sequencer.tracks[0].pads[index]).toBe(pad);
+    });
+    expect(after.sequencer.tracks[0].pads[2].steps[1]).toBe(before.sequencer.tracks[0].pads[2].steps[1]);
+    expect(after.sequencerEditRevision).toBe(before.sequencerEditRevision + 1);
+    store.setSequencerTrackStepNote(id, 0, 77);
+    expect(useAppStore.getState().sequencer).toBe(after.sequencer);
+    expect(useAppStore.getState().sequencerRuntime).toBe(after.sequencerRuntime);
+    expect(useAppStore.getState().sequencerEditRevision).toBe(after.sequencerEditRevision);
+  });
+
   it("keeps playback, queue acknowledgments, enablement and controller status out of authorship", () => {
     useAppStore.getState().addControllerSequencer();
     const before = useAppStore.getState();
