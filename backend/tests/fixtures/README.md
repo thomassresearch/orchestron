@@ -1,5 +1,12 @@
 # Test fixtures
 
+`patches/enough.patch.json` and `patches/logan.patch.json` are independent snapshots
+of the editable altamax ports. `csound/altamax.orc` preserves the original dry
+synthesis for native comparisons, with bus writes replaced by stereo output.
+DSP tests cover register, velocity, release, polyphony, block sizes, controls,
+Logan waveform equivalence and Enough's accepted FM approximation. API tests cover
+native round trips, saved overrides and MIDI/SCORE exports; none load examples.
+
 `csound/render_loop.csd` is the deterministic native K=1 render benchmark orchestra;
 `csound/midi_sample_probe.csd` exposes note and controller delivery as exact sample
 levels. Both exercise host MIDI without an OS MIDI device or audio output device.

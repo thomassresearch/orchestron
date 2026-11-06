@@ -8791,5 +8791,131 @@
         "spanish": "Posición panorámica 0–1: triángulo actual mientras funciona el LFO, incluido el regreso; en otro caso, posición aleatoria manual retenida. El LFO tiene prioridad cuando ambas fuentes están activas. Empieza en 0,5 y se mantiene durante la caída. Escalar externamente con Stereo."
       }
     }
+  },
+  "phasor": {
+    "description": {
+      "english": "Audio-rate phase ramp from 0 up to, but not including, 1.",
+      "german": "Phasenrampe mit Audiorate von 0 bis ausschließlich 1.",
+      "french": "Rampe de phase à fréquence audio de 0 à 1 exclu.",
+      "spanish": "Rampa de fase a frecuencia de audio desde 0 hasta 1, sin incluirlo."
+    },
+    "inputs": {
+      "xcps": {
+        "english": "Frequency in Hz at audio, control or init rate; negative values run backwards.",
+        "german": "Frequenz in Hz mit Audio-, Kontroll- oder Initialisierungsrate; negative Werte laufen rückwärts.",
+        "french": "Fréquence en Hz au taux audio, de contrôle ou initial ; les valeurs négatives inversent le sens.",
+        "spanish": "Frecuencia en Hz a tasa de audio, control o inicialización; los valores negativos invierten el sentido."
+      },
+      "iphs": {
+        "english": "Initial phase, 0–1, default 0. Negative values skip phase initialization.",
+        "german": "Anfangsphase, 0–1, Vorgabe 0. Negative Werte überspringen die Phaseninitialisierung.",
+        "french": "Phase initiale, 0–1, valeur par défaut 0. Les valeurs négatives ignorent son initialisation.",
+        "spanish": "Fase inicial, 0–1, valor predeterminado 0. Los valores negativos omiten su inicialización."
+      }
+    },
+    "outputs": {
+      "aphase": {
+        "english": "Normalized audio-rate phase.",
+        "german": "Normalisierte Phase mit Audiorate.",
+        "french": "Phase normalisée à fréquence audio.",
+        "spanish": "Fase normalizada a frecuencia de audio."
+      }
+    }
+  },
+  "mirror": {
+    "description": {
+      "english": "Reflect an audio signal whenever it crosses the lower or upper threshold.",
+      "german": "Spiegelt ein Audiosignal beim Überschreiten der unteren oder oberen Grenze.",
+      "french": "Réfléchit un signal audio lorsqu’il dépasse le seuil inférieur ou supérieur.",
+      "spanish": "Refleja una señal de audio cuando cruza el umbral inferior o superior."
+    },
+    "inputs": {
+      "asig": {
+        "english": "Audio signal to reflect.",
+        "german": "Zu spiegelndes Audiosignal.",
+        "french": "Signal audio à réfléchir.",
+        "spanish": "Señal de audio que se reflejará."
+      },
+      "klow": {
+        "english": "Lower threshold at control or init rate.",
+        "german": "Untere Grenze mit Kontroll- oder Initialisierungsrate.",
+        "french": "Seuil inférieur au taux de contrôle ou initial.",
+        "spanish": "Umbral inferior a tasa de control o inicialización."
+      },
+      "khigh": {
+        "english": "Upper threshold at control or init rate.",
+        "german": "Obere Grenze mit Kontroll- oder Initialisierungsrate.",
+        "french": "Seuil supérieur au taux de contrôle ou initial.",
+        "spanish": "Umbral superior a tasa de control o inicialización."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Reflected audio signal.",
+        "german": "Gespiegeltes Audiosignal.",
+        "french": "Signal audio réfléchi.",
+        "spanish": "Señal de audio reflejada."
+      }
+    }
+  },
+  "linseg_a": {
+    "description": {
+      "english": "Audio-rate variant of linseg. Moves linearly between breakpoints and holds the final value.",
+      "german": "Audioraten-Variante von linseg. Bewegt sich linear zwischen Stützpunkten und hält den Endwert.",
+      "french": "Variante audio de linseg. Évolue linéairement entre les points et maintient la valeur finale.",
+      "spanish": "Variante de audio de linseg. Recorre linealmente los puntos y mantiene el valor final."
+    },
+    "inputs": {
+      "ia": {
+        "english": "Initial value.",
+        "german": "Anfangswert.",
+        "french": "Valeur initiale.",
+        "spanish": "Valor inicial."
+      },
+      "idur1": {
+        "english": "First segment duration in seconds; must be positive to initialize.",
+        "german": "Dauer des ersten Segments in Sekunden; zur Initialisierung muss sie positiv sein.",
+        "french": "Durée du premier segment en secondes ; doit être positive pour initialiser.",
+        "spanish": "Duración del primer segmento en segundos; debe ser positiva para inicializar."
+      },
+      "ib": {
+        "english": "Value at the end of segment 1.",
+        "german": "Wert am Ende von Segment 1.",
+        "french": "Valeur à la fin du segment 1.",
+        "spanish": "Valor al final del segmento 1."
+      },
+      "idur2": {
+        "english": "Optional segment 2 duration in seconds. Omit with its endpoint to end the envelope here.",
+        "german": "Optionale Dauer von Segment 2 in Sekunden. Mit seinem Endwert weglassen, um die Hüllkurve hier zu beenden.",
+        "french": "Durée facultative du segment 2 en secondes. Omettre avec sa valeur finale pour terminer l’enveloppe ici.",
+        "spanish": "Duración opcional del segmento 2 en segundos. Omitir junto con su valor final para terminar aquí la envolvente."
+      },
+      "ic": {
+        "english": "Value at the end of segment 2.",
+        "german": "Wert am Ende von Segment 2.",
+        "french": "Valeur à la fin du segment 2.",
+        "spanish": "Valor al final del segmento 2."
+      },
+      "idur3": {
+        "english": "Optional segment 3 duration in seconds. Omit with its endpoint to end the envelope here.",
+        "german": "Optionale Dauer von Segment 3 in Sekunden. Mit seinem Endwert weglassen, um die Hüllkurve hier zu beenden.",
+        "french": "Durée facultative du segment 3 en secondes. Omettre avec sa valeur finale pour terminer l’enveloppe ici.",
+        "spanish": "Duración opcional del segmento 3 en segundos. Omitir junto con su valor final para terminar aquí la envolvente."
+      },
+      "id": {
+        "english": "Value at the end of segment 3.",
+        "german": "Wert am Ende von Segment 3.",
+        "french": "Valeur à la fin du segment 3.",
+        "spanish": "Valor al final del segmento 3."
+      }
+    },
+    "outputs": {
+      "aenv": {
+        "english": "Audio-rate linear envelope.",
+        "german": "Lineare Hüllkurve mit Audiorate.",
+        "french": "Enveloppe linéaire à fréquence audio.",
+        "spanish": "Envolvente lineal a frecuencia de audio."
+      }
+    }
   }
 }

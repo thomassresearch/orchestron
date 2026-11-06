@@ -1,0 +1,685 @@
+{
+  "sourcePatchId": "7d9e5a02-a2e9-4287-b810-e04142ea2dbb",
+  "name": "Enough",
+  "description": "Dry polyphonic MIDI port of Enough from joel / ebmtranceboy's altamax (https://ide.csound.com/editor/pXPRc5Y1vALtxqgszdhI). Four per-instance controls: Timbre, Evolution, Release, Level. Velocity controls output gain only. 1 ms MIDI attack/decay, full sustain; no source mixer effects. Five editable oscil3 operators preserve the 20:4:9:3:1 network and evolving depths. The original 0.0001 self-feedback is omitted; cubic lookup and oscillator phase differ from its sample loop.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "velocity_scale",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1150.0
+        }
+      },
+      {
+        "id": "enough_timbre",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Timbre",
+          "min": 0,
+          "max": 2,
+          "default": 1,
+          "scale": "linear",
+          "controller_group": "Enough"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "enough_evolution",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Evolution",
+          "min": 0.25,
+          "max": 4,
+          "default": 1,
+          "scale": "logarithmic",
+          "controller_group": "Enough"
+        },
+        "position": {
+          "x": 400.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "enough_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release",
+          "min": 0.01,
+          "max": 3,
+          "default": 0.2,
+          "scale": "logarithmic",
+          "controller_group": "Enough"
+        },
+        "position": {
+          "x": 800.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "enough_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Level",
+          "min": 0,
+          "max": 1,
+          "default": 0.5,
+          "scale": "linear",
+          "controller_group": "Enough"
+        },
+        "position": {
+          "x": 1200.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "amp_iatt",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.001
+        },
+        "position": {
+          "x": 400.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "amp_idec",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.001
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "amp_islev",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1350.0
+        }
+      },
+      {
+        "id": "note_gain",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 1200.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "smooth_gain",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1600.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "depth2",
+        "opcode": "linseg_a",
+        "params": {
+          "ia": 9,
+          "ib": 6,
+          "ic": 2
+        },
+        "position": {
+          "x": 400.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "depthr",
+        "opcode": "linseg_a",
+        "params": {
+          "ia": 1,
+          "ib": 0
+        },
+        "position": {
+          "x": 800.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "depth1",
+        "opcode": "linseg_a",
+        "params": {
+          "ia": 2,
+          "ib": 0
+        },
+        "position": {
+          "x": 1200.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "operator3",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 400.0,
+          "y": 400.0
+        }
+      },
+      {
+        "id": "operator2",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 800.0,
+          "y": 400.0
+        }
+      },
+      {
+        "id": "operatorr",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 800.0,
+          "y": -350.0
+        }
+      },
+      {
+        "id": "operator1",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 1600.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "carrier",
+        "opcode": "oscil3",
+        "params": {
+          "amp": 1,
+          "ifn": -1
+        },
+        "position": {
+          "x": 2000.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_gain",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 2400.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2800.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 3200.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 3200.0,
+          "y": 0.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "amp_iatt",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "amp_idec",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "amp_islev",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "enough_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "note_gain",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "note_gain",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "enough_level",
+        "from_port_id": "iout",
+        "to_node_id": "note_gain",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "note_gain",
+        "from_port_id": "kout",
+        "to_node_id": "smooth_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "enough_evolution",
+        "from_port_id": "iout",
+        "to_node_id": "depth2",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "enough_evolution",
+        "from_port_id": "iout",
+        "to_node_id": "depth2",
+        "to_port_id": "idur2"
+      },
+      {
+        "from_node_id": "enough_evolution",
+        "from_port_id": "iout",
+        "to_node_id": "depthr",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "enough_evolution",
+        "from_port_id": "iout",
+        "to_node_id": "depth1",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "operator3",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "operator2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "operator3",
+        "from_port_id": "asig",
+        "to_node_id": "operator2",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "operatorr",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "operator1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "depth2",
+        "from_port_id": "aenv",
+        "to_node_id": "operator1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "operator2",
+        "from_port_id": "asig",
+        "to_node_id": "operator1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "depthr",
+        "from_port_id": "aenv",
+        "to_node_id": "operator1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "operatorr",
+        "from_port_id": "asig",
+        "to_node_id": "operator1",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "carrier",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "enough_timbre",
+        "from_port_id": "iout",
+        "to_node_id": "carrier",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "depth1",
+        "from_port_id": "aenv",
+        "to_node_id": "carrier",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "operator1",
+        "from_port_id": "asig",
+        "to_node_id": "carrier",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "carrier",
+        "from_port_id": "asig",
+        "to_node_id": "output_gain",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "smooth_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_gain",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "output_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "note_gain::b": {
+          "expression": "velocity * level",
+          "inputs": [
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            },
+            {
+              "token": "level",
+              "from_node_id": "enough_level",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "depth2::idur1": {
+          "expression": "time * 0.1",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "enough_evolution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "depth2::idur2": {
+          "expression": "time * 0.5",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "enough_evolution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "depthr::idur1": {
+          "expression": "time * 2",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "enough_evolution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "depth1::idur1": {
+          "expression": "time * 2",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "enough_evolution",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "operator3::freq": {
+          "expression": "20 * pitch",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "operator2::freq": {
+          "expression": "4 * pitch * (1 + mod)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "mod",
+              "from_node_id": "operator3",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "operatorr::freq": {
+          "expression": "9 * pitch",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "operator1::freq": {
+          "expression": "3 * pitch * (1 + d2 * mod2 + dr * modr)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "d2",
+              "from_node_id": "depth2",
+              "from_port_id": "aenv"
+            },
+            {
+              "token": "mod2",
+              "from_node_id": "operator2",
+              "from_port_id": "asig"
+            },
+            {
+              "token": "dr",
+              "from_node_id": "depthr",
+              "from_port_id": "aenv"
+            },
+            {
+              "token": "modr",
+              "from_node_id": "operatorr",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "carrier::freq": {
+          "expression": "pitch * (1 + timbre * depth * mod)",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch",
+              "from_port_id": "kfreq"
+            },
+            {
+              "token": "timbre",
+              "from_node_id": "enough_timbre",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "depth",
+              "from_node_id": "depth1",
+              "from_port_id": "aenv"
+            },
+            {
+              "token": "mod",
+              "from_node_id": "operator1",
+              "from_port_id": "asig"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "signal * 1.4142135623730951",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "output_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "main-output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

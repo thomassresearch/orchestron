@@ -17479,5 +17479,203 @@
       "virtual"
     ],
     "icon_filename": "oscili.svg"
+  },
+  {
+    "name": "phasor",
+    "category": "oscillator",
+    "description": "Audio-rate normalized phase ramp; frequency may be audio, control or init rate.",
+    "documentation_markdown": "### `phasor`\n\nAudio-rate normalized phase ramp; frequency may be audio, control or init rate.",
+    "documentation_url": "https://csound.com/docs/manual/phasor.html",
+    "inputs": [
+      {
+        "id": "xcps",
+        "name": "Frequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "a",
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 440,
+        "description": ""
+      },
+      {
+        "id": "iphs",
+        "name": "Initial phase",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aphase",
+        "name": "Phase",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{aphase} phasor {xcps}, {iphs}",
+    "tags": [
+      "oscillator",
+      "audio"
+    ],
+    "icon_filename": "oscili.svg"
+  },
+  {
+    "name": "mirror",
+    "category": "distortion",
+    "description": "Reflect an audio signal between lower and upper thresholds.",
+    "documentation_markdown": "### `mirror`\n\nReflect an audio signal between lower and upper thresholds.",
+    "documentation_url": "https://csound.com/docs/manual/mirror.html",
+    "inputs": [
+      {
+        "id": "asig",
+        "name": "Signal",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "klow",
+        "name": "Low threshold",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 0,
+        "description": ""
+      },
+      {
+        "id": "khigh",
+        "name": "High threshold",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "k",
+          "i"
+        ],
+        "required": true,
+        "default": 1,
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "Audio output",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{aout} mirror {asig}, {klow}, {khigh}",
+    "tags": [
+      "distortion",
+      "audio"
+    ],
+    "icon_filename": "moogladder.svg"
+  },
+  {
+    "name": "linseg_a",
+    "category": "envelope",
+    "description": "Audio-rate linear breakpoint envelope; holds its final value.",
+    "documentation_markdown": "### `linseg_a`\n\nAudio-rate variant of Csound `linseg`. Existing `linseg` nodes remain control-rate.",
+    "documentation_url": "https://csound.com/docs/manual/linseg.html",
+    "inputs": [
+      {
+        "id": "ia",
+        "name": "Start",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0,
+        "description": ""
+      },
+      {
+        "id": "idur1",
+        "name": "Dur1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 0.05,
+        "description": ""
+      },
+      {
+        "id": "ib",
+        "name": "Val1",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": 1.0,
+        "description": ""
+      },
+      {
+        "id": "idur2",
+        "name": "Dur2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "ic",
+        "name": "Val2",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "idur3",
+        "name": "Dur3",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": null,
+        "description": ""
+      },
+      {
+        "id": "id",
+        "name": "Val3",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aenv",
+        "name": "Audio envelope",
+        "signal_type": "a",
+        "accepted_signal_types": [],
+        "required": true,
+        "default": null,
+        "description": ""
+      }
+    ],
+    "template": "{aenv} linseg {ia}, {idur1}, {ib}, {idur2}, {ic}, {idur3}, {id}",
+    "tags": [
+      "audio",
+      "envelope",
+      "segments",
+      "line"
+    ],
+    "icon_filename": "adsr.svg"
   }
 ]

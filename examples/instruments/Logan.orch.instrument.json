@@ -1,0 +1,831 @@
+{
+  "sourcePatchId": "bbe2a5b3-8ec9-4c1d-ab98-5df89c3b7b3b",
+  "name": "Logan",
+  "description": "Dry polyphonic MIDI port of Logan from joel / ebmtranceboy's altamax (https://ide.csound.com/editor/pXPRc5Y1vALtxqgszdhI). Four per-instance controls: Timbre, Evolution, Release, Level. Velocity controls output gain only. 1 ms MIDI attack/decay, full sustain; no source mixer effects. Audio-rate phasors and mirror/limit formulas preserve the alternating cubic phase-shaping network. Timbre sets the initial shape; it sweeps to 0.03 over Evolution seconds.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "velocity_scale",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1150.0
+        }
+      },
+      {
+        "id": "logan_timbre",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Timbre",
+          "min": 0.05,
+          "max": 0.97,
+          "default": 0.93,
+          "scale": "linear",
+          "controller_group": "Logan"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "logan_evolution",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Evolution",
+          "min": 0.1,
+          "max": 20,
+          "default": 5,
+          "scale": "logarithmic",
+          "controller_group": "Logan"
+        },
+        "position": {
+          "x": 400.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "logan_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release",
+          "min": 0.01,
+          "max": 3,
+          "default": 0.5,
+          "scale": "logarithmic",
+          "controller_group": "Logan"
+        },
+        "position": {
+          "x": 800.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "logan_level",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Level",
+          "min": 0,
+          "max": 0.25,
+          "default": 0.06,
+          "scale": "linear",
+          "controller_group": "Logan"
+        },
+        "position": {
+          "x": 1200.0,
+          "y": -700.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 800.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "amp_iatt",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.001
+        },
+        "position": {
+          "x": 400.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "amp_idec",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.001
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "amp_islev",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 400.0,
+          "y": 1350.0
+        }
+      },
+      {
+        "id": "note_gain",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 1200.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "smooth_gain",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 1600.0,
+          "y": 850.0
+        }
+      },
+      {
+        "id": "shape_sweep",
+        "opcode": "linseg_a",
+        "params": {
+          "ib": 0.03
+        },
+        "position": {
+          "x": 400.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "phase_double",
+        "opcode": "phasor",
+        "params": {},
+        "position": {
+          "x": 400.0,
+          "y": 400.0
+        }
+      },
+      {
+        "id": "phase_fundamental",
+        "opcode": "phasor",
+        "params": {},
+        "position": {
+          "x": 0.0,
+          "y": 400.0
+        }
+      },
+      {
+        "id": "alternate",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 800.0,
+          "y": 800.0
+        }
+      },
+      {
+        "id": "ramp_fold",
+        "opcode": "mirror",
+        "params": {
+          "klow": 0,
+          "khigh": 1
+        },
+        "position": {
+          "x": 800.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "saw_shape",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1200.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "pick_limit",
+        "opcode": "limit",
+        "params": {
+          "xmin": 0,
+          "xmax": 1
+        },
+        "position": {
+          "x": 800.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "pick_fold",
+        "opcode": "mirror",
+        "params": {
+          "klow": 0,
+          "khigh": 1
+        },
+        "position": {
+          "x": 1200.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "buzz_shape",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1600.0,
+          "y": 400.0
+        }
+      },
+      {
+        "id": "wave_one",
+        "opcode": "mirror",
+        "params": {
+          "klow": -0.5,
+          "khigh": 0.5
+        },
+        "position": {
+          "x": 2000.0,
+          "y": 400.0
+        }
+      },
+      {
+        "id": "cubic_one",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2400.0,
+          "y": 400.0
+        }
+      },
+      {
+        "id": "wave_two",
+        "opcode": "mirror",
+        "params": {
+          "klow": -0.5,
+          "khigh": 0.5
+        },
+        "position": {
+          "x": 2000.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "cubic_two",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2400.0,
+          "y": -400.0
+        }
+      },
+      {
+        "id": "alternate_mix",
+        "opcode": "a_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2800.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_gain",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 3200.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 3600.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 4000.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 4000.0,
+          "y": 0.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "amp_iatt",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "amp_idec",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "amp_islev",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "logan_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "note_gain",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "note_gain",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "logan_level",
+        "from_port_id": "iout",
+        "to_node_id": "note_gain",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "note_gain",
+        "from_port_id": "kout",
+        "to_node_id": "smooth_gain",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "logan_timbre",
+        "from_port_id": "iout",
+        "to_node_id": "shape_sweep",
+        "to_port_id": "ia"
+      },
+      {
+        "from_node_id": "logan_evolution",
+        "from_port_id": "iout",
+        "to_node_id": "shape_sweep",
+        "to_port_id": "idur1"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "phase_double",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "pitch",
+        "from_port_id": "kfreq",
+        "to_node_id": "phase_fundamental",
+        "to_port_id": "xcps"
+      },
+      {
+        "from_node_id": "phase_fundamental",
+        "from_port_id": "aphase",
+        "to_node_id": "alternate",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "phase_double",
+        "from_port_id": "aphase",
+        "to_node_id": "alternate",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "shape_sweep",
+        "from_port_id": "aenv",
+        "to_node_id": "ramp_fold",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "phase_double",
+        "from_port_id": "aphase",
+        "to_node_id": "ramp_fold",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "shape_sweep",
+        "from_port_id": "aenv",
+        "to_node_id": "saw_shape",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "phase_double",
+        "from_port_id": "aphase",
+        "to_node_id": "saw_shape",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "ramp_fold",
+        "from_port_id": "aout",
+        "to_node_id": "saw_shape",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "shape_sweep",
+        "from_port_id": "aenv",
+        "to_node_id": "pick_limit",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "phase_double",
+        "from_port_id": "aphase",
+        "to_node_id": "pick_limit",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "pick_limit",
+        "from_port_id": "xout",
+        "to_node_id": "pick_fold",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "pick_fold",
+        "from_port_id": "aout",
+        "to_node_id": "buzz_shape",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "shape_sweep",
+        "from_port_id": "aenv",
+        "to_node_id": "buzz_shape",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "phase_double",
+        "from_port_id": "aphase",
+        "to_node_id": "wave_one",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "buzz_shape",
+        "from_port_id": "aout",
+        "to_node_id": "wave_one",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "wave_one",
+        "from_port_id": "aout",
+        "to_node_id": "cubic_one",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "phase_double",
+        "from_port_id": "aphase",
+        "to_node_id": "wave_two",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "saw_shape",
+        "from_port_id": "aout",
+        "to_node_id": "wave_two",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "wave_two",
+        "from_port_id": "aout",
+        "to_node_id": "cubic_two",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "alternate",
+        "from_port_id": "aout",
+        "to_node_id": "alternate_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "cubic_one",
+        "from_port_id": "aout",
+        "to_node_id": "alternate_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "cubic_two",
+        "from_port_id": "aout",
+        "to_node_id": "alternate_mix",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "alternate_mix",
+        "from_port_id": "aout",
+        "to_node_id": "output_gain",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "smooth_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_gain",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "output_gain",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "note_gain::b": {
+          "expression": "velocity * level",
+          "inputs": [
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            },
+            {
+              "token": "level",
+              "from_node_id": "logan_level",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "phase_double::xcps": {
+          "expression": "2 * pitch",
+          "inputs": [
+            {
+              "token": "pitch",
+              "from_node_id": "pitch",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "alternate::a": {
+          "expression": "2 * half - phase",
+          "inputs": [
+            {
+              "token": "half",
+              "from_node_id": "phase_fundamental",
+              "from_port_id": "aphase"
+            },
+            {
+              "token": "phase",
+              "from_node_id": "phase_double",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "ramp_fold::asig": {
+          "expression": "(2 - wet) * (1 - phase)",
+          "inputs": [
+            {
+              "token": "wet",
+              "from_node_id": "shape_sweep",
+              "from_port_id": "aenv"
+            },
+            {
+              "token": "phase",
+              "from_node_id": "phase_double",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "saw_shape::a": {
+          "expression": "-(2 - wet) * (wet * (1 - phase) - fold) / (1 - wet) / 2 * (1 / (2 - wet) - 0.5)",
+          "inputs": [
+            {
+              "token": "wet",
+              "from_node_id": "shape_sweep",
+              "from_port_id": "aenv"
+            },
+            {
+              "token": "phase",
+              "from_node_id": "phase_double",
+              "from_port_id": "aphase"
+            },
+            {
+              "token": "fold",
+              "from_node_id": "ramp_fold",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "pick_limit::xin": {
+          "expression": "(1 + 1 / (1 - wet)) * phase",
+          "inputs": [
+            {
+              "token": "wet",
+              "from_node_id": "shape_sweep",
+              "from_port_id": "aenv"
+            },
+            {
+              "token": "phase",
+              "from_node_id": "phase_double",
+              "from_port_id": "aphase"
+            }
+          ]
+        },
+        "pick_fold::asig": {
+          "expression": "2 * value",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "pick_limit",
+              "from_port_id": "xout"
+            }
+          ]
+        },
+        "buzz_shape::a": {
+          "expression": "pick * (0.5 - (1 - wet) / (2 - wet))",
+          "inputs": [
+            {
+              "token": "pick",
+              "from_node_id": "pick_fold",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "wet",
+              "from_node_id": "shape_sweep",
+              "from_port_id": "aenv"
+            }
+          ]
+        },
+        "wave_one::asig": {
+          "expression": "2 * (phase + shape) - 0.5",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "phase_double",
+              "from_port_id": "aphase"
+            },
+            {
+              "token": "shape",
+              "from_node_id": "buzz_shape",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "cubic_one::a": {
+          "expression": "value * (4 * value * value - 3)",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "wave_one",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "wave_two::asig": {
+          "expression": "2 * (phase + shape) - 0.5",
+          "inputs": [
+            {
+              "token": "phase",
+              "from_node_id": "phase_double",
+              "from_port_id": "aphase"
+            },
+            {
+              "token": "shape",
+              "from_node_id": "saw_shape",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "cubic_two::a": {
+          "expression": "value * (4 * value * value - 3)",
+          "inputs": [
+            {
+              "token": "value",
+              "from_node_id": "wave_two",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "alternate_mix::a": {
+          "expression": "(1 - pulse) * one + pulse * two",
+          "inputs": [
+            {
+              "token": "pulse",
+              "from_node_id": "alternate",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "one",
+              "from_node_id": "cubic_one",
+              "from_port_id": "aout"
+            },
+            {
+              "token": "two",
+              "from_node_id": "cubic_two",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "output_pan2::asig": {
+          "expression": "signal * 1.4142135623730951",
+          "inputs": [
+            {
+              "token": "signal",
+              "from_node_id": "output_gain",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "main-output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

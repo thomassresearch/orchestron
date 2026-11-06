@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **196** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This appendix is generated from `backend/app/data/opcodes.json` and currently lists **199** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
 
 ## How To Use This Appendix
 
@@ -19,9 +19,9 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | constants | 5 |
 | control_flow | 2 |
 | delay | 12 |
-| distortion | 4 |
+| distortion | 5 |
 | dynamics | 3 |
-| envelope | 12 |
+| envelope | 13 |
 | filter | 27 |
 | fm | 17 |
 | math | 3 |
@@ -29,7 +29,7 @@ This appendix is generated from `backend/app/data/opcodes.json` and currently li
 | mixer | 3 |
 | modulation | 11 |
 | noise | 3 |
-| oscillator | 21 |
+| oscillator | 22 |
 | output | 1 |
 | physical_modeling | 31 |
 | reverb | 4 |
@@ -92,6 +92,8 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | distort1 | 6 (a, k, k, k, k, i) | 1 (a) | Waveshaping distortion with configurable transfer curve. |
 | fold | 2 (a, k) | 1 (a) | Artificial foldover effect for audio signals. |
 | powershape | 3 (a, k, i) | 1 (a) | Power-law waveshaper for controllable nonlinear distortion. |
+| mirror | 3 (a, k, k) | 1 (a) | Reflect an audio signal between lower and upper thresholds. |
+
 
 ### dynamics
 
@@ -117,6 +119,8 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | madsr | 6 (i, i, i, i, i, i) | 1 (k) | MIDI release-sensitive ADSR envelope. |
 | mxadsr | 6 (i, i, i, i, i, i) | 1 (k) | Extended MIDI release-sensitive ADSR envelope. |
 | transegr | 7 (i, i, i, i, i, i, i) | 1 (k) | Control-rate transition envelope with release-triggered final segment. |
+| linseg_a | 7 (i, i, i, i, i, i, i) | 1 (a) | Audio-rate linear breakpoint envelope; holds its final value. |
+
 
 ### filter
 
@@ -252,6 +256,8 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | vco2 | 6 (k, k, i, k, k, i) | 1 (a) | Improved anti-aliased analog-style oscillator. |
 | voice | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Formant-based vocal source synthesizer. |
 | vosim | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Vocal formant synthesis using overlapping sinusoidal bursts. |
+| phasor | 2 (k, i) | 1 (a) | Audio-rate normalized phase ramp; accepts audio-rate frequency. |
+
 
 ### output
 

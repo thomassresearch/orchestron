@@ -9348,6 +9348,73 @@ def test_guarded_goa_lead_native_roundtrip_preserves_formulas_and_controller_ove
         assert "goa_stability_coefficient_0" in orc and "goa_stability_coefficient_1" in orc
 
 
+def test_altamax_opcode_catalog_contract(tmp_path):
+    with _client(tmp_path) as client:
+        response = client.get('/api/opcodes')
+        assert response.status_code == 200
+        catalog = {item['name']: item for item in response.json()}
+        for name, output, manual in [('phasor', 'aphase', 'phasor'), ('mirror', 'aout', 'mirror'),
+                                     ('linseg_a', 'aenv', 'linseg')]:
+            spec = catalog[name]
+            assert [(p['id'], p['signal_type']) for p in spec['outputs']] == [(output, 'a')]
+            assert spec['documentation_url'] == f'https://csound.com/docs/manual/{manual}.html'
+        assert catalog['phasor']['inputs'][0]['accepted_signal_types'] == ['a', 'k', 'i']
+        assert catalog['linseg']['outputs'][0]['signal_type'] == 'k'
+
+
+@pytest.mark.parametrize('fixture', ['enough', 'logan'])
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_altamax_native_persistence_and_csd_exports(tmp_path, fixture, event_source):
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture(fixture)
+    bundle = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={'id'})).model_dump(mode='json', by_alias=True)
+    values = {fixture + '_timbre': .7, fixture + '_evolution': 2, fixture + '_release': 1, fixture + '_level': .15}
+    config = dict(version=20, instruments=[dict(id='voice', patchId=patch.id, midiChannel=1, performanceControllerValues=values)],
+                  audioGraph=dict(masterId='$master', routes=[
+                      dict(id=side, sourceId='voice', sourcePort=side, targetId='$master', targetPort=side)
+                      for side in ('left', 'right')]))
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    performance = payload['performanceExport']
+    performance['patch_definitions'] = [bundle]
+    performance['performance']['config'] = config
+    with _client(tmp_path) as client:
+        exported = client.post('/api/bundles/export/patch', json=bundle)
+        assert exported.status_code == 200, exported.text
+        plan = {'patches': [dict(id=patch.id, sourcePatchId=patch.id, type='create', name=patch.name)]}
+        imported = client.post('/api/bundles/import/commit', files={'bundle': (fixture + '.orch.instrument.json', exported.content)},
+                               data={'plan': json.dumps(plan)})
+        assert imported.status_code == 200, imported.text
+        restored = client.get('/api/patches/' + patch.id).json()
+        assert restored['graph'] == bundle['graph'] and restored['instrument_type'] == 'melody'
+        saved = client.post('/api/performances', json=dict(name='Altamax controls', config=config))
+        assert saved.status_code == 201, saved.text
+        assert client.get('/api/performances/' + saved.json()['id']).json()['config'] == config
+        session = client.post('/api/sessions', json={'instruments': [
+            dict(id='voice', patch_id=patch.id, midi_channel=1, performance_controller_values=values)]})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        bindings = compiled.json()['manifest']['performanceControllers']['voice']
+        assert {key: item['value'] for key, item in bindings.items()} == values
+        native = client.post('/api/bundles/export/performance', json=performance)
+        expanded = client.post('/api/bundles/import/expand?preview=true', content=native.content,
+                               headers={'X-File-Name': 'altamax.orch.performance.json'})
+        assert expanded.status_code == 200, expanded.text
+        assert expanded.json()['performance']['config'] == config
+        exported = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert exported.status_code == 200, exported.text
+        with zipfile.ZipFile(BytesIO(exported.content)) as archive:
+            csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+        assert 'ksmps = 1' in csd
+        assert (' ampmidi ' in csd) == (event_source == 'midiFile')
+        assert (' oscil3 ' if fixture == 'enough' else ' phasor ') in csd
+        for value in values.values():
+            assert f'chnset {value:.17g},' in csd
+
+
 def test_swept_gate_catalog_contract(tmp_path):
     with _client(tmp_path) as client:
         response = client.get('/api/opcodes')

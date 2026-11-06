@@ -20,6 +20,47 @@ from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 
 
+@pytest.mark.parametrize("name,params,suffix", [
+    ("phasor", {}, " phasor 440, 0"),
+    ("phasor", {"xcps": -220, "iphs": .25}, " phasor -220, 0.25"),
+    ("mirror", {"asig": .7, "klow": -.5, "khigh": .5}, " mirror 0.7, -0.5, 0.5"),
+    ("linseg_a", {}, " linseg 0, 0.05, 1.0"),
+    ("linseg_a", {"ia": 9, "idur1": .1, "ib": 6, "idur2": .5, "ic": 2}, " linseg 9, 0.1, 6, 0.5, 2"),
+])
+def test_altamax_opcode_templates_and_optional_segments(name, params, suffix):
+    service = OpcodeService("/static/icons")
+    output = service.get_opcode(name).outputs[0].id
+    patch = PatchDocument(name="opcode probe", graph=PatchGraph(nodes=[
+        NodeInstance(id="probe", opcode=name, params=params), NodeInstance(id="out", opcode="outs")],
+        connections=[Connection(from_node_id="probe", from_port_id=output, to_node_id="out", to_port_id=side)
+                     for side in ("left", "right")]))
+    artifact = CompilerService(service).compile_patch(patch, "0", "none")
+    assert any(line.strip().startswith("a_probe_") and line.endswith(suffix) for line in orc_code_lines(artifact.orc))
+
+
+@pytest.mark.parametrize("opcode,port,rate,allowed", [
+    ("phasor", "xcps", "a", True), ("phasor", "xcps", "k", True), ("phasor", "xcps", "i", True),
+    ("phasor", "iphs", "k", False), ("mirror", "asig", "a", True),
+    ("mirror", "klow", "i", True), ("mirror", "khigh", "a", False),
+    ("linseg_a", "idur1", "i", True), ("linseg_a", "idur1", "k", False),
+])
+def test_altamax_opcode_signal_rates(opcode, port, rate, allowed):
+    service = OpcodeService("/static/icons")
+    patch = PatchDocument(name="rate probe", graph=PatchGraph(nodes=[
+        NodeInstance(id="probe", opcode=opcode, params={"asig": .5} if opcode == "mirror" else {}),
+        NodeInstance(id="source", opcode="const_" + rate, params={"value": .25}),
+        NodeInstance(id="out", opcode="outs")], connections=[
+            Connection(from_node_id="source", from_port_id=rate + "out", to_node_id="probe", to_port_id=port),
+            *[Connection(from_node_id="probe", from_port_id=service.get_opcode(opcode).outputs[0].id,
+                         to_node_id="out", to_port_id=side) for side in ("left", "right")]]))
+    compiler = CompilerService(service)
+    if allowed:
+        compiler.compile_patch(patch, "0", "none")
+    else:
+        with pytest.raises(CompilationError):
+            compiler.compile_patch(patch, "0", "none")
+
+
 def _prepiano_patch(preparations=(), params=None) -> PatchDocument:
     patch = PatchDocument(
         name="Prepared piano opcode test",

@@ -21,6 +21,10 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
+[Enough and Logan](documentation/instrument_design/enough_and_logan.md) bring two
+editable dry synth voices from altamax: an evolving five-oscillator FM network
+and a phase-shaped tone. Each has Timbre, Evolution, Release and Level controls.
+
 The Perform rack uses the full available width and automatically sizes instrument
 cards to fit their controllers. Add **Controller Group** names to organize related
 settings inside thin labeled borders. Minimoog Monophonic, Granular Synthesis and
