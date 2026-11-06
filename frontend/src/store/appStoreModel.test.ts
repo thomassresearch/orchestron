@@ -4,10 +4,29 @@ import {
   defaultArpeggiator,
   defaultSequencerState,
   normalizeEngineConfig,
+  normalizeSequencerState,
   sequencerSnapshotForPersistence
 } from "./appStoreModel";
 
 describe("app store model normalization", () => {
+  it.each(["tracks", "pianoRolls", "midiControllers", "controllerSequencers", "arpeggiators", "drummerTracks"] as const)(
+    "reserves existing %s IDs before repairing duplicates", kind => {
+      const ids = ["a", "a", "a-2", "a-3"];
+      const state = normalizeSequencerState({ [kind]: ids.map(id => ({ id })) });
+      const actual = state[kind].map(item => item.id);
+      expect(new Set(actual).size).toBe(ids.length);
+      expect(actual[0]).toBe("a");
+      expect(actual.slice(2)).toEqual(["a-2", "a-3"]);
+      expect(normalizeSequencerState(state)[kind].map(item => item.id)).toEqual(actual);
+    }
+  );
+
+  it("repairs blank IDs without taking a later explicit fallback ID", () => {
+    const state = normalizeSequencerState({ tracks: [{ id: "", syncToTrackId: "voice-1" }, { id: "voice-1" }, { id: " " }] });
+    expect(new Set(state.tracks.map(track => track.id)).size).toBe(3);
+    expect(state.tracks[1].id).toBe("voice-1");
+    expect(state.tracks[0].syncToTrackId).toBe("voice-1");
+  });
   it("normalizes engine timing and buffer values at the persistence boundary", () => {
     expect(
       normalizeEngineConfig({

@@ -2020,6 +2020,29 @@ export function normalizeMidiControllerState(raw: unknown, index: number): MidiC
   };
 }
 
+/** Preserve explicit IDs and their first occurrence; generated IDs never steal later IDs. */
+function normalizeDeviceIds<T extends { id: string }>(items: T[], prefix: string, rawItems: unknown = items): T[] {
+  const raw = Array.isArray(rawItems) ? rawItems : items;
+  const ids = items.map((_, index) => {
+    const item = raw[index];
+    const id = item && typeof item === "object" && "id" in item ? item.id : undefined;
+    return typeof id === "string" && id.trim() ? id : null;
+  });
+  const reserved = new Set(ids.filter((id): id is string => id !== null));
+  const used = new Set<string>();
+  return items.map((item, index) => {
+    const explicit = ids[index];
+    const base = explicit ?? `${prefix}-${index + 1}`;
+    let id = base;
+    if (used.has(id) || (!explicit && reserved.has(id))) {
+      let suffix = index + 1;
+      do { id = `${base}-${suffix++}`; } while (used.has(id) || reserved.has(id));
+    }
+    used.add(id);
+    return id === item.id ? item : { ...item, id };
+  });
+}
+
 export function normalizeSequencerState(raw: unknown): SequencerState {
   const defaults = defaultSequencerState();
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -2047,16 +2070,6 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
   } else {
     tracks.push(normalizeSequencerTrackWithTiming(sequencer, 1, timing));
   }
-  const validTrackIds = new Set(tracks.map((track) => track.id));
-  for (const track of tracks) {
-    if (track.syncToTrackId === null) {
-      continue;
-    }
-    if (track.syncToTrackId === track.id || !validTrackIds.has(track.syncToTrackId)) {
-      track.syncToTrackId = null;
-    }
-  }
-
   const drummerTracks: DrummerSequencerTrackState[] = [];
   if (Array.isArray(sequencer.drummerTracks)) {
     for (let index = 0; index < Math.min(MAX_SEQUENCERS_PER_TYPE, sequencer.drummerTracks.length); index += 1) {
@@ -2115,90 +2128,21 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
   }
   const arpeggiatorPresets = normalizeArpeggiatorPresets(sequencer.arpeggiatorPresets ?? sequencer.arpeggiator_presets);
 
-  const trackList = hasTracks ? tracks : defaults.tracks;
-  const seenTrackIds = new Set<string>();
-  const normalizedTracks = trackList.map((track, index) => {
-    let nextId = track.id.trim().length > 0 ? track.id : `voice-${index + 1}`;
-    if (seenTrackIds.has(nextId)) {
-      nextId = `${nextId}-${index + 1}`;
+  const normalizedTracks = normalizeDeviceIds(hasTracks ? tracks : defaults.tracks, "voice", rawTracks);
+  const validTrackIds = new Set(normalizedTracks.map(track => track.id));
+  for (const track of normalizedTracks) {
+    if (track.syncToTrackId === track.id || (track.syncToTrackId !== null && !validTrackIds.has(track.syncToTrackId))) {
+      track.syncToTrackId = null;
     }
-    seenTrackIds.add(nextId);
-    return {
-      ...track,
-      id: nextId
-    };
-  });
-
-  const rollList = hasPianoRolls ? pianoRolls : defaults.pianoRolls;
-  const seenRollIds = new Set<string>();
-  const normalizedRolls = rollList.map((roll, index) => {
-    let nextId = roll.id.trim().length > 0 ? roll.id : `piano-${index + 1}`;
-    if (seenRollIds.has(nextId)) {
-      nextId = `${nextId}-${index + 1}`;
-    }
-    seenRollIds.add(nextId);
-    return {
-      ...roll,
-      id: nextId
-    };
-  });
-
-  const controllerList = hasMidiControllers ? midiControllers : defaults.midiControllers;
-  const seenControllerIds = new Set<string>();
-  const normalizedControllers = controllerList.map((controller, index) => {
-    let nextId = controller.id.trim().length > 0 ? controller.id : `cc-${index + 1}`;
-    if (seenControllerIds.has(nextId)) {
-      nextId = `${nextId}-${index + 1}`;
-    }
-    seenControllerIds.add(nextId);
-    return {
-      ...controller,
-      id: nextId
-    };
-  });
-
-  const seenControllerSequencerIds = new Set<string>();
-  const normalizedControllerSequencers = controllerSequencers.map((controllerSequencer, index) => {
-    let nextId =
-      controllerSequencer.id.trim().length > 0 ? controllerSequencer.id : `cc-seq-${index + 1}`;
-    if (seenControllerSequencerIds.has(nextId)) {
-      nextId = `${nextId}-${index + 1}`;
-    }
-    seenControllerSequencerIds.add(nextId);
-    return {
-      ...controllerSequencer,
-      id: nextId,
-      keypoints: normalizeControllerCurveKeypoints(controllerSequencer.keypoints)
-    };
-  });
-
-  const seenArpeggiatorIds = new Set<string>();
-  const normalizedArpeggiators = arpeggiators.map((arpeggiator, index) => {
-    let nextId = arpeggiator.id.trim().length > 0 ? arpeggiator.id : `arp-${index + 1}`;
-    if (seenArpeggiatorIds.has(nextId)) {
-      nextId = `${nextId}-${index + 1}`;
-    }
-    seenArpeggiatorIds.add(nextId);
-    return {
-      ...arpeggiator,
-      id: nextId
-    };
-  });
-
-  const seenDrummerTrackIds = new Set<string>();
-  const normalizedDrummerTracks = drummerTracks.map((track, index) => {
-    let nextId = track.id.trim().length > 0 ? track.id : `drum-${index + 1}`;
-    if (seenDrummerTrackIds.has(nextId)) {
-      nextId = `${nextId}-${index + 1}`;
-    }
-    seenDrummerTrackIds.add(nextId);
+  }
+  const normalizedRolls = normalizeDeviceIds(hasPianoRolls ? pianoRolls : defaults.pianoRolls, "piano", rawPianoRolls);
+  const normalizedControllers = normalizeDeviceIds(hasMidiControllers ? midiControllers : defaults.midiControllers, "cc", rawMidiControllers);
+  const normalizedControllerSequencers = normalizeDeviceIds(controllerSequencers, "cc-seq", sequencer.controllerSequencers)
+    .map(controller => ({ ...controller, keypoints: normalizeControllerCurveKeypoints(controller.keypoints) }));
+  const normalizedArpeggiators = normalizeDeviceIds(arpeggiators, "arp", sequencer.arpeggiators);
+  const normalizedDrummerTracks = normalizeDeviceIds(drummerTracks, "drum", sequencer.drummerTracks).map(track => {
     const rows = cloneDrummerSequencerRows(track.rows);
-    return {
-      ...track,
-      id: nextId,
-      rows,
-      pads: cloneDrummerSequencerPads(track.pads).map((pad) => alignDrummerPadRowsToTrackRows(pad, rows))
-    };
+    return { ...track, rows, pads: cloneDrummerSequencerPads(track.pads).map(pad => alignDrummerPadRowsToTrackRows(pad, rows)) };
   });
 
   const scoreTracks = (Array.isArray(sequencer.scoreTracks) ? sequencer.scoreTracks : []).map((t, i) => normalizeScoreTrack(t, i + 1, timing));

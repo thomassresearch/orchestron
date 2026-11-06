@@ -32,6 +32,24 @@ describe("app store sequencer behavior", () => {
     useAppStore.setState(initialState, true);
   });
 
+  it("repairs colliding imported IDs so a note edit targets only one track", () => {
+    const initial = useAppStore.getState().sequencer;
+    useAppStore.getState().applySequencerConfigSnapshot({ version: 22, instruments: [], sequencer: {
+      ...initial, tracks: ["a", "a-3", "a"].map((id, index) => ({ ...initial.tracks[0], id, name: `Track ${index + 1}` }))
+    } });
+    expect(useAppStore.getState().error).toBeNull();
+    const before = useAppStore.getState().sequencer;
+    expect(new Set(before.tracks.map(track => track.id)).size).toBe(3);
+    useAppStore.getState().setSequencerTrackStepNote("a-3", 0, 77);
+    const edited = useAppStore.getState().sequencer;
+    expect(edited.tracks[1].steps[0].note).toBe(77);
+    expect(edited.tracks[0].steps[0]).toEqual(before.tracks[0].steps[0]);
+    expect(edited.tracks[2].steps[0]).toEqual(before.tracks[2].steps[0]);
+    const saved = useAppStore.getState().buildSequencerConfigSnapshot();
+    useAppStore.getState().applySequencerConfigSnapshot(saved);
+    expect(useAppStore.getState().sequencer.tracks.map(track => track.id)).toEqual(edited.tracks.map(track => track.id));
+  });
+
   it("keeps transport-only synchronization out of sequencer configuration", () => {
     const sequencerBefore = useAppStore.getState().sequencer;
     const trackId = sequencerBefore.tracks[0].id;
