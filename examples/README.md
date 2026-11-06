@@ -129,6 +129,12 @@ Its example includes a native instrument, editable graph and reproducible previe
 
 ## Import a performance (Performance -> Import)
 
+The version-controlled native performance bundles use the clip arranger (performance
+format v23). They open directly in the new arranger, including when its preview flag
+is off. The original legacy bundles remain available in Git history; the accompanying
+score JSON files remain composition inputs. Large bundles use compact JSON to stay
+within the import size limit.
+
 1. Open the **Perform** tab.
 2. Click **Import** (in the performance/instrument rack area).
 3. Select a file from `examples/performances/`.
