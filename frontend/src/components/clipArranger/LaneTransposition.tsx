@@ -11,20 +11,22 @@ import { clipButton } from './ClipArranger';
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
 
 /** Header height stays unchanged so structural drag/drop hit testing stays aligned. */
-export function LaneTransposeBadge({ target, name, index, offset, width, language, onOpen }: {
-  target: OccurrenceTarget; name: string; index: number; offset: PitchOffset; width: number;
+export function LaneTransposeBadge({ target, name, index, offset, width, language, onOpen, compact = false }: {
+  target: OccurrenceTarget; name: string; index: number; offset: PitchOffset; width: number; compact?: boolean;
   language: GuiLanguage; onOpen: (target: OccurrenceTarget, trigger: HTMLButtonElement) => void;
 }) {
+  const scale = compact ? 0.5 : 0.75;
   const c = transposeCopy(language), key = draftKey({target});
   const dirty = useAppStore(s=>!!s.clipDrafts[key]?.transposeEdits?.length);
   const active = offset.diatonicSteps !== 0 || offset.chromaticSemitones !== 0;
   const values = [offset.diatonicSteps ? `D${signed(offset.diatonicSteps)}` : '', offset.chromaticSemitones ? `C${signed(offset.chromaticSemitones)}` : ''].filter(Boolean).join(' ');
   const description = `${c.title}: ${name} · ${c.repeat} ${index+1} · ${c.effective}: ${signed(offset.diatonicSteps)} ${c.diatonic} · ${signed(offset.chromaticSemitones)} ${c.chromatic}${dirty ? ` · ${c.draft}` : ''}`;
   return <button type="button" data-transpose-target={JSON.stringify(target)} data-transpose-active={active} aria-label={description} title={`${description}. ${c.laneHelp}`} aria-haspopup="dialog"
-    className={`pointer-events-auto relative z-30 flex h-5 min-w-7 max-w-[60%] shrink-0 items-center justify-center gap-1 truncate rounded border px-1 font-mono text-xs font-semibold leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${dirty?'border-amber-400 bg-amber-950 text-amber-100':active?'border-indigo-300 bg-indigo-800 text-white':'border-indigo-400/70 bg-indigo-950 text-indigo-100 hover:border-indigo-200 hover:bg-indigo-800'}`}
+    style={{height:20*scale,minWidth:28*scale,gap:4*scale,paddingInline:4*scale,fontSize:12*scale}}
+    className={`pointer-events-auto relative z-30 flex max-w-[60%] shrink-0 items-center justify-center truncate rounded border font-mono font-semibold leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${dirty?'border-amber-400 bg-amber-950 text-amber-100':active?'border-indigo-300 bg-indigo-800 text-white':'border-indigo-400/70 bg-indigo-950 text-indigo-100 hover:border-indigo-200 hover:bg-indigo-800'}`}
     onPointerDown={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()} onContextMenu={e=>{e.preventDefault();e.stopPropagation();}}
     onClick={e=>{e.stopPropagation();onOpen(target,e.currentTarget);}}>
-    <span aria-hidden="true" className="text-lg leading-none">↕</span>{active && values.length*7.25+36 <= width*.6 && <span>{values}</span>}{dirty?'*':''}
+    <span aria-hidden="true" className="leading-none" style={{fontSize:18*scale}}>↕</span>{active && (values.length*7.25+36)*scale <= width*.6 && <span>{values}</span>}{dirty?'*':''}
   </button>;
 }
 

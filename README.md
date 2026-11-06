@@ -127,7 +127,7 @@ Draw longer polyphonic passages in the **[Score Sequencer](documentation/perform
 
 ![Score Sequencer with a vertical piano keyboard, independent note durations and eight pattern pads](screenshots/score-sequencer.jpg)
 
-Use [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes) to turn a shared pattern into a progression. Patterns, groups and supergroups support diatonic steps and chromatic semitones, with shared repetition settings and independent parent or placement offsets. Expanded tracks have larger, clearly outlined **+** and **↕** buttons for inserting content and editing transposition, with separate space for content names and unchanged box sizes. Timeline previews show the resulting pitches while the original notes remain editable.
+Use [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes) to turn a shared pattern into a progression. Patterns, groups and supergroups support diatonic steps and chromatic semitones, with shared repetition settings and independent parent or placement offsets. Expanded tracks have clearly outlined **+** and **↕** buttons for inserting content and editing transposition, with separate space for content names and unchanged box sizes. Collapsed tracks use smaller transposition buttons. Timeline previews show the resulting pitches while the original notes remain editable.
 
 ![Larger add-content and transpose controls in the expanded arranger](screenshots/clip-arranger-content-controls.png)
 

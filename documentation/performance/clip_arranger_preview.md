@@ -106,7 +106,7 @@ Cross-repetition selection applies to content directly inside one clip. Nested s
 
 Use **Add content** or the **+** insertion markers before, between or after boxes to search the track's existing definitions. **Adopt linked** retains sharing; **Create variation** gives the inserted definition its own identity. The picker also offers **New pattern** and explicit rests. Unused saved definitions remain available. Double-click an empty area or rest inside a clip to open the same picker at the clicked position, snapped to a quarter master beat. Inside a group or supergroup, the insertion belongs to that container. Existing content stays in place; an insertion that overlaps it is rejected. Content headers still open their editors on double-click, and automation curves retain their point-editing gestures.
 
-Expanded tracks keep the cyan **+** insertion buttons fully visible, with larger symbols and wider click targets. Content names, indigo **↕** transposition buttons and the final **+** each have their own space in the header. The content boxes retain their dimensions and timing positions.
+Expanded tracks keep the cyan **+** insertion buttons fully visible with 21 × 15 px targets. Collapsed tracks use smaller 14 × 10 px transposition buttons. Content names, indigo **↕** transposition buttons and the final **+** each have their own space in the header. The content boxes retain their dimensions and timing positions.
 
 ![Larger insertion and transposition buttons without changing content-box sizes](../../screenshots/clip-arranger-content-controls.png)
 
