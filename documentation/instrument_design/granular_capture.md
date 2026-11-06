@@ -38,7 +38,7 @@ A four-beat pattern at 120 BPM with four steps per beat can use:
 | Capture, CC22 | 13: 127; 14: 0 |
 | Granular, CC23 | 11: 127; 16: 0 |
 
-The [reproducible example](../../examples/instruments/granular_capture/README.md) includes the matching API sequencer configuration. Sequencer start/stop and finite endings send Reset Value. Pad changes and loops hold the current value. A controller stopped with a nonzero Reset Value can leave an effect active. Muted controller lanes do not send their reset; release the corresponding CC manually or restart the rack. A separately running Manual pads controller also remains independent of Arranger Stop.
+The [reproducible example](../../examples/instruments/granular_capture/README.md) includes the matching API sequencer configuration. Sequencer start/stop and finite endings send Reset Value. Pad changes and loops hold the current value. A controller stopped with a nonzero Reset Value can leave an effect active. Muted controller lanes do not send their reset; release the corresponding CC manually or restart the rack.
 
 ## Performance settings
 

@@ -6,15 +6,15 @@ Controller Sequencers automate MIDI CC values using editable curves or discrete 
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
-See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility.
+See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and editing behavior.
 
-## Collapse the Panel
+## Open and close the editor
 
-The controller group collapses independently of melodic and drummer sequencers. Its header and Add button remain available even when empty; adding a controller sequencer expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+Double-click a pattern in the arranger to open its editor. **Close editor** returns to the timeline and retains its draft. Closing the editor ends **Play edit** auditioning; the song's transport remains independent.
 
 ## What A Controller Sequencer Does
 
-A controller sequencer sends timed MIDI Control Change messages on its selected channels. **Curve Mode** (the default) samples an editable curve. **Step Mode** sends an integer at each populated grid cell. The mode applies to all eight pads; switching modes preserves both datasets on every pad.
+A controller sequencer sends timed MIDI Control Change messages on its selected channels. **Curve Mode** (the default) samples an editable curve. **Step Mode** sends an integer at each populated grid cell. The mode applies to every pattern on the track; switching modes preserves both datasets.
 
 Typical uses:
 
@@ -25,16 +25,13 @@ Typical uses:
 
 ## Adding / Removing Controller Sequencers
 
-- `Add Controller Sequencer` creates a new controller sequencer card
-- A performance can contain up to 16 generic controller sequencers; instrument-bound automation shares the clip arranger’s 72-lane total
-- Each controller sequencer has a `Remove` button
+Choose **Add track → Controller** in the arranger, then add a clip and a pattern. Select a clip on the track to access **Remove track**. A performance can contain up to 16 controller sequencers.
 
 ## Per-Controller-Sequencer Controls
 
 Each controller sequencer provides:
 
 - Running/stopped state badge
-- `Start` / `Stop` enable toggle; can be used manually while the multitrack arranger is stopped
 - `Controller #` (`0..127`)
 - **MIDI Channels** checkboxes, 1–16 in one row beside `Clear Steps`
 - `Meter` (`2..7` over `4` or `8`)
@@ -48,9 +45,9 @@ Each controller sequencer provides:
 
 ### MIDI Channels
 
-Check the channels that receive the sequencer's CC messages. All 16 are checked by default (OMNI); at least one must remain checked. The row scrolls horizontally on narrow screens. This is a device setting shared by all its pads.
+Check the channels that receive the sequencer's CC messages. All 16 are checked by default (OMNI); at least one must remain checked. The row scrolls horizontally on narrow screens. This is a track setting shared by all its patterns.
 
-Channel edits use the same 80 ms live-edit synchronization as curve edits and take effect at the next engine block without restarting transport or losing queued pads. In Curve Mode, the current curve value is sent to the new selection; removed channels retain their last received value. In Step Mode, departing CC/channel pairs receive Reset Value, newly targeted pairs receive Reset Value, and continuing pairs hold their state until the next populated step.
+Channel edits use the same 80 ms live-edit synchronization as curve edits and take effect at the next engine block without restarting transport. In Curve Mode, the current curve value is sent to the new selection; removed channels retain their last received value. In Step Mode, departing CC/channel pairs receive Reset Value, newly targeted pairs receive Reset Value, and continuing pairs hold their state until the next populated step.
 
 Selections survive Save/Load Performance, browser reload, native JSON/ZIP export/import, and both CSD export modes. Older performances without the setting load with all 16 channels checked.
 
@@ -64,13 +61,11 @@ This defines the pattern repeat length relative to the controller sequencer's ow
 
 In the clip arranger, **Generate automation** creates controller lanes from the instrument rack’s CC assignments. These lanes lock routing to the rack instance and support song-length curves with at most ten points. Curve duration uses master beats independently of the retained Step Mode grid. See [Instrument automation clips](instrument_automation.md) for inline editing, Save/Discard and mapping changes.
 
-## Pattern Workspace
+## Edit patterns in the arranger
 
-The **Playback source** toggle chooses **Arrangement** or **Manual pads**. New controller sequencers use Manual pads until their first item is placed on an arranger lane, which selects Arrangement. Later choices are saved with the performance. **Loop song** in the arranger controls repeating or stopping at the song end.
+Double-click a pattern inside an expanded clip to open this editor. The breadcrumb identifies the occurrence being edited. **Play edit** auditions its draft; during song playback, other tracks continue. **Save** lets you update **Only this occurrence** or **All linked occurrences**. Cancel keeps the draft.
 
-The always-visible workspace sits beside the musical controls, or below them on narrow screens. Drag pads into it, select several with Cmd/Ctrl-click, then Group or Supergroup. Reorder by dragging, split through the context menu, and Apply shared phrase changes explicitly. See [Pattern Workspace](pattern_pads_and_pad_looper.md#pattern-workspace) for editing, deletion and retained drafts.
-
-Play loops the displayed assembly and outlines its current pad, phrase or rest. Hold a speaker for 250 ms to temporarily override it; release resumes the workspace at its current position. Stop restores prior playback. Both modes and channel routing remain effective. In Curve Mode, two zero-valued endpoints alone look empty; additional points or nonzero values highlight the pad. In Step Mode, any populated visible cell highlights it, including zero. Copying a pad copies both datasets. **Clear Steps** clears only the displayed pad in the selected mode.
+Assemble patterns, groups, supergroups and rests directly inside clips. See [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md) for linked content, variations and structural editing.
 
 ## Step Editor and Reset Value
 
@@ -80,7 +75,7 @@ Live playback and CSD (MIDI) retain those repeated messages. CSD (SCORE) can omi
 
 **Reset Value** is sent for the chosen CC on the selected channels on start and stop, including finite endings. It is sent before the first step and notes at the start position. Starting in an empty part of the pattern waits for the next populated step. Choose a value appropriate to the controlled parameter: zero is the default, not a universal neutral setting for every CC.
 
-A seek during playback sends Reset Value, then continues from the new position without replaying earlier cells. A stopped seek sends nothing. Normal pad changes, loops and arrangement rests hold the last received value without resetting. Workspace/speaker previews initialize on entry and reset when restoring prior playback at its existing phase. Arranger controls leave independently running Manual pads alone.
+A seek during playback sends Reset Value, then continues from the new position without replaying earlier cells. A stopped seek sends nothing. Pattern changes, loops and arrangement rests hold the last received value without resetting. **Play edit** initializes the controller on entry and resets it when restoring playback.
 
 Entering Step Mode while running initializes Reset Value. Leaving it resets the old step output before the curve takes over. Editing Reset Value takes effect on the next reset. Reset messages obey lane mute/solo, and only address the selected CC/channel pairs; no automatic “Reset All Controllers” message is sent. Sources sharing a CC/channel still use last-message-wins behavior.
 
@@ -112,10 +107,6 @@ when it should repeat without a value jump. Repeating a pad with different endpo
 values deliberately returns to its start value. Matching endpoint values does not
 guarantee matching curve slopes.
 
-![Independent curve endpoints](../../screenshots/perform_controller_curve_independent.png)
-
-![Endpoint snapping with the amber guide and value indicator](../../screenshots/perform_controller_curve_snap.png)
-
 Save/load, native bundles and MIDI/SCORE exports retain independent endpoint values.
 Existing closed curves keep their shape; an omitted end point still defaults to the
 start value. Curve playback continues to send only changed CC values.
@@ -134,20 +125,14 @@ This makes it easy to understand exactly what value is being sent at each transp
 - Controller sequencers run alongside melodic sequencers on the same backend transport clock.
 - Curve and step edits are combined after an 80 ms editing pause and prepared while the previous configuration keeps playing. They take effect at the next engine block without resetting transport. The editor modifies the displayed pad even when the arranger selected it automatically.
 - See [Editing During Playback](live_status_and_safety_controls.md#editing-during-playback) for failure handling and transport behavior.
-- Pad clicks select the editing pad. While Manual pads is running, clicking another pad also queues it at the end of the current pattern: orange marks it while queued, then blue-green marks it when playing. Launch pad also queues the selected pad; the separate speaker previews it after a 250 ms hold.
+- Open the pattern you want to edit, then use **Play edit** to audition its draft.
 - You can combine automated controller sequencers with manual MIDI controller knob lanes on the same performance page.
 - If you automate the same CC number from multiple sources, the last-sent value wins at the MIDI receiver side (plan mappings accordingly).
 
-## Screenshots
+## Inline automation editing
 
-<p align="center">
-  <img src="../../screenshots/perform_controller_sequencer_step_editor.png" alt="Controller sequencer in Step Mode with sparse values and Reset Value" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Step Mode sends each populated cell, including zero and repeated values; empty cells hold the last value.</em></p>
+Controller curves can also be edited directly inside an expanded clip. See [Instrument automation](instrument_automation.md) for generating curves tied to rack controls.
 
-<p align="center">
-  <img src="../../screenshots/perform_controller_sequencer_curve_editor.png" alt="Controller sequencer curve editor" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Controller sequencer with curve editor, CC configuration, and playback indicator.</em></p>
+![Controller curves inside the arranger](../../screenshots/clip-arranger-instrument-automation.png)
 
 **Navigation:** [Up](performance.md) | [Prev](multitrack_arranger.md) | [Next](arpeggiators.md)

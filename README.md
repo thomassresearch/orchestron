@@ -13,7 +13,7 @@ Sequencers offer meter, per-pad pattern length and named subdivisions, including
 
 Explore the [interactive architecture animation](documentation/orchestron_architecture_animated.html) to follow a patch from the editor to native Csound and browser playback. Download the HTML and open it in a browser; it works offline.
 
-Double-click the clip arranger to create an empty four-beat clip, then use its inline **+** to add content. Move content into gaps, copy it between compatible tracks, and resize patterns directly in expanded tracks with live size and duration feedback. Trailing rests can be shortened at their right edge; clip trimming preserves hidden content and pending edits. See the [clip arranger guide](documentation/performance/clip_arranger_preview.md).
+Double-click the clip arranger to create an empty four-beat clip, then use its inline **+** to add content. Move content into gaps, copy it between compatible tracks, and resize patterns directly in expanded tracks with live size and duration feedback. Trailing rests can be shortened at their right edge; clip trimming preserves hidden content and pending edits. See the [clip arranger guide](documentation/performance/multitrack_arranger.md).
 
 ## Built With Codex
 
@@ -107,7 +107,7 @@ Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compil
 
 ## Build patterns and arrangements
 
-Build a song in the redesigned **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips, or move **Zoom** all the way left to see the whole song, including trailing silence.
+Build a song in the default **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips, or move **Zoom** all the way left to see the whole song, including trailing silence.
 
 ![The First Pulse of a New Machine in the redesigned multitrack arranger, with compact tracks, note previews, transposition badges and automation at position 160](screenshots/perform_multitrack_arranger_redesigned.jpg)
 
@@ -115,11 +115,7 @@ Build a song in the redesigned **multitrack arranger**, with melodic, score, dru
 
 Choose **Add track**, then double-click empty lane space to create a four-beat clip. Its inline **+** adds a new pattern, reusable content or a rest. Drag a clip header to move it and its borders to trim its window; the inspector accepts exact start, length and source-offset values. **Once** plays the content once, while **Loop** repeats it within that window. Trimming preserves the underlying content, and **Fit clip to content** explicitly matches the window to its contents. Moving or removing a clip leaves the other clips in place.
 
-Arranger buttons follow the app’s action colors: green adds or plays, red removes or discards, orange edits or stops, and mint saves or applies. Navigation and cancel/close actions stay neutral.
-
-![Action colors in the multitrack arranger](screenshots/clip-arranger-button-colors.png)
-
-Assemble phrases directly inside expanded tracks. Shift-click or Shift+Left/Right selects adjacent content, including across repetitions within a clip. Group patterns and rests, nest groups in supergroups, and reuse them elsewhere. **Duplicate** appends linked content after the last musical item, using trailing silence first. Double-click a pattern to open its sequencer in context; **Play edit** auditions the draft with the rest of the arrangement. **Save** lets you change **Only this occurrence** or **All linked occurrences**, so a variation can stay local or become a shared phrase. See the [clip arranger guide](documentation/performance/clip_arranger_preview.md) for the development preview, migration and editing details.
+Assemble phrases directly inside expanded tracks. Shift-click or Shift+Left/Right selects adjacent content, including across repetitions within a clip. Group patterns and rests, nest groups in supergroups, and reuse them elsewhere. **Duplicate** appends linked content after the last musical item, using trailing silence first. Double-click a pattern to open its sequencer in context; **Play edit** auditions the draft with the rest of the arrangement. **Save** lets you change **Only this occurrence** or **All linked occurrences**, so a variation can stay local or become a shared phrase. See the [clip arranger guide](documentation/performance/multitrack_arranger.md) for editing details.
 
 Use **Play**, **Pause**, **Stop** and the one-beat rewind/forward controls to work on a passage. Enter a destination in **Position** to seek in master beats; the ruler shows bars and beats. **Loop** repeats the selected clip's time window across all tracks, or the whole song when no clip is selected. **Song end** makes trailing silence explicit, and **Fit song to clips** moves that boundary to the last clip. Play starts stopped instruments automatically; Stop stops those instruments again, while instruments already running before Play stay running.
 
@@ -131,7 +127,7 @@ Draw longer polyphonic passages in the **[Score Sequencer](documentation/perform
 
 ![Score Sequencer with a vertical piano keyboard, independent note durations and eight pattern pads](screenshots/score-sequencer.jpg)
 
-Use [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes) to turn a shared pattern into a progression. Patterns, groups and supergroups support diatonic steps and chromatic semitones, with shared repetition settings and independent parent or placement offsets. Expanded tracks have clearly outlined **+** and **↕** buttons for inserting content and editing transposition, with separate space for content names and unchanged box sizes. Collapsed tracks use smaller transposition buttons. Timeline previews show the resulting pitches while the original notes remain editable.
+Use [nondestructive transposition](documentation/performance/multitrack_arranger.md#transpose-clips-without-changing-notes) to turn a shared pattern into a progression. Patterns, groups and supergroups support diatonic steps and chromatic semitones, with shared repetition settings and independent parent or placement offsets. Expanded tracks have clearly outlined **+** and **↕** buttons for inserting content and editing transposition, with separate space for content names and unchanged box sizes. Collapsed tracks use smaller transposition buttons. Timeline previews show the resulting pitches while the original notes remain editable.
 
 ![Larger add-content and transpose controls in the expanded arranger](screenshots/clip-arranger-content-controls.png)
 
@@ -145,9 +141,7 @@ Program drum rolls with **1–8 ratchets per hit** and an optional velocity ramp
 
 Strum melodic chords **Low → High** or **High → Low**, with a tempo-synced **Spread of 0–100%** of one step. At 100%, the last note starts at the next step; each note keeps its duration and can overlap later steps. Right-click a note or chord, press **Shift+F10**, or use its **⋮** button to open Timing and Strum together. See [strummed chords](documentation/performance/sequencer_tracks_and_steps.md#strummed-chords).
 
-![Melodic step properties with Timing, strum direction and spread, and compact badges in the grid](screenshots/perform_melodic_strum.png)
-
-Explore the [clip arranger guide](documentation/performance/clip_arranger_preview.md), [sequencer editing](documentation/performance/sequencer_tracks_and_steps.md) and [instrument automation](documentation/performance/instrument_automation.md). Existing pad-based performances retain the [compatibility arranger](documentation/performance/multitrack_arranger.md) and [pattern-pad workflow](documentation/performance/pattern_pads_and_pad_looper.md). The [Performance Creator CLI](integrations/skills/orchestron-performance-creator/references/song_workflow.md) can also author clip arrangements and shared content, including [strum settings](integrations/skills/orchestron-performance-creator/references/step_strum.md).
+Explore the [clip arranger guide](documentation/performance/multitrack_arranger.md), [sequencer editing](documentation/performance/sequencer_tracks_and_steps.md) and [instrument automation](documentation/performance/instrument_automation.md). The [Performance Creator CLI](integrations/skills/orchestron-performance-creator/references/song_workflow.md) can also author clip arrangements and shared content, including [strum settings](integrations/skills/orchestron-performance-creator/references/step_strum.md).
 
 ## Perform and shape the mix
 

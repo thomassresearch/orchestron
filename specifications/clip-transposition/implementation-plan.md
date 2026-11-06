@@ -154,7 +154,7 @@ Browser tests complete all primary user workflows with correct sharing, saved ro
 
 Run the complete [acceptance matrix](acceptance.md). Record exact commands, versions, fixture identities, failures and any unperformed checks in an implementation record. Do not mark a gate complete based on a simulated playhead, stale compiled binary or unrelated historical benchmark.
 
-Update README capabilities without changing its protected opening or **Built With Codex** section. Update the English [clip preview guide](../../documentation/performance/clip_arranger_preview.md), relevant sequencer/score/arpeggiator/import-export pages, integrated help and new screenshots under `screenshots/`. Keep the user manual English-only. When updating manual source or its PDF, use the available VisualCSound documentation-PDF skill and render/inspect affected pages.
+Update README capabilities without changing its protected opening or **Built With Codex** section. Update the English [arranger guide](../../documentation/performance/multitrack_arranger.md), relevant sequencer/score/arpeggiator/import-export pages, integrated help and new screenshots under `screenshots/`. Keep the user manual English-only. When updating manual source or its PDF, use the available VisualCSound documentation-PDF skill and render/inspect affected pages.
 
 Update [AGENTS.md](../../AGENTS.md) and [BACKEND.md](../../BACKEND.md) with concise current contracts/version references once implementation is real; do not put a planned feature into their current-behavior sections now. Link to detailed implementation contracts rather than duplicating this whole package.
 

@@ -1,4 +1,25 @@
-# Integrated preview implementation record
+# Clip arranger implementation record
+
+## Default activation — 2026-11-06
+
+The clip arranger now opens on first launch and **New** without an opt-in flag.
+`VITE_CLIP_ARRANGER=0` at frontend startup/build time selects legacy creation and
+hides conversion; Docker builds accept the same build argument and default to `1`.
+Saved legacy configurations remain legacy, with explicit **Convert to clip arranger**
+and the existing backup download. Saved clip configurations still open as clips
+under either setting. The initial format comes from one shared feature check;
+normalization/import does not infer or change it from the environment.
+
+This user-requested activation supersedes the opt-in status below; historical
+acceptance evidence and outstanding hardware/stress qualifications remain as recorded.
+
+Verification: frontend lint, all 1,374 tests in 118 files, TypeScript and the
+production build passed. Docker frontend builds passed both with the default and
+`--build-arg VITE_CLIP_ARRANGER=0`. Isolated production-component browser checks
+confirmed new clip creation, legacy creation under the override, saved clip
+reopening under the override, and conversion backup/import recovery. Regression
+tests also cover fresh bootstrap, persisted-state restoration and localized
+conversion controls. The default empty arranger screenshot is in the user guide.
 
 Current follow-up: [implemented fixes, verification and remaining acceptance](acceptance-follow-up.md).
 
@@ -76,7 +97,7 @@ Measured runtime render/audio ratios (median) were 0.002/0.005/0.007 at 16/64/12
 
 The production app was served against an isolated FastAPI/Csound instance, with a fixture-derived nested performance and a versioned test instrument. Play song automatically started instruments, opened the browser-clock PCM WebSocket and produced nonzero rendered audio. Play edit used the actual melodic editor/runtime. Song Play/Stop left editor audition active; Stop edit ended it. The existing manual-controller Start/Stop and keyboard Stop controls were also exercised; instruments were stopped after verification. This is actual engine/browser integration, distinct from the UI-only harness and deterministic MIDI event tests. It is not a subjective listening assessment or a hardware MIDI test.
 
-The UI harness at `frontend/tests/performance/clip-arranger.html` uses production components and a versioned performance fixture. It is for reproducible layout/interaction inspection, not simulated evidence of audio correctness. Screenshots show compact lanes, expanded supergroup/group/pattern containment, the contextual editor, scope choices and input rows. Native save/add dialogs support Escape and focus restoration. A 600-pixel viewport review exposed an inline-curve sizing issue, which was fixed. Cropped pointer verification also exposed stale SVG resize coordinates; a regression test now proves a visible midpoint in the 50–100% crop adds a point at source position 75%, including the short inline height. The English manual PDF was rebuilt (54 source documents collected, 195 PDF pages); preview pages 31–34 were rendered and visually inspected. Markdown links and `git diff --check` pass. See the [user guide](../../documentation/performance/clip_arranger_preview.md).
+The UI harness at `frontend/tests/performance/clip-arranger.html` uses production components and a versioned performance fixture. It is for reproducible layout/interaction inspection, not simulated evidence of audio correctness. Screenshots show compact lanes, expanded supergroup/group/pattern containment, the contextual editor, scope choices and input rows. Native save/add dialogs support Escape and focus restoration. A 600-pixel viewport review exposed an inline-curve sizing issue, which was fixed. Cropped pointer verification also exposed stale SVG resize coordinates; a regression test now proves a visible midpoint in the 50–100% crop adds a point at source position 75%, including the short inline height. The English manual PDF was rebuilt (54 source documents collected, 195 PDF pages); preview pages 31–34 were rendered and visually inspected. Markdown links and `git diff --check` pass. See the [user guide](../../documentation/performance/multitrack_arranger.md).
 
 ## Remaining gates before default cutover
 

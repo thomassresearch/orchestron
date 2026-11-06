@@ -60,7 +60,7 @@ bootstrap/autosave. `measure-clip-arranger.js` checks normal/200% text at three
 widths, asserts that sticky headers leave visible timeline space, and measures
 16 versus 16,000 beats. `verify-clip-accessibility.js` checks emulated touch,
 accessible control names, dialog width and focus return in all four languages.
-`verify-clip-recovery.js` needs `VITE_CLIP_ARRANGER=1` and a fresh browser context
+`verify-clip-recovery.js` uses the default clip-enabled build and a fresh browser context
 for its actual backup download; it restores through the production config reader.
 
 For audio, start a separate backend with temporary storage (repository root):
@@ -76,7 +76,7 @@ VISUALCSOUND_FORCE_MOCK_ENGINE=false \
 In another terminal, from `frontend/`:
 
 ```sh
-PROFILE_BACKEND_URL=http://127.0.0.1:8029 VITE_PROFILE_AUDIO=1 VITE_CLIP_ARRANGER=1 \
+PROFILE_BACKEND_URL=http://127.0.0.1:8029 VITE_PROFILE_AUDIO=1 \
 node node_modules/vite/bin/vite.js --config tests/performance/vite.config.mjs --port 5180
 ```
 

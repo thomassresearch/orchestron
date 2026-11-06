@@ -1,4 +1,5 @@
 import { automationRouting, mappedControls, reconcileAutomation } from "../lib/clipArranger/automation";
+import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { useAutomationMerge } from "../lib/clipArranger/automationMerge";
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
 import { resolveClipDrafts } from "../lib/clipArranger/draftResolution";
@@ -53,8 +54,7 @@ import {
   defaultParams,
   defaultSequencerInstruments,
   defaultSequencerState,
-  defaultPianoRoll,
-  emptyPerformanceSequencerState,
+  newPerformanceSequencerState,
   hasPersistableStateChange,
   hydrateEmbeddedPerformancePatches,
   initialBrowserClockLatencySettings,
@@ -305,7 +305,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let activePage: AppPage = "instrument";
           let instrumentTabs: InstrumentTabState[] = [createInstrumentTab(currentPatch)];
           let activeInstrumentTabId = instrumentTabs[0].id;
-          let sequencer = defaultSequencerState();
+          let sequencer = isClipArrangerEnabled() ? newPerformanceSequencerState() : defaultSequencerState();
           let restoredHistory = readArrangerHistory(undefined, sequencer);
           let sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
           let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch);
@@ -605,11 +605,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     newPerformanceWorkspace: async () => {
       if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts, true)) return;
       if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
-      const nextSequencer = emptyPerformanceSequencerState();
-      if (import.meta.env.VITE_CLIP_ARRANGER === "1") {
-        nextSequencer.clipArrangement = { version: 1, revision: 0, end: 20160 * 16, lanes: [] };
-        nextSequencer.pianoRolls = [defaultPianoRoll()];
-      }
+      const nextSequencer = newPerformanceSequencerState();
       set({
         performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
         sequencerEditingPads: {},

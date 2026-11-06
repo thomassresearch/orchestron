@@ -8,11 +8,11 @@ This page covers the **melodic sequencer** editor. Drum-machine style programmin
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
-See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping, editing behavior and legacy compatibility.
+See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and editing behavior.
 
-## Collapse the Panel
+## Open and close the editor
 
-Melodic, drummer, and controller groups collapse independently. The shared tempo remains above the groups. Each group has its own Add button, which expands it. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+Double-click a pattern in the arranger to open its editor. **Close editor** returns to the timeline and retains its draft. Closing the editor ends **Play edit** auditioning; the song's transport remains independent.
 
 ## Global Sequencer Clock
 
@@ -25,18 +25,13 @@ The backend runs the step timing (native runtime clock), which reduces browser t
 
 ## Adding / Removing Melodic Sequencers
 
-- `Add Melodic Sequencer` creates a new melodic sequencer card
-- `Add Drummer Sequencer` creates a drummer sequencer card (documented separately in [Drummer Sequencers](drummer_sequencers.md))
-- A performance can contain up to 16 melodic sequencers
-- Each melodic sequencer has its own `Remove` button
+Choose **Add track → Melodic** in the arranger, then add a clip and a pattern. Select a clip on the track to access **Remove track**. A performance can contain up to 16 melodic sequencers.
 
 ## Per-Sequencer Controls
 
-Each melodic sequencer card provides:
+The melodic pattern editor provides:
 
 - sequencer state badge (running/stopped or queued start/stop state)
-- `Start` / `Stop` (sequencer enable state; can be used manually while the multitrack arranger is stopped)
-- `Remove`
 - `Clear Steps`
 - `MIDI Channel` (`1..16`)
 - `Scale` (root + scale type)
@@ -78,11 +73,11 @@ Orchestron separates:
 
 This supports guided note entry and better readability in the sequencer step editor and piano roll highlighting.
 
-## Pattern Workspace
+## Edit patterns in the arranger
 
-The **Playback source** toggle selects **Arrangement** or **Manual pads**. New sequencers use Manual pads; placing their first item on an arranger lane selects Arrangement automatically. Later source choices are saved with the performance. The arranger’s **Loop song** toggle controls repeating or stopping at the song end.
+Double-click a pattern inside an expanded clip to open this editor. The breadcrumb identifies the occurrence being edited. **Play edit** auditions its draft; during song playback, other tracks continue. **Save** lets you update **Only this occurrence** or **All linked occurrences**. Cancel keeps the draft.
 
-The upper-right [pattern workspace](pattern_pads_and_pad_looper.md) assembles pads and reusable phrases with drag-and-drop. Cmd/Ctrl-click selects items to group; right-click splits groups. Apply commits shared phrase edits explicitly. Play loops the whole workspace; hold a speaker for 250 ms to preview an individual pad or phrase until release. Only pads with a note above zero velocity are green; rests, holds without notes and zero-velocity patterns stay dark. Selection outlines remain separate. With Manual pads running, click another pattern pad to queue it for the end of the current pattern: its outline is orange while queued and blue-green once playing. While stopped or using Arrangement, clicks only select the editing pad.
+Assemble patterns, groups, supergroups and rests directly inside clips. See [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md) for linked content, variations and structural editing.
 
 ## Step Editor (Per-Step Note Programming)
 
@@ -160,21 +155,16 @@ Select a note and chord to enable Strum. Removing the chord or changing the note
 
 The panel edits the displayed pad and closes on pad changes, collapse, removal, New/Load/Import, or Escape. Direction, spread and timing edits to a strum already in progress apply on its next occurrence; live HOLD edits still update its release. Same-pad repeats can carry delayed notes across their boundary. Stops, seeks, a different pad, arrangement rests and finite endings cancel unfinished strums and release their notes.
 
-![Step properties above the melodic grid, with timing, direction, spread and per-step badges](../../screenshots/perform_melodic_strum.png)
-
 ## Clear Steps
 
 `Clear Steps` resets the current melodic sequencer step contents (for the active pad pattern context) so you can quickly reprogram it.
 
 ## Related Features
 
-- Pattern pads (#1..#8), queued pad switching, pad copying, transposition, and phrase library and arranger controls are documented in [Pattern Pads and Reusable Phrases](pattern_pads_and_pad_looper.md).
+- Linked patterns, local variations, transposition and grouping are documented in [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md).
 
 ## Screenshots
 
-<p align="center">
-  <img src="../../screenshots/perform_sequencer_track_step_editor_detail.png" alt="Melodic sequencer step editor detail" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Melodic sequencer detail showing step editing, note selection, octave, and hold controls.</em></p>
+![Melodic pattern editor with occurrence breadcrumb, draft controls and step grid](../../screenshots/melodic-pattern-editor.png)
 
 **Navigation:** [Up](performance.md) | [Prev](audio_mixer_and_routing.md) | [Next](drummer_sequencers.md)

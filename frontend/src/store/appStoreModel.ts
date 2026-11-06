@@ -1,4 +1,5 @@
 import { readAutomationTarget } from "../lib/clipArranger/automation";
+import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { readClipHistory } from "../lib/clipArranger/operations";
 import { clipHistoryForPersistence } from "../lib/clipArranger/history";
 import { sourceKeys } from "../lib/clipArranger/migration";
@@ -1683,6 +1684,15 @@ export function emptyPerformanceSequencerState(): SequencerState {
     pianoRolls: [],
     midiControllers: []
   };
+}
+
+export function newPerformanceSequencerState(): SequencerState {
+  const sequencer = emptyPerformanceSequencerState();
+  if (isClipArrangerEnabled()) {
+    sequencer.clipArrangement = { version: 1, revision: 0, end: 20160 * 16, lanes: [] };
+    sequencer.pianoRolls = [defaultPianoRoll()];
+  }
+  return sequencer;
 }
 
 export function performanceDeviceCount(sequencer: SequencerState): number {

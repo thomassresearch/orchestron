@@ -48,6 +48,22 @@ from backend.app.services.sequencer_timing_migration import migrate_sequencer_ti
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
+def test_renderer_baseline_keeps_single_worker_and_canonical_compile(tmp_path, monkeypatch):
+    from backend.app.engine.csound_worker import CsoundWorker
+
+    monkeypatch.delenv("VISUALCSOUND_REALTIME_RENDERER", raising=False)
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Single renderer baseline")
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert type(runtime.worker) is CsoundWorker
+        assert runtime.worker.audio_output_mode == "browser_clock"
+        assert "<CsoundSynthesizer>" in runtime.compile_artifact.csd
+        assert not any("partition" in key.lower() for key in runtime.compile_artifact.manifest)
+        assert client.post(f"/api/sessions/{session}/stop").status_code == 200
+        assert client.post(f"/api/sessions/{session}/start").status_code == 200
+        assert type(runtime.worker) is CsoundWorker
+
+
 @pytest.mark.parametrize("logging_enabled", [False, True])
 def test_session_uses_configured_csound_performance_logging(tmp_path, monkeypatch, logging_enabled):
     monkeypatch.setenv("VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING", str(logging_enabled).lower())

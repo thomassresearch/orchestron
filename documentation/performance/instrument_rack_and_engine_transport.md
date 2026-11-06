@@ -86,7 +86,7 @@ Buttons:
 
 These start/stop the underlying instrument engine session.
 
-Global arrangement transport lives in the multitrack arranger section. Its `Rewind`, `Stop`, `Play`, and `Fast forward` buttons control Arrangement-source devices and move the song cursor in `1-beat` blocks. Arranger `Play` starts all Arrangement-source devices and preserves independently playing Manual pads. Arranger `Stop` stops Arrangement devices and clears temporary audition/workspace playback while preserving independent Manual pads and the instrument engine. `Stop Instruments` stops the engine. Double-clicking arranger `Stop` resets the song cursor to the selected loop start or step `0`, preserving manual pad phase. Device Play can start its chosen source and the engine while the arranger stays stopped; see [Playback source and audition](pattern_pads_and_pad_looper.md#playback-source-and-audition).
+Global song transport lives in the [multitrack arranger](multitrack_arranger.md#play-and-jam). **Play** starts or resumes, **Pause** holds the song cursor, and **Stop** returns to the loop start or song start. Rewind and forward move one master beat. Play starts instruments when needed; Stop stops instruments started by Play, while instruments that were already running remain running. **Stop Instruments** stops the engine. Use **Play edit** to audition a pattern or phrase.
 
 ## Session State Badge
 

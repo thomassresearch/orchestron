@@ -1,10 +1,10 @@
 async page => {
-  // Run against the fixture server started with VITE_CLIP_ARRANGER=1.
+  // Run against the fixture server with the default clip arranger enabled.
   await page.reload();
   await page.waitForFunction(()=>window.__clipTest);
   await page.evaluate(()=>{const app=window.__clipTest.store,s=structuredClone(app.getState().sequencer);delete s.clipArrangement;delete s.clipHistory;app.setState({sequencer:s});window.__recoveryOriginal=app.getState().buildSequencerConfigSnapshot();});
   const pending=page.waitForEvent('download');
-  await page.getByRole('button',{name:'Multitrack arranger · Preview',exact:true}).click();
+  await page.getByRole('button',{name:'Convert to clip arranger',exact:true}).click();
   const download=await pending;await download.saveAs('/tmp/arranger-original-recovery.json');
   const migrated=await page.evaluate(()=>window.__clipTest.store.getState().sequencer.clipArrangement.version);
   await page.evaluate(()=>{const i=document.createElement('input');i.type='file';i.id='recovery-fixture';document.body.append(i);});

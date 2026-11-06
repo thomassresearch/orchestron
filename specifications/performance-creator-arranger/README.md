@@ -30,7 +30,7 @@ Use the existing arranger's musical and persistence contracts. Keep the current 
 The current app remains the semantic authority for editing operations. Source and current implementation records take precedence over older preview prose. In particular, shared transposition and instrument automation are already implemented in the app; this project exposes them to the agent workflow.
 
 - [Repository working rules](../../AGENTS.md) and [backend contracts](../../BACKEND.md).
-- [Clip arranger implementation record](../redesign-arranger/implementation-record.md) and [user workflow](../../documentation/performance/clip_arranger_preview.md).
+- [Clip arranger implementation record](../redesign-arranger/implementation-record.md) and [user workflow](../../documentation/performance/multitrack_arranger.md).
 - [Transposition implementation record](../clip-transposition/implementation-record.md) and [acceptance scenarios](../clip-transposition/acceptance.md).
 - [Instrument automation](../../documentation/performance/instrument_automation.md).
 - [Performance Creator skill](../../integrations/skills/orchestron-performance-creator/SKILL.md) and [plugin packaging procedure](../../integrations/README.md).

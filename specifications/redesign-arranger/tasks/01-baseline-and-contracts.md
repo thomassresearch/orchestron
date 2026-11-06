@@ -10,7 +10,7 @@ Evidence and remaining work: [implementation record](../implementation-record.md
 
 A reviewed set of behavior contracts, representative fixtures and editor-integration seams that lets the redesign proceed without guessing about musical features or legacy data. This task does not change the default performance UI or saved formats.
 
-Read [intent](../intent-and-scope.md), [UI design](../ui-design.md), [contracts](../data-and-playback-contracts.md), root [AGENTS.md](../../../AGENTS.md), [arranger documentation](../../../documentation/performance/multitrack_arranger.md) and the type-specific editor references before implementation.
+Read [intent](../intent-and-scope.md), [UI design](../ui-design.md), [contracts](../data-and-playback-contracts.md), root [AGENTS.md](../../../AGENTS.md), [original arranger contracts](../legacy-arranger-reference.md) and the type-specific editor references before implementation.
 
 ## Work
 
