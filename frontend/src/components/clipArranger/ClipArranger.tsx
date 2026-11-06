@@ -1,3 +1,4 @@
+import { PositionInput } from "./PositionInput";
 import { structureDropLayout, structureEmptyInsertionAt, STRUCTURE_TREE_TOP } from '../../lib/clipArranger/structureHitTest';
 import { structureCopy } from './structureCopy';
 import { addOffsets, offsetAt } from "../../lib/clipArranger/transposition";
@@ -167,7 +168,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
   };
   return <section className="mt-4 min-w-0 rounded-xl border border-slate-700 bg-slate-950/85 p-3" aria-label={c.title}>
     <div className="mb-3 flex flex-wrap items-center gap-2"><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}
-      {onSeek && <label className="text-xs text-slate-400">{c.position} <input className={clipInput} type="number" min={0} step={.25} key={Math.floor(position / Q)} defaultValue={Math.round(position / Q * 100) / 100} onBlur={e => onSeek(Math.round(Number(e.target.value) * 8))} /></label>}
+      {onSeek && <label className="text-xs text-slate-400">{c.position} <PositionInput key={generation} className={clipInput} beats={position / Q} onSeek={onSeek} /></label>}
       {onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} title={selectedClip ? c.loopClip : c.loopSong} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : selectedClip ? { startStep: selectedClip.start / 2520, endStep: (selectedClip.start + selectedClip.length) / 2520 } : { startStep: 0, endStep: model.end / 2520 })}>{c.loop}</button>}
       <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="12" max="100" value={zoom} onChange={e => setZoom(Number(e.target.value))} /></label>
       {onAddLane && <label className="text-xs text-slate-400">{c.newLane} <select className={clipInput} value="" onChange={e => onAddLane(e.target.value as ClipLane["source"])}><option value="">+</option>{Object.keys(sourceKeys).map(kind => <option key={kind} value={kind}>{c[kind === "sequencer" ? "melodic" : kind as Exclude<ClipLane["source"], "sequencer">]}</option>)}</select></label>}

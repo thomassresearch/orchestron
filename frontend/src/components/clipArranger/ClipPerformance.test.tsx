@@ -25,6 +25,50 @@ beforeEach(() => {
   HTMLDialogElement.prototype.close = function () { this.open = false; };
 });
 
+it.each(["Enter", "blur"])("retains a Position draft across playback ticks and commits once on %s", action => {
+  const seek = vi.fn();
+  render(<ClipPerformance language="english" renderEditor={() => null} onSeek={seek} />);
+  const input = screen.getByRole("spinbutton", { name: "Position" }) as HTMLInputElement;
+  act(() => input.focus());
+  fireEvent.change(input, { target: { value: "32" } });
+  for (let beat = 1; beat <= 3; beat++) {
+    act(() => useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
+      isPlaying: true, arrangerActive: true, arrangerTransportSubunit: beat * 20160 } })));
+    expect(screen.getByRole("spinbutton", { name: "Position" })).toBe(input);
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("32");
+  }
+  if (action === "Enter") fireEvent.keyDown(input, { key: "Enter" });
+  else act(() => input.blur());
+  expect(seek).toHaveBeenCalledExactlyOnceWith(32 * 8);
+  fireEvent.blur(input);
+  expect(seek).toHaveBeenCalledTimes(1);
+});
+
+it.each(["Escape", "", "-1"])("cancels invalid or dismissed Position edits (%s)", value => {
+  const seek = vi.fn();
+  render(<ClipPerformance language="english" renderEditor={() => null} onSeek={seek} />);
+  const input = screen.getByRole("spinbutton", { name: "Position" }) as HTMLInputElement;
+  act(() => input.focus());
+  fireEvent.change(input, { target: { value: value === "Escape" ? "32" : value } });
+  act(() => useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime, arrangerTransportSubunit: 20160 } })));
+  if (value === "Escape") fireEvent.keyDown(input, { key: "Escape" });
+  else act(() => input.blur());
+  expect(seek).not.toHaveBeenCalled();
+  expect(input.value).toBe("1");
+});
+
+it("discards a Position draft when replacing the performance workspace", () => {
+  const seek = vi.fn();
+  render(<ClipPerformance language="english" renderEditor={() => null} onSeek={seek} />);
+  const input = screen.getByRole("spinbutton", { name: "Position" }) as HTMLInputElement;
+  act(() => input.focus());
+  fireEvent.change(input, { target: { value: "32" } });
+  act(() => useAppStore.setState(state => ({ performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1 })));
+  expect((screen.getByRole("spinbutton", { name: "Position" }) as HTMLInputElement).value).toBe("0");
+  expect(seek).not.toHaveBeenCalled();
+});
+
 it("uses the looping song cursor instead of the advancing shared clock and toggles a visible clip loop", () => {
   const lane = useAppStore.getState().sequencer.clipArrangement!.lanes[0], clip = lane.clips[0];
   openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });

@@ -68,6 +68,10 @@ Arpeggiator **Play edit** waits for incoming notes or a chord on its input chann
 
 Loading selects a clip even when looping is off: a matching saved loop takes priority, then a clip at the cursor, then the earliest clip. Tracks stay compact and the editor stays closed. Explicitly clearing the selection stays cleared through Play, Stop and Rewind. You can toggle the loop without reopening its editor. See the [restored loop selection](../../screenshots/clip-arranger-restored-loop.png).
 
+**Position** accepts a seek destination in master beats. While you edit it, playback continues without replacing your text or moving focus. Press Enter or leave the field to seek once; Escape cancels and resumes displaying the current song position. Empty or negative values are discarded. Loading or importing a performance clears an unfinished position edit.
+
+![Position draft retained while playback advances](../../screenshots/clip-arranger-position-edit.png)
+
 **Song end** shows the actual playback boundary in master beats, marked by a dashed amber line. Moving or shortening clips retains trailing silence. To stop at the last clip instead, press **Fit song to clips**, or enter a Song end at or beyond the final clip. This is an undoable arrangement edit, saved with the performance; it does not cut off clips. Position and Song end use master beats, while the ruler uses bar/beat labels.
 
 ![Explicit song end and fitting to the last clip](../../screenshots/clip-arranger-song-end.png)
