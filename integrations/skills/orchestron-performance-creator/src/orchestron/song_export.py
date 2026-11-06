@@ -46,6 +46,11 @@ def command(args, ctx):
     }
     route, payload = "/bundles/export/performance", bundle
     if args.mode != "native":
+        # This is an isolated export copy. Undo snapshots do not affect audio,
+        # but can overflow the CSD request limit alongside the runtime score.
+        sequencer = config.get("sequencer", {})
+        sequencer.pop("clipHistory", None)
+        config.pop("arrangerHistory", None)
         route = "/bundles/export/performance-csd"
         payload = {
             "performanceExport": bundle,

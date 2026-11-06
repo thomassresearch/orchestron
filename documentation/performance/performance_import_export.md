@@ -51,6 +51,11 @@ The Performance page provides two offline Csound render exports:
 - `Export CSD (SCORE)` creates a ZIP with the performance notes and controller sweeps embedded as Csound score events.
 - Both CSD export modes seed enabled manual MIDI Controller lane values at time 0 on their selected MIDI channels (all 16 by default).
 
+Both modes omit arranger Undo/Redo history from the render request so editing
+snapshots do not consume its size budget. The current music and arrangement are
+preserved. Saved performances, staged CLI drafts and native exports retain their
+history.
+
 Both modes select instruments by device assignment and mixer routing:
 
 - Include rack instances whose MIDI channel is assigned to a melodic sequencer, drummer sequencer, piano-roll keyboard or arpeggiator output. An arpeggiator input alone is not an instrument assignment.

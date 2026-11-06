@@ -42,6 +42,52 @@ def test_native_export_zip_suffix_produces_importable_archive(tmp_path, monkeypa
         assert json.loads(archive.read("performance.orch.json"))["performance"]["config"] == config
 
 
+@pytest.mark.parametrize("mode", ["native", "midi", "score"])
+def test_csd_export_omits_history_without_changing_staged_or_native_config(tmp_path, monkeypatch, mode):
+    import json
+    from types import SimpleNamespace
+    from orchestron.song_export import command as export_command
+
+    config = all_sources()
+    config["sequencer"]["clipHistory"] = {
+        "version": 2, "cursor": 0, "basis": copy.deepcopy(config["sequencer"]["clipArrangement"]), "entries": []
+    }
+    config["arrangerHistory"] = {"version": 1, "cursor": 0, "basis": [], "entries": []}
+    session = {"name": "With history", "config": config}
+    original = copy.deepcopy(session)
+    draft = tmp_path / "draft.json"
+    cli.save_edit_session(draft, session)
+    draft_bytes = draft.read_bytes()
+    captured = []
+
+    class Client:
+        def download(self, path, payload):
+            captured.append((path, payload))
+            return json.dumps(payload).encode()
+
+    monkeypatch.setattr(cli, "ApiClient", lambda *a, **k: Client())
+    monkeypatch.setattr(cli, "load_edit_session", lambda _: session)
+    monkeypatch.setattr(cli, "validate_edit_session", lambda *a: {})
+    export_command(SimpleNamespace(output=str(tmp_path / "export.json"), mode=mode),
+                   cli.CliContext(api_url="test", timeout=1, json_output=True, debug=False, session_file=draft))
+
+    route, payload = captured[0]
+    expected = copy.deepcopy(original["config"])
+    if mode == "native":
+        assert route == "/bundles/export/performance"
+        assert payload["performance"]["config"] == expected
+    else:
+        assert route == "/bundles/export/performance-csd"
+        assert payload["eventSource"] == ("midiFile" if mode == "midi" else "score")
+        assert payload["sequencerConfig"] == cli.build_runtime_config(expected)
+        assert payload["midiControllers"] == expected["sequencer"].get("midiControllers", [])
+        del expected["sequencer"]["clipHistory"]
+        del expected["arrangerHistory"]
+        assert payload["performanceExport"]["performance"]["config"] == expected
+    assert session == original
+    assert draft.read_bytes() == draft_bytes
+
+
 def test_all_five_sources_more_than_eight_definitions_validate_with_backend():
     from backend.app.models.performance import MasterRepairRequest
     from backend.app.models.session import SessionSequencerConfigRequest

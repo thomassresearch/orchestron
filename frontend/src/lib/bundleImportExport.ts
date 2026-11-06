@@ -214,6 +214,7 @@ export function buildPerformanceExportPayload(params: {
   selectedPatches: Patch[];
   performanceName: string;
   performanceDescription: string;
+  purpose?: "native" | "csd";
 }): { exportedPerformanceName: string; payload: PerformanceExportPayload } {
   const patchDefinitions: ExportedPatchDefinition[] = params.selectedPatches.map((patch) => ({
     sourcePatchId: patch.id,
@@ -227,13 +228,21 @@ export function buildPerformanceExportPayload(params: {
   }));
 
   const patchNameById = new Map(patchDefinitions.map((patch) => [patch.sourcePatchId, patch.name]));
+  const sequencer = { ...params.snapshot.sequencer };
   const exportConfig: SequencerConfigSnapshot = {
     ...params.snapshot,
+    sequencer,
     instruments: params.snapshot.instruments.map((instrument) => ({
       ...instrument,
       patchName: patchNameById.get(instrument.patchId) ?? instrument.patchName
     }))
   };
+  if (params.purpose === "csd") {
+    // Undo snapshots are editing metadata, and can exceed the CSD request limit
+    // when combined with the runtime score. Preserve them in native bundles.
+    delete sequencer.clipHistory;
+    delete exportConfig.arrangerHistory;
+  }
 
   const exportedPerformanceName =
     params.performanceName.trim().length > 0 ? params.performanceName.trim() : DEFAULT_EXPORTED_PERFORMANCE_NAME;

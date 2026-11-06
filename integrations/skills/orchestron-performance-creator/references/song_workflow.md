@@ -101,6 +101,8 @@ An HTTP acknowledgment is not proof that sound has reached the speaker.
 `edit export --mode native|midi|score --output /work/new-file.orch.zip` exports the
 staged authored music through the backend. MIDI and SCORE modes create CSD
 archives with the existing render instructions; they do not render audio.
+Their requests omit clip and legacy arranger Undo/Redo history to preserve the
+request size budget for music. Staged drafts and native exports retain history.
 Existing output files are preserved. Export does not commit or include auditions.
 
 For a saved revision, run `edit begin --performance NAME_OR_ID`, inspect, make a

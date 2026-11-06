@@ -1169,7 +1169,8 @@ export default function App() {
       snapshot,
       selectedPatches,
       performanceName,
-      performanceDescription
+      performanceDescription,
+      purpose
     }) };
   }, [buildSequencerConfigSnapshot, performanceDescription, performanceName]);
 
