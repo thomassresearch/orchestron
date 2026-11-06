@@ -6,7 +6,7 @@ import { draftKey } from '../../lib/clipArranger/editorAdapter';
 import { useAppStore } from '../../store/useAppStore';
 import { TransposeInspector } from './TransposeInspector';
 import { transposeCopy } from './transposeCopy';
-import { clipButton } from './ClipArranger';
+import { clipButton } from "./buttonStyles";
 
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
 

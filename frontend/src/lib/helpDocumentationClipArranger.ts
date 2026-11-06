@@ -8,6 +8,8 @@ Choose **Add track** for a Melodic, Score, Drummer, Controller or Arpeggiator la
 
 Drag a clip header to move its window and its edges to trim it. Start, length and source offset use master beats. **Once** plays content once, then leaves silence; **Loop** repeats it inside the fixed window. Trimming retains hidden content. **Fit clip to content** explicitly changes the window. Moving or deleting a clip leaves other clips in place; clips on the same lane cannot overlap.
 
+Buttons: green adds or plays, red removes or discards, orange edits or stops, and mint saves or applies. Navigation, Cancel and Close stay neutral.
+
 ### Edit and save
 
 Double-click a pattern, or focus its name and press Enter, to open its musical editor. **Play edit** auditions the draft. **Save** asks for **Only this occurrence** (the default, creating a local variation) or **All linked occurrences**. Cancel keeps the draft. Groups and supergroups share reusable definitions. **Save structure** commits their assembly separately from musical edits.
@@ -24,6 +26,8 @@ Use **↕** to transpose patterns, groups or supergroups without changing their 
 Mit **Spur hinzufügen** eine Melodie-, Score-, Drummer-, Controller- oder Arpeggiator-Spur erstellen. Instrument und MIDI-Kanal im Rack zuweisen. Den Spurkopf anklicken, um die Spur aufzuklappen. Ein Doppelklick auf freie Zeitleistenfläche oder das **+** der Spur erstellt einen leeren Clip mit vier Schlägen; sein internes **+** fügt Patterns, Gruppen, Supergruppen oder Pausen hinzu.
 
 Den Clip-Kopf ziehen, um sein Fenster zu verschieben; die Ränder ziehen, um es zu beschneiden. Start, Länge und Quellversatz verwenden Master-Schläge. **Einmal** spielt den Inhalt einmal und lässt danach Stille; **Schleife** wiederholt ihn im festen Fenster. Beschneiden erhält verborgene Inhalte. **Clip an Inhalt anpassen** ändert das Fenster ausdrücklich. Verschieben oder Löschen lässt andere Clips an ihrer Position; Clips derselben Spur dürfen sich nicht überlappen.
+
+Schaltflächen: Grün fügt hinzu oder spielt ab, Rot entfernt oder verwirft, Orange bearbeitet oder stoppt und Mintgrün speichert oder übernimmt. Navigation, Abbrechen und Schließen bleiben neutral.
 
 ### Bearbeiten und speichern
 
@@ -42,6 +46,8 @@ Choisissez **Ajouter une piste** mélodique, de partition, de batterie, de contr
 
 Glissez l’en-tête d’un clip pour déplacer sa fenêtre et ses bords pour la rogner. Début, durée et décalage de source utilisent les temps maîtres. **Une fois** joue le contenu une fois, puis laisse du silence ; **Boucle** le répète dans la fenêtre fixe. Rogner conserve le contenu masqué. **Ajuster le clip au contenu** modifie explicitement la fenêtre. Déplacer ou supprimer un clip laisse les autres en place ; les clips d’une même piste ne peuvent pas se chevaucher.
 
+Boutons : vert pour ajouter ou lire, rouge pour supprimer ou abandonner, orange pour modifier ou arrêter, vert menthe pour enregistrer ou appliquer. Navigation, Annuler et Fermer restent neutres.
+
 ### Modifier et enregistrer
 
 Double-cliquez sur un motif, ou focalisez son nom et appuyez sur Entrée, pour ouvrir son éditeur musical. **Écouter le brouillon** permet de l’auditionner. **Enregistrer** propose **Cette occurrence seulement** (par défaut, crée une variation locale) ou **Toutes les occurrences liées**. Annuler conserve le brouillon. Groupes et supergroupes partagent des définitions réutilisables. **Enregistrer la structure** valide leur assemblage séparément des modifications musicales.
@@ -58,6 +64,8 @@ Utilisez **↕** pour transposer motifs, groupes ou supergroupes sans modifier l
 Elige **Añadir pista** melódica, de partitura, batería, controlador o arpegiador. Asigna su instrumento y canal MIDI en el rack. Haz clic en la cabecera de pista para expandirla. Haz doble clic en un espacio vacío de la línea temporal o usa el **+** de la pista para crear un clip vacío de cuatro pulsos; su **+** interno añade patrones, grupos, supergrupos o silencios.
 
 Arrastra la cabecera de un clip para mover su ventana y sus bordes para recortarla. Inicio, duración y desplazamiento de origen usan pulsos maestros. **Una vez** reproduce el contenido una vez y después deja silencio; **Bucle** lo repite dentro de la ventana fija. Recortar conserva el contenido oculto. **Ajustar clip al contenido** cambia la ventana explícitamente. Mover o eliminar un clip deja los demás en su sitio; los clips de una misma pista no pueden solaparse.
+
+Botones: verde para añadir o reproducir, rojo para eliminar o descartar, naranja para editar o detener y verde menta para guardar o aplicar. Navegación, Cancelar y Cerrar mantienen un estilo neutro.
 
 ### Editar y guardar
 

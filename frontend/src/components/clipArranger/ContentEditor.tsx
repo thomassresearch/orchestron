@@ -4,7 +4,8 @@ import { newClipId, type ClipLane, type PatternDefinition } from "../../lib/clip
 import type { StructureCommand, StructureNode } from "../../lib/clipArranger/structure";
 import { sourceKeys } from "../../lib/clipArranger/migration";
 import { defaultArpeggiator, defaultControllerSequencerPad, defaultDrummerSequencerPads, defaultSequencerPads } from "../../store/appStoreModel";
-import { clipButton, clipInput } from "./ClipArranger";
+import { clipInput } from "./ClipArranger";
+import { clipButton, clipButtonClass } from "./buttonStyles";
 import { clipCopy } from "./copy";
 
 export function newStructurePattern(lane: ClipLane, sequencer: SequencerState, language: GuiLanguage): PatternDefinition {
@@ -34,14 +35,14 @@ export function ContentEditor({ lane, nodes, path, name, level, sequencer, langu
       <input type="checkbox" aria-label={`${c.choose}: ${node.definition?.name ?? c.rest} ${index + 1}`} checked={selected.includes(node.id)} onChange={e => setSelected(e.target.checked ? [...selected,node.id] : selected.filter(id=>id!==node.id))}/>
       <span className="mr-auto">{node.definition ? `${c[node.definition.kind]} · ${node.definition.name}` : `${c.rest} · ${(node.restTicks??0)/20160}`}</span>
       {([-1,1] as const).map(direction=><button key={direction} className={clipButton} aria-label={direction<0?c.up:c.down} disabled={index+direction<0||index+direction>=nodes.length} onClick={()=>onCommand({kind:'move',parent:path,ids:[node.id],target:{path,index:direction<0?index-1:index+2}})}>{direction<0?'←':'→'}</button>)}
-      {node.children&&<button className={clipButton} onClick={()=>onCommand({kind:'ungroup',parent:path,ids:[node.id]})}>{c.ungroup}</button>}
-      <button className={clipButton} onClick={()=>onCommand({kind:'remove',parent:path,ids:[node.id]})}>{c.removeContent}</button>
+      {node.children&&<button className={clipButtonClass("edit")} onClick={()=>onCommand({kind:'ungroup',parent:path,ids:[node.id]})}>{c.ungroup}</button>}
+      <button className={clipButtonClass("remove")} onClick={()=>onCommand({kind:'remove',parent:path,ids:[node.id]})}>{c.removeContent}</button>
     </div>)}
     <div className="flex flex-wrap items-center gap-2">
       <label>{c.addContent} <select className={`${clipInput} !w-48`} value="" onChange={e=>{const definition=valid.find(d=>d.id===e.target.value);if(definition)insert(definition);}}><option value="">—</option>{valid.map(d=><option key={d.id} value={d.id}>{d.name} · {c[d.kind]}</option>)}</select></label>
-      <button className={clipButton} onClick={()=>insert(newStructurePattern(lane,sequencer,language))}>{c.newPattern}</button>
-      <button className={clipButton} onClick={()=>onCommand({kind:'rest',target:{path,index:nodes.length},ticks:20160})}>{c.rest} +1</button>
-      {level==='supergroup'&&<button disabled={!selected.length} className={clipButton} onClick={()=>onCommand({kind:'group',parent:path,ids:selected,level:'group',name:`${c.group} ${lane.definitions.filter(d=>d.kind==='group').length+1}`})}>{c.group}</button>}
+      <button className={clipButtonClass("add")} onClick={()=>insert(newStructurePattern(lane,sequencer,language))}>{c.newPattern}</button>
+      <button className={clipButtonClass("add")} onClick={()=>onCommand({kind:'rest',target:{path,index:nodes.length},ticks:20160})}>{c.rest} +1</button>
+      {level==='supergroup'&&<button disabled={!selected.length} className={clipButtonClass("add")} onClick={()=>onCommand({kind:'group',parent:path,ids:selected,level:'group',name:`${c.group} ${lane.definitions.filter(d=>d.kind==='group').length+1}`})}>{c.group}</button>}
     </div>
   </div>;
 }

@@ -10,6 +10,12 @@ The top-right **?** opens help specifically for this clip workflow in the select
 
 ![Clip arranger integrated help](../../screenshots/clip-arranger-integrated-help.png)
 
+## Button colors
+
+Buttons use the same action colors as the rest of the app: green for adding, duplicating, grouping and playing; red for removing content, tracks or time and discarding drafts; orange for edits, resets, overwrite, Pause and Stop; and mint for Save and Apply. Navigation, Copy section, Cancel and Close stay neutral. Disabled actions are dimmed; keyboard focus and active playback/loop indicators remain visible. The colors apply in all four GUI languages.
+
+![Arranger action buttons and section controls](../../screenshots/clip-arranger-button-colors.png)
+
 ## Arrange fixed windows
 
 Unselected tracks stay compact. Click a track header to expand its clips into nested pattern, group and supergroup boxes. Drag a clip header to move it, or its borders to trim it; the inspector also accepts numeric start, length and source offset in master beats. Double-click empty lane space to create an empty four-master-beat Once clip immediately, snapped to quarter beats. The track **+** appends the same empty clip. Its inline **+** opens the content picker; inserted content replaces silence, preserving any remaining rest. Longer content can grow the window when space permits. Moves and deletion leave other clips in place. Overlap on the same lane is rejected.

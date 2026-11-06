@@ -5,7 +5,8 @@ import { generateAutomation, setAutomationCurveDuration } from "../../store/auto
 import { automationCandidates } from "../../lib/clipArranger/automation";
 import { useAutomationMerge } from "../../lib/clipArranger/automationMerge";
 import { useStructureDraft } from "../../lib/clipArranger/structureStore";
-import { clipButton, clipInput } from "./ClipArranger";
+import { clipInput } from "./ClipArranger";
+import { clipButton, clipButtonClass } from "./buttonStyles";
 import { automationCopy } from "./automationCopy";
 
 export function AutomationGenerator({ laneId, clipId, language }: { laneId: string; clipId: string; language: GuiLanguage }) {
@@ -17,7 +18,7 @@ export function AutomationGenerator({ laneId, clipId, language }: { laneId: stri
   if (state.sequencer.clipArrangement?.lanes.find(l => l.id === laneId)?.source === "controller") return null;
   return <div className="flex flex-wrap items-center gap-2">
     {candidates.length > 1 && <select aria-label={c.instrument} className={clipInput} value={id} onChange={e => setSelected(e.target.value)}>{candidates.map((b, index) => <option key={b.id} value={b.id}>{state.patches.find(p => p.id === b.patchId)?.name} #{index + 1} · MIDI {b.midiChannel}</option>)}</select>}
-    <button className={clipButton} disabled={!id} title={id ? c.generate : c.noTargets} onClick={() => {
+    <button className={clipButtonClass("add")} disabled={!id} title={id ? c.generate : c.noTargets} onClick={() => {
       try { if (useStructureDraft.getState().draft) throw new Error(c.saveDrafts); generateAutomation(laneId, clipId, id); setError(null); } catch (e) { setError(String(e)); }
     }}>{c.generate}</button>{error && <span role="alert" className="text-rose-300">{error}</span>}
   </div>;
@@ -32,7 +33,7 @@ export function AutomationDuration({ language }: { language: GuiLanguage }) {
   return <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-teal-200">
     <span>{c.points}: {draft.definition.payload.keypoints.length}/10</span>
     <label>{c.duration} <input aria-label={c.duration} className={clipInput} type="number" min={1 / 20160} max={1000000} step={.25} value={ticks / 20160} onChange={e => setAutomationCurveDuration(Math.round(Number(e.target.value) * 20160))} /></label>
-    <button className={clipButton} disabled={!clip} onClick={() => { if (clip) setAutomationCurveDuration(clip.length); }}>{c.fit}</button>
+    <button className={clipButtonClass("edit")} disabled={!clip} onClick={() => { if (clip) setAutomationCurveDuration(clip.length); }}>{c.fit}</button>
     <span>{c.locked} · MIDI {track.targetChannels[0]} · CC {track.controllerNumber}</span>
     {track.automationSuspended && <span role="status" className="text-amber-300">{c.suspended}</span>}
   </div>;

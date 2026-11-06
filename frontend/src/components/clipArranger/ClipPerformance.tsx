@@ -18,7 +18,8 @@ import { contentLength, resolveContent, patternDuration, QUARTER_TICKS } from ".
 import { clipEditorPlaybackView } from "../../lib/clipArranger/editorAdapter";
 import { useAppStore } from "../../store/useAppStore";
 import { clipHistoryStep, commitClipArrangement, openClipEditor, saveClipDraft, removeClipLane } from "../../store/clipActions";
-import { ClipArranger, clipButton } from "./ClipArranger";
+import { ClipArranger } from "./ClipArranger";
+import { clipButton, clipButtonClass } from "./buttonStyles";
 import { useStructureEditor } from "./StructureEditor";
 import { usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
 import { beginStructure, structureChildren } from "../../lib/clipArranger/structure";
@@ -147,12 +148,12 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
         onPointRemove={id => useAppStore.getState().removeControllerSequencerKeypoint(curve.id, id)} /></div>;
       }}
       inlineEditor={curve && !curve.automationTarget ? { laneId: curve.id, content: <InlineCurve track={curve} language={language} window={curveWindow} /> } : undefined}
-      transport={<>{transport}<button className={clipButton} disabled={!sequencer.clipHistory?.cursor} onClick={() => attempt(() => clipHistoryStep(false))}>{c.undo}</button><button className={clipButton} disabled={!sequencer.clipHistory || sequencer.clipHistory.cursor >= sequencer.clipHistory.entries.length} onClick={() => attempt(() => clipHistoryStep(true))}>{c.redo}</button></>} />
+      transport={<>{transport}<button className={clipButtonClass("edit")} disabled={!sequencer.clipHistory?.cursor} onClick={() => attempt(() => clipHistoryStep(false))}>{c.undo}</button><button className={clipButtonClass("edit")} disabled={!sequencer.clipHistory || sequencer.clipHistory.cursor >= sequencer.clipHistory.entries.length} onClick={() => attempt(() => clipHistoryStep(true))}>{c.redo}</button></>} />
     {draft && lane ? <section className="mt-2 rounded-xl border border-cyan-800 bg-slate-950/80 p-3" aria-label={c.path}>
       <header className="mb-3 flex flex-wrap items-center gap-2 text-xs"><span className="mr-auto text-cyan-100">{breadcrumb}</span>
         {active.current && <span role="status" className="text-cyan-200">{statuses[active.current.id]?.workspace_queued ? c.auditionQueued : c.auditioning}</span>}
         <span className="text-amber-200">{(draft.definition.kind==="pattern"?hasChangedClipDrafts(model,{current:draft}):!!structure.draft?.cursor)?c.unsaved:c.saved}</span>
-        <button className={clipButton} disabled={!auditioning&&draft.definition.kind!=="pattern"&&!container} onClick={() => { void (async () => {
+        <button className={clipButtonClass(auditioning ? "edit" : "add")} disabled={!auditioning&&draft.definition.kind!=="pattern"&&!container} onClick={() => { void (async () => {
           if (auditioning) { await stopEdit(); return; }
           const gesture = crypto.randomUUID();
           let played=draft;
@@ -163,11 +164,11 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
           active.current = { id: lane.id, gesture, key: draftKey(draft), last: draft };
           try { await audition?.(lane.id, { action: "workspace_start", gestureId: gesture, clipDraft: played }); if (active.current?.gesture === gesture) setAuditioning(true); }
           catch (e) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); }
-        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButton} disabled={draft.definition.kind!=="pattern"&&!structure.draft?.cursor} onClick={() => draft.definition.kind==="pattern"?setSaving(true):structure.openSave()}>{draft.definition.kind==="pattern"?c.save:t.save}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
+        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind!=="pattern"&&!structure.draft?.cursor} onClick={() => draft.definition.kind==="pattern"?setSaving(true):structure.openSave()}>{draft.definition.kind==="pattern"?c.save:t.save}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
       </header>
       <TransposeInspector key={key} language={language} stopAudition={stopEdit} />
       <AutomationDuration language={language} />
-      {curve?.automationTarget && <button className={`${clipButton} mb-2`} onClick={() => { void stopEdit().then(() => { const state = useAppStore.getState(); const remaining = { ...state.clipDrafts }; if (key) delete remaining[key]; useAppStore.setState({ clipDrafts: remaining, clipEditingKey: null }); }); }}>{automationCopy(language).discard}</button>}
+      {curve?.automationTarget && <button className={`${clipButtonClass("remove")} mb-2`} onClick={() => { void stopEdit().then(() => { const state = useAppStore.getState(); const remaining = { ...state.clipDrafts }; if (key) delete remaining[key]; useAppStore.setState({ clipDrafts: remaining, clipEditingKey: null }); }); }}>{automationCopy(language).discard}</button>}
       <p className="mb-2 text-[10px] text-slate-500">{c.laneSettings}</p>
       {draft.definition.kind === "pattern" ? <ClipEditingContext.Provider value>{renderEditor(draft.definition.source, lane.id, clipEditorPlaybackView(playback, draft, auditionDraft))}</ClipEditingContext.Provider>
         : container?.children ? <ContentEditor lane={lane} nodes={container.children} path={draft.target.path} name={container.definition!.name} level={draft.definition.kind} sequencer={sequencer} language={language} onCommand={command=>structure.run(command,{laneId:lane.id,clipId:draft.target.clipId,pass:draft.target.pass,parent:draft.target.path})}/> : <p>{t.containerRemoved}</p>}

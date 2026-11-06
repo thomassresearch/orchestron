@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { GuiLanguage, SequencerTimingConfig } from "../../types";
 import { contentLength, type ClipLane, type DefinitionDraft } from "../../lib/clipArranger/model";
 import { directLinks } from "../../lib/clipArranger/operations";
-import { clipButton, clipInput } from "./ClipArranger";
+import { clipInput } from "./ClipArranger";
+import { clipButton, clipButtonClass } from "./buttonStyles";
 import { clipCopy } from "./copy";
 
 export function SaveScopeDialog({ draft, lane, language, onSave, onCancel, timing, error, busy = false }: { error?: string | null; busy?: boolean; draft: DefinitionDraft; lane: ClipLane; language: GuiLanguage; timing?: SequencerTimingConfig; onSave: (scope: "local" | "all", name: string) => void; onCancel: () => void }) {
@@ -46,7 +47,7 @@ export function SaveScopeDialog({ draft, lane, language, onSave, onCancel, timin
       {windows.length > 0 && <div className="flex gap-1" aria-label={c.repeatImpact}>{windows.map(([start, end]) => <span key={start} className="rounded border border-cyan-800 px-2 py-1 text-xs" style={{ flex: end - start }}>{start / 20160}–{end / 20160}</span>)}</div>}
       {scope === "local" && clip?.mode === "loop" && <p className="text-xs text-amber-200">{c.repeatImpact}</p>}
       {error && <p role="alert" className="text-rose-300">{error}</p>}
-      <div className="flex justify-end gap-2"><button disabled={busy} type="button" className={clipButton} onClick={onCancel}>{c.cancel}</button><button disabled={busy} type="submit" className={`${clipButton} !border-cyan-500`}>{c.save}</button></div>
+      <div className="flex justify-end gap-2"><button disabled={busy} type="button" className={clipButton} onClick={onCancel}>{c.cancel}</button><button disabled={busy} type="submit" className={clipButtonClass("save")}>{c.save}</button></div>
     </form>
   </dialog>;
 }

@@ -7,7 +7,8 @@ import { readTransposePlan, transposeFingerprint, saveTransposeEdits, type Trans
 import { addOffsets, offsetAt, emptyOffsetPlan, type PitchOffset, type OffsetPlan } from '../../lib/clipArranger/transposition';
 import { logicalRepeatIndex, transposeContributions } from '../../lib/clipArranger/transposeModel';
 import { arrangementTimings } from '../../lib/clipArranger/migration';
-import { clipButton, clipInput } from './ClipArranger';
+import { clipInput } from "./ClipArranger";
+import { clipButtonClass } from "./buttonStyles";
 import { transposeCopy } from './transposeCopy';
 import { useTransposeStatus } from '../../lib/clipArranger/transposeStatus';
 import { buildSequencerStepChordMidiNotes } from '../../lib/sequencer';
@@ -80,11 +81,11 @@ export function TransposeInspector({ language, stopAudition, target, onSaved }: 
     <PendingTranspose laneId={lane.id} language={language}/>
     <ul className="space-y-1 text-slate-300">{contributions.map((entry,i) => {const pair=offsetAt(entry.plan,entry.repeatIndex??sourceIndex);return <li key={i}>{entry.owner} · {c[entry.scope]}: {signed(pair.diatonicSteps)} {c.diatonic} · {signed(pair.chromaticSemitones)} {c.chromatic}</li>;})}</ul>
     <div className="flex flex-wrap gap-2">
-      <button type="button" className={clipButton} onClick={()=>setPair({...amount,[component]:0})}>{c.resetComponent}</button>
-      {!base && <><button type="button" className={clipButton} onClick={()=>write({...plan,repetitions:plan.repetitions.filter(e=>e.index!==index)})}>{c.inherit}</button><button type="button" className={clipButton} onClick={()=>setPair({diatonicSteps:0,chromaticSemitones:0})}>{c.zero}</button></>}
-      <button type="button" className={clipButton} onClick={()=>write(emptyOffsetPlan())}>{c.reset}</button>
-      <button type="button" className={clipButton} disabled={!draft.transposeEdits?.length} onClick={()=>{void stopAudition().then(()=>{saveClipTransposition(key);setError('');onSaved?.();}).catch(e=>setError(String(e)));}}>{c.save}</button>
-      <button type="button" className={clipButton} disabled={!draft.transposeEdits?.length} onClick={()=>useAppStore.setState({clipDrafts:{...state.clipDrafts,[key]:{...draft,transposeEdits:undefined}}})}>{c.discard}</button>
+      <button type="button" className={clipButtonClass("edit")} onClick={()=>setPair({...amount,[component]:0})}>{c.resetComponent}</button>
+      {!base && <><button type="button" className={clipButtonClass("edit")} onClick={()=>write({...plan,repetitions:plan.repetitions.filter(e=>e.index!==index)})}>{c.inherit}</button><button type="button" className={clipButtonClass("edit")} onClick={()=>setPair({diatonicSteps:0,chromaticSemitones:0})}>{c.zero}</button></>}
+      <button type="button" className={clipButtonClass("edit")} onClick={()=>write(emptyOffsetPlan())}>{c.reset}</button>
+      <button type="button" className={clipButtonClass("save")} disabled={!draft.transposeEdits?.length} onClick={()=>{void stopAudition().then(()=>{saveClipTransposition(key);setError('');onSaved?.();}).catch(e=>setError(String(e)));}}>{c.save}</button>
+      <button type="button" className={clipButtonClass("remove")} disabled={!draft.transposeEdits?.length} onClick={()=>useAppStore.setState({clipDrafts:{...state.clipDrafts,[key]:{...draft,transposeEdits:undefined}}})}>{c.discard}</button>
       {!!draft.transposeEdits?.length && <span className="text-amber-200">{c.draft}</span>}
     </div>
     <p className="text-slate-400">{c.help} {lane.source==='arpeggiator'?c.arp:''} {c.live}</p>

@@ -1,3 +1,4 @@
+import { clipButtonTone } from "./buttonStyles";
 import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage } from "../../types";
 import { CassetteIcon } from "../sequencer/CassetteIcon";
@@ -20,7 +21,7 @@ export function ClipTransport({ language, copy, onPlay, onPause, onStop, onRewin
   ] as const;
   return <div className="flex max-w-full flex-wrap items-center gap-1.5">{actions.map(action => <button key={action.kind} type="button"
     title={action.label} aria-label={action.label} aria-pressed={"active" in action ? action.active : undefined}
-    onClick={action.run} className={"inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-400/50 bg-amber-400/10 text-amber-100 transition hover:bg-amber-400/20" + ("active" in action && action.active ? " ring-2 ring-amber-300 !bg-amber-300 !text-slate-950" : "")}>
+    onClick={action.run} className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 ${clipButtonTone[action.kind === "play" ? "add" : action.kind === "pause" || action.kind === "stop" ? "edit" : "neutral"]}${"active" in action && action.active ? action.kind === "play" ? " ring-2 ring-emerald-300 !bg-emerald-300 !text-slate-950" : " ring-2 ring-amber-300 !bg-amber-300 !text-slate-950" : ""}`}>
     <CassetteIcon kind={action.kind} />
   </button>)}</div>;
 }
