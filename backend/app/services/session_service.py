@@ -15,7 +15,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 from backend.app.core.config import Settings
-from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.renderer_factory import create_realtime_renderer
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.audio import MixerState, MixerUpdate, MixerStrip, MixerSend
 from backend.app.services.compiler_mixer import ResolvedMixerGraph, mixer_control_values, legacy_audio_graph, normalize_audio_inputs
@@ -169,7 +169,7 @@ class SessionService:
                 mixer=request.mixer,
                 preview_patches=preview_patches or {},
                 midi_input=default_midi,
-                worker=CsoundWorker(
+                worker=create_realtime_renderer(
                     gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
                     csound_performance_logging=self._settings.csound_performance_logging,
                 ),

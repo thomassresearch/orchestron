@@ -1,6 +1,6 @@
 # Persistent Csound process implementation plan
 
-Status: proposed, 2026-11-06. This is planning documentation, not implemented behavior. All tasks and gates are pending. Read the [scope and decisions](README.md) and [acceptance plan](acceptance.md) together.
+Status: T01–T03 delivered; updated 2026-11-07. T04–T08 remain pending. This document defines the implementation sequence; the [implementation record](implementation-record.md) identifies executed work and limits. Read the [scope and decisions](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) together. Parallel rendering is not enabled.
 
 ## 1. Outcome and invariants
 
@@ -24,7 +24,7 @@ Full core utilization is not an acceptance criterion. A serial critical path, sm
 | Responsibility | Current source and integration constraint |
 | --- | --- |
 | Session lifecycle and browser render requests | [session_service.py](../../backend/app/services/session_service.py); preserve lifecycle locking and controller lease checks |
-| Session renderer ownership | [session_runtime.py](../../backend/app/engine/session_runtime.py); replace the concrete worker annotation with a tested renderer interface |
+| Session renderer ownership | [session_runtime.py](../../backend/app/engine/session_runtime.py); owns one `RealtimeRenderer`, currently constructed as the original single worker through the shared factory |
 | Native rendering, controls, MIDI and render boundaries | [csound_worker.py](../../backend/app/engine/csound_worker.py); retain this implementation as the single renderer |
 | MIDI ordering and source ownership | [midi_scheduler.py](../../backend/app/engine/midi_scheduler.py), [lane_output.py](../../backend/app/engine/lane_output.py) |
 | Performance controller values and revisions | [performance_controllers.py](../../backend/app/engine/performance_controllers.py); delivery must happen once, not once per child |
@@ -36,17 +36,21 @@ Full core utilization is not an acceptance criterion. A serial critical path, sm
 | Process-isolated live preparation | [sequencer_preparation.py](../../backend/app/services/sequencer_preparation.py); keep configuration preparation separate from rendering |
 | Deployment and admission | [config.py](../../backend/app/core/config.py), [Dockerfile](../../Dockerfile), [Compose](../../docker-compose.yaml) |
 
-Consult [BACKEND.md](../../BACKEND.md), [clock ownership](../../CLOCK_OWNERS.md), [routing](../../documentation/performance/audio_mixer_and_routing.md) and [browser clock](../../documentation/configuration/browser_clock_latency.md) before changing these contracts. New module names below are proposed files, not existing implementations.
+Consult [BACKEND.md](../../BACKEND.md), [clock ownership](../../CLOCK_OWNERS.md), [routing](../../documentation/performance/audio_mixer_and_routing.md) and [browser clock](../../documentation/configuration/browser_clock_latency.md) before changing these contracts. The task table and implementation record distinguish delivered modules from proposed ones.
 
 ## 3. Runtime architecture
 
 Introduce an internal `RealtimeRenderer` interface matching the worker operations actually used by services: start/stop, status and engine settings, render cursor, render requests, timestamped MIDI, lane releases, panic, controls, meter draining, controller state and render-boundary actions. Preserve the meaning of `EngineRenderResult` and existing mock-engine behavior.
 
-Keep `CsoundWorker` as the single implementation. Add `ParallelCsoundRenderer` as a facade with one coordinator and fixed child ownership. Prefer an adapter around the old worker over a broad refactor of its proven render loop. Extract only the small native-instance operations needed by children; do not instantiate full independent session workers with their own sequencers and authoritative MIDI schedulers.
+Keep `CsoundWorker` as the single implementation. T02 uses structural conformance to the interface and a shared factory, preserving direct calls into its proven render loop without a forwarding wrapper. Add `ParallelCsoundRenderer` as a facade with one coordinator and fixed child ownership. Extract only the small native-instance operations needed by children; do not instantiate full independent session workers with their own sequencers and authoritative MIDI schedulers.
 
 | Proposed module | Responsibility |
 | --- | --- |
-| `backend/app/engine/realtime_renderer.py` | Interface and immutable renderer capability/status types |
+| `backend/app/engine/realtime_renderer.py` | Interface and shared start/render results; future selection capability/status types belong to their implementing gates |
+| `backend/app/engine/renderer_factory.py` | Shared construction, always selecting the original single renderer in T02 |
+| `backend/app/models/render_plan.py` | Frozen graph, resource, cost, ownership and diagnostic plan records (T03) |
+| `backend/app/services/compiler_render_graph.py` | Read-only LIVE/MIDI stage, port, helper and control snapshot (T03) |
+| `backend/app/services/compiler_render_resources.py` | Conservative structured compiler resource audit (T03) |
 | `backend/app/services/render_partition_plan.py` | Pure dependency classification, eligibility and deterministic partition selection |
 | `backend/app/services/compiler_partitioned.py` | Emit local orchestras and explicit boundary adapters from a shared resolved representation |
 | `backend/app/engine/parallel_csound_renderer.py` | Timeline, dispatch, lifecycle, completion and output coordination |
@@ -84,6 +88,12 @@ Produce an internal versioned `RenderPartitionPlan` containing:
 - Selected renderer, selection reason and provenance of cost estimates; distinguish estimates from observations.
 
 Store this alongside the session compile artifact as internal data. Preserve the canonical single-orchestra artifact for existing compile responses and fallback. Do not expose child CSDs, IPC handles, shared-memory names or internal process IDs in ordinary public responses. Runtime partition ownership is not saved performance data and requires no native bundle or performance format bump.
+
+T03 deliberately stops before session integration: the immutable diagnostic plan is returned only
+to an explicit internal caller. Its `layout` may be coarse, but `selected_renderer` is always single
+and `execution_eligible` is false. No qualified runtime cost profile is supplied by default.
+Native lowering and admission must be implemented and tested before attaching executable plans
+to session lifecycle or consuming them at start.
 
 ### 4.2 Build the stage graph
 

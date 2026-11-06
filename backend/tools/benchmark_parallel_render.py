@@ -1,4 +1,4 @@
-"""T01 single-renderer native baseline. No parallel renderer is activated.
+"""T01 native baseline and T02 factory comparison. No parallel renderer is activated.
 
 Run: .venv/bin/python -m backend.tools.benchmark_parallel_render --output output/parallel-baseline.json
 Traces run separately from uninstrumented timings. Each trial uses a fresh process.
@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict
+from datetime import datetime, timezone
 import hashlib
 import importlib.metadata
 import json
@@ -38,13 +39,16 @@ def distribution(values):
 def run_case(case_id, ksmps, frames, *, trace=False):
     import numpy as np
     from backend.app.engine.csound_worker import CsoundWorker
+    from backend.app.engine.renderer_factory import create_realtime_renderer
     from backend.app.services.arpeggiator_runtime import PerformanceMidiRouter
     from backend.app.services.compiler_mixer import channel
     from backend.app.services.sequencer_runtime import SessionSequencerRuntime
     from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config
 
     artifact, request = build_workload(load_workloads()[case_id], ksmps)
-    worker = CsoundWorker()
+    worker = create_realtime_renderer()
+    if type(worker) is not CsoundWorker:
+        raise RuntimeError("This baseline requires the original single renderer")
     if worker.backend != "ctcsound":
         raise RuntimeError("Native Csound is required; refusing mock baseline")
     midi, markers, meters, edits, controls = [], [], [], [], []
@@ -112,7 +116,10 @@ def run_case(case_id, ksmps, frames, *, trace=False):
             wall.append((time.perf_counter_ns() - started) / 1e6)
             cpu.append((time.process_time_ns() - used) / 1e6)
             pcm.update(result.pcm_f32le)
-            peak = max(peak, float(np.max(np.abs(np.frombuffer(result.pcm_f32le, dtype=np.float32)))))
+            samples = np.frombuffer(result.pcm_f32le, dtype=np.float32)
+            if not np.isfinite(samples).all():
+                raise RuntimeError("Native baseline contains nonfinite PCM")
+            peak = max(peak, float(np.max(np.abs(samples))))
             markers.extend(asdict(e) for e in sequencer.drain_render_transport_events(
                 engine_sample_start=result.engine_sample_start, engine_sample_end=result.engine_sample_end))
             meters.extend(worker.drain_mixer_meters())
@@ -134,13 +141,17 @@ def provenance():
     from backend.app.engine.ctcsound_loader import load_ctcsound_module
     from backend.app.services.sequencer_playback import implementation
     def git(*args):
-        result = subprocess.run(["git", *args], cwd=ROOT, text=True, capture_output=True, check=True)
-        return result.stdout.strip()
+        try:
+            result = subprocess.run(["git", *args], cwd=ROOT, text=True, capture_output=True)
+        except FileNotFoundError:
+            return None  # Minimal runtime images need not contain Git.
+        return result.stdout.strip() if result.returncode == 0 else None
     sources = sorted([*ROOT.glob("backend/app/**/*.py"), *ROOT.glob("backend/app/**/*.pxd"),
                       *ROOT.glob("backend/app/**/*.so"), *ROOT.glob("backend/app/data/*.json"),
                       Path(__file__), Path(__file__).with_name("_parallel_render_workload.py"),
                       ROOT / "pyproject.toml", ROOT / "uv.lock", ROOT / "Dockerfile"])
-    return {"revision": git("rev-parse", "HEAD"), "dirty_status": git("status", "--porcelain"),
+    return {"captured_utc": datetime.now(timezone.utc).isoformat(),
+            "revision": git("rev-parse", "HEAD"), "dirty_status": git("status", "--porcelain"),
             "source_hashes": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
             "fixture_hash": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(), "python": sys.version,
             "platform": platform.platform(), "architecture": platform.machine(), "cpu_count": os.cpu_count(),
@@ -220,6 +231,8 @@ def main():
                     raise ValueError(f"Behavior changed: {key}/{field}")
         report["comparison"] = {"behavior_identical": True, "baseline": str(args.compare),
                                 "note": "No speedup assertion; A/A timing noise must be evaluated separately"}
+    if report["provenance"]["source_hashes"] != provenance()["source_hashes"]:
+        raise RuntimeError("Sources changed during measurement; discard this timing run and retry")
     args.output.write_text(json.dumps(report, indent=2) + "\n")
 
 

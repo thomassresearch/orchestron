@@ -218,9 +218,9 @@ def test_quota_rejection_happens_before_worker_allocation(tmp_path: Path, monkey
         assert first.status_code == 201
 
         def fail_worker_allocation(*_args, **_kwargs):
-            raise AssertionError("CsoundWorker should not be allocated after quota rejection.")
+            raise AssertionError("Renderer should not be allocated after quota rejection.")
 
-        monkeypatch.setattr("backend.app.services.session_service.CsoundWorker.__init__", fail_worker_allocation)
+        monkeypatch.setattr("backend.app.services.session_service.create_realtime_renderer", fail_worker_allocation)
 
         second = client.post("/api/sessions", json={"patch_id": patch_id})
         assert second.status_code == 429

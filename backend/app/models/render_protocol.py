@@ -64,7 +64,7 @@ class ControlWrite(Contract):
 
 
 class Envelope(Contract):
-    protocol_version: Literal[1] = 1
+    protocol_version: Literal[1]
     epoch: Annotated[int, Field(ge=1)]
     partition_id: Identity
     plan_hash: Digest
@@ -108,10 +108,15 @@ class Render(Block):
         end = self.sample_start + self.frame_count
         if any(not self.sample_start <= event.target_engine_sample < end for event in self.midi):
             raise ValueError("MIDI must already be drained and clamped to this block")
-        order = [(event.target_engine_sample, event.sequence) for event in self.midi]
-        # Identical events are allowed: lane ownership may emit deferred releases.
-        if order != sorted(order):
-            raise ValueError("MIDI ordering must match the authoritative scheduler")
+        # The scheduler orders original deadlines, then clamps late events to S.
+        # Re-sorting those clamped events by sequence would change valid delivery.
+        # Identical events are also allowed for deferred lane releases.
+        for previous, current in zip(self.midi, self.midi[1:]):
+            if current.target_engine_sample < previous.target_engine_sample or (
+                current.target_engine_sample == previous.target_engine_sample
+                and not (previous.late or current.late) and current.sequence < previous.sequence
+            ):
+                raise ValueError("MIDI ordering must match the authoritative scheduler")
         if len({control.channel for control in self.controls}) != len(self.controls):
             raise ValueError("Control writes must be coalesced before dispatch")
         return self

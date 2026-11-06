@@ -52,8 +52,8 @@ def connection(source, output, target, inlet):
     return Connection(from_node_id=source, from_port_id=output, to_node_id=target, to_port_id=inlet)
 
 
-def build_workload(case: Workload, ksmps: int):
-    """Compile the real LIVE mixer path, retaining independent raw/dry/send buses."""
+def build_workload_inputs(case: Workload, ksmps: int):
+    """Build versioned inputs shared by native baseline and pure planner tests."""
     if ksmps not in (1, 32):
         raise ValueError("Baseline supports ksmps 1 or 32")
     engine = EngineConfig(sr=48000, ksmps=ksmps)
@@ -109,12 +109,18 @@ def build_workload(case: Workload, ksmps: int):
         for side in ("left", "right"):
             route(f"return{side}", "shared", "out", "$master", side)
     graph = AudioGraph(masterId="$master", routes=routes)
-    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
-        targets, audio_graph=graph, mixer=MixerState(sends=sends), midi_input="internal:loopback", rtmidi_module="null")
     request = SessionSequencerConfigRequest.model_validate({
         "timing": {"tempo_bpm": 240, "steps_per_beat": 4}, "step_count": 16, "playback_end_step": 10000,
         "tracks": [{"track_id": f"source{i}-voice{v}", "midi_channel": i + 1, "length_beats": 1,
                     "pads": [{"pad_index": 0, "length_beats": 1, "steps": [48 + v, 60 + v, None, 55 + v]}]}
                    for i in range(case.sources) for v in range(case.voices)],
     })
+    return targets, graph, MixerState(sends=sends), request
+
+
+def build_workload(case: Workload, ksmps: int):
+    """Compile the real LIVE mixer path, retaining independent raw/dry/send buses."""
+    targets, graph, mixer, request = build_workload_inputs(case, ksmps)
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
+        targets, audio_graph=graph, mixer=mixer, midi_input="internal:loopback", rtmidi_module="null")
     return artifact, request

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "cases": [
+    {"id": "tiny", "base": "tiny_1", "variant": "none"},
+    {"id": "two", "base": "independent_2", "variant": "none"},
+    {"id": "four", "base": "independent_4", "variant": "none"},
+    {"id": "eight", "base": "independent_8", "variant": "none"},
+    {"id": "shared", "base": "shared_4", "variant": "none"},
+    {"id": "serial", "base": "serial_1", "variant": "none"},
+    {"id": "bypass", "base": "independent_4", "variant": "bypass"},
+    {"id": "sidechain", "base": "independent_4", "variant": "sidechain"},
+    {"id": "custom_ports", "base": "independent_4", "variant": "custom_ports"},
+    {"id": "unknown", "base": "independent_4", "variant": "unknown"},
+    {"id": "tables", "base": "independent_4", "variant": "tables"},
+    {"id": "dynamic_table", "base": "independent_4", "variant": "dynamic_table"},
+    {"id": "legato", "base": "independent_4", "variant": "legato"},
+    {"id": "midi_initialization", "base": "independent_4", "variant": "midi_initialization"},
+    {"id": "disconnected", "base": "independent_4", "variant": "disconnected"},
+    {"id": "legacy", "base": "independent_4", "variant": "legacy"},
+    {"id": "asset", "base": "independent_4", "variant": "asset"}
+  ],
+  "synthetic_costs": {"source": 100, "effect": 8, "mixer_stage": 1, "dispatch": 1, "copy_per_sample": 0.001},
+  "dag_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  "stereo_insert": {
+    "nodes": [
+      {"id": "inL", "opcode": "inleta", "params": {"sname": "left"}},
+      {"id": "inR", "opcode": "inleta", "params": {"sname": "right"}},
+      {"id": "delayL", "opcode": "delay", "params": {"idlt": 0.003}},
+      {"id": "delayR", "opcode": "delay", "params": {"idlt": 0.004}},
+      {"id": "outL", "opcode": "outleta", "params": {"sname": "left"}},
+      {"id": "outR", "opcode": "outleta", "params": {"sname": "right"}}
+    ],
+    "connections": [
+      {"from_node_id": "inL", "from_port_id": "asignal", "to_node_id": "delayL", "to_port_id": "asig"},
+      {"from_node_id": "inR", "from_port_id": "asignal", "to_node_id": "delayR", "to_port_id": "asig"},
+      {"from_node_id": "delayL", "from_port_id": "aout", "to_node_id": "outL", "to_port_id": "asignal"},
+      {"from_node_id": "delayR", "from_port_id": "aout", "to_node_id": "outR", "to_port_id": "asignal"}
+    ],
+    "audio_interface": {
+      "role": "effect", "mainInput": "in", "mainOutput": "out",
+      "groups": [
+        {"id": "in", "name": "Input", "direction": "input", "ports": ["left", "right"]},
+        {"id": "out", "name": "Output", "direction": "output", "ports": ["left", "right"]}
+      ]
+    }
+  }
+}

@@ -6,7 +6,8 @@ from typing import Any
 import threading
 import asyncio
 
-from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.realtime_renderer import RealtimeRenderer
+from backend.app.engine.renderer_factory import create_realtime_renderer
 from backend.app.engine.live_midi_activity import LiveMidiActivity
 from backend.app.models.audio import AudioGraph, MixerState
 from backend.app.models.session import CompileArtifact, SessionInstrumentAssignment, SessionState
@@ -25,7 +26,7 @@ class RuntimeSession:
     mixer: MixerState = field(default_factory=MixerState)
     mixer_revision: int = 0
     preview_patches: dict = field(default_factory=dict)
-    worker: CsoundWorker = field(default_factory=CsoundWorker)
+    worker: RealtimeRenderer = field(default_factory=create_realtime_renderer)
     midi_router: Any = None
     sequencer: Any = None
     sequencer_request: Any = None

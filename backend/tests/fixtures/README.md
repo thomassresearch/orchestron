@@ -11,6 +11,22 @@ native round trips, saved overrides and MIDI/SCORE exports; none load examples.
 `csound/midi_sample_probe.csd` exposes note and controller delivery as exact sample
 levels. Both exercise host MIDI without an OS MIDI device or audio output device.
 
+`parallel_render/workloads.json` fixes the T01 native single-renderer baseline:
+tiny, two/four/eight independent sources, shared delay and a serial-heavy source,
+at K=1/32. The bounded builder in `backend/tools/_parallel_render_workload.py`
+compiles synthetic LIVE mixer graphs with private delays, Master and direct paths.
+It never reads examples. This fixture defines diagnostic workloads, not library
+instruments; it does not activate a parallel renderer. See the
+[baseline contracts](../../../specifications/parallel-csound-rendering/contracts.md).
+
+`parallel_render/planner_cases.json` defines T03 graph/resource variants and explicitly
+synthetic cost inputs; `planner_snapshots.json` freezes 34 plans at K=1/32. The snapshots
+include ordered owners/buses and hashes of all immutable metadata. The builder in
+`backend/tests/render_plan_support.py` reuses the baseline inputs without native execution.
+It covers private/shared/sidechain processing, bypass and Master inserts, custom ports,
+disconnected work, legato/allocation helpers, MIDI initialization, unknown opcodes,
+tables, assets and legacy fallback. These costs are not measured performance evidence.
+
 `patches/trance_gate_original.patch.json` freezes the original CC24 stereo gate;
 `patches/trance_gate.patch.json` adds the CC29 swept triangle LFO. Paired renders
 verify sample-identical direct gating, analytic sweep timing, early returns,

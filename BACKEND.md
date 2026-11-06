@@ -23,6 +23,23 @@ At a high level, the code is organized like this:
 | `backend/app/engine/` | Csound worker, session runtime object, browser-clock PCM helpers. |
 | `backend/app/storage/` | SQLAlchemy database setup and repositories. |
 
+Sessions depend on the internal [RealtimeRenderer contract](backend/app/engine/realtime_renderer.py).
+The shared [renderer factory](backend/app/engine/renderer_factory.py) always returns the original
+`CsoundWorker`, including its explicit/mock-on-missing-binding behavior. Native start errors still
+propagate. The interface adds no forwarding calls inside rendering, and the public API/PCM format
+is unchanged. The single renderer remains the default and future compatibility fallback; parallel
+selection is not active. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
+for baseline comparisons and remaining work.
+
+`CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
+metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).
+It records compiler stage/port order, resource constraints and helper/control/meter ownership.
+Planning uses caller-supplied costs and limits; it does not inspect CPU capacity, allocate
+buffers or start Csound. Even a coarse candidate has `selected_renderer="single"` and
+`execution_eligible=false`. Session compile/start never calls this diagnostic path, and
+analysis does not replace canonical patch/asset validation. See the
+[T03 contract](specifications/parallel-csound-rendering/contracts.md#8-t03-pure-planning-contract).
+
 ## Application Lifecycle
 
 ### App creation

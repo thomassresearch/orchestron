@@ -57,6 +57,51 @@ def test_protocol_preserves_deferred_release_duplicates_but_rejects_wrong_interv
         adapter.validate_json(json.dumps(wire))
 
 
+@pytest.mark.parametrize("change", ["missing_version", "duplicate_bus", "unordered_midi", "duplicate_control"])
+def test_protocol_rejects_ambiguous_block_data(change):
+    import json
+    wire = message()
+    if change == "missing_version":
+        del wire["protocol_version"]
+    elif change == "duplicate_bus":
+        wire["slots"] = [{"bus_id": "main", "slot": 0, "generation": 0}] * 2
+    elif change == "unordered_midi":
+        wire["midi"] = [{"sequence": n, "source": "manual", "target_engine_sample": 32,
+                         "message": [144, 60, 100], "late": False} for n in (2, 1)]
+    else:
+        wire["controls"] = [{"channel": "gain", "value": .5}] * 2
+    with pytest.raises(ValidationError):
+        TypeAdapter(RenderMessage).validate_json(json.dumps(wire))
+
+
+@pytest.mark.parametrize("field,value", [("mode", "threads"), ("max_workers", 0), ("max_inflight_blocks", 2),
+                                        ("max_shared_memory_bytes", 0), ("render_timeout_seconds", float("inf"))])
+def test_renderer_policy_rejects_unsafe_or_unsupported_limits(field, value):
+    with pytest.raises(ValidationError):
+        RendererPolicy(**{field: value})
+
+
+def test_frozen_protocol_schema_matches_models():
+    import json
+    schema = Path(__file__).resolve().parents[2] / "specifications/parallel-csound-rendering/protocol.schema.json"
+    assert json.loads(schema.read_text()) == TypeAdapter(RenderMessage).json_schema()
+
+
+def test_protocol_keeps_original_deadline_order_when_late_events_collapse():
+    import json
+    from backend.app.engine.midi_scheduler import EngineMidiScheduler
+    scheduler = EngineMidiScheduler()
+    scheduler.enqueue([144, 64, 100], source="manual", target_engine_sample=20)
+    scheduler.enqueue([144, 60, 100], source="manual", target_engine_sample=10)
+    events = scheduler.drain_block(block_start_sample=32, block_end_sample=64)
+    assert [event.sequence for event in events] == [2, 1]
+    wire = message()
+    wire["midi"] = [{"sequence": e.sequence, "source": e.source, "target_engine_sample": e.target_engine_sample,
+                     "message": list(e.message), "late": e.late} for e in events]
+    parsed = TypeAdapter(RenderMessage).validate_json(json.dumps(wire))
+    assert [event.sequence for event in parsed.midi] == [2, 1]
+
+
 def test_workloads_compile_stably_without_runtime_selection():
     for case in load_workloads().values():
         first, config = build_workload(case, 32)

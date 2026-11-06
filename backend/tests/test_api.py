@@ -64,6 +64,90 @@ def test_renderer_baseline_keeps_single_worker_and_canonical_compile(tmp_path, m
         assert type(runtime.worker) is CsoundWorker
 
 
+@pytest.mark.parametrize("requested_mode", ["auto", "parallel"])
+def test_partition_planning_is_not_activated_by_session_lifecycle(tmp_path, monkeypatch, requested_mode):
+    from backend.app.engine.csound_worker import CsoundWorker
+
+    def unexpected(*_args, **_kwargs):
+        pytest.fail("Session lifecycle must not invoke the diagnostic partition planner")
+
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.analyze_realtime_graph", unexpected)
+    monkeypatch.setattr("backend.app.services.render_partition_plan.plan_render_partitions", unexpected)
+    # This is still NOT a supported runtime setting; no opt-in can activate T03.
+    monkeypatch.setenv("VISUALCSOUND_REALTIME_RENDERER", requested_mode)
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Planner remains diagnostic")
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert type(runtime.worker) is CsoundWorker
+        assert not any("partition" in key.lower() for key in runtime.compile_artifact.manifest)
+        assert client.post(f"/api/sessions/{session}/stop").status_code == 200
+        assert client.post(f"/api/sessions/{session}/start").status_code == 200
+        assert type(runtime.worker) is CsoundWorker
+
+
+@pytest.mark.parametrize("native", [False, True])
+def test_session_renderer_contract_covers_lifecycle_and_pcm_api(tmp_path, monkeypatch, native):
+    from typing import get_protocol_members
+
+    from backend.app.engine.realtime_renderer import RealtimeRenderer
+    from backend.app.engine.renderer_factory import create_realtime_renderer
+    from backend.app.services import session_service
+
+    members = get_protocol_members(RealtimeRenderer)
+    workers, options = [], []
+
+    class ContractOnlyRenderer:
+        # Deliberately neither a CsoundWorker subclass nor an unrestricted proxy:
+        # fail if services depend on native/private details outside the interface.
+        def __init__(self, worker):
+            self._wrapped = worker
+
+        def __getattr__(self, name):
+            if name not in members:
+                raise AssertionError(f"Session accessed undeclared renderer member: {name}")
+            return getattr(self._wrapped, name)
+
+    def factory(**kwargs):
+        options.append(kwargs)
+        worker = create_realtime_renderer(**kwargs)
+        workers.append(worker)
+        return ContractOnlyRenderer(worker)
+
+    monkeypatch.setattr(session_service, "create_realtime_renderer", factory)
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", str(not native))
+        session = _create_running_session(client, patch_name="Renderer interface")
+        base = f"/api/sessions/{session}"
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert type(runtime.worker) is ContractOnlyRenderer
+        assert workers[0].backend == ("ctcsound" if native else "mock")
+        assert options == [{"gen_audio_assets_dir": str(tmp_path / "gen_audio_assets"),
+                            "csound_performance_logging": False}]
+        assert runtime.midi_router.lane_output is workers[0].lane_output
+        config = {"tracks": [{"track_id": "lead", "length_beats": 1,
+                              "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60]}]}]}
+        assert client.post(base + "/sequencer/start", json={"config": config}).status_code == 200
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                              "queue_low_water_frames": 1024, "queue_high_water_frames": 2048,
+                              "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            for start in (0, 512):
+                socket.send_json({"type": "request_render", "block_count": 8})
+                metadata = socket.receive_json()
+                assert metadata["type"] == "render_chunk", metadata
+                assert (metadata["engine_sample_start"], metadata["engine_sample_end"]) == (start, start + 512)
+                assert metadata["target_frame_count"] == 512 and metadata["channels"] == 2
+                assert len(socket.receive_bytes()) == 512 * 2 * 4
+            socket.send_json({"type": "release_controller"})
+        assert client.post(base + "/panic").status_code == 200
+        assert client.post(base + "/stop").status_code == 200
+        assert client.post(base + "/start").status_code == 200
+        assert len(workers) == 1 and runtime.worker.render_sample_cursor == 0
+        assert client.delete(base).status_code == 204
+        assert not workers[0].is_running
+
+
 @pytest.mark.parametrize("logging_enabled", [False, True])
 def test_session_uses_configured_csound_performance_logging(tmp_path, monkeypatch, logging_enabled):
     monkeypatch.setenv("VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING", str(logging_enabled).lower())

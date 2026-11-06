@@ -1,6 +1,6 @@
 # Parallel Csound rendering
 
-Status: proposed implementation plan, 2026-11-06. No renderer implementation or rollout is included in this package.
+Status: T01 baseline/contracts, T02 renderer interface and T03 pure planner implemented; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and platform limits. No parallel renderer or rollout is enabled. T04–T08 remain pending.
 
 Use independent instrument branches to distribute realtime synthesis across persistent Csound processes. Preserve the browser clock, musical timing, routing semantics and live controls. Keep the current single-engine renderer as the default and as the compatibility fallback.
 
@@ -12,6 +12,9 @@ The first delivery uses coarse partitions: independent upstream branches and one
 | --- | --- |
 | [Implementation plan](implementation-plan.md) | Architecture, ownership, partition algorithm, timing and failure contracts, ordered delivery tasks |
 | [Acceptance and measurement plan](acceptance.md) | Required fixtures, correctness scenarios, fault injection, benchmarks and release gates |
+| [T01 contracts](contracts.md) | Observed timing, worker inventory, protocol, initial policy bounds and conservative eligibility |
+| [Protocol schema](protocol.schema.json) | Generated version 1 structural schema; stateful checks remain future coordinator work |
+| [Implementation record](implementation-record.md) | Executed checks, native baseline results and remaining qualification |
 
 ## Decisions
 
@@ -29,6 +32,6 @@ The first delivery uses coarse partitions: independent upstream branches and one
 
 The source review found one `CsoundWorker` per session, a serialized `performKsmps()` loop, and an existing `ResolvedMixerGraph` with ordered patch, bypass, strip, route and output stages. A static evaluation of the existing synthetic mixer benchmark produced 29 stages and 38 edges, with four independent sources and shared delay/Master consumers. This is graph evidence, not a performance result.
 
-No Orchestron container was running during the initial analysis. Container CPU allowance, achievable speedup, latency and memory overhead must be measured during implementation. All delivery gates in this package are pending.
+No Orchestron container was running during the initial analysis. T01 adds repeatable native single-renderer measurements; parallel speedup, browser latency and memory overhead remain later gates. All parallel execution and cutover gates are pending.
 
-No application code, tests, user data, examples, settings, README capability claims or generated manual were changed to create this plan.
+The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. Session creation still selects the original single worker and its render loop is unchanged. Single rendering remains the only active renderer. User data, instrument examples and runtime settings are unchanged by this work.
