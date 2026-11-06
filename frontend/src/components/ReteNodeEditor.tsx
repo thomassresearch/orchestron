@@ -1,3 +1,4 @@
+import { inputFormulasByNode, nodeInputPresentation } from "../lib/graphInputPresentation";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { createReteViewportScrollbars } from "./reteViewportScrollbars";
@@ -10,7 +11,6 @@ import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 import {
   GRAPH_FORMULA_LITERAL_IDENTIFIERS,
   GRAPH_FORMULA_UNARY_FUNCTIONS,
-  readInputFormulaMap,
   tokenizeGraphFormula,
   type GraphFormulaToken
 } from "../lib/graphFormula";
@@ -511,8 +511,11 @@ export function ReteNodeEditor({
   // Graph projections recreate arrays during drags. Rebuild Rete only when port metadata changes.
   const opcodeKey = JSON.stringify(opcodes);
   const opcodeByName = useMemo(() => new Map((JSON.parse(opcodeKey) as OpcodeSpec[]).map((opcode) => [opcode.name, opcode])), [opcodeKey]);
-  const inputPresentationKey = JSON.stringify(graph.nodes.map((node) => [node.id, node.params,
-    Object.entries(readInputFormulaMap(graph.ui_layout)).filter(([key]) => key.startsWith(`${node.id}::`))]));
+  // Projections recreate layout objects during drags; equivalent formulas share one index.
+  const formulaKey = JSON.stringify(graph.ui_layout.input_formulas ?? {});
+  const formulasByNode = useMemo(() => inputFormulasByNode(graph.ui_layout), [formulaKey]);
+  const inputPresentation = useMemo(() => nodeInputPresentation(graph.nodes, formulasByNode), [graph.nodes, formulasByNode]);
+  const inputPresentationKey = JSON.stringify([...inputPresentation]);
   const previousInputPresentation = useRef(new Map<string, string>());
 
   const updateGraph = useCallback(
@@ -1605,9 +1608,7 @@ export function ReteNodeEditor({
 
   // Refresh presentation only; parameter edits must not destroy the canvas or its selection.
   useEffect(() => {
-    const formulas = readInputFormulaMap(graphRef.current.ui_layout);
-    const next = new Map(graphRef.current.nodes.map((node) => [node.id, JSON.stringify([node.params,
-      Object.entries(formulas).filter(([key]) => key.startsWith(`${node.id}::`))])]));
+    const next = inputPresentation;
     const previous = previousInputPresentation.current;
     previousInputPresentation.current = next;
     const area = areaRef.current;

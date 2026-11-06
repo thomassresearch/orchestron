@@ -99,3 +99,30 @@ README, performance/Mixer documentation and integrated EN/DE/FR/ES help were upd
 ## Timing editor review
 
 With the same isolated Vite server running, open `/tests/performance/timing-review.html`. It loads one melodic, drum and controller fixture locally, with a twelve-step 4/4 triplet melody. It does not bootstrap API, audio or autosave. Timing selectors update the real store. Inspect controls and beat/bar headers at 1440 and 390 pixels, including subdivision 1, partial bars and 32-beat controller curves. The editors retain horizontal scrolling and their usual collapse behavior.
+
+## Frontend edit-cost review — 6 November 2026
+
+Run `node frontend/tests/performance/measure-edit-cost.mjs` from the repository root.
+Optionally pass a Git revision to compare its two sequencer edit modules against the
+working tree. The review baseline is `8efd2d85ee2f5c30b9d2f01fb26760aa0cc8ba30`.
+The Vite SSR harness uses the real store with synthetic default tracks, fixture
+isolation, no application bootstrap/autosave, and a temporary dependency cache.
+It starts no HTTP or WebSocket listener. Formula samples compare the original
+per-node scan with the indexed implementation, including fresh indexing each time.
+
+Local Node 23.10.0 medians after five warm-ups, 25 measured samples (milliseconds):
+
+| Operation | Size | Before | After |
+| --- | ---: | ---: | ---: |
+| Single-note store edit | 1 track | 1.024 | 0.066 |
+| Single-note store edit | 8 tracks | 7.406 | 0.075 |
+| Single-note store edit | 16 tracks | 15.091 | 0.079 |
+| Formula presentation | 100 nodes/formulas | 3.380 | 0.181 |
+| Formula presentation | 300 nodes/formulas | 21.287 | 0.260 |
+| Formula presentation | 600 nodes/formulas | 95.495 | 0.528 |
+
+These are CPU microbenchmarks, not browser frame times or audio-latency measurements.
+Regression tests assert reference preservation and one validation pass per formula
+rather than hardware-dependent timing limits. Browser fixture checks covered Position
+drafts through transport ticks, Enter/Escape behavior, note edits preserving the
+transport, graph dragging, parameter focus, and formula presentation refresh.
