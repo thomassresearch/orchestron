@@ -1,3 +1,4 @@
+import { HelpIconButton } from "../HelpIconButton";
 import { PositionInput } from "./PositionInput";
 import { structureDropLayout, structureEmptyInsertionAt, STRUCTURE_TREE_TOP } from '../../lib/clipArranger/structureHitTest';
 import { structureCopy } from './structureCopy';
@@ -8,7 +9,7 @@ import { automationCopy } from "./automationCopy";
 import type { useStructureEditor } from "./StructureEditor";
 import { beginStructure, structurePreview, structureClip, isExpandedStructure, structureDisplayGeometry } from "../../lib/clipArranger/structure";
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
-import type { GuiLanguage, SequencerState } from "../../types";
+import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
 import { localBeatTicks, contentLength, definitionMap, newClipId, QUARTER_TICKS as Q, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type OccurrenceTarget } from "../../lib/clipArranger/model";
 import { addClip, convertLaneCycle, deleteClip, fitClip, trimClip, updateClip } from "../../lib/clipArranger/operations";
 import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration";
@@ -23,6 +24,7 @@ import { useAppStore } from '../../store/useAppStore';
 export const clipButton = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-cyan-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 disabled:opacity-40";
 export const clipInput = "w-24 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100";
 export type ClipArrangerProps = {
+  onHelpRequest?: (id: HelpDocId) => void;
   model: ClipArrangement; sequencer: SequencerState; language: GuiLanguage;
   onChange: (model: ClipArrangement, label: string) => void;
   structure: ReturnType<typeof useStructureEditor>;
@@ -39,7 +41,7 @@ export type ClipArrangerProps = {
   onAddLane?: (source: ClipLane["source"]) => void;
 };
 
-export function ClipArranger({ model, sequencer, language, onChange, onEdit, structure, zoom, minZoom, setZoom, viewport, viewportWidth, laneHeaderWidth, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane, stopAudition = async () => {} }: ClipArrangerProps) {
+export function ClipArranger({ onHelpRequest, model, sequencer, language, onChange, onEdit, structure, zoom, minZoom, setZoom, viewport, viewportWidth, laneHeaderWidth, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane, stopAudition = async () => {} }: ClipArrangerProps) {
   const c = clipCopy(language), t = structureCopy(language), timings = useMemo(() => arrangementTimings(sequencer), [sequencer]);
   const displayDraft = structure.previewDraft ?? structure.draft;
   const displayModel = useMemo(() => displayDraft ? structurePreview(model, displayDraft, timings) : model, [model, displayDraft, timings]);
@@ -169,8 +171,9 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
       </div>;
     });
   };
-  return <section className="mt-4 min-w-0 rounded-xl border border-slate-700 bg-slate-950/85 p-3" aria-label={c.title}>
-    <div className="mb-3 flex flex-wrap items-center gap-2"><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}
+  return <section className="relative mt-4 min-w-0 rounded-xl border border-slate-700 bg-slate-950/85 p-3" aria-label={c.title}>
+    {onHelpRequest && <HelpIconButton guiLanguage={language} onClick={() => onHelpRequest("sequencer_clip_arranger")} />}
+    <div className={`mb-3 flex flex-wrap items-center gap-2 ${onHelpRequest ? "pr-8" : ""}`}><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}
       {onSeek && <label className="text-xs text-slate-400">{c.position} <PositionInput key={generation} className={clipInput} beats={position / Q} onSeek={onSeek} /></label>}
       {onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} title={selectedClip ? c.loopClip : c.loopSong} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : selectedClip ? { startStep: selectedClip.start / 2520, endStep: (selectedClip.start + selectedClip.length) / 2520 } : { startStep: 0, endStep: model.end / 2520 })}>{c.loop}</button>}
       <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="0" max="100" value={sliderValue} onChange={e => {

@@ -22,6 +22,8 @@ export type SequencerHelpDocId = Extract<
   | "sequencer_tracks"
   | "sequencer_track_editor"
   | "sequencer_multitrack_arranger"
+  | "sequencer_clip_arranger"
+  | "sequencer_mixer"
   | "sequencer_drummer_sequencer"
   | "sequencer_controller_sequencer"
   | "sequencer_arpeggiator"

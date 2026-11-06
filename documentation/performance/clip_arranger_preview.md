@@ -6,6 +6,10 @@ For a development build, start the frontend with `VITE_CLIP_ARRANGER=1 npm --pre
 
 For an existing compatible performance, **Multitrack arranger · Preview** downloads its original configuration before converting. Keep that file: import it to recover the original workflow with the same instrument library. This recovery file contains configuration only; keep a native performance bundle to restore instruments and assets on another installation. Existing Manual pads, Live arpeggiators and multiple-keyboard performances remain in the compatibility view; conversion reports the reason instead of changing their playback behavior. A clip performance requires a version-23-capable reader, or version 24 when it uses instrument automation. Disabling the preview flag does not downgrade saved data.
 
+The top-right **?** opens help specifically for this clip workflow in the selected GUI language (English, German, French or Spanish). It covers clip windows, reusable content, musical and structural drafts, save scope, transport, sections, transposition and instrument automation. Close it with **Close**, Escape or a click outside the dialog.
+
+![Clip arranger integrated help](../../screenshots/clip-arranger-integrated-help.png)
+
 ## Arrange fixed windows
 
 Unselected tracks stay compact. Click a track header to expand its clips into nested pattern, group and supergroup boxes. Drag a clip header to move it, or its borders to trim it; the inspector also accepts numeric start, length and source offset in master beats. Double-click empty lane space to create an empty four-master-beat Once clip immediately, snapped to quarter beats. The track **+** appends the same empty clip. Its inline **+** opens the content picker; inserted content replaces silence, preserving any remaining rest. Longer content can grow the window when space permits. Moves and deletion leave other clips in place. Overlap on the same lane is rejected.

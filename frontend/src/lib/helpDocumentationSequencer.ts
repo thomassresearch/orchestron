@@ -5,6 +5,7 @@ import { melodicStrumHelp } from "./helpDocumentationMelodicStrum";
 import { sequencerTimingHelp } from "./helpDocumentationSequencerTiming";
 import { patternWorkspaceHelp } from "./helpDocumentationPatternWorkspace";
 import { independentPlaybackHelp } from "./helpDocumentationIndependentPlayback";
+import { clipArrangerHelp } from "./helpDocumentationClipArranger";
 import { arrangementHelp } from "./arrangementHelp";
 import { arpeggiatorHelp } from "./helpDocumentationArpeggiator";
 import { scoreHelp } from "./helpDocumentationScore";
@@ -14,6 +15,18 @@ import { audioRoutingHelp } from "./helpDocumentationAudio";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, SequencerHelpDocId } from "./helpDocumentationTypes";
 
 export const sequencerHelpDocuments: HelpDocumentSet<SequencerHelpDocId> = {
+  sequencer_mixer: {
+    english: { title: "Mixer", markdown: audioRoutingHelp.english },
+    german: { title: "Mischpult", markdown: audioRoutingHelp.german },
+    french: { title: "Mixeur", markdown: audioRoutingHelp.french },
+    spanish: { title: "Mezclador", markdown: audioRoutingHelp.spanish }
+  },
+  sequencer_clip_arranger: {
+    english: { title: "Multitrack Arranger", markdown: clipArrangerHelp.english },
+    german: { title: "Mehrspur-Arranger", markdown: clipArrangerHelp.german },
+    french: { title: "Arrangeur multipiste", markdown: clipArrangerHelp.french },
+    spanish: { title: "Arreglador multipista", markdown: clipArrangerHelp.spanish }
+  },
   sequencer_score_sequencer: {
     english: { title: "Score Sequencer", markdown: scoreHelp.english },
     german: { title: "Score-Sequenzer", markdown: scoreHelp.german },
@@ -1049,3 +1062,11 @@ const clipContentActionsHelp: Record<GuiLanguage, string> = {
  spanish: "Con el botón derecho, Duplicar añade patrones, grupos o supergrupos vinculados después del último contenido musical del clip, usando primero el silencio final. Las selecciones anidadas se copian a la raíz del clip; los intervalos de elementos vecinos conservan su orden y silencios. No se pueden duplicar selecciones de solo silencios ni de varias repeticiones. Un bucle se convierte en un único clip Una vez con sus repeticiones originales y una copia añadida; se conservan el contenido de origen oculto y la transposición de cada repetición. Resuelve primero la estructura pendiente y vuelve a seleccionar si se solicita. Guardar estructura aplica el cambio; Deshacer lo restaura. El crecimiento no puede solapar clips vecinos. Desagrupar aparece solo para grupos/supergrupos. Haz doble clic en un espacio vacío o silencio del clip para abrir Añadir contenido en la posición pulsada, ajustada a un cuarto de pulso maestro, dentro del contenedor correspondiente. Se rechazan las inserciones solapadas. Las cabeceras y curvas de automatización conservan su comportamiento de doble clic."
 };
 for (const language of ["english", "german", "french", "spanish"] as const) sequencerHelpDocuments.sequencer_multitrack_arranger[language].markdown += "\n\n" + clipContentActionsHelp[language];
+
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  sequencerHelpDocuments.sequencer_clip_arranger[language].markdown += "\n\n" + [
+    clipTransportHelp[language], clipEndHelp[language], directStructureHelp[language],
+    structureRemovalHelp[language], unifiedContainerHelp[language],
+    instrumentAutomationHelp[language], clipContentActionsHelp[language]
+  ].join("\n\n");
+}

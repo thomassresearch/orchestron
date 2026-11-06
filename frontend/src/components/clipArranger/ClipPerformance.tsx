@@ -12,7 +12,7 @@ import { usePerformanceAudition } from "../sequencer/PerformanceAudition";
 import { ClipEditingContext } from "./context";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { mergedSequencerState } from "../../lib/mergedSequencerState";
-import type { GuiLanguage, SequencerState } from "../../types";
+import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
 import type { ClipArrangement, SourceKind } from "../../lib/clipArranger/model";
 import { contentLength, resolveContent, patternDuration, QUARTER_TICKS } from "../../lib/clipArranger/model";
 import { clipEditorPlaybackView } from "../../lib/clipArranger/editorAdapter";
@@ -33,7 +33,8 @@ import { clipCopy } from "./copy";
 const emptyArrangement: ClipArrangement = {version:1,revision:0,end:20160,lanes:[]};
 export const CLIP_ARRANGER_ENABLED = import.meta.env.VITE_CLIP_ARRANGER === "1";
 
-export function ClipPerformance({ language, renderEditor, transport, laneControls, onAddLane, position, onSeek, onLoopChange }: {
+export function ClipPerformance({ language, renderEditor, transport, laneControls, onAddLane, position, onSeek, onLoopChange, onHelpRequest }: {
+  onHelpRequest?: (id: HelpDocId) => void;
   language: GuiLanguage; renderEditor: (kind: SourceKind, id: string, state: SequencerState) => ReactNode;
   position?: number; onSeek?: (step: number) => void; onLoopChange?: (range: { startStep: number; endStep: number } | null) => void;
   transport?: ReactNode; laneControls?: (id: string) => ReactNode; onAddLane?: (source: SourceKind) => void;
@@ -129,7 +130,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   return <>
     <DraftResolutionDialog language={language} />
     <AutomationMergeDialog language={language} />
-    <ClipArranger stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={target => attempt(() => openClipEditor(target))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
+    <ClipArranger onHelpRequest={onHelpRequest} stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={target => attempt(() => openClipEditor(target))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
       renderAutomation={(target, range) => {
         if (!curve?.automationTarget || !draft || !lane || draftKey({ target }) !== draftKey(draft) || draft.definition.kind !== "pattern") return null;
         const original = lane.definitions.find(d => d.id === draft.definition.id);

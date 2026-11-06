@@ -37,10 +37,12 @@ Examples include:
 - Opcode catalog
 - Graph editor header/area
 - Runtime panel
-- Sequencer sections (rack, tracks, Score Sequencers, multitrack arranger, piano rolls, MIDI controllers)
+- Sequencer sections (rack, Mixer, tracks, Score Sequencers, both multitrack arrangers, piano rolls, MIDI controllers)
 - Config page sections
 
 Clicking a context `?` opens a markdown help modal tailored to that UI area.
+
+Mixer help covers levels, routing, sends, inserts, bypass and feedback diagnostics. Its button remains available while collapsed. The new Multitrack Arranger opens clip-specific guidance for fixed windows, reusable content, drafts, save scopes and playback; pad-based performances retain their compatibility-arranger help. Both use the same localized dialog as the rack, live keyboard and live MIDI controllers.
 
 The Score Sequencer uses this same top-right button in its panel and clip pattern
 editor, including while collapsed. Its help explains keyboard auditioning,
@@ -76,6 +78,8 @@ Use context help for workflow guidance and opcode docs for technical/operator de
 This combination is faster than switching repeatedly between the app and external documentation while designing patches.
 
 ## Screenshots
+
+![Mixer and clip arranger help buttons](../../screenshots/performance-help-buttons.png)
 
 <p align="center">
   <img src="../../screenshots/header_gui_language_selector_links.png" alt="GUI language selector in app header" width="560" style="max-width: 100%; height: auto;" />

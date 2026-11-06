@@ -895,7 +895,7 @@ function SequencerPageContent(props: SequencerPageProps) {
           <RackBody context={context} />
         </CollapsiblePanel>
 
-        <PerformMixer onStop={onStopInstruments} />
+        <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />
 
         {transportError && (
           <div className="mt-3 rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">
@@ -924,7 +924,7 @@ function SequencerPageContent(props: SequencerPageProps) {
           </div>
         </div>
 
-        {sequencer.clipArrangement ? <ClipPerformance language={guiLanguage}
+        {sequencer.clipArrangement ? <ClipPerformance language={guiLanguage} onHelpRequest={onHelpRequest}
           laneControls={id => <LaneOutputButtons id={id} language={guiLanguage} />}
           position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(sequencer.arrangerLoopSelection, step)}
           onLoopChange={onSequencerArrangerLoopSelectionChange}

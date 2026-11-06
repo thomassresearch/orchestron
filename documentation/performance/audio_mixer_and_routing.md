@@ -6,6 +6,10 @@ The collapsible mixer sits below the instrument rack. Select a strip to edit its
 
 Collapsing Mixer suspends its visual contents and meter subscriptions while audio controls and meter collection keep running. Nested sections suspend independently and remember their expansion state when their parent closes. Reopening restores routing selections, editor feedback and strip scroll position, and meters show the latest snapshot. See [Collapsible Panels](performance.md#collapsible-panels) for state lifetime and gesture cleanup.
 
+Use the top-right **?** for integrated help in English, German, French or Spanish, following the selected GUI language. The button remains available while Mixer is collapsed and opens help without changing the mix or expanding the panel.
+
+![Mixer integrated help](../../screenshots/mixer-integrated-help.png)
+
 ## Build your first mix
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
