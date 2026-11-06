@@ -7,7 +7,7 @@ import { AutomationGenerator } from "./AutomationControls";
 import { automationCopy } from "./automationCopy";
 import type { useStructureEditor } from "./StructureEditor";
 import { beginStructure, structurePreview, structureClip, isExpandedStructure, structureDisplayGeometry } from "../../lib/clipArranger/structure";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { GuiLanguage, SequencerState } from "../../types";
 import { localBeatTicks, contentLength, definitionMap, newClipId, QUARTER_TICKS as Q, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type OccurrenceTarget } from "../../lib/clipArranger/model";
 import { addClip, convertLaneCycle, deleteClip, fitClip, trimClip, updateClip } from "../../lib/clipArranger/operations";
@@ -25,7 +25,9 @@ export const clipInput = "w-24 rounded border border-slate-600 bg-slate-950 px-2
 export type ClipArrangerProps = {
   model: ClipArrangement; sequencer: SequencerState; language: GuiLanguage;
   onChange: (model: ClipArrangement, label: string) => void;
-  structure: ReturnType<typeof useStructureEditor>; zoom: number; setZoom: (zoom: number) => void;
+  structure: ReturnType<typeof useStructureEditor>;
+  zoom: number; minZoom: number; setZoom: (zoom: number | null) => void;
+  viewport: RefObject<HTMLDivElement>; viewportWidth: number; laneHeaderWidth: number;
   onEdit: (target: OccurrenceTarget) => void;
   stopAudition?: () => Promise<void>;
   editingTarget?: OccurrenceTarget;
@@ -37,7 +39,7 @@ export type ClipArrangerProps = {
   onAddLane?: (source: ClipLane["source"]) => void;
 };
 
-export function ClipArranger({ model, sequencer, language, onChange, onEdit, structure, zoom, setZoom, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane, stopAudition = async () => {} }: ClipArrangerProps) {
+export function ClipArranger({ model, sequencer, language, onChange, onEdit, structure, zoom, minZoom, setZoom, viewport, viewportWidth, laneHeaderWidth, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane, stopAudition = async () => {} }: ClipArrangerProps) {
   const c = clipCopy(language), t = structureCopy(language), timings = useMemo(() => arrangementTimings(sequencer), [sequencer]);
   const displayDraft = structure.previewDraft ?? structure.draft;
   const displayModel = useMemo(() => displayDraft ? structurePreview(model, displayDraft, timings) : model, [model, displayDraft, timings]);
@@ -51,21 +53,19 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
     if (editingLane && editingClip) { select({ laneId: editingLane, clipId: editingClip }); setExpanded(editingLane); }
   }, [editingLane, editingClip, select, setExpanded]);
   const [scroll, setScroll] = useState(0);
-  const viewport = useRef<HTMLDivElement>(null), [viewportWidth, setViewportWidth] = useState(1200);
-  useEffect(() => {
-    const node = viewport.current;
-    if (!node) return;
-    const measure = () => setViewportWidth(node.clientWidth || 1200);
-    measure();
-    const observer = new ResizeObserver(measure); observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-  // Use the same CSS-pixel width for sticky labels and timeline calculations.
-  const laneHeaderWidth = Math.min(192, Math.floor(viewportWidth * .45));
   const [error, setError] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ laneId: string; clipId: string; mode: "move" | "left" | "right"; x: number; delta: number } | null>(null);
   const dragRef = useRef(drag); dragRef.current = drag;
-  const unit = zoom / Q, width = Math.max(900, (model.end / Q + 4) * zoom);
+  const timelineWidth = viewportWidth - laneHeaderWidth;
+  const unit = zoom / Q, width = Math.max(timelineWidth, (model.end / Q + 4) * zoom);
+  const renderAhead = Math.max(1800, timelineWidth);
+  const zoomRatio = 100 / minZoom;
+  const sliderValue = Math.round(100 * Math.log(zoom / minZoom) / Math.log(zoomRatio));
+  const beatsPerBar = sequencer.timing.meterNumerator;
+  const rulerStep = zoom >= 12 ? 1 : beatsPerBar * Math.ceil(48 / (zoom * beatsPerBar));
+  const firstRulerBeat = Math.floor(scroll / (zoom * rulerStep)) * rulerStep;
+  const rulerBeats = Array.from({ length: Math.ceil(timelineWidth / (zoom * rulerStep)) + 2 },
+    (_, index) => firstRulerBeat + index * rulerStep).filter(beat => beat * zoom < width);
   const attempt = (action: () => ClipArrangement, label: string) => { try { onChange(action(), label); setError(null); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
   const focusStructureOccurrence = (lane: ClipLane, clip: Clip, pass: number, path: string[]) => {
     const node = viewport.current;
@@ -138,7 +138,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
     return items.map((item, itemIndex) => {
       const duration = contentLength(lane, [item], timings[lane.id]);
       const left = cursor * unit; cursor += duration;
-      if (origin + left + duration * unit < scroll - laneHeaderWidth || origin + left > scroll + 1800) return null;
+      if (origin + left + duration * unit < scroll - laneHeaderWidth || origin + left > scroll + renderAhead) return null;
       const def = "definitionId" in item ? defs.get(item.definitionId)! : null;
       const itemPath = [...path, item.id];
       const color = !def ? "border-slate-600 bg-slate-900 text-slate-400" : def.kind === "pattern" ? "border-emerald-700 bg-emerald-950/70 text-emerald-200" : def.kind === "group" ? "border-rose-700 bg-rose-950/40 text-rose-200" : "border-violet-600 bg-violet-950/40 text-violet-200";
@@ -173,7 +173,14 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
     <div className="mb-3 flex flex-wrap items-center gap-2"><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}
       {onSeek && <label className="text-xs text-slate-400">{c.position} <PositionInput key={generation} className={clipInput} beats={position / Q} onSeek={onSeek} /></label>}
       {onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} title={selectedClip ? c.loopClip : c.loopSong} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : selectedClip ? { startStep: selectedClip.start / 2520, endStep: (selectedClip.start + selectedClip.length) / 2520 } : { startStep: 0, endStep: model.end / 2520 })}>{c.loop}</button>}
-      <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="12" max="100" value={zoom} onChange={e => setZoom(Number(e.target.value))} /></label>
+      <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="0" max="100" value={sliderValue} onChange={e => {
+        const value = Number(e.target.value);
+        if (value === 0 && viewport.current) {
+          viewport.current.scrollLeft = 0;
+          setScroll(0);
+        }
+        setZoom(value === 0 ? null : minZoom * zoomRatio ** (value / 100));
+      }} /></label>
       {onAddLane && <label className="text-xs text-slate-400">{c.newLane} <select className={clipInput} value="" onChange={e => onAddLane(e.target.value as ClipLane["source"])}><option value="">+</option>{Object.keys(sourceKeys).map(kind => <option key={kind} value={kind}>{c[kind === "sequencer" ? "melodic" : kind as Exclude<ClipLane["source"], "sequencer">]}</option>)}</select></label>}
     </div>
     <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
@@ -186,7 +193,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
       if (!target.closest("[data-arranger-clip], [data-clip-inline-editor]")) { select(null); structure.clearSelection(); }
     }} onPointerMove={e=>{structure.pointerMove(e);const hovered=(document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-clip-lane]') as HTMLElement|null)?.dataset.clipLane;if(structure.dragging()&&hovered)setExpanded(hovered);}} onPointerUp={structure.pointerUp} onPointerCancel={structure.cancelDrag} onLostPointerCapture={e => { if (e.target === e.currentTarget) structure.lostCapture(); }} ref={viewport} className="overflow-x-auto" onScroll={e => setScroll(e.currentTarget.scrollLeft)}>
       <div style={{ width: width + laneHeaderWidth, minWidth: "100%", paddingBottom: 16 }}>
-        <div style={{ marginLeft: laneHeaderWidth }} className="relative h-6 cursor-crosshair border-b border-slate-800" aria-hidden onClick={e => onSeek?.(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * 2))}>{sequencer.arrangerLoopSelection && <span className="pointer-events-none absolute inset-y-0 border-x border-amber-300 bg-amber-400/20" style={{ left: sequencer.arrangerLoopSelection.startStep * 2520 * unit, width: (sequencer.arrangerLoopSelection.endStep - sequencer.arrangerLoopSelection.startStep) * 2520 * unit }} />}{Array.from({ length: Math.min(400, Math.ceil(1200 / zoom) + 4) }, (_, n) => n + Math.floor(scroll / zoom)).filter(n => n * zoom < width).map(beat => <span key={beat} className="absolute text-[10px] text-slate-500" style={{ left: beat * zoom }}>{beat % sequencer.timing.meterNumerator === 0 ? `${Math.floor(beat / sequencer.timing.meterNumerator) + 1}.1` : "·"}</span>)}</div>
+        <div style={{ marginLeft: laneHeaderWidth }} className="relative h-6 cursor-crosshair overflow-hidden border-b border-slate-800" aria-hidden onClick={e => onSeek?.(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * 2))}>{sequencer.arrangerLoopSelection && <span className="pointer-events-none absolute inset-y-0 border-x border-amber-300 bg-amber-400/20" style={{ left: sequencer.arrangerLoopSelection.startStep * 2520 * unit, width: (sequencer.arrangerLoopSelection.endStep - sequencer.arrangerLoopSelection.startStep) * 2520 * unit }} />}{rulerBeats.map(beat => <span key={beat} className="absolute text-[10px] text-slate-500" style={{ left: beat * zoom }}>{beat % beatsPerBar === 0 ? `${Math.floor(beat / beatsPerBar) + 1}.1` : "·"}</span>)}</div>
         {displayModel.lanes.map(lane => {
           const track = sequencer[sourceKeys[lane.source]].find(t => t.id === lane.id);
           const detailed = expanded === lane.id;
@@ -197,12 +204,12 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
               <button className="truncate text-left text-xs font-semibold text-slate-200" aria-expanded={detailed} onClick={() => { structure.cancelDrag(); setExpanded(detailed ? null : lane.id); }}>{detailed ? "▾" : "▸"} {track?.name ?? lane.id}</button>
               <div className="flex flex-wrap items-center gap-1 text-[10px] text-slate-500"><span>{c[lane.source === "sequencer" ? "melodic" : lane.source]}</span>{track && "automationSuspended" in track && track.automationSuspended && <span title={automationCopy(language).suspended} aria-label={automationCopy(language).suspended} className="text-amber-300">⚠</span>}{laneControls?.(lane.id)}<button className="ml-auto px-2 text-sm text-cyan-300" aria-label={`${c.add}: ${track?.name}`} onClick={() => { createEmpty(lane,Math.max(0,...lane.clips.map(cl=>cl.start+cl.length))); }}>+</button></div>
             </div>
-            <div data-clip-timeline className="relative flex-1" style={{ backgroundSize: `${zoom}px 100%`, backgroundImage: "linear-gradient(to right, #1e293b 1px, transparent 1px)" }} onDoubleClick={e => {
+            <div data-clip-timeline className="relative flex-1" style={{ backgroundSize: `${zoom * rulerStep}px 100%`, backgroundImage: "linear-gradient(to right, #1e293b 1px, transparent 1px)" }} onDoubleClick={e => {
               if (e.target === e.currentTarget) { createEmpty(lane,Math.max(0,Math.round((e.clientX-e.currentTarget.getBoundingClientRect().left)/zoom*4)*Q/4)); }
             }}>
               <div className="pointer-events-none absolute inset-y-0 z-10 border-l border-dashed border-amber-400/80" title={c.songEnd} style={{ left: model.end * unit }} />
-              <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-cyan-300" style={{ left: position * unit }} />
-              {lane.clips.filter(clip => (clip.start + clip.length) * unit > scroll - laneHeaderWidth && clip.start * unit < scroll + 1800).map(clip => {
+              {position * unit + 1 <= width && <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-cyan-300" style={{ left: position * unit }} />}
+              {lane.clips.filter(clip => (clip.start + clip.length) * unit > scroll - laneHeaderWidth && clip.start * unit < scroll + renderAhead).map(clip => {
                 let originalClip = model.lanes.find(l => l.id === lane.id)?.clips.find(c => c.id === clip.id) ?? clip;
                 const editingStructure = displayDraft?.laneId === lane.id && displayDraft.clipId === clip.id ? displayDraft : null;
                 if(editingStructure)originalClip=structureClip(editingStructure,timings);
@@ -210,7 +217,9 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
                 const draftDuration = contentLength(lane, clip.children, timings[lane.id]);
                 const geometry = editingStructure ? structureDisplayGeometry(originalClip, isExpandedStructure(editingStructure)?editingStructure.expanded!.contentTicks:duration, draftDuration, editingStructure.pass) : {length: clip.length, left: (pass: number) => pass * duration - clip.offset};
                 const firstPass = clip.mode === "loop" ? Math.floor((clip.offset + Math.max(0, (scroll - laneHeaderWidth) / unit - clip.start)) / duration) : 0;
-                const lastPass = clip.mode === "loop" ? Math.min(Math.ceil((clip.offset + clip.length) / duration), firstPass + Math.ceil(1800 / unit / duration) + 1) : 1;
+                // At overview scale the clip box is enough when each repeat is subpixel.
+                const lastPass = clip.mode === "loop" ? duration * unit < 1 ? firstPass
+                  : Math.min(Math.ceil((clip.offset + clip.length) / duration), firstPass + Math.ceil(renderAhead / unit / duration) + 1) : 1;
                 const moving = drag?.clipId === clip.id ? drag : null;
                 const left = clip.start + (moving && moving.mode !== "right" ? moving.delta : 0);
                 const length = geometry.length + (moving ? moving.mode === "right" ? moving.delta : moving.mode === "left" ? -moving.delta : 0 : 0);

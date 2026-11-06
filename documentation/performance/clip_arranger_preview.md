@@ -76,6 +76,10 @@ Loading selects a clip even when looping is off: a matching saved loop takes pri
 
 ![Explicit song end and fitting to the last clip](../../screenshots/clip-arranger-song-end.png)
 
+Move **Zoom** all the way left, or focus the slider and press **Home**, to see the entire song through **Song end**, including trailing silence. The overview adjusts when the song length or timeline width changes. Zoom back in for beat markers and detailed clip editing.
+
+![Full song at minimum zoom, including the trailing silence before the dashed Song end marker](../../screenshots/clip-arranger-full-song-zoom.png)
+
 ![Loop enabled for the whole song with no clip selected](../../screenshots/clip-arranger-song-loop.png)
 
 The actual piano keyboard and configurable MIDI controller rows sit below the arranger/editor, each full width. They retain Start/Stop, routing, channel/OMNI, scale/autochord, velocity and CC controls. Their existing Auto/Live/Listening buffer policy still applies. An enabled device does not force low-latency buffering indefinitely. Arpeggiator Arranger/Live clock settings remain separate from clip placement.

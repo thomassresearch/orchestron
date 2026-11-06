@@ -107,11 +107,11 @@ Use [draft auditioning](documentation/instrument_design/runtime_panel_and_compil
 
 ## Build patterns and arrangements
 
-Build a song in the redesigned **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips, or zoom out to see how the parts fit across a passage.
+Build a song in the redesigned **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips, or move **Zoom** all the way left to see the whole song, including trailing silence.
 
 ![The First Pulse of a New Machine in the redesigned multitrack arranger, with compact tracks, note previews, transposition badges and automation at position 160](screenshots/perform_multitrack_arranger_redesigned.jpg)
 
-*The First Pulse of a New Machine at minimum track zoom, centered on position 160 master beats (bar 41): drums, bass, cloud harmonies, lead, bells and automation share the same timeline.*
+*The First Pulse of a New Machine centered on position 160 master beats (bar 41), with drums, bass, cloud harmonies, lead, bells and automation sharing the same timeline.*
 
 Choose **Add track**, then double-click empty lane space to create a four-beat clip. Its inline **+** adds a new pattern, reusable content or a rest. Drag a clip header to move it and its borders to trim its window; the inspector accepts exact start, length and source-offset values. **Once** plays the content once, while **Loop** repeats it within that window. Trimming preserves the underlying content, and **Fit clip to content** explicitly matches the window to its contents. Moving or removing a clip leaves the other clips in place.
 

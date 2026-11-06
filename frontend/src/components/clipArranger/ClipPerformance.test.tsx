@@ -11,6 +11,7 @@ import { buildSequencerConfigSnapshot, parseSequencerConfigSnapshot } from "../.
 import { buildSequencerPlaybackRange } from "../../appOrchestration";
 import { useStructureDraft } from "../../lib/clipArranger/structureStore";
 import { clipHistoryStep } from "../../store/clipActions";
+import { QUARTER_TICKS } from "../../lib/clipArranger/model";
 
 beforeEach(() => {
   useAppStore.setState(useAppStore.getInitialState(), true);
@@ -178,6 +179,39 @@ it("exposes retained trailing silence and fits the finite song end explicitly wi
   fireEvent.blur(screen.getByRole("spinbutton", { name: "Song end" }), { target: { value: "15" } });
   expect(useAppStore.getState().sequencer.clipArrangement!.end).toBe(20160 * 19.25);
   expect(screen.getByRole("alert").textContent).toContain("boundary");
+});
+
+it("keeps the whole song in view at minimum zoom as the timeline or song length changes", () => {
+  let viewportWidth = 1000;
+  let resize = () => {};
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(measure: () => void) { resize = measure; }
+    observe() {}
+    disconnect() {}
+  });
+  const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(() => viewportWidth);
+  try {
+    useAppStore.setState(state => ({ sequencer: { ...state.sequencer,
+      clipArrangement: { ...state.sequencer.clipArrangement!, end: 256 * QUARTER_TICKS } } }));
+    const { container } = render(<ClipPerformance language="english" renderEditor={() => null} />);
+    const canvas = container.querySelector<HTMLElement>("[data-arranger-viewport] > div")!;
+    const songEnd = container.querySelector<HTMLElement>('[title="Song end"]')!;
+    const timelineWidth = () => viewportWidth - Math.min(192, Math.floor(viewportWidth * .45));
+    expect(parseFloat(songEnd.style.left)).toBeGreaterThan(timelineWidth());
+
+    fireEvent.change(screen.getByRole("slider", { name: "Zoom" }), { target: { value: "0" } });
+    expect(parseFloat(canvas.style.width)).toBe(viewportWidth);
+    expect(parseFloat(songEnd.style.left)).toBeLessThan(timelineWidth());
+
+    viewportWidth = 320;
+    act(() => resize());
+    fireEvent.blur(screen.getByRole("spinbutton", { name: "Song end" }), { target: { value: "16000" } });
+    expect(parseFloat(canvas.style.width)).toBe(viewportWidth);
+    expect(parseFloat(songEnd.style.left)).toBeCloseTo(timelineWidth() - 2, 1);
+    expect(useAppStore.getState().sequencer.clipArrangement!.end).toBe(16000 * QUARTER_TICKS);
+  } finally {
+    width.mockRestore();
+  }
 });
 
 it("can re-enable a loaded clip loop after off, play, stop and rewind without opening an editor", () => {

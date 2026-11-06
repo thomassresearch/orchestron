@@ -68,7 +68,9 @@ it.each([false,true])('opens Add content at the snapped position with expanded=%
   const timeline=document.querySelector('[data-clip-timeline]')!,row=document.querySelector('[data-clip-lane]')!,body=document.querySelector('[data-clip-content]')!;
   vi.spyOn(timeline,'getBoundingClientRect').mockReturnValue({left:-300} as DOMRect);vi.spyOn(row,'getBoundingClientRect').mockReturnValue({top:20} as DOMRect);
   fireEvent.change(screen.getByRole('slider',{name:'Zoom'}),{target:{value:'60'}});
-  fireEvent.doubleClick(body,{clientX:-300+5.3*60,clientY:80});
+  const clip = lane().clips[0];
+  const pixelsPerBeat = parseFloat((body.parentElement as HTMLElement).style.width) / (clip.length / Q);
+  fireEvent.doubleClick(body,{clientX:-300+5.3*pixelsPerBeat,clientY:80});
   const dialog=within(screen.getByRole('dialog',{name:'Add content'}));fireEvent.click(dialog.getByRole('button',{name:'New pattern'}));
   expect(useStructureDraft.getState().draft?.roots.map(n=>n.restTicks??n.definition?.kind)).toEqual(['pattern',1.25*Q,'pattern',2.75*Q]);
 });
