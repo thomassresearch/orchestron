@@ -134,7 +134,8 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
   const dragHandlers = { onPointerMove: moveDrag, onPointerUp: endDrag, onPointerCancel: () => setDrag(null), onLostPointerCapture: () => setDrag(null) };
   const tree = (lane: ClipLane, clip: Clip, items: ContentItem[], path: string[], pass: number, depth = 0, origin = 0): ReactNode => {
     const defs = definitionMap(lane); let cursor = 0;
-    return [...items.map((item, itemIndex) => {
+    if (!items.length) return structure.boundary({ laneId: lane.id, clipId: clip.id, pass, parent: path }, 0);
+    return items.map((item, itemIndex) => {
       const duration = contentLength(lane, [item], timings[lane.id]);
       const left = cursor * unit; cursor += duration;
       if (origin + left + duration * unit < scroll - laneHeaderWidth || origin + left > scroll + 1800) return null;
@@ -151,11 +152,13 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
       const selectedItem = structure.isSelected(target,item.id);
       const offset = def ? addOffsets(transposePlans(lane,clip,itemPath).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass))) : undefined;
       return <div data-structure-node={JSON.stringify({ focus: target, index: itemIndex })} key={item.id} className={`absolute top-0 overflow-hidden rounded border ${color}`} style={{ outline: selectedItem ? "2px solid #67e8f9" : undefined, left, width: duration * unit, height: (boundCurve ? 108 : 46) + (def && def.kind !== "pattern" ? (2 - depth) * 22 : 0) }}>
-        {structure.boundary(target, itemIndex, 0)}
-        <div className="flex h-5 min-w-0 items-center overflow-hidden" style={{marginLeft:headerLeft,width:Math.max(0,headerRight-headerLeft)}}><button data-structure-key={JSON.stringify([lane.id, clip.id, pass, ...path, item.id])} onPointerDown={e => structure.pointerDown(e, target, item.id)} onContextMenu={e => { e.preventDefault(); structure.contextMenu(target, item.id, e.clientX, e.clientY); }} className="block h-5 min-w-0 flex-1 truncate px-1 text-left text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" title={def ? `${def.kind}: ${def.name}` : c.rest}
+        <div className="flex h-5 min-w-0 items-center gap-0.5 overflow-hidden" style={{marginLeft:headerLeft,width:Math.max(0,headerRight-headerLeft-2)}}>
+        {structure.boundary(target, itemIndex)}
+        <button data-structure-key={JSON.stringify([lane.id, clip.id, pass, ...path, item.id])} onPointerDown={e => structure.pointerDown(e, target, item.id)} onContextMenu={e => { e.preventDefault(); structure.contextMenu(target, item.id, e.clientX, e.clientY); }} className="block h-5 min-w-0 flex-1 truncate px-1 text-left text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" title={def ? `${def.kind}: ${def.name}` : c.rest}
           onClick={e => { e.stopPropagation(); select({ laneId: lane.id, clipId: clip.id }); setExpanded(lane.id); structure.select(target, item.id, e.shiftKey); }} onDoubleClick={e => { e.stopPropagation(); if (def) open(lane, clip, itemPath, pass); }}
           onKeyDown={e => { if (!e.shiftKey && ["ArrowLeft","ArrowRight"].includes(e.key)) {e.preventDefault();e.stopPropagation();structure.nudge(target,item.id,(e.key==="ArrowLeft"?-1:1)*Q/4);} if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); e.stopPropagation(); structure.remove(target, item.id); } if (e.shiftKey && ["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); const next = structure.extendSelection(target,item.id,e.key === "ArrowLeft" ? -1 : 1); if(next)focusStructureOccurrence(lane,clip,next.focus.pass,[...next.focus.parent,next.id]); } if (e.key === "Enter" && def) { e.stopPropagation(); open(lane, clip, itemPath, pass); } }}>{def ? `${def.kind === "pattern" ? "♪" : def.kind === "group" ? "▣" : "▤"} ${def.name}` : c.rest}</button>
-        {def && ['sequencer','score','arpeggiator'].includes(lane.source) && headerRight>headerLeft && <LaneTransposeBadge target={{laneId:lane.id,clipId:clip.id,path:itemPath,pass}} name={def.name} index={logicalRepeatIndex(lane,clip,itemPath,pass)} offset={offset!} width={headerRight-headerLeft} language={language} onOpen={openTranspose}/>}</div>
+        {def && ['sequencer','score','arpeggiator'].includes(lane.source) && headerRight>headerLeft && <LaneTransposeBadge target={{laneId:lane.id,clipId:clip.id,path:itemPath,pass}} name={def.name} index={logicalRepeatIndex(lane,clip,itemPath,pass)} offset={offset!} width={Math.max(0,headerRight-headerLeft-(itemIndex===items.length-1?60:30))} language={language} onOpen={openTranspose}/>}
+        {itemIndex===items.length-1 && structure.boundary(target, items.length)}</div>
         {def?.kind==='pattern' && (['left','right'] as const).map(edge=><div key={edge} role="separator" aria-label={`${c.length}: ${def.name} ${edge==='left'?t.leftEdge:t.rightEdge}`} aria-orientation="vertical" tabIndex={0} className={`absolute bottom-0 top-5 z-20 w-2 cursor-ew-resize ${edge==='left'?'left-0':'right-0'} hover:bg-cyan-300/50 focus:bg-cyan-300/50`} onPointerDown={e=>structure.resizeDown(e,target,item.id,edge)} onKeyDown={e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();e.stopPropagation();structure.resize(target,item.id,edge,(e.key==='ArrowLeft'?-1:1)*localBeatTicks(timings[lane.id]));}}}/>)}
         {!def && itemIndex===items.length-1 && visibleRight>visibleLeft && <div role="separator" aria-label={`${c.length}: ${c.rest}`} title={t.restResize} aria-orientation="vertical" tabIndex={0} aria-valuenow={duration/Q} aria-valuetext={`${duration/Q} ${c.beats}`} className="absolute bottom-0 top-5 z-20 w-2 cursor-ew-resize bg-slate-500/40 hover:bg-cyan-300/50 focus:bg-cyan-300/50" style={{left:restEnd*unit-10}} onPointerDown={e=>structure.resizeDown(e,target,item.id,'right',restEnd)} onKeyDown={e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();e.stopPropagation();structure.resize(target,item.id,'right',(e.key==='ArrowLeft'?-1:1)*Q/4,restEnd);}}}/>}
         {def?.kind === "pattern" ? boundCurve && visibleRight > visibleLeft ? <div style={{ marginLeft: visibleLeft, width: visibleRight - visibleLeft }} onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
@@ -164,7 +167,7 @@ export function ClipArranger({ model, sequencer, language, onChange, onEdit, str
         </div> : <PatternPreview definition={def} offset={offset} timing={timings[lane.id]} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
           : def ? <div className="relative mt-px">{tree(lane, clip, def.children, itemPath, pass, depth + 1, origin + left)}</div> : null}
       </div>;
-    }), structure.boundary({ laneId: lane.id, clipId: clip.id, pass, parent: path }, items.length, cursor * unit, true)];
+    });
   };
   return <section className="mt-4 min-w-0 rounded-xl border border-slate-700 bg-slate-950/85 p-3" aria-label={c.title}>
     <div className="mb-3 flex flex-wrap items-center gap-2"><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}

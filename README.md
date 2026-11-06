@@ -127,7 +127,9 @@ Draw longer polyphonic passages in the **[Score Sequencer](documentation/perform
 
 ![Score Sequencer with a vertical piano keyboard, independent note durations and eight pattern pads](screenshots/score-sequencer.jpg)
 
-Use [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes) to turn a shared pattern into a progression. Patterns, groups and supergroups support diatonic steps and chromatic semitones, with shared repetition settings and independent parent or placement offsets. Click a lane badge to edit the offset. Timeline previews show the resulting pitches while the original notes remain editable.
+Use [nondestructive transposition](documentation/performance/clip_arranger_preview.md#transpose-clips-without-changing-notes) to turn a shared pattern into a progression. Patterns, groups and supergroups support diatonic steps and chromatic semitones, with shared repetition settings and independent parent or placement offsets. Expanded tracks have larger, clearly outlined **+** and **↕** buttons for inserting content and editing transposition, with separate space for content names and unchanged box sizes. Timeline previews show the resulting pitches while the original notes remain editable.
+
+![Larger add-content and transpose controls in the expanded arranger](screenshots/clip-arranger-content-controls.png)
 
 Assign **MIDI CC 1–50** to [performance controls](documentation/performance/performance_controllers.md#receive-midi-cc-in-a-performance) in the rack, then **Generate automation** from an instrument clip. Bound controller lanes follow the instrument's MIDI channel and expose song-length curves with up to ten points directly inside expanded clips, with explicit Save/Discard. Hardware MIDI and manual controllers can also move the mapped knobs, integer values and toggles; assignments are saved with the performance.
 

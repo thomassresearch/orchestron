@@ -102,6 +102,10 @@ Cross-repetition selection applies to content directly inside one clip. Nested s
 
 Use **Add content** or the **+** insertion markers before, between or after boxes to search the track's existing definitions. **Adopt linked** retains sharing; **Create variation** gives the inserted definition its own identity. The picker also offers **New pattern** and explicit rests. Unused saved definitions remain available. Double-click an empty area or rest inside a clip to open the same picker at the clicked position, snapped to a quarter master beat. Inside a group or supergroup, the insertion belongs to that container. Existing content stays in place; an insertion that overlaps it is rejected. Content headers still open their editors on double-click, and automation curves retain their point-editing gestures.
 
+Expanded tracks keep the cyan **+** insertion buttons fully visible, with larger symbols and wider click targets. Content names, indigo **↕** transposition buttons and the final **+** each have their own space in the header. The content boxes retain their dimensions and timing positions.
+
+![Larger insertion and transposition buttons without changing content-box sizes](../../screenshots/clip-arranger-content-controls.png)
+
 ![Add content opened at an empty clip position](../../screenshots/clip-arranger-empty-insertion.png)
 
 Right-click a pattern, group or supergroup and choose **Duplicate** to append a linked occurrence at the clip root, immediately after its last musical item. Consecutive sibling selections retain their order and internal rests. Trailing silence is used first; unused silence remains. The clip grows only when needed, and neighboring clips stay in place. **Ungroup** appears only when all selected items are groups or supergroups. Rest-only and cross-repetition selections cannot be duplicated.
@@ -144,7 +148,7 @@ See the [direct-content review](../../specifications/redesign-arranger/direct-co
 
 Click the transposition badge on a pattern, group or supergroup in the expanded arranger lane. This opens **Transpose in arranger** for that occurrence without opening or replacing the musical editor. Compact lanes also offer badges on their pattern previews; expand the lane to edit a group or supergroup directly. The existing **Transpose** controls in the detail editor remain available.
 
-Active badges show the effective signed offset: **D** means diatonic steps and **C** means chromatic semitones. Enclosing offsets are included, so each pattern shows its complete total. A **↕** button appears when the total is zero or the box is too narrow for the values; hover or focus it to identify the occurrence and its effective offset. Narrow active badges retain their indigo highlight. Click any badge to add or change a transposition, including on a generated repetition.
+Transposition buttons always show a larger **↕** symbol with an indigo outline and background. Active buttons also show the effective signed offset when space permits: **D** means diatonic steps and **C** means chromatic semitones. Enclosing offsets are included, so each pattern shows its complete total. Hover or focus a button to identify the occurrence and its effective offset. Narrow active buttons retain their brighter indigo highlight. Click any button to add or change a transposition, including on a generated repetition.
 
 ![Effective transposition badges on patterns, groups and supergroups in the arranger lane](../../screenshots/clip-transposition-lane.png)
 

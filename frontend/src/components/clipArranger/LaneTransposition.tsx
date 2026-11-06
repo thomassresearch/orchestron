@@ -21,10 +21,10 @@ export function LaneTransposeBadge({ target, name, index, offset, width, languag
   const values = [offset.diatonicSteps ? `D${signed(offset.diatonicSteps)}` : '', offset.chromaticSemitones ? `C${signed(offset.chromaticSemitones)}` : ''].filter(Boolean).join(' ');
   const description = `${c.title}: ${name} · ${c.repeat} ${index+1} · ${c.effective}: ${signed(offset.diatonicSteps)} ${c.diatonic} · ${signed(offset.chromaticSemitones)} ${c.chromatic}${dirty ? ` · ${c.draft}` : ''}`;
   return <button type="button" data-transpose-target={JSON.stringify(target)} data-transpose-active={active} aria-label={description} title={`${description}. ${c.laneHelp}`} aria-haspopup="dialog"
-    className={`pointer-events-auto relative z-30 h-5 max-w-[75%] shrink-0 truncate rounded px-1 font-mono text-[9px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${dirty?'bg-amber-950 text-amber-200':active?'bg-indigo-950 text-indigo-200 ring-1 ring-inset ring-indigo-400/60':'text-slate-300 hover:bg-indigo-950 hover:text-indigo-200'}`}
+    className={`pointer-events-auto relative z-30 flex h-5 min-w-7 max-w-[60%] shrink-0 items-center justify-center gap-1 truncate rounded border px-1 font-mono text-xs font-semibold leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${dirty?'border-amber-400 bg-amber-950 text-amber-100':active?'border-indigo-300 bg-indigo-800 text-white':'border-indigo-400/70 bg-indigo-950 text-indigo-100 hover:border-indigo-200 hover:bg-indigo-800'}`}
     onPointerDown={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()} onContextMenu={e=>{e.preventDefault();e.stopPropagation();}}
     onClick={e=>{e.stopPropagation();onOpen(target,e.currentTarget);}}>
-    {active && values.length*5.5+8 <= width*.75 ? values : '↕'}{dirty?'*':''}
+    <span aria-hidden="true" className="text-lg leading-none">↕</span>{active && values.length*7.25+36 <= width*.6 && <span>{values}</span>}{dirty?'*':''}
   </button>;
 }
 
