@@ -12,7 +12,7 @@ This document reflects the code in:
 - `frontend/src/App.tsx`
 - `frontend/src/components/SequencerPage.tsx`
 - `frontend/src/components/MultitrackArranger.tsx`
-- `frontend/src/components/sequencer/PadLoopPatternEditor.tsx`
+- `frontend/src/components/sequencer/PatternWorkspace.tsx`
 - `frontend/src/lib/padLoopPattern.ts`
 - `frontend/src/store/useAppStore.ts`
 - `frontend/src/store/appStoreSequencerTracksSlice.ts`

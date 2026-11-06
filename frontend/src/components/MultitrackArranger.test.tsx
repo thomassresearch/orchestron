@@ -8,10 +8,8 @@ import { useAppStore } from "../store/useAppStore";
 import { useLaneOutput } from "../lib/laneOutput";
 import { ARRANGEMENT_ITEM_MIME } from "../lib/arrangementDrag";
 import { MultitrackArranger } from "./MultitrackArranger";
-import { PadLoopPatternEditor } from "./sequencer/PadLoopPatternEditor";
 import { PatternWorkspace } from "./sequencer/PatternWorkspace";
 import { PerformanceEditorProvider } from "./sequencer/PerformanceEditorState";
-import { SEQUENCER_UI_COPY } from "./sequencer/sequencerUiCopy";
 
 const selectionChanged = vi.fn();
 const noop = () => {};
@@ -237,7 +235,7 @@ it("toggles only lane state without changing the mixer, transport, or lane expan
   expect(Object.values(useLaneOutput.getState().lanes).some(value => value.mute)).toBe(true);
 });
 
-it("opens the selected definition in the arranger and retains disclosures across view changes until workspace reset", () => {
+it("opens the selected definition in the arranger and retains workspace selection across view changes until reset", () => {
   vi.stubGlobal("requestAnimationFrame", () => 0);
   const track = useAppStore.getState().sequencer.tracks[0];
   useAppStore.getState().applySequencerConfigSnapshot({ ...fixture.config, sequencer: { tracks: [{ ...track,
@@ -246,29 +244,24 @@ it("opens the selected definition in the arranger and retains disclosures across
   const current = useAppStore.getState().sequencer.tracks[0];
   function Workspace({ generation = 0, library = true }) {
     return <PerformanceEditorProvider key={generation}>
-      {library ? <PadLoopPatternEditor track={current} ui={SEQUENCER_UI_COPY.english} hostId={current.id}
-        stepsPerBeat={1} padStepCounts={Array(8).fill(4)} defaultPadStepCount={4} isPlaying={false}
-        linkedPadLoopStepPosition={null} onLinkedPadLoopStepPositionChange={noop}
-        onPadLoopEnabledChange={noop} onPadLoopRepeatChange={noop} onPadLoopPatternChange={noop} /> : <Arranger />}
+      {library ? <PatternWorkspace track={current} language="english" padHasContent={() => true}
+        onSourceChange={noop} onPatternChange={noop} /> : <Arranger />}
     </PerformanceEditorProvider>;
   }
   const view = render(<Workspace />);
-  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
   fireEvent.click(screen.getByRole("button", { name: "Group A" }));
-  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
-  expect(screen.queryByText("Editing: A")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Patterns and phrases" }));
   expect(screen.getByText("Editing: A")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Open in arranger" }));
   view.rerender(<Workspace library={false} />);
   expect(screen.queryByText("Editing: A")).toBeNull();
   expect(screen.getByRole("button", { name: "Group A" })).toBe(document.activeElement);
   view.rerender(<Workspace />);
-  expect(screen.getByText("Editing: A")).toBeTruthy(); // Independent sequencer disclosure.
+  expect(screen.getByText("Editing: A")).toBeTruthy(); // The active workspace retains its selected definition.
   view.rerender(<Workspace library={false} />);
   expect(screen.queryByText("Editing: A")).toBeNull();
-  view.rerender(<Workspace library={false} generation={1} />);
-  expect(screen.queryByRole("button", { name: "Patterns and phrases" })).toBeNull();
+  view.rerender(<Workspace generation={1} />);
+  expect(screen.queryByText("Editing: A")).toBeNull();
+  expect(screen.getByRole("button", { name: "Free workspace" }).getAttribute("aria-pressed")).toBe("true");
 });
 
 it("deletes unused phrases from the arranger even with a retained workspace and clears its editing context", () => {
