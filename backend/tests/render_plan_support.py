@@ -109,3 +109,18 @@ def synthetic_costs(graph):
         tuple(RenderStageCost(s.id, values["source"] if s.kind == "patch" and (s.instance_id or "").startswith("source")
                               else values["effect"] if s.kind == "patch" else values["mixer_stage"]) for s in graph.stages),
         values["dispatch"], values["copy_per_sample"])
+
+
+def prepared_partition(case="two", ksmps=32, *, sample_bytes=8):
+    """Explicit internal compilation shared by process/IPC qualification tests."""
+    from backend.app.models.render_protocol import RendererPolicy
+    from backend.app.services.compiler_service import CompilerService
+    from backend.app.services.opcode_service import OpcodeService
+    from backend.app.services.render_partition_plan import plan_render_partitions
+
+    compiler = CompilerService(OpcodeService("/static/icons"))
+    targets, graph, mixer = planner_inputs(case, ksmps)
+    dependency = compiler.analyze_realtime_graph(targets, graph)
+    plan = plan_render_partitions(dependency, policy=RendererPolicy(mode="parallel", max_workers=4),
+                                 costs=synthetic_costs(dependency), sample_bytes=sample_bytes)
+    return targets, plan, compiler.compile_realtime_partitions(targets, graph, mixer, plan)

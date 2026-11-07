@@ -74,7 +74,8 @@ def test_partition_planning_is_not_activated_by_session_lifecycle(tmp_path, monk
     monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.analyze_realtime_graph", unexpected)
     monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.compile_realtime_partitions", unexpected)
     monkeypatch.setattr("backend.app.services.render_partition_plan.plan_render_partitions", unexpected)
-    # This is still NOT a supported runtime setting; no opt-in can activate T03/T04.
+    monkeypatch.setattr("backend.app.engine.parallel_csound_renderer.PartitionRenderCoordinator.start", unexpected)
+    # This is still NOT a supported runtime setting; no opt-in can activate T05.
     monkeypatch.setenv("VISUALCSOUND_REALTIME_RENDERER", requested_mode)
     with _client(tmp_path) as client:
         session = _create_running_session(client, patch_name="Planner remains diagnostic")
@@ -2715,6 +2716,7 @@ def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event
 
     monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.compile_realtime_partitions", unexpected)
     monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.analyze_realtime_graph", unexpected)
+    monkeypatch.setattr("backend.app.engine.parallel_csound_renderer.PartitionRenderCoordinator.start", unexpected)
     payload = _performance_csd_export_payload()
     payload["eventSource"] = event_source
     config = payload["performanceExport"]["performance"]["config"]

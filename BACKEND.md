@@ -44,10 +44,23 @@ analysis does not replace canonical patch/asset validation. See the
 program compiler. Canonical and partition emitters share structured stage lowering;
 public compile responses and offline CSD exports preserve canonical output. Internal
 programs include ordered native audio-channel adapters, scoped setup and local note/stage
-references. They remain execution-ineligible and are consumed only by the sequential native
-development harness. No child processes or new session selection path exist. See the
+references. They remain ineligible for automatic selection. The sequential native harness
+and an explicitly started internal process coordinator consume them for qualification. See the
 [T04 contract](specifications/parallel-csound-rendering/contracts.md#9-t04-internal-realtime-program-contract)
 and [compiler tests](backend/tests/test_compiler_partitioned.py).
+
+The T05 [PartitionRenderCoordinator](backend/app/engine/parallel_csound_renderer.py) starts
+persistent Csound processes with `spawn`, native-width shared audio slots and bounded
+command/reply mailboxes. The parent seals one interval, dispatches independent branches,
+waits for every predecessor before the shared suffix, and commits only complete blocks.
+It converts/resamples once in the parent and withholds an entire failed PCM request.
+Startup, cancellation, deadlines and cleanup are internal operations; normal sessions,
+the renderer factory and CSD exports do not call this coordinator. A caller must supply
+already ordered/gated events through its parent-only block preparation callback. The
+session-facing facade, live operations and automatic next-start fallback belong to T06;
+container admission and performance selection belong to T07. See the
+[T05 contract](specifications/parallel-csound-rendering/contracts.md#10-t05-process-execution-contract)
+and [process tests](backend/tests/test_parallel_csound_renderer.py).
 
 
 ## Application Lifecycle

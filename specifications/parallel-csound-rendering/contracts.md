@@ -38,7 +38,7 @@ Tests cover native onset/CC sample levels at K=1 and K=32, half-open intervals, 
 
 ## 3. Initial protocol version 1
 
-The frozen Pydantic union is `RenderMessage`; its generated schema is [protocol.schema.json](protocol.schema.json). JSON is the review/interchange schema, not a decision to serialize audio or per-block payloads as JSON. T05 chooses a bounded binary/shared-memory encoding with identical fields and invariants. No pickled callbacks, service objects or Csound pointers are permitted.
+The frozen Pydantic union is `RenderMessage`; its generated schema is [protocol.schema.json](protocol.schema.json). T05 uses length-prefixed UTF-8 JSON control records in fixed shared-memory mailboxes, with identical fields and invariants. Audio stays in native binary arrays. This initial control encoding prioritizes inspectable correctness; no performance qualification is implied. No pickled callbacks, service objects or Csound pointers are permitted in commands.
 
 Every envelope carries an explicit version, positive epoch, partition identity and 64-character plan SHA-256. All records reject extra fields, coercion of string numbers and nonfinite floats. Frozen tuples prevent post-validation mutation of events/control arrays.
 
@@ -280,5 +280,102 @@ full-performance engine rule.
 This establishes compiler/bridge correctness for the tested local native build, not realtime
 speedup, asynchronous acceptance, all audited opcode combinations or platform-wide admission.
 The harness keeps one block in flight but does not implement IPC descriptors, epochs, deadlines
-or coordinated failure publication. Those remain T05 onward. Container/native stock-binding,
+or coordinated failure publication. Those are qualified separately in T05. Container/native stock-binding,
 AMD64, float32, browser soak and parallel process performance require separate qualification.
+
+## 10. T05 process execution contract
+
+`PartitionRenderCoordinator` is an internal execution API, not yet a `RealtimeRenderer`
+implementation. Only explicit callers can invoke `start(compilation, plan)`; a diagnostic
+artifact does not enable a session or imply admission. `renderer_factory` still returns
+`CsoundWorker`. Canonical compile/export paths and the single render loop are unchanged.
+The coordinator deliberately has no automatic fallback or live state transfer. Startup
+failure rolls back ownership before the caller can start the canonical renderer. Failure
+during playback invalidates the epoch and withholds the entire incomplete request.
+
+### Native ownership and IPC
+
+- Explicit `spawn`, one persistent child/native instance per partition, no task pool or fork.
+  Only the parent owns clocks, sequencer advancement, scheduler drains and controller revisions.
+  Children consume ordered full MIDI broadcasts and only their subscribed control channels.
+- Before allocating, validate plan/artifact integrity, ownership, stereo output, worker count
+  and total shared bytes against both policy and plan limits. Total bytes include two native
+  slots per cut bus, two final stereo slots, two float64 meter slots per worker, all mailboxes,
+  CSD/bootstrap data, alignment and operating-system page rounding. Linux reserves tmpfs pages
+  with `posix_fallocate` before writing, so insufficient `/dev/shm` capacity is a startup error.
+  Private native RSS and cross-session resource leases remain T07 work.
+- One parent-owned shared-memory segment; children attach without tracker ownership and never
+  unlink. Small spawn arguments reference hashed, pre-provisioned bootstrap records, avoiding
+  a potentially blocking large CSD pickle on the spawn pipe. No samples travel in messages.
+- Each worker has a 1 MiB command mailbox and 256 KiB reply mailbox. Records are a four-byte
+  little-endian length followed by strict UTF-8 protocol JSON. Array ceilings remain unchanged;
+  the encoded byte ceiling is an additional limit. Oversize is a diagnosed failure before any
+  worker dispatch, never silent event truncation. This control encoding is unqualified for
+  realtime performance and may be optimized in T07 without changing the frozen semantics.
+- Command/completion semaphores establish publication ordering. Samples are visible before
+  DONE; suffix commands are released only after every predecessor's matching DONE. Neither
+  slot counters nor shared flags are used as memory fences. At most one global block is sealed.
+- INIT/READY agree on epoch, plan/artifact digests and native format. Native startup checks
+  MYFLT width, binding dtype, sample rate, `ksmps`, channel count and `0dbfs`. The partition
+  wrapper corrects stock ctcsound audio-channel pointer declarations using the verified MYFLT
+  width; this does not change the default renderer. Missing bridge APIs or a width mismatch
+  fail startup. The extracted wrapper is also used by the T04 sequential harness.
+- Every RENDER/DONE checks exact sequence, interval, frame count, revision, slot set and
+  `slot=sequence%2`, `generation=sequence//2`. Revisions cannot decrease. A worker performs
+  exactly once, writes all its output/meter samples (including silence), then acknowledges.
+  Nonfinite audio/meters, float32 overflow, malformed/stale/duplicate replies and unexpected
+  child exit invalidate the epoch. Child output/logging file descriptors go to the null device;
+  bounded error records carry diagnostics without a blocking log pipe.
+
+### Parent timing and publication
+
+`render_blocks(block_count, target_sample_rate, prepare_block)` serializes whole requests.
+The trusted parent-only callback `(request_block_index, engine_sample_start)` runs once per
+block and returns frozen `BlockInputs`: already drained/gated MIDI, coalesced control writes
+and an authoritative revision. It is the future T06 connection point, not a second scheduler.
+Events arriving after that drain remain eligible for the next block, including the existing
+late/clamp ordering. Without a callback, the last control revision is retained. The coordinator
+never advances sequencers or fabricates MIDI timestamps.
+
+Each request is bounded to 192,000 engine frames and an 8–192 kHz target sample rate. Engine
+`ksmps` stays unchanged. All independent predecessors are dispatched before waiting; the
+same-interval suffix runs after their barrier, and no future interval is speculative.
+Only a complete block advances `committed_sample`. Native bridge/final slots retain their
+native precision. The parent converts completed output to float32, resamples once per full
+request through the existing helper, and returns the existing `EngineRenderResult` shape.
+Publication and cancellation share a lock; `published_sample` advances only for a complete
+returned request. On a later-block failure, completed native work remains diagnostic but no
+partial request is returned or replayed. Stop retains those diagnostic positions; every new
+start resets all three cursors to zero, including a new start that subsequently fails.
+
+Owned meter readings are collected at the same completed sample as output. The internal API
+retains the last block's channel readings and at most 32 frames sampled at the existing 15 Hz
+cadence, starting after the first block. T06 will map channel names to session mixer levels and
+wire audible transport markers. Failed epochs clear pending meter data.
+
+### Cancellation and cleanup
+
+Stop signals cancellation before waiting for render ownership. Wait loops inspect cancellation,
+child liveness and the deadline at bounded intervals. There is one startup watchdog and one
+watchdog per sealed render block; each failing operation additionally owns the stop budget.
+Cleanup gives the whole worker set half the stop budget to exit gracefully, then terminates,
+kills if necessary, and reaps within the remaining shared budget. It is not a timeout per child.
+Only after every child is reaped does the parent close process handles and unlink its arena.
+An unreaped child quarantines ownership for a subsequent Stop; restart/fallback is prohibited.
+Repeated Stop is safe. A start racing with an active Stop is cancelled. Start requires idle
+operation ownership and otherwise fails immediately, including after a blocked-callback Stop.
+
+The trusted preparation callback must yield promptly and must not recursively call coordinator
+methods. Python cannot preempt arbitrary caller code: Stop waits at most twice its configured
+budget for render ownership, then reports the blocked parent callback; ownership remains with
+the operation until it yields and cleans up. This limitation is explicit, not a successful stop.
+Once publication has completed under the state lock, subsequent Stop cannot retract returned PCM;
+browser-response cancellation remains part of T06 integration.
+
+Each child has a parent-sentinel watcher that exits even while native compilation/rendering is
+hung. Abrupt parent death leaves the dedicated Python resource tracker to unlink the parent's
+segment after inherited tracker handles close. Container PID 1 must reap exited orphan zombies;
+they retain no native state or shared mappings. Normal stop reaps children directly.
+
+T05 tests qualify these execution semantics, not automatic selection, realtime speedup, UI/live
+edits, musical session integration, end-to-end recovery, browser latency or multi-session admission.

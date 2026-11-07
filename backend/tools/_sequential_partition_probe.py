@@ -7,83 +7,15 @@ revision owner, lane gate or resampler lives inside an instance.
 from __future__ import annotations
 
 from contextlib import ExitStack
-import ctypes
 from dataclasses import dataclass
 
 import numpy as np
 
-from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.partition_native import NativeCsoundPartition as NativeProbe
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.services.compiler_partitioned import validate_realtime_partition_compilation
 
 
-class NativeProbe:
-    def __init__(self, module, csd, engine, sample_bytes):
-        self.cs = module.Csound()
-        self.pending = bytearray()
-        self.callbacks = []
-        try:
-            width = int(self.cs.sizeOfMYFLT())
-            if width != sample_bytes or width not in (4, 8):
-                raise RuntimeError("Plan/native sample ABI mismatch.")
-            # The direct wrapper explicitly uses double for *all* native methods.
-            if type(self.cs).__name__ == "DirectCsound" and width != 8:
-                raise RuntimeError("Direct binding requires native float64.")
-            for name in ("audioChannel", "setAudioChannel"):
-                if not callable(getattr(self.cs, name, None)):
-                    raise RuntimeError("Native binding lacks audio-channel bridge APIs.")
-            self.dtype = np.dtype("float64" if width == 8 else "float32")
-            self._midi_callbacks(module)
-            csd = CsoundWorker._apply_headless_runtime_options(csd, "internal:loopback", "null", suppress_messages=True)
-            if self.cs.compileCsdText(csd) != 0 or self.cs.start() != 0:
-                raise RuntimeError("Native partition probe failed to compile/start.")
-            self.cs.setMessageLevel(0)
-            if (self.cs.sr(), self.cs.ksmps(), self.cs.nchnls()) != (engine.sample_rate, engine.ksmps, engine.channels):
-                raise RuntimeError("Partition does not retain full-performance engine settings.")
-            if np.asarray(self.cs.spout()).dtype != self.dtype:
-                raise RuntimeError("Binding sample dtype disagrees with native ABI.")
-        except BaseException:
-            self.close()
-            raise
-
-    def _midi_callbacks(self, module):
-        def read(_cs, _user, destination, capacity):
-            count = min(len(self.pending), max(0, capacity))
-            if count:
-                ctypes.memmove(destination, bytes(self.pending[:count]), count)
-                del self.pending[:count]
-            return count
-
-        read_type = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int)
-        opened = module.MIDIINOPENFUNC(lambda *_: 0)
-        closed = module.MIDIINCLOSEFUNC(lambda *_: 0)
-        reader = read_type(read)
-        self.callbacks.extend((opened, closed, reader))
-        self.cs.setHostImplementedMIDIIO(True)
-        self.cs.setExternalMidiInOpenCallback(opened)
-        self.cs.setExternalMidiInCloseCallback(closed)
-        module.libcsound.csoundSetExternalMidiReadCallback.argtypes = [ctypes.c_void_p, read_type]
-        module.libcsound.csoundSetExternalMidiReadCallback(self.cs.cs, reader)
-
-    def perform(self, midi, controls):
-        if self.pending:
-            raise RuntimeError("Previous sealed MIDI block was not consumed.")
-        self.pending.extend(byte for message in midi for byte in message)
-        for name, value in controls:
-            self.cs.setControlChannel(name, value)
-        if self.cs.performKsmps() != 0:
-            raise RuntimeError("Native probe ended before the requested block completed.")
-
-    def close(self):
-        cs, self.cs = self.cs, None
-        if cs is not None:
-            try:
-                cs.stop()
-            finally:
-                try:
-                    cs.cleanup()
-                finally:
-                    cs.reset()
 
 
 @dataclass(frozen=True)

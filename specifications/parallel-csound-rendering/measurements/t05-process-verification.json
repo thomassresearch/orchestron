@@ -1,0 +1,1556 @@
+{
+  "version": 1,
+  "date": "2026-11-07",
+  "scope": "T05 explicit internal process execution; session selection and performance admission disabled",
+  "source": {
+    "base_commit": "3664b8db99e7fbf4aeda74982079b963a515b22e",
+    "changed_python_sha256": {
+      "backend/app/engine/csound_process.py": "9709cbd792f601b7f96383cefa56599da7f1dce85b9ff2afd4ea177d3696a44d",
+      "backend/app/engine/parallel_csound_renderer.py": "e8b7009540e96bdf914b33a39a3a6ce276745438d5545f20bff27cf493064ba1",
+      "backend/app/engine/partition_native.py": "b5e291ea9e169834fcf3cacc0bb4900858c449b932c916999cd3ee8a476a1be6",
+      "backend/app/engine/render_ipc.py": "af3654b3a39aac3985ebb62486b9fa3f1ebc55654898f08315f9f8ec48a20d14",
+      "backend/tests/partition_process_support.py": "8ccf066dd338adec524c72baee68ec0f3cf081eec6aed392a00020ecaf2bfebb",
+      "backend/tests/render_plan_support.py": "a4a135869da4b92815f29f74ecc6dbdd6bac565b3a8e6a32b4095b119cab20ba",
+      "backend/tests/test_api.py": "3ca946f269096ea25000584ff68329c1cf07fde745ed43607dcf2c0da50cbe22",
+      "backend/tests/test_parallel_csound_renderer.py": "04a8ffd51b4018a13844c722c8a3ddaaab4a21da767a7bc5eaa6559c0635c3a8",
+      "backend/tests/test_render_ipc.py": "46c82fbe3d5049f2a0a1d1a46a2835e2bdbe99e87b180c8de86ef0443d97e88e",
+      "backend/tools/_sequential_partition_probe.py": "4eb2a83341232b2526c32d98ed77f686730f32433f18312c526f2b5d8fe866c9",
+      "backend/tools/probe_partition_process.py": "4e18eccbd318ce773f3ac0e00dcf4ed23bf0687aeee54a8f2351a59fd9424e50"
+    },
+    "unchanged_files": {
+      "backend/app/engine/csound_worker.py": "6cd3a937d4a71b3d8786de8a127b5c6bbcc0cc004aff10e7ef4187cf8f20f4e4",
+      "backend/app/engine/renderer_factory.py": "5076c270174167b01f85c8ed8a6acfee105f146d8341dfea013bf1928a782013",
+      "backend/app/services/performance_export_service.py": "af9d84a84c324072d0c63ad3200bede93c3a6f1861518b9da100d14ded8ed233",
+      "backend/app/services/compiler_mixer.py": "a8decf1697b354cfc67c578bd6c1c674de215b9ca989dd5a3635c95fe1626d3d"
+    }
+  },
+  "macos_runtime": {
+    "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+    "python": "3.13.2",
+    "csound_version": 6181,
+    "binding": "DirectCsound",
+    "sample_bytes": 8
+  },
+  "development_process_run": {
+    "passed": 54,
+    "failed": 0,
+    "seconds": 339.42,
+    "note": "Initial expanded matrix and 100-cycle run; final ABI, cursor-reset and cancellation follow-ups verified by final focused/full runs."
+  },
+  "final_focused_ipc_and_lifecycle": {
+    "passed": 46,
+    "failed": 0,
+    "deselected": 17,
+    "seconds": 11.83,
+    "kernel": "cython",
+    "command": "VISUALCSOUND_SEQUENCER_IMPLEMENTATION=cython .venv/bin/pytest backend/tests/test_render_ipc.py backend/tests/test_parallel_csound_renderer.py -q --tb=short -k \"not spawned_native_audio and not one_hundred\""
+  },
+  "native_process_matrix": {
+    "cases": [
+      "two",
+      "four",
+      "eight",
+      "shared",
+      "bypass",
+      "sidechain",
+      "custom_ports",
+      "legato"
+    ],
+    "ksmps": [
+      1,
+      32
+    ],
+    "frames_each": 8192,
+    "assertion": "Exact final native samples, float32 PCM and every block meter against canonical/sequential instances; nonzero signal required; no warmup omission or alignment search."
+  },
+  "lifecycle_stress": {
+    "native_cycles": 100,
+    "checks": [
+      "persistent PIDs during render",
+      "fresh epochs",
+      "stop idempotence",
+      "all children reaped",
+      "arena unlinked",
+      "stable file descriptor counts"
+    ],
+    "parent_death": "standalone killed parent while native worker was blocked; children exit and dedicated tracker unlinks segment"
+  },
+  "linux_docker": {
+    "image_id": "sha256:7789d5dafd9fc26574b2aea726ca89a4184a4ba62909ac970c4ad9678d95845c",
+    "image_tag": "visualcsound-browser-clock:local",
+    "architecture": "arm64",
+    "environment": "Docker Desktop existing image; current backend mounted read-only at /source/backend; not a newly built final image",
+    "cpu_limit": 4,
+    "memory_limit_bytes": 1073741824,
+    "shm_limit_bytes": 67108864,
+    "network": "none",
+    "sequencer": "python",
+    "csound_version": 6181,
+    "matrix": [
+      {
+        "case": "two",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 3,
+        "plan_hash": "a55ba9f54ea34d1dc3801fd467b3c8f1fb005d9af65c2f44500ceaab02763840",
+        "artifact_hash": "34fa2a16302f453561a372929b84215bc5ffba3694cb8fc535876246894497b1",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "fe10d4e04c146ce1184231a1f6a56fa2279c280cf6d4eb65d54bb4f5e5f86d52",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "two",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 3,
+        "plan_hash": "0dd4bffb9f9c86f097272168a4b37e0d7acdee7f9342e4b63baaf903a158ab80",
+        "artifact_hash": "bce9dc52b6d95f5c5a1e0bf4db100c73dcae79c334620c164f596946eceda940",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "ee65373a70f15409b58fadcf6bbb16f1d0e30379d3fad53b6285176fae2860fa",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "four",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "76f5c4c6f7c80f9c05e2ea11a1038a13ee785ef5321317c4ccc830723db57d1a",
+        "artifact_hash": "ddecf140a0086ecddc84616f914fd2717ee060919af184dda89776d8a49573e9",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "a79b8698ac39a39897711f12d3211915d70991a7e3fd06e1cd96ebfba90f2aee",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "four",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "557d498b9994f13dc94875290af15a7473f72db4b96bdcf3e7a617bcecb6c373",
+        "artifact_hash": "e1da5d772358cf363864bdfd13b6bdfd74b9f56a58117710fd611b99a294e0dc",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "9cc6af591bdc933ff212d06acbea54eee4bd30d1bc424fe531aec0d3fb56bd87",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "eight",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "05f82ada304263a1a1f680a80246a8b6851097e90411580457ddb09b9167cd4c",
+        "artifact_hash": "4723704a74d54b5439cb746b6bbfb07757a1acc739f7132dd1fb6df5b83742e3",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "8bfc16bbd0068ad935c7d44fff56ccdbdc1f1bd911e5e201db9376f5b89f1fc5",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "eight",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "25f994ca1470a1d1c8b8f8d3a0cfc5002d56762d1b5ac6a9b63120a327df83ff",
+        "artifact_hash": "d31f1bc0ae2a4fcfe99484e5f66a91f1773b7ad29b20ad72f8ff01a2996024d3",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "17668af4911140912e23956ca73034b13d00ada63ee41d34e4bcbc8127c880f6",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "shared",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "466c171a5d5a6c98254845a70ea079d024e2318b2871313104866add4fb323c8",
+        "artifact_hash": "a1ffda862fc7c72f2c25d1f6c92100bf98e179bf788d646b3ed8296b121d36c9",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "bad03045499555c6576e0029ac0117e31b190474a6662fcf9ea6ae75ffc74bc9",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "shared",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "a9139951856fe0dd0953d5785492b25e251e543f9367020214f9371e2156aef0",
+        "artifact_hash": "e43e545000a05d2df872e79ee2de50a34a8e97cd09e22e4342769de552004a7f",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "3fc0951c4c7b503aa4e4d1a5679f6d454fba1c29980179821dd2485c30ea5ed6",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "bypass",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "007c232796b3c94a8e61923cfaf883e7fd3fee831efbb3507ddf686c9b3e8fe8",
+        "artifact_hash": "5936d86306ec85429cae54b04d5de39669dca3fd21c171cc2a609641288feb19",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "e8c5b87836ee6edcfdeb87b1d8a8650ef46b689dc94d45691687060cfc989d75",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "bypass",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "091198d8423b66ed78eb1a1c633e85015402191f490c6c296379aa8b8b27a349",
+        "artifact_hash": "d1f031f8088b00d730f7b5413ce9df2663470874b7d84288ecb3fbb88faea323",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "424a260574c0179d0bdd58bdc790a080112daef0b5530a9b54110b4d19f8e330",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "sidechain",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "f92da583e7f2c828235e89a4b3c5f71f1899f667b92d3e94f66be871091a40b0",
+        "artifact_hash": "e0b3423a42c3134162a60ac04a583a44564894c16a5aa9b55ca2b63850ffff44",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "caadddc44b09c4c8e22fd06989ca2f8ca77648e8f1bba56446ab55b6f2720b5a",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "sidechain",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "b9782fc83e167d124d7a299e16f012e958a64e674a649e1b6dc92f5a5fb7eb7b",
+        "artifact_hash": "d2cc0f5e84d096f97c2ed549e8f801a7617b5b7844209634e4d3abcc29559162",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "c9c64dd2c439a7c8cbaac50489ca2dfb6cc1550e08fdfb951fec6d43e3371e3f",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "custom_ports",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "885d7d82b00ed41fb63e2e480506b52b171e1fee901bc5bc52f54e5223edf4f2",
+        "artifact_hash": "91906ebff42c6e4390d0a70626e2a860ef935ba9986cc1d020c04e84c58dae12",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "b8fec0ad9242795f430004babdc06580c5aa3db67f5f6566f3f42ce741216941",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "custom_ports",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "ed52fa4d901452d2369418f68525c82e740f479b146f20041cfa6adbda83510f",
+        "artifact_hash": "8d7c87f9f2ddd9477bcb79d7bdb160392af0776aece5f1b65ad01294fd153198",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "3d7a5e51faf8aaae8da67456cfd55a51d0419de3e9e7559e0c278f6ead78359a",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "legato",
+        "ksmps": 1,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "c3857eddba02b366cb20003bdee01e9a81816d970fd15981d33ecfeddec06d79",
+        "artifact_hash": "2d64c767430fdc9a75a1a1acadb68de8d2fff09f26c4751b99cd1c2f616f2e26",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "2d003ab1d4d04ec4586ef44605f681f43405d53d26d18d9df9e3e1b9374fdfb1",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      },
+      {
+        "case": "legato",
+        "ksmps": 32,
+        "frames": 8192,
+        "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+        "python": "3.13.18",
+        "architecture": "aarch64",
+        "binding": "Csound",
+        "sample_bytes": 8,
+        "processes": 4,
+        "plan_hash": "78aff700d1e9db706b5b1d4be5949f176964aa4a5dc5d518d93eaa656306f5d6",
+        "artifact_hash": "005d2de559067071ccc5cfbcb357589f4273557e04030ff69e08b0ffb5d091f1",
+        "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+        "pcm_sha256": "0ca5e9af06c05e8d6434bc47c7c1d6d16a948ab16e61f70f7c47f2754d26ef46",
+        "exact_audio": true,
+        "exact_last_meters": true,
+        "cleaned": true,
+        "performance_qualified": false
+      }
+    ],
+    "undersized_shm": {
+      "insufficient_shm": "ENOSPC",
+      "children": 0,
+      "cleaned": true,
+      "shm_limit_bytes": 1048576
+    },
+    "source_sha256": {
+      "backend/app/engine/csound_process.py": "9709cbd792f601b7f96383cefa56599da7f1dce85b9ff2afd4ea177d3696a44d",
+      "backend/app/engine/parallel_csound_renderer.py": "7de857a1c0f61729825de2beab67185294f147fc24098551b3a8acf523301d40",
+      "backend/app/engine/partition_native.py": "b5e291ea9e169834fcf3cacc0bb4900858c449b932c916999cd3ee8a476a1be6",
+      "backend/app/engine/render_ipc.py": "af3654b3a39aac3985ebb62486b9fa3f1ebc55654898f08315f9f8ec48a20d14",
+      "backend/tests/partition_process_support.py": "8ccf066dd338adec524c72baee68ec0f3cf081eec6aed392a00020ecaf2bfebb",
+      "backend/tests/render_plan_support.py": "a4a135869da4b92815f29f74ecc6dbdd6bac565b3a8e6a32b4095b119cab20ba",
+      "backend/tests/test_api.py": "3ca946f269096ea25000584ff68329c1cf07fde745ed43607dcf2c0da50cbe22",
+      "backend/tests/test_parallel_csound_renderer.py": "62f4be2bd0a6b222cc77572217f82a2e04be324538b486b5d323d43bb17ea43b",
+      "backend/tests/test_render_ipc.py": "46c82fbe3d5049f2a0a1d1a46a2835e2bdbe99e87b180c8de86ef0443d97e88e",
+      "backend/tools/_sequential_partition_probe.py": "4eb2a83341232b2526c32d98ed77f686730f32433f18312c526f2b5d8fe866c9",
+      "backend/tools/probe_partition_process.py": "4e18eccbd318ce773f3ac0e00dcf4ed23bf0687aeee54a8f2351a59fd9424e50"
+    },
+    "matrix_comparisons": 16
+  },
+  "full_backend_cython": {
+    "status": "completed_with_failure",
+    "command": "VISUALCSOUND_SEQUENCER_IMPLEMENTATION=cython .venv/bin/pytest backend/tests -q --tb=short",
+    "source_sha256": {
+      "backend/app/engine/csound_process.py": "9709cbd792f601b7f96383cefa56599da7f1dce85b9ff2afd4ea177d3696a44d",
+      "backend/app/engine/parallel_csound_renderer.py": "7de857a1c0f61729825de2beab67185294f147fc24098551b3a8acf523301d40",
+      "backend/app/engine/partition_native.py": "b5e291ea9e169834fcf3cacc0bb4900858c449b932c916999cd3ee8a476a1be6",
+      "backend/app/engine/render_ipc.py": "af3654b3a39aac3985ebb62486b9fa3f1ebc55654898f08315f9f8ec48a20d14",
+      "backend/tests/partition_process_support.py": "8ccf066dd338adec524c72baee68ec0f3cf081eec6aed392a00020ecaf2bfebb",
+      "backend/tests/render_plan_support.py": "a4a135869da4b92815f29f74ecc6dbdd6bac565b3a8e6a32b4095b119cab20ba",
+      "backend/tests/test_api.py": "3ca946f269096ea25000584ff68329c1cf07fde745ed43607dcf2c0da50cbe22",
+      "backend/tests/test_parallel_csound_renderer.py": "62f4be2bd0a6b222cc77572217f82a2e04be324538b486b5d323d43bb17ea43b",
+      "backend/tests/test_render_ipc.py": "46c82fbe3d5049f2a0a1d1a46a2835e2bdbe99e87b180c8de86ef0443d97e88e",
+      "backend/tools/_sequential_partition_probe.py": "4eb2a83341232b2526c32d98ed77f686730f32433f18312c526f2b5d8fe866c9",
+      "backend/tools/probe_partition_process.py": "4e18eccbd318ce773f3ac0e00dcf4ed23bf0687aeee54a8f2351a59fd9424e50"
+    },
+    "final_followup": "Full collection preceded the final inherited-control-revision and nonblocking-start guards; both guards and the two added cases are covered by the final Python and Cython focused suites.",
+    "passed": 3150,
+    "failed": 1,
+    "warnings": 1,
+    "seconds": 932.89,
+    "failure": "backend/tests/test_tenor_saxophone.py::test_last_note_priority_wide_leaps_and_new_phrase[64]",
+    "assertion": {
+      "fundamental_fraction": 0.021101996398212003,
+      "required_greater_than": 0.03
+    }
+  },
+  "focused_python": {
+    "passed": 369,
+    "failed": 0,
+    "deselected": 17,
+    "seconds": 57.91,
+    "kernel": "python",
+    "scope": "IPC/process failure and lifecycle, baseline, renderer interface, single worker, browser clock, session performance runtime, planner, partition compiler and native binding; excludes repeated process-native matrix and 100-cycle stress already in full run"
+  },
+  "single_renderer": {
+    "factory_and_hot_loop_changed": false,
+    "canonical_csd_golden_cases": 90,
+    "new_performance_comparison": false,
+    "historical_t01_t02_measurements_changed": false
+  },
+  "checks": {
+    "backend_ruff": "passed",
+    "git_diff_check": "passed",
+    "local_document_links": "126 checked, passed"
+  },
+  "unperformed": [
+    "new final Docker image build",
+    "Linux lifecycle stress matrix",
+    "Linux AMD64",
+    "native float32 build",
+    "browser/live-session integration and failure UI",
+    "browser soak and underrun/latency qualification",
+    "resource leases and private native RSS admission",
+    "single/parallel performance comparison"
+  ],
+  "execution_admission": false,
+  "session_parallel_selection": false,
+  "performance_qualified": false,
+  "saxophone_control": {
+    "classification": "Full-suite acoustic assertion failure; exact failure not reproduced in isolated current or pre-T05 controls. No claim that the complete backend suite is green.",
+    "pre_t05_commit": "3664b8db99e7fbf4aeda74982079b963a515b22e",
+    "control_method": "Tracked HEAD backend and pyproject extracted into a separate temporary tree; independent Python process and imports verified from that tree. Direct native acoustic rendering does not use the sequencer kernel.",
+    "isolated_pre_t05": {
+      "passed": 1,
+      "seconds": 0.56
+    },
+    "isolated_current": {
+      "passed": 1,
+      "seconds": 0.47
+    },
+    "pre_t05_complete_saxophone_file": {
+      "passed": 21,
+      "failed": 0,
+      "seconds": 8.92
+    },
+    "normalized_csd_equal": true,
+    "normalized_csd_sha256": "688fa0383cef5ee1348fa936726572db1a5f9843ab9f3c5bdedcd37f6b537ac9",
+    "normalization": "Only the generated fixture UUID in the ; patch: comment differs; all executable CSD is identical.",
+    "repeated_pre_t05": {
+      "source": "/private/tmp/t05-control.C12Dt7/backend/tests/test_tenor_saxophone.py",
+      "ksmps": 64,
+      "csd_sha256": "5b33f0b8712239ce06fc2825c3dc030264a5a859060cd6f36fca9077ee8ca0bb",
+      "trials": [
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.1193099972780583,
+            "pitch_error_cents": 13.291528366163684
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.4468644337783138,
+            "pitch_error_cents": 0.8997119160733896
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07549756730491637,
+            "pitch_error_cents": 2.8861198859762984
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.14638159892705702,
+            "pitch_error_cents": 0.02913775221944857
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.1193099972780583,
+            "pitch_error_cents": 13.291528366163684
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.4468644337783138,
+            "pitch_error_cents": 0.8997119160733896
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07549756730491637,
+            "pitch_error_cents": 2.8861198859762984
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.14638159892705702,
+            "pitch_error_cents": 0.02913775221944857
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.1193099972780583,
+            "pitch_error_cents": 13.291528366163684
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.4468644337783138,
+            "pitch_error_cents": 0.8997119160733896
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07549756730491637,
+            "pitch_error_cents": 2.8861198859762984
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.14638159892705702,
+            "pitch_error_cents": 0.02913775221944857
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11344353050259563,
+            "pitch_error_cents": 13.355311461591421
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.425573953542371,
+            "pitch_error_cents": 0.8819125054207244
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.06675506622775823,
+            "pitch_error_cents": 3.2117221182807643
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.10593840986474867,
+            "pitch_error_cents": 7.715774233091743
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11344353050259563,
+            "pitch_error_cents": 13.355311461591421
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.425573953542371,
+            "pitch_error_cents": 0.8819125054207244
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.06675506622775823,
+            "pitch_error_cents": 3.2117221182807643
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.10593840986474867,
+            "pitch_error_cents": 7.715774233091743
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11344353050259563,
+            "pitch_error_cents": 13.355311461591421
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.425573953542371,
+            "pitch_error_cents": 0.8819125054207244
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.06675506622775823,
+            "pitch_error_cents": 3.2117221182807643
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.10593840986474867,
+            "pitch_error_cents": 7.715774233091743
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11344353050259563,
+            "pitch_error_cents": 13.355311461591421
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.425573953542371,
+            "pitch_error_cents": 0.8819125054207244
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.06675506622775823,
+            "pitch_error_cents": 3.2117221182807643
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.10593840986474867,
+            "pitch_error_cents": 7.715774233091743
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11417725300723672,
+            "pitch_error_cents": 13.502692201412364
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.43853736814951516,
+            "pitch_error_cents": 0.8961871708545727
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07576683859583178,
+            "pitch_error_cents": 2.949432625969731
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.31964904023885865,
+            "pitch_error_cents": 0.6872849869058979
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11417725300723672,
+            "pitch_error_cents": 13.502692201412364
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.43853736814951516,
+            "pitch_error_cents": 0.8961871708545727
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07576683859583178,
+            "pitch_error_cents": 2.949432625969731
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.31964904023885865,
+            "pitch_error_cents": 0.6872849869058979
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11417725300723672,
+            "pitch_error_cents": 13.502692201412364
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.43853736814951516,
+            "pitch_error_cents": 0.8961871708545727
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07576683859583178,
+            "pitch_error_cents": 2.949432625969731
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.31964904023885865,
+            "pitch_error_cents": 0.6872849869058979
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11417725300723672,
+            "pitch_error_cents": 13.502692201412364
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.43853736814951516,
+            "pitch_error_cents": 0.8961871708545727
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07576683859583178,
+            "pitch_error_cents": 2.949432625969731
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.31964904023885865,
+            "pitch_error_cents": 0.6872849869058979
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12491335357876726,
+            "pitch_error_cents": 12.805202409904014
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.47315244276655183,
+            "pitch_error_cents": 0.8560708850045731
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08470327598690867,
+            "pitch_error_cents": 2.2403343473157458
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3876721503638298,
+            "pitch_error_cents": 0.5599538065468164
+          }
+        ]
+      ],
+      "fraction_failures": 0,
+      "pitch_failures": 0
+    },
+    "repeated_current": {
+      "source": "/Users/thuber/Projekte/VisualCSound/backend/tests/test_tenor_saxophone.py",
+      "ksmps": 64,
+      "csd_sha256": "e90606e73d38e9b0d1681d9d4980cba00bab508dfe9154f03054b877c3073a34",
+      "trials": [
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11344353050259563,
+            "pitch_error_cents": 13.355311461591421
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.425573953542371,
+            "pitch_error_cents": 0.8819125054207244
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.06675506622775823,
+            "pitch_error_cents": 3.2117221182807643
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.10593840986474867,
+            "pitch_error_cents": 7.715774233091743
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11344353050259563,
+            "pitch_error_cents": 13.355311461591421
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.425573953542371,
+            "pitch_error_cents": 0.8819125054207244
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.06675506622775823,
+            "pitch_error_cents": 3.2117221182807643
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.10593840986474867,
+            "pitch_error_cents": 7.715774233091743
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11344353050259563,
+            "pitch_error_cents": 13.355311461591421
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.425573953542371,
+            "pitch_error_cents": 0.8819125054207244
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.06675506622775823,
+            "pitch_error_cents": 3.2117221182807643
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.10593840986474867,
+            "pitch_error_cents": 7.715774233091743
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12139254887999788,
+            "pitch_error_cents": 12.632404363537216
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.461550271348211,
+            "pitch_error_cents": 0.8639572276978958
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07714409472791468,
+            "pitch_error_cents": 2.6087343131841267
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3107588198216682,
+            "pitch_error_cents": 0.20375081829485603
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12339224134394565,
+            "pitch_error_cents": 13.004257939816112
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.46526574861411396,
+            "pitch_error_cents": 0.8663026038784992
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08116778491652754,
+            "pitch_error_cents": 2.510108982726814
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.292958180377684,
+            "pitch_error_cents": 2.9119895322164213
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11417725300723672,
+            "pitch_error_cents": 13.502692201412364
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.43853736814951516,
+            "pitch_error_cents": 0.8961871708545727
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07576683859583178,
+            "pitch_error_cents": 2.949432625969731
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.31964904023885865,
+            "pitch_error_cents": 0.6872849869058979
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11417725300723672,
+            "pitch_error_cents": 13.502692201412364
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.43853736814951516,
+            "pitch_error_cents": 0.8961871708545727
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07576683859583178,
+            "pitch_error_cents": 2.949432625969731
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.31964904023885865,
+            "pitch_error_cents": 0.6872849869058979
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.11417725300723672,
+            "pitch_error_cents": 13.502692201412364
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.43853736814951516,
+            "pitch_error_cents": 0.8961871708545727
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07576683859583178,
+            "pitch_error_cents": 2.949432625969731
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.31964904023885865,
+            "pitch_error_cents": 0.6872849869058979
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12491335357876726,
+            "pitch_error_cents": 12.805202409904014
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.47315244276655183,
+            "pitch_error_cents": 0.8560708850045731
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08470327598690867,
+            "pitch_error_cents": 2.2403343473157458
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3876721503638298,
+            "pitch_error_cents": 0.5599538065468164
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12491335357876726,
+            "pitch_error_cents": 12.805202409904014
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.47315244276655183,
+            "pitch_error_cents": 0.8560708850045731
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08470327598690867,
+            "pitch_error_cents": 2.2403343473157458
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3876721503638298,
+            "pitch_error_cents": 0.5599538065468164
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12491335357876726,
+            "pitch_error_cents": 12.805202409904014
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.47315244276655183,
+            "pitch_error_cents": 0.8560708850045731
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08470327598690867,
+            "pitch_error_cents": 2.2403343473157458
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3876721503638298,
+            "pitch_error_cents": 0.5599538065468164
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.12491335357876726,
+            "pitch_error_cents": 12.805202409904014
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.47315244276655183,
+            "pitch_error_cents": 0.8560708850045731
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.08470327598690867,
+            "pitch_error_cents": 2.2403343473157458
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.3876721503638298,
+            "pitch_error_cents": 0.5599538065468164
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.1227182486944247,
+            "pitch_error_cents": 13.56113506485065
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.45284257114168214,
+            "pitch_error_cents": 0.8636936480905014
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07682145684271156,
+            "pitch_error_cents": 2.7668285292299974
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.37872504761679193,
+            "pitch_error_cents": 0.9427781975134993
+          }
+        ],
+        [
+          {
+            "note": 44,
+            "start": 0.3,
+            "fundamental_fraction": 0.1227182486944247,
+            "pitch_error_cents": 13.56113506485065
+          },
+          {
+            "note": 76,
+            "start": 0.8,
+            "fundamental_fraction": 0.45284257114168214,
+            "pitch_error_cents": 0.8636936480905014
+          },
+          {
+            "note": 44,
+            "start": 1.5,
+            "fundamental_fraction": 0.07682145684271156,
+            "pitch_error_cents": 2.7668285292299974
+          },
+          {
+            "note": 60,
+            "start": 2.25,
+            "fundamental_fraction": 0.37872504761679193,
+            "pitch_error_cents": 0.9427781975134993
+          }
+        ]
+      ],
+      "fraction_failures": 0,
+      "pitch_failures": 0
+    },
+    "thresholds_or_instrument_changed": false
+  },
+  "g5": "Execution semantics verified on macOS ARM64; Linux ARM64 Docker Desktop native audio correctness additionally verified. Integrated session and performance gates remain pending."
+}

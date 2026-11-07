@@ -1,6 +1,6 @@
 # Parallel rendering implementation record
 
-Updated: 2026-11-07. T01 baseline/contracts, T02 renderer interface, T03 pure planner and T04 internal realtime compiler delivered. T05–T08, all parallel execution gates and default cutover remain pending. The shared factory still constructs the original `CsoundWorker`; no process pool, parallel renderer or runtime selection flag is active.
+Updated: 2026-11-07. T01–T05 delivered through the explicit internal process coordinator. T06–T08, integrated session gates and default cutover remain pending. The shared factory still constructs the original `CsoundWorker`; no runtime selection flag or parallel session path is active.
 
 ## T01 delivered work
 
@@ -319,19 +319,117 @@ claim is made; the single renderer's hot loop and factory are untouched. No T04 
 stock-binding/container native bridge run, AMD64/float32 qualification or browser soak was
 performed. Historical T01/T02 measurements are unchanged and do not qualify parallel execution.
 
-## Pending qualification and next task
+## T05 persistent processes and parent coordination
 
-T05 can introduce persistent child lifecycles, shared audio buffers and the parent coordinator
-using the sealed-block timing contract. Native initialization must validate the runtime ABI
-and artifact identity before bus use. A child receives ordered MIDI and owned control writes;
-it must not acquire a sequencer, lane gate or controller revision counter. Keep single as the
-default and fallback, and do not infer execution admission from a T04 diagnostic artifact.
+Delivered an explicitly started [PartitionRenderCoordinator](../../backend/app/engine/parallel_csound_renderer.py),
+the import-safe [child entry point](../../backend/app/engine/csound_process.py),
+[shared storage and protocol validation](../../backend/app/engine/render_ipc.py) and a
+[minimal native instance](../../backend/app/engine/partition_native.py) shared with the T04 harness.
+The [execution contract](contracts.md#10-t05-process-execution-contract) records exact bounds,
+ownership, event acceptance, cancellation and publication rules.
 
-T07 still owns hierarchical cgroup capacity detection, resource admission and native container
-qualification on supported architectures. Browser latency/underruns, long soaks, concurrent
-sessions, native memory/IPC overhead, child failures and cross-process parity remain unperformed
-because no parallel execution implementation exists yet.
+Children persist until stop/failure and use explicit spawn. Each owns one Csound instance;
+none owns a sequencer, scheduler, lane gate, resampler or authoritative controller state.
+The parent calls preparation once, validates/seals one interval, dispatches independent
+partitions concurrently and releases the shared suffix only after all matching predecessors.
+Native precision and separate compiler-ordered contributions survive shared-memory transfer.
+The parent commits complete blocks, converts/resamples once per request and withholds an
+entire failed response, including when earlier blocks already committed. No speculative
+future blocks, partial replay or live fallback are implemented.
 
-No UI/workflow, user manual, production examples or saved formats changed in T01–T04.
+Preflight accounts for all shared arrays, both final output slots, meter slots, mailboxes,
+bootstrap CSDs and alignment/page rounding. Linux reserves tmpfs pages before first write;
+an undersized `/dev/shm` returns ENOSPC with clean rollback. Control messages use fixed-size
+shared mailboxes and semaphore publication, avoiding blocking payload sends. JSON control
+encoding is an explicit initial implementation choice, not a performance-qualified design.
+Oversized messages fail before dispatch. Native arrays never travel through JSON or queues.
+
+Stop cancels before waiting for render ownership. Global deadlines cover startup, each
+render block and cleanup; termination/reaping uses one budget for the entire process set.
+The parent unlinks only after reaping all owners. A parent-sentinel watcher exits even a
+hung native child after parent death. Unreaped children prohibit restart. A blocked caller
+callback is reported rather than pretending Stop completed; callbacks must yield promptly.
+
+The Linux probe exposed an installed stock ctcsound declaration bug: both audio-channel
+functions used `POINTER(c_int)` although their methods pass `POINTER(MYFLT)`. The extracted
+partition wrapper now sets those signatures from the verified native sample width. The
+same wrapper verifies actual `0dbfs` as well as rate, block size, stereo channels and dtype.
+Default `CsoundWorker` construction and its render loop are untouched.
+
+### T05 verification
+
+Tests in [IPC](../../backend/tests/test_render_ipc.py),
+[process coordination](../../backend/tests/test_parallel_csound_renderer.py) and API regressions
+cover shared layout/byte bounds, mailbox corruption, slot generations, stale/duplicate replies,
+event-after-drain timing, concurrent request serialization, revision/ownership rejection,
+same-interval dependency barriers, conversion/resampling, partial spawn failure, compile/ABI
+failure, crash/hang/cancellation, partial-request withholding and a fresh canonical fallback
+after rollback. Deterministic barriers prove independent workers execute concurrently.
+
+Native comparisons use eight versioned fixture families (two/four/eight private branches,
+shared effects, bypass/direct output, sidechain, custom ports and legato), K=1/32, ordered
+polyphony/retrigger/sustain/panic events and control writes. Require exact native final samples,
+float32 PCM and every block's meter values against canonical and sequential instances; no
+alignment search, warmup omission or tolerance. Every case renders 8,192 frames and requires
+nonzero output. One hundred native start/render/stop cycles check fresh epochs, all child
+reaping, arena unlinking and stable descriptor counts. A standalone parent-death test checks
+children terminate while native calls are blocked and the resource tracker removes the arena.
+
+The standalone [native process probe](../../backend/tools/probe_partition_process.py) emits
+JSON evidence and refuses missing native support. It uses the frozen T04 MIDI fixture,
+compares all PCM plus final meter readings, and performs explicit cleanup. It is a correctness
+probe, not a benchmark. Linux checks use the existing ARM64 Docker Desktop image with the
+current backend mounted read-only, network disabled, four CPUs, 1 GiB memory and 64 MiB shared
+memory. They do not constitute a new final-image build or resource/performance qualification.
+
+Final commands, counts, runtime and source provenance are recorded in
+[T05 verification](measurements/t05-process-verification.json).
+
+| Check | Result |
+| --- | --- |
+| Full backend, compiled sequencer | 3,150 passed, 1 acoustic assertion failed; 932.89 s |
+| Final Python focused regressions | 369 passed; 57.91 s |
+| Final compiled-kernel IPC/lifecycle regressions | 46 passed; 11.83 s |
+| macOS native process audio/meter matrix | 16 exact comparisons, K=1/32, 8,192 frames each |
+| Linux ARM64 stock-binding process probe | 16 exact PCM/final-meter comparisons, K=1/32 |
+| Native lifecycle stress | 100 cycles, all children/arenas released, stable FD count |
+| Linux undersized shared memory | ENOSPC before child startup, clean rollback |
+| Canonical CSD fixtures | All 90 unchanged |
+| Ruff, whitespace, local documentation links | Passed; 126 links checked |
+
+The full run preceded two final edge-case refinements: inheriting the last revision when a
+request has no preparation callback, and refusing Start while another operation owns the
+coordinator. Both are covered by the final Python and compiled-kernel focused suites, including
+two added tests; the verification JSON retains the source hashes for each stage of validation.
+
+The full suite is **not fully green**. The failure is
+`test_tenor_saxophone.py::test_last_note_priority_wide_leaps_and_new_phrase[64]`: fundamental
+spectral fraction 0.021102 against a required value above 0.03. That exact case passed in
+isolated current and pre-T05 source trees; all 21 tests in the pre-T05 saxophone file passed.
+Twenty additional direct native renders in each tree show acoustic variation but no repeat
+of this failure. Executable CSD is identical; only the generated fixture UUID comment differs.
+The exact full-suite failure remains unreproduced in isolation, so no causal conclusion or
+fully passing full-suite claim is made. No instrument or test threshold was changed.
+
+G5 execution semantics are verified for the tested macOS ARM64 lifecycle and native audio
+workloads, with additional Linux ARM64 Docker Desktop audio correctness. These results do not
+qualify integrated session recovery, realtime throughput or automatic selection.
+
+### Remaining gates
+
+T06 owns the session-facing renderer facade, live boundary actions, controllers/edits/auditions,
+host MIDI, public status, browser cancellation/markers and automatic next-start recovery.
+Normal session creation/start/restart and both CSD export modes are guarded against invoking
+the coordinator. Single remains the default and fallback; diagnostic plans/artifacts still
+say `selected_renderer="single"`, `execution_eligible=false`. No new environment flag exists.
+
+T07 owns hierarchical cgroup leases, private/native RSS admission, performance measurements
+and selection. No speedup, realtime refill deadline, latency or dropout claim is made by T05.
+Historical T01/T02 baseline reports remain unchanged: the single hot loop/factory are unchanged
+and its behavioral regressions run again. No new wall-time single/parallel comparison is claimed.
+AMD64, native float32 builds, final-image builds, Linux lifecycle stress, browser soaks and
+multi-session resource races remain unqualified. Windows is not qualified.
+
+No UI/workflow, user manual, production examples or saved formats changed in T01–T05.
 Frontend builds/screenshots and manual PDF regeneration are not applicable to this internal
-compiler and native test harness. Full platform qualification remains in the later gates.
+execution work. Automatic admission and rollout remain disabled.
