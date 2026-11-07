@@ -35,6 +35,7 @@ class NativeCsoundPartition:
         self.cs = module.Csound()
         self.pending = bytearray()
         self.callbacks = []
+        self.output_buffer = None
         try:
             width = int(self.cs.sizeOfMYFLT())
             if width != sample_bytes or width not in (4, 8):
@@ -57,8 +58,14 @@ class NativeCsoundPartition:
             self.cs.setMessageLevel(0)
             if (self.cs.sr(), self.cs.ksmps(), self.cs.nchnls()) != (engine.sample_rate, engine.ksmps, engine.channels):
                 raise RuntimeError("Partition does not retain full-performance engine settings.")
-            if np.asarray(self.cs.spout()).dtype != self.dtype:
+            output = np.asarray(self.cs.spout())
+            if output.dtype != self.dtype:
                 raise RuntimeError("Binding sample dtype disagrees with native ABI.")
+            if output.size != engine.ksmps * engine.channels or not output.flags.c_contiguous:
+                raise RuntimeError("Binding output buffer disagrees with native format.")
+            # Start allocates spout for this fixed-format native lifetime. Borrow
+            # its view once; read only after performKsmps, never after reset.
+            self.output_buffer = output.reshape(engine.ksmps, engine.channels)
             if module.libcsound.csoundGet0dBFS(self.cs.cs) != engine.zero_dbfs:
                 raise RuntimeError("Partition does not retain full-performance 0dbfs.")
         except BaseException:
@@ -122,6 +129,7 @@ class NativeCsoundPartition:
             raise RuntimeError("Native partition ended before the requested block completed.")
 
     def close(self):
+        self.output_buffer = None
         cs, self.cs = self.cs, None
         if cs is not None:
             try:

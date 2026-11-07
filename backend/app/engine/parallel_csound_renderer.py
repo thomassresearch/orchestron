@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+import math
 import multiprocessing
 from multiprocessing.connection import wait
 import selectors
@@ -317,7 +318,7 @@ class PartitionRenderCoordinator:
                     self._flush_float32 = mode
                     meters = {name: float(value) for names, values in self._meter_views[slot]
                               for name, value in zip(names, values, strict=True)}
-                    if not np.isfinite(output).all() or not all(np.isfinite(v) for v in meters.values()):
+                    if not np.isfinite(output).all() or not all(map(math.isfinite, meters.values())):
                         raise PartitionRuntimeError("Partition output contains nonfinite audio/meters.")
                     converted = pcm[index * self._format.ksmps:(index + 1) * self._format.ksmps]
                     converted[:] = output  # already checked float32; no conversion/overflow here

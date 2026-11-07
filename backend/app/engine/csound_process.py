@@ -154,7 +154,10 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
             for copy in output_copies[slot]:
                 copy()
             if program.owns_output:
-                np.copyto(final_views[slot], np.asarray(instance.cs.spout()).reshape(engine.ksmps, 2))
+                output = (instance.output_buffer if native_factory is None else
+                          np.asarray(instance.cs.spout()).reshape(engine.ksmps, 2))
+                np.copyto(final_views[slot], output)
+                del output  # No borrowed native view survives shutdown/reset.
                 # Csound may set thread-local flush-to-zero behavior. Convert
                 # beside performKsmps, as the single worker does, not in a parent
                 # thread with a different floating-point environment. Retain the

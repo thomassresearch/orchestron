@@ -40,6 +40,7 @@ class ParallelCsoundRenderer(CsoundWorker):
         self.fatal_error = None
         self._failure_diagnostics = None
         self._control_revision = 0
+        self._empty_inputs = BlockInputs()
         self._qualification = None
         self._capacity = None
         self._render_requests = self._slow_requests = self._consecutive_slow = 0
@@ -210,6 +211,7 @@ class ParallelCsoundRenderer(CsoundWorker):
                     with self._mixer_lock:
                         self._control_pending.clear()
                         self._control_revision = 0
+                        self._empty_inputs = BlockInputs()
                     return EngineStartResult("ctcsound", "started with parallel Csound processes" +
                         ("" if self._qualification else " (unqualified)"))
             elif self.options.policy.mode == "parallel":
@@ -320,6 +322,11 @@ class ParallelCsoundRenderer(CsoundWorker):
                     pending, self._control_pending = self._control_pending, {}
                 if pending:
                     self._control_revision += 1
+                    self._empty_inputs = BlockInputs(control_revision=self._control_revision)
+                elif not events:
+                    # Immutable empty payload only. Drain schedulers and boundary
+                    # actions on every block, including between requests.
+                    return self._empty_inputs
                 return BlockInputs(control_revision=self._control_revision,
                     midi=tuple(MidiDelivery(sequence=e.sequence, source=e.source, target_engine_sample=e.target_engine_sample,
                                            message=tuple(e.message), late=e.late) for e in events),

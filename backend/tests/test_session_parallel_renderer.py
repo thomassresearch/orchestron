@@ -142,6 +142,50 @@ def test_native_facade_matches_single_timing_audio_controls_and_meters(monkeypat
         single.stop()
 
 
+def test_empty_blocks_keep_live_boundaries_and_do_not_replay_payloads(monkeypatch):
+    worker, artifact, mixer = prepared(monkeypatch, target=controlled_process)
+    captured = []
+    original = worker._coordinator.render_blocks
+
+    def render(**kwargs):
+        prepare = kwargs["prepare_block"]
+        def observe(index, sample):
+            inputs = prepare(index, sample)
+            captured.append((sample, inputs))
+            return inputs
+        return original(**{**kwargs, "prepare_block": observe})
+
+    monkeypatch.setattr(worker._coordinator, "render_blocks", render)
+    try:
+        start(worker, artifact, mixer)
+        gain = next(name for name in artifact.manifest["initialControls"] if "gain" in name.lower())
+        boundaries = []
+        def before(_index, sample):
+            boundaries.append(sample)
+            if sample == 96:
+                worker.enqueue_timestamped_midi([0x90, 60, 100], source="manual")
+            if sample == 128:
+                worker.queue_control_channels({gain: .5})
+            if sample == 192:
+                worker.enqueue_timestamped_midi([0x80, 60, 0], source="manual")
+        worker.render_blocks(block_count=7, target_sample_rate=48000, before_block=before)
+        worker.render_blocks(block_count=2, target_sample_rate=48000, before_block=before)
+        assert boundaries == list(range(0, 288, 32))
+        assert [(s, [e.message for e in b.midi]) for s, b in captured if b.midi] == [
+            (96, [(0x90, 60, 100)]), (192, [(0x80, 60, 0)])]
+        assert [s for s, b in captured if b.controls] == [0, 128]
+        assert [b.control_revision for _, b in captured] == [1] * 4 + [2] * 5
+        worker.stop()
+        start(worker, artifact, mixer)
+        captured.clear()
+        worker.render_blocks(block_count=3, target_sample_rate=48000)
+        assert [s for s, _ in captured] == [0, 32, 64]
+        assert all(not b.midi and b.control_revision == 1 for _, b in captured)
+        assert all(not b.controls for _, b in captured[1:])
+    finally:
+        worker.stop()
+
+
 def test_controller_cc_has_one_parent_revision_and_idle_boundary_completes(monkeypatch):
     worker, artifact, mixer = prepared(monkeypatch, target=controlled_process)
     try:

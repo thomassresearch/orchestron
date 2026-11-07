@@ -987,3 +987,197 @@ installed. The next performance work must address residual Live-mode underruns a
 latency tails under the existing timing/buffer contract, then repeat the matched qualification.
 K=1, oversized heavy cases, original low-benefit cases, other platforms and native float32
 remain outside qualification.
+
+## T07 continuation: live-input latency tails and ten-minute qualification
+
+T07d addresses four-branch Live-mode tails without changing musical timing or the browser's
+buffer policy. The prior observations show sparse underruns followed by the Worker's existing
+recovery queue increase (120 ms per observed underrun, capped at 600 ms). This is consistent
+with the large tails; it does not establish that all tail variation comes from one cause.
+The [frozen protocol](t07d-test-plan.md) uses the user's requested ten-minute soaks for every
+new arm. It keeps the full recovery and live-input probes, reports uncertainty and leaves the
+production evidence predicate's thirty-minute minimum unchanged.
+
+### Investigation and implementation
+
+Separate profiles identified repeated scalar NumPy calls, empty event-model construction and
+native `spout()` wrapper construction. The final parallel-only change uses scalar finite checks
+for meters, one immutable empty payload per control revision, and a validated native output
+view borrowed for one Csound lifetime. Every block still drains authoritative events and runs
+its boundary callback; MIDI/control blocks remain freshly validated. The child reads the view
+only after native rendering, copies through the existing final slots, and releases it before
+reset. Native float32 conversion, predecessor fences, global completion, failure handling,
+request sizes and all queue/buffer capacities are unchanged.
+
+Two synchronization experiments were rejected and retained as diagnostic evidence. Reversing
+parent completion collection did not improve the median and worsened tails. A bounded 50 µs
+semaphore spin increased parent CPU use and render time. Neither reached production code.
+CPython's [POSIX semaphore implementation](https://raw.githubusercontent.com/python/cpython/3.13/Modules/_multiprocessing/semaphore.c)
+already tries acquisition before blocking; an extra unconditional try is unnecessary. Native
+output ownership follows the [Csound realtime I/O API](https://csound.com/docs/api/group__RTAUDIOIO.html).
+
+The sustained control keeps all sixteen four-branch voices active and uses 3,072 frames per
+request (64 ms at 48 kHz). In the final 200-request comparison, old/candidate p95 times were
+60.16/54.67 ms and p99 times 67.82/60.92 ms; parent p95 CPU time fell from 7.31 to 6.07 ms.
+The old repeat followed the candidate, and the earlier 100-request control also had a 60.76 ms
+p95. These short native controls support reducing overhead, not a causal browser-tail claim.
+Instrumented timings are explicitly excluded from qualification.
+
+The candidate image is `sha256:b6829d569bcdd005db0c91b5361f710710f3085c96302fcacd29638ccead900d`,
+a four-source-file overlay on the immutable T07b image. It retains the same Python, Csound,
+Cython sequencer, frontend and dependencies. All runs use actual four-CPU cgroup admission,
+2 GiB memory, 64 MiB shared memory, 48 kHz and K=32. There are three rendering children;
+synthetic costs select a diagnostic plan but never bypass capacity admission.
+
+### Native validation
+
+The final image passed all sixteen exact audio/meter cases (eight topologies at K=1 and K=32)
+and four fresh-process small-sample/resampling pairs. The paired benchmark separately matches
+PCM, markers, meters, status and canonical-CSD fingerprints before timing three rounds per arm.
+
+| Workload | Single p95 / p99 ms | Parallel p95 / p99 ms | p95 reduction |
+| --- | ---: | ---: | ---: |
+| Realtime two | 11.859 / 12.478 | 9.048 / 9.811 | 23.7% |
+| Realtime four | 12.755 / 13.012 | 9.887 / 10.345 | 22.5% |
+
+Requests contain 512 frames (10.667 ms). Both heavy cases meet the native comparison; occasional
+maxima remain above the audio duration. Browser evidence is therefore assessed separately.
+
+### Four-branch browser findings
+
+The parallel arm completed 602.41 seconds with zero warmup/soak underruns or overruns and
+no errors. All three rendering children remained selected, with no failure or fallback. The
+matched single arm completed 602.40 seconds with 727 affected audio quanta, zero warmup
+underruns and no application error. That count is lost/partial audio quanta, not separate
+perceptual glitches. The unchanged single code had a clean historical T07c soak, so the new
+losses also demonstrate run-to-run variation; these sequential controls are not dedicated
+host isolation or a causal proof for every observed difference.
+
+Recovery passed: the three forced interruptions produced 1,012/857 affected quanta for
+single/parallel. Worst recovery bounds were 673–726 ms single and 282–337 ms parallel.
+All six pulses started from clean local windows, induced dropouts and recovered within their
+full sixty-second observations.
+
+The parallel live-input probe **failed**, stopping before burst 107 because the foreground
+had not been quiet for the required fifty milliseconds. It retained sixteen successful
+calibrations, four warmups and 107 measured bursts. The next burst was not sent into an
+ambiguous onset, and the failed attempt was not retried, discarded or topped up. The single
+probe completed all 128 bursts. The report retains descriptive partial distributions but
+refuses the frozen statistical comparison when either arm is incomplete.
+
+| Four-branch renderer | Bursts | Mean ms | Median ms | p95 ms | p99 ms | Maximum ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Single, complete | 128 | 139.6 | 140.4 | 159.6 | 167.4 | 168.7 |
+| Parallel, incomplete | 107 | 192.0 | 124.2 | 629.1 | 729.0 | 729.9 |
+
+The whole input phase accumulated 201/106 affected quanta single/parallel. In the parallel
+trace, seven increases occur during/gaps between measured bursts, followed by larger queues
+and tails. A lower median and fewer total affected quanta do not satisfy the tail requirement.
+The native overhead reductions therefore **have not resolved four-branch live-input tails**.
+This result does not establish a statistically qualified regression against the prior build:
+the samples are incomplete and historical browser runs are not a matched before/after trial.
+
+### Second workload and scope of the result
+
+Both two-branch arms completed 602.4–602.5 seconds with zero warmup/soak underruns or
+overruns and no application errors. Sampled render/audio p95/p99 ratios are 0.962/0.983
+single and 0.788/0.829 parallel. The corresponding four-branch ratios are 1.075/1.096 and
+0.859/0.889. These are production-cadence diagnostic samples, not an exhaustive request trace.
+All parallel observations retain three children, known four-CPU capacity and no fallback.
+
+Two-branch recovery also passed: 961/819 affected quanta single/parallel, with worst recovery
+bounds of 283–331 ms single and 228–278 ms parallel. All twelve recovery pulses across both
+workloads retained their full observations and achieved ten seconds of uninterrupted consumption.
+
+The two-branch parallel input probe also **failed**, before burst 81, for the same missing
+quiet-foreground condition. It retained 81 measured bursts, four warmups and sixteen successful
+calibrations. The single control completed all 128. No replacement attempt was run.
+
+| Two-branch renderer | Bursts | Mean ms | Median ms | p95 ms | p99 ms | Maximum ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Single, complete | 128 | 434.3 | 484.6 | 736.4 | 747.4 | 747.8 |
+| Parallel, incomplete | 81 | 167.7 | 123.2 | 371.5 | 722.1 | 722.1 |
+
+Whole-phase affected quanta are 186/35 single/parallel for realtime two and 201/106 for
+realtime four. Counts between the first and last measured bursts, including gaps, are 183/35
+and 188/106 respectively. All 64 calibration pulses across the four arms have zero frame
+error. The observer never changes the production audio connection or ring, and output times
+remain browser estimates rather than physical speaker measurements.
+
+The ten-minute assessment is **not passed for either workload** because both parallel input
+probes are incomplete. Realtime four also fails the clean paired-soak condition. Separately,
+the original scalar predicate reports `browser_soak_incomplete` using the actual 602-second
+observations; no duration is fabricated to satisfy its unchanged 1,800-second minimum. That
+predicate still does not test live-input tails. The latency failures block qualification even
+within the shorter scope requested here, independently of the legacy duration requirement.
+
+### Verification, artifacts and remaining work
+
+- 130 focused tests passed in 107.96 seconds (430 unrelated API tests deselected), including
+  native process/failure cases, session lifecycle, capacity, admission, fallback and API behavior.
+  New regressions cover borrowed output freshness/cleanup, empty-block boundary/event/revision
+  behavior across requests/restarts, and manual MIDI after silent API refills and restart.
+  The native-view test passed again after adding the standard missing-binding skip guard.
+- Nine measurement tests passed in 0.19 seconds, including three new archived-report controls
+  for partial failure retention, invalid calibration and the complete-probe comparison.
+  Observer controls, backend/harness Ruff, JavaScript syntax and diff whitespace checks passed.
+  The full backend suite and frontend build were not repeated; the frontend/dependencies are
+  the unchanged immutable base image. The existing Starlette/httpx deprecation warning remains.
+- Post-soak private process-memory snapshots are 246.9/443.8 MiB single/parallel for realtime
+  two and 248.1/453.8 MiB for realtime four. These include compiler/tracker processes and are
+  snapshots, not peak-memory bounds. All tests use the same 288,000-frame audio ring.
+- All four disposable containers and browser sessions were closed after normal app stops,
+  including the two failed probes. Existing user containers were left running. Source hashes
+  bind the four production changes to the final image and verify unchanged single/default/
+  fallback selection, event/protocol settings, browser timing/buffers and export/compiler paths.
+- [Browser comparison](measurements/t07d-browser-qualification.json),
+  [native measurements](measurements/t07d-final-native.json),
+  [exact native checks](measurements/t07d-native-correctness.json),
+  [small-sample checks](measurements/t07d-subnormal.json), and
+  [verification manifest](measurements/t07d-verification.json) retain the outcomes and hashes.
+  The [harness](measurements/t07d-browser-harness/README.md), raw browser observations,
+  failed runner logs and native diagnostics are versioned alongside them. No earlier evidence
+  is overwritten or reused as a candidate browser run.
+
+The retained implementation reduces measured native overhead while keeping ordinary rendering
+single and preserving fallback, timing, buffer sizes and CSD exports. It does **not** establish
+reduced four-branch browser latency tails. Further work must measure the remaining scheduling/
+refill stalls under live input and repeat complete matched probes with the same timing contract;
+changing recovery buffering or accepting partial samples would not demonstrate that result.
+G7 and T08 rollout remain closed, with zero qualification records installed. K=1 performance,
+other workloads/platforms, native float32 and shared-host isolation remain outside qualification.
+
+## G7 scope amendment and controller-sequencer fan-out
+
+On 2026-11-07, after the T07d measurements, the user explicitly made live-input latency
+non-blocking for G7. The [current acceptance criteria](acceptance.md#7-performance-measurement-and-gates)
+now prioritize scheduled playback, exact event timing and controller delivery. The failed
+live-input observations and original T07c/T07d decisions remain historical evidence under
+their frozen protocols; they are not current live-input vetoes. This clarification installs
+no qualification records, changes no production predicate or duration data, and enables no
+renderer selection or release automatically.
+
+Controller sequencers already run once in the parent and emit the same value on every
+configured target MIDI channel. `PartitionRenderCoordinator` broadcasts the complete ordered
+MIDI batch to every child for the same engine interval; local instrument-number remapping
+does not alter MIDI channel numbers. Named mapped performance-control writes go only to their
+subscribed owners after the parent applies channel/CC routing and revisions. Sharing a
+controller sequencer therefore does not by itself force DSP branches into the same process.
+See the [controller fan-out contract](contracts.md#15-controller-fan-out-and-g7-priority).
+
+A new versioned [fixture](../../backend/tests/fixtures/parallel_render/controller_fanout.json)
+and [native regression](../../backend/tests/test_parallel_controller_fanout.py) verify step
+and curve sequencers controlling CC 74 on channels 2 and 5. Four instruments read channels
+2, 5, 2 and 7; the two channel-2 readers must reside in different processes. The test verifies
+native parallel selection, matching ordered events/sample intervals and audio against single
+rendering, audible response in all targeted instruments, an unchanged untargeted channel,
+and step Start/Stop resets. Instantaneous peaks verify reset silence without treating normal
+RMS-meter decay as continued audio.
+
+Validation: 64 tests passed with the Python sequencer and 64 with explicitly requested Cython
+(8.62 seconds each), covering the new native fan-out cases and existing step, curve and
+performance-controller MIDI tests. The existing Starlette/httpx deprecation warning remains.
+Ruff and diff whitespace checks passed. These are native host correctness checks, not new
+Docker performance qualification or browser soaks. No production renderer changes were
+needed for this verification; default/fallback single, timing, buffer sizes and exports remain
+unchanged by this follow-up.

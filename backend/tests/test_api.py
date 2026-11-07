@@ -183,6 +183,38 @@ def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, mo
         assert runtime.worker._coordinator.shared_memory_name is None
 
 
+def test_parallel_manual_input_after_idle_refills_and_restart(tmp_path, monkeypatch):
+    import numpy as np
+    from backend.tests.session_parallel_support import options, create_session
+
+    with _client(tmp_path, renderer_options=options()) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, ksmps=32)
+        base = f"/api/sessions/{identity}"
+        for restart in (False, True):
+            if restart:
+                assert client.post(base + "/stop").status_code == 200
+                assert client.post(base + "/start").status_code == 200
+            with client.websocket_connect(f"/ws/sessions/{identity}/browser-clock") as socket:
+                socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                    "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 96})
+                assert socket.receive_json()["type"] == "stream_config"
+                for index in range(4):
+                    if index == 2:
+                        socket.send_json({"type": "manual_midi", "midi": {
+                            "type": "note_on", "channel": 1, "note": 60, "velocity": 100}})
+                    socket.send_json({"type": "request_render", "block_count": 96})
+                    metadata = socket.receive_json()
+                    pcm = np.frombuffer(socket.receive_bytes(), dtype="<f4")
+                    assert metadata["type"] == "render_chunk"
+                    assert (metadata["engine_sample_start"], metadata["engine_sample_end"]) == (index * 3072, (index + 1) * 3072)
+                    assert metadata["target_frame_count"] == 3072 and len(pcm) == 6144
+                    assert np.isfinite(pcm).all()
+                    assert (float(np.max(np.abs(pcm))) > .00001) == (index >= 2)
+                socket.send_json({"type": "release_controller"})
+        assert client.delete(base).status_code == 204
+
+
 def test_parallel_session_failure_revokes_stream_and_next_start_uses_single(tmp_path, monkeypatch):
     from functools import partial
     from backend.tests.partition_process_support import controlled_process

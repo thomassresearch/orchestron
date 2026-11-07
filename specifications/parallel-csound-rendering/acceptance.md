@@ -68,6 +68,7 @@ Instrument both renderers to produce an ordered trace of block start/end, MIDI e
 | T12 | Browser resampling | Same frame counts and continuous output under existing resampler behavior; conversion occurs once |
 | T13 | Parent and worker state inspections | No child-owned authoritative transport, lane gate or controller revision |
 | T14 | One very slow child | No output from a later interval mixed with earlier branches; no premature marker/cursor publication |
+| T15 | One step/curve controller sequencer targets multiple MIDI channels and process owners | Identical ordered CC values and eligible blocks at every reader; unrelated channels stay unchanged; step Start/Stop resets reach all targets |
 
 Test Python and Cython sequencer implementations, including their existing musical regression suites. A new parallel mode must not cause the compiled kernel to fall back silently.
 
@@ -114,12 +115,21 @@ Initial release thresholds below are proposed engineering gates. Freeze them wit
 - Correctness: all applicable P/T/F cases pass; every automatic exclusion has a tested single fallback.
 - Unchanged single mode: no repeatable greater-than-5% p95/p99 regression beyond A/A noise on representative native workloads. Investigate smaller regressions on latency-critical cases.
 - Useful scaling: at least 20% lower p95 end-to-end render time on two representative heavy independent-branch fixtures with at least four effective CPUs, without worse p99 beyond established noise. Publish the serial-heavy counterexamples too.
-- Live timing: identical scripted event/block decisions, no added sample offset, and no statistically supported added whole-block input latency under matched live probes. Report all observed latency distributions and limits of the measurement method.
+- Scheduled timing and controls: identical scripted event/block decisions, no added sample offset, and correct controller-sequencer fan-out across process owners. MIDI channel identities, controller values, ordering and reset semantics must match single rendering.
+- Live-input responsiveness (non-blocking for G7): retain input-to-audible distributions, underruns and incomplete probes as diagnostic evidence; live-input latency alone does not prevent G7 acceptance.
 - Real playback: at least 30 minutes per qualified heavy workload at the same queue settings, with zero underruns when the paired baseline has zero; controlled stress must not increase underruns or recovery latency relative to baseline.
 - Reliability: successful repeated lifecycle, crash/hang and cleanup tests; memory remains within admitted bounds, with no monotonic process/segment/FD growth.
 - Automatic selection: small, serial, unknown, memory-heavy or unqualified cases remain single. A global average speedup cannot qualify a known-regressing class.
 
 If `ksmps=1` fails performance gates, retain single for that setting. If strict scheduling fails across all useful workloads, keep the default single and record the outcome; do not substitute speculative batches or a larger browser buffer to make the benchmark pass.
+
+The live-input criterion above was changed on 2026-11-07 at the user's explicit direction:
+scheduled playback and controller-sequencer correctness take priority for G7. This supersedes
+the blocking live-input criterion used by the frozen T07c/T07d protocols, without rewriting
+their observations or historical decisions. It does not waive event correctness, playback
+continuity, recovery, capacity, lifecycle or build-evidence requirements, and does not enable
+automatic selection. The requested ten-minute runs remain labelled as such; the existing
+production evidence predicate is unchanged and has no input-latency field.
 
 ## 8. Required checks during implementation
 

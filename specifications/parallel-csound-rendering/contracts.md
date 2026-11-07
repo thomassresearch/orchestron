@@ -554,3 +554,45 @@ ahead of the parent's event drain or before the previous global completion barri
 The qualification thresholds are unchanged. Passing exact native traces and short render
 deadlines does not alone approve automatic selection or replace browser/stress/latency evidence.
 Native channel ownership follows the [Csound channel API](https://csound.com/docs/api/group__CONTROLEVENTS.html).
+
+## 14. T07 live-input overhead continuation
+
+The parallel owner borrows one validated, contiguous native output view after successful
+start and format validation. Csound owns its storage for that fixed-format lifetime. Only
+the owning child reads it, after `performKsmps`; it clears the reference before native
+stop/cleanup/reset. No native pointer is exported. The existing final-bus copy, native-thread
+float32 conversion, finite checks and completion fences remain authoritative. Generated
+meter values use scalar finite checks; audio arrays retain their vector finite check.
+
+The session facade reuses a frozen empty `BlockInputs` for the current control revision.
+It still runs boundary actions, the sequencer callback, MIDI drain and controller mapping on
+every block. MIDI/control-bearing blocks receive fresh validated payloads; a control update
+replaces the cached revision, and a new native start resets it. This changes allocation work,
+not event timing, request length, ownership, buffering or fallback behavior.
+
+The [T07d protocol](t07d-test-plan.md) explicitly uses the user's requested ten-minute
+soaks. Reports distinguish that bounded assessment from the unchanged thirty-minute
+production evidence predicate. Neither result installs eligibility records or enables rollout.
+The [Csound realtime I/O API](https://csound.com/docs/api/group__RTAUDIOIO.html) defines the
+native output buffer and its post-performance reads.
+
+## 15. Controller fan-out and G7 priority
+
+A controller sequencer runs once in the parent. Step and curve tracks emit one ordered MIDI
+CC message per target channel. The parent drains that stream once at the existing block
+boundary and broadcasts the complete MIDI delivery to every native partition, retaining
+the original channel numbers, values and order. A partition's local instrument numbers do
+not renumber MIDI channels. Readers of the same channel/CC in different processes therefore
+receive the same controller state; untargeted channels retain their own state.
+
+Mapped `perf_controller` values use the same parent-owned channel/CC routing and revision
+state, then send named control writes to their subscribed owners. Existing I-rate/new-note
+semantics remain unchanged. Sharing an external controller sequencer alone does not create
+a DSP dependency or force instruments into the same process. Audio routing and instrument-
+generated shared-state writes still require the planner's usual dependency checks.
+
+By explicit user direction on 2026-11-07, live-input response latency is a non-blocking G7
+diagnostic. Scheduled event timing and controller correctness remain required. Historical
+T07c/T07d reports retain their original criteria and failures; current acceptance follows
+the [amended gate](acceptance.md#7-performance-measurement-and-gates). No runtime defaults,
+buffers, production evidence records or CSD exports change with this clarification.

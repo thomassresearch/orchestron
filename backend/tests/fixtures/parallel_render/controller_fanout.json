@@ -1,0 +1,15 @@
+{
+  "read_channels": [2, 5, 2, 7],
+  "untargeted_channel": 7,
+  "controller_number": 74,
+  "sequencer": {
+    "timing": {"tempo_bpm": 300},
+    "playback_end_step": 32,
+    "controller_tracks": [{
+      "track_id": "fanout", "controller_number": 74, "controller_mode": "step",
+      "reset_value": 0, "target_channels": [2, 5], "length_beats": 2,
+      "timing": {"steps_per_beat": 4},
+      "pads": [{"pad_index": 0, "length_beats": 2, "steps": [0, 127, 32, 0, 64, 127, 0, null]}]
+    }]
+  }
+}

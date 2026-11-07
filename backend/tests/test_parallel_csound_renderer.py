@@ -30,6 +30,29 @@ from backend.tools._sequential_partition_probe import compare_sequential
 CTX = multiprocessing.get_context("spawn")
 
 
+def test_native_output_view_follows_current_blocks_and_is_released_before_reset():
+    from backend.app.engine.partition_native import NativeCsoundPartition
+    try:
+        module = load_ctcsound_module()
+    except RuntimeError as exc:
+        pytest.skip(str(exc))
+    _, plan, compilation = prepared("two", 32)
+    instance = NativeCsoundPartition(module, compilation.canonical.csd, plan.graph.engine, plan.sample_bytes)
+    try:
+        view = instance.output_buffer
+        assert np.shares_memory(view, np.asarray(instance.cs.spout()))
+        initial = view.copy()
+        instance.perform([(0x90, 60, 100)], [])
+        first = view.copy()
+        instance.perform([], [])
+        np.testing.assert_array_equal(view.reshape(-1), np.asarray(instance.cs.spout()).reshape(-1))
+        assert np.any(first != initial) and np.any(view != first)
+        del view
+    finally:
+        instance.close()
+    assert instance.output_buffer is None and instance.cs is None
+
+
 def coordinator(**kwargs):
     return PartitionRenderCoordinator(policy=RendererPolicy(startup_timeout_seconds=10.,
         stop_timeout_seconds=.5, render_timeout_seconds=2.), **kwargs)
