@@ -1,0 +1,66 @@
+{
+  "before": {
+    "total_seconds": 4.7943014099999814,
+    "rows": [
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<method 'acquire' of '_multiprocessing.SemLock' objects>",
+        "calls": 12331,
+        "own_seconds": 2.793669173,
+        "total_seconds": 2.793669173
+      },
+      {
+        "file": "/Users/thuber/Projekte/VisualCSound/backend/app/engine/parallel_csound_renderer.py",
+        "line": 128,
+        "name": "_collect",
+        "calls": 2049,
+        "own_seconds": 0.024126408000000002,
+        "total_seconds": 2.969928689
+      },
+      {
+        "file": "/Users/thuber/Projekte/VisualCSound/backend/app/engine/parallel_csound_renderer.py",
+        "line": 219,
+        "name": "render_blocks",
+        "calls": 1,
+        "own_seconds": 0.098990355,
+        "total_seconds": 3.229394541
+      }
+    ]
+  },
+  "after": {
+    "total_seconds": 1.7867211490000035,
+    "rows": [
+      {
+        "file": "/Users/thuber/Projekte/VisualCSound/backend/app/engine/parallel_csound_renderer.py",
+        "line": 129,
+        "name": "_collect",
+        "calls": 2049,
+        "own_seconds": 0.012416422000000002,
+        "total_seconds": 0.510976422
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<built-in method select.select>",
+        "calls": 12326,
+        "own_seconds": 0.41563581000000005,
+        "total_seconds": 0.41563581000000005
+      },
+      {
+        "file": "/Users/thuber/Projekte/VisualCSound/backend/app/engine/parallel_csound_renderer.py",
+        "line": 220,
+        "name": "render_blocks",
+        "calls": 1,
+        "own_seconds": 0.037168893,
+        "total_seconds": 0.5236146660000001
+      }
+    ]
+  },
+  "scope": "Instrumented native correctness probe, 32768 frames, K=32, two sources. Includes sequential comparison and startup. Not uninstrumented benchmark or browser qualification.",
+  "before_revision": "HEAD before T07 edits",
+  "after_revision": "initial wakeup prototype; before adding retained semaphore publication fence",
+  "exact_pcm": true,
+  "exact_meters": true,
+  "qualified": false
+}

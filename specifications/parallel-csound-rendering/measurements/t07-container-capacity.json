@@ -1,0 +1,286 @@
+{
+  "image": "sha256:03c9aa59fad8ae00f1c4e8e46abf540537eee77fa2461fbfa7d8aa02ddb471ed",
+  "scope": "Actual cgroup detection and atomic lease probe in ARM64 Docker Desktop image; admission code unchanged in final T07 build, probe predates final PCM correction; no DSP timing claims",
+  "cases": [
+    {
+      "limits": {
+        "cpus": "1",
+        "cpuset": null,
+        "memory": "1g",
+        "shm": "64m"
+      },
+      "capacity": {
+        "effective_cpus": 1.0,
+        "known": true,
+        "memory_available": 1058086912,
+        "shared_available": 67108864,
+        "provenance": [
+          "affinity=12",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=100000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=1073741824,used=15654912"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            1,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": "insufficient_cpu_capacity",
+      "cleaned": true
+    },
+    {
+      "limits": {
+        "cpus": "2",
+        "cpuset": null,
+        "memory": "1g",
+        "shm": "64m"
+      },
+      "capacity": {
+        "effective_cpus": 2.0,
+        "known": true,
+        "memory_available": 1058590720,
+        "shared_available": 67108864,
+        "provenance": [
+          "affinity=12",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=200000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=1073741824,used=15151104"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            2,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": "insufficient_cpu_capacity",
+      "cleaned": true
+    },
+    {
+      "limits": {
+        "cpus": "3.5",
+        "cpuset": null,
+        "memory": "1g",
+        "shm": "64m"
+      },
+      "capacity": {
+        "effective_cpus": 3.5,
+        "known": true,
+        "memory_available": 1058377728,
+        "shared_available": 67108864,
+        "provenance": [
+          "affinity=12",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=350000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=1073741824,used=15364096"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            1,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": "insufficient_cpu_capacity",
+      "cleaned": true
+    },
+    {
+      "limits": {
+        "cpus": "4",
+        "cpuset": null,
+        "memory": "1g",
+        "shm": "64m"
+      },
+      "capacity": {
+        "effective_cpus": 4.0,
+        "known": true,
+        "memory_available": 1058136064,
+        "shared_available": 67108864,
+        "provenance": [
+          "affinity=12",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=400000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=1073741824,used=15605760"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            2,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": null,
+      "cleaned": true
+    },
+    {
+      "limits": {
+        "cpus": "8",
+        "cpuset": null,
+        "memory": "1g",
+        "shm": "64m"
+      },
+      "capacity": {
+        "effective_cpus": 8.0,
+        "known": true,
+        "memory_available": 1058783232,
+        "shared_available": 67108864,
+        "provenance": [
+          "affinity=12",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=800000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=1073741824,used=14958592"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            2,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": null,
+      "cleaned": true
+    },
+    {
+      "limits": {
+        "cpus": "8",
+        "cpuset": "0-1",
+        "memory": "1g",
+        "shm": "64m"
+      },
+      "capacity": {
+        "effective_cpus": 2.0,
+        "known": true,
+        "memory_available": 1058197504,
+        "shared_available": 67108864,
+        "provenance": [
+          "affinity=2",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=800000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=1073741824,used=15544320"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            2,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": "insufficient_cpu_capacity",
+      "cleaned": true
+    },
+    {
+      "limits": {
+        "cpus": "4",
+        "cpuset": null,
+        "memory": "512m",
+        "shm": "64m"
+      },
+      "capacity": {
+        "effective_cpus": 4.0,
+        "known": true,
+        "memory_available": 521203712,
+        "shared_available": 67108864,
+        "provenance": [
+          "affinity=12",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=400000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=536870912,used=15667200"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            2,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": "insufficient_memory_capacity",
+      "cleaned": true
+    },
+    {
+      "limits": {
+        "cpus": "4",
+        "cpuset": null,
+        "memory": "1g",
+        "shm": "3m"
+      },
+      "capacity": {
+        "effective_cpus": 4.0,
+        "known": true,
+        "memory_available": 1058648064,
+        "shared_available": 3145728,
+        "provenance": [
+          "affinity=12",
+          "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpu: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:quota=400000/100000",
+          "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "cpuset: ancestors outside mount/namespace may be hidden",
+          "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+          "memory: ancestors outside mount/namespace may be hidden",
+          "/sys/fs/cgroup:memory_limit=1073741824,used=15093760"
+        ],
+        "throttling": [
+          [
+            "/sys/fs/cgroup",
+            1,
+            0
+          ]
+        ],
+        "descriptors_available": 1048572
+      },
+      "admission_reason": "insufficient_shared_memory_capacity",
+      "cleaned": true
+    }
+  ]
+}

@@ -152,7 +152,8 @@ def provenance():
                       ROOT / "pyproject.toml", ROOT / "uv.lock", ROOT / "Dockerfile"])
     return {"captured_utc": datetime.now(timezone.utc).isoformat(),
             "revision": git("rev-parse", "HEAD"), "dirty_status": git("status", "--porcelain"),
-            "source_hashes": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
+            "source_hashes": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources if p.is_file()},
+            "unavailable_sources": [str(p.relative_to(ROOT)) for p in sources if not p.is_file()],
             "fixture_hash": hashlib.sha256(FIXTURE.read_bytes()).hexdigest(), "python": sys.version,
             "platform": platform.platform(), "architecture": platform.machine(), "cpu_count": os.cpu_count(),
             "affinity": sorted(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None,

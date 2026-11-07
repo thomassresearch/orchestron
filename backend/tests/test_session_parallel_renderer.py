@@ -39,6 +39,66 @@ def start(worker, artifact, mixer):
     return result
 
 
+def test_capacity_is_rechecked_after_prepare_and_denial_does_not_quarantine(monkeypatch):
+    from backend.app.engine.render_capacity import MIB, RenderCapacity
+    worker, artifact, mixer = prepared(monkeypatch)
+    admission = worker.options.admission
+    original_probe = admission.probe
+    try:
+        admission.probe = lambda: RenderCapacity(2., True, 4096 * MIB, 64 * MIB)
+        start(worker, artifact, mixer)
+        assert worker.renderer_diagnostics["fallback_reason"] == "insufficient_cpu_capacity"
+        assert worker.renderer_diagnostics["selected"] == "single"
+        assert [lease.workers for lease in admission.leases] == [1]
+        worker.stop()
+        assert not admission.leases
+        admission.probe = original_probe
+        start(worker, artifact, mixer)
+        assert worker.renderer_diagnostics["selected"] == "parallel"
+        assert admission.leases[0].workers == 3
+    finally:
+        worker.stop()
+    assert not admission.leases
+
+
+def test_lease_is_retained_until_cleanup_reaps_native_owners(monkeypatch):
+    worker, artifact, mixer = prepared(monkeypatch)
+    start(worker, artifact, mixer)
+    original_stop = worker._coordinator.stop
+    def failed_stop():
+        raise PartitionRuntimeError("native owner still alive")
+    monkeypatch.setattr(worker._coordinator, "stop", failed_stop)
+    try:
+        with pytest.raises(PartitionRuntimeError, match="still alive"):
+            worker.stop()
+        assert worker.options.admission.leases[0].workers == 3
+        assert worker._coordinator.process_ids
+    finally:
+        monkeypatch.setattr(worker._coordinator, "stop", original_stop)
+        worker.stop()
+    assert not worker.options.admission.leases
+
+
+def test_slow_requests_suppress_future_parallel_admission_without_changing_transport(monkeypatch):
+    from itertools import count
+    from types import SimpleNamespace
+    from backend.app.engine import session_parallel_renderer
+    from backend.app.engine.render_capacity import MIB, RenderAdmissionError
+    worker, artifact, mixer = prepared(monkeypatch)
+    try:
+        start(worker, artifact, mixer)
+        times = count()
+        monkeypatch.setattr(session_parallel_renderer, "time", SimpleNamespace(monotonic=lambda: float(next(times))))
+        for _ in range(3):
+            worker.render_blocks(block_count=1, target_sample_rate=48000)
+        assert worker.is_running and worker.render_sample_cursor == 96
+        assert worker.renderer_diagnostics["slow_requests"] == 3
+        with pytest.raises(RenderAdmissionError, match="recent_render_pressure"):
+            worker.options.admission.acquire(object(), workers=3, memory_bytes=400 * MIB, shared_bytes=4 * MIB)
+    finally:
+        worker.stop()
+
+
 @pytest.mark.parametrize("ksmps,rate", [(1, 48000), (32, 44100), (32, 48000)])
 def test_native_facade_matches_single_timing_audio_controls_and_meters(monkeypatch, ksmps, rate):
     worker, artifact, mixer = prepared(monkeypatch, case="shared", ksmps=ksmps)

@@ -31,6 +31,16 @@ is unchanged. The single renderer remains the default and compatibility fallback
 selection is not active. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
 for baseline comparisons and remaining work.
 
+T07 adds internal [capacity admission](backend/app/engine/render_capacity.py) and an
+[evidence gate](backend/app/engine/render_qualification.py). Admission reads visible v1/v2
+cgroup ancestors, effective CPU sets, affinity, memory headroom and `/dev/shm`; unknown
+capacity stays single. Process-wide leases count running/pending single sessions, all
+rendering children (including the suffix), and preparation/API headroom. Capacity is checked
+again at Start, leases survive incomplete cleanup, and resource changes never resize an
+active renderer. Default single rendering performs no capacity filesystem probes in its
+audio loop. No performance qualification is registered. See the
+[T07 contract](specifications/parallel-csound-rendering/contracts.md#12-t07-capacity-and-performance-gate).
+
 `CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
 metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).
 It records compiler stage/port order, resource constraints and helper/control/meter ownership.
@@ -53,20 +63,22 @@ The T05 [PartitionRenderCoordinator](backend/app/engine/parallel_csound_renderer
 persistent Csound processes with `spawn`, native-width shared audio slots and bounded
 command/reply mailboxes. The parent seals one interval, dispatches independent branches,
 waits for every predecessor before the shared suffix, and commits only complete blocks.
-It converts/resamples once in the parent and withholds an entire failed PCM request.
+The output child converts native samples to float32; the parent resamples once per request
+and withholds an entire failed PCM request. Conversion stays in the native thread to preserve
+Csound's float32 subnormal handling; resampling retains that reported mode.
 Startup, cancellation, deadlines and cleanup are internal operations; normal sessions
 and CSD exports do not call this coordinator. A caller must supply
 already ordered/gated events through its parent-only block preparation callback. The
-session-facing T06 facade supplies that callback; container admission and performance selection
-belong to T07. See the
+session-facing facade supplies that callback; T07 admission gates its starts. See the
 [T05 contract](specifications/parallel-csound-rendering/contracts.md#10-t05-process-execution-contract)
 and [process tests](backend/tests/test_parallel_csound_renderer.py).
 
 T06 adds an explicit application injection, `create_app(renderer_options=SessionRendererOptions(...))`,
 for integration testing. Non-single options construct [ParallelCsoundRenderer](backend/app/engine/session_parallel_renderer.py),
 which retains the original worker's scheduler, lane gate, controller revisions and boundary queue.
-It requires caller-supplied planner costs and `allow_unqualified=True` to start children. This is
-not a deployment setting or performance qualification. Default construction still uses the plain
+It requires caller-supplied planner costs and either reviewed matching qualification records
+or `allow_unqualified=True`, in addition to capacity admission. No qualification records ship;
+the diagnostic override is not a deployment setting. Default construction still uses the plain
 `CsoundWorker`; its render loop and canonical CSD exports are unchanged.
 
 The facade drains parent events and controls once per block and maps partition meters to the

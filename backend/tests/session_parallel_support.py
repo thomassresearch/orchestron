@@ -1,13 +1,15 @@
 """Explicit, unqualified T06 fixtures. Never used by normal application startup."""
 from backend.app.engine.session_renderer_options import SessionRendererOptions
 from backend.app.models.render_protocol import RendererPolicy
+from backend.app.engine.render_capacity import MIB, RenderAdmission, RenderCapacity
 from backend.tests.render_plan_support import planner_inputs, synthetic_costs
 
 
 def options(mode="auto", *, qualified_opt_in=True):
     return SessionRendererOptions(policy=RendererPolicy(mode=mode, max_workers=4,
         startup_timeout_seconds=10, stop_timeout_seconds=.5, render_timeout_seconds=2),
-        costs=synthetic_costs, allow_unqualified=qualified_opt_in)
+        costs=synthetic_costs, allow_unqualified=qualified_opt_in,
+        admission=RenderAdmission(lambda: RenderCapacity(12., True, 4096 * MIB, 64 * MIB)))
 
 
 def create_session(client, *, case="two", ksmps=32, start=True):

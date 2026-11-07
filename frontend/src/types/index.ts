@@ -1130,6 +1130,11 @@ export interface RendererDiagnostics {
   failed: boolean;
   committed_sample: number;
   published_sample: number;
+  effective_cpus?: number | null;
+  capacity_known?: boolean | null;
+  render_requests?: number;
+  slow_requests?: number;
+  max_render_audio_ratio?: number;
 }
 
 export interface SessionInfo {

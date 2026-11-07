@@ -133,6 +133,48 @@ def parent_exit_probe(report):
     release.wait(60)
 
 
+def subnormal_pcm_probe(mode, connection, rate=48000, amplitude=1e-39):
+    """Fresh executables avoid inheriting a reference Csound thread's FP mode."""
+    import os
+    from backend.app.engine.csound_worker import CsoundWorker
+    from backend.app.engine.render_ipc import FINAL_BUS
+    from backend.app.engine.session_parallel_renderer import ParallelCsoundRenderer
+    from backend.app.services.compiler_service import CompilerService
+    from backend.app.services.opcode_service import OpcodeService
+    from backend.tests.render_plan_support import planner_inputs
+    from backend.tests.session_parallel_support import options
+
+    os.environ["VISUALCSOUND_FORCE_MOCK_ENGINE"] = "false"
+    targets, graph, mixer = planner_inputs("two", 32)
+    for target in targets:
+        for node in target.patch.graph.nodes:
+            if node.opcode == "ampmidi":
+                node.params["iscal"] = amplitude
+    compiler = CompilerService(OpcodeService("/static/icons"))
+    artifact = compiler.compile_patch_bundle(targets, audio_graph=graph, mixer=mixer,
+                                              midi_input="internal:loopback", rtmidi_module="null")
+    worker = CsoundWorker() if mode == "single" else ParallelCsoundRenderer(options=options("parallel"))
+    try:
+        if mode == "parallel":
+            worker.prepare(compiler, targets, graph, mixer, artifact)
+        worker.start(artifact.csd, "internal:loopback", "null")
+        worker.configure_mixer(artifact.manifest, artifact.manifest["initialControls"])
+        for target in targets:
+            if target.midi_channel:
+                worker.enqueue_timestamped_midi([0x90 + target.midi_channel - 1, 60, 100], source="subnormal")
+        result = worker.render_blocks(block_count=8, target_sample_rate=rate)
+        if mode == "single":
+            native = worker._csound.spout()
+        else:
+            renderer = worker._coordinator
+            native = renderer._arena.audio(renderer._layout.audio[FINAL_BUS], (renderer._sequence - 1) % 2)
+        peak = float(np.max(np.abs(native)))
+        connection.send((result.pcm_f32le, peak))
+    finally:
+        worker.stop()
+        connection.close()
+
+
 if __name__ == "__main__":
     import sys
     parent_exit_probe(sys.argv[1])

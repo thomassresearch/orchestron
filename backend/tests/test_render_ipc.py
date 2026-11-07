@@ -99,7 +99,7 @@ def test_bootstrap_contains_only_owned_audio_regions():
     layout = build_layout(compilation, plan, 7, limit=64 * 1024 * 1024)
     for program in compilation.programs:
         data = json.loads(layout.bootstraps[program.id])
-        assert set(data["audio"]) == {b for b, _ in (*program.inputs, *program.outputs)} | ({"$final"} if program.owns_output else set())
+        assert set(data["audio"]) == {b for b, _ in (*program.inputs, *program.outputs)} | ({"$final", "$final-pcm", "$final-f32-mode"} if program.owns_output else set())
 
 
 @pytest.mark.parametrize("width", [4, 8])

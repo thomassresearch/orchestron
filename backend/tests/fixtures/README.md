@@ -19,6 +19,13 @@ It never reads examples. This fixture defines diagnostic workloads, not library
 instruments; it does not activate a parallel renderer. See the
 [baseline contracts](../../../specifications/parallel-csound-rendering/contracts.md).
 
+`parallel_render/qualification_workloads.json` adds T07 diagnostic timing workloads:
+two sources plus heavier four/eight-source variants with sixteen voices and 32 filters
+per source. `backend.tools.benchmark_partition_render` compares native session rendering
+with identical sequencing and verifies exact PCM, meters, markers, status and canonical
+CSD separately from timing. These fixtures and synthetic planner costs do not qualify
+automatic selection; browser/final-image evidence is a separate gate.
+
 `parallel_render/planner_cases.json` defines T03 graph/resource variants and explicitly
 synthetic cost inputs; `planner_snapshots.json` freezes 34 plans at K=1/32. The snapshots
 include ordered owners/buses and hashes of all immutable metadata. The builder in

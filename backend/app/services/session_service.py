@@ -16,6 +16,7 @@ from fastapi import HTTPException
 
 from backend.app.core.config import Settings
 from backend.app.engine.renderer_factory import create_realtime_renderer
+from backend.app.engine.render_capacity import PROCESS_RENDER_ADMISSION
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.audio import MixerState, MixerUpdate, MixerStrip, MixerSend
 from backend.app.services.compiler_mixer import ResolvedMixerGraph, mixer_control_values, legacy_audio_graph, normalize_audio_inputs
@@ -108,6 +109,7 @@ class SessionService:
     ) -> None:
         self._settings = settings
         self._renderer_options = renderer_options
+        self._render_admission = renderer_options.admission if renderer_options is not None else PROCESS_RENDER_ADMISSION
         self._compiler_service = compiler_service
         self._instrument_resolver = SessionInstrumentResolver(patch_service)
         self._midi_service = midi_service
@@ -547,6 +549,7 @@ class SessionService:
             start_options = {}
             if runtime.renderer_controller is not None:
                 start_options["expected_generation"] = runtime.renderer_controller.start_generation
+            self._render_admission.reserve_single(runtime.worker)
             result = await asyncio.to_thread(runtime.worker.start,
                 runtime.compile_artifact.csd,
                 midi_input=self._resolve_runtime_midi_backend_selector(runtime),
@@ -554,13 +557,16 @@ class SessionService:
                 **start_options,
             )
         except Exception as exc:
+            # The parallel facade retains its own lease if native cleanup fails.
+            if runtime.renderer_controller is None and not runtime.worker.is_running:
+                self._render_admission.release(runtime.worker)
             self._check_lifecycle_generation(runtime, generation)
             runtime.state = SessionState.ERROR
             await self._publish(runtime.session_id, "start_failed", {"error": str(exc)})
             raise HTTPException(status_code=500, detail=f"Failed to start session: {exc}") from exc
 
         if generation != runtime.lifecycle_generation or runtime.closing or runtime.stopping:
-            await asyncio.to_thread(runtime.worker.stop)
+            await self._stop_worker(runtime)
             self._check_lifecycle_generation(runtime, generation)
         runtime.state = SessionState.RUNNING
         if runtime.audio_graph is not None and not was_running:
@@ -626,6 +632,11 @@ class SessionService:
             runtime.stop_requests -= 1
             runtime.stopping = runtime.stop_requests > 0
 
+    async def _stop_worker(self, runtime: RuntimeSession):
+        detail = await asyncio.to_thread(runtime.worker.stop)
+        self._render_admission.release(runtime.worker)
+        return detail
+
     async def _stop_runtime(self, runtime: RuntimeSession) -> SessionActionResponse:
         session_id = runtime.session_id
         runtime.live_midi_activity.reset()
@@ -640,7 +651,7 @@ class SessionService:
             runtime.sequencer.stop()
         if runtime.midi_router is not None:
             runtime.midi_router.shutdown()
-        detail = await asyncio.to_thread(runtime.worker.stop)
+        detail = await self._stop_worker(runtime)
         runtime.state = SessionState.COMPILED if runtime.compile_artifact else SessionState.IDLE
 
         await self._publish(runtime.session_id, "stopped", {"detail": detail})
@@ -1044,7 +1055,7 @@ class SessionService:
                 await self._disconnect_browser_clock_controller(runtime.session_id, detail=detail,
                     close_code=4005, close_reason="renderer_failed")
                 try:
-                    await asyncio.to_thread(runtime.worker.stop)
+                    await self._stop_worker(runtime)
                 finally:
                     runtime.state = SessionState.ERROR
                     await self._publish(runtime.session_id, "renderer_failed", {"detail": detail, "renderer": diagnostics})
@@ -1238,17 +1249,23 @@ class SessionService:
         return SessionActionResponse(session_id=runtime.session_id, state=runtime.state, detail=detail)
 
     async def start_configuration_compiler(self) -> None:
-        await self._preparation.start()
+        self._render_admission.register_preparer(self._preparation)
+        try:
+            await self._preparation.start()
+        except BaseException:
+            self._render_admission.release_preparer(self._preparation)
+            raise
 
     async def shutdown(self) -> None:
         for runtime in list(self._sessions.values()):
             runtime.closing = True
             self._cancel_runtime_operations(runtime)
         await self._preparation.close()
+        self._render_admission.release_preparer(self._preparation)
         for runtime in list(self._sessions.values()):
             if runtime.sequencer is not None:
                 runtime.sequencer.shutdown()
-            await asyncio.to_thread(runtime.worker.stop)
+            await self._stop_worker(runtime)
         tasks = [*self._session_idle_tasks.values(), *self._frontend_auto_stop_tasks.values(),
                  *self._browser_clock_auto_stop_tasks.values(),
                  *(task for group in self._frontend_heartbeat_watchdogs.values() for task in group.values())]
@@ -1329,6 +1346,7 @@ class SessionService:
             return await asyncio.to_thread(runtime.worker.run_at_render_boundary, at_boundary)
 
         arpeggiator_generation = runtime.arpeggiator_generation
+        self._render_admission.register_preparer(self._preparation)
         try:
             return await self._preparation.submit(
                 runtime.session_id, request, self._performance_runtime.controller_default_channels(runtime), apply, pinned_pairs=sequencer.transposition_pairs(),
@@ -1772,7 +1790,7 @@ class SessionService:
                 runtime.sequencer.shutdown()
             if runtime.midi_router is not None:
                 runtime.midi_router.shutdown()
-            await asyncio.to_thread(runtime.worker.stop)
+            await self._stop_worker(runtime)
 
         heartbeat_tasks_to_cancel: list[asyncio.Task[None]] = []
         auto_stop_task_to_cancel: asyncio.Task[None] | None = None

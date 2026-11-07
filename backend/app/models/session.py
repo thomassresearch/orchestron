@@ -162,6 +162,11 @@ class RendererDiagnostics(BaseModel):
     failed: bool = False
     committed_sample: int = 0
     published_sample: int = 0
+    effective_cpus: float | None = None
+    capacity_known: bool | None = None
+    render_requests: int = 0
+    slow_requests: int = 0
+    max_render_audio_ratio: float = 0.
 
 
 class SessionInfo(BaseModel):

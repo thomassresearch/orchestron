@@ -7,12 +7,16 @@ CsoundWorker, whose render loop is unchanged.
 from __future__ import annotations
 
 import threading
+import time
 
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.parallel_csound_renderer import (
     BlockInputs, MAX_REQUEST_FRAMES, PartitionCancelled, PartitionRenderCoordinator, PartitionRuntimeError,
 )
 from backend.app.engine.realtime_renderer import EngineStartResult
+from backend.app.engine.render_capacity import MIB, RenderAdmissionError
+from backend.app.engine.render_ipc import build_layout
+from backend.app.engine.render_qualification import runtime_fingerprint, select_qualification
 from backend.app.models.render_protocol import ControlWrite, MidiDelivery
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.render_partition_plan import plan_render_partitions
@@ -36,6 +40,10 @@ class ParallelCsoundRenderer(CsoundWorker):
         self.fatal_error = None
         self._failure_diagnostics = None
         self._control_revision = 0
+        self._qualification = None
+        self._capacity = None
+        self._render_requests = self._slow_requests = self._consecutive_slow = 0
+        self._max_render_audio_ratio = 0.
 
     def prepare(self, compiler, targets, graph, mixer, canonical):
         """Called after canonical validation, outside rendering, under session lifecycle ownership."""
@@ -44,11 +52,12 @@ class ParallelCsoundRenderer(CsoundWorker):
         self._candidate = None
         self._canonical_csd = canonical.csd
         self._fallback_reason = None
+        self._qualification = None
         if self._quarantined and self.options.policy.mode == "auto":
             self._fallback_reason = "previous_parallel_failure"
         elif self.backend == "mock":
             self._fallback_reason = "native_backend_unavailable"
-        elif not self.options.allow_unqualified:
+        elif not self.options.allow_unqualified and not self.options.qualifications:
             self._fallback_reason = "parallel_not_qualified"
         else:
             try:
@@ -61,16 +70,55 @@ class ParallelCsoundRenderer(CsoundWorker):
                     raise CompilationError([self._fallback_reason]) from exc
 
     def _prepare_candidate(self, compiler, targets, graph, mixer, canonical):
+        try:
+            limit = self.options.admission.planning_limit(self, self.options.policy.max_workers)
+        except RenderAdmissionError as exc:
+            self._fallback_reason = str(exc)
+            return
+        finally:
+            self._capacity = self.options.admission.last_capacity
         dependency = compiler.analyze_realtime_graph(targets, graph)
         costs = self.options.costs(dependency) if self.options.costs is not None else None
-        plan = plan_render_partitions(dependency, policy=self.options.policy, costs=costs)
+        plan = plan_render_partitions(dependency, policy=self.options.policy.model_copy(update={"max_workers": limit}), costs=costs)
         if plan.layout != "coarse":
             self._fallback_reason = ",".join(d.code for d in plan.diagnostics)
         else:
             compilation = compiler.compile_realtime_partitions(targets, graph, mixer, plan)
             if compilation.canonical.orc != canonical.orc or compilation.canonical.manifest != canonical.manifest:
                 raise ValueError("Parallel compilation does not match the canonical session artifact.")
+            if self.options.qualifications:
+                self._qualification = select_qualification(self.options.qualifications,
+                    runtime=runtime_fingerprint(), compilation=compilation, plan=plan)
+            if not self._qualification and not self.options.allow_unqualified:
+                self._fallback_reason = "parallel_not_qualified"
+                return
             self._candidate = (compilation, plan)
+
+    def _admit(self):
+        compilation, plan = self._candidate
+        # Provisioning can change between preparation and Start. Charge the full
+        # mailbox/bootstrap/meter layout, not only the planner's audio cut buses.
+        layout = build_layout(compilation, plan, self._coordinator.epoch + 1,
+            limit=min(plan.shared_audio_limit, self.options.policy.max_shared_memory_bytes))
+        workers = len(compilation.programs)
+        if self._qualification and self._qualification.runtime != runtime_fingerprint():
+            raise RenderAdmissionError("qualification_build_changed")
+        # Tables, samples and SoundFonts are currently blocked by resource analysis.
+        # Do not treat an unmeasured replicated asset as zero-cost if that changes.
+        if any(r.resource.startswith(("asset:", "table:", "tables:")) for r in plan.graph.resources):
+            raise RenderAdmissionError("native_resource_memory_unqualified")
+        private = self._qualification.private_memory_bytes if self._qualification else workers * 128 * MIB
+        memory = private + layout.size + MAX_REQUEST_FRAMES * 2 * 4
+        try:
+            lease = self.options.admission.acquire(self, workers=workers, memory_bytes=memory, shared_bytes=layout.size,
+                minimum_cpus=self._qualification.effective_cpus if self._qualification else 0.)
+        finally:
+            self._capacity = self.options.admission.last_capacity
+        self._capacity = lease.capacity
+
+    def _release_if_reaped(self):
+        if not self._coordinator.process_ids and self._coordinator.shared_memory_name is None:
+            self.options.admission.release(self)
 
     @property
     def renderer_diagnostics(self):
@@ -80,11 +128,16 @@ class ParallelCsoundRenderer(CsoundWorker):
             "requested": self.options.policy.mode,
             "selected": "parallel" if self._parallel else "single",
             "worker_count": self._coordinator.worker_count if self._parallel else int(self.is_running),
-            "qualified": False,
+            "qualified": self._parallel and self._qualification is not None,
             "fallback_reason": self._fallback_reason,
             "failed": self.fatal_error is not None,
             "committed_sample": self._coordinator.committed_sample if self._parallel else self.render_sample_cursor,
             "published_sample": self._coordinator.published_sample if self._parallel else self.render_sample_cursor,
+            "effective_cpus": self._capacity.effective_cpus if self._capacity else None,
+            "capacity_known": self._capacity.known if self._capacity else None,
+            "render_requests": self._render_requests,
+            "slow_requests": self._slow_requests,
+            "max_render_audio_ratio": self._max_render_audio_ratio,
         }
 
     @property
@@ -124,17 +177,25 @@ class ParallelCsoundRenderer(CsoundWorker):
             self.fatal_error = None
             self._failure_diagnostics = None
             self._parallel = False
+            self._render_requests = self._slow_requests = self._consecutive_slow = 0
+            self._max_render_audio_ratio = 0.
+            self.options.admission.reserve_single(self)
             if self._candidate is not None and not (self._quarantined and self.options.policy.mode == "auto"):
                 try:
+                    self._admit()
                     self._coordinator.start(*self._candidate, cancel_event=cancel)
                     self._check_start(generation)
                 except Exception as exc:
                     self._coordinator.stop()
+                    self._release_if_reaped()
                     self._check_start(generation)
                     if self.options.policy.mode != "auto":
                         raise
-                    self._fallback_reason = f"parallel_start_failed: {str(exc)[:512]}"
-                    self._quarantined = True
+                    if isinstance(exc, RenderAdmissionError):
+                        self._fallback_reason = str(exc)
+                    else:
+                        self._fallback_reason = f"parallel_start_failed: {str(exc)[:512]}"
+                        self._quarantined = True
                 else:
                     _, plan = self._candidate
                     with self._lock:
@@ -149,16 +210,20 @@ class ParallelCsoundRenderer(CsoundWorker):
                     with self._mixer_lock:
                         self._control_pending.clear()
                         self._control_revision = 0
-                    return EngineStartResult("ctcsound", "started with parallel Csound processes (unqualified)")
+                    return EngineStartResult("ctcsound", "started with parallel Csound processes" +
+                        ("" if self._qualification else " (unqualified)"))
             elif self.options.policy.mode == "parallel":
+                self._release_if_reaped()
                 raise PartitionRuntimeError(f"Parallel rendering unavailable: {self._fallback_reason or 'no candidate'}")
             self._check_start(generation)
             try:
+                self.options.admission.reserve_single(self)
                 result = super().start(csd, midi_input, rtmidi_module)
                 self._check_start(generation)
                 return result
             except Exception as exc:
                 super().stop()
+                self._release_if_reaped()
                 self._check_start(generation)
                 if self._fallback_reason:
                     raise PartitionRuntimeError(f"{self._fallback_reason}; single start failed: {exc}") from exc
@@ -175,6 +240,7 @@ class ParallelCsoundRenderer(CsoundWorker):
             with self._render_lock:
                 result = super().stop()
                 self._parallel = False
+                self._release_if_reaped()
                 return result
         finally:
             with self._lifecycle_guard:
@@ -260,9 +326,17 @@ class ParallelCsoundRenderer(CsoundWorker):
                     controls=tuple(ControlWrite(channel=name, value=float(value)) for name, value in pending.items()))
 
             try:
+                started = time.monotonic()
                 result = self._coordinator.render_blocks(block_count=block_count, target_sample_rate=target_sample_rate,
                                                          prepare_block=prepare)
                 self._check_start(generation)
+                ratio = (time.monotonic() - started) / (block_count * self.runtime_ksmps / self.runtime_sample_rate)
+                self._render_requests += 1
+                self._max_render_audio_ratio = max(self._max_render_audio_ratio, ratio)
+                self._slow_requests += int(ratio > 1.)
+                self._consecutive_slow = self._consecutive_slow + 1 if ratio > 1. else 0
+                if self._consecutive_slow >= 3:
+                    self.options.admission.report_pressure()
                 with self._mixer_lock:
                     for frame in self._coordinator.drain_meter_frames():
                         levels = {identity: {key: max(0., frame["channels"][channel]) for key, channel in names.items()}
@@ -271,6 +345,7 @@ class ParallelCsoundRenderer(CsoundWorker):
                     self._mixer_meter_frames = self._mixer_meter_frames[-32:]
                 return result
             except Exception as exc:
+                self._release_if_reaped()
                 with self._lock:
                     self._running = False
                 if not self._cancel_start.is_set():

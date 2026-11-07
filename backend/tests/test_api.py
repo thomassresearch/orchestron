@@ -64,6 +64,58 @@ def test_renderer_baseline_keeps_single_worker_and_canonical_compile(tmp_path, m
         assert type(runtime.worker) is CsoundWorker
 
 
+@pytest.mark.parametrize("mode", ["auto", "parallel"])
+def test_parallel_capacity_denial_starts_no_children_and_preserves_canonical(tmp_path, monkeypatch, mode):
+    from dataclasses import replace
+    from backend.app.engine.render_capacity import MIB, RenderAdmission, RenderCapacity
+    from backend.tests.session_parallel_support import options, create_session
+
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+    admission = RenderAdmission(lambda: RenderCapacity(2., True, 4096 * MIB, 64 * MIB))
+    with _client(tmp_path, renderer_options=replace(options(mode), admission=admission)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        session = create_session(client, start=False)
+        response = client.post(f"/api/sessions/{session}/start")
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker._coordinator.shared_memory_name is None
+        assert "<CsoundSynthesizer>" in runtime.compile_artifact.csd
+        if mode == "auto":
+            assert response.status_code == 200, response.text
+            info = client.get(f"/api/sessions/{session}").json()["renderer"]
+            assert info["selected"] == "single" and info["fallback_reason"] == "insufficient_cpu_capacity"
+            assert info["effective_cpus"] == 2 and info["capacity_known"]
+            assert [lease.workers for lease in admission.leases] == [1]
+        else:
+            assert response.status_code == 500 and "insufficient_cpu_capacity" in response.text
+            assert not admission.leases
+        assert client.delete(f"/api/sessions/{session}").status_code == 204
+        assert not admission.leases
+
+
+def test_parallel_session_admission_counts_suffix_other_sessions_and_releases_on_stop(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from backend.app.engine.render_capacity import MIB, RenderAdmission, RenderCapacity
+    from backend.tests.session_parallel_support import options, create_session
+
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+    admission = RenderAdmission(lambda: RenderCapacity(4., True, 4096 * MIB, 64 * MIB))
+    with _client(tmp_path, renderer_options=replace(options(), admission=admission)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        first = create_session(client, case="four")
+        assert client.get(f"/api/sessions/{first}").json()["renderer"]["worker_count"] == 3
+        second = create_session(client)
+        info = client.get(f"/api/sessions/{second}").json()["renderer"]
+        assert info["selected"] == "single" and info["fallback_reason"] == "insufficient_cpu_capacity"
+        assert sorted(lease.workers for lease in admission.leases) == [1, 3]
+        assert client.post(f"/api/sessions/{first}/stop").status_code == 200
+        assert client.post(f"/api/sessions/{second}/stop").status_code == 200
+        assert not admission.leases
+        assert client.post(f"/api/sessions/{second}/start").status_code == 200
+        assert client.get(f"/api/sessions/{second}").json()["renderer"]["selected"] == "parallel"
+    assert not admission.leases
+
+
 @pytest.mark.parametrize("ksmps", [1, 32])
 def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, monkeypatch, ksmps):
     import numpy as np

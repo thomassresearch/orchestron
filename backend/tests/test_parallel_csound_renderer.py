@@ -23,7 +23,7 @@ from backend.app.engine.parallel_csound_renderer import (
 )
 from backend.app.engine.render_ipc import FINAL_BUS
 from backend.app.models.render_protocol import ControlWrite, MidiDelivery, RendererPolicy
-from backend.tests.partition_process_support import controlled_process, corrupt_process
+from backend.tests.partition_process_support import controlled_process, corrupt_process, subnormal_pcm_probe
 from backend.tests.render_plan_support import prepared_partition as prepared
 from backend.tools._sequential_partition_probe import compare_sequential
 
@@ -48,6 +48,37 @@ def drain(scheduler, sample, ksmps, *, controls=(), revision=0):
         target_engine_sample=e.target_engine_sample, message=tuple(e.message), late=e.late)
         for e in scheduler.drain_block(block_start_sample=sample, block_end_sample=sample + ksmps)),
         controls=controls, control_revision=revision)
+
+
+@pytest.mark.parametrize("rate", [48000, 44100])
+@pytest.mark.parametrize("amplitude", [1e-39, 1e-36])
+def test_pcm_conversion_preserves_native_thread_subnormal_behavior_in_fresh_processes(rate, amplitude):
+    try:
+        load_ctcsound_module()
+    except RuntimeError as exc:
+        pytest.skip(str(exc))
+    results = []
+    for mode in ("single", "parallel"):
+        reader, writer = CTX.Pipe(duplex=False)
+        process = CTX.Process(target=subnormal_pcm_probe, args=(mode, writer, rate, amplitude))
+        try:
+            process.start()
+            writer.close()
+            assert reader.poll(30), "Native conversion probe did not complete"
+            pcm, peak = reader.recv()
+            assert peak > 0
+            assert (peak < 2 ** -126) == (amplitude == 1e-39), "Exercise both subnormal and small normal samples"
+            results.append(pcm)
+            process.join(10)
+            assert process.exitcode == 0
+        finally:
+            if process.is_alive():
+                process.kill()
+                process.join(5)
+            process.close()
+            reader.close()
+            writer.close()
+    assert results[0] == results[1]
 
 
 @pytest.mark.parametrize("ksmps", [1, 32])

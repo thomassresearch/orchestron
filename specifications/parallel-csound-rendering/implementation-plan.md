@@ -1,6 +1,6 @@
 # Persistent Csound process implementation plan
 
-Status: T01–T06 delivered; updated 2026-11-07. T07–T08 remain pending. This document defines the implementation sequence; the [implementation record](implementation-record.md) identifies executed work and limits. Read the [scope and decisions](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) together. Session parallel rendering requires explicit application injection for diagnostics; deployment selection is disabled.
+Status: T01–T07 implementation delivered; updated 2026-11-07. G7 performance qualification has not passed; T08 release remains pending. This document defines the implementation sequence; the [implementation record](implementation-record.md) identifies executed work and limits. Read the [scope and decisions](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) together. Session parallel rendering requires explicit application injection for diagnostics; deployment selection is disabled.
 
 ## 1. Outcome and invariants
 

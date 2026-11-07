@@ -23,6 +23,8 @@ from backend.app.models.render_protocol import BusSlot, Done, Render, RenderMess
 COMMAND_BYTES = 1024 * 1024
 REPLY_BYTES = 256 * 1024
 FINAL_BUS = "$final"
+FINAL_PCM_BUS = "$final-pcm"
+FINAL_F32_MODE_BUS = "$final-f32-mode"
 MESSAGE = TypeAdapter(RenderMessage)
 LENGTH = struct.Struct("<I")
 
@@ -81,13 +83,15 @@ def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES
         raise ValueError("Invalid command mailbox capacity.")
     audio = {b.id: audio_region(b.frames, b.channels, b.sample_bytes) for b in plan.buses}
     audio[FINAL_BUS] = audio_region(plan.graph.engine.ksmps, 2, plan.sample_bytes)
+    audio[FINAL_PCM_BUS] = audio_region(plan.graph.engine.ksmps, 2, 4)
+    audio[FINAL_F32_MODE_BUS] = audio_region(1, 1, 8)
     workers, bootstraps = {}, {}
     for program in compilation.programs:
         command, reply = allocate(command_bytes), allocate(REPLY_BYTES)
         meters = audio_region(len(program.meters), 1, 8)
         owned = tuple(b for b, _ in (*program.inputs, *program.outputs))
         if program.owns_output:
-            owned += (FINAL_BUS,)
+            owned += (FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS)
         if len(owned) > 2048:
             raise ValueError("Partition exceeds protocol bus capacity.")
         data = json_bytes({

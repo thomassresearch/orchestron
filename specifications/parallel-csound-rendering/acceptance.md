@@ -1,6 +1,6 @@
 # Parallel rendering acceptance and measurement plan
 
-Status: T01–T06 evidence recorded through 2026-11-07; admission, performance and rollout gates remain pending. The [implementation record](implementation-record.md) distinguishes executed checks from this broader acceptance matrix. The [implementation plan](implementation-plan.md) defines the contracts being tested.
+Status: T01–T07 evidence recorded through 2026-11-07. Capacity admission is implemented; G7 performance qualification has not passed and rollout remains pending. The [implementation record](implementation-record.md) distinguishes executed checks from this broader acceptance matrix. The [implementation plan](implementation-plan.md) defines the contracts being tested.
 
 ## 1. Evidence rules
 

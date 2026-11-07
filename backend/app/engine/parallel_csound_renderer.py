@@ -20,8 +20,9 @@ from pydantic import Field
 from backend.app.engine.browser_audio_pcm import resample_stereo_block_linear
 from backend.app.engine.csound_process import run_csound_process
 from backend.app.engine.realtime_renderer import EngineRenderResult
+from backend.app.engine.render_notification import completion_notification
 from backend.app.engine.render_ipc import (
-    FINAL_BUS, SharedArena, build_layout, expected_done, slots_for, validate_envelope,
+    FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS, SharedArena, build_layout, expected_done, slots_for, validate_envelope,
 )
 from backend.app.models.render_protocol import (
     Contract, ControlWrite, EngineFormat, Error, Init, MidiDelivery, Ready, Render, RendererPolicy, Stop,
@@ -172,6 +173,7 @@ class PartitionRenderCoordinator:
                 self.committed_sample = self.sealed_sample = self.published_sample = 0
                 self._sequence = self._revision = self._next_meter_sample = 0
                 self._meter_frames.clear()
+                self._flush_float32 = None
                 self.last_meters = {}
             deadline = time.monotonic() + self.policy.startup_timeout_seconds
             try:
@@ -197,7 +199,7 @@ class PartitionRenderCoordinator:
                 for program in compilation.programs:
                     self._check(deadline)
                     regions = self._layout.workers[program.id]
-                    command, reply = self._context.Semaphore(0), self._context.Semaphore(0)
+                    command, reply = self._context.Semaphore(0), completion_notification(self._context)
                     envelope = dict(protocol_version=1, epoch=self.epoch, partition_id=program.id, plan_hash=plan.plan_hash)
                     process = self._context.Process(target=self._target, name=f"csound-{program.id}", daemon=True,
                         args=(self._arena.name, self._arena.size, regions.bootstrap, regions.bootstrap_hash, command, reply))
@@ -247,7 +249,7 @@ class PartitionRenderCoordinator:
                     for program in self._compilation.programs:
                         buses = tuple(b for b, _ in (*program.inputs, *program.outputs))
                         if program.owns_output:
-                            buses += (FINAL_BUS,)
+                            buses += (FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS)
                         child = self._children[program.id]
                         message = Render(**child.identity, sequence=self._sequence, sample_start=sample,
                             frame_count=self._format.ksmps, control_revision=inputs.control_revision,
@@ -274,7 +276,11 @@ class PartitionRenderCoordinator:
                     self._check(deadline)
                     self._check_quiescent()
                     slot = self._sequence % 2
-                    output = self._arena.audio(self._layout.audio[FINAL_BUS], slot)
+                    output = self._arena.audio(self._layout.audio[FINAL_PCM_BUS], slot)
+                    mode = float(self._arena.audio(self._layout.audio[FINAL_F32_MODE_BUS], slot)[0])
+                    if mode not in (0., 1.) or (self._flush_float32 is not None and mode != self._flush_float32):
+                        raise PartitionRuntimeError("Invalid/changed native float32 conversion mode.")
+                    self._flush_float32 = mode
                     meters = {name: float(value) for p in self._compilation.programs
                               for name, value in zip(p.meters, self._arena.audio(self._layout.workers[p.id].meters, slot), strict=True)}
                     if not np.isfinite(output).all() or not all(np.isfinite(v) for v in meters.values()):
@@ -294,10 +300,18 @@ class PartitionRenderCoordinator:
                             self._meter_frames.append({"engineSample": self.committed_sample, "channels": meters})
                             self._meter_frames = self._meter_frames[-32:]
                             self._next_meter_sample = self.committed_sample + max(1, self._format.sample_rate // 15)
-                # Keep the single renderer's conversion/resampling order: float32
-                # engine blocks, then exactly one resample per completed request.
+                # Keep the single renderer's order: float32 engine blocks (now
+                # converted in the native owner), then one resample per request.
                 pcm = resample_stereo_block_linear(pcm, source_sample_rate=self._format.sample_rate,
                                                    target_sample_rate=target_sample_rate)
+                if target_sample_rate != self._format.sample_rate and self._flush_float32:
+                    # Interpolation may create new float32 subnormals. Match the
+                    # native thread's cast without changing this API thread's FP
+                    # environment; integer masks retain the sign of zero.
+                    bits = pcm.view(np.uint32)
+                    magnitude = bits & 0x7fffffff
+                    subnormal = (magnitude > 0) & (magnitude < 0x00800000)
+                    bits[subnormal] &= 0x80000000
                 result = EngineRenderResult(start, self.committed_sample, self._format.sample_rate, target_sample_rate,
                                            2, block_count, len(pcm), np.asarray(pcm, dtype="<f4").tobytes())
                 with self._state:
@@ -368,6 +382,8 @@ class PartitionRenderCoordinator:
             if child.process.pid is not None:
                 child.process.join(timeout=0)
             child.process.close()
+            if hasattr(child.reply_ready, "close"):
+                child.reply_ready.close()
         self._children.clear()
         if self._arena is not None:
             self._arena.close()

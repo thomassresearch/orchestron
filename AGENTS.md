@@ -29,6 +29,8 @@ Legacy paths and environment variables retain the VisualCSound name. Keep this g
   When layout or interaction changes, take new screenshots, save to `screenshots/` (or update existing)
   and update the relevant documentation to reference the new screenshots.
   Keep labels and integrated help consistent across EN/DE/FR/ES.
+  Remember the target audience for the `documentation/` pages is the end user, don't put information
+  that is only relevant for developers.
 - The user manual in `documentation/` and its generated PDF are English-only. Do not add
   translated sections or language-specific subchapters; multilingual UI/help remains separate.
 - README is for user capabilities, screenshots, and getting started. Preserve its title/opening

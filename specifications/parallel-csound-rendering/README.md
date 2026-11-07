@@ -1,6 +1,6 @@
 # Parallel Csound rendering
 
-Status: T01–T06 implemented through an explicit internal session opt-in; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and limits. Normal startup still uses the single renderer. T07 capacity/performance qualification and T08 rollout remain pending.
+Status: T01–T07 implementation delivered through an explicit internal session opt-in; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and limits. Normal startup still uses the single renderer. G7 performance qualification has not passed; T08 rollout remains pending.
 
 Use independent instrument branches to distribute realtime synthesis across persistent Csound processes. Preserve the browser clock, musical timing, routing semantics and live controls. Keep the current single-engine renderer as the default and as the compatibility fallback.
 
@@ -12,8 +12,8 @@ The first delivery uses coarse partitions: independent upstream branches and one
 | --- | --- |
 | [Implementation plan](implementation-plan.md) | Architecture, ownership, partition algorithm, timing and failure contracts, ordered delivery tasks |
 | [Acceptance and measurement plan](acceptance.md) | Required fixtures, correctness scenarios, fault injection, benchmarks and release gates |
-| [T01 contracts](contracts.md) | Observed timing, worker inventory, protocol, initial policy bounds and conservative eligibility |
-| [Protocol schema](protocol.schema.json) | Generated version 1 structural schema; stateful checks remain future coordinator work |
+| [Current contracts](contracts.md) | Observed timing, worker inventory, protocol, capacity bounds and conservative eligibility |
+| [Protocol schema](protocol.schema.json) | Generated version 1 structural schema; coordinator also validates stateful ownership |
 | [Implementation record](implementation-record.md) | Executed checks, native baseline results and remaining qualification |
 
 ## Decisions
@@ -32,6 +32,6 @@ The first delivery uses coarse partitions: independent upstream branches and one
 
 The source review found one `CsoundWorker` per session, a serialized `performKsmps()` loop, and an existing `ResolvedMixerGraph` with ordered patch, bypass, strip, route and output stages. A static evaluation of the existing synthetic mixer benchmark produced 29 stages and 38 edges, with four independent sources and shared delay/Master consumers. This is graph evidence, not a performance result.
 
-No Orchestron container was running during the initial analysis. T01 adds repeatable native single-renderer measurements; parallel speedup, browser latency and memory overhead remain later gates. All parallel execution and cutover gates are pending.
+No Orchestron container was running during the initial analysis. T01 recorded repeatable native single-renderer measurements. T07 adds paired native/container measurements, actual cgroup admission probes and bounded browser regression checks. No workload/build has passed the realtime qualification gate; release and cutover remain pending.
 
-The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. T04 shares structured stage lowering and emits internal realtime partition programs. T05 adds persistent child processes, shared native audio buffers and a parent coordinator, available only to explicit internal callers. CSD export remains canonical and single. Session creation still selects the original single worker and its render loop is unchanged. Single rendering remains the only active session renderer. User data, instrument examples and runtime settings are unchanged by this work.
+The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. T04 shares structured stage lowering and emits internal realtime partition programs. T05 adds persistent child processes, shared native audio buffers and a parent coordinator. T06 integrates session lifecycle, controls, edits, auditions and recovery through explicit internal options. T07 adds capacity leases, evidence-based selection, profiling and wakeup/PCM fixes. CSD export remains canonical and single. Normal session creation still selects the original single worker and its render loop is unchanged. Parallel sessions remain diagnostic opt-in only. User data, instrument examples and deployment settings are unchanged by this work.

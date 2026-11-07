@@ -438,3 +438,75 @@ characters. Session track IDs already allow 256 characters and ownership prefixe
 forwarding must preserve the complete parent identity. The checked-in protocol schema and
 maximum-length native API regression reflect this bound. Partition/bus identities, mailbox
 byte limits and event counts retain their existing limits.
+
+## 12. T07 capacity and performance gate
+
+Normal factory construction remains the original `CsoundWorker`; no environment selector,
+UI option, saved setting, export change or default cutover is introduced. Explicit internal
+`SessionRendererOptions` can request diagnostics. `allow_unqualified` never bypasses admission.
+
+- `render_capacity.detect_render_capacity` resolves membership against mountinfo, including
+  v1 split controllers and v2 delegated/namespaced mounts, then intersects affinity/effective
+  cpusets and every visible ancestor quota. It limits memory by host availability and ancestor
+  `memory.max`/usage and `memory.high` (v1 limit/usage), plus shared-memory and descriptor space.
+  Missing, unreadable or malformed required observations produce a recorded, unknown one-CPU
+  fallback. Non-Linux platforms currently require an explicit diagnostic probe injection.
+  Hidden namespace ancestors remain unobservable and are recorded; visible limits are bounds,
+  not dedicated CPU ownership. No host core count overrides a container quota.
+- One process-wide `RenderAdmission` accounts for pending/running sessions across service
+  instances. Singles always remain available and reserve one slot plus 128 MiB for subsequent admissions.
+  Rendering children include the suffix; useful parallel work requires at least three children.
+  CPU headroom is at least one CPU, growing by half a CPU per additional preparation process
+  (half for API/coordinators, half per preparer). Fractional remaining capacity rounds down;
+  the initial ceiling is eight children. Planning uses the current limit, and Start atomically
+  rechecks resources and reserves a lease before shared allocation/spawn.
+- The full arena estimate includes both audio slots, final stereo output, meters, bounded
+  mailboxes, serialized CSD/bootstrap and page rounding. Admission also reserves the maximum
+  float32 PCM request, 128 MiB per diagnostic child, and 128 MiB each for API and preparation.
+  Qualified records must supply measured private-memory bounds instead. Tables/assets remain
+  unsupported; samples/SoundFonts never receive a zero duplication estimate. Existing leases
+  are conservatively charged in addition to measured usage/free space, deliberately allowing
+  underutilization rather than promising memory that a live owner may still consume.
+- Leases release only after native owners stop/reap and shared storage closes. Failed cleanup
+  retains ownership. All session stop, deletion, shutdown, failure and superseded-start paths
+  share this boundary. Admission denial in auto mode starts canonical single once without
+  quarantining future starts; explicit parallel mode fails before dispatch with its reason.
+  Capacity changes affect later starts only. Three consecutive render requests taking longer
+  than their audio duration suppress new parallel admission for 30 seconds, as does a >10%
+  increase in throttled periods between admission observations. Historical counters alone do
+  not count as current pressure. Active transport is never silently replaced or resized.
+- Optional status diagnostics add effective CPUs, detection confidence, render/slow-request
+  counts and maximum render/audio ratio. These are request timings, not AudioWorklet underrun
+  counts. No pressure sampling or CPU/memory filesystem scans enter the default single loop.
+- Evidence must match the exact plan/artifact and runtime fingerprint (application/compiler/IPC
+  sources, compiled modules, native Csound build, Python/binding/numpy/pydantic, sequencer and
+  platform/hardware), and available CPUs must meet its measured capacity. At least two distinct
+  heavy workloads must each pass: >=20% p95 improvement, no p99 regression, exact native
+  correctness, identical browser settings, final-image verification, >=30-minute paired browser
+  soaks with zero underruns and no worse stress underruns/recovery. This first predicate is
+  conservative about p99: no allowance for noise is inferred from a short measurement.
+  Internal records are trusted, reviewable inputs, not client-supplied assertions. No records
+  ship in T07. Deployment/workload-envelope approval remains a release decision; changing
+  browser settings or workload envelopes requires new evidence.
+- macOS timed semaphore waiting emulates a sleep loop. Its completion notification now uses
+  a bounded nonblocking datagram to wake `select`, while retaining a semaphore release/acquire
+  fence for shared-memory publication. Linux retains native timed semaphore waiting. One
+  outstanding command, all-predecessor barriers, interval/epoch validation, cancellation and
+  bounded stop budgets are unchanged. There is no speculative batching or queue enlargement.
+- The suffix publishes both native-width final samples and a separate float32 PCM slot.
+  Float32 conversion executes beside `performKsmps`, matching Csound's thread-local handling
+  of subnormals. A bounded scalar slot reports that conversion mode; its generation shares
+  the output barrier and may not change within an epoch. The parent copies the float32 bytes
+  and resamples once per request, preserving signed zero and applying the reported flush
+  policy to newly interpolated subnormals. No process/thread floating-point flags are changed
+  by the parent. All slots are included in startup memory admission and completion validation.
+
+The lease scope is one API process. Multiple API processes/independent applications require
+external coordination before parallel deployment; these leases do not reserve the machine
+against unrelated containers. The permanent compiler/API reserve is a diagnostic budget, not
+proof that arbitrary simultaneous compilation fits. These limitations keep automatic selection
+closed until representative production evidence and workload bounds are approved.
+
+Reference semantics: [Linux cgroup v2 hierarchy](https://docs.kernel.org/admin-guide/cgroup-v2.html),
+[v1 CPU bandwidth](https://docs.kernel.org/scheduler/sched-bwc.html), and
+[Python semaphore behavior](https://docs.python.org/3.13/library/multiprocessing.html#multiprocessing.Semaphore).

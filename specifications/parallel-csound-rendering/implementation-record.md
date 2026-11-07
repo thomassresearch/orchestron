@@ -1,6 +1,6 @@
 # Parallel rendering implementation record
 
-Updated: 2026-11-07. T01–T06 delivered through the explicit internal session opt-in. T07–T08 and default cutover remain pending. Normal application startup still constructs the original `CsoundWorker`; no deployment selection flag is enabled.
+Updated: 2026-11-07. T01–T07 implementation delivered through the explicit internal session opt-in. G7 performance qualification has not passed; T08 release and default cutover remain pending. Normal application startup still constructs the original `CsoundWorker`; no deployment selection flag is enabled.
 
 ## T01 delivered work
 
@@ -542,3 +542,182 @@ fingerprints across all 12 workload/rate combinations. Each uses the original th
 16.13% p99 outlier on tiny K=1. The clean repeat removes that outlier; no workload's p95 or p99
 exceeds T01 by more than 5%. This supports unchanged single behavior; it does not qualify
 parallel playback or establish a speedup. Raw timings and provenance are retained in both reports.
+
+## T07 delivered implementation and stop/go decision
+
+**G7 remains closed.** Capacity admission, the evidence predicate, runtime pressure counters,
+profiling and paired measurement tools are implemented. No automatic workload/build is approved.
+The default and recovery implementation remains `CsoundWorker`, and CSD exports are unchanged.
+Correctness and useful throughput gains on deliberately oversized DSP fixtures are not enough
+for realtime qualification. No buffer enlargement, speculative rendering, changed K value or
+midstream fallback was used to obtain these results.
+
+The [capacity module](../../backend/app/engine/render_capacity.py) resolves v1/v2 memberships
+and mounts, intersects affinity/cpusets/ancestor quotas, checks memory/high-water and shared-memory
+headroom and descriptor space, and records detection provenance. Unknown capacity fails closed.
+Process-wide leases include pending/running singles, the downstream suffix and compiler/API
+headroom; planning caps useful children and Start rechecks atomically. Stop/delete/shutdown and
+failed starts release leases only after reaping native owners. Multiple simultaneous starts,
+capacity shrinkage, memory/descriptor denial, retained ownership after failed cleanup, and
+pressure cooldown are covered. See the [current budgets and scope](contracts.md#12-t07-capacity-and-performance-gate).
+
+The [qualification gate](../../backend/app/engine/render_qualification.py) requires exact
+runtime/artifact/plan identities, reviewed native correctness and final-image evidence, two
+heavy workloads, >=20% p95 improvement, no p99 regression, matching browser settings and CPUs,
+30-minute paired zero-underrun playback and no worse stress/recovery. No evidence is inferred
+from synthetic planner costs. The internal diagnostic override still requires capacity admission.
+There is no new deployment environment flag or UI selector.
+
+### Underrun investigation
+
+The [initial profile](measurements/t07-wakeup-profile.json) identified Darwin's emulated timed
+semaphore waits: 2.794 seconds spent in semaphore acquisition while the coordinator rendered
+32,768 frames (0.683 seconds of audio). The coordinator render call took 3.229 seconds. The
+initial wakeup prototype reduced that profiled render to 0.524 seconds with exact audio/meters.
+That prototype measurement preceded the final retained semaphore publication fence; it is a
+bottleneck diagnosis, not the final uninstrumented speed measurement.
+
+The final Darwin path uses a bounded nonblocking datagram to wake `select`, plus a semaphore
+release/acquire fence publishing the shared samples/mailbox. Linux retains native timed
+semaphores. Process death, stale/duplicate completions, cancellation, one-block ownership and
+bounded cleanup still use the existing protocol. The [final native parent/child profile](measurements/t07-native-profile.json)
+separates performKsmps/channel/IPC call costs from parent waiting. It was instrumented during
+an image build and is not used for latency qualification; child profiles include startup/idle
+waits. The standalone [profile tool](../../backend/tools/profile_partition_render.py) keeps this
+instrumentation out of normal rendering and out of uninstrumented timing trials.
+
+### Native paired timing
+
+[Raw K=32 measurements](measurements/t07-native-paired.json) use macOS ARM64, native float64,
+three timed trials of 98,304 frames with separate exact-behavior traces, fresh processes,
+alternating arm order, 2,048 warmup frames and 512-frame requests at 48 kHz. A 512-frame
+request represents **10.667 ms of audio**. Capacity was explicitly supplied to the local
+diagnostic harness; production non-Linux capacity detection remains unknown/single.
+
+| Workload | Single p95 / p99 ms | Parallel p95 / p99 ms | p95 change | Decision |
+| --- | ---: | ---: | ---: | --- |
+| Two sources, 8 voices/source, 4 filters | 4.676 / 4.809 | 8.594 / 9.594 | 83.8% slower | Keep single |
+| Four sources, 16 voices/source, 32 filters | 125.224 / 127.218 | 73.713 / 75.004 | 41.1% faster | Both exceed realtime budget |
+| Eight sources, 16 voices/source, 32 filters | 258.741 / 264.994 | 114.492 / 116.571 | 55.8% faster | Both exceed realtime budget |
+
+The heavy fixtures have zero filter resonance to avoid cascading attenuation into silence.
+Their purpose is to expose sustained DSP scaling, not to claim that this extreme workload can
+play in realtime. All arms passed exact PCM, meters, transport markers, final-state and
+canonical CSD fingerprint comparison. Traces reject silent/nonfinite output.
+
+The [K=1 diagnostic](measurements/t07-native-k1.json) uses the two-source fixture, 12,288 frames
+and one timed trial. Single p95 is 9.838 ms versus parallel 191.995 ms per 512 frames. K=1
+remains unqualified. The coordinator's per-block process synchronization is still too costly;
+adding children or increasing browser queues does not solve that deadline problem.
+
+### Production browser regression check
+
+[Browser evidence](measurements/t07-browser.json) records production Chromium with the same
+K=32 two-source graph and one looping lead, default auto/listening buffering and 48 kHz audio.
+The initial prime was 86,400 frames in both runs; no queue setting was changed.
+
+| Renderer | Observed playback | Underruns / overruns | Median render/audio ratio | Minimum queued frames |
+| --- | ---: | ---: | ---: | ---: |
+| Single | 169.16 s | 0 / 0 | 0.158 | 32,384 |
+| Parallel, 3 children | 130.63 s | 0 / 0 | 0.720 | 22,144 |
+
+Both remained audible and reported no playback errors. Parallel had one observed maximum
+request ratio of 1.065, absorbed by the existing queue. This bounded regression check supports
+the wakeup fix; it does not substitute for a 30-minute heavy workload soak, controlled stress,
+input-to-audible latency qualification or Linux browser evidence. Test servers, data and renderer
+options were isolated; the diagnostic CPU override was not enabled in ordinary application startup.
+
+### Validation and compatibility
+
+[Verification record](measurements/t07-verification.json): 3,221 backend tests passed and one
+pre-existing saxophone tuning test failed (velocity 32, 15.233 cents versus a 15-cent limit).
+T06 already reproduced that failure at pre-T06 HEAD; neither instrument nor threshold changed.
+The full run includes the native parity matrix and 100-cycle ownership/leak test. Final focused
+admission/facade/API checks passed 73 tests after the small final accounting corrections; the
+Python-sequencer focused run also passed 73. The broader focused process/IPC/failure run passed
+113. Backend lint passed. Frontend lint, all 118 files / 1,376 tests, and production build passed.
+Docker builds passed, including the compiled sequencer and frontend build stages.
+
+The [single baseline](measurements/t07-single-native.json) and
+[repeat](measurements/t07-single-native-repeat.json) reproduce all 12 T01 PCM, marker, meter,
+edit/control, final-state and canonical CSD fingerprints. The first run's tiny K=1 p99 is 5.79%
+above T01; the repeat removes that case's excess. Timing outliers remain in the raw reports;
+no case's p95 or p99 is >5% above T01 in both runs. The original single render loop is unchanged.
+
+### Linux floating-point parity correction
+
+The heavy Linux qualification trace initially rejected PCM hashes while meters, markers,
+status, sample boundaries and canonical CSD matched. A [sample-level investigation](measurements/t07-linux-subnormal-investigation.json)
+found 108 differing float32 values across 26,624 stereo frames, with maximum absolute error
+7.91e-39. These were subnormal values: single rendering converted beside Csound in a thread
+that flushes them, whereas the old parallel parent used its own floating-point environment.
+The gate was not weakened to accept an epsilon.
+
+The output child now publishes an additional float32 PCM slot alongside the unchanged
+native-width final bus. Conversion occurs in the native thread; the parent still resamples
+only once per completed request. A generation-bound scalar reports the native flush policy,
+which the parent also applies to subnormals created by resampling, retaining signed zero.
+The full slots/mailboxes remain within admission and completion checks. Fresh-process tests
+cover tiny/subnormal signals at both 48 kHz and 44.1 kHz; running a reference Csound first in
+the same process would mask this difference by changing that thread's floating-point state.
+
+The native paired/profile/browser reports above preceded this final PCM correction and are
+retained with their original source fingerprints. The correction leaves the single renderer
+and CSD exports untouched. Final-build conversion regressions and measurements are recorded
+separately below; earlier throughput observations are not promoted to release qualification.
+
+### Container capacity and final-build results
+
+The [actual cgroup matrix](measurements/t07-container-capacity.json) checks Docker Desktop
+Linux ARM64 at 1, 2, 3.5, 4 and 8 CPU quotas. Fewer than four effective CPUs reject useful
+parallel admission; four/eight permit it with reserved parent/compiler capacity. An eight-CPU
+quota constrained to two CPUs by cpuset rejects admission. Separate 512 MiB memory and 3 MiB
+shared-memory limits reject the requested lease. This matrix predates the PCM transport
+correction; the capacity implementation is identical. Missing hierarchy data, v1 ancestors,
+concurrent sessions, pending single starts and changing limits are covered by unit/API tests.
+
+[Paired four-CPU container trials](measurements/t07-container-paired.json), after native-owner
+PCM conversion but before the resampling-mode correction, use 2 GiB memory, 64 MiB shared
+memory, K=32, 48 kHz, 512-frame requests and three trials of 24,576 frames. All separate
+behavior traces match exactly, including canonical CSD. Actual admission uses three children.
+
+| Workload | Single p95 / p99 ms | Parallel p95 / p99 ms | Result |
+| --- | ---: | ---: | --- |
+| Two sources | 8.167 / 8.345 | 12.740 / 13.628 | Parallel exceeds 10.667 ms audio budget |
+| Four heavy sources | 260.402 / 264.211 | 146.450 / 147.436 | 43.8% p95 gain; both exceed budget |
+| Eight heavy sources | 534.084 / 537.318 | 298.402 / 307.473 | 44.1% p95 gain; both exceed budget |
+
+The [eight-CPU probe](measurements/t07-container-eight-cpu.json) confirms seven admitted
+children and exact behavior for the eight-source graph. Its timing overlapped regression/build
+activity, so it is exploratory and excluded from controlled performance conclusions. The
+[container profile](measurements/t07-container-profile.json) is likewise instrumented diagnostic
+evidence, not a qualification trial.
+
+Final image `sha256:8bc06633220b74be73f78913540e04dea77239099bb6fb4d754d901238a99757`
+contains both the native-owner conversion and resampling-policy correction, with Csound 6.18.1,
+Python 3.13.18 and the compiled sequencer on Docker Desktop Linux ARM64. The final two-source
+checks each use one timed trial of 24,576 frames plus a separate exact behavior trace:
+
+| Platform | Single p95 / p99 ms | Parallel p95 / p99 ms | Evidence |
+| --- | ---: | ---: | --- |
+| macOS ARM64 diagnostic | 4.800 / 4.971 | 10.604 / 16.588 | [Final native](measurements/t07-native-final.json) |
+| Docker Desktop ARM64, four CPUs | 8.199 / 8.453 | 13.767 / 16.647 | [Final container](measurements/t07-container-final.json) |
+
+These short final checks verify the corrected build and preserve exact PCM/markers/meters/
+status/CSD; they do not establish stable tail latency or replace long playback trials. The
+final focused regression run passed **136 tests**, including the full native matrix, capacity,
+qualification, process failures, session facade and API. Four fresh-process tiny-signal cases
+also passed in the final Linux image at 48/44.1 kHz. As a negative control, the intermediate
+image without resampling-policy handling fails the 44.1 kHz / 1e-36 amplitude case, confirming
+that the regression detects the corrected behavior. The 100-cycle leak check passed in the
+earlier full suite and was not repeated after the final PCM correction.
+
+**Stop/go decision: retain diagnostic opt-in; no automatic classes are qualified.** The
+two-source Linux parallel path remains slower than single and exceeds the audio deadline;
+the heavy fixtures scale but cannot play in realtime at these settings. K=1 remains excluded.
+Further synchronization/IPC optimization and controlled final-build measurements must precede
+the required 30-minute heavy browser soaks, matched input-latency/stress probes and release
+approval. Linux AMD64, bare-metal Linux ARM64 and native float32 Csound remain unqualified.
+Capacity leases cover one API process and visible cgroup ancestors; arbitrary assets and
+unrelated host/container processes are outside this admission guarantee. No realtime timing,
+buffering or single/export behavior was changed to satisfy the gate.

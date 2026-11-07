@@ -1,0 +1,145 @@
+{
+  "task": "T07 capacity admission and qualification",
+  "default_renderer": "single",
+  "fallback_renderer": "single",
+  "csd_exports_changed": false,
+  "qualification": "closed; no approved records",
+  "validation": {
+    "focused_native": {
+      "passed": 113,
+      "seconds": 32.5,
+      "scope": "capacity, qualification, IPC, process failures, facade, API; excluded native matrix and 100-cycle test here"
+    },
+    "final_focused_native": {
+      "passed": 73,
+      "seconds": 18.84,
+      "scope": "final admission/facade/API changes after full-suite snapshot"
+    },
+    "focused_python": {
+      "passed": 73,
+      "seconds": 18.71
+    },
+    "full_backend": {
+      "passed": 3221,
+      "failed": 1,
+      "seconds": 768.86,
+      "failure": "backend/tests/test_tenor_saxophone.py::test_normal_register_is_tuned_and_releases_cleanly[32]",
+      "detail": "Existing velocity-32 tuning failure: 15.233 cents against 15-cent limit. The same test failed at pre-T06 HEAD, recorded in t06-session-verification.json; instrument/threshold unchanged.",
+      "scope": "Before final accounting and PCM correction; affected code rechecked by final 136-test run. Includes native matrix and 100-cycle ownership/leak check."
+    },
+    "frontend": {
+      "files": 118,
+      "tests": 1376,
+      "lint": true,
+      "build": true
+    },
+    "backend_lint": true,
+    "docker_build": true,
+    "post_pcm_correction_focused_native": {
+      "passed": 136,
+      "seconds": 99.12,
+      "scope": "capacity, qualification, IPC, full native matrix, process failures, facade and API; excludes 100-cycle repeat already in full run"
+    },
+    "linux_fresh_process_float32_parity": {
+      "cases": [
+        {
+          "rate": 48000,
+          "amplitude": 1e-39,
+          "exact_pcm": true
+        },
+        {
+          "rate": 48000,
+          "amplitude": 1e-36,
+          "exact_pcm": true
+        },
+        {
+          "rate": 44100,
+          "amplitude": 1e-39,
+          "exact_pcm": true
+        },
+        {
+          "rate": 44100,
+          "amplitude": 1e-36,
+          "exact_pcm": true
+        }
+      ],
+      "image": "sha256:8bc06633220b74be73f78913540e04dea77239099bb6fb4d754d901238a99757",
+      "negative_control": {
+        "image": "sha256:fdbf83ed19960e2de35ac00ed6ab799e4464aff56564d31ab1dc8834ad99dfeb",
+        "result": "Expected exact-PCM assertion failure for rate 44100, amplitude 1e-36 before resampling flush-policy correction.",
+        "test": "backend/tests/test_parallel_csound_renderer.py::test_pcm_conversion_preserves_native_thread_subnormal_behavior_in_fresh_processes"
+      }
+    },
+    "final_image": "sha256:8bc06633220b74be73f78913540e04dea77239099bb6fb4d754d901238a99757",
+    "browser_before_pcm_correction": {
+      "single_seconds": 169.16,
+      "parallel_seconds": 130.63,
+      "underruns": 0,
+      "overruns": 0,
+      "qualified": false
+    },
+    "pre_pcm_correction_image_probe": {
+      "case": "shared",
+      "ksmps": 32,
+      "frames": 8192,
+      "platform": "Linux-7.0.14-linuxkit-aarch64-with-glibc2.36",
+      "python": "3.13.18",
+      "architecture": "aarch64",
+      "binding": "Csound",
+      "sample_bytes": 8,
+      "processes": 4,
+      "plan_hash": "a9139951856fe0dd0953d5785492b25e251e543f9367020214f9371e2156aef0",
+      "artifact_hash": "e43e545000a05d2df872e79ee2de50a34a8e97cd09e22e4342769de552004a7f",
+      "fixture_sha256": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+      "pcm_sha256": "3fc0951c4c7b503aa4e4d1a5679f6d454fba1c29980179821dd2485c30ea5ed6",
+      "exact_audio": true,
+      "exact_last_meters": true,
+      "cleaned": true,
+      "performance_qualified": false
+    },
+    "browser_test_process_cleanup": {
+      "complete": true,
+      "detail": "Parallel server stopped after SIGINT. The single server retained native Csound signal handling and required SIGTERM; its isolated compiler child was then explicitly terminated. Server, compiler and resource-tracker PIDs were verified absent. This browser harness cleanup is not counted as graceful application-shutdown qualification."
+    },
+    "documentation": {
+      "local_references_checked": 159,
+      "t07_json_reports_valid": true,
+      "git_diff_check": true
+    }
+  },
+  "platforms": {
+    "native": "macOS ARM64; capacity supplied only to the diagnostic harness, never inferred as production eligibility",
+    "container": "Docker Desktop Linux ARM64; cgroup-v2 real quotas and cpuset restrictions",
+    "not_qualified": [
+      "Linux AMD64",
+      "bare-metal Linux ARM64",
+      "Windows",
+      "float32 native Csound",
+      "K=1",
+      "all automatic workloads"
+    ]
+  },
+  "limitations": [
+    "No 30-minute heavy browser soak: stress workloads exceed the realtime budget and do not qualify.",
+    "Leases coordinate one API process; unrelated processes/containers and namespace-hidden ancestors cannot be reserved.",
+    "Pending/running memory reservations are conservative diagnostic budgets, not proof for arbitrary assets/preparation.",
+    "Tables/SoundFonts/sample assets stay unsupported for partitions; exports keep their existing behavior."
+  ],
+  "measurement_order": {
+    "native_paired_and_browser": "Before final PCM conversion correction; original provenance retained.",
+    "container_paired": "Native-owner conversion in place; before adding flush policy for 44.1 kHz resampling.",
+    "container_eight_cpu": "Same conversion build; overlaps final regression/build activity, so timing is exploratory, not controlled qualification.",
+    "final_native_and_container": "Final native-owner conversion and resampling mode; one timed trial plus separate exact trace.",
+    "profile": "Instrumented diagnostics only; never latency qualification."
+  },
+  "decision": {
+    "G7": "not passed",
+    "automatic_workload_builds": [],
+    "final_container_two_source_p95_ms": {
+      "single": 8.199208,
+      "parallel": 13.766791
+    },
+    "audio_budget_ms_per_request": 10.666666666666666,
+    "next_required": "Further IPC/synchronization optimization, controlled final-build qualification, matched input-latency/stress probes and 30-minute heavy browser soaks before T08 release."
+  }
+}
