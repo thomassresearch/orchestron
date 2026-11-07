@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "date": "2026-11-07",
+  "scope": "T04 internal realtime programs; sequential native qualification only",
+  "runtime": {
+    "binding": "DirectCsound",
+    "csound_version": 6181,
+    "native_sample_bytes": 8
+  },
+  "native_parity": {
+    "comparisons": 31,
+    "frames_per_comparison": 8192,
+    "ksmps": [
+      1,
+      32
+    ],
+    "assertion": "Exact sample and per-block meter equality; no warmup omission or alignment search."
+  },
+  "canonical_csd_hashes": {
+    "matches": 90,
+    "source_commit": "7bdd4c8e6dcc241e8f63dc9def44e6124f8645ca",
+    "wrapper_platform": "darwin"
+  },
+  "focused_python": {
+    "passed": 331,
+    "failed": 0,
+    "seconds": 48.95
+  },
+  "focused_cython": {
+    "passed": 331,
+    "failed": 0,
+    "seconds": 49.63
+  },
+  "full_backend_cython": {
+    "passed": 3088,
+    "failed": 1,
+    "seconds": 606.26,
+    "failure": "backend/tests/test_tenor_saxophone.py::test_normal_register_is_tuned_and_releases_cleanly[32]",
+    "pitch_error_cents": 15.166641513153643,
+    "limit_cents": 15
+  },
+  "existing_tenor_investigation": {
+    "canonical_csd_manifest_and_diagnostics_equal_to_pre_t04": true,
+    "fixture_sha256": "b32cb6f919c32a22f4b7bef607f7f449e3d1229c04018a12032190e55785f746",
+    "original_compiler_control": {
+      "passed": 5,
+      "failed": 1,
+      "pitch_error_cents": 15.257140489439161,
+      "limit_cents": 15,
+      "scope": "Only compiler_mixer.py replaced in memory with pre-T04 version; native rendering harness unchanged."
+    },
+    "isolated_current_recheck": {
+      "passed": 4,
+      "failed": 2,
+      "failures": [
+        "normal_register[32] pitch at note 48",
+        "normal_register[64] fundamental fraction at note 76"
+      ]
+    },
+    "original_csd_repeat_probe": {
+      "description": "Repeated unchanged pre-T04 compiler output, independent tenor fixture; no thresholds modified.",
+      "source_commit": "7bdd4c8e6dcc241e8f63dc9def44e6124f8645ca",
+      "canonical_csd_and_manifest_equal": true,
+      "pitch_errors_cents": [
+        14.82559919063419,
+        14.82559919063419,
+        14.82559919063419,
+        14.579038743288816,
+        14.579038743288816,
+        14.704896037331395,
+        14.704896037331395,
+        14.704896037331395,
+        14.508485649201356,
+        14.508485649201356
+      ],
+      "existing_limit_cents": 15,
+      "over_limit_trials": 0
+    },
+    "action": "No saxophone patch or test thresholds changed. Full suite is not fully green."
+  },
+  "unperformed": [
+    "Docker/native stock-binding bridge",
+    "AMD64/float32 qualification",
+    "child processes and IPC",
+    "browser soak",
+    "parallel performance"
+  ],
+  "final_compiler_suite": {
+    "passed": 149,
+    "failed": 0,
+    "seconds": 40.6,
+    "includes": "Finite audio/meter guard and matching-NaN rejection, after the full run."
+  }
+}

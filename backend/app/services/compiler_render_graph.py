@@ -1,8 +1,7 @@
 """Read-only snapshot of LIVE compiler structure for the pure partition planner.
 
 It does not compile native Csound or replace canonical compilation/asset validation.
-Port metadata follows the current live lowering; tests compare every connection
-against its emitted connect statements. T04 can share the lowering representation.
+Port metadata uses the same structured connection lowering as CSD emission.
 """
 from __future__ import annotations
 
@@ -15,49 +14,10 @@ from backend.app.models.render_plan import (
 from backend.app.services.audio_routing_service import resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_graph import resolve_shared_engine, validate_target_channels
-from backend.app.services.compiler_mixer import OUTPUT, ResolvedMixerGraph, channel, port
+from backend.app.services.compiler_mixer import OUTPUT, ResolvedMixerGraph, channel
 from backend.app.services.compiler_render_resources import CAPABILITY_VERSION, analyze_render_resources, stable_hash
+from backend.app.services.compiler_stage_lowering import live_audio_connections
 from backend.app.services.render_graph_order import topological_order
-
-
-def live_audio_connections(resolved: ResolvedMixerGraph) -> tuple[RenderConnection, ...]:
-    """Every LIVE connect in emission order, including dry bypass and both send taps."""
-    result = []
-
-    def connect(source, outlet, target, inlet):
-        result.append(RenderConnection(source, outlet, target, inlet))
-
-    for identity in resolved.by_id:
-        patch, raw = "patch:" + identity, resolved.raw_stage(identity)
-        if identity in resolved.bypass_ports:
-            for name, originals in resolved.raw_ports[identity].items():
-                signal = port(name)
-                for original in originals:
-                    connect(patch, original, raw, "wet_" + signal)
-                dry = resolved.bypass_ports[identity].get(name)
-                for route in resolved.routes:
-                    if route.target_id == identity and route.target_stage == "input" and route.target_port == dry:
-                        connect("route:" + route.id, "out", raw, "dry_" + signal)
-        for name, originals in resolved.raw_ports[identity].items():
-            if not any(r.target_id == identity and r.target_stage == "strip" and r.target_port == name
-                       for r in resolved.routes):
-                for original in [port(name)] if raw != patch else originals:
-                    connect(raw, original, "strip:" + identity, port(name))
-    for route in resolved.routes:
-        stage = "route:" + route.id
-        if route.source_stage == "raw":
-            raw = resolved.raw_stage(route.source_id)
-            originals = ([port(route.source_port)] if raw.startswith("bypass:")
-                         else resolved.raw_ports[route.source_id][route.source_port])
-            for original in originals:
-                connect(raw, original, stage, "pre")
-        else:
-            for tap in ("pre", "post"):
-                connect("strip:" + route.source_id, tap + "_" + port(route.source_port), stage, tap)
-        target = OUTPUT if route.target_id == OUTPUT else (
-            "strip:" if route.target_stage == "strip" else "patch:") + route.target_id
-        connect(stage, "out", target, port(route.target_port) if route.target_stage == "strip" else route.target_port)
-    return tuple(result)
 
 
 def analyze_render_graph(targets, audio_graph, opcode_service) -> RenderDependencyGraph:

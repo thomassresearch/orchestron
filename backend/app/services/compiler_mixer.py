@@ -35,6 +35,11 @@ from backend.app.services.compiler_waveguide import waveguide_header
 from backend.app.services.compiler_granular import granular_header
 from backend.app.services.compiler_swept_gate import swept_gate_header
 from backend.app.services.insert_bypass import bypass_ports
+from backend.app.models.render_plan import RenderConnection
+from backend.app.services.compiler_stage_lowering import (
+    AlwaysOn, ControlInit, LoweredMixer, LoweredStage, MidiAssignment, ScopedSetup,
+    instance_connections, route_connections,
+)
 
 
 OUTPUT = "$output"
@@ -507,7 +512,7 @@ def _mixer_stage_comments(stage, resolved, mixer, names, manifest, routes_by_id)
     return ["; Final Audio Output: sums all routed paths, including direct paths that bypass Master."]
 
 
-def compile_mixer_bundle(
+def lower_mixer_bundle(
     service,
     targets,
     graph,
@@ -559,22 +564,22 @@ def compile_mixer_bundle(
     header += granular_header([target for target in targets if target.assignment_id not in omitted])
     header += swept_gate_header([target for target in targets if target.assignment_id not in omitted])
     if live_mixer:
-        header += [f"chnset {value:.17g}, {quote(name)}" for name, value in controls.items()]
+        header += [ControlInit(name, value) for name, value in controls.items()]
     else:
         header.append("; Offline mixer: saved coefficients; no interactive mixer controls or meters.")
     if legato_refs:
         header.append(LEGATO_OPCODES)
         for identity, ref in legato_refs.items():
-            header += collector_lines(identity, int(ref), performance_input_mode)
+            header.append(ScopedSetup(tuple(collector_lines(identity, int(ref), performance_input_mode)), ("patch:" + identity,)))
         if listener_count:
-            header += panic_listener_lines([(identity, resolved.by_id[identity].midi_channel) for identity in legato_ids], instrument_number=1 + setter_count)
+            header.append(ScopedSetup(tuple(panic_listener_lines([(identity, resolved.by_id[identity].midi_channel) for identity in legato_ids], instrument_number=1 + setter_count)), tuple("patch:" + identity for identity in legato_ids)))
     if performance_input_mode == "score":
         header += emitter.score_controller_header_lines()
     else:
         header += [
             "massign 0, 0",
             *[
-                f"massign {t.midi_channel}, {manifest.get('noteInstrumentReferences', manifest['instrumentReferences'])[t.assignment_id]}"
+                MidiAssignment("patch:" + t.assignment_id, t.midi_channel, manifest.get("noteInstrumentReferences", manifest["instrumentReferences"])[t.assignment_id])
                 for t in targets
                 if not t.always_on and t.midi_channel > 0
             ],
@@ -598,7 +603,7 @@ def compile_mixer_bundle(
                         bypass_connections.add(key)
                         connect("route:" + route.id, "out", target, inlet)
             return
-        header.append(f"connect {quote(names[source])}, {quote(outlet)}, {quote(names[target])}, {quote(inlet)}")
+        header.append(RenderConnection(source, outlet, target, inlet))
 
     def parameter(lines, identity, kind, field, variable):
         # Retain parameter identity here so future authored automation can emit a
@@ -644,9 +649,11 @@ def compile_mixer_bundle(
                 legato_identity=identity if identity in legato_refs else None,
             )
             bodies[stage] = compiled.instrument_lines
-            header += compiled.global_header_lines
+            header.append(ScopedSetup(tuple(compiled.global_header_lines), (stage,)))
             sfloads += compiled.sfload_global_requests
             warnings += compiled.diagnostics
+        if live_mixer:
+            header.extend(instance_connections(resolved, identity))
         if live_mixer and identity in resolved.bypass_ports:
             bypass_stage = resolved.raw_stage(identity)
             bypass_lines = []
@@ -656,12 +663,6 @@ def compile_mixer_bundle(
             parameter(bypass_lines, identity, "strip", "bypass", "bypass")
             for raw_name, originals in resolved.raw_ports[identity].items():
                 signal = port(raw_name)
-                for original in originals:
-                    connect(stage, original, bypass_stage, "wet_" + signal)
-                dry_input = resolved.bypass_ports[identity].get(raw_name)
-                for route in resolved.routes:
-                    if route.target_id == identity and route.target_stage == "input" and route.target_port == dry_input:
-                        connect("route:" + route.id, "out", bypass_stage, "dry_" + signal)
                 bypass_lines += [
                     f'a_wet_{signal} inleta {quote("wet_" + signal)}',
                     f'a_dry_{signal} inleta {quote("dry_" + signal)}',
@@ -688,7 +689,7 @@ def compile_mixer_bundle(
         outlets = []
         for raw_name, originals in resolved.raw_ports[identity].items():
             inlet = port(raw_name)
-            if not any(
+            if not live_mixer and not any(
                 r.target_id == identity and r.target_stage == "strip" and r.target_port == raw_name
                 for r in resolved.routes
             ):
@@ -713,17 +714,21 @@ def compile_mixer_bundle(
         bodies["strip:" + identity] = lines + outlets
     for route in resolved.routes:
         stage = "route:" + route.id
+        if live_mixer:
+            header.extend(route_connections(resolved, route))
         lines = []
         if route.source_stage == "raw":
             raw_stage = resolved.raw_stage(route.source_id)
             originals = ([port(route.source_port)] if raw_stage.startswith("bypass:")
                          else resolved.raw_ports[route.source_id][route.source_port])
-            for original in originals:
-                connect(raw_stage, original, stage, "pre")
+            if not live_mixer:
+                for original in originals:
+                    connect(raw_stage, original, stage, "pre")
             lines += ['a_signal inleta "pre"']
         else:
-            for tap in ("pre", "post"):
-                connect("strip:" + route.source_id, tap + "_" + port(route.source_port), stage, tap)
+            if not live_mixer:
+                for tap in ("pre", "post"):
+                    connect("strip:" + route.source_id, tap + "_" + port(route.source_port), stage, tap)
             parameter(lines, route.id, "route", "post", "post")
             parameter(lines, route.id, "route", "pan", "pan")
             lines += [
@@ -739,7 +744,8 @@ def compile_mixer_bundle(
             else ("strip:" if route.target_stage == "strip" else "patch:") + route.target_id
         )
         inlet = port(route.target_port) if route.target_stage == "strip" else route.target_port
-        connect(stage, "out", dest, inlet)
+        if not live_mixer:
+            connect(stage, "out", dest, inlet)
         bodies[stage] = lines
     output = ['a_left inleta "left"', 'a_right inleta "right"', "outs a_left, a_right"]
     if live_mixer:
@@ -750,27 +756,22 @@ def compile_mixer_bundle(
     header.append("; Continuous patches and mixer stages start with alwayson; note instruments start from MIDI/score events.")
     for stage in resolved.order:
         if not stage.startswith("patch:") or resolved.by_id[stage[6:]].always_on or stage[6:] in legato_refs:
-            header.append(f"alwayson {quote(names[stage])}")
+            header.append(AlwaysOn(stage))
     routes_by_id = {route.id: route for route in resolved.routes}
-    for stage in resolved.order:
-        header += [
-            f"; mixer stage {format_csd_comment_value(stage)}",
-            *_mixer_stage_comments(stage, resolved, mixer, names, manifest, routes_by_id),
-            f"instr {names[stage]}",
-            *[" " + line for line in bodies[stage]],
-            "endin",
-            "",
-        ]
-    orc = "\n".join(header)
+    stages = tuple(LoweredStage(stage, names[stage], str(index + len(legato_refs) + listener_count + setter_count),
+        (f"; mixer stage {format_csd_comment_value(stage)}",
+         *_mixer_stage_comments(stage, resolved, mixer, names, manifest, routes_by_id)),
+        tuple(bodies[stage])) for index, stage in enumerate(resolved.order, 1))
+    return LoweredMixer(tuple(header), stages, tuple(warnings), manifest, engine)
+
+
+def compile_mixer_bundle(service, targets, graph, mixer, *, midi_input, rtmidi_module, **kwargs):
+    lowered = lower_mixer_bundle(service, targets, graph, mixer, midi_input=midi_input,
+                                rtmidi_module=rtmidi_module, **kwargs)
+    orc = lowered.orchestra()
     return CompileArtifact(
         orc=orc,
-        csd=service._wrap_csd(
-            orc,
-            midi_input,
-            rtmidi_module,
-            software_buffer=engine.software_buffer,
-            hardware_buffer=engine.hardware_buffer,
-        ),
-        diagnostics=warnings,
-        manifest=manifest,
+        csd=service._wrap_csd(orc, midi_input, rtmidi_module,
+            software_buffer=lowered.engine.software_buffer, hardware_buffer=lowered.engine.hardware_buffer),
+        diagnostics=list(lowered.diagnostics), manifest=lowered.manifest,
     )

@@ -185,3 +185,12 @@ output at Stereo 0 without reading example files or importing its builder.
 `clip_transposition/repetition_grouping.json` pairs a four-pass compact loop with
 its v26 grouped Once representation and matching schedule-v2 projections. Frontend,
 backend and standalone CLI regressions share its per-occurrence pitch expectations.
+
+
+`parallel_render/partition_parity.json` freezes T04 MIDI, mixer/send/bypass changes and
+render duration for sequential native partition comparisons. The instruments and routing
+reuse versioned planner fixtures; tests never read examples. `t04_canonical_csd_hashes.json`
+contains 90 CSD SHA-256 hashes produced once from the recorded pre-T04 compiler commit
+(LIVE/MIDI and OFFLINE/MIDI/SCORE, 15 graph cases at K=1/32). Tests compare current output
+against those hashes without reading Git or updating expected results. Wrapper platform options
+are pinned to the recorded fixture platform, independently of the test host.

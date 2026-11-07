@@ -42,6 +42,11 @@ class CompilerService:
         from backend.app.services.compiler_render_graph import analyze_render_graph
         return analyze_render_graph(targets, audio_graph, self._opcode_service)
 
+    def compile_realtime_partitions(self, targets, audio_graph, mixer, plan):
+        """Internal qualification artifacts only; never used by sessions or CSD exports."""
+        from backend.app.services.compiler_partitioned import compile_realtime_partitions
+        return compile_realtime_partitions(self, targets, audio_graph, mixer, plan)
+
     def compile_patch(
         self,
         patch: PatchDocument,

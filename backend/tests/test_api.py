@@ -72,8 +72,9 @@ def test_partition_planning_is_not_activated_by_session_lifecycle(tmp_path, monk
         pytest.fail("Session lifecycle must not invoke the diagnostic partition planner")
 
     monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.analyze_realtime_graph", unexpected)
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.compile_realtime_partitions", unexpected)
     monkeypatch.setattr("backend.app.services.render_partition_plan.plan_render_partitions", unexpected)
-    # This is still NOT a supported runtime setting; no opt-in can activate T03.
+    # This is still NOT a supported runtime setting; no opt-in can activate T03/T04.
     monkeypatch.setenv("VISUALCSOUND_REALTIME_RENDERER", requested_mode)
     with _client(tmp_path) as client:
         session = _create_running_session(client, patch_name="Planner remains diagnostic")
@@ -2708,7 +2709,12 @@ def _midi_messages_with_absolute_ticks(midi_bytes: bytes):
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event_source: str) -> None:
+def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event_source: str, monkeypatch) -> None:
+    def unexpected(*_args, **_kwargs):
+        pytest.fail("CSD export must not invoke realtime partition compilation")
+
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.compile_realtime_partitions", unexpected)
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.analyze_realtime_graph", unexpected)
     payload = _performance_csd_export_payload()
     payload["eventSource"] = event_source
     config = payload["performanceExport"]["performance"]["config"]

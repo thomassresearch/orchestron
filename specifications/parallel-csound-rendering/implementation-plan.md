@@ -1,6 +1,6 @@
 # Persistent Csound process implementation plan
 
-Status: T01–T03 delivered; updated 2026-11-07. T04–T08 remain pending. This document defines the implementation sequence; the [implementation record](implementation-record.md) identifies executed work and limits. Read the [scope and decisions](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) together. Parallel rendering is not enabled.
+Status: T01–T04 delivered; updated 2026-11-07. T05–T08 remain pending. This document defines the implementation sequence; the [implementation record](implementation-record.md) identifies executed work and limits. Read the [scope and decisions](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) together. Parallel rendering is not enabled.
 
 ## 1. Outcome and invariants
 
@@ -52,7 +52,9 @@ Keep `CsoundWorker` as the single implementation. T02 uses structural conformanc
 | `backend/app/services/compiler_render_graph.py` | Read-only LIVE/MIDI stage, port, helper and control snapshot (T03) |
 | `backend/app/services/compiler_render_resources.py` | Conservative structured compiler resource audit (T03) |
 | `backend/app/services/render_partition_plan.py` | Pure dependency classification, eligibility and deterministic partition selection |
-| `backend/app/services/compiler_partitioned.py` | Emit local orchestras and explicit boundary adapters from a shared resolved representation |
+| `backend/app/services/compiler_stage_lowering.py` | Shared structured setup, MIDI assignments, stage bodies and ordered connections (T04) |
+| `backend/app/services/compiler_partitioned.py` | Internal realtime partition programs and boundary adapters; canonical exports unchanged (T04) |
+| `backend/tools/_sequential_partition_probe.py` | Sequential native DSP/block-parity harness; never used by sessions (T04) |
 | `backend/app/engine/parallel_csound_renderer.py` | Timeline, dispatch, lifecycle, completion and output coordination |
 | `backend/app/engine/csound_process.py` | Spawned child entry point and exclusively owned native instance |
 | `backend/app/engine/render_ipc.py` | Versioned control protocol, shared-memory buffers and ownership |
@@ -154,7 +156,7 @@ Preserve the baseline contribution order at each sum. Keep separate ordered cont
 
 The downstream process owns final `$output` summation and output meters. Convert to float32 and apply the existing resampling behavior once in the parent after completed final output. Intermediate buses bypass the existing stereo-only PCM conversion helper.
 
-Compile the partition plan and all local artifacts before successful start. Local compilation errors cannot leave a partially audible session. Canonical compile response, instrument audition and offline MIDI/SCORE CSD exports retain their current path unless separately qualified.
+Compile the partition plan and all local artifacts before successful start. Local compilation errors cannot leave a partially audible session. Canonical compile response, instrument audition and offline MIDI/SCORE CSD exports retain their current path. Partition programs are internal realtime playback inputs only; offline export parallelization is outside this project.
 
 ## 6. Realtime timing and control protocol
 

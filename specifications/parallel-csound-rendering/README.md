@@ -1,6 +1,6 @@
 # Parallel Csound rendering
 
-Status: T01 baseline/contracts, T02 renderer interface and T03 pure planner implemented; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and platform limits. No parallel renderer or rollout is enabled. T04–T08 remain pending.
+Status: T01 baseline/contracts, T02 renderer interface, T03 pure planner and T04 internal realtime programs implemented; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and platform limits. No parallel renderer or rollout is enabled. T05–T08 remain pending.
 
 Use independent instrument branches to distribute realtime synthesis across persistent Csound processes. Preserve the browser clock, musical timing, routing semantics and live controls. Keep the current single-engine renderer as the default and as the compatibility fallback.
 
@@ -34,4 +34,4 @@ The source review found one `CsoundWorker` per session, a serialized `performKsm
 
 No Orchestron container was running during the initial analysis. T01 adds repeatable native single-renderer measurements; parallel speedup, browser latency and memory overhead remain later gates. All parallel execution and cutover gates are pending.
 
-The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. Session creation still selects the original single worker and its render loop is unchanged. Single rendering remains the only active renderer. User data, instrument examples and runtime settings are unchanged by this work.
+The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. T04 shares structured stage lowering and emits internal realtime partition programs, tested with sequential native instances. CSD export remains canonical and single. Session creation still selects the original single worker and its render loop is unchanged. Single rendering remains the only active renderer. User data, instrument examples and runtime settings are unchanged by this work.

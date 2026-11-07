@@ -84,7 +84,7 @@ This is the conservative T01 seed classification, not a production allowlist. Se
 | Family and current evidence | T03 disposition | Required qualification |
 | --- | --- | --- |
 | Constants, arithmetic, compiled branch-local formulas | Candidate local | Pure source emissions and no outside state; preserve graph order/formulas |
-| Baseline `vco2`, `moogladder`, `delay`, `cpsmidi`, `ampmidi` | Candidate per-instance/voice | T01 repeatability establishes single baseline only; T04 must establish split equivalence |
+| Baseline `vco2`, `moogladder`, `delay`, `cpsmidi`, `ampmidi` | Candidate per-instance/voice | T04 establishes exact sequential split parity for its fixtures on the local native build; broader combinations/builds require qualification |
 | Mixer strip/route/ramp/meter stages | Candidate with owned host channels | Preserve pre/post, pan, bypass and meter order; whole-graph solo/sidechain controls |
 | `midi_legato` | Co-location required | Generated collector/shared globals/panic listener must remain with synthesis; helper remapping |
 | `maxalloc` | Co-location/reference mapping required | Compiler emits a literal allocation cap for the local synthesis instrument; never duplicate cap per voice shard |
@@ -99,9 +99,9 @@ Source anchors: [orchestra emitter](../../backend/app/services/compiler_orchestr
 
 ## 6. Build capabilities and baseline fixture scope
 
-The local native baseline uses Csound 6.18.1 through the repository's `DirectCsound` binding. Its public methods include `spout` and control-channel access, but not `audioChannel`, `setAudioChannel`, `spin` or `sizeOfMYFLT`. The actual output array reports float64. These observations are recorded in every baseline result. T04 must add and test suitable direct-binding APIs, or exclude that binding from parallel mode; stock ctcsound documentation is not proof of local wrapper support.
+The T01 local native baseline used Csound 6.18.1 through the repository's `DirectCsound` binding. Its public methods include `spout` and control-channel access, but not `audioChannel`, `setAudioChannel`, `spin` or `sizeOfMYFLT`. The actual output array reports float64. These observations are recorded in every baseline result. T04 now adds and tests `audioChannel`, `setAudioChannel` and `sizeOfMYFLT` (see section 9); stock ctcsound documentation is not proof of local wrapper support.
 
-The loader currently binds its direct path using `ctypes.c_double`. Future admission must verify native sample width against the library ABI before allocating buses; dtype inspection alone is not an independent ABI check. The isolated Docker smoke run selected the stock binding and found the corresponding bridge methods available; its [record](implementation-record.md) identifies the exact image. Actual bridge semantics and other builds remain T04/T07 qualification work.
+The loader currently binds its direct path using `ctypes.c_double`. Future admission must verify native sample width against the library ABI before allocating buses; dtype inspection alone is not an independent ABI check. The isolated Docker smoke run selected the stock binding and found the corresponding bridge methods available; its [record](implementation-record.md) identifies the exact image. T04 verifies sequential bridge semantics on the local Csound 6.18 double build. Other builds and container admission remain T07 qualification work.
 
 [workloads.json](../../backend/tests/fixtures/parallel_render/workloads.json) freezes six synthetic cases at 48 kHz and K=1/32: tiny, two/four/eight independent sources, four sources with a shared delay, and one serial-heavy source. Every case uses the real LIVE mixer compiler, private delays, wet Master paths and an explicit dry Master bypass. Voices and filter depth are bounded by the fixture model. This is diagnostic test data, not an instrument example or starter.
 
@@ -147,11 +147,10 @@ single partition with stable reason codes. No runtime/session path calls this pl
   their original compile path; their diagnostic inventory covers patch instances without
   inventing mixer stages or migrating routing semantics.
 - Instrument/note/helper references remain canonical single-orchestra references. T03 does
-  not emit child CSDs or local instrument numbering; T04 must generate and verify those remaps.
+  not emit child CSDs or local instrument numbering; T04 emits and verifies separate local references (section 9).
 - Record every LIVE `connect` in emission order, including both pre/post inputs, every
   polyphonic outlet contribution and dry/wet bypass edges. The metadata extractor is checked
-  against canonical emitted connections; it does not parse CSD for analysis. T04 must unify
-  this representation with partition lowering before executing any cut.
+  against canonical emitted connections; it does not parse CSD for analysis. T04 unifies this representation with canonical/partition connection lowering (section 9).
 - [Resource analysis](../../backend/app/services/compiler_render_resources.py) uses compiled
   graph nodes, port/default definitions, formula validation and typed GEN/controller metadata.
   `coarse-compiler-resources-v1` narrowly audits the baseline compiler operations plus constants,
@@ -207,5 +206,79 @@ Mixer gain/mute/solo/send tap/bypass values are not planner inputs: they never r
 
 The [planner tests](../../backend/tests/test_render_partition_plan.py) and
 [34 snapshots](../../backend/tests/fixtures/parallel_render/planner_snapshots.json) provide G3
-evidence. Native lowering, sample-width verification, inter-process timing/cleanup, container
-capacity discovery and performance qualification remain T04–T08 work.
+evidence. Section 9 records T04 native lowering and local sample-width verification.
+Inter-process timing/cleanup, container capacity discovery and performance qualification remain T05–T08 work.
+
+
+## 9. T04 internal realtime program contract
+
+`CompilerService.compile_realtime_partitions(targets, audio_graph, mixer, plan)` is an explicit
+internal compilation API. It returns the ordinary canonical artifact plus either bounded
+partition programs or reasoned single-plan fallback. It never starts native Csound or a child
+process, allocates shared memory, selects a renderer or enters session compile/start/export.
+Every result retains `selected_renderer="single"` and `execution_eligible=false`.
+
+CSD here is an internal Csound program format for future **realtime playback** workers.
+User-facing MIDI/SCORE CSD exports stay on the canonical offline path; parallel batch export
+is outside scope. Ninety pre-T04 CSD hashes freeze LIVE/MIDI and OFFLINE/MIDI/SCORE text across
+15 versioned graph cases at K=1/32. The fixture records its source commit; tests never read Git
+or regenerate expected hashes.
+
+Canonical compilation validates the original performance first, including assets and mixer
+settings. The planner validator checks integrity/ownership and freshly derived dependency
+metadata must equal the plan graph, including input identity and resource capability hashes.
+A stale or malformed plan is an error. A digest binds the canonical artifact, plan, complete
+program metadata and internal CSDs; the harness verifies it and stage/bus ownership before startup. Invalid authored inputs cannot become executable by
+falling back. A valid single-layout plan retains its canonical artifact and emits no partitions.
+Unknown/table/asset/legacy exclusions remain unchanged.
+
+The shared `LoweredMixer` records typed header entries, scoped setup, stage names/bodies,
+canonical references and ordered connections **before** rendering text. The canonical emitter
+serializes these in original order. The partition emitter filters by ownership; it does not
+split, parse or rewrite an already generated orchestra. Patch/controller/maxalloc setup and
+legato collectors/panic listener remain with their declared consumers. The shared panic listener
+still co-locates all legato sources; T04 does not relax that constraint.
+
+Each cut retains one mono audio channel and one original connection contribution. An always-on
+ingress instrument runs before local stages; an always-on egress collector runs after them,
+reading the summed outlet including all voices. Both adapters read every input before publishing
+outputs to avoid Csound inlet/outlet buffer aliasing. Every block writes every boundary bus,
+including silence; no channel carries an old block forward. No bridge resampling, normalization,
+float32 conversion, parent-side pre-sum or extra block delay is introduced. Final `$output` and
+its meters have one owner. These are native audio channels, not allocated inter-process buffers.
+
+Stable stage names preserve node/global/instance scopes. Patch MIDI assignments use local named
+instruments; legato collectors retain their explicit numeric helper references. A separate
+manifest maps every stage and note reference to its local numeric assignment, accounting for
+helpers and ingress. Native tests compare those references against `nstrnum`. Canonical stage
+comments in internal programs retain their original references and are explicitly labelled;
+event delivery uses the local manifest. MIDI is an ordered full-stream broadcast to each instance;
+only the owning instance allocates each note. Host performance controller writes follow declared
+subscriptions, with parent mapping/revisions remaining outside the native instances.
+
+The direct binding adds copy-based audio-channel methods matching the stock wrapper's buffer
+arguments. Missing optional native symbols do not disable ordinary single rendering. Channel
+copies check the library's `csoundGetSizeOfMYFLT`, exact buffer length, native dtype, contiguity,
+alignment and output writability. The direct wrapper remains double-only; unsupported ABI widths
+are rejected by the qualification harness before compilation/bus use. See the primary API
+[attributes](https://csound.com/docs/api/group__ATTRIBUTES.html) and
+[channel transfer](https://csound.com/docs/api/group__CONTROLEVENTS.html) contracts.
+
+The sequential probe is a **development harness**, not a renderer implementation. It owns one
+canonical native instance and sequential partition instances in a single process, independent
+host-MIDI input buffers, and preallocated native-width bridge arrays. A sealed block receives
+identical ordered MIDI and relevant control writes, then upstream stages and downstream stages
+execute before the next block starts. Only final output is compared. It performs no scheduling,
+revision counting, lane gating or resampling, and closes all instances after success, failure or
+partial startup. Exact native samples and per-block meter readings are required: tolerance is
+zero, with no alignment search or dropped warmup blocks. The fixtures exercise K=1/32, multiple
+voices, silence, private/shared effects, nonlinear shared processing, direct/Master paths,
+custom/multiple ports, send taps, mute/solo/pan/gain, bypass ramps, controller changes, sustain,
+release, allocation caps and panic/retrigger ordering. A 44.1 kHz / 0dbfs=2 probe verifies the
+full-performance engine rule.
+
+This establishes compiler/bridge correctness for the tested local native build, not realtime
+speedup, asynchronous acceptance, all audited opcode combinations or platform-wide admission.
+The harness keeps one block in flight but does not implement IPC descriptors, epochs, deadlines
+or coordinated failure publication. Those remain T05 onward. Container/native stock-binding,
+AMD64, float32, browser soak and parallel process performance require separate qualification.

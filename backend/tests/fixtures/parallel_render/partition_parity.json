@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "frames": 8192,
+  "source_events": [
+    [0, 144, 60, 90], [0, 144, 64, 110], [0, 144, 67, 75],
+    [511, 128, 60, 0], [512, 144, 60, 80],
+    [1024, 176, 64, 127], [1536, 128, 64, 0],
+    [2048, 176, 64, 0], [2560, 176, 123, 0]
+  ],
+  "panic_retrigger": [[3008, 176, 120, 0], [3008, 144, 72, 100], [3520, 176, 120, 0]],
+  "mixer_changes": [
+    [256, "source0", "gain_db", -12], [512, "source0", "balance", 0.75],
+    [768, "source0", "mute", true], [1536, "source0", "mute", false],
+    [2048, "source1", "solo", true], [3072, "source1", "solo", false],
+    [3584, "$master", "gain_db", -6]
+  ],
+  "send_changes": [[512, "private0", "tap", "pre"], [1024, "private1", "tap", "post"], [2048, "private0", "gain_db", null]],
+  "bypass_changes": [[512, "insert0", true], [1536, "masterInsert", true], [2560, "insert0", false], [3072, "masterInsert", false]]
+}

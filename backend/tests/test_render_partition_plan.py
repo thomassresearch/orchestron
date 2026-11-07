@@ -399,8 +399,12 @@ def test_generated_dags_and_colocation_closures_preserve_accounting(compiler, se
 
 
 @pytest.mark.parametrize("ksmps", [1, 32])
-def test_shared_fixture_builder_preserves_t01_canonical_csd_hashes(ksmps):
+def test_shared_fixture_builder_preserves_t01_canonical_csd_hashes(ksmps, monkeypatch):
     baseline = json.loads((FIXTURE_DIR.parents[3] / "specifications/parallel-csound-rendering/measurements/t01-single-native.json").read_text())
+    from types import SimpleNamespace
+    # T01 recorded macOS wrapper options; compare that convention on every test host.
+    assert baseline['provenance']['platform'].startswith('macOS-')
+    monkeypatch.setattr('backend.app.services.compiler_service.sys', SimpleNamespace(platform='darwin'))
     for case in load_workloads().values():
         artifact, _ = build_workload(case, ksmps)
         assert hashlib.sha256(artifact.csd.encode()).hexdigest() == baseline["cases"][f"{case.id}/k{ksmps}"]["reference"]["csd_hash"]

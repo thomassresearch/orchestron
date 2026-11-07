@@ -40,6 +40,16 @@ buffers or start Csound. Even a coarse candidate has `selected_renderer="single"
 analysis does not replace canonical patch/asset validation. See the
 [T03 contract](specifications/parallel-csound-rendering/contracts.md#8-t03-pure-planning-contract).
 
+`CompilerService.compile_realtime_partitions()` is the optional T04 internal LIVE/MIDI
+program compiler. Canonical and partition emitters share structured stage lowering;
+public compile responses and offline CSD exports preserve canonical output. Internal
+programs include ordered native audio-channel adapters, scoped setup and local note/stage
+references. They remain execution-ineligible and are consumed only by the sequential native
+development harness. No child processes or new session selection path exist. See the
+[T04 contract](specifications/parallel-csound-rendering/contracts.md#9-t04-internal-realtime-program-contract)
+and [compiler tests](backend/tests/test_compiler_partitioned.py).
+
+
 ## Application Lifecycle
 
 ### App creation

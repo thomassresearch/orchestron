@@ -1,6 +1,6 @@
 # Parallel rendering implementation record
 
-Updated: 2026-11-07. T01 baseline/contracts, T02 renderer interface and T03 pure planner delivered. T04–T08, all parallel execution gates and default cutover remain pending. The shared factory still constructs the original `CsoundWorker`; no process pool, parallel renderer or runtime selection flag is active.
+Updated: 2026-11-07. T01 baseline/contracts, T02 renderer interface, T03 pure planner and T04 internal realtime compiler delivered. T05–T08, all parallel execution gates and default cutover remain pending. The shared factory still constructs the original `CsoundWorker`; no process pool, parallel renderer or runtime selection flag is active.
 
 ## T01 delivered work
 
@@ -215,12 +215,123 @@ is absent from the rendering path, canonical CSD hashes are identical, and exist
 audio/runtime regressions pass. No T03 Docker rebuild, multi-process native audio or browser
 soak was performed; these remain later qualification gates.
 
+## T04 shared lowering and internal realtime programs
+
+Delivered 2026-11-07. [Structured stage lowering](../../backend/app/services/compiler_stage_lowering.py)
+now feeds canonical mixer compilation and the [internal partition compiler](../../backend/app/services/compiler_partitioned.py).
+The optional `CompilerService.compile_realtime_partitions()` entry point emits programs for
+future **realtime playback** instances. It is never called by session startup or export.
+Offline MIDI/SCORE exports remain single and unchanged. No child renderer, process pool,
+shared-memory allocation, runtime mode flag or default cutover was introduced.
+
+Connections are expanded once by shared lowering functions, preserving port/contribution
+order. Structured setup entries retain controller/maxalloc/helper ownership. Partition
+programs use one ingress before local stages and one summed-outlet egress after them,
+with separate native audio channels for every cut. Both adapters read all inputs before
+publishing outputs. Numeric stage/note references are remapped and verified against native
+`nstrnum`; named MIDI assignments and scoped legato helpers retain correct note ownership.
+Canonical and internal artifacts are bound to the plan and full program metadata by a digest;
+changed or mismatched artifacts are rejected before the harness starts native instances.
+
+The direct Csound binding now supports the three optional qualification methods:
+`audioChannel`, `setAudioChannel`, and `sizeOfMYFLT`. Copies require exact native-width,
+contiguous ksmps arrays; incorrect length/dtype, unaligned/read-only output buffers and ABI
+mismatches are rejected. Missing optional symbols do not disable the existing renderer.
+The [sequential probe](../../backend/tools/_sequential_partition_probe.py) preallocates native
+bridge arrays and closes every native instance on success, failure and partial startup.
+It contains no authoritative scheduler, controller revision counter, lane gate or resampler.
+
+### Native/compiler evidence
+
+The tested local runtime is **DirectCsound, Csound 6.18.1 (6181), eight-byte MYFLT**.
+The independently reported native width matches its float64 output. Native comparisons use
+8,192 frames per case with identical ordered MIDI and control inputs; no samples are discarded
+and no timing alignment or nonzero numerical tolerance is allowed.
+
+- Nine graph cases at K=1/32: two/four/eight independent sources, shared delay,
+  private/Master bypass, sidechain routing, custom/multiple outputs, disconnected work and legato.
+- Six live-control runs: bypass/sidechain/custom graphs at both rates with gain, pan,
+  mute/solo, send pre/post/zero and private/Master bypass ramps.
+- Instance I-rate control updates and raw MIDI reads from a different channel at both rates;
+  host controller mapping remains outside native instances.
+- Active phrase envelopes, allocation caps, sustain/release and same-boundary panic/retrigger
+  at both rates; shared helpers are emitted only in their declared partition.
+- Shared nonlinear filtering before delay, polyphonic allocation limits and silent start/end
+  at both rates. A separate 44.1 kHz / 0dbfs=2 case retains the full-performance engine settings.
+
+All 31 audio/meter comparisons are **sample-identical**, with zero observed error and zero
+sample offset. This is sequential compiler/bridge evidence for these fixtures/build only;
+it does not establish concurrent event acceptance, browser latency or speedup.
+The sidechain fixture is a routing/summing probe, not a compressor qualification.
+
+[Canonical hash fixtures](../../backend/tests/fixtures/parallel_render/t04_canonical_csd_hashes.json)
+were captured once from `compiler_mixer.py` at pre-T04 commit
+`7bdd4c8e6dcc241e8f63dc9def44e6124f8645ca`. All **90** LIVE/MIDI and OFFLINE/MIDI/SCORE
+CSD hashes (15 graph cases at K=1/32) remain identical. Tests do not read Git or regenerate
+expected output. Hash tests pin the recorded macOS wrapper option convention independently
+of the test host; their 92 parametrized checks were rerun after this portability fix. All twelve original T01 CSD hashes and all 34 T03 plan snapshots also remain
+unchanged. Existing offline-profile API checks now explicitly reject partition-compiler calls;
+ordinary session lifecycle tests reject both analysis and partition compilation.
+
+| Check | Result |
+| --- | --- |
+| Full backend suite, explicit Cython sequencer | 3,088 passed; one existing tenor-saxophone test failed |
+| Final focused compiler/planner/baseline/binding/renderer/runtime/API suite, Python | 331 passed |
+| Same final focused suite, explicit Cython | 331 passed |
+| Final compiler suite, including nonfinite-output rejection | 149 passed |
+| Native sample and meter equality | 31 comparisons, exact |
+| Canonical pre-T04 CSD hashes | 90 unchanged |
+| T01 CSD hashes / T03 snapshots | 12 / 34 unchanged |
+| Local numeric instrument references | Verified in plain and legato partitions |
+| Optional binding shape/dtype/ABI and partial-start cleanup | Regression tests pass |
+| Backend Ruff, whitespace and local documentation links | Passed |
+
+Full command: `VISUALCSOUND_SEQUENCER_IMPLEMENTATION=cython .venv/bin/python -m pytest backend/tests -q`.
+Focused commands select `test_compiler_partitioned.py`, `test_ctcsound_loader.py`,
+`test_render_partition_plan.py`, `test_render_baseline.py`, `test_realtime_renderer.py`,
+`test_csound_worker.py`, `test_browser_clock_runtime.py`, `test_session_performance_runtime.py`
+and API regressions for single selection/restart, native/mock interface sessions, native K=1
+live edits, queued pads and both offline CSD modes. Both kernel selections are explicit.
+Final focused checks include artifact-integrity and optional mixer default regressions.
+The final full run uses the completed source without overlapping implementation edits.
+The existing Starlette/httpx deprecation warning is unrelated.
+
+The full suite is **not fully green**. Its remaining failure is
+`test_tenor_saxophone.py::test_normal_register_is_tuned_and_releases_cleanly[32]`:
+a pitch estimate differed by 15.167 cents against a 15-cent threshold. The same test
+failed with the pre-T04 mixer compiler substituted in memory (15.257 cents); all generated
+CSD, manifest and diagnostics match the current compiler exactly for the same patch input.
+A separate six-case rerun showed two saxophone failures, while earlier isolated velocity
+reruns passed. Ten repeats of the unchanged pre-T04 CSD also show changing pitch estimates.
+These observations establish existing native fixture variability, not a partition discrepancy.
+No instrument, random seed or test threshold was changed. The
+[verification record](measurements/t04-sequential-verification.json) retains the results and
+limits of this compiler-only control; it is not a full historical-runtime benchmark.
+
+After the full run, the development harness additionally rejects nonfinite audio/meters,
+so matching NaNs cannot count as parity. The final compiler suite passed **149 tests**
+in 40.60 seconds, including all 31 finite audio/meter comparisons and the injected-NaN regression.
+
+
+G4 is satisfied for the tested structured lowering and sequential native bridge. Plans and
+artifacts still select single and remain execution-ineligible. No new wall-time performance
+claim is made; the single renderer's hot loop and factory are untouched. No T04 Docker build,
+stock-binding/container native bridge run, AMD64/float32 qualification or browser soak was
+performed. Historical T01/T02 measurements are unchanged and do not qualify parallel execution.
+
 ## Pending qualification and next task
 
-T04 can introduce shared stage lowering and partition CSD emission, initially using sequential
-native instances in a test harness to isolate compiler correctness from IPC. The current single
-renderer remains the default and compatibility target throughout subsequent tasks.
+T05 can introduce persistent child lifecycles, shared audio buffers and the parent coordinator
+using the sealed-block timing contract. Native initialization must validate the runtime ABI
+and artifact identity before bus use. A child receives ordered MIDI and owned control writes;
+it must not acquire a sequencer, lane gate or controller revision counter. Keep single as the
+default and fallback, and do not infer execution admission from a T04 diagnostic artifact.
 
-T04 must resolve the direct binding's missing audio-channel/input APIs and verify native sample ABI. T07 must perform hierarchical cgroup capacity detection and native container workload qualification on supported architectures. Actual browser latency/underrun testing, long soaks, multi-session memory/admission, child failures and cross-process audio parity remain unperformed because no parallel implementation exists yet.
+T07 still owns hierarchical cgroup capacity detection, resource admission and native container
+qualification on supported architectures. Browser latency/underruns, long soaks, concurrent
+sessions, native memory/IPC overhead, child failures and cross-process parity remain unperformed
+because no parallel execution implementation exists yet.
 
-No UI/workflow, user manual or production examples changed as part of T01–T03. Frontend builds/screenshots and manual PDF regeneration were not needed for these internal contracts, factory wiring, pure analysis and diagnostic tests. Full application and platform qualification remains in its planned integration gates.
+No UI/workflow, user manual, production examples or saved formats changed in T01–T04.
+Frontend builds/screenshots and manual PDF regeneration are not applicable to this internal
+compiler and native test harness. Full platform qualification remains in the later gates.
