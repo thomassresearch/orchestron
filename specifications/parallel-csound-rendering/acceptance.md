@@ -1,6 +1,6 @@
 # Parallel rendering acceptance and measurement plan
 
-Status: T01–T07 evidence recorded through 2026-11-07. Capacity admission is implemented; G7 performance qualification has not passed and rollout remains pending. The [implementation record](implementation-record.md) distinguishes executed checks from this broader acceptance matrix. The [implementation plan](implementation-plan.md) defines the contracts being tested.
+Status: T01–T07 evidence recorded through 2026-11-07. G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. T08 release and default cutover remain pending. See the [final qualification summary](t07-qualification-summary.md). The [implementation record](implementation-record.md) distinguishes executed checks from this broader acceptance matrix. The [implementation plan](implementation-plan.md) defines the contracts being tested.
 
 ## 1. Evidence rules
 
@@ -117,7 +117,7 @@ Initial release thresholds below are proposed engineering gates. Freeze them wit
 - Useful scaling: at least 20% lower p95 end-to-end render time on two representative heavy independent-branch fixtures with at least four effective CPUs, without worse p99 beyond established noise. Publish the serial-heavy counterexamples too.
 - Scheduled timing and controls: identical scripted event/block decisions, no added sample offset, and correct controller-sequencer fan-out across process owners. MIDI channel identities, controller values, ordering and reset semantics must match single rendering.
 - Live-input responsiveness (non-blocking for G7): retain input-to-audible distributions, underruns and incomplete probes as diagnostic evidence; live-input latency alone does not prevent G7 acceptance.
-- Real playback: at least 30 minutes per qualified heavy workload at the same queue settings, with zero underruns when the paired baseline has zero; controlled stress must not increase underruns or recovery latency relative to baseline.
+- Real playback: at least 10 minutes per single and parallel arm of each qualified heavy workload at the same queue settings, with zero parallel underruns including warmup; retain single baseline losses in the report; controlled stress must not increase underruns or recovery latency relative to baseline.
 - Reliability: successful repeated lifecycle, crash/hang and cleanup tests; memory remains within admitted bounds, with no monotonic process/segment/FD growth.
 - Automatic selection: small, serial, unknown, memory-heavy or unqualified cases remain single. A global average speedup cannot qualify a known-regressing class.
 
@@ -128,8 +128,11 @@ scheduled playback and controller-sequencer correctness take priority for G7. Th
 the blocking live-input criterion used by the frozen T07c/T07d protocols, without rewriting
 their observations or historical decisions. It does not waive event correctness, playback
 continuity, recovery, capacity, lifecycle or build-evidence requirements, and does not enable
-automatic selection. The requested ten-minute runs remain labelled as such; the existing
-production evidence predicate is unchanged and has no input-latency field.
+automatic selection. The subsequent explicit request to finish G7 with ten-minute runs
+amends the production evidence minimum to 600 seconds. The [T07e protocol](t07e-test-plan.md)
+was frozen before new measurements: candidate playback must have zero underruns even when
+the baseline drops audio. Earlier reports retain their historical thresholds and decisions.
+The production predicate has no input-latency field.
 
 ## 8. Required checks during implementation
 

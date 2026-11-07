@@ -1,14 +1,15 @@
 # Parallel Csound rendering
 
-Status: T01–T07 implementation delivered through an explicit internal session opt-in; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and limits. Normal startup still uses the single renderer. G7 performance qualification has not passed; T08 rollout remains pending.
+Status: T01–T07 implementation delivered; updated 2026-11-07. **G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope.**
+T08 rollout remains pending. Normal startup still uses the single renderer, also retained
+as the fallback. No release qualification records or deployment selection are installed.
 
-The [latest G7 measurements](implementation-record.md#t07-continuation-live-input-latency-tails-and-ten-minute-qualification)
-have clean ten-minute parallel soaks and passing matched recovery. At the user's direction,
-live-input latency is now a non-blocking diagnostic for G7; its failed probes remain recorded.
-Scheduled timing and controller-sequencer fan-out remain mandatory, as defined in the
-[current acceptance criteria](acceptance.md#7-performance-measurement-and-gates).
-No release qualification is registered; the shorter assessment remains separate from the
-unchanged production evidence predicate.
+The [final qualification summary](t07-qualification-summary.md) records fresh ten-minute
+paired soaks, native benefit, controller fan-out, recovery and the Linux CPU-placement fix.
+Live-input latency remains a non-blocking diagnostic under the
+[current acceptance criteria](acceptance.md#7-performance-measurement-and-gates);
+historical failures are retained. The production evidence minimum is now 600 seconds,
+as specified prospectively before these measurements.
 
 Use independent instrument branches to distribute realtime synthesis across persistent Csound processes. Preserve the browser clock, musical timing, routing semantics and live controls. Keep the current single-engine renderer as the default and as the compatibility fallback.
 
@@ -40,6 +41,6 @@ The first delivery uses coarse partitions: independent upstream branches and one
 
 The source review found one `CsoundWorker` per session, a serialized `performKsmps()` loop, and an existing `ResolvedMixerGraph` with ordered patch, bypass, strip, route and output stages. A static evaluation of the existing synthetic mixer benchmark produced 29 stages and 38 edges, with four independent sources and shared delay/Master consumers. This is graph evidence, not a performance result.
 
-No Orchestron container was running during the initial analysis. T01 recorded repeatable native single-renderer measurements. T07 adds paired native/container measurements, actual cgroup admission probes and browser regression checks. Its synchronization continuation brings selected K=32 workloads below the p95 audio budget, with 20–47% paired improvement on measured heavy cases; see the [current evidence and limits](implementation-record.md#t07-continuation-synchronization-and-ipc). No workload/build has passed the complete realtime qualification gate; release and cutover remain pending.
+No Orchestron container was running during the initial analysis. T01 recorded repeatable native single-renderer measurements. T07 adds paired native/container measurements, actual cgroup admission probes and browser regression checks. Its synchronization continuation brings selected K=32 workloads below the p95 audio budget, with 20–47% paired improvement on measured heavy cases; see the [current evidence and limits](implementation-record.md#t07-continuation-synchronization-and-ipc). G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. Release and cutover remain pending.
 
-The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. T04 shares structured stage lowering and emits internal realtime partition programs. T05 adds persistent child processes, shared native audio buffers and a parent coordinator. T06 integrates session lifecycle, controls, edits, auditions and recovery through explicit internal options. T07 adds capacity leases, evidence-based selection, profiling and wakeup/PCM fixes. CSD export remains canonical and single. Normal session creation still selects the original single worker and its render loop is unchanged. Parallel sessions remain diagnostic opt-in only. User data, instrument examples and deployment settings are unchanged by this work.
+The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. T04 shares structured stage lowering and emits internal realtime partition programs. T05 adds persistent child processes, shared native audio buffers and a parent coordinator. T06 integrates session lifecycle, controls, edits, auditions and recovery through explicit internal options. T07 adds capacity leases, evidence-based selection, profiling, wakeup/PCM fixes and startup CPU placement. CSD export remains canonical and single. Normal session creation still selects the original single worker and its render loop is unchanged. Parallel sessions remain diagnostic opt-in only. User data, instrument examples and deployment settings are unchanged by this work.

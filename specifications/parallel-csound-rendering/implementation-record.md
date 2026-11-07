@@ -1,6 +1,6 @@
 # Parallel rendering implementation record
 
-Updated: 2026-11-07. T01–T07 implementation delivered through the explicit internal session opt-in. G7 performance qualification has not passed; T08 release and default cutover remain pending. Normal application startup still constructs the original `CsoundWorker`; no deployment selection flag is enabled.
+Updated: 2026-11-07. T01–T07 implementation delivered through the explicit internal session opt-in. G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. T08 release and default cutover remain pending. See the [final qualification summary](t07-qualification-summary.md). Normal application startup still constructs the original `CsoundWorker`; no deployment selection flag is enabled.
 
 ## T01 delivered work
 
@@ -1181,3 +1181,121 @@ Ruff and diff whitespace checks passed. These are native host correctness checks
 Docker performance qualification or browser soaks. No production renderer changes were
 needed for this verification; default/fallback single, timing, buffer sizes and exports remain
 unchanged by this follow-up.
+
+## T07 continuation: ten-minute G7 completion with live input non-blocking
+
+The user explicitly requested G7 completion using ten-minute runs and non-blocking live-input
+latency. The [T07e protocol](t07e-test-plan.md) was frozen before new measurements. It changes
+the evidence minimum from 1,800 to 600 seconds per matched arm and requires zero parallel
+warmup/soak underruns while retaining single baseline losses. This aligns the scalar gate
+with the intended baseline comparison, with a stricter zero-loss requirement for parallel
+even when single drops audio. Noninteger, negative and nonfinite loss counts are rejected.
+Native benefit, p99, correctness, settings/build identity, capacity and recovery gates remain.
+No qualification records are installed and no deployment/default cutover occurs.
+
+The only changed production source is `render_qualification.py`. The candidate overlays
+T07d with that policy and reusable native controller-test support. Native benchmark provenance
+confirms all other application source hashes match T07d; synthesis, synchronization, browser
+code, timing, buffer sizes and CSD export paths are unchanged. The single path remains the
+factory default and compatibility fallback. A new API regression verifies that numerically
+passing ten-minute evidence from another build cannot authorize parallel startup or allocate
+children/shared audio. The full backend suite passed **3,260 tests in 723.02 seconds**;
+controller-focused suites passed **64 each** with Python (9.40 s) and Cython (9.32 s).
+Only the existing Starlette/httpx deprecation warning appeared. Ruff passed.
+
+On the frozen Docker image, all sixteen native audio/meter comparisons passed exactly at
+K=1 and K=32, all four tiny-sample/resampling pairs matched, and both step/curve controller
+fan-out cases passed. The controller cases verify four native owners, matching event samples
+and values on channels 2 and 5, two channel-2 readers in separate processes, untargeted
+channel 7 isolation and step reset behavior. This correctness probe supplies a larger CPU
+budget to force ownership separation; timed browser/native benchmarks use actual cgroup
+admission with four CPUs and three rendering children including the suffix.
+
+The fresh paired native benchmark uses three rounds of 98,304 frames per workload/mode,
+512-frame requests, separate fresh processes and alternating order. Both heavy workloads
+pass the >=20% p95 gate with no p99 regression; separate traces match PCM, markers, meters,
+state and sample cursors exactly. Report-analysis controls pass 25 tests and the unchanged
+silent observer controls pass. Existing recovery-analysis regressions are included in the
+full backend suite. No test/build/benchmark overlaps the browser measurements.
+
+T07e **did not pass**. Its four-branch pair completed ~602-second clean soaks and passed
+matched recovery (987 single versus 897 parallel induced underruns; worst recovery bounds
+412–454 ms single versus 278–332 ms parallel). The two-branch parallel arm then accumulated
+183 warmup underruns and continued dropping audio from startup despite ample CPU quota.
+Scheduling samples found both independent owners mostly on virtual CPU 0 (19/20 and 15/20
+samples), although their allowed masks were 0–11. This is a playback failure, not a waived
+live-input latency observation.
+
+The already-failed arm received a recorded diagnostic CPU-placement intervention: native
+owners were assigned CPUs 0, 1 and 2. Render/audio ratio fell from about 1.07 to 0.64 and
+underruns stopped accumulating at 9,847 before the intentionally disruptive recovery phase.
+The complete ten-minute observation and intervention timestamp are retained. Neither its
+post-intervention interval nor recovery is qualification evidence. The remaining planned
+single-two arm was cancelled because a new candidate was necessary. T07e's successful
+four-branch data is not reused to qualify the replacement build.
+
+The [T07f protocol](t07f-test-plan.md) prospectively requires four fresh matched arms with
+the same thresholds and settings after a startup-only Linux CPU-placement fix. The
+[placement contract](contracts.md#16-linux-worker-cpu-placement) covers atomic process-wide
+reservations, affinity verification, retained ownership on failed cleanup and single fallback.
+No blocking playback criterion is relaxed after the failed T07e arm.
+
+## T07 continuation: Linux CPU placement and fresh G7 qualification
+
+The [T07f protocol](t07f-test-plan.md) responds to T07e's observed CPU colocation. The
+new [placement pool](../../backend/app/engine/render_cpu_placement.py) reserves distinct
+allowed logical CPUs across parallel coordinators in the API process, before spawn. A
+native owner verifies and applies its placement before compilation and Ready. The parent,
+compiler and default single renderer retain their affinity. Reservations survive unfinished
+operations/cleanup and release after all native owners are reaped. Existing admission still
+limits quota, preparation/API headroom, memory and process counts; placement adds no capacity.
+Unsupported platforms keep their prior scheduler behavior, and Linux placement failures
+follow existing startup failure/single fallback. No audio-loop affinity operations are added.
+
+The first focused run caught a new startup error label outside the existing protocol enum.
+This was corrected to the existing `start` code before any candidate measurements; no schema
+or frontend contract changed. The corrected suite passed **160 tests, 429 deselected, in
+111.00 seconds**, covering placement races, cpuset changes, startup failure, retained ownership,
+100-cycle native lifecycle, session integration, controllers, capacity, evidence and selected
+API fallback/default cases. The earlier full backend run of 3,260 tests and 64 tests per
+sequencer kernel belongs to T07e, before placement; the affected suites were reverified here.
+Ruff passed. The existing Starlette/httpx deprecation warning remains.
+
+On the final image, all sixteen native audio/meter cases again pass exactly, all four tiny-
+sample/resampling pairs match, and both controller-sequencer modes pass. Native placement
+probes verify disjoint live coordinators, reuse after Stop, unchanged parent affinity and
+reaping/release after a child's placement denial. The six-owner probe intentionally bypasses
+session capacity admission for correctness only. Timed tests retain actual four-CPU admission
+and three rendering owners. Report/measurement controls pass 41 tests (26 report checks,
+6 shared measurement checks and 9 precision-recovery checks), and the silent observer controls pass.
+
+Fresh native three-round results pass: p95 improves **20.8%** for `realtime_2` and **25.3%**
+for `realtime_4`, with no p99 regression. All workers have distinct singleton CPU masks.
+Separate traces match single audio, markers, meters, status and sample cursor exactly; their
+fingerprints also match the earlier T07e traces, including canonical CSD. Compared with the
+T07e image, only `csound_process.py`, `parallel_csound_renderer.py` and the new placement
+module change among production sources. Timing, request/buffer sizes, controller semantics,
+CSD exports and default/fallback single behavior remain unchanged.
+
+**Final decision: G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope.** The [qualification summary](t07-qualification-summary.md)
+records the full result table, immutable image, source/report identities and limits. All four
+fresh arms ran for about 602 seconds; parallel warmup/soak losses were zero in both workloads.
+Single two had zero losses; single four had 985, retained as baseline observations.
+
+Four-branch recovery passed its original three-pulse comparison. Two-branch recovery had
+fewer induced losses but overlapping worst-time bounds, so its original result remains
+inconclusive in the retained original report. The [prospective extension](t07f-recovery-extension.md)
+collected exactly six more pulses per renderer with narrower Docker control uncertainty,
+in reverse single-then-parallel order. The final comparison retains all nine trials per arm;
+no slower observation was dropped or replaced. See the summary for actual combined bounds.
+The extra observations are recovery-only and do not replace or shorten the ten-minute soaks.
+
+All final arms passed ordinary Stop/resource cleanup, with no application errors, overruns
+or parallel fallback. Single remains default/fallback; buffers, event timing and CSD exports
+are unchanged. The historical failed live-input probes stay non-blocking and are not claimed
+as current-image measurements. No qualification records are registered and T08 is not enabled.
+
+Raw reports, logs and replay harnesses are retained locally in the ignored measurements
+folder. This summary records their report/manifest hashes and explains this storage
+limit. The task did not modify the externally changed ignore rules. Historical T07d hashes
+are verified unchanged.

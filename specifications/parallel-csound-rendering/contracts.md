@@ -484,8 +484,11 @@ UI option, saved setting, export change or default cutover is introduced. Explic
   sources, compiled modules, native Csound build, Python/binding/numpy/pydantic, sequencer and
   platform/hardware), and available CPUs must meet its measured capacity. At least two distinct
   heavy workloads must each pass: >=20% p95 improvement, no p99 regression, exact native
-  correctness, identical browser settings, final-image verification, >=30-minute paired browser
-  soaks with zero underruns and no worse stress underruns/recovery. This first predicate is
+  correctness, identical browser settings, final-image verification, >=10-minute paired browser
+  soaks with zero parallel underruns and no worse stress underruns/recovery. Baseline single
+  losses remain reported; they do not disqualify clean parallel playback. Loss counts must
+  be nonnegative integers. The duration and playback policy follow the prospective
+  [T07e amendment](t07e-test-plan.md), not a reclassification of historical measurements. This first predicate is
   conservative about p99: no allowance for noise is inferred from a short measurement.
   Internal records are trusted, reviewable inputs, not client-supplied assertions. No records
   ship in T07. Deployment/workload-envelope approval remains a release decision; changing
@@ -571,8 +574,10 @@ replaces the cached revision, and a new native start resets it. This changes all
 not event timing, request length, ownership, buffering or fallback behavior.
 
 The [T07d protocol](t07d-test-plan.md) explicitly uses the user's requested ten-minute
-soaks. Reports distinguish that bounded assessment from the unchanged thirty-minute
-production evidence predicate. Neither result installs eligibility records or enables rollout.
+soaks. Its historical reports distinguish that bounded assessment from the then-current
+thirty-minute predicate. T07e prospectively changes that minimum to ten minutes, as recorded
+in §12. Reproducing T07d's original decision requires its recorded source revision; neither
+historical nor current reports install eligibility records or enable rollout.
 The [Csound realtime I/O API](https://csound.com/docs/api/group__RTAUDIOIO.html) defines the
 native output buffer and its post-performance reads.
 
@@ -596,3 +601,35 @@ diagnostic. Scheduled event timing and controller correctness remain required. H
 T07c/T07d reports retain their original criteria and failures; current acceptance follows
 the [amended gate](acceptance.md#7-performance-measurement-and-gates). No runtime defaults,
 buffers, production evidence records or CSD exports change with this clarification.
+
+## 16. Linux worker CPU placement
+
+Linux's scheduler can repeatedly colocate short, barrier-driven independent owners on one
+virtual CPU even when affinity and cgroup quota allow parallel work. T07e observed this
+with playback underruns; its recorded diagnostic intervention establishes the reason for
+the [T07f continuation](t07f-test-plan.md).
+
+`RenderCpuPlacement` reserves distinct allowed logical CPUs across live coordinators in
+one API process. It queries the starting thread's current affinity, selects free CPU IDs
+deterministically and reserves atomically before allocation/spawn. CPU quota, cpuset,
+preparation/API headroom and other resource limits remain owned by `RenderAdmission`.
+This placement pool supplies an additional restriction, never extra CPU capacity. Unknown
+or insufficient Linux placement fails startup; auto mode follows existing single fallback.
+Platforms without Linux affinity retain the previous scheduling behavior.
+
+Each child verifies that its assigned CPU is still allowed, pins only its own rendering
+thread, verifies the resulting mask, then compiles and publishes Ready. Failure is a normal
+bounded startup error and all started owners are reaped. Parent/API, preparation processes
+and single rendering are not pinned. No affinity query or write runs inside the audio loop;
+block timing, barriers, event/control delivery, queue sizes and exports are unchanged.
+
+Reservations release only at the end of successful coordinator cleanup. Partial spawn,
+compile/placement failure and normal Stop share this path; unreaped owners or unfinished
+parent operations retain their reservations. A later start rechecks the current allowed
+CPUs. Existing owners are not dynamically rebound. Native probes verify distinct child
+masks and unchanged parent affinity; browser evidence records allowed masks outside DSP.
+
+These are logical CPU assignments within one API process, not exclusive physical-core
+reservations. Other containers, host scheduling, SMT and separate API processes remain
+outside this pool, as they do for capacity leases. Qualification stays specific to the
+measured workload/build/environment and does not register deployment eligibility.

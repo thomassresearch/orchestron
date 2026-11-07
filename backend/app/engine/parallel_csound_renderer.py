@@ -23,6 +23,7 @@ from backend.app.engine.browser_audio_pcm import resample_stereo_block_linear
 from backend.app.engine.csound_process import run_csound_process
 from backend.app.engine.realtime_renderer import EngineRenderResult
 from backend.app.engine.render_block_codec import SteadyBlockCodec
+from backend.app.engine.render_cpu_placement import PROCESS_RENDER_CPU_PLACEMENT
 from backend.app.engine.render_notification import completion_notification
 from backend.app.engine.render_ipc import (
     FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS, MESSAGE, SharedArena, build_layout, expected_done, slots_for, validate_envelope,
@@ -79,6 +80,7 @@ class PartitionRenderCoordinator:
         self._stop_serial = 0
         self._stoppers = 0
         self._children = {}
+        self._worker_cpus = ()
         self._dependency_fences = {}
         self._death_poll = None
         self._arena = None
@@ -197,6 +199,7 @@ class PartitionRenderCoordinator:
                     raise ValueError("Explicit partition execution requires a coarse compilation.")
                 if len(compilation.programs) > self.policy.max_workers or plan.graph.engine.channels != 2:
                     raise ValueError("Unsupported partition worker count or output format.")
+                self._worker_cpus = PROCESS_RENDER_CPU_PLACEMENT.acquire(self, len(compilation.programs))
                 self._plan, self._compilation = plan, compilation
                 self._render_programs = tuple((p,
                     tuple(b for b, _ in (*p.inputs, *p.outputs)) + ((FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS) if p.owns_output else ()),
@@ -232,14 +235,15 @@ class PartitionRenderCoordinator:
                 self._meter_views = tuple(tuple((p.meters, self._arena.audio(self._layout.workers[p.id].meters, slot))
                                                for p in compilation.programs) for slot in (0, 1))
                 ready = {}
-                for program in compilation.programs:
+                for program, cpu in zip(compilation.programs, self._worker_cpus, strict=True):
                     self._check(deadline)
                     regions = self._layout.workers[program.id]
                     command, reply = self._context.Semaphore(0), completion_notification(self._context)
                     envelope = dict(protocol_version=1, epoch=self.epoch, partition_id=program.id, plan_hash=plan.plan_hash)
                     process = self._context.Process(target=self._target, name=f"csound-{program.id}", daemon=True,
                         args=(self._arena.name, self._arena.size, regions.bootstrap, regions.bootstrap_hash, command, reply),
-                        kwargs={"predecessor_ready": tuple(fence for (pred, target), fence in self._dependency_fences.items()
+                        kwargs={"cpu_affinity": cpu,
+                                "predecessor_ready": tuple(fence for (pred, target), fence in self._dependency_fences.items()
                                                            if target == program.id),
                                 "successor_ready": tuple(fence for (source, target), fence in self._dependency_fences.items()
                                                          if source == program.id)})
@@ -426,3 +430,5 @@ class PartitionRenderCoordinator:
             self._arena.close()
             self._arena = None
         self._layout = None
+        PROCESS_RENDER_CPU_PLACEMENT.release(self)
+        self._worker_cpus = ()

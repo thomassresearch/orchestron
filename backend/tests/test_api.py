@@ -64,6 +64,48 @@ def test_renderer_baseline_keeps_single_worker_and_canonical_compile(tmp_path, m
         assert type(runtime.worker) is CsoundWorker
 
 
+def test_parallel_ten_minute_evidence_for_another_build_keeps_canonical_fallback(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from backend.tests.session_parallel_support import options, create_session
+    from backend.tests.test_render_qualification import evidence
+
+    first = replace(evidence(), single_underruns=727)
+    assert first.rejection() is None  # Revised numeric gate alone never authorizes a build.
+    records = (first, replace(first, workload="heavy-b", artifact_hash="other"))
+    settings = replace(options("auto", qualified_opt_in=False), qualifications=records)
+    with _client(tmp_path, renderer_options=settings) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client)
+        runtime = client.app.state.container.session_service._sessions[identity]
+        info = client.get(f"/api/sessions/{identity}").json()["renderer"]
+        assert info["selected"] == "single" and not info["qualified"]
+        assert info["fallback_reason"] == "parallel_not_qualified"
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker._coordinator.shared_memory_name is None
+        assert "<CsoundSynthesizer>" in runtime.compile_artifact.csd
+        assert client.delete(f"/api/sessions/{identity}").status_code == 204
+
+
+def test_parallel_cpu_placement_denial_preserves_single_fallback(tmp_path, monkeypatch):
+    from backend.app.engine import parallel_csound_renderer
+    from backend.app.engine.render_cpu_placement import RenderCpuPlacement
+    from backend.tests.session_parallel_support import options, create_session
+
+    placement = RenderCpuPlacement(lambda: set())
+    monkeypatch.setattr(parallel_csound_renderer, "PROCESS_RENDER_CPU_PLACEMENT", placement)
+    with _client(tmp_path, renderer_options=options("auto")) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client)
+        runtime = client.app.state.container.session_service._sessions[identity]
+        info = client.get(f"/api/sessions/{identity}").json()["renderer"]
+        assert info["selected"] == "single"
+        assert "Insufficient distinct allowed CPUs" in info["fallback_reason"]
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker._coordinator.shared_memory_name is None
+        assert not placement._owners
+        assert client.delete(f"/api/sessions/{identity}").status_code == 204
+
+
 @pytest.mark.parametrize("mode", ["auto", "parallel"])
 def test_parallel_capacity_denial_starts_no_children_and_preserves_canonical(tmp_path, monkeypatch, mode):
     from dataclasses import replace

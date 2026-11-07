@@ -15,6 +15,7 @@ import numpy as np
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.engine.partition_native import NativeCsoundPartition
 from backend.app.engine.render_block_codec import RENDER_MAGIC, SteadyBlockCodec
+from backend.app.engine.render_cpu_placement import apply_worker_cpu
 from backend.app.engine.render_ipc import (
     FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS, MESSAGE, Region, SharedArena, decode_audio, expected_done, validate_envelope, validate_render,
 )
@@ -30,7 +31,7 @@ def _exit_with_parent():
         os._exit(1)
 
 
-def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready, *, predecessor_ready=(), successor_ready=()):
+def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready, *, predecessor_ready=(), successor_ready=(), cpu_affinity=None):
     """Small spawn arguments; CSD/metadata live in the pre-provisioned arena.
 
     No queue feeder threads, callbacks, schedulers or Python service objects cross
@@ -46,11 +47,11 @@ def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready
         os.dup2(quiet.fileno(), 1)
         os.dup2(quiet.fileno(), 2)
     _serve(name, size, bootstrap, digest, command_ready, reply_ready,
-           predecessor_ready=predecessor_ready, successor_ready=successor_ready)
+           predecessor_ready=predecessor_ready, successor_ready=successor_ready, cpu_affinity=cpu_affinity)
 
 
 def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_factory=None,
-           predecessor_ready=(), successor_ready=()):
+           predecessor_ready=(), successor_ready=(), cpu_affinity=None):
     """The injected native factory is only for spawn-based fault/barrier tests."""
     arena = SharedArena(size=size, name=name)
     instance = None
@@ -84,6 +85,8 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
         if (not isinstance(message, Init) or message.artifact_hash != config["artifact_hash"]
                 or message.engine != native_format):
             raise ValueError("Partition INIT does not match provisioned artifact/engine.")
+        phase = "start"
+        apply_worker_cpu(cpu_affinity)
         phase = "compile"
         if native_factory is None:
             instance = NativeCsoundPartition(load_ctcsound_module(), program.csd, engine, config["sample_bytes"])

@@ -116,6 +116,8 @@ def run(args):
         diagnostics = worker.renderer_diagnostics if args.renderer == "parallel" else {"selected": "single"}
         shared = worker._coordinator._arena.size if args.renderer == "parallel" else 0
         pids = (os.getpid(), *(worker._coordinator.process_ids if args.renderer == "parallel" else ()))
+        worker_cpus = ([sorted(os.sched_getaffinity(pid)) for pid in pids[1:]]
+                       if hasattr(os, "sched_getaffinity") else None)
         rss = {}
         for pid in pids:
             path = Path(f"/proc/{pid}/status")
@@ -140,7 +142,8 @@ def run(args):
         "children_cpu_seconds_including_startup": children.ru_utime + children.ru_stime,
         "rss_after_render": rss, "parent_maxrss": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         "shared_bytes": shared, "capacity": asdict(observed), "diagnostic_cpu_override": args.diagnostic_cpus,
-        "capacity_after": asdict(detect_render_capacity()), "diagnostics": diagnostics, "cleaned": True}
+        "capacity_after": asdict(detect_render_capacity()), "diagnostics": diagnostics,
+        "worker_cpu_affinity": worker_cpus, "cleaned": True}
 
 
 def main():

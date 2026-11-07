@@ -75,6 +75,8 @@ class FakeNative:
 
 def controlled_process(*args, mode="normal", entered=None, release=None, barrier=None, **dependencies):
     threading.Thread(target=_exit_with_parent, daemon=True).start()
+    if mode == "affinity_error":
+        dependencies["cpu_affinity"] = -1
     _serve(*args, native_factory=functools.partial(FakeNative, mode=mode, entered=entered, release=release, barrier=barrier),
            **dependencies)
 

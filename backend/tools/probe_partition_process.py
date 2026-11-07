@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import platform
 
 import numpy as np
@@ -45,9 +46,16 @@ def main():
             for e in scheduler.drain_block(block_start_sample=sample, block_end_sample=sample + args.ksmps)))
 
     renderer = PartitionRenderCoordinator()
+    parent_cpus = os.sched_getaffinity(0) if hasattr(os, "sched_getaffinity") else None
+    worker_cpus = None
     try:
         renderer.start(compilation, plan)
         processes = len(renderer.process_ids)
+        if parent_cpus is not None:
+            worker_cpus = [sorted(os.sched_getaffinity(pid)) for pid in renderer.process_ids]
+            assert worker_cpus == [[cpu] for cpu in renderer._worker_cpus]
+            assert len({mask[0] for mask in worker_cpus}) == processes
+            assert os.sched_getaffinity(0) == parent_cpus
         result = renderer.render_blocks(block_count=args.frames // args.ksmps, target_sample_rate=plan.graph.engine.sample_rate,
                                         prepare_block=prepare)
         pcm = np.frombuffer(result.pcm_f32le, dtype="<f4").reshape(-1, 2)
@@ -63,9 +71,11 @@ def main():
     print(json.dumps({"case": args.case, "ksmps": args.ksmps, "frames": args.frames,
         "platform": platform.platform(), "python": platform.python_version(), "architecture": platform.machine(),
         "binding": reference.binding, "sample_bytes": reference.sample_bytes, "processes": processes,
+        "worker_cpu_affinity": worker_cpus,
         "plan_hash": plan.plan_hash, "artifact_hash": compilation.artifact_hash,
         "fixture_sha256": hashlib.sha256(fixture).hexdigest(), "pcm_sha256": hashlib.sha256(result.pcm_f32le).hexdigest(),
-        "exact_audio": True, "exact_last_meters": True, "cleaned": not renderer.process_ids and renderer.shared_memory_name is None,
+        "exact_audio": True, "exact_last_meters": True,
+        "cleaned": not renderer.process_ids and renderer.shared_memory_name is None and not renderer._worker_cpus,
         "performance_qualified": False}, indent=2))
 
 

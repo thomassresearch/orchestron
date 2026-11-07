@@ -40,13 +40,17 @@ again at Start, leases survive incomplete cleanup, and resource changes never re
 active renderer. Default single rendering performs no capacity filesystem probes in its
 audio loop. No performance qualification is registered. See the
 [T07 contract](specifications/parallel-csound-rendering/contracts.md#12-t07-capacity-and-performance-gate).
-The [latest latency investigation](specifications/parallel-csound-rendering/implementation-record.md#t07-continuation-live-input-latency-tails-and-ten-minute-qualification)
-reduces parallel per-block allocation and native-view overhead. The requested ten-minute
-parallel soaks and matched recovery pass. The user subsequently made live-input latency
-non-blocking for G7; its failed probes remain recorded under their original protocol.
-Scheduled timing and multi-channel controller-sequencer delivery remain required. The
-production evidence predicate is unchanged; shorter assessments and historical observations
-are reported separately. The diagnostic harness never registers renderer eligibility.
+T07 now uses startup-only [Linux CPU placement](backend/app/engine/render_cpu_placement.py)
+to keep persistent native owners on distinct allowed logical CPUs. Reservations span live
+coordinators in this API process and release after reaping; existing capacity admission still
+owns quota/headroom limits. Parent, compiler and default single affinity remain unchanged.
+Placement failures retain the existing startup error/single fallback contract.
+The [final G7 summary](specifications/parallel-csound-rendering/t07-qualification-summary.md)
+records the measured scope, ten-minute soaks, native benefit, controller fan-out and matched
+recovery. The evidence predicate requires at least 600 seconds and zero parallel playback
+losses; baseline single losses remain visible. Live-input latency is non-blocking under the
+user's amended criteria, with historical failures retained. Timing, buffers and CSD exports
+are unchanged. No qualification records are installed; T08 rollout remains separate.
 
 `CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
 metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).

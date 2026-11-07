@@ -11,7 +11,7 @@ def evidence():
     return QualificationEvidence(runtime="build", artifact_hash="artifact", plan_hash="plan", workload="heavy-a",
         report_digest="f" * 64, single_settings="same", parallel_settings="same", effective_cpus=4.,
         single_p95_ms=10., parallel_p95_ms=8., single_p99_ms=12., parallel_p99_ms=12.,
-        single_browser_seconds=1800., parallel_browser_seconds=1800., single_underruns=0, parallel_underruns=0,
+        single_browser_seconds=600., parallel_browser_seconds=600., single_underruns=0, parallel_underruns=0,
         stress_single_underruns=1, stress_parallel_underruns=1, stress_single_recovery_ms=10.,
         stress_parallel_recovery_ms=10., private_memory_bytes=400_000_000, native_correctness=True, final_image=True)
 
@@ -23,11 +23,23 @@ def evidence():
     ({"final_image": False}, "incomplete_qualification"),
     ({"private_memory_bytes": 0}, "incomplete_qualification"),
     ({"effective_cpus": 3.9}, "incomplete_qualification"),
-    ({"parallel_browser_seconds": 1799.}, "browser_soak_incomplete"),
+    ({"parallel_browser_seconds": 599.999}, "browser_soak_incomplete"),
+    ({"single_browser_seconds": 599.999}, "browser_soak_incomplete"),
     ({"parallel_underruns": 1}, "browser_underruns_or_recovery"),
     ({"stress_parallel_recovery_ms": 11.}, "browser_underruns_or_recovery")])
 def test_qualification_requires_every_gate(change, reason):
     assert replace(evidence(), **change).rejection() == reason
+
+
+def test_ten_minutes_and_clean_parallel_playback_can_improve_a_losing_baseline():
+    assert replace(evidence(), single_underruns=727).rejection() is None
+    assert replace(evidence(), single_underruns=727, parallel_underruns=1).rejection() == "browser_underruns_or_recovery"
+
+
+@pytest.mark.parametrize("field", ["single_underruns", "parallel_underruns", "stress_single_underruns", "stress_parallel_underruns"])
+@pytest.mark.parametrize("value", [-1, .5, float("nan"), True])
+def test_qualification_rejects_invalid_loss_counts(field, value):
+    assert replace(evidence(), **{field: value}).rejection() == "invalid_measurement"
 
 
 def test_exact_build_artifact_plan_and_two_workloads_are_required():

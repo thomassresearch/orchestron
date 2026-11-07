@@ -216,12 +216,12 @@ def test_midi_arriving_after_parent_drain_is_delivered_in_next_block():
         renderer.stop()
 
 
-@pytest.mark.parametrize("mode", ["compile_error", "second_block_error", "crash", "nonfinite", "float32_overflow"])
-def test_failure_discards_request_and_reaps_all_workers(mode):
+@pytest.mark.parametrize("mode", ["affinity_error", "compile_error", "second_block_error", "crash", "nonfinite", "float32_overflow"])
+def test_failure_discards_request_and_reaps_all_workers(mode, recording_cpu_placement):
     _, plan, compilation = prepared()
     renderer = coordinator(_worker_target=partial(controlled_process, mode=mode))
-    if mode == "compile_error":
-        with pytest.raises(PartitionRuntimeError, match="compile"):
+    if mode in {"compile_error", "affinity_error"}:
+        with pytest.raises(PartitionRuntimeError, match="start" if mode == "affinity_error" else "compile"):
             renderer.start(compilation, plan)
         assert not renderer.process_ids and renderer.shared_memory_name is None
     else:
@@ -233,6 +233,7 @@ def test_failure_discards_request_and_reaps_all_workers(mode):
         assert renderer.committed_sample == (32 if mode == "second_block_error" else 0)
         assert_released(renderer, name, pids)
     renderer.stop()
+    assert not recording_cpu_placement._owners
     # Rollback permits a fresh explicit attempt; no implicit replay of failed PCM.
     renderer._target = controlled_process
     renderer.start(compilation, plan)
@@ -325,7 +326,23 @@ def test_capacity_rejects_before_spawning_and_unknown_controls_fail_closed():
         renderer.stop()
 
 
-def test_partial_spawn_failure_rolls_back_before_fresh_single_fallback(monkeypatch):
+@pytest.fixture
+def recording_cpu_placement(monkeypatch):
+    from backend.app.engine import parallel_csound_renderer
+    from backend.app.engine.render_cpu_placement import RenderCpuPlacement
+
+    pool = RenderCpuPlacement(lambda: set(range(16)))
+    acquire = pool.acquire
+    def reserve(owner, workers):
+        acquire(owner, workers)
+        # Exercise ownership on any host without changing the test process CPUs.
+        return (None,) * workers
+    monkeypatch.setattr(pool, "acquire", reserve)
+    monkeypatch.setattr(parallel_csound_renderer, "PROCESS_RENDER_CPU_PLACEMENT", pool)
+    return pool
+
+
+def test_partial_spawn_failure_rolls_back_before_fresh_single_fallback(monkeypatch, recording_cpu_placement):
     from backend.app.engine.csound_worker import CsoundWorker
     from backend.app.engine.renderer_factory import create_realtime_renderer
 
@@ -349,6 +366,7 @@ def test_partial_spawn_failure_rolls_back_before_fresh_single_fallback(monkeypat
     with pytest.raises(OSError, match="spawn failure"):
         renderer.start(compilation, plan)
     assert len(created) == 2
+    assert not recording_cpu_placement._owners
     assert_released(renderer, names[0], ())
     single = create_realtime_renderer()
     assert type(single) is CsoundWorker
@@ -552,7 +570,7 @@ def test_empty_requests_keep_last_control_revision_and_reject_older_inputs():
         renderer.stop()
 
 
-def test_blocked_parent_callback_keeps_ownership_until_it_yields():
+def test_blocked_parent_callback_keeps_ownership_until_it_yields(recording_cpu_placement):
     _, plan, compilation = prepared()
     renderer = PartitionRenderCoordinator(policy=RendererPolicy(stop_timeout_seconds=.1), _worker_target=controlled_process)
     entered, release = threading.Event(), threading.Event()
@@ -573,6 +591,7 @@ def test_blocked_parent_callback_keeps_ownership_until_it_yields():
                 with pytest.raises(PartitionRuntimeError, match="has not yielded"):
                     renderer.stop()
                 assert renderer.shared_memory_name is not None and renderer.process_ids
+                assert renderer in recording_cpu_placement._owners
                 with pytest.raises(PartitionRuntimeError, match="still owns"):
                     renderer.start(compilation, plan)
             finally:
@@ -580,6 +599,7 @@ def test_blocked_parent_callback_keeps_ownership_until_it_yields():
             with pytest.raises(PartitionCancelled):
                 rendering.result(5)
         assert not renderer.process_ids and renderer.shared_memory_name is None
+        assert not recording_cpu_placement._owners
         assert renderer.published_sample == 0
     finally:
         release.set()
