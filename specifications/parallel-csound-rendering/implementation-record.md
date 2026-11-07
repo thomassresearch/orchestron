@@ -868,3 +868,122 @@ selection is enabled. The [verification manifest](measurements/t07b-verification
 records executed checks, exact unchanged default/export/browser sources and reproduction
 commands. Further qualification should use independent sequential browser arms as well as
 concurrent-session stress, without changing timing or buffer settings.
+
+## T07 continuation: completed G7 browser qualification
+
+**Decision: NO-GO for G7.** The requested second heavy soak and matched recovery/latency
+experiments are complete. `realtime_2` passes the measured checks. `realtime_4` improves
+median input latency and recovery but does not establish the required p95 latency limit.
+Single remains the default/fallback, no qualification records are installed, and T08
+release remains pending. This continuation changes measurement tooling and evidence only.
+
+The [protocol](t07c-test-plan.md) was frozen before these probes. The
+[reproducible comparison](measurements/t07c-browser-qualification.json),
+[compressed raw observations](measurements/t07c-browser-data/),
+[harness](measurements/t07c-browser-harness/README.md) and
+[verification manifest](measurements/t07c-verification.json) retain the complete results.
+The image remains `sha256:4d8770ba1a5e15bdcce523d2c94eab9287b5e6ebf31f3ffec36e739783c3e9f4`:
+Docker Desktop Linux ARM64, Python 3.13.18, Csound 6.18.1, native double samples and Cython.
+Each disposable container has four effective CPUs, 2 GiB memory and 64 MiB shared memory.
+Both modes retain 48 kHz/K=32, local `auto` settings and the 288,000-frame browser ring.
+No application sources, render request policy, timing, audio buffers or CSD exports changed.
+
+### Sustained playback
+
+New T07c arms ran sequentially, one test container/browser at a time, without builds or
+unrelated tests. A ten-second startup/warmup is retained separately. The single control
+for `realtime_4` was repeated without the earlier overlapping container startup.
+
+| Workload | Single duration / underruns | Parallel duration / underruns | Provenance |
+| --- | ---: | ---: | --- |
+| Realtime two | 30.04 min / 0 | 30.04 min / 0 | Both new, isolated T07c arms |
+| Realtime four | 30.04 min / 0 | 30.40 min / 0 | New isolated single; retained T07b parallel |
+
+All four soak observations have zero overruns, zero warmup underruns and no reported errors.
+The retained four-branch parallel soak still has T07b's concurrent-host caveat; it has not
+been relabelled as a new isolated run. A fresh parallel four-branch session received a
+62.40-second observation before its matched probes, not another thirty-minute soak.
+The clean isolated four-branch single result supersedes neither nor erases the earlier
+concurrent baseline's 15,573 underruns; it demonstrates why that overlap limited attribution.
+
+For realtime two, sampled render/audio p95/p99 are 0.948/0.961 single and 0.812/0.840
+parallel. The new realtime-four single values are 1.046/1.078 despite zero browser underruns:
+the existing queue absorbs slow requests. Parallel stays selected with three children,
+known four-CPU capacity, no failure and no fallback. The exact-image native performance
+and parity reports from T07b remain applicable; no new native benchmark is claimed here.
+
+### Matched recovery and live input
+
+Each fresh arm received three 1.2-second container pause/unpause pulses. Each pulse retained
+a fixed sixty-second observation; stable recovery requires ten subsequent seconds of full
+audio consumption without another underrun. Command-time and output-clock bounds are
+retained, and the analyzer rejects gaps, resets and nonfinite data. All twelve pulses began
+cleanly, induced real dropouts and recovered within the observation window.
+
+| Workload | Single / parallel underrun quanta, three pulses | Worst single recovery | Worst parallel recovery | Result |
+| --- | ---: | ---: | ---: | --- |
+| Realtime two | 899 / 887 | 353–405 ms | 288–316 ms | Pass |
+| Realtime four | 1,045 / 920 | 16,215–16,258 ms | 336–390 ms | Pass |
+
+These are bounded-stall results, not proof of arbitrary quota saturation or multi-session
+host isolation. An underrun count is the AudioWorklet's count of affected quanta, not a count
+of separate audible glitches. Raw traces also retain exact missing-frame totals, partial
+quanta, queue levels and output-clock mapping spread.
+
+Latency uses timestamped MIDI through the production Worker with the same graph/native
+owners, sixteen peak voices, muted but running background branches, and unchanged automatic
+Live mode. A silent observation branch leaves the production output connection intact and
+reads, never writes, the audio ring. Its separate diagnostic storage is not an audio buffer.
+Every arm passed sixteen known-frame calibration pulses with zero sample error and retained
+four warmups plus all 128 measured bursts, with no probe timeout or dropped observation.
+Output time is estimated with `getOutputTimestamp()`; physical speaker latency is unmeasured.
+
+| Workload / renderer | Mean ms | Median ms | p95 ms | p99 ms | Maximum ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Realtime two / single | 337.5 | 249.4 | 728.8 | 746.1 | 746.4 |
+| Realtime two / parallel | 144.1 | 121.4 | 211.9 | 722.4 | 722.6 |
+| Realtime four / single | 187.2 | 183.6 | 258.0 | 275.5 | 278.7 |
+| Realtime four / parallel | 146.0 | 121.3 | 365.1 | 601.6 | 661.6 |
+
+The frozen 10,000-resample comparison uses parallel minus single and a 0.667 ms native-block
+margin. Realtime two's 95% mean interval is **−234.5 to −152.3 ms** and its p95 interval is
+**−601.8 to −49.6 ms**: pass. Realtime four's mean improves (**−57.9 to −22.7 ms**), but its
+p95 interval is **−47.7 to +230.9 ms**: inconclusive, never a pass. Its observed p95 is higher,
+but this interval does not establish a statistically supported regression either.
+
+Retained first/second-half single A/A comparisons show temporal variation: mean intervals
+are +25.8 to +173.1 ms for realtime two and −30.7 to −0.4 ms for realtime four. These are
+finite, sequential browser estimates with correlated runtime behavior, not population-level
+latency guarantees. The whole latency phase (including setup/warmup/gaps) accumulated
+106/18 underrun quanta for realtime two single/parallel and 323/22 for realtime four.
+Between the first and last measured bursts those counts are 103/18 and 276/10 respectively.
+The unchanged Worker increases its recovery queue by 120 ms per observed underrun, capped
+at 600 ms. The large observed Live-mode queues and latency tails are consistent with that
+existing recovery behavior. Fewer underruns and faster median response do not establish
+the required tail-latency bound.
+
+### Verification and release consequence
+
+- 51 focused tests passed in 3.36 seconds: six new measurement-analysis regressions,
+  existing capacity/qualification tests, and API default, admission-denial, failure and
+  canonical-fallback regressions. The existing Starlette/httpx deprecation warning remains.
+- Observer controls passed for stereo onset, silent output, calibration, quiet detection
+  and bounded telemetry. Backend and harness Ruff passed. The full backend suite and
+  native parity matrix were not repeated; T07b's exact-image evidence is explicitly reused.
+- Post-soak/pre-probe private process-memory snapshots, including compiler/tracker processes,
+  are 249.3/444.9 MiB for realtime two and 252.4/449.6 MiB for realtime four single/parallel.
+  The fresh four-branch parallel snapshot follows its short observation, not a thirty-minute
+  soak; these are snapshots, not new peak-memory measurements.
+- All four test containers and browser sessions were removed after normal app stops.
+  Existing user containers were left running. Source hashes verify unchanged production
+  backend/frontend, including single/default/fallback selection, timing and export sources.
+
+The original scalar `QualificationEvidence.rejection()` accepts both diagnostic numeric
+aggregates. It does not contain the broader live-input latency criterion. The analysis
+therefore also applies the frozen latency/recovery checks, and the four-branch result blocks
+G7. These aggregate inputs reuse native benchmark identities for comparison only; they do
+not register browser artifacts or approve a deployment. No threshold is relaxed or record
+installed. The next performance work must address residual Live-mode underruns and their
+latency tails under the existing timing/buffer contract, then repeat the matched qualification.
+K=1, oversized heavy cases, original low-benefit cases, other platforms and native float32
+remain outside qualification.

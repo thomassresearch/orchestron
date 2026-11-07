@@ -1,0 +1,242 @@
+{
+  "task": "T07c: second heavy soak and matched latency/recovery qualification",
+  "starting_head": "1fac4650ab00a0673a2243e6526a7dac9084be8b",
+  "image": "sha256:4d8770ba1a5e15bdcce523d2c94eab9287b5e6ebf31f3ffec36e739783c3e9f4",
+  "platform": "Docker Desktop Linux ARM64; Python 3.13.18, Csound 6.18.1, MYFLT float64, Cython sequencer.",
+  "limits": {
+    "effective_cpus": 4,
+    "memory_bytes": 2147483648,
+    "shared_memory_bytes": 67108864,
+    "sample_rate": 48000,
+    "ksmps": 32,
+    "ring_capacity_frames": 288000
+  },
+  "default_renderer": "single",
+  "fallback_renderer": "single",
+  "registered_records": 0,
+  "production_backend_and_frontend_unchanged": true,
+  "csd_exports_changed": false,
+  "timing_and_buffer_policy_changed": false,
+  "result": {
+    "G7": "not_passed",
+    "realtime_2": "pass",
+    "realtime_4": "inconclusive_p95_live_input_latency",
+    "next": "Address residual Live-mode underruns/latency tails without changing timing/buffer contracts, then repeat matched qualification."
+  },
+  "validation": {
+    "focused_tests": {
+      "passed": 51,
+      "seconds": 3.36,
+      "warning": "Existing Starlette/httpx deprecation",
+      "scope": "Capacity, qualification, six measurement regressions, API default/admission/failure/canonical fallback"
+    },
+    "final_measurement_tests": {
+      "passed": 6,
+      "seconds": 0.15,
+      "scope": "Rerun after adding full post-resume observation-window validation"
+    },
+    "observer_controls": "passed",
+    "backend_and_harness_ruff": "passed",
+    "native_parity_and_benchmarks": "Reused immutable T07b exact-image reports; not rerun",
+    "full_backend_suite": "Not rerun; production sources unchanged",
+    "all_test_containers_and_browsers_removed": true,
+    "user_services_preserved": true,
+    "documentation": {
+      "local_reference_paths_checked": 130,
+      "all_valid": true,
+      "archived_json_and_hashes_verified": 31,
+      "embedded_observer_matches_sources": true,
+      "javascript_syntax": "passed",
+      "git_diff_check": "passed"
+    },
+    "commands": [
+      ".venv/bin/python -m pytest backend/tests/test_render_capacity.py backend/tests/test_render_qualification.py backend/tests/test_qualification_measurements.py backend/tests/test_api.py::test_renderer_baseline_keeps_single_worker_and_canonical_compile backend/tests/test_api.py::test_parallel_capacity_denial_starts_no_children_and_preserves_canonical backend/tests/test_api.py::test_parallel_session_failure_revokes_stream_and_next_start_uses_single backend/tests/test_api.py::test_parallel_session_internal_preparation_failure_preserves_canonical_fallback -q",
+      ".venv/bin/python -m pytest backend/tests/test_qualification_measurements.py -q",
+      ".venv/bin/ruff check backend specifications/parallel-csound-rendering/measurements/t07c-browser-harness",
+      "node specifications/parallel-csound-rendering/measurements/t07c-browser-harness/test_probe_processor.cjs"
+    ]
+  },
+  "analysis_runtime": {
+    "python": "3.13.2 (main, Mar 17 2025, 21:26:38) [Clang 20.1.0 ]",
+    "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+    "numpy": "2.5.1"
+  },
+  "analysis_sha256": "f7ba61fb89f477ee91709d05518445a875fda207b48e8ccc01191d1da2cbc0c8",
+  "tests_sha256": "818ff228820d2f39e7cd76679b5636edc49cca7f4bca76e02ad9889304560be9",
+  "protocol_sha256": "7da3c08db876da6a81597c19631c4399e887ccccf0a760ae0db8944bc43d0c02",
+  "comparison_sha256": "b36b96c0d5e0633c4025ade7f20288b15a5ee1be93da0a6b4f6daeedf166160f",
+  "reused_reports_sha256": {
+    "t07b-final-container-4.json": "435c6656ebfbeecfe1ac788f3655f9dfdc338b905ea527b4d8952de0afea85d9",
+    "t07b-final-container-correctness.json": "5ed42919183f54567f9c07c9a697721b6fc8d6c0435d5e63dc5c375646ae02da",
+    "t07b-final-subnormal.json": "d19725d582a9e2f6fd561fdabc34a3f0bf3eb133d95691568c63a0af873a4c8f",
+    "t07b-browser-realtime4.json": "809fa40592ad1b3e81003c2bf0576aaaad20517e732cb9c3b901a112f85a6206",
+    "t07b-verification.json": "c4e17797f49ee4b7ff542b3afc29290ad1f2b2278e5b8723609bc39a2e614831"
+  },
+  "unchanged_source_hashes": {
+    "backend/app/engine/renderer_factory.py": "a05e7ad01ae4de63c5fe93e6d53abfb79a908cd1b4a133fbb97f206801c0b102",
+    "backend/app/engine/csound_worker.py": "6cd3a937d4a71b3d8786de8a127b5c6bbcc0cc004aff10e7ef4187cf8f20f4e4",
+    "backend/app/models/render_protocol.py": "b33868cecb91862c47e1eb8cd3afb0f8346c9631cbb7378bb33c5359f6de1058",
+    "frontend/src/audio/browserClockWorker.ts": "ff79715f68fbab67756f84f488e2c413c622154fa2dc68a33d95ecc60dfaa6af",
+    "frontend/src/audio/browserClockProcessor.js": "72006e7ca2a626ef4c9b1432579ed336abc0682ae42d1756c56788ed2601665d",
+    "frontend/src/lib/browserClockLatencyConfig.ts": "d33dea5e8a84226e7d334f9c54204575b77fd17ed19c30638ea25137b0c91833",
+    "backend/app/services/performance_export_service.py": "af9d84a84c324072d0c63ad3200bede93c3a6f1861518b9da100d14ded8ed233",
+    "backend/app/services/compiler_service.py": "c958192cdbc53ee731f331a17db233fc3767b03f36e9514f679db8a87ce2f4e4",
+    "backend/app/services/compiler_mixer.py": "a8decf1697b354cfc67c578bd6c1c674de215b9ca989dd5a3635c95fe1626d3d",
+    "backend/app/engine/render_qualification.py": "4e7a60e52874e5af5a25cfddd88f1746f518c8ed0e27d45831f8870cd7d37679",
+    "backend/app/engine/session_renderer_options.py": "23eff3cb6df0bc22a621243198faa0fa2fd8d117d11548c2c69d32440ef934bf",
+    "backend/app/core/config.py": "e541da1db5ca0e959e2461478769518d9ab045f338cd2384fa949053ed1c7871"
+  },
+  "harness_sha256": {
+    "README.md": "75998cad5e0db37940da35d2fc574ab32c12f7b9d888dedf04aa39a07b9433ce",
+    "analyze.py": "c16f6d5e4d3c571ac2bd239697be3375d6dbe8de7c8cfa33ab72cb9e26bdbd8c",
+    "capture.js": "5648cdc6bf5b5bdbb6a08ac7082adc982f2096ef510edbd6f4affea67bd89a40",
+    "finish.js": "e9b80bf18fa411b47ced0e8bd34d3f5dbe05e36ae808293921f5353bc12959de",
+    "install_probe.js": "f81cb15f9a61ddf8db126456aba57980b275b3c9ede8da83c621890d64ae549f",
+    "install_probe_body.js": "3b5137ff567f526f88b16ecfc70a11d9626b64d220b8ff1c4fa0a1c41786834a",
+    "monitor_soak.py": "589caa3ff3e00da155f050e5d1a70188002f529f7cff29ad189c1a86b2cb9600",
+    "playwright-cli.json": "90f374c7b921e05fcd19c7773425994c1b04052e7e4f708b4dfc7e62d58f751a",
+    "poll.js": "b9bcf7b4ddc98482a2626d823ec02da9044bc4647b9e93d1d84e37598afffb0d",
+    "probe_processor.js": "94a3e68f476b2c37357de5f16b70c38c1586dfdbe5cb9ba00e2cbba8502493ea",
+    "resources.py": "5bd5dae8833aa4b4f247d2a3d9d3c549841333eb8fa4acff162ee4d9720b8535",
+    "run_arm.py": "6e36c18d2da195c222c17ba6216f6f70fbf657c09ffb564eab339fd250869e68",
+    "run_recovery.py": "bd2afe0def40947155f6c75cd3a4f8abd7f9e050139673036ba827dbd04483b5",
+    "server.py": "9aa1cfcd9e56a576bf7803b7cf7eb6f452dd9db74a80e781e82c63495c045a35",
+    "setup.js": "ff06bc8e71cb52ec6082c0d6b8840795daefae38fc3785ff9eeda1ac4655b82e",
+    "start.js": "ecb87f2716991be76b0649572e7e1e82f8b238f524efe8b1672c47c24b8353b7",
+    "start_latency.js": "f42b835066f6812c5d0a5660f4450bb9735c89f61c1178fe6c7a67dc74933923",
+    "test_probe_processor.cjs": "119f7a55c123f6f8a566ae916ed609faf4415ce4fd5684b0248f09f4e050808c"
+  },
+  "raw_records": {
+    "rt2-parallel-container.json.gz": {
+      "gzip_sha256": "37bc9d98146a7d0f2c5ac14cbb9e63b98683f3a0353b728e5734dbd794a1e3cf",
+      "json_sha256": "e85da7fc83974b878c4f196a6a0021ed69973a075f7e2ec527cd73d2e87a1045"
+    },
+    "rt2-parallel-finish.json.gz": {
+      "gzip_sha256": "854a4d27c14e377ad79f734938c10724b4e762f800dec056bff843efedb5781d",
+      "json_sha256": "b5d128c19090aa4164216a39479dceb9b524013bfd37b1ac17ff3b30e71ba6ed"
+    },
+    "rt2-parallel-latency.json.gz": {
+      "gzip_sha256": "cdba6b921a6a58452e8f73eb6e7f380d781a72af85d79278b48af7ee1dd1bf0e",
+      "json_sha256": "7ba885db65d18f369cf7b249ebdf8adcf5ebe3dc5075cad83381743cdf1a8250"
+    },
+    "rt2-parallel-probe.json.gz": {
+      "gzip_sha256": "e2314ee928846ea3df39db74ad3c99fbd8e3cd1a324b32a4b94d877bf7ab1020",
+      "json_sha256": "193dc8b558dbe75ac1632df38e12d31153b28dac2b479af42ab09b6d9e53c920"
+    },
+    "rt2-parallel-recovery.json.gz": {
+      "gzip_sha256": "ad1a44939cb0c8dc9c2b45dc646e8a89c4d2be2006d708c64c32b0c1f456c0fa",
+      "json_sha256": "a8e2d75ce8ca99016c371ec7d8ca0f53d65883d25bde537fb44b72bec0a9700a"
+    },
+    "rt2-parallel-resources.json.gz": {
+      "gzip_sha256": "68cfc149819d60c4b05dcd78d50ba70d98bf9217b565a2b32b0501d3d82b16d1",
+      "json_sha256": "d42e2f2ed5be49640ef5d23298c28bfd3c7473ee4e1c981431f6f4a4c9f4d357"
+    },
+    "rt2-parallel-soak.json.gz": {
+      "gzip_sha256": "07187cae86f50de710df8b16d8056af8d62c95753f01fe49e1ca27f920c28f08",
+      "json_sha256": "1363728124f239231852acdf1aca670de6599bfab3932e9573dfad65944c3a40"
+    },
+    "rt2-parallel-start.json.gz": {
+      "gzip_sha256": "a58007824cb1dbd6c7618ed5b604e70d2586837954bf967514e024f1add7fca1",
+      "json_sha256": "0317857f53f401198acd40d82831c8596d91be9d332d617aa458ff38a9c1863e"
+    },
+    "rt2-single-container.json.gz": {
+      "gzip_sha256": "231f6cc9e80c238073a9f4e9824ebd94b089e659bc3711e0bd80c48028fff5c8",
+      "json_sha256": "c7a336ddda4000751979426f2b2152f0668b7df8d31bcef7d0fca7589603b5ec"
+    },
+    "rt2-single-finish.json.gz": {
+      "gzip_sha256": "d3e612f39ae1fad0b5e01a581961afb32e2704975c4b31b4ff27b1f363a028ed",
+      "json_sha256": "f36d63b3fbc1e9132db376d191c9b3e4a2732148fafb5624a10ded4a90c1072b"
+    },
+    "rt2-single-latency.json.gz": {
+      "gzip_sha256": "4112539a3d342a6cefe58d841fc0db8b9ee9a789372e2e28c26ff1eb3acada9f",
+      "json_sha256": "277dd548cd3f66e6007d973188c2152b3997e868e7833c87182a867ccd4a0620"
+    },
+    "rt2-single-probe.json.gz": {
+      "gzip_sha256": "ea636b2cd2602b8e64a4e2536ab0c5b53d848e622755ae1683ddcc993f6b7a0e",
+      "json_sha256": "d12d77e0aa110944f0ebcebdab5ce9ae29b08cbea01ba4f7ffafc7cdb8eef2cb"
+    },
+    "rt2-single-recovery.json.gz": {
+      "gzip_sha256": "1d21775525772921b3b9d0134b4ba341e376dd0a282de445def6f24ef2f0125a",
+      "json_sha256": "1221ee85d695b42a03c7f1af5eda7452a7b5fa4c561fa22d9587b0743792fba9"
+    },
+    "rt2-single-resources.json.gz": {
+      "gzip_sha256": "055c83df4603b50679e2cfceac2aa739b597e3c28098465e49d706602f42bbe3",
+      "json_sha256": "059b44c5c8b859a241c4b57a031c07be6873ce1f8b97b37ccc9fce52d550fcb3"
+    },
+    "rt2-single-soak.json.gz": {
+      "gzip_sha256": "8bb74d25afa408eaa66c8207e8cdf6a97a35cbccc2e2fae06afed80b55daa1d2",
+      "json_sha256": "62bebb5b74b883583ac76cd16b04c7fa0523259477964040c559f66a37620c7c"
+    },
+    "rt2-single-start.json.gz": {
+      "gzip_sha256": "62241c26ef54f93be6811c2b3a5d9b154a87bd5c1526e6a79afe44d3c58c2b62",
+      "json_sha256": "ffe55395efe61e98f3cc112bd9d1ef319be3fd1b825529c4c715f26d8b1b616e"
+    },
+    "rt4-parallel-container.json.gz": {
+      "gzip_sha256": "2fa546557d93a219ec35ddd65adfdfd2a50887aeeba38fe29c687c2ed49cf21f",
+      "json_sha256": "981d3edb7cdb61fba6d2654525af4369513bd11b3b23679918d5735e017cd062"
+    },
+    "rt4-parallel-finish.json.gz": {
+      "gzip_sha256": "355ac147aedd2d50e445d802a6a0767d037f7c4775d0606df4732d044a7eef04",
+      "json_sha256": "24e9e26e56199d173b7a30f4117aa64867c55d9dcf203a300d6bab6f87f588b5"
+    },
+    "rt4-parallel-latency.json.gz": {
+      "gzip_sha256": "8159e04b9a4f459c07440ab49252618c7629258560de141a3c5e12d3c8c73639",
+      "json_sha256": "0fec099fcbe18b55448349b42ce207f1be02fbeb1e6d49af6cb9a8c94738efc1"
+    },
+    "rt4-parallel-probe.json.gz": {
+      "gzip_sha256": "43022bcc4eb7cb71dfb5dbaa1608391b942c97387c9b5dfcd67249f2f46252d9",
+      "json_sha256": "a85c25aec92969e288298ef06b014b5b6ec5b54aff35a9f02e6bde3cbba0ac6b"
+    },
+    "rt4-parallel-recovery.json.gz": {
+      "gzip_sha256": "0e809f0b3884faf20c30723192d2c9599ae01e56c3c768fa18a12b81306af7c2",
+      "json_sha256": "bdf2582f30287cd67144026d8de69cb3899c025aa380297340e9fa283e831350"
+    },
+    "rt4-parallel-resources.json.gz": {
+      "gzip_sha256": "8c9422889950891bd3b9afcc8863985cd2aeb1ff48f91aa4001db41201fdb8cf",
+      "json_sha256": "df7f67e6cc8bd0286dcc156d32588e453cfb9bbb23a2ec0bd62e5b75f703ba9a"
+    },
+    "rt4-parallel-soak.json.gz": {
+      "gzip_sha256": "e02727f7bbae0fcfa7ac5d12860a5639393aa66a0acff8643088c1ccb8a7f861",
+      "json_sha256": "89520435579c512c376b77324d3512839ba3a5eb2c064288007d9d1cd370ccbc"
+    },
+    "rt4-parallel-start.json.gz": {
+      "gzip_sha256": "8755711beac7959752de8ef35dc8afdec3af5fa9239819e29124f697cd4dc702",
+      "json_sha256": "eb3f0596ae0ca788d8738c3faa04b2863fe590e0ceca39e60d55f2269bd8f853"
+    },
+    "rt4-single-container.json.gz": {
+      "gzip_sha256": "b6276ffae752e4bafec1a56abccb3fb10159c0209642098b0153265e44d5aff9",
+      "json_sha256": "e8365036add3e90a5c378e2923db64693190d25d16db21b1528aeb3d5677986c"
+    },
+    "rt4-single-finish.json.gz": {
+      "gzip_sha256": "4be83b3cf436ad4f5192e965521066f46688ff5df11320269d5fcde03d6f722e",
+      "json_sha256": "5881e46a1580755bba5ee6d1e9d52efce1dd01d1084123afb933eadb28af21f4"
+    },
+    "rt4-single-latency.json.gz": {
+      "gzip_sha256": "239ee70ca0a2cd373970e897aaecfa86b7baf3fe41f80a466ef7af2e9ea07387",
+      "json_sha256": "e7492f1a7c88ded6ff1189d1d4bb7d20509bd54b97b314aa9fbbf337081bd1ad"
+    },
+    "rt4-single-probe.json.gz": {
+      "gzip_sha256": "c5e5d8264638ed739c9ddb1f0d878e4246cac7dc57d61fcfc7090311b5878c8f",
+      "json_sha256": "1109b0fd0ecd58fc8ce166b417f8c28645771c4912f814db4f5d1f5de85391f3"
+    },
+    "rt4-single-recovery.json.gz": {
+      "gzip_sha256": "2cb45f775fab20d95ece8a355bf95ce01f23137d52835d4740307ca33bab497a",
+      "json_sha256": "baa932f265626ee14540de539e509355dd4b6076bb3de407bb6680e27a399783"
+    },
+    "rt4-single-resources.json.gz": {
+      "gzip_sha256": "2af19093efee760fdbd7fed8eb80c8cc7ecbea071946e9d0b66d61ec5d94d4e6",
+      "json_sha256": "d61db95b2a85992027f4bc64715c4147168388a816797de1b497ccca1f1385f8"
+    },
+    "rt4-single-soak.json.gz": {
+      "gzip_sha256": "db66dfde159581529e01b096b9853e2f5ea241c85573be504fa6a1b55df964ef",
+      "json_sha256": "aff726eb6c59ef2afd7830030ef844628aeb2674a7f980d396cc8062b8c7ed81"
+    }
+  },
+  "scope_limits": [
+    "Docker Desktop Linux ARM64 and these two four-CPU K=32 workloads only",
+    "Historical four-branch parallel soak retains concurrent-host caveat; fresh parallel four-branch probe prewarm is only 62.40 seconds",
+    "Sequential empirical browser-output estimates; physical speaker latency unmeasured; single A/A temporal variation retained",
+    "Bounded container stalls do not establish arbitrary quota-saturation or cross-API-process isolation",
+    "Scalar evidence predicate lacks the broader latency criterion; diagnostic analysis applies it separately and installs no eligibility records"
+  ]
+}

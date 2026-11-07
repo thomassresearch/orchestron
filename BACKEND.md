@@ -40,6 +40,10 @@ again at Start, leases survive incomplete cleanup, and resource changes never re
 active renderer. Default single rendering performs no capacity filesystem probes in its
 audio loop. No performance qualification is registered. See the
 [T07 contract](specifications/parallel-csound-rendering/contracts.md#12-t07-capacity-and-performance-gate).
+The [completed browser qualification](specifications/parallel-csound-rendering/implementation-record.md#t07-continuation-completed-g7-browser-qualification)
+has clean heavy soaks and passing matched recovery, but the four-branch input-latency tail
+remains inconclusive, so G7 stays closed. Its diagnostic harness and analysis never register
+renderer eligibility.
 
 `CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
 metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).

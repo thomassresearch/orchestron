@@ -2,6 +2,10 @@
 
 Status: T01–T07 implementation delivered through an explicit internal session opt-in; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and limits. Normal startup still uses the single renderer. G7 performance qualification has not passed; T08 rollout remains pending.
 
+The [completed G7 browser experiments](implementation-record.md#t07-continuation-completed-g7-browser-qualification)
+include two heavy workloads and matched recovery/input-latency probes. Recovery passes;
+the four-branch latency-tail comparison remains inconclusive and prevents qualification.
+
 Use independent instrument branches to distribute realtime synthesis across persistent Csound processes. Preserve the browser clock, musical timing, routing semantics and live controls. Keep the current single-engine renderer as the default and as the compatibility fallback.
 
 The first delivery uses coarse partitions: independent upstream branches and one shared downstream partition for joins, shared effects, Master and final output. It keeps one global control block in flight, avoiding a new scheduling lookahead or a block of audio delay at process boundaries. More complex scheduling is conditional on measured benefit and timing equivalence.
