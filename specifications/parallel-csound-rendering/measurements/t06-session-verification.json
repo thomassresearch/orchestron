@@ -1,0 +1,439 @@
+{
+  "version": 1,
+  "date": "2026-11-07",
+  "scope": "T06 functional session integration with explicit unqualified application opt-in; default single unchanged",
+  "source": {
+    "base_commit": "c937474f188be154203296c8cbb6e870be6288ef",
+    "changed_source_sha256": {
+      "backend/app/engine/parallel_csound_renderer.py": "90ee182a497898f2cc9bc376d9715aa4196bdafa9c598829856e49d57f945583",
+      "backend/app/engine/renderer_factory.py": "a05e7ad01ae4de63c5fe93e6d53abfb79a908cd1b4a133fbb97f206801c0b102",
+      "backend/app/engine/session_parallel_renderer.py": "cc0b1e7f3a8d972dd1336863055cf42f8a15dc186067ae1fd052541aed9ba584",
+      "backend/app/engine/session_renderer_options.py": "172cf7e6c00ffba33c06298840792b655c0a36f962376f42ed9727860e0b36f2",
+      "backend/app/engine/session_runtime.py": "ae16b2cfe38cb3b73c9c5ad5dc46a9fa1681b7b242a32b646fc7c576e8167fe2",
+      "backend/app/main.py": "a09fd89900d6545061fa16769d7e0f8700df0364c3f4c3cd02215eb612b24ab0",
+      "backend/app/models/render_protocol.py": "b33868cecb91862c47e1eb8cd3afb0f8346c9631cbb7378bb33c5359f6de1058",
+      "backend/app/models/session.py": "e0b9b0fa47454118e86be477c7c69b95580ccbc2d3b26b968f2d535b4c734a36",
+      "backend/app/services/session_service.py": "deb0158a10bec712646bd560333a8575880df722d16de18cfbf2194f0e8b1f24",
+      "backend/tests/api_test_support.py": "dfe727c87905264ca216733c81e53ef87cbfd797b605df2b75b0e6ce51f1ee51",
+      "backend/tests/session_parallel_support.py": "b0842621ab35ffc48bbb2ea18be26699384bfb6826847d6e81f414e8983ea926",
+      "backend/tests/test_api.py": "462f934c2d50df6bef1d6a8b2d2a9ef3e1730c8be298a28bfa4646acfce73c21",
+      "backend/tests/test_render_baseline.py": "b07b66863445960449556141295769bbdf3100963ea5efc1e856f40c1c458a27",
+      "backend/tests/test_session_parallel_renderer.py": "18ce5fadbaaaa6fd20f124abc93be2c9b598c5f6562f81004b5c1eae2d979a8f",
+      "frontend/src/audio/browserClockPlayback.test.ts": "1f0412751192f923eab1b9cd002ee8cdb65bd45252036aac36fde7b02ddd77a2",
+      "frontend/src/audio/browserClockWorker.ts": "ff79715f68fbab67756f84f488e2c413c622154fa2dc68a33d95ecc60dfaa6af",
+      "frontend/src/store/useAppStore.async.test.ts": "82243342f610a09b6fcc9c5fdf6dc2f4bfaff1fd319afe6220414101754a45ec",
+      "frontend/src/store/useAppStore.ts": "368194b301f7747cb1b042d9d4e81a09a85deab8f3efbd9dc8537310a34c0d41",
+      "frontend/src/types/index.ts": "de979b3c9b2021ccf908d3f506975ad786893ad95a491a3010e191652119d91b"
+    },
+    "unchanged_single_worker_sha256": "6cd3a937d4a71b3d8786de8a127b5c6bbcc0cc004aff10e7ef4187cf8f20f4e4",
+    "unchanged_export_service_sha256": "af9d84a84c324072d0c63ad3200bede93c3a6f1861518b9da100d14ded8ed233",
+    "protocol_schema_sha256": "8c0f9c56cdab588f2adaf4727f31dc6910539b9f462fccd7375fccc92ad0cbc6"
+  },
+  "host": {
+    "platform": "macOS-15.7.9-arm64-arm-64bit",
+    "python": "3.9.6",
+    "csound_version": 6181,
+    "binding": "DirectCsound",
+    "native_sample_bytes": 8
+  },
+  "checks": {
+    "frontend": {
+      "command": "npm --prefix frontend run check",
+      "test_files": 118,
+      "passed": 1376,
+      "lint": "passed",
+      "build": "passed"
+    },
+    "python_focused": {
+      "command": "VISUALCSOUND_SEQUENCER_IMPLEMENTATION=python .venv/bin/pytest backend/tests/test_session_parallel_renderer.py backend/tests/test_api.py backend/tests/test_melodic_strum.py backend/tests/test_lane_output.py -q --tb=short -k 'parallel_session or native_panic or strum or lane_output'",
+      "passed": 92,
+      "seconds": 21.3,
+      "deselected": 409
+    },
+    "final_focused": {
+      "command": ".venv/bin/pytest backend/tests/test_render_baseline.py backend/tests/test_session_parallel_renderer.py backend/tests/test_api.py backend/tests/test_session_lifecycle.py -q --tb=short -k 'parallel_session or renderer or protocol or session_lifecycle'",
+      "passed": 53,
+      "deselected": 433,
+      "seconds": 31.56,
+      "kernel": "cython"
+    },
+    "static": {
+      "ruff": "passed: backend/app backend/tests backend/tools",
+      "diff_check": "passed",
+      "local_markdown_links": 138
+    },
+    "full_backend_note": "Full run preceded final optional-partition-preparation fallback, preflight validation, queued-render generation guard and MIDI source-identity bound. The final focused suite covers all four additions; Python timing checks cover the first three.",
+    "full_backend": {
+      "command": ".venv/bin/pytest backend/tests -q --tb=short",
+      "passed": 3172,
+      "failed": 1,
+      "seconds": 969.69,
+      "failure": "test_tenor_saxophone.py::test_normal_register_is_tuned_and_releases_cleanly[32]",
+      "measurement": {
+        "midi_note": 44,
+        "measured_hz": 102.90760205594418,
+        "deviation_cents": 15.38475427292829,
+        "limit_cents": 15
+      }
+    },
+    "saxophone_current_isolated": {
+      "passed": 20,
+      "failed": 1,
+      "seconds": 8.78,
+      "case": "test_normal_register_is_tuned_and_releases_cleanly[32]",
+      "midi_note": 60,
+      "deviation_cents": 33.48646383476458
+    },
+    "saxophone_pre_t06_checkout": {
+      "revision": "c937474f188be154203296c8cbb6e870be6288ef",
+      "passed": 20,
+      "failed": 1,
+      "seconds": 8.82,
+      "case": "test_normal_register_is_tuned_and_releases_cleanly[32]",
+      "midi_note": 44,
+      "deviation_cents": 15.32803721909249,
+      "instrument_or_threshold_changes": false
+    },
+    "runtime_smoke": {
+      "invocation": "The make target could not access the uv cache; ran its three exact modules using .venv/bin/python.",
+      "native_performance_qualification": false,
+      "browser_clock": "tracks,median_render_audio_ratio,max_render_audio_ratio\n16,0.002,0.046\n64,0.004,0.004\n128,0.007,0.007\n",
+      "sequencer_boundary": "tracks,steady_median_ms,boundary_median_ms,boundary_max_ms\n16,0.008,0.035,0.043\n64,0.028,0.126,0.185\n128,0.053,0.240,0.268\n",
+      "score_sequencer": {
+        "machine": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+        "scores": [
+          {
+            "minutes": 5,
+            "notes": 128,
+            "existing_tracks": 8,
+            "controllers": 8,
+            "arpeggiators": 0,
+            "preparation": {
+              "cold": {
+                "median_ms": 1.3427,
+                "max_ms": 7.3988
+              },
+              "cached": {
+                "median_ms": 0.799,
+                "max_ms": 0.8099
+              },
+              "one_pad_edit": {
+                "median_ms": 1.2314,
+                "max_ms": 1.2611
+              }
+            },
+            "cached_process_round_trip_ms": 19.505,
+            "render": {
+              "start": {
+                "median_ms": 0.0007,
+                "max_ms": 0.0603,
+                "p99_ms": 0.0317,
+                "block_budget_ms": 1.3333
+              },
+              "near_end": {
+                "median_ms": 0.0007,
+                "max_ms": 0.042,
+                "p99_ms": 0.0333,
+                "block_budget_ms": 1.3333
+              }
+            }
+          },
+          {
+            "minutes": 5,
+            "notes": 10000,
+            "existing_tracks": 8,
+            "controllers": 8,
+            "arpeggiators": 0,
+            "preparation": {
+              "cold": {
+                "median_ms": 35.6229,
+                "max_ms": 49.4634
+              },
+              "cached": {
+                "median_ms": 2.9543,
+                "max_ms": 3.5242
+              },
+              "one_pad_edit": {
+                "median_ms": 35.7188,
+                "max_ms": 36.167
+              }
+            },
+            "cached_process_round_trip_ms": 74.368,
+            "render": {
+              "start": {
+                "median_ms": 0.0007,
+                "max_ms": 0.0485,
+                "p99_ms": 0.0322,
+                "block_budget_ms": 1.3333
+              },
+              "near_end": {
+                "median_ms": 0.0007,
+                "max_ms": 0.07,
+                "p99_ms": 0.0383,
+                "block_budget_ms": 1.3333
+              }
+            }
+          },
+          {
+            "minutes": 10,
+            "notes": 128,
+            "existing_tracks": 8,
+            "controllers": 8,
+            "arpeggiators": 0,
+            "preparation": {
+              "cold": {
+                "median_ms": 1.3229,
+                "max_ms": 1.4773
+              },
+              "cached": {
+                "median_ms": 0.855,
+                "max_ms": 0.8869
+              },
+              "one_pad_edit": {
+                "median_ms": 1.2748,
+                "max_ms": 1.3114
+              }
+            },
+            "cached_process_round_trip_ms": 20.926,
+            "render": {
+              "start": {
+                "median_ms": 0.0007,
+                "max_ms": 0.0785,
+                "p99_ms": 0.0321,
+                "block_budget_ms": 1.3333
+              },
+              "near_end": {
+                "median_ms": 0.0007,
+                "max_ms": 0.0238,
+                "p99_ms": 0.0174,
+                "block_budget_ms": 1.3333
+              }
+            }
+          },
+          {
+            "minutes": 10,
+            "notes": 10000,
+            "existing_tracks": 8,
+            "controllers": 8,
+            "arpeggiators": 0,
+            "preparation": {
+              "cold": {
+                "median_ms": 35.5592,
+                "max_ms": 48.0122
+              },
+              "cached": {
+                "median_ms": 2.8646,
+                "max_ms": 3.6773
+              },
+              "one_pad_edit": {
+                "median_ms": 35.4913,
+                "max_ms": 53.6271
+              }
+            },
+            "cached_process_round_trip_ms": 74.942,
+            "render": {
+              "start": {
+                "median_ms": 0.0007,
+                "max_ms": 0.046,
+                "p99_ms": 0.0333,
+                "block_budget_ms": 1.3333
+              },
+              "near_end": {
+                "median_ms": 0.0007,
+                "max_ms": 0.0558,
+                "p99_ms": 0.0183,
+                "block_budget_ms": 1.3333
+              }
+            }
+          }
+        ]
+      }
+    },
+    "single_native_baseline": {
+      "report": "t06-single-native.json",
+      "baseline": "t01-single-native.json",
+      "behavior_identical": true,
+      "workload_rate_combinations": 12,
+      "rounds": 3,
+      "frames_each": 24576,
+      "timing_note": "The first pass briefly overlapped the final Docker recovery probe; a clean repeat is recorded separately. No parallel speedup claim.",
+      "repeat_report": "t06-single-native-repeat.json",
+      "repeat_behavior_identical": true,
+      "repeat_max_p95_change_percent": -2.81,
+      "repeat_max_p99_change_percent": 0.68,
+      "source_note": "Native baseline runs preceded the final MIDI source-tag metadata bound update; that protocol is not imported by the default renderer factory path."
+    }
+  },
+  "browser": {
+    "production_build": true,
+    "browser": "Chromium via Playwright",
+    "fixture": "planner_inputs(two,32), one Manual pads melody device",
+    "isolation": "temporary SQLite/assets, loopback-only test server, no user library changes",
+    "phases": {
+      "before": {
+        "ring": [
+          3576704,
+          3592576,
+          105283,
+          0,
+          1,
+          0,
+          306700,
+          3994
+        ],
+        "nonzero": true,
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 0,
+          "pendingRenderFrames": 49152,
+          "underrunCount": 105143,
+          "overrunCount": 0,
+          "renderTimeRatio": 5.03405859375
+        },
+        "session_state": "running",
+        "renderer": {
+          "requested": "auto",
+          "selected": "parallel",
+          "worker_count": 3,
+          "qualified": false,
+          "fallback_reason": null,
+          "failed": false,
+          "committed_sample": 3592640,
+          "published_sample": 3592576
+        },
+        "session_id": "bac7452c-e6e5-455a-8613-16b453d31113"
+      },
+      "after": {
+        "ring": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "errors": [
+          "Partition upstream-0 exited unexpectedly.",
+          "Partition upstream-0 exited unexpectedly.",
+          "Partition upstream-0 exited unexpectedly."
+        ],
+        "playing": false,
+        "error": "Partition upstream-0 exited unexpectedly.",
+        "session_state": "error",
+        "renderer": {
+          "requested": "auto",
+          "selected": "parallel",
+          "worker_count": 0,
+          "qualified": false,
+          "fallback_reason": "previous_parallel_failure",
+          "failed": true,
+          "committed_sample": 3593568,
+          "published_sample": 3592576
+        },
+        "session_id": "bac7452c-e6e5-455a-8613-16b453d31113"
+      },
+      "restart": {
+        "ring": [
+          256,
+          86400,
+          0,
+          0,
+          1,
+          0,
+          335946,
+          12
+        ],
+        "peak": 0.0009734106715768576,
+        "sameSession": true,
+        "freshBuffers": true,
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 10752,
+          "pendingRenderFrames": 49152,
+          "underrunCount": 105283,
+          "overrunCount": 0,
+          "renderTimeRatio": 4.889385375000001
+        },
+        "error": null,
+        "session_state": "running",
+        "renderer": {
+          "requested": "auto",
+          "selected": "single",
+          "worker_count": 1,
+          "qualified": false,
+          "fallback_reason": "previous_parallel_failure",
+          "failed": false,
+          "committed_sample": 86400,
+          "published_sample": 86400
+        },
+        "session_id": "bac7452c-e6e5-455a-8613-16b453d31113"
+      }
+    },
+    "notes": [
+      "Functional check ran concurrently with other checks; timing is not qualified.",
+      "Observer installed three times while preparing fixture: duplicate error observations are instrumentation duplicates.",
+      "Diagnostics are asynchronous samples and may precede ring snapshots; restart correctness uses the fresh shared-buffer counters, not the previous diagnostic sample.",
+      "Browser check preceded the final preparation-failure and queued-render generation refinements; final focused tests cover these additions."
+    ],
+    "built_worker_sha256": {
+      "frontend/dist/assets/browserClockLatencyConfig-mZCq7Jl-.js": "a76ca2e62357b5bb89dd604dc3e1ab1cdd258fb491c4575a96b4ec0703a913fd",
+      "frontend/dist/assets/browserClockWorker-nCHH_FMr.js": "dc47b9df4678d0f3bf39247f870314ad2e558f31ddcb87746feb2b23caad6c71",
+      "frontend/dist/assets/browserClockProcessor-BRl9Ka65.js": "72006e7ca2a626ef4c9b1432579ed336abc0682ae42d1756c56788ed2601665d"
+    },
+    "fixtures_sha256": {
+      "backend/tests/fixtures/parallel_render/partition_parity.json": "f6ff4b48b4cc4cb12d5fa56eed010d2907e9c03b1d4f30f2b2b2265b5f5d737d",
+      "backend/tests/fixtures/parallel_render/t04_canonical_csd_hashes.json": "e5e690638f7b457e221d36c1aab5740f857d4296fc15d78bb8608f813a1a387d",
+      "backend/tests/fixtures/parallel_render/planner_snapshots.json": "fe3d730fd7c009fb913e410c73b9acd498e345198dded341144acfda26007ee2",
+      "backend/tests/fixtures/parallel_render/workloads.json": "586a5f3dfa9d5706f7a8a96bffd1b254541f44b758c65288ac648442c15ab4f3",
+      "backend/tests/fixtures/parallel_render/planner_cases.json": "652715e84b1d8602bba706fc0a1816d4853b0a462c716807276bf8f975aa07ff"
+    }
+  },
+  "docker": {
+    "image": "visualcsound-browser-clock:local",
+    "image_id": "sha256:7789d5dafd9fc26574b2aea726ca89a4184a4ba62909ac970c4ad9678d95845c",
+    "architecture": "arm64",
+    "cpu_limit": 4,
+    "memory_bytes": 1073741824,
+    "shm_bytes": 67108864,
+    "network": "none",
+    "sequencer": "python",
+    "existing_image_with_readonly_source_mount": true,
+    "probe": {
+      "process_count": 3,
+      "peak": 0.0008060889667831361,
+      "first_end": 2048,
+      "failure": {
+        "requested": "auto",
+        "selected": "parallel",
+        "worker_count": 0,
+        "qualified": false,
+        "fallback_reason": "previous_parallel_failure",
+        "failed": true,
+        "committed_sample": 2048,
+        "published_sample": 2048
+      },
+      "fallback": {
+        "requested": "auto",
+        "selected": "single",
+        "worker_count": 1,
+        "qualified": false,
+        "fallback_reason": "previous_parallel_failure",
+        "failed": false,
+        "committed_sample": 0,
+        "published_sample": 0
+      }
+    },
+    "source_note": "Final lifecycle/generation guards verified; the subsequent MIDI source-tag bound update is covered by native macOS API and schema tests."
+  },
+  "limits": [
+    "No capacity admission or performance qualification; auto requires explicit allow_unqualified injection plus costs.",
+    "Observed repeated parallel browser underruns; T07 must address synchronization overhead.",
+    "No AMD64/native-float32/final-image qualification, physical MIDI hardware check, or long browser soak."
+  ]
+}

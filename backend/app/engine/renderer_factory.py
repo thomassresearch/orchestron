@@ -9,12 +9,17 @@ def create_realtime_renderer(
     *,
     gen_audio_assets_dir: str | None = None,
     csound_performance_logging: bool = False,
+    renderer_options=None,
 ) -> RealtimeRenderer:
-    """Always select the original single renderer, also the future fallback.
+    """Default to the original worker; explicit application wiring may opt in.
 
-    Native availability and explicit mock mode retain CsoundWorker's behavior.
-    No parallel policy is active; native compile/start failures still propagate.
+    The opt-in facade retains the original worker for pre-start/next-start fallback.
+    No environment flag or automatic capacity admission is enabled here.
     """
+    if renderer_options is not None and renderer_options.policy.mode != "single":
+        from backend.app.engine.session_parallel_renderer import ParallelCsoundRenderer
+        return ParallelCsoundRenderer(options=renderer_options,
+            gen_audio_assets_dir=gen_audio_assets_dir, csound_performance_logging=csound_performance_logging)
     return CsoundWorker(
         gen_audio_assets_dir=gen_audio_assets_dir,
         csound_performance_logging=csound_performance_logging,

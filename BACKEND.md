@@ -24,10 +24,10 @@ At a high level, the code is organized like this:
 | `backend/app/storage/` | SQLAlchemy database setup and repositories. |
 
 Sessions depend on the internal [RealtimeRenderer contract](backend/app/engine/realtime_renderer.py).
-The shared [renderer factory](backend/app/engine/renderer_factory.py) always returns the original
+The shared [renderer factory](backend/app/engine/renderer_factory.py) defaults to the original
 `CsoundWorker`, including its explicit/mock-on-missing-binding behavior. Native start errors still
 propagate. The interface adds no forwarding calls inside rendering, and the public API/PCM format
-is unchanged. The single renderer remains the default and future compatibility fallback; parallel
+is unchanged. The single renderer remains the default and compatibility fallback; deployment
 selection is not active. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
 for baseline comparisons and remaining work.
 
@@ -36,7 +36,7 @@ metadata for the [pure partition planner](backend/app/services/render_partition_
 It records compiler stage/port order, resource constraints and helper/control/meter ownership.
 Planning uses caller-supplied costs and limits; it does not inspect CPU capacity, allocate
 buffers or start Csound. Even a coarse candidate has `selected_renderer="single"` and
-`execution_eligible=false`. Session compile/start never calls this diagnostic path, and
+`execution_eligible=false`. Normal session compile/start never calls this diagnostic path, and
 analysis does not replace canonical patch/asset validation. See the
 [T03 contract](specifications/parallel-csound-rendering/contracts.md#8-t03-pure-planning-contract).
 
@@ -54,13 +54,32 @@ persistent Csound processes with `spawn`, native-width shared audio slots and bo
 command/reply mailboxes. The parent seals one interval, dispatches independent branches,
 waits for every predecessor before the shared suffix, and commits only complete blocks.
 It converts/resamples once in the parent and withholds an entire failed PCM request.
-Startup, cancellation, deadlines and cleanup are internal operations; normal sessions,
-the renderer factory and CSD exports do not call this coordinator. A caller must supply
+Startup, cancellation, deadlines and cleanup are internal operations; normal sessions
+and CSD exports do not call this coordinator. A caller must supply
 already ordered/gated events through its parent-only block preparation callback. The
-session-facing facade, live operations and automatic next-start fallback belong to T06;
-container admission and performance selection belong to T07. See the
+session-facing T06 facade supplies that callback; container admission and performance selection
+belong to T07. See the
 [T05 contract](specifications/parallel-csound-rendering/contracts.md#10-t05-process-execution-contract)
 and [process tests](backend/tests/test_parallel_csound_renderer.py).
+
+T06 adds an explicit application injection, `create_app(renderer_options=SessionRendererOptions(...))`,
+for integration testing. Non-single options construct [ParallelCsoundRenderer](backend/app/engine/session_parallel_renderer.py),
+which retains the original worker's scheduler, lane gate, controller revisions and boundary queue.
+It requires caller-supplied planner costs and `allow_unqualified=True` to start children. This is
+not a deployment setting or performance qualification. Default construction still uses the plain
+`CsoundWorker`; its render loop and canonical CSD exports are unchanged.
+
+The facade drains parent events and controls once per block and maps partition meters to the
+canonical mixer identities. Live preparation, auditions and device commands use the existing
+parent boundary queue, including while PCM requests pause. Explicit Stop/delete/shutdown signal
+cancellation before waiting for lifecycle ownership. Automatic disconnect cleanup still allows
+a reconnect to win while it waits. Generation and browser-lease checks reject stale responses.
+Auto startup failure cleans all children before attempting single; active rendering failure
+revokes the audio stream, stops transport and publishes `renderer_failed`. The browser discards
+queued PCM/markers and shows the session error. Auto mode quarantines parallel execution until
+a fresh session; explicit restart uses single from sample zero, without replaying the failed request.
+Opted-in `SessionInfo.renderer` reports selection, reason and committed/published cursors;
+ordinary sessions return `null`. See the [T06 contract](specifications/parallel-csound-rendering/contracts.md#11-t06-session-integration-contract).
 
 
 ## Application Lifecycle

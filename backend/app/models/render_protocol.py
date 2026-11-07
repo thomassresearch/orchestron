@@ -45,7 +45,9 @@ class BusSlot(Contract):
 
 class MidiDelivery(Contract):
     sequence: Annotated[int, Field(ge=1)]
-    source: Identity
+    # Session track IDs allow 256 characters; parent ownership tags add prefixes
+    # (for example lane:). Preserve those tags without truncation or collisions.
+    source: Annotated[str, Field(min_length=1, max_length=1024)]
     target_engine_sample: Nonnegative
     message: tuple[int, int, int]
     late: bool

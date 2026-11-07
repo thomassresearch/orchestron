@@ -87,6 +87,15 @@ def test_frozen_protocol_schema_matches_models():
     assert json.loads(schema.read_text()) == TypeAdapter(RenderMessage).json_schema()
 
 
+def test_protocol_preserves_full_session_source_identity_and_bounds_it():
+    from backend.app.models.render_protocol import MidiDelivery
+    event = dict(sequence=1, source="lane:" + "x" * 256, target_engine_sample=0,
+                 message=(144, 60, 100), late=False)
+    assert MidiDelivery(**event).source == event["source"]
+    with pytest.raises(ValidationError):
+        MidiDelivery(**{**event, "source": "x" * 1025})
+
+
 def test_protocol_keeps_original_deadline_order_when_late_events_collapse():
     import json
     from backend.app.engine.midi_scheduler import EngineMidiScheduler

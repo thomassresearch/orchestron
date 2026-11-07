@@ -27,6 +27,7 @@ class RuntimeSession:
     mixer_revision: int = 0
     preview_patches: dict = field(default_factory=dict)
     worker: RealtimeRenderer = field(default_factory=create_realtime_renderer)
+    renderer_controller: Any = None
     midi_router: Any = None
     sequencer: Any = None
     sequencer_request: Any = None
@@ -38,6 +39,9 @@ class RuntimeSession:
     lifecycle_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     closing: bool = False
     stopping: bool = False
+    stop_requests: int = 0
+    lifecycle_generation: int = 0
+    failure_pending: bool = False
     live_midi_activity: LiveMidiActivity = field(default_factory=LiveMidiActivity)
 
     @property

@@ -42,3 +42,10 @@ label during a drag within three CC units. Captured from the actual curve editor
 in an isolated browser harness, using temporary test data without loading or
 saving a library performance. Browser checks also verified stationary Shift
 press/release and exact numeric entry. The harness was removed after capture.
+
+T06 parallel-renderer recovery captures (2026-11-07) use a separate temporary database,
+the production frontend build and a versioned two-source fixture. `parallel-renderer-failure.png`
+shows transport stopped after an injected native worker crash; `parallel-renderer-recovery.png`
+shows the same session playing through the single fallback. See the
+[verification record](../specifications/parallel-csound-rendering/implementation-record.md#t06-delivered-work).
+The internal opt-in is unqualified and does not enable deployment selection.

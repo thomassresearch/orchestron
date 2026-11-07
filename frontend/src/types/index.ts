@@ -1121,7 +1121,19 @@ export interface PatchListItem {
 
 export type SessionState = "idle" | "compiled" | "running" | "error";
 
+export interface RendererDiagnostics {
+  requested: "single" | "auto" | "parallel";
+  selected: "single" | "parallel";
+  worker_count: number;
+  qualified: boolean;
+  fallback_reason?: string | null;
+  failed: boolean;
+  committed_sample: number;
+  published_sample: number;
+}
+
 export interface SessionInfo {
+  renderer?: RendererDiagnostics | null;
   audio_graph?: AudioGraph;
   mixer?: MixerState;
   mixer_revision?: number;

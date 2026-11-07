@@ -18,6 +18,18 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllTimers(); vi.useRealTimers(); });
 
+it("stops the active runtime on renderer failure and ignores another session's failure", () => {
+  useAppStore.setState({ activeSessionId: "current", activeSessionState: "running" });
+  useAppStore.getState().syncSequencerRuntime({ isPlaying: true });
+  const failure = { session_id: "old", type: "renderer_failed", ts: "2026-11-07T00:00:00Z", payload: { detail: "Worker exited" } };
+  useAppStore.getState().pushEvent(failure);
+  expect(useAppStore.getState().activeSessionState).toBe("running");
+  useAppStore.getState().pushEvent({ ...failure, session_id: "current" });
+  expect(useAppStore.getState().activeSessionState).toBe("error");
+  expect(useAppStore.getState().sequencer.isPlaying).toBe(false);
+  expect(useAppStore.getState().error).toBe("Worker exited");
+});
+
 function savedPatch(id = "saved"): Patch {
   return { ...useAppStore.getState().currentPatch, id, name: "Saved",
     created_at: "2026-01-01", updated_at: "2026-01-02" };

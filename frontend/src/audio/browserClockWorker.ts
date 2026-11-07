@@ -292,7 +292,11 @@ class BrowserClockWorkerRuntime {
       return;
     }
     if (payload instanceof Blob) {
-      void payload.arrayBuffer().then((buffer) => this.handlePcm(buffer)).catch(() => this.fail("Failed to decode PCM."));
+      void payload.arrayBuffer().then((buffer) => {
+        if (this.socket === socket) this.handlePcm(buffer);
+      }).catch(() => {
+        if (this.socket === socket) this.fail("Failed to decode PCM.");
+      });
       return;
     }
     this.handlePcm(payload);

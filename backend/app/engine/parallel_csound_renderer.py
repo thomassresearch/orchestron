@@ -1,8 +1,8 @@
-"""T05 internal execution coordinator; deliberately not a session renderer yet.
+"""Internal execution coordinator used by the opt-in session renderer.
 
 Only an explicit caller can start it with a validated coarse compilation. The
-factory still returns CsoundWorker. T06 owns the RealtimeRenderer facade, live
-operations and next-start fallback; T07 owns admission and performance selection.
+default factory returns CsoundWorker. The T06 facade owns live operations and
+next-start fallback; T07 owns admission and performance selection.
 """
 from __future__ import annotations
 
@@ -70,6 +70,7 @@ class PartitionRenderCoordinator:
         self._operation = threading.Lock()
         self._state = threading.Lock()
         self._cancel = threading.Event()
+        self._external_cancel = None
         self._stop_serial = 0
         self._stoppers = 0
         self._children = {}
@@ -97,11 +98,15 @@ class PartitionRenderCoordinator:
         return tuple(child.process.pid for child in self._children.values())
 
     @property
+    def worker_count(self):
+        return len(self._children)
+
+    @property
     def shared_memory_name(self):
         return self._arena.name if self._arena is not None else None
 
     def _check(self, deadline):
-        if self._cancel.is_set():
+        if self._cancel.is_set() or (self._external_cancel is not None and self._external_cancel.is_set()):
             raise PartitionCancelled("Partition operation cancelled.")
         if time.monotonic() >= deadline:
             raise PartitionRuntimeError("Partition operation timed out.")
@@ -150,7 +155,7 @@ class PartitionRenderCoordinator:
         finally:
             self._operation.release()
 
-    def start(self, compilation, plan):
+    def start(self, compilation, plan, *, cancel_event=None):
         with self._state:
             if self._stoppers:
                 raise PartitionCancelled("Start cancelled by concurrent Stop.")
@@ -162,6 +167,7 @@ class PartitionRenderCoordinator:
                 if self._running or self._children or self._arena is not None:
                     raise PartitionRuntimeError("Stop and reap the previous partition epoch before starting.")
                 self._cancel = threading.Event()
+                self._external_cancel = cancel_event
                 self.epoch += 1
                 self.committed_sample = self.sealed_sample = self.published_sample = 0
                 self._sequence = self._revision = self._next_meter_sample = 0
@@ -169,6 +175,7 @@ class PartitionRenderCoordinator:
                 self.last_meters = {}
             deadline = time.monotonic() + self.policy.startup_timeout_seconds
             try:
+                self._check(deadline)
                 validate_realtime_partition_compilation(compilation, plan)
                 if not compilation.programs or plan.layout != "coarse":
                     raise ValueError("Explicit partition execution requires a coarse compilation.")

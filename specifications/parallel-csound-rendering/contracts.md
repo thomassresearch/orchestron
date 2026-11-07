@@ -1,6 +1,6 @@
 # T01 baseline and frozen contracts
 
-Status: initial contracts implemented without renderer activation, 2026-11-06. [Internal models](../../backend/app/models/render_protocol.py) are the executable structural contract. They are not imported by session creation, compiler selection or the current rendering loop. [Implementation evidence](implementation-record.md) distinguishes completed T01 work from later qualification.
+Status: T01–T06 contracts, updated 2026-11-07. [Internal models](../../backend/app/models/render_protocol.py) define the structural protocol. Default sessions still use the original single worker; the explicit T06 application injection is described below. [Implementation evidence](implementation-record.md) distinguishes functional integration from pending performance/admission qualification.
 
 ## 1. Current ownership inventory
 
@@ -285,10 +285,10 @@ AMD64, float32, browser soak and parallel process performance require separate q
 
 ## 10. T05 process execution contract
 
-`PartitionRenderCoordinator` is an internal execution API, not yet a `RealtimeRenderer`
+`PartitionRenderCoordinator` is an internal execution API, not itself a `RealtimeRenderer`
 implementation. Only explicit callers can invoke `start(compilation, plan)`; a diagnostic
-artifact does not enable a session or imply admission. `renderer_factory` still returns
-`CsoundWorker`. Canonical compile/export paths and the single render loop are unchanged.
+artifact does not enable a session or imply admission. `renderer_factory` defaults to
+`CsoundWorker`; the explicit T06 facade is the opt-in caller. Canonical compile/export paths and the single render loop are unchanged.
 The coordinator deliberately has no automatic fallback or live state transfer. Startup
 failure rolls back ownership before the caller can start the canonical renderer. Failure
 during playback invalidates the epoch and withholds the entire incomplete request.
@@ -332,7 +332,7 @@ during playback invalidates the epoch and withholds the entire incomplete reques
 `render_blocks(block_count, target_sample_rate, prepare_block)` serializes whole requests.
 The trusted parent-only callback `(request_block_index, engine_sample_start)` runs once per
 block and returns frozen `BlockInputs`: already drained/gated MIDI, coalesced control writes
-and an authoritative revision. It is the future T06 connection point, not a second scheduler.
+and an authoritative revision. The T06 facade uses this connection point; it introduces no second scheduler.
 Events arriving after that drain remain eligible for the next block, including the existing
 late/clamp ordering. Without a callback, the last control revision is retained. The coordinator
 never advances sequencers or fabricates MIDI timestamps.
@@ -350,7 +350,7 @@ start resets all three cursors to zero, including a new start that subsequently 
 
 Owned meter readings are collected at the same completed sample as output. The internal API
 retains the last block's channel readings and at most 32 frames sampled at the existing 15 Hz
-cadence, starting after the first block. T06 will map channel names to session mixer levels and
+cadence, starting after the first block. T06 maps channel names to session mixer levels and
 wire audible transport markers. Failed epochs clear pending meter data.
 
 ### Cancellation and cleanup
@@ -370,7 +370,7 @@ methods. Python cannot preempt arbitrary caller code: Stop waits at most twice i
 budget for render ownership, then reports the blocked parent callback; ownership remains with
 the operation until it yields and cleans up. This limitation is explicit, not a successful stop.
 Once publication has completed under the state lock, subsequent Stop cannot retract returned PCM;
-browser-response cancellation remains part of T06 integration.
+the T06 session generation and browser-lease checks additionally guard browser-response delivery.
 
 Each child has a parent-sentinel watcher that exits even while native compilation/rendering is
 hung. Abrupt parent death leaves the dedicated Python resource tracker to unlink the parent's
@@ -379,3 +379,62 @@ they retain no native state or shared mappings. Normal stop reaps children direc
 
 T05 tests qualify these execution semantics, not automatic selection, realtime speedup, UI/live
 edits, musical session integration, end-to-end recovery, browser latency or multi-session admission.
+
+## 11. T06 session integration contract
+
+`create_app()` and the shared factory keep the original `CsoundWorker` by default. The
+explicit `SessionRendererOptions` injection is for integration diagnostics only. Non-single
+policies construct `ParallelCsoundRenderer`; child execution additionally requires
+`allow_unqualified=True` and a complete caller-supplied cost profile. T07 owns measured
+admission, cgroup reservations and deployment configuration. Synthetic fixture costs are not
+admission evidence. No selector is persisted in performances or accepted through public requests.
+
+The facade retains one parent worker object across parallel and fallback starts. Its MIDI
+scheduler, source ownership/lane gate, output adapter, performance-controller state and
+boundary-action queue keep their identity. In parallel mode no parent native Csound instance
+runs. A block applies boundary actions, advances the existing sequencer/router callback once,
+drains MIDI once, resolves mapped controller CCs once, coalesces channel writes and seals one
+revision for the coordinator. Control/MIDI events arriving after sealing wait for the next
+eligible block. Meter channels map back to canonical mixer identities and sample timestamps.
+Resampling and PCM format are unchanged.
+
+Live preparation still runs in the existing persistent compiler service. Applying an edit,
+audition, device command or source release uses the existing parent boundary owner. It never
+rebuilds the partition graph, restarts children or resets the audio cursor. Idle ownership
+allows an edit to finish while the browser pauses requests. Failed preparation retains the
+playing configuration. Panic resets queued/owned MIDI and broadcasts sustain-off/all-sound-off/
+all-notes-off to every channel at a boundary, retaining continuous effect release tails.
+
+Explicit Stop, deletion and app shutdown invalidate configuration/lifecycle generations and
+signal the facade before waiting for lifecycle ownership. A startup token rejects late starts,
+including fallback after cancellation. The coordinator observes the same cancellation event
+while waiting for child startup or rendering. Stale queued boundary actions fail; an old render
+response must pass both the lifecycle-generation and current browser-lease checks before use.
+Automatic disconnect cleanup differs deliberately: it checks for a reconnect after obtaining
+lifecycle ownership, preserving the existing grace-period contract.
+
+Canonical validation always happens first. An optional partition-preparation or startup
+failure in auto mode can select the already validated single artifact before playback, after
+all child owners and buffers are released. Explicit parallel mode reports the error instead.
+An active render failure never switches engines midstream or replays completed native work:
+withhold the whole failing request, cancel pending preparations/actions, revoke the browser
+lease, stop sequencing/router state, clean up workers and publish `renderer_failed` with
+committed/published diagnostics. Start cannot overtake failure cleanup. Diagnostics retain the
+failed cursors after cleanup; a fresh start resets them. Auto mode quarantines parallel use
+for the remainder of that session, so the next explicit Start is single from sample zero.
+An explicit parallel policy may retry after complete cleanup.
+
+The production browser's error path clears shared queue/read/playback/transport counters,
+pending PCM metadata, audible markers and subscriptions. Already audible samples cannot be
+retracted. Late socket messages and delayed Blob decoding from the old stream are ignored.
+`renderer_failed` sets the active session's displayed state to error and clears playing state.
+A new connection starts with empty buffers. Optional `SessionInfo.renderer` diagnostics and
+`started`/`renderer_failed` events expose selection and fallback reasons; ordinary sessions
+return `renderer=null`. Planner artifacts remain unqualified and are not rewritten to claim
+runtime admission. Public compile CSDs and MIDI/SCORE exports stay canonical.
+
+T06 widens only `MidiDelivery.source` from the generic 128-character identity limit to 1,024
+characters. Session track IDs already allow 256 characters and ownership prefixes add more;
+forwarding must preserve the complete parent identity. The checked-in protocol schema and
+maximum-length native API regression reflect this bound. Partition/bus identities, mailbox
+byte limits and event counts retain their existing limits.

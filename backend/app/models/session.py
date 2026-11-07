@@ -153,6 +153,17 @@ class SessionCreateResponse(BaseModel):
     state: SessionState
 
 
+class RendererDiagnostics(BaseModel):
+    requested: Literal["single", "auto", "parallel"]
+    selected: Literal["single", "parallel"]
+    worker_count: int
+    qualified: bool
+    fallback_reason: str | None = None
+    failed: bool = False
+    committed_sample: int = 0
+    published_sample: int = 0
+
+
 class SessionInfo(BaseModel):
     audio_graph: AudioGraph | None = None
     mixer: MixerState = Field(default_factory=MixerState)
@@ -164,6 +175,7 @@ class SessionInfo(BaseModel):
     midi_input: str | None = None
     created_at: datetime
     started_at: datetime | None = None
+    renderer: RendererDiagnostics | None = None
 
 
 class CompileResponse(BaseModel):

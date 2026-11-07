@@ -47,8 +47,24 @@ async function connect(armed = false) {
     const messages = scope.postMessage.mock.calls.filter(([m]) => m.type === "diagnostics");
     return messages[messages.length - 1]?.[0].diagnostics;
   };
-  return { send, receive, state, samples, fill, sent, renders, diagnostics };
+  return { send, receive, state, samples, fill, sent, renders, diagnostics, sockets, scope };
 }
+
+it("discards queued PCM and transport after an engine failure and ignores late packets", async () => {
+  const h = await connect(); h.fill();
+  expect(h.state[1]).toBeGreaterThan(0);
+  expect(h.state[4]).toBe(1);
+  h.receive({ type: "engine_error", detail: "Partition exited" });
+  expect([...h.state]).toEqual(Array(8).fill(0));
+  expect(h.sockets[0].readyState).toBe(3);
+  expect(h.scope.postMessage).toHaveBeenCalledWith({ type: "error", message: "Partition exited" });
+  h.scope.postMessage.mockClear();
+  h.receive({ type: "render_chunk", target_frame_count: 32, telemetry: {} });
+  h.sockets[0].onmessage!({ data: new Float32Array(64).fill(.9).buffer });
+  vi.advanceTimersByTime(1000);
+  expect([...h.state]).toEqual(Array(8).fill(0));
+  expect(h.scope.postMessage).not.toHaveBeenCalled();
+});
 
 it("preserves queued samples, counters, playback and transport through Auto and forced transitions", async () => {
   const h = await connect();

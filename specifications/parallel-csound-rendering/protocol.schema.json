@@ -288,7 +288,7 @@
           "type": "integer"
         },
         "source": {
-          "maxLength": 128,
+          "maxLength": 1024,
           "minLength": 1,
           "title": "Source",
           "type": "string"

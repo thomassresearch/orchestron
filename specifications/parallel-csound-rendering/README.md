@@ -1,6 +1,6 @@
 # Parallel Csound rendering
 
-Status: T01–T05 implemented through the explicit internal process coordinator; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and platform limits. Session parallel rendering and rollout remain disabled. T06–T08 remain pending.
+Status: T01–T06 implemented through an explicit internal session opt-in; updated 2026-11-07. See the [implementation record](implementation-record.md) for evidence and limits. Normal startup still uses the single renderer. T07 capacity/performance qualification and T08 rollout remain pending.
 
 Use independent instrument branches to distribute realtime synthesis across persistent Csound processes. Preserve the browser clock, musical timing, routing semantics and live controls. Keep the current single-engine renderer as the default and as the compatibility fallback.
 

@@ -1,6 +1,6 @@
 # Parallel rendering implementation record
 
-Updated: 2026-11-07. T01–T05 delivered through the explicit internal process coordinator. T06–T08, integrated session gates and default cutover remain pending. The shared factory still constructs the original `CsoundWorker`; no runtime selection flag or parallel session path is active.
+Updated: 2026-11-07. T01–T06 delivered through the explicit internal session opt-in. T07–T08 and default cutover remain pending. Normal application startup still constructs the original `CsoundWorker`; no deployment selection flag is enabled.
 
 ## T01 delivered work
 
@@ -433,3 +433,112 @@ multi-session resource races remain unqualified. Windows is not qualified.
 No UI/workflow, user manual, production examples or saved formats changed in T01–T05.
 Frontend builds/screenshots and manual PDF regeneration are not applicable to this internal
 execution work. Automatic admission and rollout remain disabled.
+
+## T06 delivered work
+
+T06 connects the process coordinator to real sessions through
+[ParallelCsoundRenderer](../../backend/app/engine/session_parallel_renderer.py). Normal
+`create_app()` and factory construction still return the original worker. An explicit
+`SessionRendererOptions` application injection selects the facade; it additionally requires
+caller-supplied costs and acknowledgement of unqualified execution before children can run.
+There is no new environment flag, saved-performance setting or UI selector. This keeps T07's
+measured admission/cgroup work separate from functional integration.
+
+The facade keeps the existing parent scheduler, lane gate, controller revisions and boundary
+queue across fallback. It advances the sequencer/router once per block, drains MIDI and
+controls once, preserves late-event ordering, maps canonical meters and resamples once.
+Live edits and auditions retain the persistent preparation service and idle/active boundary
+semantics. Panic reaches all note assignments. Stop/delete/shutdown cancel startup before
+waiting for lifecycle ownership, while disconnect cleanup retains reconnect precedence.
+Generation and controller-lease checks withhold stale audio. Canonical validation precedes
+optional partition preparation; auto can fall back after a preparation/start failure, but
+invalid canonical input remains an error.
+
+A worker failure during playback withholds the whole unfinished request, stops transport,
+revokes the browser stream and reports `renderer_failed`. The browser clears queued audio and
+transport markers and marks the session errored. Auto quarantines parallel use for that session;
+the next explicit start uses the original single renderer from engine sample zero. There is
+no replay or reconstruction of lost DSP state. Optional session diagnostics preserve the failed
+committed/published cursors after cleanup. The ordinary single hot loop, shared compiler stage
+lowering and both offline CSD export modes are unchanged.
+
+### T06 verification
+
+[Facade tests](../../backend/tests/test_session_parallel_renderer.py) exercise real native
+PCM parity, meter timestamps, controls, resampling at 44.1/48 kHz, K=1/32, panic and fresh notes,
+idle/active boundary actions, late MIDI, one authoritative CC revision, failed edits, cancellation,
+startup fallback and next-start quarantine. API regressions in
+[test_api.py](../../backend/tests/test_api.py) add live preparation/audition/mixer playback,
+failed preparation retaining the old configuration, replacement controller leases, worker
+failure, Start/Stop/delete races, unsupported graphs and canonical validation. Existing strict
+renderer-interface/default-selection tests continue to guard the single path.
+
+The production frontend build was exercised in Chromium through Playwright against a temporary
+local server with explicit unqualified auto options and the versioned two-source native fixture.
+The test used the real browser worker, SharedArrayBuffer and AudioWorklet, not a replacement
+playback loop. Manual pads produced nonzero PCM through three child processes. Immediately
+before crash injection, the shared ring held 15,872 frames. Failure reset all eight shared
+state counters to zero, stopped transport and displayed the engine error. The failed request
+had committed additional engine work but published no additional chunk. Restart through
+**Start Instruments** kept the same session, selected single with `previous_parallel_failure`,
+allocated fresh audio buffers and produced nonzero playback again. The observed restart ring
+was primed to 86,400 frames with zero underruns in that new buffer epoch.
+
+These are **functional observations, not performance qualification**. The parallel probe
+showed repeated underruns and render/audio ratios around five, while other functional checks
+were running. No controlled throughput, speedup or latency comparison is claimed. T07 must
+measure and address synchronization overhead before any workload can be admitted automatically.
+The existing default and fallback are therefore especially important.
+
+Screenshots: [stopped after failure](../../screenshots/parallel-renderer-failure.png),
+[playing after single restart](../../screenshots/parallel-renderer-recovery.png). They show the
+existing device controls; no new selector or layout is introduced. User documentation/PDF and
+README capabilities remain unchanged because parallel deployment is not enabled.
+
+A Linux ARM64 Docker Desktop probe used the existing `visualcsound-browser-clock:local` image,
+current backend mounted read-only, four CPUs, 1 GiB memory, 64 MiB shared memory and no network.
+It produced nonzero native PCM through three processes, injected a crash, confirmed error and
+complete worker cleanup, then restarted single at sample zero. This is not a newly built final
+image, AMD64 verification, capacity admission or performance qualification.
+
+Final counts, commands, raw browser/container observations and source hashes are retained in
+[T06 verification](measurements/t06-session-verification.json). T07 capacity/performance and
+T08 rollout remain pending. No default cutover is authorized by these results.
+
+| Final check | Result |
+| --- | --- |
+| Full backend, compiled sequencer | 3,172 passed, 1 saxophone acoustic failure; 969.69 s |
+| Final protocol/facade/API/lifecycle/default-interface regressions, compiled sequencer | 53 passed; 31.56 s |
+| Final Python session, strum and lane-output checks | 92 passed; 21.30 s |
+| Frontend lint/tests/production build | Passed; 118 files, 1,376 tests |
+| Native ARM64 Docker session recovery | Passed; 3 processes, nonzero PCM, cleanup and fresh single fallback |
+| Production Chromium failure/restart | Passed functional recovery; throughput unqualified |
+| Ruff, whitespace and local Markdown links | Passed; 138 links checked |
+
+The full suite began before the final optional-partition-preparation fallback, request preflight
+validation, queued-render generation guard and MIDI source-identity bound. The final focused suites cover these additions,
+including rejection of an old queued request before it can advance a restarted engine.
+
+The full-suite failure is `test_tenor_saxophone.py::test_normal_register_is_tuned_and_releases_cleanly[32]`:
+MIDI note 44 measured 102.9076 Hz, 15.3848 cents from expected, against a 15-cent limit.
+The isolated current file also yielded 20 passes/one failure in that same case, with another
+note outside tolerance. A temporary clean checkout of the pre-T06 commit reproduced the same
+case failing (note 44, 15.3280 cents), with the other 20 tests passing. This establishes a
+pre-existing acoustic failure; the full suite is not reported as green. No instrument,
+compiler, single-worker or acoustic test threshold was changed.
+
+The `make benchmark-runtime` launcher could not access the local uv cache. Its three modules
+were run directly with the existing `.venv/bin/python`; all completed. Those smoke probes do
+not qualify parallel DSP throughput. Historical T01/T02 evidence is retained unchanged.
+
+The final source-boundary audit also widens only the internal MIDI source tag limit to 1,024
+characters, preserving the existing 256-character session track IDs plus ownership prefixes.
+The frozen schema and native API test now cover that maximum valid track identity.
+
+Two [single-native](measurements/t06-single-native.json) / [repeat](measurements/t06-single-native-repeat.json)
+runs reproduce T01's exact PCM, marker, meter, edit/control, final-state and canonical CSD
+fingerprints across all 12 workload/rate combinations. Each uses the original three-round,
+24,576-frame protocol. The first pass briefly overlapped the final Docker probe and had a
+16.13% p99 outlier on tiny K=1. The clean repeat removes that outlier; no workload's p95 or p99
+exceeds T01 by more than 5%. This supports unchanged single behavior; it does not qualify
+parallel playback or establish a speedup. Raw timings and provenance are retained in both reports.

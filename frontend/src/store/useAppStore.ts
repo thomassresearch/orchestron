@@ -1148,6 +1148,10 @@ export const useAppStore = create<AppStore>((set, get) => {
     pushEvent: (event: SessionEvent) => {
       const events = get().events;
       set({ events: [...events.slice(-199), event] });
+      if (event.type === "renderer_failed" && event.session_id === get().activeSessionId) {
+        set({ activeSessionState: "error", error: String(event.payload.detail ?? "Audio rendering failed") });
+        get().syncSequencerRuntime({ isPlaying: false });
+      }
     }
   };
 });
