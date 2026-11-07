@@ -21,6 +21,13 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
+Perform has a fixed **Engine stats** line with CPU usage and an optional **Parallel playback**
+control. Qualified independent workloads can use multiple Csound processes; single rendering
+remains the default and fallback. Enable the option while stopped. Timing, buffers and CSD
+exports stay unchanged. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
+
+![Engine statistics in Perform](screenshots/performance_engine_stats.png)
+
 [Enough and Logan](documentation/instrument_design/enough_and_logan.md) bring two
 editable dry synth voices from altamax: an evolving five-oscillator FM network
 and a phase-shaped tone. Each has Timbre, Evolution, Release and Level controls.

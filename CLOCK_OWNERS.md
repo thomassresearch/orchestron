@@ -16,13 +16,18 @@ Everything else either:
 - maps one clock domain into another
 - or consumes already-rendered PCM
 
-The internal T06 parallel-session opt-in retains this rule in the parent coordinator. The
+The qualified parallel-playback opt-in retains this rule in the parent coordinator. The
 parent advances sequencing, drains MIDI and seals controls once for each global k-block.
 Independent Csound processes render that same interval; shared processing waits for all of
 its predecessors. Only complete output advances the committed cursor, and only a complete
 request can reach the browser. Child processes own no transport or authoritative controller
 state. Normal startup still uses the original single renderer. See the
 [session integration contract](specifications/parallel-csound-rendering/contracts.md#11-t06-session-integration-contract).
+
+The fixed Perform CPU status line is an observer only. Its approximately one-second HTTP
+poll runs independently of the browser audio worker, and Linux counters are read in a backend
+worker thread, with a per-session cache. Observation owns no transport clock, does not advance
+the render cursor, and does not prolong idle-session retention. Hidden views suspend polling.
 
 ## The Clock Domains
 

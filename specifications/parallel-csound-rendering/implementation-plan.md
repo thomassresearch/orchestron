@@ -1,6 +1,6 @@
 # Persistent Csound process implementation plan
 
-Status: T01–T07 implementation delivered; updated 2026-11-07. G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. T08 release and default cutover remain pending. See the [final qualification summary](t07-qualification-summary.md). This document defines the implementation sequence; the [implementation record](implementation-record.md) identifies executed work and limits. Read the [scope and decisions](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) together. Session parallel rendering requires explicit application injection for diagnostics; deployment selection is disabled.
+Status: T01–T08 delivered; updated 2026-11-07. G7 and G8 pass for the measured Linux ARM64, four-CPU, 48 kHz/K=32 scope. See the [T08 release summary](t08-qualification-summary.md) and [operator controls](t08-release.md). Single remains the default and fallback; public opt-in requires matching reviewed evidence and capacity. This document defines the implementation sequence; the [implementation record](implementation-record.md), [scope](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) identify delivered behavior and limits. No default cutover is part of T08.
 
 ## 1. Outcome and invariants
 

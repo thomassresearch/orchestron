@@ -1,6 +1,6 @@
 # Parallel rendering implementation record
 
-Updated: 2026-11-07. T01–T07 implementation delivered through the explicit internal session opt-in. G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. T08 release and default cutover remain pending. See the [final qualification summary](t07-qualification-summary.md). Normal application startup still constructs the original `CsoundWorker`; no deployment selection flag is enabled.
+Updated: 2026-11-07. T01–T08 delivered. G7 and G8 pass for the measured Linux ARM64, four-CPU, 48 kHz/K=32 scope; see the [T08 release summary](t08-qualification-summary.md). Single remains the default and fallback. Public opt-in requires the explicit operator catalog and capacity admission; no catalog is installed into an existing deployment and no default cutover is made.
 
 ## T01 delivered work
 
@@ -1299,3 +1299,48 @@ Raw reports, logs and replay harnesses are retained locally in the ignored measu
 folder. This summary records their report/manifest hashes and explains this storage
 limit. The task did not modify the externally changed ignore rules. Historical T07d hashes
 are verified unchanged.
+
+
+## T08: qualified public opt-in and CPU status line
+
+Implemented a stopped-session Perform checkbox and `renderer_mode=auto` API request,
+retaining default `single` construction and existing startup/next-start fallback. Operator
+catalogs supply exact input/cost/policy/build/plan/artifact/browser-setting qualification;
+clients cannot grant eligibility. Invalid/missing/old-build evidence and capacity denial
+remain single. The deployment switch is rechecked at preparation/Start, without replacing
+an active renderer. No default cutover, persisted-data change or CSD export change is made.
+
+The narrow fixed Perform footer samples Linux CPU load outside rendering. Parallel reports
+total logical-CPU load on verified assigned CPUs; unpinned single reports server-process
+usage. This includes other work and is labelled accordingly. Unsupported/missing readings
+are unavailable, never zero. Per-session one-second caching bounds procfs sampling; polling
+is sequential, stopped on unmount/hidden tabs and isolated from global store/audio updates.
+Observation does not touch transport, controls, the sample cursor or idle-session activity.
+The requested color ranges leave 50–60% unspecified; orange covers >50..85%, green <=50%
+and red >85%. Labels, tooltips and integrated help cover all four GUI languages.
+
+Initial integration checks caught numeric coercion changing cost-plan digests; catalog
+records now preserve integer/float representation through strict bounded models. Native
+public-path tests prove matched selection, plain-worker defaults, canonical parity, stopped
+ownership cleanup and rollback. Fabricated test evidence is explicitly not qualification.
+The prospective [T08 protocol](t08-test-plan.md) governed new-image checks. G7 and G8 pass
+within the scope and identities in the [release summary](t08-qualification-summary.md): native
+p95 improved 24.6%/25.0%, both 600-second parallel soaks had zero losses, and matched recovery
+passed without an extension. The four-branch single baseline retained 1,235 underrun blocks.
+All four soaks included the visible CPU observer. Native/browser graph and compiled identities
+matched; all native parity/controller/ownership probes passed.
+
+Full verification: 3,296 backend tests, 119 frontend files/1,384 tests, frontend lint/build,
+backend Ruff, Docker build and 37 measurement-analysis tests passed. Actual public UI checks
+on both catalog profiles selected qualified parallel without diagnostic injection, verified
+single defaults/override, changed-settings fallback, disabled active switching and cleanup.
+The deployment rollback switch was exercised in a fresh server. Screenshots cover desktop
+and narrow layouts; the English manual was regenerated and inspected.
+
+Public verification initially combined previous-session Stop diagnostics with new playback.
+The retained failed attempts exposed the unchanged default Stop handler's MIDI-channel-0
+validation warning for continuous instruments. Evidence now records that warning separately;
+new parallel sessions have no audio errors or losses. This existing warning remains outside
+T08's changes. The catalog uses conservative 896/960 MiB private-memory admission budgets,
+separate from measured snapshots and cgroup peaks. Its report digest binds the complete raw
+qualification report. No old runtime identity or fabricated test record authorizes the release.

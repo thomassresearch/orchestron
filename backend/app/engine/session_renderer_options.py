@@ -19,3 +19,5 @@ class SessionRendererOptions:
     allow_unqualified: bool = False
     admission: RenderAdmission = field(default_factory=lambda: PROCESS_RENDER_ADMISSION)
     qualifications: tuple[QualificationEvidence, ...] = ()
+    blocked_reason: str | None = None
+    enabled: Callable[[], bool] | None = None

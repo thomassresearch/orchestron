@@ -113,6 +113,9 @@ class SessionInstrumentAssignment(BaseModel):
 
 
 class SessionCreateRequest(BaseModel):
+    renderer_mode: Literal["single", "auto"] = "single"
+    # Requested browser policy, never qualification evidence or planner costs.
+    browser_settings: dict[str, int | str] | None = Field(default=None, max_length=32)
     audio_graph: AudioGraph | None = None
     mixer: MixerState = Field(default_factory=MixerState)
     patch_id: str | None = Field(default=None, min_length=1)

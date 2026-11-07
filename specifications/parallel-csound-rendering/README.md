@@ -1,8 +1,10 @@
 # Parallel Csound rendering
 
-Status: T01–T07 implementation delivered; updated 2026-11-07. **G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope.**
-T08 rollout remains pending. Normal startup still uses the single renderer, also retained
-as the fallback. No release qualification records or deployment selection are installed.
+Status: T01–T08 delivered; updated 2026-11-07. **G7 and G8 pass for the measured Linux ARM64, four-CPU, 48 kHz/K=32 scope.**
+The [T08 release summary](t08-qualification-summary.md) records fresh native/browser qualification,
+public opt-in, CPU observation and rollback. Single remains the default and fallback. The
+[operator catalog](t08-release.md) is explicit and limited to the two exact measured graphs;
+no existing deployment or default selection is changed.
 
 The [final qualification summary](t07-qualification-summary.md) records fresh ten-minute
 paired soaks, native benefit, controller fan-out, recovery and the Linux CPU-placement fix.
@@ -41,6 +43,6 @@ The first delivery uses coarse partitions: independent upstream branches and one
 
 The source review found one `CsoundWorker` per session, a serialized `performKsmps()` loop, and an existing `ResolvedMixerGraph` with ordered patch, bypass, strip, route and output stages. A static evaluation of the existing synthetic mixer benchmark produced 29 stages and 38 edges, with four independent sources and shared delay/Master consumers. This is graph evidence, not a performance result.
 
-No Orchestron container was running during the initial analysis. T01 recorded repeatable native single-renderer measurements. T07 adds paired native/container measurements, actual cgroup admission probes and browser regression checks. Its synchronization continuation brings selected K=32 workloads below the p95 audio budget, with 20–47% paired improvement on measured heavy cases; see the [current evidence and limits](implementation-record.md#t07-continuation-synchronization-and-ipc). G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. Release and cutover remain pending.
+No Orchestron container was running during the initial analysis. T01 recorded repeatable native single-renderer measurements. T07 adds paired native/container measurements, actual cgroup admission probes and browser regression checks. Its synchronization continuation brings selected K=32 workloads below the p95 audio budget, with 20–47% paired improvement on measured heavy cases; see the [current evidence and limits](implementation-record.md#t07-continuation-synchronization-and-ipc). G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. T08 adds the qualified public opt-in; the default remains single.
 
 The original planning package changed no implementation. T01 adds internal contract models, diagnostic tooling, synthetic fixtures and regression tests. T02 introduces a typed renderer interface and shared construction factory. T03 adds optional compiler resource/connection analysis and immutable diagnostic partition plans. T04 shares structured stage lowering and emits internal realtime partition programs. T05 adds persistent child processes, shared native audio buffers and a parent coordinator. T06 integrates session lifecycle, controls, edits, auditions and recovery through explicit internal options. T07 adds capacity leases, evidence-based selection, profiling, wakeup/PCM fixes and startup CPU placement. CSD export remains canonical and single. Normal session creation still selects the original single worker and its render loop is unchanged. Parallel sessions remain diagnostic opt-in only. User data, instrument examples and deployment settings are unchanged by this work.

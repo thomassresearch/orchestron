@@ -27,8 +27,7 @@ Sessions depend on the internal [RealtimeRenderer contract](backend/app/engine/r
 The shared [renderer factory](backend/app/engine/renderer_factory.py) defaults to the original
 `CsoundWorker`, including its explicit/mock-on-missing-binding behavior. Native start errors still
 propagate. The interface adds no forwarding calls inside rendering, and the public API/PCM format
-is unchanged. The single renderer remains the default and compatibility fallback; deployment
-selection is not active. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
+is unchanged. The single renderer remains the default and compatibility fallback; parallel playback requires an explicit request and matching operator-installed qualification. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
 for baseline comparisons and remaining work.
 
 T07 adds internal [capacity admission](backend/app/engine/render_capacity.py) and an
@@ -38,7 +37,7 @@ capacity stays single. Process-wide leases count running/pending single sessions
 rendering children (including the suffix), and preparation/API headroom. Capacity is checked
 again at Start, leases survive incomplete cleanup, and resource changes never resize an
 active renderer. Default single rendering performs no capacity filesystem probes in its
-audio loop. No performance qualification is registered. See the
+audio loop. Qualification is supplied only through the reviewed deployment catalog. See the
 [T07 contract](specifications/parallel-csound-rendering/contracts.md#12-t07-capacity-and-performance-gate).
 T07 now uses startup-only [Linux CPU placement](backend/app/engine/render_cpu_placement.py)
 to keep persistent native owners on distinct allowed logical CPUs. Reservations span live
@@ -50,14 +49,15 @@ records the measured scope, ten-minute soaks, native benefit, controller fan-out
 recovery. The evidence predicate requires at least 600 seconds and zero parallel playback
 losses; baseline single losses remain visible. Live-input latency is non-blocking under the
 user's amended criteria, with historical failures retained. Timing, buffers and CSD exports
-are unchanged. No qualification records are installed; T08 rollout remains separate.
+are unchanged. T08 exposes the qualified opt-in and a separate CPU observer; see the
+[release and rollback contract](specifications/parallel-csound-rendering/t08-release.md).
 
 `CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
 metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).
 It records compiler stage/port order, resource constraints and helper/control/meter ownership.
 Planning uses caller-supplied costs and limits; it does not inspect CPU capacity, allocate
 buffers or start Csound. Even a coarse candidate has `selected_renderer="single"` and
-`execution_eligible=false`. Normal session compile/start never calls this diagnostic path, and
+`execution_eligible=false`. Default single-session compile/start never calls this optional path, and
 analysis does not replace canonical patch/asset validation. See the
 [T03 contract](specifications/parallel-csound-rendering/contracts.md#8-t03-pure-planning-contract).
 
@@ -65,7 +65,7 @@ analysis does not replace canonical patch/asset validation. See the
 program compiler. Canonical and partition emitters share structured stage lowering;
 public compile responses and offline CSD exports preserve canonical output. Internal
 programs include ordered native audio-channel adapters, scoped setup and local note/stage
-references. They remain ineligible for automatic selection. The sequential native harness
+references. Compilation alone never authorizes their execution. The sequential native harness
 and an explicitly started internal process coordinator consume them for qualification. See the
 [T04 contract](specifications/parallel-csound-rendering/contracts.md#9-t04-internal-realtime-program-contract)
 and [compiler tests](backend/tests/test_compiler_partitioned.py).
@@ -81,20 +81,32 @@ the JSON protocol. No next interval can begin ahead of the global completion bar
 The output child converts native samples to float32; the parent resamples once per request
 and withholds an entire failed PCM request. Conversion stays in the native thread to preserve
 Csound's float32 subnormal handling; resampling retains that reported mode.
-Startup, cancellation, deadlines and cleanup are internal operations; normal sessions
+Startup, cancellation, deadlines and cleanup are internal operations; default single sessions
 and CSD exports do not call this coordinator. A caller must supply
 already ordered/gated events through its parent-only block preparation callback. The
 session-facing facade supplies that callback; T07 admission gates its starts. See the
 [T05 contract](specifications/parallel-csound-rendering/contracts.md#10-t05-process-execution-contract)
 and [process tests](backend/tests/test_parallel_csound_renderer.py).
 
-T06 adds an explicit application injection, `create_app(renderer_options=SessionRendererOptions(...))`,
-for integration testing. Non-single options construct [ParallelCsoundRenderer](backend/app/engine/session_parallel_renderer.py),
-which retains the original worker's scheduler, lane gate, controller revisions and boundary queue.
-It requires caller-supplied planner costs and either reviewed matching qualification records
-or `allow_unqualified=True`, in addition to capacity admission. No qualification records ship;
-the diagnostic override is not a deployment setting. Default construction still uses the plain
-`CsoundWorker`; its render loop and canonical CSD exports are unchanged.
+T08 adds public `SessionCreateRequest.renderer_mode` (`single` by default, or `auto`) and
+optional `browser_settings`. Auto loads only server-controlled profiles through
+`VISUALCSOUND_PARALLEL_QUALIFICATION_FILE`, checks exact build/settings/input/plan/artifact
+identity and capacity, and retains single fallback. `VISUALCSOUND_PARALLEL_PLAYBACK_ENABLED=false`
+is the deployment rollback switch. The Perform checkbox is stopped-only, session-local,
+and excluded from persistence and exports. See the [T08 release contract](specifications/parallel-csound-rendering/t08-release.md).
+
+The older `create_app(renderer_options=SessionRendererOptions(...))` injection remains for
+controlled tests/qualification. Only this explicit internal path can use `allow_unqualified`;
+there is no corresponding HTTP or deployment override. Default construction still uses the
+plain `CsoundWorker`. The optional facade retains its parent scheduler and boundary queue.
+
+`GET /api/sessions/{id}/engine-stats` is observation only: procfs sampling runs in a worker
+thread behind a one-second per-session cache. Parallel sessions report total Linux load on
+their assigned logical CPUs; single sessions report server-process CPU usage (100% = one
+CPU). Unsupported platforms/counter errors return unavailable/null. Reads never render,
+change controls or refresh idle retention. The fixed Perform status line suspends polling
+when hidden and rejects stale session responses. Its counters are separate from worklet
+underruns and render/audio ratios; they do not control admission or playback timing.
 
 The facade drains parent events and controls once per block and maps partition meters to the
 canonical mixer identities. Live preparation, auditions and device commands use the existing

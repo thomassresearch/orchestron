@@ -1,0 +1,343 @@
+{
+  "version": 1,
+  "policy": {
+    "mode": "auto",
+    "max_workers": 8,
+    "max_shared_memory_bytes": 67108864,
+    "startup_timeout_seconds": 30,
+    "stop_timeout_seconds": 2,
+    "render_timeout_seconds": 5,
+    "slots_per_bus": 2,
+    "max_inflight_blocks": 1
+  },
+  "profiles": [
+    {
+      "input_hash": "c17dd2a7e734d60d1c9b996763c9dca0dfed069e5a725b826f46411092999e1a",
+      "costs": {
+        "provenance": "synthetic-planner-fixture-v1; not measured or qualified",
+        "stages": [
+          {
+            "stage": "patch:source0",
+            "microseconds": 100
+          },
+          {
+            "stage": "patch:source1",
+            "microseconds": 100
+          },
+          {
+            "stage": "strip:source0",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry0left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry0right",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:private0",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:delay0",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:delay0",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet0left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet0right",
+            "microseconds": 1
+          },
+          {
+            "stage": "strip:source1",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry1left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry1right",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:private1",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:delay1",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:delay1",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet1left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet1right",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:$master",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:$master",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:direct_663d9de6aaa09d717ad1da85",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:direct_86c9f89b472612e7d2cddb1f",
+            "microseconds": 1
+          },
+          {
+            "stage": "$output",
+            "microseconds": 1
+          }
+        ],
+        "dispatch_microseconds": 1,
+        "copy_microseconds_per_sample": 0.001,
+        "minimum_reduction": 0.2
+      },
+      "evidence": {
+        "runtime": "b7399b236d2a7aaf2019c9c945a4474d7b0a3e3c93d43a7b8c99818fbe8aefe8",
+        "artifact_hash": "685090ccadbbec537b22313e78ef09e5d5b1c72759dfa2e2852a4620a5f90f00",
+        "plan_hash": "202cc2e77862253a86ab98e3464b22d422e14cb7efea19f6134033e962326915",
+        "workload": "realtime_2",
+        "report_digest": "abb111ce0db0634c50bb1f0ba049110b02c15cb5e7438a3bbcbea258ae891d2b",
+        "single_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+        "parallel_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+        "effective_cpus": 4,
+        "single_p95_ms": 11.387,
+        "parallel_p95_ms": 8.589584,
+        "single_p99_ms": 12.335708,
+        "parallel_p99_ms": 8.937083,
+        "single_browser_seconds": 603.4121799999475,
+        "parallel_browser_seconds": 602.9191200000048,
+        "single_underruns": 0,
+        "parallel_underruns": 0,
+        "stress_single_underruns": 941,
+        "stress_parallel_underruns": 785,
+        "stress_single_recovery_ms": 380.569580078125,
+        "stress_parallel_recovery_ms": 316.138916015625,
+        "private_memory_bytes": 939524096,
+        "native_correctness": true,
+        "final_image": true
+      }
+    },
+    {
+      "input_hash": "4c1e58a1022d380b9a4b9bf1b8fb9af346c437641730190e7f09b65d593f44e8",
+      "costs": {
+        "provenance": "synthetic-planner-fixture-v1; not measured or qualified",
+        "stages": [
+          {
+            "stage": "patch:source0",
+            "microseconds": 100
+          },
+          {
+            "stage": "patch:source1",
+            "microseconds": 100
+          },
+          {
+            "stage": "patch:source2",
+            "microseconds": 100
+          },
+          {
+            "stage": "patch:source3",
+            "microseconds": 100
+          },
+          {
+            "stage": "strip:source0",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry0left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry0right",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:private0",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:delay0",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:delay0",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet0left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet0right",
+            "microseconds": 1
+          },
+          {
+            "stage": "strip:source1",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry1left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry1right",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:private1",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:delay1",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:delay1",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet1left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet1right",
+            "microseconds": 1
+          },
+          {
+            "stage": "strip:source2",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry2left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry2right",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:private2",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:delay2",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:delay2",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet2left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet2right",
+            "microseconds": 1
+          },
+          {
+            "stage": "strip:source3",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry3left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:dry3right",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:private3",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:delay3",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:delay3",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet3left",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:wet3right",
+            "microseconds": 1
+          },
+          {
+            "stage": "patch:$master",
+            "microseconds": 8
+          },
+          {
+            "stage": "strip:$master",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:direct_663d9de6aaa09d717ad1da85",
+            "microseconds": 1
+          },
+          {
+            "stage": "route:direct_86c9f89b472612e7d2cddb1f",
+            "microseconds": 1
+          },
+          {
+            "stage": "$output",
+            "microseconds": 1
+          }
+        ],
+        "dispatch_microseconds": 1,
+        "copy_microseconds_per_sample": 0.001,
+        "minimum_reduction": 0.2
+      },
+      "evidence": {
+        "runtime": "b7399b236d2a7aaf2019c9c945a4474d7b0a3e3c93d43a7b8c99818fbe8aefe8",
+        "artifact_hash": "9ee8036df8536664b0b7abfb67295c60bf1b40fcb80845c72b1cd3df4d8ca723",
+        "plan_hash": "d36b22d4c9c9609e406b7130f8ae50e91e3963496ab02529397f8e4fbeeb5c9e",
+        "workload": "realtime_4",
+        "report_digest": "abb111ce0db0634c50bb1f0ba049110b02c15cb5e7438a3bbcbea258ae891d2b",
+        "single_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+        "parallel_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+        "effective_cpus": 4,
+        "single_p95_ms": 12.524833,
+        "parallel_p95_ms": 9.394833,
+        "single_p99_ms": 13.031584,
+        "parallel_p99_ms": 9.61275,
+        "single_browser_seconds": 602.9092750000954,
+        "parallel_browser_seconds": 602.941,
+        "single_underruns": 1235,
+        "parallel_underruns": 0,
+        "stress_single_underruns": 1012,
+        "stress_parallel_underruns": 871,
+        "stress_single_recovery_ms": 1537.7080078125,
+        "stress_parallel_recovery_ms": 330.164794921875,
+        "private_memory_bytes": 1006632960,
+        "native_correctness": true,
+        "final_image": true
+      }
+    }
+  ]
+}

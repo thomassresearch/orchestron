@@ -633,3 +633,15 @@ These are logical CPU assignments within one API process, not exclusive physical
 reservations. Other containers, host scheduling, SMT and separate API processes remain
 outside this pool, as they do for capacity leases. Qualification stays specific to the
 measured workload/build/environment and does not register deployment eligibility.
+
+
+## 17. T08 opt-in and CPU observation
+
+The [release contract](t08-release.md) defines the public `single`/`auto` session request,
+operator-only exact-build catalog, browser-setting and graph identity checks, stopped-only
+UI preference, deployment rollback and observation scopes. No catalog or failed qualification
+retains single; the default path still constructs the plain original worker. The CPU footer
+is not a clock owner and its approximately-one-second requests never call rendering or
+extend idle retention. Event/control, buffer, CSD export and process ownership contracts above
+remain unchanged. The [T08 protocol](t08-test-plan.md) separates final-image measurements from
+fabricated selection-test records and historical G7 evidence.

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from backend.app.models.engine_stats import EngineStats
+
 from fastapi import APIRouter, Depends, Request, Response
 
 from backend.app.api.deps import get_container
@@ -107,6 +109,11 @@ async def validate_instruments(
 @router.get("", response_model=list[SessionInfo])
 async def list_sessions(container: AppContainer = Depends(get_container)) -> list[SessionInfo]:
     return await container.session_service.list_sessions()
+
+
+@router.get("/{session_id}/engine-stats", response_model=EngineStats)
+async def engine_stats(session_id: str, container: AppContainer = Depends(get_container)) -> EngineStats:
+    return await container.session_service.get_engine_stats(session_id)
 
 
 @router.get("/{session_id}", response_model=SessionInfo)

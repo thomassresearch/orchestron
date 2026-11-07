@@ -179,3 +179,34 @@ it("retains clip app-state v5 when bootstrap saves a legacy mixer migration", as
   expect(save).toHaveBeenCalledWith(expect.objectContaining({ version: 5, sequencer: expect.objectContaining({ clipArrangement: app.sequencer.clipArrangement }) }));
   useAppStore.setState({ hasLoadedBootstrap: false });
 });
+
+it("keeps parallel opt-in out of saved state and recreates a stopped session when it changes", async () => {
+  useAppStore.setState({ sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
+  const create = vi.spyOn(api, "createSession").mockResolvedValueOnce({ session_id: "single", state: "idle", patch_id: "patch", instruments: [] })
+    .mockResolvedValueOnce({ session_id: "auto", state: "idle", patch_id: "patch", instruments: [] });
+  vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "single", state: "compiled", detail: "stopped" });
+  const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
+  await useAppStore.getState().ensureSession();
+  expect(create.mock.calls[0]).toHaveLength(3);
+  useAppStore.getState().setParallelPlaybackEnabled(true);
+  expect(JSON.stringify(buildPersistedAppStateSnapshot(useAppStore.getState()))).not.toContain("parallelPlaybackEnabled");
+  await useAppStore.getState().ensureSession();
+  expect(remove).toHaveBeenCalledWith("single");
+  expect(create.mock.calls[1][3]).toEqual({ renderer_mode: "auto", browser_settings: useAppStore.getState().browserClockLatencySettings });
+  useAppStore.setState({ activeSessionState: "running" });
+  useAppStore.getState().setParallelPlaybackEnabled(false);
+  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(true);
+});
+
+it("discards an in-flight session created for a superseded renderer preference", async () => {
+  useAppStore.setState({ sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
+  const pending = deferred<SessionCreateResponse>();
+  vi.spyOn(api, "createSession").mockReturnValue(pending.promise);
+  const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
+  const creating = useAppStore.getState().ensureSession();
+  useAppStore.getState().setParallelPlaybackEnabled(true);
+  pending.resolve({ session_id: "old", state: "idle", patch_id: "patch", instruments: [] });
+  await expect(creating).rejects.toThrow("setup changed");
+  expect(remove).toHaveBeenCalledWith("old");
+  expect(useAppStore.getState().activeSessionId).toBeNull();
+});

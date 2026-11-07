@@ -1,3 +1,4 @@
+import { ENGINE_STATS_COPY } from "./engineStatsCopy";
 import type { GuiLanguage } from "../types";
 import { controllerStepHelp } from "./helpDocumentationControllerSteps";
 import { drummerRatchetHelp } from "./helpDocumentationDrummerRatchets";
@@ -1069,4 +1070,8 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
     structureRemovalHelp[language], unifiedContainerHelp[language],
     instrumentAutomationHelp[language], clipContentActionsHelp[language]
   ].join("\n\n");
+}
+
+for (const language of Object.keys(ENGINE_STATS_COPY) as GuiLanguage[]) {
+  sequencerHelpDocuments.sequencer_instrument_rack[language].markdown += `\n\n### ${ENGINE_STATS_COPY[language].title}\n\n${ENGINE_STATS_COPY[language].help}`;
 }

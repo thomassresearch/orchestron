@@ -26,6 +26,44 @@ At the bottom of the Perform page, Orchestron shows live status values such as:
 
 This footer is useful during performance because it gives quick feedback without opening the Instrument Design runtime panel.
 
+## Engine Stats and Parallel Playback
+
+A narrow **Engine stats** line stays fixed at the bottom of the Perform window. It shows
+whether the session uses **Single** or **Parallel** rendering. It also contains the optional
+**Parallel playback** checkbox.
+
+To opt in, stop the instruments, enable **Parallel playback**, then start them again. Only
+workloads, builds and browser settings that have been qualified on the server can use parallel
+rendering, and the server must have enough available capacity. Other cases display **Single
+fallback** and continue with the original renderer. Ask the server operator to install matching
+qualification profiles if none are available. A checkbox alone does not qualify a workload.
+
+The choice is off by default, resets when the page reloads, and is not saved in a performance
+or an export. It cannot be changed while instruments are running. Turning it off while stopped
+returns the next session to single rendering. Audio timing, buffer sizes and CSD exports are
+unchanged. Sequencer controllers retain their MIDI channels and reach every relevant instrument
+across the parallel processes.
+
+On Linux, parallel rendering shows the total load on the logical CPUs assigned to its workers,
+for example `cpu0: 60% cpu1: 45% cpu3: 77%`. These CPU readings include other work using those
+CPUs. With single rendering, **Server process** shows the combined CPU usage of the server
+process: 100% represents one CPU, and the value can exceed 100%. It is not a per-instrument meter.
+Unsupported platforms or unavailable readings show **CPU usage unavailable**, not zero.
+
+- **Green:** 0–50%.
+- **Orange:** above 50% through 85%, including the 50–60% interval.
+- **Red:** above 85%.
+
+Readings update about once a second while Perform is visible. Switching views or hiding the tab
+suspends observation; audio keeps playing. Load percentages do not replace the audio underrun
+and queue indicators. Live-input latency is a separate diagnostic and may still vary.
+
+If a parallel worker fails during playback, the engine stops and reports the error. It does not
+silently replace the running synths or replay audio. Stop and explicitly restart; automatic
+fallback can use single rendering on that restart.
+
+![Fixed engine statistics and parallel playback option](../../screenshots/performance_engine_stats.png)
+
 ## Track State Labels (Queued Changes)
 
 A track's state badge can reflect queued actions that apply at the next cycle boundary, for example:

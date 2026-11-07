@@ -1151,6 +1151,22 @@ export interface SessionInfo {
   started_at: string | null;
 }
 
+export interface SessionRendererRequest {
+  renderer_mode: "single" | "auto";
+  browser_settings?: BrowserClockLatencySettings;
+}
+
+export interface EngineStats {
+  session_id: string;
+  state: SessionState;
+  renderer: RendererDiagnostics | null;
+  available: boolean;
+  scope: "renderer_cpus" | "server_process" | "unavailable";
+  cpus: Array<{ cpu: number; percent: number | null }>;
+  process_percent: number | null;
+  sample_seconds: number | null;
+}
+
 export interface SessionCreateResponse {
   session_id: string;
   patch_id: string;

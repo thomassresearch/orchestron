@@ -16,6 +16,8 @@ from fastapi import HTTPException
 
 from backend.app.core.config import Settings
 from backend.app.engine.renderer_factory import create_realtime_renderer
+from backend.app.engine.render_release import RenderRelease
+from backend.app.models.engine_stats import EngineStats
 from backend.app.engine.render_capacity import PROCESS_RENDER_ADMISSION
 from backend.app.engine.session_runtime import RuntimeSession
 from backend.app.models.audio import MixerState, MixerUpdate, MixerStrip, MixerSend
@@ -109,6 +111,7 @@ class SessionService:
     ) -> None:
         self._settings = settings
         self._renderer_options = renderer_options
+        self._render_release = RenderRelease(settings)
         self._render_admission = renderer_options.admission if renderer_options is not None else PROCESS_RENDER_ADMISSION
         self._compiler_service = compiler_service
         self._instrument_resolver = SessionInstrumentResolver(patch_service)
@@ -167,6 +170,9 @@ class SessionService:
             midi_inputs = self._midi_service.list_inputs()
             default_midi = self._resolve_default_midi_input_id(midi_inputs)
 
+            renderer_options = self._renderer_options
+            if renderer_options is None and request.renderer_mode == "auto":
+                renderer_options = self._render_release.options(request.browser_settings)
             runtime = RuntimeSession(
                 session_id=str(uuid4()),
                 instruments=instruments,
@@ -177,10 +183,10 @@ class SessionService:
                 worker=create_realtime_renderer(
                     gen_audio_assets_dir=str(self._settings.gen_audio_assets_dir),
                     csound_performance_logging=self._settings.csound_performance_logging,
-                    **({"renderer_options": self._renderer_options} if self._renderer_options is not None else {}),
+                    **({"renderer_options": renderer_options} if renderer_options is not None else {}),
                 ),
             )
-            if self._renderer_options is not None and self._renderer_options.policy.mode != "single":
+            if renderer_options is not None and renderer_options.policy.mode != "single":
                 runtime.renderer_controller = runtime.worker
             self._performance_runtime.initialize(runtime)
             return runtime
@@ -1925,6 +1931,26 @@ class SessionService:
         if not runtime:
             raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
         return runtime
+
+    async def get_engine_stats(self, session_id: str) -> EngineStats:
+        # Observation must not prolong an idle session or hold lifecycle/audio
+        # ownership while reading procfs. Per-session caching bounds observers.
+        async with self._lock:
+            runtime = self._sessions.get(session_id)
+            if runtime is None or runtime.closing:
+                raise HTTPException(status_code=404, detail="Session not found")
+
+        def observe():
+            controller = runtime.renderer_controller
+            try:
+                assignments = controller.render_cpu_assignments if controller is not None else ()
+                sample = runtime.engine_stats.sample(running=runtime.worker.is_running, assignments=assignments)
+            except (RuntimeError, ValueError):
+                sample = dict(available=False, scope="unavailable", cpus=[])
+            return EngineStats(session_id=session_id, state=runtime.state,
+                renderer=controller.renderer_diagnostics if controller is not None else None, **sample)
+
+        return await asyncio.to_thread(observe)
 
     @staticmethod
     def _session_info(runtime: RuntimeSession) -> SessionInfo:

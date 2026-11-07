@@ -9,6 +9,7 @@ import asyncio
 from backend.app.engine.realtime_renderer import RealtimeRenderer
 from backend.app.engine.renderer_factory import create_realtime_renderer
 from backend.app.engine.live_midi_activity import LiveMidiActivity
+from backend.app.engine.engine_stats import EngineStatsSampler
 from backend.app.models.audio import AudioGraph, MixerState
 from backend.app.models.session import CompileArtifact, SessionInstrumentAssignment, SessionState
 
@@ -28,6 +29,7 @@ class RuntimeSession:
     preview_patches: dict = field(default_factory=dict)
     worker: RealtimeRenderer = field(default_factory=create_realtime_renderer)
     renderer_controller: Any = None
+    engine_stats: EngineStatsSampler = field(default_factory=EngineStatsSampler)
     midi_router: Any = None
     sequencer: Any = None
     sequencer_request: Any = None

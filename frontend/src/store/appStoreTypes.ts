@@ -68,6 +68,9 @@ export interface AppStore {
   activePage: AppPage;
   guiLanguage: GuiLanguage;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  /** Session-only opt-in; never serialized into performances, bundles or app state. */
+  parallelPlaybackEnabled: boolean;
+  setParallelPlaybackEnabled: (enabled: boolean) => void;
 
   opcodes: OpcodeSpec[];
   patches: PatchListItem[];

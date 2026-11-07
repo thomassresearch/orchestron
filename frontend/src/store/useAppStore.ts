@@ -155,6 +155,11 @@ export const useAppStore = create<AppStore>((set, get) => {
     activePage: "instrument",
     guiLanguage: "english",
     browserClockLatencySettings: initialBrowserClockLatencySettings,
+    parallelPlaybackEnabled: false,
+    setParallelPlaybackEnabled: (enabled) => {
+      if (get().activeSessionState === "running" || get().loading) return;
+      set({ parallelPlaybackEnabled: enabled });
+    },
 
     opcodes: [],
     patches: [],
@@ -877,11 +882,16 @@ export const useAppStore = create<AppStore>((set, get) => {
         const requestedBindings = get().sequencerInstruments;
         const workspaceGeneration = get().performanceWorkspaceGeneration;
         const requestedAssignments = normalizeSessionInstrumentAssignments(requestedBindings);
-        const audioSignature = JSON.stringify({ graph: get().audioGraph, patches: get().patches.map((p) => [p.id, p.updated_at]) });
+        const rendererRequest = get().parallelPlaybackEnabled
+          ? { renderer_mode: "auto" as const, browser_settings: get().browserClockLatencySettings } : undefined;
+        const signature = () => JSON.stringify({ graph: get().audioGraph,
+          patches: get().patches.map((p) => [p.id, p.updated_at]),
+          ...(get().parallelPlaybackEnabled ? { renderer: { renderer_mode: "auto", browser_settings: get().browserClockLatencySettings } } : {}) });
+        const audioSignature = signature();
         const setupIsCurrent = () => generation === sessionRequestGeneration &&
           workspaceGeneration === get().performanceWorkspaceGeneration &&
           requestedBindings === get().sequencerInstruments &&
-          audioSignature === JSON.stringify({ graph: get().audioGraph, patches: get().patches.map(p => [p.id, p.updated_at]) });
+          audioSignature === signature();
         const sameAudio = get().activeSessionAudioSignature === audioSignature;
         const sameWorkspace = get().activeSessionWorkspaceGeneration === workspaceGeneration;
         let sessionId = get().activeSessionId;
@@ -934,7 +944,9 @@ export const useAppStore = create<AppStore>((set, get) => {
           return sessionId;
         }
 
-        const session = await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
+        const session = rendererRequest
+          ? await api.createSession(requestedAssignments, get().audioGraph, get().mixer, rendererRequest)
+          : await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
         if (!setupIsCurrent()) {
           await api.deleteSession(session.session_id);
           throw new Error("Instrument session creation was cancelled because the setup changed.");

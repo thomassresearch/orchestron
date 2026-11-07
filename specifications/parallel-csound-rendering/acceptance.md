@@ -1,6 +1,6 @@
 # Parallel rendering acceptance and measurement plan
 
-Status: T01–T07 evidence recorded through 2026-11-07. G7 passes for the measured Linux ARM64, four-CPU, 48 kHz/K=32 workload scope. T08 release and default cutover remain pending. See the [final qualification summary](t07-qualification-summary.md). The [implementation record](implementation-record.md) distinguishes executed checks from this broader acceptance matrix. The [implementation plan](implementation-plan.md) defines the contracts being tested.
+Status: T01–T08 evidence recorded through 2026-11-07. G7 and G8 pass for the measured Linux ARM64, four-CPU, 48 kHz/K=32 scope. See the [T08 release summary](t08-qualification-summary.md). Single remains the default and fallback. The [implementation record](implementation-record.md) distinguishes executed checks from this broader acceptance matrix; the [implementation plan](implementation-plan.md) defines the contracts tested.
 
 ## 1. Evidence rules
 

@@ -60,7 +60,7 @@ def run(args):
             return RenderCapacity(args.diagnostic_cpus, True, 8192 * MIB, 64 * MIB,
                                   ("Operator-supplied local diagnostic budget; not detected/qualified",))
     admission = RenderAdmission(probe)
-    options = SessionRendererOptions(policy=RendererPolicy(mode="parallel", max_workers=args.workers),
+    options = SessionRendererOptions(policy=RendererPolicy(mode=args.selection_mode, max_workers=args.workers),
         costs=synthetic_costs, allow_unqualified=True, admission=admission)
     worker = create_realtime_renderer(renderer_options=options if args.renderer == "parallel" else None)
     if worker.backend != "ctcsound":
@@ -71,6 +71,8 @@ def run(args):
     identity = {"runtime": runtime_fingerprint(),
                 "plan_hash": candidate[1].plan_hash if candidate else None,
                 "artifact_hash": candidate[0].artifact_hash if candidate else None}
+    release_plan = ({"input_hash": candidate[1].graph.input_hash, "costs": asdict(candidate[1].cost_profile),
+                     "policy": options.policy.model_dump(mode="json")} if candidate else None)
     router = PerformanceMidiRouter(enqueue_timestamped_midi=worker.enqueue_timestamped_midi,
                                   current_engine_sample=lambda: worker.render_sample_cursor)
     sequencer = SessionSequencerRuntime(session_id="qualification", midi_service=router,
@@ -143,7 +145,7 @@ def run(args):
         "rss_after_render": rss, "parent_maxrss": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         "shared_bytes": shared, "capacity": asdict(observed), "diagnostic_cpu_override": args.diagnostic_cpus,
         "capacity_after": asdict(detect_render_capacity()), "diagnostics": diagnostics,
-        "worker_cpu_affinity": worker_cpus, "cleaned": True}
+        "worker_cpu_affinity": worker_cpus, "release_plan": release_plan, "cleaned": True}
 
 
 def main():
@@ -158,6 +160,7 @@ def main():
     parser.add_argument("--diagnostic-cpus", type=float)
     parser.add_argument("--renderer", choices=("single", "parallel"), default="single")
     parser.add_argument("--child", action="store_true")
+    parser.add_argument("--selection-mode", choices=("parallel", "auto"), default="parallel")
     parser.add_argument("--trace", action="store_true")
     args = parser.parse_args()
     if args.frames < 12288 or args.frames % 512 or args.rounds < 1 or not 3 <= args.workers <= 8:
@@ -183,7 +186,7 @@ def main():
                     for renderer in (("single", "parallel") if iteration % 2 == 0 else ("parallel", "single")):
                         command = [sys.executable, "-m", "backend.tools.benchmark_partition_render", "--child",
                             "--output", str(result_path), "--cases", case, "--ksmps", str(ksmps), "--frames", str(args.frames),
-                            "--workers", str(args.workers), "--renderer", renderer]
+                            "--workers", str(args.workers), "--renderer", renderer, "--selection-mode", args.selection_mode]
                         if iteration == 0:
                             command.append("--trace")
                         if args.diagnostic_cpus:

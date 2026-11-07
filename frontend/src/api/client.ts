@@ -209,11 +209,11 @@ export const api = {
       performance_controller_values?: Record<string, number>;
       effect_source_ids?: string[];
       effect_routes?: Array<{ source_id: string; channel: string }>;
-    }>, audio_graph?: AudioGraph, mixer?: MixerState
+    }>, audio_graph?: AudioGraph, mixer?: MixerState, renderer?: import("../types").SessionRendererRequest
   ) =>
     request<SessionCreateResponse>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ instruments, audio_graph, mixer })
+      body: JSON.stringify({ instruments, audio_graph, mixer, ...renderer })
     }),
   createPreview: (payload: { patches: Patch[]; session: { instruments: SessionInstrumentAssignment[]; audio_graph: AudioGraph; mixer: MixerState } }) => request<SessionCreateResponse>("/sessions/preview", { method: "POST", body: JSON.stringify(payload) }),
   getPerformanceControllers: (id: string) => request<Record<string, import("../types").PerformanceControllerSnapshot>>(`/sessions/${id}/performance-controllers`),
@@ -224,6 +224,8 @@ export const api = {
   updateMixer: (id: string, mixer: MixerState, revision?: number) => request<MixerResponse>(`/sessions/${id}/mixer`, { method: "PUT", body: JSON.stringify({ ...mixer, revision }) }),
   validateAudio: (instruments: SessionInstrumentAssignment[], audio_graph: AudioGraph, mixer: MixerState) => request<{ diagnostics: import("../types").AudioDiagnostic[] }>("/sessions/validate-instruments", { method: "POST", body: JSON.stringify({ instruments, audio_graph, mixer }) }),
   getSession: (sessionId: string) => request<SessionInfo>(`/sessions/${sessionId}`),
+  getEngineStats: (sessionId: string, signal?: AbortSignal) =>
+    request<import("../types").EngineStats>(`/sessions/${sessionId}/engine-stats`, { signal }),
   compileSession: (sessionId: string) =>
     request<CompileResponse>(`/sessions/${sessionId}/compile`, { method: "POST" }),
   startSession: (sessionId: string) =>

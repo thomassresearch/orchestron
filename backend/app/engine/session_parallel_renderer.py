@@ -54,7 +54,11 @@ class ParallelCsoundRenderer(CsoundWorker):
         self._canonical_csd = canonical.csd
         self._fallback_reason = None
         self._qualification = None
-        if self._quarantined and self.options.policy.mode == "auto":
+        if self.options.enabled is not None and not self.options.enabled():
+            self._fallback_reason = "parallel_disabled"
+        elif self.options.blocked_reason:
+            self._fallback_reason = self.options.blocked_reason
+        elif self._quarantined and self.options.policy.mode == "auto":
             self._fallback_reason = "previous_parallel_failure"
         elif self.backend == "mock":
             self._fallback_reason = "native_backend_unavailable"
@@ -122,6 +126,13 @@ class ParallelCsoundRenderer(CsoundWorker):
             self.options.admission.release(self)
 
     @property
+    def render_cpu_assignments(self):
+        """Observation only; no CPU sampling or IPC on the rendering path."""
+        if not self._parallel:
+            return ()
+        return tuple(zip(self._coordinator.process_ids, self._coordinator._worker_cpus, strict=True))
+
+    @property
     def renderer_diagnostics(self):
         if self._failure_diagnostics is not None:
             return dict(self._failure_diagnostics)
@@ -181,6 +192,9 @@ class ParallelCsoundRenderer(CsoundWorker):
             self._render_requests = self._slow_requests = self._consecutive_slow = 0
             self._max_render_audio_ratio = 0.
             self.options.admission.reserve_single(self)
+            if self.options.enabled is not None and not self.options.enabled():
+                self._candidate = None
+                self._fallback_reason = "parallel_disabled"
             if self._candidate is not None and not (self._quarantined and self.options.policy.mode == "auto"):
                 try:
                     self._admit()
