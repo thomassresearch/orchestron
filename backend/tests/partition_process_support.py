@@ -73,17 +73,33 @@ class FakeNative:
             self.release.wait()
 
 
-def controlled_process(*args, mode="normal", entered=None, release=None, barrier=None):
+def controlled_process(*args, mode="normal", entered=None, release=None, barrier=None, **dependencies):
     threading.Thread(target=_exit_with_parent, daemon=True).start()
-    _serve(*args, native_factory=functools.partial(FakeNative, mode=mode, entered=entered, release=release, barrier=barrier))
+    _serve(*args, native_factory=functools.partial(FakeNative, mode=mode, entered=entered, release=release, barrier=barrier),
+           **dependencies)
 
 
-def corrupt_process(*args, corruption):
+def corrupt_process(*args, corruption, **dependencies):
     from backend.app.engine import csound_process
+    from backend.app.engine.render_block_codec import BLOCK, DONE_MAGIC
     from backend.app.engine.render_ipc import MESSAGE
 
     class CorruptArena(SharedArena):
         def send(self, region, data):
+            if data.startswith(DONE_MAGIC):
+                fields = list(BLOCK.unpack(data))
+                index = {"sequence": 2, "sample": 3, "revision": 4}.get(corruption)
+                if index is not None:
+                    fields[index] += 1
+                if corruption in {"epoch", "slots"}:
+                    fields[1] = bytes(32)  # epoch/layout ownership is bound to this digest
+                super().send(region, BLOCK.pack(*fields))
+                if corruption == "dependency_duplicate":
+                    for fence in dependencies["successor_ready"]:
+                        fence.release()
+                if corruption == "duplicate":
+                    args[-1].release()
+                return
             message = MESSAGE.validate_json(data)
             if isinstance(message, Ready) and corruption == "ready":
                 message = message.model_copy(update={"artifact_hash": "0" * 64})
@@ -101,7 +117,7 @@ def corrupt_process(*args, corruption):
                 args[-1].release()
 
     csound_process.SharedArena = CorruptArena
-    controlled_process(*args)
+    controlled_process(*args, **dependencies)
 
 
 def parent_exit_probe(report):

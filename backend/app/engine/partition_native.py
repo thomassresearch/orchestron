@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ctypes
+from functools import partial
 
 import numpy as np
 
@@ -46,6 +47,7 @@ class NativeCsoundPartition:
                     raise RuntimeError("Native binding lacks audio-channel bridge APIs.")
             self.dtype = np.dtype("float64" if width == 8 else "float32")
             configure_audio_abi(module.libcsound, width)
+            self._library = module.libcsound
             self._midi_callbacks(module)
             csd = CsoundWorker._apply_headless_runtime_options(csd, "internal:loopback", "null", suppress_messages=True)
             if self.cs.compileCsdText(csd) != 0:
@@ -62,6 +64,34 @@ class NativeCsoundPartition:
         except BaseException:
             self.close()
             raise
+
+    def bind_audio_transfer(self, name, values, *, into_csound):
+        """Bind a validated, epoch-owned shared view to the existing copy API.
+
+        Csound still copies each block through Get/SetAudioChannel. Only name
+        encoding, numpy validation and pointer construction move out of the hot
+        loop. The partial retains the array through its ctypes pointer.
+        """
+        if (values.dtype != self.dtype or values.shape != (self.cs.ksmps(),)
+                or not values.flags.c_contiguous or not values.flags.writeable):
+            raise ValueError("Invalid persistent audio-channel buffer.")
+        scalar = ctypes.c_double if self.dtype.itemsize == 8 else ctypes.c_float
+        function = self._library.csoundSetAudioChannel if into_csound else self._library.csoundGetAudioChannel
+        return partial(function, self.cs.cs, name.encode(), values.ctypes.data_as(ctypes.POINTER(scalar)))
+
+    def bind_meter_reader(self, name):
+        # Only generated meter channels are borrowed. Their fixed control type
+        # and storage last until reset; this same child thread owns all DSP and
+        # reads them after performKsmps. Never send a native pointer to the parent.
+        scalar = ctypes.c_double if self.dtype.itemsize == 8 else ctypes.c_float
+        pointer = ctypes.POINTER(scalar)()
+        function = self._library.csoundGetChannelPtr
+        function.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.POINTER(scalar)), ctypes.c_char_p, ctypes.c_int]
+        function.restype = ctypes.c_int
+        # Csound channel enum: CONTROL=1, OUTPUT=32.
+        if function(self.cs.cs, ctypes.byref(pointer), name.encode(), 1 | 32) != 0 or not pointer:
+            raise RuntimeError("Cannot bind native meter channel.")
+        return lambda: pointer[0]
 
     def _midi_callbacks(self, module):
         def read(_cs, _user, destination, capacity):

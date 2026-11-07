@@ -26,6 +26,12 @@ with identical sequencing and verifies exact PCM, meters, markers, status and ca
 CSD separately from timing. These fixtures and synthetic planner costs do not qualify
 automatic selection; browser/final-image evidence is a separate gate.
 
+T07's IPC continuation adds `realtime_2/4/8`: sixteen total voices distributed over
+two/four/eight independent sources, with six zero-resonance filters per voice. These
+probe useful work near the measured deadline and branch-count scaling; the original
+small and oversized workloads are retained. Names describe diagnostic intent, not a
+promise of realtime qualification. Thresholds, K=32 and 512-frame requests stay fixed.
+
 `parallel_render/planner_cases.json` defines T03 graph/resource variants and explicitly
 synthetic cost inputs; `planner_snapshots.json` freezes 34 plans at K=1/32. The snapshots
 include ordered owners/buses and hashes of all immutable metadata. The builder in

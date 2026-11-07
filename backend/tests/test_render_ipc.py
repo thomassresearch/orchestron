@@ -15,6 +15,32 @@ from backend.tests.render_plan_support import prepared_partition as prepared
 IDENTITY = dict(protocol_version=1, epoch=1, partition_id="upstream-0", plan_hash="a" * 64)
 
 
+def test_compact_empty_block_binds_exact_epoch_layout_and_counters():
+    from backend.app.engine.render_block_codec import BLOCK, DONE_MAGIC, SteadyBlockCodec
+
+    _, plan, compilation = prepared()
+    layouts = [build_layout(compilation, plan, epoch, limit=64 * 1024 * 1024) for epoch in (1, 2)]
+    first = next(iter(layouts[0].workers.values()))
+    codec = SteadyBlockCodec(first.bootstrap_hash)
+    data = codec.render(2, 64, 3)
+    assert codec.validate(data, sequence=2, sample=64, revision=2) == 3
+    assert codec.done(data) == DONE_MAGIC + data[4:]
+    # Digest binds epoch and every worker's distinct identity/bus ownership.
+    for layout in layouts:
+        for regions in layout.workers.values():
+            if regions.bootstrap_hash != first.bootstrap_hash:
+                with pytest.raises(ValueError, match="ownership"):
+                    SteadyBlockCodec(regions.bootstrap_hash).validate(data, sequence=2, sample=64, revision=3)
+    for index, replacement in [(0, DONE_MAGIC), (1, bytes(32)), (2, 1), (3, 63), (4, 2)]:
+        fields = list(BLOCK.unpack(data))
+        fields[index] = replacement
+        with pytest.raises(ValueError, match="mismatch"):
+            codec.validate(BLOCK.pack(*fields), sequence=2, sample=64, revision=3)
+    for broken in (data[:-1], data + b"x", b""):
+        with pytest.raises(ValueError, match="length"):
+            codec.validate(broken, sequence=2, sample=64, revision=3)
+
+
 def descriptor(**updates):
     return Render(**(dict(**IDENTITY, sequence=2, sample_start=64, frame_count=32, control_revision=3,
                           slots=slots_for(("bus:1", "bus:2"), 2)) | updates))

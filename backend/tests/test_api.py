@@ -117,7 +117,8 @@ def test_parallel_session_admission_counts_suffix_other_sessions_and_releases_on
 
 
 @pytest.mark.parametrize("ksmps", [1, 32])
-def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, monkeypatch, ksmps):
+@pytest.mark.parametrize("sample_rate", [48000, 44100])
+def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, monkeypatch, ksmps, sample_rate):
     import numpy as np
     from backend.tests.session_parallel_support import options, create_session
 
@@ -135,7 +136,7 @@ def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, mo
              "pads": [{"pad_index": 0, "steps": [60, 64, None, 67]}, {"pad_index": 1, "steps": [72]}]}]}
         assert client.put(base + "/sequencer/config", json=config).status_code == 200
         with client.websocket_connect(f"/ws/sessions/{identity}/browser-clock") as socket:
-            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": sample_rate,
                 "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 512})
             assert socket.receive_json()["type"] == "stream_config"
             socket.send_json({"type": "audition", "request_id": "audition", "action": "start",
@@ -147,7 +148,10 @@ def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, mo
                 metadata = socket.receive_json()
                 assert metadata["type"] == "render_chunk", metadata
                 assert (metadata["engine_sample_start"], metadata["engine_sample_end"]) == (index * 512, (index + 1) * 512)
-                pcm.append(socket.receive_bytes())
+                chunk = socket.receive_bytes()
+                assert metadata["target_frame_count"] == round(512 * sample_rate / 48000)
+                assert len(chunk) == metadata["target_frame_count"] * 2 * 4
+                pcm.append(chunk)
                 if index == 0:
                     config["tracks"][0]["pads"][0]["steps"] = [65, 69, None, 72]
                     # Preparation completes with the browser paused: idle boundary ownership.

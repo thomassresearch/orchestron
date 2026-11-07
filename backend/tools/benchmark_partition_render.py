@@ -146,7 +146,8 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--cases", nargs="+", choices=("two", "heavy_4", "heavy_8"), default=["two", "heavy_4", "heavy_8"])
+    parser.add_argument("--cases", nargs="+", choices=tuple(c["id"] for c in json.loads(FIXTURE.read_text())["cases"]),
+                        default=["two", "realtime_2", "realtime_4", "realtime_8", "heavy_4", "heavy_8"])
     parser.add_argument("--ksmps", nargs="+", type=int, choices=(1, 32), default=[32])
     parser.add_argument("--frames", type=int, default=98304)
     parser.add_argument("--rounds", type=int, default=3)

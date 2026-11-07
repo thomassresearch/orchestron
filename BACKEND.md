@@ -61,8 +61,12 @@ and [compiler tests](backend/tests/test_compiler_partitioned.py).
 
 The T05 [PartitionRenderCoordinator](backend/app/engine/parallel_csound_renderer.py) starts
 persistent Csound processes with `spawn`, native-width shared audio slots and bounded
-command/reply mailboxes. The parent seals one interval, dispatches independent branches,
-waits for every predecessor before the shared suffix, and commits only complete blocks.
+command/reply mailboxes. The parent seals and dispatches one interval; dependent children
+acquire every predecessor's publication fence before DSP, and the parent validates every
+completion before committing the block. T07 caches dependency topology, channel transfers
+and generated meter pointers within the native owner. Empty-event blocks use a compact
+descriptor bound to the full bootstrap digest; event/control and lifecycle records retain
+the JSON protocol. No next interval can begin ahead of the global completion barrier.
 The output child converts native samples to float32; the parent resamples once per request
 and withholds an entire failed PCM request. Conversion stays in the native thread to preserve
 Csound's float32 subnormal handling; resampling retains that reported mode.

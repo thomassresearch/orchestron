@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {
+      "rate": 48000,
+      "amplitude": 1e-39,
+      "exact_pcm": true
+    },
+    {
+      "rate": 48000,
+      "amplitude": 1e-36,
+      "exact_pcm": true
+    },
+    {
+      "rate": 44100,
+      "amplitude": 1e-39,
+      "exact_pcm": true
+    },
+    {
+      "rate": 44100,
+      "amplitude": 1e-36,
+      "exact_pcm": true
+    }
+  ]
+}

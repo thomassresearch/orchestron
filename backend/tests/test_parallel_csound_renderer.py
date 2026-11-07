@@ -217,7 +217,7 @@ def test_failure_discards_request_and_reaps_all_workers(mode):
     renderer.stop()
 
 
-@pytest.mark.parametrize("corruption", ["ready", "sequence", "sample", "epoch", "revision", "slots", "duplicate"])
+@pytest.mark.parametrize("corruption", ["ready", "sequence", "sample", "epoch", "revision", "slots", "duplicate", "dependency_duplicate"])
 def test_wrong_or_duplicate_completion_invalidates_epoch(corruption):
     _, plan, compilation = prepared()
     renderer = coordinator(_worker_target=partial(corrupt_process, corruption=corruption))

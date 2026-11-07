@@ -721,3 +721,150 @@ approval. Linux AMD64, bare-metal Linux ARM64 and native float32 Csound remain u
 Capacity leases cover one API process and visible cgroup ancestors; arbitrary assets and
 unrelated host/container processes are outside this admission guarantee. No realtime timing,
 buffering or single/export behavior was changed to satisfy the gate.
+
+## T07 continuation: synchronization and IPC
+
+The internal parallel path now sends each sealed interval once. Children publish their
+outputs directly to successor dependency fences; the parent validates every completion
+before advancing the clock or reusing a slot. This removes parent wakeup/redispatch between
+graph waves without adding render-ahead, batching, or an inter-partition sample delay.
+Empty-event commands and replies use a 60-byte record bound to the validated bootstrap
+digest, sequence, sample and control revision. MIDI/control-bearing messages and lifecycle
+messages retain the full validated protocol. Cached native channel copies, meter readers,
+shared views and process-sentinel polling remove repeated binding, layout and process checks
+from successful blocks. See the [transport contract](contracts.md#13-t07-synchronization-and-ipc-continuation).
+
+The single factory, its render loop, CSD exports, engine rates, `ksmps`, request sizes,
+browser queue policy and two audio slots are unchanged. Duplicate dependency signals,
+stale identities, failed children and incomplete blocks still fail closed. The parent
+acknowledgement is published after all successor fences, so the global barrier can reject
+leftover signals without racing a legitimate publication. Cancellation still reaps native
+owners before freeing shared memory; a blocked successor cannot extend the stop budget.
+
+### Controlled final-image measurements
+
+Final image: `sha256:4d8770ba1a5e15bdcce523d2c94eab9287b5e6ebf31f3ffec36e739783c3e9f4`.
+Docker Desktop Linux ARM64, Python 3.13.18, Csound 6.18.1, native double samples and the
+compiled Cython sequencer. Timed jobs ran sequentially without builds, tests or playback.
+Each main case has three fresh-process trials, 98,304 measured frames after 2,048 warmup
+frames, and separate exact single/parallel traces. Requests remain 512 frames at 48 kHz
+(10.667 ms of audio), with K=32. Four-CPU containers use 2 GiB memory; eight-CPU containers
+use 3 GiB; both retain 64 MiB shared memory and actual cgroup admission.
+
+| Workload / CPU quota / children | Single p95 / p99 ms | Parallel p95 / p99 ms | p95 reduction |
+| --- | ---: | ---: | ---: |
+| Original two / 4 / 3 | 7.819 / 8.049 | 7.336 / 7.641 | 6.2% |
+| Realtime two / 4 / 3 | 12.260 / 13.112 | 9.778 / 10.324 | 20.2% |
+| Realtime four / 4 / 3 | 12.564 / 13.247 | 9.923 / 10.806 | 21.0% |
+| Realtime four / 8 / 5 | 13.199 / 14.101 | 7.000 / 7.731 | 47.0% |
+| Realtime eight / 8 / 7 | 14.893 / 15.400 | 8.273 / 8.758 | 44.5% |
+
+Raw requests, process CPU/RSS, capacity observations, lifecycle costs and exact trace
+fingerprints are retained in the [four-CPU](measurements/t07b-final-container-4.json) and
+[eight-CPU](measurements/t07b-final-container-8.json) reports. All paired PCM, markers,
+meters, status and canonical CSD fingerprints match; audio is finite and nonzero.
+The new versioned realtime cases each have sixteen voices and six filters per voice,
+distributed over two, four or eight source branches. They were frozen before their
+measurements. They supplement, rather than replace, the original workload and stress cases.
+
+A [fresh pre-change image control](measurements/t07b-before-container-control.json), using
+the original two-source case and three shorter trials, measured parallel p95 at 12.498 ms
+versus 7.336 ms in the final build: approximately 41% lower. Its single p95 was 8.334 ms;
+the final single p95 was 7.819 ms. The different trial lengths and host variation prevent
+treating that historical percentage as a precision estimate. The paired final-build
+comparisons above determine useful scaling. In that control comparison, median parent CPU
+time per parallel request fell from 3.326 to 1.189 ms; these CPU samples exclude child DSP.
+Intermediate compact-message and direct-handoff
+reports remain in this directory with their original provenance; they are diagnostic stages,
+not evidence for the final image. The [final profile](measurements/t07b-final-container-profile.json)
+is instrumented and includes child startup/idle time; its elapsed times are not qualification
+percentiles.
+
+The limits remain material. Four-CPU realtime-four p99 slightly exceeds one request's audio
+duration, although it improves over single. Eight-CPU realtime-eight has a 17.970 ms maximum.
+The [original oversized stress cases](measurements/t07b-final-container-heavy.json) still
+take parallel p95 137.000/269.673 ms for four/eight sources on four CPUs. The
+[K=1 counterexample](measurements/t07b-final-container-k1.json) takes 85.755 ms versus single
+15.931 ms. Neither qualifies. The [macOS diagnostic](measurements/t07b-final-native.json)
+also falls short of the 20% p95 benefit gate; its supplied diagnostic CPU budget is not
+production capacity detection. A percentile below the audio duration is not a hard deadline
+guarantee or a browser dropout measurement.
+
+### Correctness and regression evidence
+
+| Check | Result |
+| --- | --- |
+| Full backend suite, including 100-cycle cleanup test | 3,230 passed in 726.79 s |
+| Final focused IPC/native/session/API suite | 101 passed in 76.57 s |
+| Focused Python sequencer parity suite | 52 passed in 18.25 s |
+| Final Linux native matrix, eight topologies at K=1/32 | 16 exact PCM/meter cases, clean ownership release |
+| Final Linux fresh-process subnormal/resampling checks | 4 exact cases at 48/44.1 kHz and two amplitudes |
+| Backend Ruff and final Docker build | Passed |
+
+The [Linux matrix](measurements/t07b-final-container-correctness.json) covers independent
+branches, shared effects, bypass, sidechain, custom ports and legato. The
+[subnormal report](measurements/t07b-final-subnormal.json) checks native-owner float32
+conversion and resampling. API parity now also verifies exact target frame/byte counts at
+48/44.1 kHz for K=1/32 through live edits, controls and auditions. The existing Starlette/httpx
+deprecation warning remains; the earlier T07 saxophone tolerance failure did not recur in
+this full run. The final image differs from the full-suite snapshot only in a corrected
+generic child-exit diagnostic; DSP, synchronization and timing code are identical.
+The exact final sources also pass all 16 crash, corrupt-completion and bounded native-hang
+regressions (6.55 s) after the playback measurements.
+
+### Sustained browser playback and pressure
+
+[Browser evidence](measurements/t07b-browser-realtime4.json) retains the production Chromium
+Worker/AudioWorklet counters, authored fixture, actual prepared sixteen tracks, renderer
+identity, warmup, settings, shared-ring capacity and raw observations. The
+[harness](measurements/t07b-browser-harness/README.md) uses disposable databases and the
+final image, with separate four-CPU, 2 GiB, 64 MiB shared-memory containers. Both use the
+unchanged local `auto` settings and enter `listening`; the ring remains 288,000 frames at
+48 kHz. Their normal adaptive refill behavior is observed, not replaced with the native
+benchmark's 512-frame requests. No builds or test suites ran during playback.
+
+| Pre-pressure playback | Single | Parallel |
+| --- | ---: | ---: |
+| Duration | 45.47 min | 30.40 min |
+| AudioWorklet underrun count | 15,573 | 0 |
+| Overruns / reconnects / reported errors | 0 / 0 / 0 | 0 / 0 / 0 |
+| Minimum observed queued frames | 0 | 20,608 |
+| Sampled render/audio ratio, median / p95 / p99 | 1.013 / 1.090 / 1.105 | 0.841 / 0.891 / 0.940 |
+
+These are concurrent-session observations on a shared Docker Desktop/host, not isolated
+physical cores or a paired latency distribution. Single started about fifteen minutes
+earlier; its first underrun occurs near parallel startup. That overlap is retained and
+prevents attributing the entire baseline failure to the renderer alone. Parallel retains
+three children throughout and never falls back or reconnects. Both final sample peaks are
+0.090532. By the end of the parallel soak the parent had recorded 13 over-budget requests
+(including warmup), despite
+zero browser underruns: the existing queue absorbed those tails. This is evidence of useful
+realtime playback under these conditions, not a hard per-request deadline guarantee.
+
+After saving those snapshots, each container received one busy process for 60 seconds
+(59.995/59.953 CPU seconds), within its existing quota. No additional cgroup throttling
+was observed. Parallel remained at zero underruns/overruns through pressure and more than
+30 seconds of recovery observation; its post-snapshot minimum queue was 21,120 frames.
+Single accumulated another 1,558 underruns across the post-snapshot interval. Since single
+was already underrunning before the pulse, a matched clean-baseline recovery latency is
+unavailable. This modest pressure test does not establish behavior under full quota
+saturation, arbitrary background work, or multiple API-process admission.
+
+The API's ordinary preparation path normalizes the fixture's master grid; the actual
+prepared configuration is retained in both browser arms. Both receive identical authored
+input, but these browser observations are not the lower-level benchmark's exact event
+script. Headless AudioWorklet consumption does not measure sound-device or input-to-audible
+latency. Both sessions stopped normally through the app; the two disposable containers and
+test browsers were then removed.
+
+**Stop/go: synchronization optimization delivered; G7 remains closed and single stays the
+default/fallback.** Selected heavy K=32 cases now meet the native benefit threshold, and the
+measured parallel app workload completes a 30-minute zero-underrun run. The conservative
+evidence predicate still requires two clean paired heavy workloads; this baseline underruns
+and only one heavy browser workload was soaked here. Matched live-input latency, a clean
+paired stress/recovery comparison and deployment-specific platform qualification remain
+unproven. No qualification records are installed, no threshold is relaxed, and no automatic
+selection is enabled. The [verification manifest](measurements/t07b-verification.json)
+records executed checks, exact unchanged default/export/browser sources and reproduction
+commands. Further qualification should use independent sequential browser arms as well as
+concurrent-session stress, without changing timing or buffer settings.

@@ -2,6 +2,9 @@
   "version": 1,
   "cases": [
     {"id": "two", "sources": 2, "voices": 8, "filter_count": 4, "topology": "private"},
+    {"id": "realtime_2", "sources": 2, "voices": 8, "filter_count": 6, "filter_resonance": 0.0, "topology": "private"},
+    {"id": "realtime_4", "sources": 4, "voices": 4, "filter_count": 6, "filter_resonance": 0.0, "topology": "private"},
+    {"id": "realtime_8", "sources": 8, "voices": 2, "filter_count": 6, "filter_resonance": 0.0, "topology": "private"},
     {"id": "heavy_4", "sources": 4, "voices": 16, "filter_count": 32, "filter_resonance": 0.0, "topology": "private"},
     {"id": "heavy_8", "sources": 8, "voices": 16, "filter_count": 32, "filter_resonance": 0.0, "topology": "private"}
   ]

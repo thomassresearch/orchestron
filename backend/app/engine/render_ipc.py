@@ -98,6 +98,8 @@ def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES
             "epoch": epoch, "plan_hash": plan.plan_hash, "artifact_hash": compilation.artifact_hash,
             "engine": asdict(plan.graph.engine), "sample_bytes": plan.sample_bytes,
             "program": asdict(program), "audio": {b: asdict(audio[b]) for b in owned},
+            "predecessors": next(p.predecessors for p in plan.partitions if p.id == program.id),
+            "successors": tuple(p.id for p in plan.partitions if program.id in p.predecessors),
             "command": asdict(command), "reply": asdict(reply), "meters": asdict(meters),
         })
         bootstrap = allocate(len(data))
@@ -171,12 +173,15 @@ class SharedArena:
         LENGTH.pack_into(self.memory.buf, start, len(data))
 
     def receive(self, region):
+        return MESSAGE.validate_json(self.receive_bytes(region))
+
+    def receive_bytes(self, region):
         self.check(region)
         size, = LENGTH.unpack_from(self.memory.buf, region.offset)
         if not 0 < size <= region.size - LENGTH.size:
             raise ValueError("Invalid partition mailbox length.")
         start = region.offset + LENGTH.size
-        return MESSAGE.validate_json(bytes(self.memory.buf[start:start + size]))
+        return bytes(self.memory.buf[start:start + size])
 
     def audio(self, region, slot):
         self.check(region.region)

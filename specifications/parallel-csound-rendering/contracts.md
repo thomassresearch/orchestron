@@ -38,7 +38,7 @@ Tests cover native onset/CC sample levels at K=1 and K=32, half-open intervals, 
 
 ## 3. Initial protocol version 1
 
-The frozen Pydantic union is `RenderMessage`; its generated schema is [protocol.schema.json](protocol.schema.json). T05 uses length-prefixed UTF-8 JSON control records in fixed shared-memory mailboxes, with identical fields and invariants. Audio stays in native binary arrays. This initial control encoding prioritizes inspectable correctness; no performance qualification is implied. No pickled callbacks, service objects or Csound pointers are permitted in commands.
+The frozen Pydantic union is `RenderMessage`; its generated schema is [protocol.schema.json](protocol.schema.json). T05 initially uses length-prefixed UTF-8 JSON control records in fixed shared-memory mailboxes, with identical fields and invariants. T07 additionally encodes empty-event blocks as compact records bound to the validated bootstrap; see [the optimized transport](#13-t07-synchronization-and-ipc-continuation). Audio stays in native binary arrays. No pickled callbacks, service objects or Csound pointers are permitted in commands.
 
 Every envelope carries an explicit version, positive epoch, partition identity and 64-character plan SHA-256. All records reject extra fields, coercion of string numbers and nonfinite floats. Frozen tuples prevent post-validation mutation of events/control arrays.
 
@@ -307,13 +307,15 @@ during playback invalidates the epoch and withholds the entire incomplete reques
 - One parent-owned shared-memory segment; children attach without tracker ownership and never
   unlink. Small spawn arguments reference hashed, pre-provisioned bootstrap records, avoiding
   a potentially blocking large CSD pickle on the spawn pipe. No samples travel in messages.
-- Each worker has a 1 MiB command mailbox and 256 KiB reply mailbox. Records are a four-byte
+- Each worker has a 1 MiB command mailbox and 256 KiB reply mailbox. T05 records are a four-byte
   little-endian length followed by strict UTF-8 protocol JSON. Array ceilings remain unchanged;
   the encoded byte ceiling is an additional limit. Oversize is a diagnosed failure before any
   worker dispatch, never silent event truncation. This control encoding is unqualified for
   realtime performance and may be optimized in T07 without changing the frozen semantics.
 - Command/completion semaphores establish publication ordering. Samples are visible before
-  DONE; suffix commands are released only after every predecessor's matching DONE. Neither
+  DONE; T05 releases suffix commands only after every predecessor's matching DONE. T07's
+  [direct dependency fences](#13-t07-synchronization-and-ipc-continuation) preserve the DSP barrier
+  while dispatching the already-sealed suffix command with the other commands. Neither
   slot counters nor shared flags are used as memory fences. At most one global block is sealed.
 - INIT/READY agree on epoch, plan/artifact digests and native format. Native startup checks
   MYFLT width, binding dtype, sample rate, `ksmps`, channel count and `0dbfs`. The partition
@@ -510,3 +512,45 @@ closed until representative production evidence and workload bounds are approved
 Reference semantics: [Linux cgroup v2 hierarchy](https://docs.kernel.org/admin-guide/cgroup-v2.html),
 [v1 CPU bandwidth](https://docs.kernel.org/scheduler/sched-bwc.html), and
 [Python semaphore behavior](https://docs.python.org/3.13/library/multiprocessing.html#multiprocessing.Semaphore).
+
+## 13. T07 synchronization and IPC continuation
+
+The optimized path remains an explicit internal diagnostic option. Default/fallback single
+rendering, export compilation, K, sample rate, browser queues, request sizes, native audio
+slots and bounded command/reply mailbox capacities are unchanged. No interval is rendered
+ahead of the parent's event drain or before the previous global completion barrier.
+
+- Startup caches the immutable topological waves, control subscriptions and validated shared
+  views. A semaphore per dependency edge connects the native owners. The parent still seals
+  all descriptors before dispatch. Children acquire their command fence and every predecessor
+  fence before reading inputs or performing DSP. Prefixes publish all output bytes before
+  releasing successor fences; their parent acknowledgement is released **last**.
+- The parent collects and validates every acknowledgement, verifies process liveness and
+  rejects duplicate/unconsumed edge counts before advancing the clock. A failed predecessor
+  cannot publish a successful audio request: the epoch is discarded and waiting children
+  are reaped within the existing global stop budget. Edge fences are new objects per epoch;
+  Stop and parent death do not depend on a blocked child's render loop polling cancellation.
+- Empty MIDI/control deliveries use `render_block_codec.SteadyBlockCodec`: a four-byte
+  `RBL1`/`DBL1` discriminator, the 32-byte bootstrap SHA-256, and unsigned 64-bit sequence,
+  sample start and control revision, within the existing length-prefixed mailbox. The digest
+  binds epoch, partition identity, plan/artifact, engine format and complete bus ownership.
+  Slot and generation remain `sequence % 2` and `sequence // 2`; frame count remains fixed
+  by the validated engine format. Negative/overflow counters, wrong length/digest, stale
+  sequence/sample/revision and mismatched acknowledgement bytes fail closed.
+- A block containing MIDI or subscribed controls uses the full validated JSON `Render`/
+  `Done` pair. Init, Ready, Stop and Error also retain the JSON schema. Both encodings can
+  alternate in the same epoch, preserving one authoritative revision and event ordering.
+  This is a local same-build transport, not a rolling cross-version worker protocol.
+- Native audio transfer calls retain Get/SetAudioChannel copies, with names, typed pointers
+  and fixed views validated once. Generated control-meter pointers are borrowed through
+  `csoundGetChannelPtr`, read only by their owning child after `performKsmps`, and never
+  exported across a process boundary or used after reset. Their control type/storage stays
+  fixed for the epoch. Finite checks and native-thread float32/subnormal conversion remain.
+- One persistent selector watches native process sentinels instead of repeated successful
+  per-child `waitpid` polls. Missing acknowledgements still check death and cancellation at
+  the existing bounded wait interval; complete blocks check all sentinels before publication.
+  The selector, dependency fences, cached views and native owners are released on cleanup.
+
+The qualification thresholds are unchanged. Passing exact native traces and short render
+deadlines does not alone approve automatic selection or replace browser/stress/latency evidence.
+Native channel ownership follows the [Csound channel API](https://csound.com/docs/api/group__CONTROLEVENTS.html).

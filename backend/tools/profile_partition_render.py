@@ -17,11 +17,11 @@ import pstats
 import tempfile
 
 
-def profiled_child(*args, directory):
+def profiled_child(*args, directory, **dependencies):
     from backend.app.engine.csound_process import run_csound_process
     profile = cProfile.Profile()
     try:
-        profile.runcall(run_csound_process, *args)
+        profile.runcall(run_csound_process, *args, **dependencies)
     finally:
         profile.dump_stats(str(Path(directory) / f"child-{os.getpid()}.prof"))
 
