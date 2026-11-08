@@ -13,7 +13,7 @@ from backend.app.services.compiler_mixer import mixer_control_values
 from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.tests.grain_render_support import grain_inputs, grain_events
-from backend.tests.session_parallel_support import options
+from backend.tests.session_parallel_support import options, unpinned_test_workers
 from backend.tests.test_whole_instrument_rendering import prepare, owners
 from backend.tools._sequential_partition_probe import compare_sequential
 
@@ -37,6 +37,7 @@ def test_grain_ownership_and_sequential_parity():
 
 @pytest.mark.parametrize('frames', [32, 256, 1024])
 def test_grain_persistent_workers_exact_pcm(monkeypatch, frames):
+    unpinned_test_workers(monkeypatch)
     monkeypatch.setenv('VISUALCSOUND_FORCE_MOCK_ENGINE', 'false')
     compiler = CompilerService(OpcodeService('/static/icons'))
     targets, graph, mixer = grain_inputs()
@@ -124,6 +125,7 @@ def test_independent_granular_instances_can_have_distinct_owners_and_exact_audio
 
 
 def test_private_table_budget_exhaustion_fails_without_publishing(monkeypatch):
+    unpinned_test_workers(monkeypatch)
     from backend.app.engine.parallel_csound_renderer import PartitionRuntimeError
     monkeypatch.setenv('VISUALCSOUND_FORCE_MOCK_ENGINE', 'false')
     monkeypatch.setattr('backend.app.services.compiler_partitioned.TABLE_CACHE_ENTRIES', 1)

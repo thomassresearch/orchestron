@@ -151,9 +151,13 @@ def _lookup_opcode(rate):
     if rate == "i":
         # SCORE setters use ten decimals, notes six. At a shared sample their
         # textual p2 order still decides which value note initialization sees.
-        lines += ["  inext = floor(.5 + (gi_vcs_spline_spans[ibase + 2] + (iq + 1) * gi_vcs_spline_quantum) / sr * 1e10) / 1e10 * sr",
-                  "  iprev = floor(.5 + (gi_vcs_spline_spans[ibase + 2] + iq * gi_vcs_spline_quantum) / sr * 1e10) / 1e10 * sr",
-                  "  iq = (inext <= iat ? iq + 1 : (iprev > iat ? iq - 1 : iq))"]
+        # Csound 6 x86 floor conversion overflows signed 32 bits at 0.215s
+        # when scaling by 1e10. Split the decimal rounding into small operands.
+        for name, offset in (("inext", "iq + 1"), ("iprev", "iq")):
+            lines += [f"  {name} = (gi_vcs_spline_spans[ibase + 2] + ({offset}) * gi_vcs_spline_quantum) / sr * 1e4",
+                      f"  {name}whole = floor({name})",
+                      f"  {name} = ({name}whole / 1e4 + floor(.5 + ({name} - {name}whole) * 1e6) / 1e10) * sr"]
+        lines += ["  iq = (inext <= iat ? iq + 1 : (iprev > iat ? iq - 1 : iq))"]
     else:
         # Ordinary CC score timestamps have six decimals before Csound rounds
         # them to samples. Near a half sample this differs from rounding the

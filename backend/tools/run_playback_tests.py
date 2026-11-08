@@ -15,6 +15,20 @@ import sys
 def run_modules(paths):
     failed = []
     for path in paths:
+        if Path(path).name == "test_trance_gate.py":
+            # This stress module also exceeds Csound 6's safe repeated-render
+            # lifetime within one module. Isolate cases without dropping any.
+            collected = subprocess.run([sys.executable, "-m", "pytest", str(path), "--collect-only", "-q"],
+                                       capture_output=True, text=True, check=False)
+            cases = [str(path) + "::" + line.split("::", 1)[1]
+                     for line in collected.stdout.splitlines()
+                     if "::" in line and Path(line.split("::", 1)[0]).name == Path(path).name]
+            if collected.returncode or not cases:
+                print(collected.stdout + collected.stderr, flush=True)
+                failed.append((str(path), collected.returncode or 1))
+            elif run_modules(cases):
+                failed.append((str(path), 1))
+            continue
         print(f"\n=== Playback tests: {path} ===", flush=True)
         result = subprocess.run([sys.executable, "-X", "faulthandler", "-m", "pytest",
                                  str(path), "-vv", "--durations=10"], check=False)

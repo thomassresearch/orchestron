@@ -10713,6 +10713,8 @@ def test_engine_stats_observation_has_no_idle_or_audio_side_effects(tmp_path, mo
 @pytest.mark.parametrize("case", ["two", "bypass"])
 @pytest.mark.parametrize("coordination_frames", [32, 128, 256, 1024])
 def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch, case, coordination_frames):
+    from backend.tests.session_parallel_support import unpinned_test_workers
+    unpinned_test_workers(monkeypatch)
     from dataclasses import replace
     from backend.app.engine.csound_worker import CsoundWorker
     from backend.tests.session_parallel_support import options, create_session
@@ -10779,6 +10781,8 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
 
 
 def test_grain_of_salt_public_parallel_selection_and_default(tmp_path, monkeypatch):
+    from backend.tests.session_parallel_support import unpinned_test_workers
+    unpinned_test_workers(monkeypatch)
     from dataclasses import replace
     from backend.app.engine.csound_worker import CsoundWorker
     from backend.tests.grain_render_support import grain_inputs

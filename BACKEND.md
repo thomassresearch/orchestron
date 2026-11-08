@@ -14,6 +14,24 @@ are unchanged, failures are never retried, and failed or crashed modules fail th
 overall run while remaining modules still execute. Verbose test names and fault
 traces retain the location of abrupt exits.
 
+The Trance Gate stress tests additionally run each collected case in a fresh
+process because their repeated native renders can also crash within one module.
+DSP parity fixtures that deliberately request six or more owners disable CPU
+pinning in the test parent only; dedicated capacity/placement tests still exercise
+real admission and affinity failures. Production placement is unchanged.
+macOS CI builds the STK opcode against the pinned Csound 6 framework, since the
+official framework installer does not include `STKSaxofony`.
+
+Known separate acoustic failures (PR #6, workflow run `42499027436`): the tenor
+saxophone fixture's stochastic STK excitation sometimes violates the minimum
+fundamental-energy or overblown-octave ratios on Linux. Observed cases include
+`test_normal_register_is_tuned_and_releases_cleanly[96]` (fundamental fraction
+0.0282 versus 0.03) and `test_velocity_changes_loudness_and_overblown_register[76]`
+(the normal-velocity note was already octave-dominant). These need an instrument
+review; they are outside the rendering/CI correction scope. The fixture and its
+assertions remain unchanged, and failures continue to fail CI. Missing-STK compile
+errors on macOS are a separate environment issue addressed by the plugin build.
+
 The backend is responsible for four distinct jobs:
 
 1. Serving the FastAPI API used by the frontend.

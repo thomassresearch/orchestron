@@ -386,6 +386,12 @@ class PartitionRenderCoordinator:
                     self._preparing_sample = None
                 # Keep the single renderer's order: float32 engine blocks (now
                 # converted in the native owner), then one resample per request.
+                if target_sample_rate != self._format.sample_rate and self._flush_float32:
+                    # The native thread also treats float32 subnormal *inputs*
+                    # as zero when widening them for interpolation (DAZ on x86).
+                    bits = pcm.view(np.uint32)
+                    magnitude = bits & 0x7fffffff
+                    bits[(magnitude > 0) & (magnitude < 0x00800000)] &= 0x80000000
                 pcm = resample_stereo_block_linear(pcm, source_sample_rate=self._format.sample_rate,
                                                    target_sample_rate=target_sample_rate)
                 if target_sample_rate != self._format.sample_rate and self._flush_float32:

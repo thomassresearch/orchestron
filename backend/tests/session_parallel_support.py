@@ -5,6 +5,17 @@ from backend.app.engine.render_capacity import MIB, RenderAdmission, RenderCapac
 from backend.tests.render_plan_support import planner_inputs, synthetic_costs
 
 
+def unpinned_test_workers(monkeypatch):
+    """DSP parity tests may need more owners than a small CI runner has CPUs.
+
+    Capacity/affinity behavior has separate tests. Only these parity tests disable
+    placement; production admission and the worker protocol remain unchanged.
+    """
+    from backend.app.engine.render_cpu_placement import RenderCpuPlacement
+    monkeypatch.setattr("backend.app.engine.parallel_csound_renderer.PROCESS_RENDER_CPU_PLACEMENT",
+                        RenderCpuPlacement(lambda: None))
+
+
 def options(mode="auto", *, qualified_opt_in=True, coordination_frames=128):
     return SessionRendererOptions(policy=RendererPolicy(mode=mode, max_workers=4, coordination_frames=coordination_frames,
         startup_timeout_seconds=10, stop_timeout_seconds=.5, render_timeout_seconds=2),

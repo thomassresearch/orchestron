@@ -41,6 +41,20 @@ jobs:
           trap 'hdiutil detach "$RUNNER_TEMP/csound-volume"' EXIT
           sudo installer -pkg "$RUNNER_TEMP/csound-volume/csound-MacOS-universal-6.18.1.pkg" -target /
           echo 'VISUALCSOUND_CSOUNDLIB_PATH=/Library/Frameworks/CsoundLib64.framework/CsoundLib64' >> "$GITHUB_ENV"
+      - name: Build Csound 6 STK plugin on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install stk
+          curl --fail --location --retry 3 https://api.github.com/repos/csound/plugins/tarball/e57f73f751e924909371609741531cd5b6215b03 -o "$RUNNER_TEMP/plugins.tar.gz"
+          mkdir -p "$RUNNER_TEMP/plugins" "$RUNNER_TEMP/opcodes"
+          tar -xzf "$RUNNER_TEMP/plugins.tar.gz" -C "$RUNNER_TEMP/plugins" --strip-components=1
+          clang++ -std=c++11 -dynamiclib -DUSE_DOUBLE \
+            -I/Library/Frameworks/CsoundLib64.framework/Headers -I"$(brew --prefix stk)/include/stk" \
+            "$RUNNER_TEMP/plugins/stk/stkOpcodes.cpp" "$(brew --prefix stk)/lib/libstk.a" \
+            -o "$RUNNER_TEMP/opcodes/libstkops.dylib"
+          echo "OPCODE6DIR64=$RUNNER_TEMP/opcodes:/Library/Frameworks/CsoundLib64.framework/Resources/Opcodes64" >> "$GITHUB_ENV"
+          echo "RAWWAVE_PATH=$(brew --prefix stk)/share/stk/rawwaves" >> "$GITHUB_ENV"
       - name: Build the extension
         env:
           VISUALCSOUND_BUILD_CYTHON: required
