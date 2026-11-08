@@ -55,6 +55,8 @@ are unchanged. T08 exposes the opt-in and a separate CPU observer; see the
 `CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
 metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).
 It records compiler stage/port order, resource constraints and helper/control/meter ownership.
+Control ownership includes every parent mixer write, including the post/pan fields ignored
+by raw insert feeds; these known no-op writes must not fail the first PCM request.
 Planning uses supplied measured costs when available, otherwise structural weights for branch balancing; it does not inspect CPU capacity, allocate
 buffers or start Csound. Even a coarse candidate has `selected_renderer="single"` and
 `execution_eligible=false`. Default single-session compile/start never calls this optional path, and

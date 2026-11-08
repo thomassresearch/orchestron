@@ -10663,14 +10663,15 @@ def test_engine_stats_observation_has_no_idle_or_audio_side_effects(tmp_path, mo
         assert client.get(f"/api/sessions/{identity}/engine-stats").status_code == 404
 
 
-def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch):
+@pytest.mark.parametrize("case", ["two", "bypass"])
+def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch, case):
     from dataclasses import replace
     from backend.app.engine.csound_worker import CsoundWorker
     from backend.tests.session_parallel_support import options, create_session
 
     with _client(tmp_path) as client:
         monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
-        identity = create_session(client, start=False)
+        identity = create_session(client, case=case, start=False)
         assert client.post(f"/api/sessions/{identity}/compile").status_code == 200
         service = client.app.state.container.session_service
         original = service._sessions[identity]
@@ -10696,6 +10697,23 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         assert worker._coordinator.process_ids
         canonical = service._sessions[selected].compile_artifact
         assert canonical.orc == original.compile_artifact.orc and canonical.manifest == original.compile_artifact.manifest
+        # Startup alone does not drain mixer writes. Exercise the first PCM
+        # request and live Master-insert bypass updates through the public path.
+        with client.websocket_connect(f"/ws/sessions/{selected}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 512})
+            assert socket.receive_json()["type"] == "stream_config"
+            for index in range(3 if case == "bypass" else 1):
+                if index:
+                    response = client.put(f"/api/sessions/{selected}/mixer",
+                        json={"strips": {"masterInsert": {"bypass": index == 1}}})
+                    assert response.status_code == 200, response.text
+                socket.send_json({"type": "request_render", "block_count": 16})
+                metadata = socket.receive_json()
+                assert metadata["type"] == "render_chunk", metadata
+                assert metadata["engine_sample_start"] == index * 512
+                assert len(socket.receive_bytes()) == 512 * 2 * 4
+            socket.send_json({"type": "release_controller"})
         assert client.post(f"/api/sessions/{selected}/stop").status_code == 200
         assert not worker._coordinator.process_ids and worker._coordinator.shared_memory_name is None
         # Rollback applies at the next explicit compile/start, without replacing

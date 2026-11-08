@@ -171,3 +171,143 @@ Final checks:
 - All three child DSP PIDs and the shared audio allocation were gone after Stop; the temporary
   test browser/container were removed. The existing live Docker application was not rebuilt,
   restarted or reconfigured by this task.
+
+## Master-insert retest (2026-11-08)
+
+The revised live performance sends the sources and reverb to Master, with a dedicated
+compressor insert owned by Master. An additive fixture overlay preserves this revision and
+the original baseline independently. Library synthesis graphs, notes and source settings are
+unchanged; the new compressor instance's current settings are retained in both new runs.
+The existing live application was only read, never restarted or reconfigured.
+
+The graph still selects three workers and 34 cross-process audio contributions:
+
+| Worker | Whole-instrument ownership |
+| --- | --- |
+| Upstream 0 | Tabla, shore, analog drums, flute (shared random-state domain) |
+| Upstream 1 | Glass bell, FM bass, low bass, water pad, reflections pluck |
+| Downstream | Shared reverb, Master bus, compressor insert/bypass, Master strip, output |
+
+The stage count rises from 67 to 68 because the insert adds its live bypass stage. The
+upstream stage ownership is identical. Both routings sum the instruments before shared
+compression; moving that processor to Master does not remove the dependency. Independent
+sources in the second worker remain packed together because more workers do not shorten the
+dominant indivisible group under the structural weighting policy.
+
+The live session was already in an error state. Reproduction with its exact image
+`sha256:95a716f71ecc101f6fff16c9bd4009c2e55343bda79246e65dc1900f14e09e59`
+failed on the first browser PCM request with `Unknown or uncoalesced parent control write.`
+The parent sends gain/post/pan fields for every mixer route, but graph metadata declared only
+gain for raw insert feeds. The four otherwise harmless post/pan writes therefore had no
+process owner. The correction declares all existing mixer writes on their route stages;
+raw feeds continue to ignore post/pan in DSP. Strict rejection of genuinely unknown controls
+remains intact. The canonical compiler, exported CSDs and timing/buffers were not changed.
+
+Regression tests now drain the initial mixer writes through persistent workers and the public
+browser-clock API, including live Master-insert bypass on/off. Previously, successful Start
+alone did not exercise those pending writes. Control ownership checks cover the complete set
+of canonical initial controls and parent mixer writes. Six planner snapshots changed only for
+these control declarations and their digests; canonical CSD byte fixtures remain unchanged.
+
+The corrected measured image is
+`sha256:b8d600fd9cbbea47e694b26940a42e0a65917f96171da94f6341691939de4301`.
+The isolated container has the same 12-CPU, 2-GiB-memory and 64-MiB-shared-memory test limits.
+All 116 graph/resource/API checks and 167 compiler/lifecycle checks passed, as did backend
+lint and the Docker build. No build or native regression test launched by this task overlaps the timed browser runs.
+
+The corrected Linux native comparison uses the same nine-channel synthetic event sequence
+and request/warmup counts as the earlier probe, with normal mixer initialization in both
+renderers. Output is byte-identical, with maximum sample difference zero. Sequential native
+instances also match audio and meters exactly for the revised graph.
+
+| Corrected native request time | Single | Parallel (3 workers) |
+| --- | ---: | ---: |
+| Median | 61.60 ms | 46.50 ms |
+| p95 | 67.91 ms | 49.61 ms |
+| p99 | 74.12 ms | 54.10 ms |
+| Maximum | 119.69 ms | 65.63 ms |
+
+The median is about 25% lower, but each request represents only 49.33 ms of audio. This
+synthetic sequence does not establish sustained benefit for the saved arrangement.
+The browser used the same Listening-mode settings and 288,000-frame ring as the earlier
+comparison, with the unchanged 48-kHz / ksmps-32 engine and 1024/512 software/hardware buffers.
+The saved arrangement was looped only in the test browser; each run had ten seconds of
+startup warmup followed by at least 600 measured seconds.
+
+| Initial revised-routing browser measurement (overlap discovered) | Single | Parallel (3 workers) |
+| --- | ---: | ---: |
+| Measured wall time | 602.91 s | 603.44 s |
+| Underrun counter increase | 4,046 | 15,662 |
+| Overruns / stream errors | 0 / 0 | 0 / 0 |
+| Median observed render/audio ratio | 0.954 | 1.048 |
+| p95 observed render/audio ratio | 1.113 | 1.248 |
+| p99 observed render/audio ratio | 1.154 | 1.428 |
+| Maximum observed render/audio ratio | 1.322 | 1.761 |
+
+These ratios sample the existing browser diagnostic, not independent request-latency
+percentiles. The underrun count measures AudioWorklet callbacks lacking sufficient audio,
+not separate audible glitches. Both engines still had audible output and running transport
+at capture. Parallel retained the same three DSP PIDs; single used the original worker with
+no child DSP processes.
+
+This initial parallel measurement is confounded by overlapping live playback, as detailed
+below. Use the repeat for the final comparison. Earlier routing measurements are historical,
+not a simultaneous routing-only A/B comparison, so their absolute counts should not be used
+to assign a precise speed change to the routing edit.
+
+Raw evidence is under `output/whole-instrument/master-insert/`: `comparison.json`,
+`comparison-contended.json`, `lake-parallel-soak.json`, `lake-parallel-repeat-soak.json`,
+`lake-single-soak.json`, `native-benchmark.json`, the original startup failure and the
+regression/build logs. The observed three-CPU screenshot is
+`output/playwright/lake-master-insert/parallel-running.png`. The test image contains the
+metadata fix. This task did not modify the live application; an independent rebuild installed
+the same correction during testing, confirmed by its compiler module hash.
+
+The final live-container check revealed playback from 11:21:59–11:22:49 UTC and
+11:22:55–11:23:42 UTC, overlapping the first 106 seconds of the parallel measurement
+(11:21:57–11:32:00 UTC). The single measurement (11:32:18–11:42:21 UTC) had no overlapping
+live playback in those logs. The initial parallel result is therefore retained as a
+contended observation, not the final matched comparison. A fresh ten-minute parallel run
+used the same corrected test image/configuration against the completed single baseline.
+
+### Final matched comparison
+
+The parallel repeat ran from 11:48:14–11:58:17 UTC. Live-container logs contain no playback
+starts or browser-clock connections during that interval; all 37 live-state observations
+from 11:49:14 onward show the live session stopped (`compiled`). The revised saved arrangement,
+browser settings, ring capacity, synthesis settings and test-image identity match the single
+baseline. Both measurements include one arrangement loop with no live input.
+
+| Revised-routing browser measurement without overlapping live playback | Single | Parallel (3 workers) |
+| --- | ---: | ---: |
+| Measured wall time | 602.91 s | 602.93 s |
+| Underrun counter increase | 4,046 | 9,538 |
+| Overruns / stream errors | 0 / 0 | 0 / 0 |
+| Median observed render/audio ratio | 0.954 | 0.997 |
+| p95 observed render/audio ratio | 1.113 | 1.170 |
+| p99 observed render/audio ratio | 1.154 | 1.252 |
+| Maximum observed render/audio ratio | 1.322 | 1.496 |
+
+Ratios above 1 mean rendering takes longer than the corresponding audio duration. The table
+summarizes 1,206 existing diagnostic samples per run, using linear percentile interpolation;
+it is not an independent per-request latency measurement. Neither run is underrun-free.
+Both still produced nonzero audio and had running transport at capture. Parallel remained
+selected with three workers and no fallback or failure. The final CPU observation reported
+37.8%, 36.6% and 29.0% on the three assigned CPUs; these are instantaneous observations,
+not ten-minute average process utilization.
+
+**Result: the revised routing works across three processes, but parallel rendering still
+does not benefit this arrangement on this environment.** It has 2.36 times the underrun
+increments and a 4.5% higher median observed render/audio ratio than single rendering.
+Removing the concurrent live playback reduced the parallel underrun count substantially,
+but did not reverse the result. The shared random-state group, common effects suffix and
+per-block synchronization remain plausible limits; this retest does not isolate their
+individual costs. The synthetic native benchmark's 25% median improvement is not a sustained
+arrangement speedup. Keep single rendering for this song; no new G7 performance pass is claimed.
+
+After Stop, all three child DSP PIDs and the shared audio allocation were gone. The temporary
+test browser and container were removed. The existing live container was neither stopped nor
+reconfigured by this task. Its independently rebuilt image
+`sha256:b6cb0657c8836924c972b222079f8a37d74fffc90a67f47c6e8983cb14638dac`
+already contains the control-ownership correction, verified by the compiler module hash.
+Single remains the default/fallback, and timing, buffer sizes and CSD exports remain unchanged.

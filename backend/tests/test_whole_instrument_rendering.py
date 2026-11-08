@@ -11,6 +11,7 @@ from backend.app.core.config import Settings
 from backend.app.models.patch import NodeInstance
 from backend.app.models.render_protocol import RendererPolicy
 from backend.app.services.compiler_service import CompilerService
+from backend.app.services.compiler_mixer import mixer_control_values
 from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.render_partition_plan import plan_render_partitions, validate_partition_plan
 from backend.tests.lake_render_support import lake_inputs, lake_events
@@ -59,6 +60,23 @@ def test_shared_mutable_table_only_groups_its_users():
     assert ownership['patch:source0'] == ownership['patch:source1']
     assert ownership['patch:source2'] != ownership['patch:source0']
     assert sum(r.memory_bytes for r in plan.graph.resources) > 0
+
+
+def test_lake_master_insert_keeps_the_same_upstream_split_and_shared_suffix():
+    original, _ = prepare(lake_inputs())
+    revised, _ = prepare(lake_inputs(master_insert=True))
+    assert revised.layout == 'coarse' and len(revised.partitions) == 3
+    assert not revised.graph.blockers and revised.graph.engine == original.graph.engine
+    assert len(revised.graph.stages) == len(original.graph.stages) + 1
+    assert len(revised.buses) == len(original.buses) == 34
+    assert [p.stages for p in revised.partitions if p.id != 'downstream'] == [
+        p.stages for p in original.partitions if p.id != 'downstream']
+    ownership = owners(revised)
+    assert {ownership[s] for s in (
+        'patch:space', 'patch:$master', 'strip:$master', '$output',
+        'patch:4597b710-6b3d-4d50-8af7-34ff32abc9aa',
+        'bypass:4597b710-6b3d-4d50-8af7-34ff32abc9aa')} == {'downstream'}
+    validate_partition_plan(revised)
 
 
 def test_builtin_sine_is_replicated_until_a_writer_requires_shared_ownership():
@@ -115,22 +133,24 @@ def test_named_generators_do_not_inherit_numeric_generator_resource_semantics():
     assert 'table_generator_state_unknown' in {d.code for d in plan.diagnostics}
 
 
-def test_lake_sequential_native_audio_and_meters_match_exactly():
-    plan, compilation = prepare(lake_inputs())
+@pytest.mark.parametrize('master_insert', [False, True])
+def test_lake_sequential_native_audio_and_meters_match_exactly(master_insert):
+    plan, compilation = prepare(lake_inputs(master_insert=master_insert))
     result = compare_sequential(compilation, plan, frames=96000, events=lake_events())
     assert np.max(np.abs(result.canonical)) > .001
     np.testing.assert_array_equal(result.canonical, result.partitioned)
     np.testing.assert_array_equal(result.canonical_meters, result.partitioned_meters)
 
 
-@pytest.mark.parametrize('case', ['lake', 'shared_tables'])
+@pytest.mark.parametrize('case', ['lake', 'lake_master_insert', 'shared_tables'])
 def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch, case):
     from backend.app.engine.parallel_csound_renderer import MAX_REQUEST_FRAMES
     from backend.app.engine.render_capacity import MIB
 
     monkeypatch.setenv('VISUALCSOUND_FORCE_MOCK_ENGINE', 'false')
     compiler = CompilerService(OpcodeService('/static/icons'))
-    targets, graph, mixer = lake_inputs() if case == 'lake' else planner_inputs('tables')
+    targets, graph, mixer = (lake_inputs(master_insert=case == 'lake_master_insert')
+                             if case.startswith('lake') else planner_inputs('tables'))
     canonical = compiler.compile_patch_bundle(targets, 'internal:loopback', 'null', audio_graph=graph, mixer=mixer)
     selected = replace(RenderRelease(Settings()).options(None), admission=options().admission)
     parallel = ParallelCsoundRenderer(options=selected)
@@ -139,6 +159,8 @@ def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch
     try:
         single.start(canonical.csd, 'internal:loopback', 'null')
         parallel.start(canonical.csd, 'internal:loopback', 'null')
+        for worker in (single, parallel):
+            worker.configure_mixer(canonical.manifest, mixer_control_values(canonical.manifest, mixer))
         assert parallel.renderer_diagnostics['selected'] == 'parallel', parallel.renderer_diagnostics
         assert parallel.renderer_diagnostics['worker_count'] == 3
         resource_bytes = sum(r.memory_bytes for r in parallel._candidate[1].graph.resources)

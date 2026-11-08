@@ -1,5 +1,11 @@
 # Test fixtures
 
+`parallel_render/evening_at_the_lake_master_insert.json` overlays the original Lake snapshot
+with the user's revised Master-compressor insert routing, captured read-only on 2026-11-08.
+Library synthesis graphs are unchanged. The matching compressed configuration preserves the
+saved arrangement for browser comparisons. Both variants remain versioned; tests load them
+through `lake_render_support.py`, never from the live library or developer examples.
+
 `patches/enough.patch.json` and `patches/logan.patch.json` are independent snapshots
 of the editable altamax ports. `csound/altamax.orc` preserves the original dry
 synthesis for native comparisons, with bus writes replaced by stereo output.

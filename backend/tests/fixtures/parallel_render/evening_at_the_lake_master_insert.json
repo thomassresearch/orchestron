@@ -1,0 +1,699 @@
+{
+  "name": "Evening at the Lake — Master compressor insert",
+  "provenance": "Read-only snapshot of revised live session 2026-11-08. Overrides evening_at_the_lake.json; existing baseline remains unchanged.",
+  "instruments": [
+    {
+      "performance_controller_values": {
+        "world_tabla_tuning": 1.122462,
+        "world_brightness": 1.0615624844096603,
+        "world_decay": 1.1
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "tabla",
+      "patch_id": "7cf6abaf-31f2-4b4a-858c-09b078a7d729",
+      "midi_channel": 10,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "world_brightness": 0.7983272000215947,
+        "world_decay": 0.85
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "shore",
+      "patch_id": "7cf6abaf-31f2-4b4a-858c-09b078a7d729",
+      "midi_channel": 11,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "rubber_growl": 0.3,
+        "rubber_tone": 450.0,
+        "rubber_decay": 0.65
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "bass",
+      "patch_id": "f3922374-6038-4c76-bf75-f8bf1c2f8a30",
+      "midi_channel": 1,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "undertow_tone": 1200.0,
+        "undertow_motion": 0.06,
+        "undertow_release": 4.0
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "water",
+      "patch_id": "006e4f9e-8822-4dc6-bec3-9d806c689672",
+      "midi_channel": 2,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "flute_attack": 0.017429443585786714,
+        "flute_release": 0.489351149706792,
+        "flute_breath": 0.7905330679379403,
+        "flute_tone": 6521.9583404743935,
+        "flute_vibrato": 14.21036274090875
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "theme",
+      "patch_id": "e7dae45d-3aca-4f67-bc7d-fef3ac29e4b7",
+      "midi_channel": 3,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "prism_color": 0.3,
+        "prism_decay": 1.5,
+        "prism_release": 1.2
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "reflections",
+      "patch_id": "1d1ae919-b144-484b-b780-fb197bdb4aba",
+      "midi_channel": 4,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "708a8f43-1c17-4713-a35d-b0b12cee6abe": 0.8745312467496842,
+        "a08d04b8-b407-498d-8186-8ec08a404e5c": 10966.384046284616
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "space",
+      "patch_id": "edec9fff-768b-4de1-b892-53eb4249b2bf",
+      "midi_channel": 0,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "9da04da0-dadc-4020-888b-dec37077e0bc": 0.6965026986686127,
+        "1a9be505-b7fe-4d12-a783-60346b810c6a": 0.9110707000279152,
+        "460f9e29-fa38-4055-8f7b-c9f7d7ebe7aa": 0.45974264945834875
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "analog-drums",
+      "patch_id": "979b006c-d2a5-47c1-836c-9f3f30453ddf",
+      "midi_channel": 12,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_decay": 0.4,
+        "ctl_resonance": 0.5812901886703912,
+        "ctl_attack": 0.0010139478688009397,
+        "ctl_release": 0.025238404346356453,
+        "ctl_drive": 3.484855422799351,
+        "ctl_accent": 0.08635113653726878,
+        "ctl_tone": 148.44110529602295
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "low-bass",
+      "patch_id": "d6a771a3-056b-4a69-9ddc-0abaed75603b",
+      "midi_channel": 5,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "ctl_attack": 0.001,
+        "ctl_release": 0.5661730727060333
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "4643f76a-a275-463b-b07f-6fbf23b3ed85",
+      "patch_id": "fac3faea-086f-448c-9581-8692bc30cca1",
+      "midi_channel": 6,
+      "effect_source_ids": [],
+      "effect_routes": []
+    },
+    {
+      "performance_controller_values": {
+        "19053c50-a059-412c-9e4a-280db42edca9": 0.27778607073123573,
+        "0f32b615-df59-4c8b-9a61-70252193be29": 0.42555019150675477
+      },
+      "performance_controller_midi_ccs": {},
+      "id": "4597b710-6b3d-4d50-8af7-34ff32abc9aa",
+      "patch_id": "e3c1fa8d-f3c6-441d-b443-707ce7ef924e",
+      "midi_channel": 0,
+      "effect_source_ids": [],
+      "effect_routes": []
+    }
+  ],
+  "audio_graph": {
+    "routes": [
+      {
+        "id": "1d568f1f-2a93-46c8-bb3f-ac921604ba99",
+        "sourceId": "tabla",
+        "sourcePort": "left",
+        "targetId": "space",
+        "targetPort": "left",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "002a0b48-9297-4ff0-8188-01c33a51225e",
+        "sourceId": "tabla",
+        "sourcePort": "right",
+        "targetId": "space",
+        "targetPort": "right",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "d5c41fb3-2c2f-45c7-8c60-b5f6800e6904",
+        "sourceId": "shore",
+        "sourcePort": "left",
+        "targetId": "space",
+        "targetPort": "left",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "0e02b691-e6b5-4ae8-a462-eee63b8a7825",
+        "sourceId": "shore",
+        "sourcePort": "right",
+        "targetId": "space",
+        "targetPort": "right",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "421da338-4cb2-4e08-ab57-6abfff4e5f54",
+        "sourceId": "water",
+        "sourcePort": "left",
+        "targetId": "space",
+        "targetPort": "left",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "f8298770-9e09-4f62-9c0c-46bf3cbcce3d",
+        "sourceId": "water",
+        "sourcePort": "right",
+        "targetId": "space",
+        "targetPort": "right",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "d1b39318-e8e9-492f-afcd-65731ee52c9d",
+        "sourceId": "theme",
+        "sourcePort": "left",
+        "targetId": "space",
+        "targetPort": "left",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "53d0950d-b722-4d41-a4d9-a0b67662e320",
+        "sourceId": "theme",
+        "sourcePort": "right",
+        "targetId": "space",
+        "targetPort": "right",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "760e7ada-8940-445e-8b24-2964675f926b",
+        "sourceId": "reflections",
+        "sourcePort": "left",
+        "targetId": "space",
+        "targetPort": "left",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "3edc9f07-68c8-476d-8807-1a83ae2dcddf",
+        "sourceId": "reflections",
+        "sourcePort": "right",
+        "targetId": "space",
+        "targetPort": "right",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "128e1b07-a57f-4e3d-9738-73b35160e7c8",
+        "sourceId": "tabla",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "c81c0139-aef2-4112-92d3-ab7432a8aa53",
+        "sourceId": "tabla",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "bf818c14-4bd3-4f4d-98a3-828a140ccff1",
+        "sourceId": "shore",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "bf2d78b2-0c2e-4983-a340-6bd87973d3c2",
+        "sourceId": "shore",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "5285cbb6-3a55-4ab1-a207-7f94edcd327d",
+        "sourceId": "bass",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "ddaf3db3-b0bc-4369-8e34-579f7de2eeb2",
+        "sourceId": "bass",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "85d12f0b-b0ba-49ec-929a-2306186a5409",
+        "sourceId": "water",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "c0e9e632-e359-4288-b8ef-1b5c3fa86f6b",
+        "sourceId": "water",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "ca0f5ac5-8c25-4221-ac93-b627b64a977e",
+        "sourceId": "theme",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "70fcf154-7926-4b97-95e9-e532882fddf1",
+        "sourceId": "theme",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "4a922199-a385-4f71-a29d-3c3cb1bf2686",
+        "sourceId": "reflections",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "ade1de9e-58ef-43f1-b8da-c58e17e5d917",
+        "sourceId": "reflections",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "c2ccb350-d1d4-43a8-a384-3a4fbd413930",
+        "sourceId": "space",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "e4a837e4-24d5-42ce-a446-85b1c0efb77b",
+        "sourceId": "space",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "dde1be41-9012-4895-ae7d-6e96f1024999",
+        "sourceId": "analog-drums",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "2b15ebe4-82d5-44ca-a14a-99418f2086e3",
+        "sourceId": "analog-drums",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "921e0c9c-0f4a-4f26-8c66-bb0b19f13be4",
+        "sourceId": "low-bass",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "d3a9920f-00b8-4d31-a45b-bded6330a1a0",
+        "sourceId": "low-bass",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "8dce1ebf-81e3-4752-9eae-fa1ff23ad378",
+        "sourceId": "4643f76a-a275-463b-b07f-6fbf23b3ed85",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "82eff115-71e9-4212-b1dc-7199ad515312",
+        "sourceId": "4643f76a-a275-463b-b07f-6fbf23b3ed85",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "cdaacb93-6708-49c3-b0a5-684e2c83ee34",
+        "sourceId": "4643f76a-a275-463b-b07f-6fbf23b3ed85",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "left",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "df9df1bb-4acf-437f-929f-4ba2456b7ad9",
+        "sourceId": "4643f76a-a275-463b-b07f-6fbf23b3ed85",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "right",
+        "kind": "main",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "fa701633-31d0-4bc5-a2fe-7bf8db31fe76",
+        "sourceId": "4643f76a-a275-463b-b07f-6fbf23b3ed85",
+        "sourcePort": "left",
+        "targetId": "space",
+        "targetPort": "left",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "9a344430-b20e-4749-bfe1-6f30e9cc28bf",
+        "sourceId": "4643f76a-a275-463b-b07f-6fbf23b3ed85",
+        "sourcePort": "right",
+        "targetId": "space",
+        "targetPort": "right",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "5c572694-e332-4b2d-96a7-f642523a0f71",
+        "sourceId": "low-bass",
+        "sourcePort": "left",
+        "targetId": "space",
+        "targetPort": "left",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "5e495b88-d4e6-4001-9886-3668348aca1c",
+        "sourceId": "low-bass",
+        "sourcePort": "right",
+        "targetId": "space",
+        "targetPort": "right",
+        "kind": "send",
+        "sourceStage": "strip",
+        "targetStage": "input"
+      },
+      {
+        "id": "eea3703b-7a2e-47b0-acbf-52fb7b1ff5b9",
+        "sourceId": "$master",
+        "sourcePort": "$direct.left",
+        "targetId": "4597b710-6b3d-4d50-8af7-34ff32abc9aa",
+        "targetPort": "left",
+        "kind": "insert",
+        "sourceStage": "raw",
+        "targetStage": "input"
+      },
+      {
+        "id": "01b1eb5e-ed2b-40ed-99c2-f031ad543de4",
+        "sourceId": "$master",
+        "sourcePort": "$direct.right",
+        "targetId": "4597b710-6b3d-4d50-8af7-34ff32abc9aa",
+        "targetPort": "right",
+        "kind": "insert",
+        "sourceStage": "raw",
+        "targetStage": "input"
+      },
+      {
+        "id": "91a9321b-fe0b-4c81-83cf-15f166f38a98",
+        "sourceId": "4597b710-6b3d-4d50-8af7-34ff32abc9aa",
+        "sourcePort": "left",
+        "targetId": "$master",
+        "targetPort": "$direct.left",
+        "kind": "insert",
+        "sourceStage": "strip",
+        "targetStage": "strip"
+      },
+      {
+        "id": "c1c9cb76-7afd-4004-af3d-f844d3cd2819",
+        "sourceId": "4597b710-6b3d-4d50-8af7-34ff32abc9aa",
+        "sourcePort": "right",
+        "targetId": "$master",
+        "targetPort": "$direct.right",
+        "kind": "insert",
+        "sourceStage": "strip",
+        "targetStage": "strip"
+      }
+    ],
+    "masterId": "$master",
+    "insertOwners": {
+      "4597b710-6b3d-4d50-8af7-34ff32abc9aa": "$master"
+    }
+  },
+  "mixer": {
+    "strips": {
+      "$master": {
+        "gainDb": -7.4,
+        "balance": 0.0,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "tabla": {
+        "gainDb": 12.0,
+        "balance": -0.35000000000000003,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "shore": {
+        "gainDb": 12.0,
+        "balance": 0.55,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "bass": {
+        "gainDb": -1.3,
+        "balance": -0.28,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "water": {
+        "gainDb": -28.8,
+        "balance": 0.41000000000000003,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "theme": {
+        "gainDb": 4.7,
+        "balance": -0.3,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "reflections": {
+        "gainDb": -12.7,
+        "balance": 0.37,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "space": {
+        "gainDb": -0.6,
+        "balance": 0.38,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "analog-drums": {
+        "gainDb": 2.2,
+        "balance": 0.0,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "low-bass": {
+        "gainDb": 1.8,
+        "balance": 0.65,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      },
+      "4643f76a-a275-463b-b07f-6fbf23b3ed85": {
+        "gainDb": -7.4,
+        "balance": -0.3,
+        "mute": false,
+        "solo": false,
+        "bypass": false
+      }
+    },
+    "sends": {
+      "1d568f1f-2a93-46c8-bb3f-ac921604ba99": {
+        "gainDb": -26.8,
+        "tap": "post"
+      },
+      "002a0b48-9297-4ff0-8188-01c33a51225e": {
+        "gainDb": -26.8,
+        "tap": "post"
+      },
+      "d5c41fb3-2c2f-45c7-8c60-b5f6800e6904": {
+        "gainDb": -25.8,
+        "tap": "post"
+      },
+      "0e02b691-e6b5-4ae8-a462-eee63b8a7825": {
+        "gainDb": -25.8,
+        "tap": "post"
+      },
+      "421da338-4cb2-4e08-ab57-6abfff4e5f54": {
+        "gainDb": 6.0,
+        "tap": "post"
+      },
+      "f8298770-9e09-4f62-9c0c-46bf3cbcce3d": {
+        "gainDb": 6.0,
+        "tap": "post"
+      },
+      "d1b39318-e8e9-492f-afcd-65731ee52c9d": {
+        "gainDb": 6.0,
+        "tap": "post"
+      },
+      "53d0950d-b722-4d41-a4d9-a0b67662e320": {
+        "gainDb": 6.0,
+        "tap": "post"
+      },
+      "760e7ada-8940-445e-8b24-2964675f926b": {
+        "gainDb": 0.2,
+        "tap": "post"
+      },
+      "3edc9f07-68c8-476d-8807-1a83ae2dcddf": {
+        "gainDb": 0.2,
+        "tap": "post"
+      },
+      "fa701633-31d0-4bc5-a2fe-7bf8db31fe76": {
+        "gainDb": 1.7000000000000002,
+        "tap": "post"
+      },
+      "9a344430-b20e-4749-bfe1-6f30e9cc28bf": {
+        "gainDb": 1.7000000000000002,
+        "tap": "post"
+      },
+      "5c572694-e332-4b2d-96a7-f642523a0f71": {
+        "gainDb": -6.5,
+        "tap": "pre"
+      },
+      "5e495b88-d4e6-4001-9886-3668348aca1c": {
+        "gainDb": -6.5,
+        "tap": "pre"
+      }
+    }
+  },
+  "patches": {}
+}

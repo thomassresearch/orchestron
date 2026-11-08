@@ -79,7 +79,9 @@ def test_port_connections_references_and_meters_match_live_compiler(compiler, ca
     assert set(resolved.edges) <= set(graph.dependencies)
     assert {m for s in graph.stages for m in s.meters} == {
         name for meters in artifact.manifest["meters"].values() for name in meters.values()}
-    assert {c for s in graph.stages for c in s.controls} <= set(artifact.manifest["initialControls"])
+    from backend.app.services.compiler_mixer import mixer_control_values
+    assert {c for s in graph.stages for c in s.controls} == (
+        set(artifact.manifest["initialControls"]) | set(mixer_control_values(artifact.manifest, mixer)))
     for stage in graph.stages:
         if stage.kind == "patch":
             assert stage.instrument_reference == artifact.manifest["instrumentReferences"][stage.instance_id]

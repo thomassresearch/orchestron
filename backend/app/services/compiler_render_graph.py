@@ -61,7 +61,6 @@ def analyze_render_graph(targets, audio_graph, opcode_service) -> RenderDependen
         order = topological_order(resolved.order, dependencies)
         if order != tuple(resolved.order):
             raise ValueError("Live connection metadata disagrees with compiler stage order.")
-        routes = {r.id: r for r in resolved.routes}
         for index, stage in enumerate(order, 1):
             kind, _, identity = stage.partition(":")
             controls, meters = [], []
@@ -78,8 +77,10 @@ def analyze_render_graph(targets, audio_graph, opcode_service) -> RenderDependen
             elif kind == "bypass":
                 controls.append(channel("strip", identity, "bypass"))
             elif kind == "route":
-                controls.extend(channel("route", identity, f) for f in
-                                (("gain",) if routes[identity].source_stage == "raw" else ("gain", "post", "pan")))
+                # The parent mixer writes all three fields for every route.
+                # Raw insert feeds ignore post/pan in DSP, but their known
+                # no-op writes still need an owner at the process boundary.
+                controls.extend(channel("route", identity, f) for f in ("gain", "post", "pan"))
             if kind == "strip" or stage == OUTPUT:
                 meters.extend(channel("meter", identity if kind == "strip" else OUTPUT, f)
                               for f in ("peakL", "peakR", "rmsL", "rmsR"))

@@ -7,8 +7,13 @@ from backend.app.models.patch import PatchDocument
 from backend.app.services.compiler_common import PatchInstrumentTarget
 
 
-def lake_inputs():
-    data = json.loads((Path(__file__).parent / 'fixtures/parallel_render/evening_at_the_lake.json').read_text())
+def lake_inputs(*, master_insert=False):
+    fixtures = Path(__file__).parent / 'fixtures/parallel_render'
+    data = json.loads((fixtures / 'evening_at_the_lake.json').read_text())
+    if master_insert:
+        revised = json.loads((fixtures / 'evening_at_the_lake_master_insert.json').read_text())
+        revised['patches'] = {**data['patches'], **revised['patches']}
+        data.update(revised)
     targets = [PatchInstrumentTarget(
         PatchDocument.model_validate(data['patches'][item['patch_id']]), item['midi_channel'], item['id'],
         item['midi_channel'] == 0, performance_controller_values=item['performance_controller_values'],
