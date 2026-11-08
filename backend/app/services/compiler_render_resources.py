@@ -23,8 +23,9 @@ from backend.app.services.compiler_formula import lookup_input_formula_config, r
 from backend.app.services.compiler_graph import compile_graph_context
 from backend.app.services.compiler_legato import has_legato, validate_legato
 from backend.app.services.performance_controller_service import controller_bindings
+from backend.app.services.compiler_private_tables import TABLE_CACHE_ENTRIES, input_bounds, private_table_size
 
-CAPABILITY_VERSION = "whole-instrument-resources-v2"
+CAPABILITY_VERSION = "whole-instrument-resources-v3"
 
 # Semantic identities bind the resource rules to shipped compiler definitions.
 # Ordinary filters, arithmetic, envelopes and internal branches remain intact.
@@ -34,7 +35,7 @@ AUDITED_OPCODE_HASHES = json.loads((Path(__file__).resolve().parents[1] / "data"
 # These opcodes consume Csound's shared random stream (including initialization).
 # Keep consumers together so splitting does not duplicate/correlate that stream.
 RANDOM_STATE_USERS = frozenset({"jitter", "random", "randomh", "randomi", "noise", "pinker", "pinkish",
-    "sekere", "sleighbells", "dripwater", "grain", "grain2", "grain3", "granule", "vibr", "vibrato",
+    "sekere", "sleighbells", "dripwater", "grain", "grain2", "granule", "vibr", "vibrato",
     "waveguide_string", "swept_gate", "pluck", "marimba", "wgclar", "wgflute", "wgbow", "wgbowedbar", "prepiano"})
 TABLE_PORTS = frozenset({"ifn", "ifn1", "ifn2", "ifn3", "ifn4", "ifna", "ifnb", "ifnenv",
     "ivfn", "ivibfn", "igfn", "iwfn", "kfn", "iafn", "ioctfn", "imp", "irattles", "irubbers"})
@@ -92,6 +93,7 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
     table_users = defaultdict(set)
     table_writers = set()
     table_resources = []
+    private_allocations = []
     for index, target in enumerate(targets, 1):
         identity = target.assignment_id or f"instrument-{index}"
         stage, patch = "patch:" + identity, target.patch
@@ -101,6 +103,9 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
         context = compile_graph_context(patch.graph, opcode_service)
         controllers = controller_bindings(target, identity)
         layout = patch.graph.ui_layout
+        private_tables = {c.node.id: size for c in context.compiled_nodes.values()
+                          if (size := private_table_size(c, context, layout,
+                              lambda spec: AUDITED_OPCODE_HASHES.get(spec.name) == opcode_semantic_hash(spec))) is not None}
         variables = {(node.node.id, port.id): f"v_{n}_{p}"
                      for n, node in enumerate(context.compiled_nodes.values()) for p, port in enumerate(node.spec.outputs)}
 
@@ -154,6 +159,10 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                     elif isinstance(value, (int, float)) and value < 0:
                         table(f"table:{int(abs(value))}", node, "read")
                 if port.id in TABLE_PORTS and name != "GEN":
+                    links = context.inbound_index.get((node.id, port.id), [])
+                    if len(links) == 1 and links[0].from_node_id in private_tables:
+                        resource(f"private-table:{identity}:{links[0].from_node_id}", node, "instance", "read")
+                        continue
                     value, static = _static_input(node, port, context, layout)
                     if static and value in (None, 0, -1):
                         # Zero denotes an opcode-owned/default table; -1 is the
@@ -163,7 +172,12 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                                 and math.isfinite(value) and value > 0 and value == int(value))
                     key = f"table:{int(value)}" if numbered else "tables:*"
                     table(key, node, "read")
-            if name == "GEN":
+            if name == "ftgenonce" and node.id in private_tables:
+                private_allocations.append((len(accesses), private_tables[node.id]))
+                resource(f"private-table:{identity}:{node.id}", node, "instance", "read_write")
+            elif name == "ftgenonce":
+                block("ftgenonce_ownership_unknown", node, "Table size, generator or private read-only handle ownership is not proven.")
+            elif name == "GEN":
                 try:
                     config = validate_gen_node_layout_config(_node_layout(layout, "gen_nodes", node.id))
                 except ValueError as exc:
@@ -212,6 +226,10 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
 
             if name in RANDOM_STATE_USERS:
                 resource("engine:random", node, "performance", "read_write")
+            if name == "grain3":
+                seed = input_bounds(node, next(p for p in spec.inputs if p.id == "iseed"), context, layout)
+                if seed is None or not (1 <= seed[0] <= seed[1] <= 2147483646):
+                    block("grain3_seed_unproven", node, "A positive bounded seed is required; clock-seeded grain3 cannot preserve parallel parity.")
 
     if legato_stages:
         # The current compiler has ONE shared panic listener. Keep all consumers
@@ -226,6 +244,14 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
     # The canonical score initializes table 1 in every program. Read-only users
     # can replicate it. A writer (or dynamic reference) restores shared ownership.
     wildcard = "tables:*" in table_users
+    if private_allocations:
+        # Numeric/dynamic references could observe auto IDs or mutate a cached table.
+        if set(table_users) - {"table:1"} or table_writers:
+            blockers.append(RenderPlanDiagnostic("private_table_alias_unknown", "Automatic private tables coexist with unresolved or mutable table references."))
+        largest = max(size for _, size in private_allocations)
+        for index, _ in private_allocations:
+            # A program-wide auto-ID guard permits pooled cache entries of any size.
+            accesses[index] = replace(accesses[index], memory_bytes=(TABLE_CACHE_ENTRIES + 1) * ((largest + 1) * 8 + 4096))
     if not wildcard and "table:1" not in table_writers:
         for index in table_resources:
             access = accesses[index]

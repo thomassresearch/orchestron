@@ -16,6 +16,7 @@ from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_mixer import OUTPUT, lower_mixer_bundle, token
 from backend.app.services.compiler_orchestra import OrchestraEmitter
 from backend.app.services.compiler_render_resources import stable_hash
+from backend.app.services.compiler_private_tables import AUTO_TABLE_BASE, TABLE_CACHE_ENTRIES
 from backend.app.services.compiler_stage_lowering import (
     AlwaysOn, ControlInit, MidiAssignment, ScopedSetup, header_lines,
 )
@@ -91,8 +92,14 @@ def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: Rend
         reasons = tuple(d.code for d in plan.diagnostics)
         return RealtimePartitionCompilation(canonical, plan.plan_hash, (),
                                             _artifact_hash(canonical, plan.plan_hash, (), reasons), reasons)
+    table_limits = {}
+    for partition in plan.partitions:
+        count = sum(r.resource.startswith("private-table:") and r.memory_bytes > 0
+                    for r in actual.resources if r.stage in partition.stages)
+        if count:
+            table_limits.update({stage: AUTO_TABLE_BASE + count * TABLE_CACHE_ENTRIES for stage in partition.stages})
     lowered = lower_mixer_bundle(service, targets, audio_graph, mixer,
-                                midi_input="internal:loopback", rtmidi_module="null")
+                                midi_input="internal:loopback", rtmidi_module="null", private_table_limits=table_limits)
     if tuple(s.id for s in lowered.stages) != tuple(s.id for s in actual.stages):
         raise CompilationError(["Partition lowering disagrees with canonical stage order."])
     connections = tuple(e for e in lowered.header if isinstance(e, RenderConnection))

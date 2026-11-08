@@ -103,6 +103,9 @@ and [process tests](backend/tests/test_parallel_csound_renderer.py).
 T08 adds public `SessionCreateRequest.renderer_mode` (`single` by default, or `auto`) and
 optional `browser_settings`. Auto analyses the current whole-instrument graph and admits a
 supported layout against capacity; no per-song catalog or exact browser settings are required.
+Resource capability v3 supports private standalone `ftgenonce` GEN10/20 handles and
+explicitly seeded `grain3` voices, with bounded internal table caches and conservative
+fallback for unresolved aliases. See the [granular ownership contract](specifications/parallel-csound-rendering/private-granular-resources.md).
 `VISUALCSOUND_PARALLEL_QUALIFICATION_FILE` is ignored. See the
 [whole-instrument contract](specifications/parallel-csound-rendering/whole-instrument-partitioning.md).
 `VISUALCSOUND_PARALLEL_PLAYBACK_ENABLED=false`

@@ -523,6 +523,7 @@ def lower_mixer_bundle(
     allow_packaged_asset_paths=False,
     performance_input_mode="midi",
     profile: CompilationProfile = CompilationProfile.LIVE,
+    private_table_limits=None,
 ):
     validate_target_channels(targets)
     live_mixer = profile == CompilationProfile.LIVE
@@ -647,6 +648,7 @@ def lower_mixer_bundle(
                 direct_output_ports=resolved.direct_ports[identity],
                 performance_controllers=controller_bindings(target, identity),
                 legato_identity=identity if identity in legato_refs else None,
+                private_table_limit=(private_table_limits or {}).get(stage),
             )
             bodies[stage] = compiled.instrument_lines
             header.append(ScopedSetup(tuple(compiled.global_header_lines), (stage,)))

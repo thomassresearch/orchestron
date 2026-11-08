@@ -284,7 +284,9 @@ def test_parallel_session_failure_revokes_stream_and_next_start_uses_single(tmp_
                 return service._session_info(runtime)
         info = client.portal.call(settled)
         assert info.state.value == "error" and info.renderer.failed
-        assert (info.renderer.committed_sample, info.renderer.published_sample) == (32, 0)
+        # Failure on the second synthesis step invalidates the entire first
+        # coordination batch; neither a partial batch nor PCM may be committed.
+        assert (info.renderer.committed_sample, info.renderer.published_sample) == (0, 0)
         assert not runtime.worker._coordinator.process_ids
         assert runtime.worker._coordinator.shared_memory_name is None
         assert not service._connections.has_browser_controller(identity)
@@ -10753,3 +10755,52 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         fallback = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser}).json()["session_id"]
         assert client.post(f"/api/sessions/{fallback}/start").status_code == 200
         assert service._sessions[fallback].worker.renderer_diagnostics["fallback_reason"] == "parallel_disabled"
+
+
+def test_grain_of_salt_public_parallel_selection_and_default(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from backend.app.engine.csound_worker import CsoundWorker
+    from backend.tests.grain_render_support import grain_inputs
+    from backend.tests.session_parallel_support import options
+
+    with _client(tmp_path) as client:
+        monkeypatch.setenv('VISUALCSOUND_FORCE_MOCK_ENGINE', 'false')
+        targets, graph, mixer = grain_inputs()
+        assignments, saved = [], {}
+        for target in targets:
+            if target.patch.id not in saved:
+                result = client.post('/api/patches', json={'name': target.patch.name,
+                    'always_on': target.always_on, 'graph': target.patch.graph.model_dump(mode='json')})
+                assert result.status_code == 201, result.text
+                saved[target.patch.id] = result.json()['id']
+            assignments.append({'id': target.assignment_id, 'patch_id': saved[target.patch.id],
+                'midi_channel': target.midi_channel,
+                'performance_controller_values': target.performance_controller_values})
+        payload = {'instruments': assignments, 'audio_graph': graph.model_dump(mode='json', by_alias=True),
+                   'mixer': mixer.model_dump(mode='json', by_alias=True)}
+        service = client.app.state.container.session_service
+        single = client.post('/api/sessions', json=payload)
+        assert single.status_code == 201, single.text
+        assert type(service._sessions[single.json()['session_id']].worker) is CsoundWorker
+        original = service._render_release.options
+        admission = options().admission
+        monkeypatch.setattr(service._render_release, 'options', lambda *a, **kw: replace(original(*a, **kw), admission=admission))
+        selected = client.post('/api/sessions', json={**payload, 'renderer_mode': 'auto'})
+        assert selected.status_code == 201, selected.text
+        identity = selected.json()['session_id']
+        started = client.post(f'/api/sessions/{identity}/start')
+        assert started.status_code == 200, started.text
+        info = client.get(f'/api/sessions/{identity}').json()
+        assert info['renderer']['selected'] == 'parallel', info['renderer']
+        assert info['renderer']['worker_count'] == 3
+        assert info['renderer']['coordination_frames'] == 256
+        with client.websocket_connect(f'/ws/sessions/{identity}/browser-clock') as socket:
+            socket.send_json({'type': 'claim_controller', 'audio_context_sample_rate': 48000,
+                'queue_low_water_frames': 1024, 'queue_high_water_frames': 2048, 'max_blocks_per_request': 512})
+            assert socket.receive_json()['type'] == 'stream_config'
+            socket.send_json({'type': 'request_render', 'block_count': 16})
+            assert socket.receive_json()['type'] == 'render_chunk'
+            assert len(socket.receive_bytes()) == 16 * targets[0].patch.graph.engine_config.ksmps * 2 * 4
+        assert client.post(f'/api/sessions/{identity}/stop').status_code == 200
+        worker = service._sessions[identity].worker
+        assert not worker._coordinator.process_ids and not admission.leases
