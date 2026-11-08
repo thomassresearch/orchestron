@@ -4,6 +4,16 @@ This document describes the FastAPI backend in `backend/app`, how it is wired to
 
 ## Overview
 
+The playback CI workflow runs Python and Cython suites in separate platform jobs,
+with a 60-minute budget per job. macOS uses the checksummed official Csound 6.18.1
+installer; a native binding preflight rejects incompatible major versions.
+`python -m backend.tools.run_playback_tests` runs every backend test module in a
+fresh process: Csound 6 native state can survive cleanup/reset and crash later DSP
+modules (reproduced with Altamax followed by Ambient Techno on Linux). Assertions
+are unchanged, failures are never retried, and failed or crashed modules fail the
+overall run while remaining modules still execute. Verbose test names and fault
+traces retain the location of abrupt exits.
+
 The backend is responsible for four distinct jobs:
 
 1. Serving the FastAPI API used by the frontend.
