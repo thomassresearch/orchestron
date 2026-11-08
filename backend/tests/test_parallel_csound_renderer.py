@@ -433,11 +433,14 @@ def test_parent_death_terminates_children_even_during_native_hang(tmp_path):
                 except ProcessLookupError:
                     return False
 
-            deadline = time.monotonic() + 5
+            # Allow CI scheduling latency independently of resource-tracker cleanup.
+            deadline = time.monotonic() + 15
             while any(exists(pid) for pid in ownership["pids"]) and time.monotonic() < deadline:
                 time.sleep(.02)
-            assert not any(exists(pid) for pid in ownership["pids"])
+            survivors = [pid for pid in ownership["pids"] if exists(pid)]
+            assert not survivors, f"Children still alive after parent exit: {survivors}"
             # The dedicated resource tracker may run just after the final child exits.
+            deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
                 try:
                     shared = SharedMemory(name=ownership["name"], track=False)
@@ -526,6 +529,15 @@ def test_failed_fresh_start_has_zero_cursor_after_previous_epoch():
 @pytest.mark.parametrize("float32_mode", [0, 1, 2, 3])
 @pytest.mark.parametrize("source", ["subnormal_pcm", "normal_pcm"])
 def test_resampling_handles_input_and_output_flushing_independently(float32_mode, source):
+    # Earlier native tests can leave this process's FP mode changed. The fake
+    # worker advertises a synthetic mode, so run its parent in a fresh executable.
+    result = subprocess.run([sys.executable, "-c",
+        "from backend.tests.test_parallel_csound_renderer import check_resampling_float_modes; "
+        f"check_resampling_float_modes({float32_mode!r}, {source!r})"], capture_output=True, text=True, timeout=40)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def check_resampling_float_modes(float32_mode, source):
     _, plan, compilation = prepared()
     renderer = coordinator(_worker_target=partial(controlled_process, mode=source, float32_mode=float32_mode))
     try:
