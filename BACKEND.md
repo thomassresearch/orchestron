@@ -39,6 +39,9 @@ again at Start, leases survive incomplete cleanup, and resource changes never re
 active renderer. Default single rendering performs no capacity filesystem probes in its
 audio loop. The former per-song deployment gate has been replaced by graph selection; benchmark evidence is optional. See the
 [T07 contract](specifications/parallel-csound-rendering/contracts.md#12-t07-capacity-and-performance-gate).
+For v2 root membership, detection checks `cgroup.type` to distinguish a constrained
+namespace root from the actual global root, where CPU and memory quota files are absent.
+Unreadable type metadata still makes capacity unknown.
 T07 now uses startup-only [Linux CPU placement](backend/app/engine/render_cpu_placement.py)
 to keep persistent native owners on distinct allowed logical CPUs. Reservations span live
 coordinators in this API process and release after reaping; existing capacity admission still

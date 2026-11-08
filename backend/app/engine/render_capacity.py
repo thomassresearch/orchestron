@@ -113,6 +113,14 @@ def detect_render_capacity(*, read=None, affinity=None, platform=None, shared_av
                 levels = [leaf, *list(leaf.parents)[:len(leaf.parts) - len(base.parts)]]
                 # The global v2 root has no cpu.max or memory.max by definition.
                 global_root = kind == "cgroup2" and root == "/" and group != "/"
+                if kind == "cgroup2" and root == "/" and group == "/":
+                    # A namespace can also report '/' for a constrained cgroup.
+                    # cgroup.type exists only on non-root cgroups, including
+                    # namespace roots; permission errors must still fail closed.
+                    try:
+                        read(str(base / "cgroup.type"))
+                    except FileNotFoundError:
+                        global_root = True
                 return kind, levels, base if global_root else None
             raise ValueError(f"{controller} hierarchy unavailable")
 

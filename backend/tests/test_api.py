@@ -86,6 +86,27 @@ def test_parallel_ten_minute_evidence_for_another_build_keeps_canonical_fallback
         assert client.delete(f"/api/sessions/{identity}").status_code == 204
 
 
+def test_parallel_start_in_global_cgroup_root(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from backend.app.engine.render_capacity import RenderAdmission
+    from backend.tests.session_parallel_support import options, create_session
+    from backend.tests.test_render_capacity import v2, detect
+
+    files = v2()
+    files["/proc/self/cgroup"] = "0::/\n"
+    for name in ("cpu.max", "memory.max", "memory.high", "memory.current"):
+        del files["/cg/" + name]
+    admission = RenderAdmission(lambda: detect(files))
+    with _client(tmp_path, renderer_options=replace(options(), admission=admission)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client)
+        info = client.get(f"/api/sessions/{identity}").json()["renderer"]
+        assert info["selected"] == "parallel", info
+        assert info["capacity_known"] and info["effective_cpus"] == 12
+        assert client.delete(f"/api/sessions/{identity}").status_code == 204
+    assert not admission.leases
+
+
 def test_parallel_cpu_placement_denial_preserves_single_fallback(tmp_path, monkeypatch):
     from backend.app.engine import parallel_csound_renderer
     from backend.app.engine.render_cpu_placement import RenderCpuPlacement

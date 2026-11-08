@@ -74,6 +74,39 @@ def test_namespaced_mount_at_nonstandard_escaped_path_and_root_membership():
     assert any("hidden" in item for item in result.provenance)
 
 
+def test_v2_global_root_membership_without_root_quota_files():
+    files = v2()
+    files["/proc/self/cgroup"] = "0::/\n"
+    for name in ("cpu.max", "memory.max", "memory.high", "memory.current"):
+        del files["/cg/" + name]
+    result = detect(files)
+    assert result.known and result.effective_cpus == 12
+    assert result.memory_available == 8192 * MIB
+
+
+@pytest.mark.parametrize("missing", [None, "cpu.max", "memory.max"])
+def test_v2_namespace_root_retains_limits_and_requires_quota_files(missing):
+    files = v2()
+    files["/proc/self/cgroup"] = "0::/\n"
+    files["/cg/cgroup.type"] = "domain\n"
+    files["/cg/cpu.max"] = "400000 100000"
+    files["/cg/memory.max"] = str(1024 * MIB)
+    if missing:
+        del files["/cg/" + missing]
+    result = detect(files)
+    assert result.known is (missing is None)
+    if missing is None:
+        assert result.effective_cpus == 4
+        assert result.memory_available == 768 * MIB
+
+
+def test_v2_root_type_permission_error_fails_closed():
+    files = v2()
+    files["/proc/self/cgroup"] = "0::/\n"
+    files["/cg/cgroup.type"] = PermissionError("denied")
+    assert not detect(files).known
+
+
 def test_v1_split_controllers_parent_quotas_and_inherited_cpuset():
     files = {"/proc/meminfo": "MemAvailable: 8388608 kB\n", "/proc/self/cgroup":
         "2:cpu,cpuacct:/a/b\n3:cpuset:/a/b\n4:memory:/a/b\n", "/proc/self/mountinfo": "\n".join(
