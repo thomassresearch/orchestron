@@ -3,6 +3,9 @@
 Current playback selection is defined by [whole-instrument graph partitioning](whole-instrument-partitioning.md).
 It supersedes the historical per-song catalog and mandatory cost-profile gates below; timing,
 ownership, lifecycle and export contracts remain in force.
+Current [coordination batches](coordination-batches.md) supersede the one-synthesis-block
+process handoff interval below. Synthesis steps, scheduled events and export timing remain
+unchanged; the compact transport and shared-memory layout now bind a bounded batch length.
 
 Status: T01–T06 contracts, updated 2026-11-07. [Internal models](../../backend/app/models/render_protocol.py) define the structural protocol. Default sessions still use the original single worker; the explicit T06 application injection is described below. [Implementation evidence](implementation-record.md) distinguishes functional integration from pending performance/admission qualification.
 

@@ -77,26 +77,132 @@ export function groupControllers(definitions: PerformanceControllerDefinition[])
 
 export interface RackMetrics {
   controlHeight?: number;
+  controlWidth?: number;
+  controlGapX?: number;
+  controlGapY?: number;
+  groupPadding?: number;
+  cardPadding?: number;
   headerHeight?: number;
   textWidth?: (text: string) => number;
 }
 
-export function controllerGroupOptions(group: ControllerGroup, availableWidth: number, metrics: RackMetrics = {}): SizeOption[] {
+export interface ControllerGroupSize extends SizeOption {
+  columns: number;
+  controlRows: number;
+  unusedArea: number;
+}
+export interface ControllerGroupLayout extends PackedLayout {
+  items: Array<ControllerGroupSize & { row: number }>;
+}
+export const GROUP_HEIGHT_TOLERANCE = 0.05;
+
+export function controllerGroupOptions(group: ControllerGroup, availableWidth: number, metrics: RackMetrics = {}): ControllerGroupSize[] {
   const width = Math.max(1, Math.floor(availableWidth));
-  const padding = group.name ? GROUP_PADDING : 0;
-  const maxColumns = Math.max(1, Math.min(group.controllers.length, Math.floor((width - padding + RACK_GAP) / (CONTROL_WIDTH + RACK_GAP))));
-  const widths = new Set([width]);
-  for (let columns = 1; columns <= maxColumns; columns++) widths.add(Math.min(width, padding + columns * (CONTROL_WIDTH + RACK_GAP) - RACK_GAP));
-  return [...widths].sort((a, b) => a - b).map(candidate => {
-    const columns = Math.max(1, Math.floor((candidate - padding + RACK_GAP) / (CONTROL_WIDTH + RACK_GAP)));
-    const rows = Math.ceil(group.controllers.length / columns);
-    const legend = group.name ? 18 * Math.max(1, Math.ceil((metrics.textWidth?.(group.name) ?? group.name.length * 7) / Math.max(1, candidate - padding))) + 10 : 0;
-    return { width: candidate, height: rows * (metrics.controlHeight ?? CONTROL_HEIGHT) + (rows - 1) * CONTROL_GAP_Y + legend };
+  const padding = group.name ? (metrics.groupPadding ?? GROUP_PADDING) : 0;
+  const tileWidth = metrics.controlWidth ?? CONTROL_WIDTH;
+  const tileHeight = metrics.controlHeight ?? CONTROL_HEIGHT;
+  const gapX = metrics.controlGapX ?? RACK_GAP;
+  const gapY = metrics.controlGapY ?? CONTROL_GAP_Y;
+  const maxColumns = Math.max(1, Math.min(group.controllers.length, Math.floor((width - padding + gapX) / (tileWidth + gapX))));
+  return Array.from({ length: maxColumns }, (_, index) => {
+    const columns = index + 1;
+    const candidate = Math.min(width, Math.ceil(padding + columns * tileWidth + (columns - 1) * gapX));
+    const controlRows = Math.ceil(group.controllers.length / columns);
+    // The legend has its own horizontal padding in addition to the fieldset's.
+    const legend = group.name ? 18 * Math.max(1, Math.ceil((metrics.textWidth?.(group.name) ?? group.name.length * 7) / Math.max(1, candidate - padding - 8))) + 10 : 0;
+    const height = controlRows * tileHeight + (controlRows - 1) * gapY + legend;
+    return { width: candidate, height, columns, controlRows,
+      unusedArea: Math.max(0, candidate * height - group.controllers.length * tileWidth * tileHeight) };
   });
 }
 
-export function layoutControllerGroups(groups: ControllerGroup[], width: number, metrics: RackMetrics = {}): PackedLayout {
-  return packOrdered(groups.map(group => controllerGroupOptions(group, width, metrics)), width);
+type GroupPlan = { height: number; unusedArea: number; controlRows: number; shelves: ControllerGroupSize[][] };
+const compareGroupCost = (a: { unusedArea: number; controlRows: number }, b: { unusedArea: number; controlRows: number }) =>
+  a.unusedArea - b.unusedArea || a.controlRows - b.controlRows;
+
+/** Exact ordered shelves: optimize shape combinations under a width budget, then
+ * choose row breaks within 5% of the minimum total height. Internal whitespace
+ * includes vacant slots and the space around tiles, never the empty shelf tail.
+ * Groups are not stretched. Pareto pruning retains only useful width/height costs.
+ */
+export function layoutControllerGroups(groups: ControllerGroup[], availableWidth: number, metrics: RackMetrics = {}): ControllerGroupLayout {
+  if (!groups.length) return { items: [], height: 0, unusedArea: 0 };
+  const width = Math.max(1, Math.floor(availableWidth));
+  const options = groups.map(group => controllerGroupOptions(group, width, metrics));
+  const heights = [...new Set(options.flatMap(sizes => sizes.map(size => size.height)))].sort((a, b) => a - b);
+  type Shelf = { width: number; height: number; unusedArea: number; controlRows: number; items: ControllerGroupSize[] };
+  const shelves = options.map(() => new Map<number, Map<number, Shelf>>());
+  for (let start = 0; start < options.length; start++) {
+    for (const limit of heights) {
+      let states: Shelf[] = [{ width: 0, height: 0, unusedArea: 0, controlRows: 0, items: [] }];
+      for (let end = start; end < options.length; end++) {
+        const next = new Map<number, Shelf>();
+        for (const state of states) for (const size of options[end]) {
+          const used = state.width + (end > start ? RACK_GAP : 0) + size.width;
+          if (size.height > limit || used > width) continue;
+          const candidate: Shelf = { width: used, height: Math.max(state.height, size.height),
+            unusedArea: state.unusedArea + size.unusedArea, controlRows: state.controlRows + size.controlRows,
+            items: [...state.items, size] };
+          const previous = next.get(used);
+          if (!previous || compareGroupCost(candidate, previous) < 0 ||
+            (compareGroupCost(candidate, previous) === 0 && candidate.height < previous.height)) next.set(used, candidate);
+        }
+        states = [];
+        for (const candidate of [...next.values()].sort((a, b) => a.width - b.width)) {
+          if (!states.length || compareGroupCost(candidate, states[states.length - 1]) < 0) states.push(candidate);
+        }
+        if (!states.length) break;
+        const best = states[states.length - 1];
+        const byHeight = shelves[start].get(end) ?? new Map<number, Shelf>();
+        const previous = byHeight.get(best.height);
+        if (!previous || compareGroupCost(best, previous) < 0) byHeight.set(best.height, best);
+        shelves[start].set(end, byHeight);
+      }
+    }
+  }
+  const minimum = Array<number>(groups.length + 1).fill(0);
+  for (let start = groups.length - 1; start >= 0; start--) {
+    minimum[start] = Math.min(...[...shelves[start]].flatMap(([end, variants]) =>
+      [...variants.values()].map(shelf => shelf.height + (end + 1 < groups.length ? RACK_GAP + minimum[end + 1] : 0))));
+  }
+  const limit = minimum[0] * (1 + GROUP_HEIGHT_TOLERANCE);
+  const plans: GroupPlan[][] = Array.from({ length: groups.length + 1 }, () => []);
+  plans[groups.length] = [{ height: 0, unusedArea: 0, controlRows: 0, shelves: [] }];
+  for (let start = groups.length - 1; start >= 0; start--) {
+    const byHeight = new Map<number, GroupPlan>();
+    // Equal-cost plans fill earlier shelves first, retaining natural reading order.
+    for (const [end, variants] of [...shelves[start]].sort((a, b) => b[0] - a[0])) for (const shelf of variants.values()) for (const tail of plans[end + 1]) {
+      const height = shelf.height + (tail.shelves.length ? RACK_GAP + tail.height : 0);
+      if (height > limit) continue;
+      const candidate: GroupPlan = { height, unusedArea: shelf.unusedArea + tail.unusedArea,
+        controlRows: shelf.controlRows + tail.controlRows, shelves: [shelf.items, ...tail.shelves] };
+      const previous = byHeight.get(height);
+      if (!previous || compareGroupCost(candidate, previous) < 0) byHeight.set(height, candidate);
+    }
+    for (const candidate of [...byHeight.values()].sort((a, b) => a.height - b.height)) {
+      const frontier = plans[start];
+      if (!frontier.length || compareGroupCost(candidate, frontier[frontier.length - 1]) < 0) frontier.push(candidate);
+    }
+  }
+  const best = plans[0][plans[0].length - 1];
+  return { items: best.shelves.flatMap((shelf, row) => shelf.map(size => ({ ...size, row }))),
+    height: best.height, unusedArea: best.unusedArea };
+}
+
+/** Shared grid lines let groups change shelves without reparenting focused inputs. */
+export function controllerGroupGrid(layout: ControllerGroupLayout) {
+  let left = 0;
+  const bounds = layout.items.map((item, index) => {
+    if (index === 0 || item.row !== layout.items[index - 1].row) left = 0;
+    const start = left;
+    left += item.width + RACK_GAP;
+    return [start, start + item.width];
+  });
+  const lines = [...new Set(bounds.flat())].sort((a, b) => a - b);
+  return {
+    columns: [...lines.slice(1).map((line, index) => `${line - lines[index]}px`), 'minmax(0, 1fr)'].join(' '),
+    items: bounds.map(([start, end], index) => ({ gridColumn: `${lines.indexOf(start) + 1} / ${lines.indexOf(end) + 1}`, gridRow: layout.items[index].row + 1 }))
+  };
 }
 
 export interface RackCardContent {
@@ -106,27 +212,28 @@ export interface RackCardContent {
 
 export function instrumentSizeOptions(content: RackCardContent, availableWidth: number, metrics: RackMetrics = {}): SizeOption[] {
   const width = Math.max(1, Math.floor(availableWidth));
+  const cardPadding = metrics.cardPadding ?? CARD_PADDING;
   const minimum = Math.min(MIN_CARD_WIDTH, width);
   const groups = groupControllers(content.definitions);
   const candidates = new Set([minimum, width]);
   // Include group breakpoints and combinations of groups sharing one row.
   let sums = new Set([0]);
   for (const group of groups) {
-    const groupWidths = controllerGroupOptions(group, width - CARD_PADDING, metrics).map(size => size.width);
+    const groupWidths = controllerGroupOptions(group, width - cardPadding, metrics).map(size => size.width);
     const next = new Set<number>();
     for (const previous of sums) for (const groupWidth of groupWidths) {
       const sum = previous + (previous ? RACK_GAP : 0) + groupWidth;
-      if (sum + CARD_PADDING <= width) next.add(sum);
+      if (sum + cardPadding <= width) next.add(sum);
     }
-    for (const sum of next) if (sum + CARD_PADDING >= minimum) candidates.add(sum + CARD_PADDING);
+    for (const sum of next) if (sum + cardPadding >= minimum) candidates.add(sum + cardPadding);
     // A new group can start a new row. Widths are integer CSS pixels, bounded by container width.
     sums = new Set([0, ...next]);
-    for (const groupWidth of groupWidths) if (groupWidth + CARD_PADDING >= minimum) candidates.add(groupWidth + CARD_PADDING);
+    for (const groupWidth of groupWidths) if (groupWidth + cardPadding >= minimum) candidates.add(groupWidth + cardPadding);
   }
   return [...candidates].filter(candidate => candidate <= width).sort((a, b) => a - b).map(candidate => {
-    const inner = Math.max(1, candidate - CARD_PADDING);
+    const inner = Math.max(1, candidate - cardPadding);
     const notices = (content.notices ?? []).reduce((sum, text) => sum + 8 + 16 * Math.max(1, Math.ceil((metrics.textWidth?.(text) ?? text.length * 7) / inner)), 0);
-    return { width: candidate, height: (metrics.headerHeight ?? 58) + CARD_PADDING + notices +
+    return { width: candidate, height: (metrics.headerHeight ?? 58) + cardPadding + notices +
       (groups.length ? 21 + layoutControllerGroups(groups, inner, metrics).height : 0) };
   });
 }

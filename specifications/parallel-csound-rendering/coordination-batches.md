@@ -54,3 +54,44 @@ per-step MIDI/CC/mixer changes, partial requests, exact audio and meter parity a
 coordination frames, shared resources, Lake's original and Master-insert routing, late live
 input, queued edits, cancellation, dense-command splitting and no partial publication.
 Performance measurements are recorded below once the measured image and runs are complete.
+
+## Native measurements (2026-11-08)
+
+The measured image is
+`sha256:41942ce29ac1aeae9f6721b0f585e150bf9fdfa58db1244d5bc2a3c87d58a176`.
+The isolated Linux Docker container uses 12 logical CPUs, 2 GiB memory and 64 MiB shared
+memory. It has no live-library volume. The Master-insert Lake fixture is identical across
+all arms, with 48 kHz/K=32 and unchanged 1024/512 Csound buffers. Ordinary graph selection
+admits three workers; every parallel arm reports its actual coordination interval.
+
+The short native probe sends the same nine-channel event sequence, initializes the canonical
+mixer and requests 74 synthesis blocks (49.33 ms audio) per call. Each arm runs 256 requests,
+excluding 64 warmup requests from timing statistics. A fresh admission observer per arm reads
+real container capacity; pressure cooldown from a preceding arm does not suppress the next
+measurement. No mock capacity, qualification catalog or changed synthesis program is used.
+
+| Median request time | Single | 32-frame coordination | 128-frame coordination | 256-frame coordination |
+| --- | ---: | ---: | ---: | ---: |
+| Forward order | 61.87 ms | 55.27 ms | 46.60 ms | 40.67 ms |
+| Reverse order | 60.62 ms | 47.04 ms | 40.62 ms | 39.27 ms |
+
+All six parallel captures are byte-identical to their single reference (maximum float32
+sample difference zero). The first 32-frame arm had substantial variability: p95 208.44 ms,
+p99 238.51 ms and maximum 270.11 ms. Its reverse-order p95/p99 were 50.32/52.98 ms. This
+variability is retained; the short probe alone cannot establish sustained arrangement
+performance or attribute those spikes precisely. In reverse order, 128 reduced the median
+by 13.7% relative to 32, and 256 reduced it by 16.5%.
+
+Raw timings and scripts are under `output/coordination-batches/`, including
+`native-benchmark.json` and `native-benchmark-reverse.json`. Matched saved-arrangement browser
+runs use the same Listening-mode buffers for all arms: effective steady low/high targets
+750/1500 ms, startup 1000/1800 ms, a 288,000-frame ring and up to 512 synthesis blocks per
+request. These effective Listening minima override the smaller saved Live preferences.
+The arrangement loops only in the isolated test browser. Live-app state is sampled during
+every arm to record possible overlapping playback; no task-launched build or native regression
+test runs during a timed browser measurement.
+
+Validation before measurement: 504 focused backend checks passed, including canonical CSD
+byte fixtures, default/fallback single behavior, native parity and process lifecycle. Frontend
+lint, build and 1,384 tests passed. The Docker build and backend lint passed. The English
+manual was regenerated and the changed settings page was visually checked in the PDF.

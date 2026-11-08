@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { groupControllers, layoutControllerGroups, RACK_GAP } from "../../lib/rackLayout";
+import { controllerGroupGrid, groupControllers, layoutControllerGroups, RACK_GAP } from "../../lib/rackLayout";
 import { useRackGeometry } from "./useRackGeometry";
 import { performanceControllerCopy } from "../../lib/performanceControllerCopy";
 import { useAppStore } from "../../store/useAppStore";
@@ -18,15 +18,16 @@ export function PerformanceControllerRack({ binding, patch, language }: {
   const { ref, width, metrics } = useRackGeometry(contentKey);
   const groups = useMemo(() => groupControllers((JSON.parse(contentKey) as [string, typeof definitions])[1]), [contentKey]);
   const layout = useMemo(() => width ? layoutControllerGroups(groups, width, metrics) : null, [groups, width, metrics]);
+  const grid = useMemo(() => layout ? controllerGroupGrid(layout) : null, [layout]);
   if (!definitions.length && !binding.performanceControllerNotice) return null;
   return <div className="mt-3 min-w-0 border-t border-slate-600/50 pt-2">
-    <div ref={ref} className="flex min-w-0 max-w-full flex-wrap items-start" style={{ gap: RACK_GAP }} aria-label={copy.title}>
+    <div ref={ref} className="grid min-w-0 max-w-full items-start" style={{ gridTemplateColumns: grid?.columns, rowGap: RACK_GAP }} aria-label={copy.title}>
       {groups.map((group, index) => {
         const Group = group.name ? "fieldset" : "div";
         return <Group key={group.name} data-controller-group={group.name} className={group.name ? "m-0 min-w-0 max-w-full shrink-0 rounded border border-slate-500/70 px-2 pb-2" : "min-w-0 max-w-full shrink-0"}
-          style={{ width: layout?.items[index].width ?? "100%" }}>
+          style={{ width: layout?.items[index].width ?? "100%", ...grid?.items[index] }}>
           {group.name && <legend className="max-w-full break-words px-1 text-xs text-slate-300 [overflow-wrap:anywhere]">{group.name}</legend>}
-          <div className="flex flex-wrap items-stretch gap-x-2 gap-y-4">
+          <div data-controller-grid className="grid items-stretch gap-x-2 gap-y-4" style={{ gridTemplateColumns: `repeat(${layout?.items[index].columns ?? 1}, ${metrics.controlWidth ?? 80}px)` }}>
             {group.controllers.map((definition) => {
               const Control = definition.controller_type === "integer" || definition.controller_type === "bool" ? PerformanceControllerDiscrete : PerformanceControllerKnob;
               const disabled = !!definition.error || !!patch?.always_on || binding.midiChannel === 0;

@@ -37,10 +37,12 @@ and a phase-shaped tone. Each has Timbre, Evolution, Release and Level controls.
 
 The Perform rack uses the full available width and automatically sizes instrument
 cards to fit their controllers. Add **Controller Group** names to organize related
-settings inside thin labeled borders. Minimoog Monophonic, Granular Synthesis and
+settings inside closely fitted labeled borders. Groups favor compact horizontal
+rows and adapt to window resizing and browser zoom while preserving their order
+and unfinished value edits. Minimoog Monophonic, Granular Synthesis and
 Ambient Wavetable Cloud include groups organized by synthesis function. [Controller and rack guide](documentation/performance/performance_controllers.md).
 
-![Grouped performance controllers in the adaptive rack](screenshots/performance_controller_groups_rack.png)
+![Compact controller groups with a horizontal Envelope](screenshots/performance_controller_groups_compact.png)
 
 [Granular Synthesis](examples/instruments/granular_synthesis/README.md) is a
 sample-free stereo instrument with 30 performance controls for pitched clouds,
