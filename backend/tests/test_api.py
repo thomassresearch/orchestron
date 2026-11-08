@@ -48,6 +48,466 @@ from backend.app.services.sequencer_timing_migration import migrate_sequencer_ti
 from backend.app.services.sequencer_runtime_constants import TRANSPORT_SUBUNITS_PER_STEP
 
 
+def test_renderer_baseline_keeps_single_worker_and_canonical_compile(tmp_path, monkeypatch):
+    from backend.app.engine.csound_worker import CsoundWorker
+
+    monkeypatch.delenv("VISUALCSOUND_REALTIME_RENDERER", raising=False)
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Single renderer baseline")
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert type(runtime.worker) is CsoundWorker
+        assert runtime.worker.audio_output_mode == "browser_clock"
+        assert "<CsoundSynthesizer>" in runtime.compile_artifact.csd
+        assert not any("partition" in key.lower() for key in runtime.compile_artifact.manifest)
+        assert client.post(f"/api/sessions/{session}/stop").status_code == 200
+        assert client.post(f"/api/sessions/{session}/start").status_code == 200
+        assert type(runtime.worker) is CsoundWorker
+
+
+def test_parallel_ten_minute_evidence_for_another_build_keeps_canonical_fallback(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from backend.tests.session_parallel_support import options, create_session
+    from backend.tests.test_render_qualification import evidence
+
+    first = replace(evidence(), single_underruns=727)
+    assert first.rejection() is None  # Revised numeric gate alone never authorizes a build.
+    records = (first, replace(first, workload="heavy-b", artifact_hash="other"))
+    settings = replace(options("auto", qualified_opt_in=False), qualifications=records)
+    with _client(tmp_path, renderer_options=settings) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client)
+        runtime = client.app.state.container.session_service._sessions[identity]
+        info = client.get(f"/api/sessions/{identity}").json()["renderer"]
+        assert info["selected"] == "single" and not info["qualified"]
+        assert info["fallback_reason"] == "parallel_not_qualified"
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker._coordinator.shared_memory_name is None
+        assert "<CsoundSynthesizer>" in runtime.compile_artifact.csd
+        assert client.delete(f"/api/sessions/{identity}").status_code == 204
+
+
+def test_parallel_start_in_global_cgroup_root(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from backend.app.engine.render_capacity import RenderAdmission
+    from backend.tests.session_parallel_support import options, create_session
+    from backend.tests.test_render_capacity import v2, detect
+
+    files = v2()
+    files["/proc/self/cgroup"] = "0::/\n"
+    for name in ("cpu.max", "memory.max", "memory.high", "memory.current"):
+        del files["/cg/" + name]
+    admission = RenderAdmission(lambda: detect(files))
+    with _client(tmp_path, renderer_options=replace(options(), admission=admission)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client)
+        info = client.get(f"/api/sessions/{identity}").json()["renderer"]
+        assert info["selected"] == "parallel", info
+        assert info["capacity_known"] and info["effective_cpus"] == 12
+        assert client.delete(f"/api/sessions/{identity}").status_code == 204
+    assert not admission.leases
+
+
+def test_parallel_cpu_placement_denial_preserves_single_fallback(tmp_path, monkeypatch):
+    from backend.app.engine import parallel_csound_renderer
+    from backend.app.engine.render_cpu_placement import RenderCpuPlacement
+    from backend.tests.session_parallel_support import options, create_session
+
+    placement = RenderCpuPlacement(lambda: set())
+    monkeypatch.setattr(parallel_csound_renderer, "PROCESS_RENDER_CPU_PLACEMENT", placement)
+    with _client(tmp_path, renderer_options=options("auto")) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client)
+        runtime = client.app.state.container.session_service._sessions[identity]
+        info = client.get(f"/api/sessions/{identity}").json()["renderer"]
+        assert info["selected"] == "single"
+        assert "Insufficient distinct allowed CPUs" in info["fallback_reason"]
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker._coordinator.shared_memory_name is None
+        assert not placement._owners
+        assert client.delete(f"/api/sessions/{identity}").status_code == 204
+
+
+@pytest.mark.parametrize("mode", ["auto", "parallel"])
+def test_parallel_capacity_denial_starts_no_children_and_preserves_canonical(tmp_path, monkeypatch, mode):
+    from dataclasses import replace
+    from backend.app.engine.render_capacity import MIB, RenderAdmission, RenderCapacity
+    from backend.tests.session_parallel_support import options, create_session
+
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+    admission = RenderAdmission(lambda: RenderCapacity(2., True, 4096 * MIB, 64 * MIB))
+    with _client(tmp_path, renderer_options=replace(options(mode), admission=admission)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        session = create_session(client, start=False)
+        response = client.post(f"/api/sessions/{session}/start")
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker._coordinator.shared_memory_name is None
+        assert "<CsoundSynthesizer>" in runtime.compile_artifact.csd
+        if mode == "auto":
+            assert response.status_code == 200, response.text
+            info = client.get(f"/api/sessions/{session}").json()["renderer"]
+            assert info["selected"] == "single" and info["fallback_reason"] == "insufficient_cpu_capacity"
+            assert info["effective_cpus"] == 2 and info["capacity_known"]
+            assert [lease.workers for lease in admission.leases] == [1]
+        else:
+            assert response.status_code == 500 and "insufficient_cpu_capacity" in response.text
+            assert not admission.leases
+        assert client.delete(f"/api/sessions/{session}").status_code == 204
+        assert not admission.leases
+
+
+def test_parallel_session_admission_counts_suffix_other_sessions_and_releases_on_stop(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from backend.app.engine.render_capacity import MIB, RenderAdmission, RenderCapacity
+    from backend.tests.session_parallel_support import options, create_session
+
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+    admission = RenderAdmission(lambda: RenderCapacity(4., True, 4096 * MIB, 64 * MIB))
+    with _client(tmp_path, renderer_options=replace(options(), admission=admission)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        first = create_session(client, case="four")
+        assert client.get(f"/api/sessions/{first}").json()["renderer"]["worker_count"] == 3
+        second = create_session(client)
+        info = client.get(f"/api/sessions/{second}").json()["renderer"]
+        assert info["selected"] == "single" and info["fallback_reason"] == "insufficient_cpu_capacity"
+        assert sorted(lease.workers for lease in admission.leases) == [1, 3]
+        assert client.post(f"/api/sessions/{first}/stop").status_code == 200
+        assert client.post(f"/api/sessions/{second}/stop").status_code == 200
+        assert not admission.leases
+        assert client.post(f"/api/sessions/{second}/start").status_code == 200
+        assert client.get(f"/api/sessions/{second}").json()["renderer"]["selected"] == "parallel"
+    assert not admission.leases
+
+
+@pytest.mark.parametrize("ksmps", [1, 32])
+@pytest.mark.parametrize("sample_rate", [48000, 44100])
+def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, monkeypatch, ksmps, sample_rate):
+    import numpy as np
+    from backend.tests.session_parallel_support import options, create_session
+
+    with _client(tmp_path, renderer_options=options()) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, ksmps=ksmps)
+        base = f"/api/sessions/{identity}"
+        runtime = client.app.state.container.session_service._sessions[identity]
+        assert client.get(base).json()["renderer"]["selected"] == "parallel"
+        assert runtime.midi_router.lane_output is runtime.worker.lane_output
+        pids = runtime.worker._coordinator.process_ids
+        track_id = "lead" + ("x" * 252 if ksmps == 32 else "")
+        config = {"timing": {"tempo_bpm": 240, "steps_per_beat": 4}, "tracks": [
+            {"track_id": track_id, "midi_channel": 1, "enabled": False,
+             "pads": [{"pad_index": 0, "steps": [60, 64, None, 67]}, {"pad_index": 1, "steps": [72]}]}]}
+        assert client.put(base + "/sequencer/config", json=config).status_code == 200
+        with client.websocket_connect(f"/ws/sessions/{identity}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": sample_rate,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 512})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "audition", "request_id": "audition", "action": "start",
+                "track_ids": [track_id], "sequence": [0]})
+            assert socket.receive_json()["sequencer_status"]["auditions"][track_id]["active"]
+            pcm = []
+            for index in range(4):
+                socket.send_json({"type": "request_render", "block_count": 512 // ksmps})
+                metadata = socket.receive_json()
+                assert metadata["type"] == "render_chunk", metadata
+                assert (metadata["engine_sample_start"], metadata["engine_sample_end"]) == (index * 512, (index + 1) * 512)
+                chunk = socket.receive_bytes()
+                assert metadata["target_frame_count"] == round(512 * sample_rate / 48000)
+                assert len(chunk) == metadata["target_frame_count"] * 2 * 4
+                pcm.append(chunk)
+                if index == 0:
+                    config["tracks"][0]["pads"][0]["steps"] = [65, 69, None, 72]
+                    # Preparation completes with the browser paused: idle boundary ownership.
+                    assert client.put(base + "/sequencer/config", json=config).status_code == 200
+                if index == 1:
+                    response = client.put(base + "/mixer", json={"strips": {"source0": {"gainDb": -6}}})
+                    assert response.status_code == 200, response.text
+                if index == 2:
+                    service = client.app.state.container.session_service
+                    previous = runtime.sequencer_request
+                    async def fail_prepare(*args, **kwargs):
+                        raise RuntimeError("injected live edit failure")
+                    with monkeypatch.context() as scoped:
+                        scoped.setattr(service._preparation, "prepare", fail_prepare)
+                        config["timing"]["tempo_bpm"] = 241
+                        assert client.put(base + "/sequencer/config", json=config).status_code == 500
+                    assert runtime.sequencer_request is previous and runtime.worker.is_running
+            assert np.max(np.abs(np.frombuffer(b"".join(pcm), dtype="<f4"))) > .0001
+            assert runtime.worker._coordinator.process_ids == pids
+            socket.send_json({"type": "audition", "request_id": "stop", "action": "stop", "track_ids": [track_id]})
+            assert not socket.receive_json()["sequencer_status"]["auditions"]
+            socket.send_json({"type": "release_controller"})
+        assert client.post(base + "/panic").status_code == 200
+        assert client.post(base + "/stop").status_code == 200
+        assert not runtime.worker._coordinator.process_ids
+        assert client.post(base + "/start").status_code == 200
+        assert runtime.worker.render_sample_cursor == 0
+        assert client.delete(base).status_code == 204
+        assert runtime.worker._coordinator.shared_memory_name is None
+
+
+def test_parallel_manual_input_after_idle_refills_and_restart(tmp_path, monkeypatch):
+    import numpy as np
+    from backend.tests.session_parallel_support import options, create_session
+
+    with _client(tmp_path, renderer_options=options()) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, ksmps=32)
+        base = f"/api/sessions/{identity}"
+        for restart in (False, True):
+            if restart:
+                assert client.post(base + "/stop").status_code == 200
+                assert client.post(base + "/start").status_code == 200
+            with client.websocket_connect(f"/ws/sessions/{identity}/browser-clock") as socket:
+                socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                    "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 96})
+                assert socket.receive_json()["type"] == "stream_config"
+                for index in range(4):
+                    if index == 2:
+                        socket.send_json({"type": "manual_midi", "midi": {
+                            "type": "note_on", "channel": 1, "note": 60, "velocity": 100}})
+                    socket.send_json({"type": "request_render", "block_count": 96})
+                    metadata = socket.receive_json()
+                    pcm = np.frombuffer(socket.receive_bytes(), dtype="<f4")
+                    assert metadata["type"] == "render_chunk"
+                    assert (metadata["engine_sample_start"], metadata["engine_sample_end"]) == (index * 3072, (index + 1) * 3072)
+                    assert metadata["target_frame_count"] == 3072 and len(pcm) == 6144
+                    assert np.isfinite(pcm).all()
+                    assert (float(np.max(np.abs(pcm))) > .00001) == (index >= 2)
+                socket.send_json({"type": "release_controller"})
+        assert client.delete(base).status_code == 204
+
+
+def test_parallel_session_failure_revokes_stream_and_next_start_uses_single(tmp_path, monkeypatch):
+    from functools import partial
+    from backend.tests.partition_process_support import controlled_process
+    from backend.tests.session_parallel_support import options, create_session
+
+    with _client(tmp_path, renderer_options=options()) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, start=False)
+        base = f"/api/sessions/{identity}"
+        service = client.app.state.container.session_service
+        runtime = service._sessions[identity]
+        runtime.worker._coordinator._target = partial(controlled_process, mode="second_block_error")
+        assert client.post(base + "/start").status_code == 200
+        with client.websocket_connect(f"/ws/sessions/{identity}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            socket.send_json({"type": "request_render", "block_count": 8})
+            message = socket.receive_json()
+            assert message["type"] == "engine_error", message  # No partial metadata/PCM.
+            assert socket.receive()["type"] == "websocket.close"
+        # Synchronize with failure cleanup, which owns the lifecycle lock.
+        async def settled():
+            async with runtime.lifecycle_lock:
+                return service._session_info(runtime)
+        info = client.portal.call(settled)
+        assert info.state.value == "error" and info.renderer.failed
+        # Failure on the second synthesis step invalidates the entire first
+        # coordination batch; neither a partial batch nor PCM may be committed.
+        assert (info.renderer.committed_sample, info.renderer.published_sample) == (0, 0)
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker._coordinator.shared_memory_name is None
+        assert not service._connections.has_browser_controller(identity)
+        assert client.post(base + "/start").status_code == 200
+        info = client.get(base).json()
+        assert info["renderer"]["selected"] == "single"
+        assert info["renderer"]["fallback_reason"] == "previous_parallel_failure"
+        assert info["renderer"]["committed_sample"] == 0 and not info["renderer"]["failed"]
+        assert runtime.worker._csound is not None
+
+
+def test_parallel_session_lease_replacement_withholds_old_completed_audio(tmp_path, monkeypatch):
+    from functools import partial
+    import multiprocessing
+    from fastapi import HTTPException
+    from backend.tests.partition_process_support import controlled_process
+    from backend.tests.session_parallel_support import options, create_session
+    from backend.tests.test_session_lifecycle import claim, noop
+    from backend.app.models.session import BrowserClockRequestRenderRequest
+    with _client(tmp_path, renderer_options=options()) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, start=False)
+        service = client.app.state.container.session_service
+        runtime = service._sessions[identity]
+        context = multiprocessing.get_context("spawn")
+        entered, release = context.Event(), context.Event()
+        runtime.worker._coordinator._target = partial(controlled_process, mode="hold_once", entered=entered, release=release)
+        assert client.post(f"/api/sessions/{identity}/start").status_code == 200
+        async def scenario():
+            await service.claim_browser_clock_controller(identity, "old", claim(), send_json=noop, close=noop)
+            request = BrowserClockRequestRenderRequest(type="request_render", block_count=2)
+            rendering = asyncio.create_task(service.render_browser_clock_audio(identity, "old", request))
+            try:
+                assert await asyncio.to_thread(entered.wait, 5)
+                await service.claim_browser_clock_controller(identity, "new", claim(), send_json=noop, close=noop)
+                release.set()
+                with pytest.raises(HTTPException) as error:
+                    await rendering
+                assert error.value.status_code == 409
+                metadata, pcm = await service.render_browser_clock_audio(identity, "new", request)
+                assert metadata["engine_sample_start"] == 64 and len(pcm) == 64 * 8
+            finally:
+                release.set()
+        client.portal.call(scenario)
+
+
+@pytest.mark.parametrize("action", ["stop", "delete"])
+def test_parallel_session_stop_or_delete_cancels_inflight_start(tmp_path, monkeypatch, action):
+    from concurrent.futures import ThreadPoolExecutor
+    from functools import partial
+    import multiprocessing
+    from backend.tests.partition_process_support import controlled_process
+    from backend.tests.session_parallel_support import options, create_session
+
+    with _client(tmp_path, renderer_options=options()) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, start=False)
+        base = f"/api/sessions/{identity}"
+        runtime = client.app.state.container.session_service._sessions[identity]
+        context = multiprocessing.get_context("spawn")
+        entered, release = context.Event(), context.Event()
+        runtime.worker._coordinator._target = partial(controlled_process, mode="hang_compile", entered=entered, release=release)
+        try:
+            with ThreadPoolExecutor() as pool:
+                starting = pool.submit(client.post, base + "/start")
+                assert entered.wait(5)
+                cancelled = client.post(base + "/stop") if action == "stop" else client.delete(base)
+                assert cancelled.status_code == (200 if action == "stop" else 204), cancelled.text
+                assert starting.result(5).status_code == 409
+            assert not runtime.worker.is_running and runtime.worker._csound is None
+            assert not runtime.worker._coordinator.process_ids
+            assert runtime.worker._coordinator.shared_memory_name is None
+        finally:
+            runtime.worker.stop()
+
+
+@pytest.mark.parametrize("mode", ["auto", "parallel"])
+def test_parallel_session_internal_preparation_failure_preserves_canonical_fallback(tmp_path, monkeypatch, mode):
+    from backend.tests.session_parallel_support import options, create_session
+    with _client(tmp_path, renderer_options=options(mode)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, start=False)
+        def fail_partition(*args, **kwargs):
+            raise ValueError("injected partition preparation failure")
+        monkeypatch.setattr(client.app.state.container.compiler_service, "compile_realtime_partitions", fail_partition)
+        response = client.post(f"/api/sessions/{identity}/start")
+        assert response.status_code == (200 if mode == "auto" else 422), response.text
+        runtime = client.app.state.container.session_service._sessions[identity]
+        assert not runtime.worker._coordinator.process_ids
+        assert "parallel_prepare_failed" in runtime.worker.renderer_diagnostics["fallback_reason"]
+        assert runtime.worker.is_running == (mode == "auto")
+
+
+@pytest.mark.parametrize("mode", ["auto", "parallel"])
+def test_parallel_session_ineligible_graph_and_invalid_canonical_compile(tmp_path, monkeypatch, mode):
+    from backend.tests.session_parallel_support import options, create_session
+    with _client(tmp_path, renderer_options=options(mode)) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, case="unsupported", start=False)
+        response = client.post(f"/api/sessions/{identity}/start")
+        assert response.status_code == (200 if mode == "auto" else 500), response.text
+        runtime = client.app.state.container.session_service._sessions[identity]
+        assert not runtime.worker._coordinator.process_ids
+        assert runtime.worker.renderer_diagnostics["fallback_reason"]
+        assert client.post(f"/api/sessions/{identity}/stop").status_code == 200
+        from backend.app.services.compiler_common import CompilationError
+        def invalid(*args, **kwargs):
+            raise CompilationError(["invalid canonical fixture"])
+        monkeypatch.setattr(client.app.state.container.compiler_service, "compile_patch_bundle", invalid)
+        response = client.post(f"/api/sessions/{identity}/compile")
+        assert response.status_code == 422
+        assert not runtime.worker.is_running
+
+
+@pytest.mark.parametrize("requested_mode", ["auto", "parallel"])
+def test_partition_planning_is_not_activated_by_session_lifecycle(tmp_path, monkeypatch, requested_mode):
+    from backend.app.engine.csound_worker import CsoundWorker
+
+    def unexpected(*_args, **_kwargs):
+        pytest.fail("Session lifecycle must not invoke the diagnostic partition planner")
+
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.analyze_realtime_graph", unexpected)
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.compile_realtime_partitions", unexpected)
+    monkeypatch.setattr("backend.app.services.render_partition_plan.plan_render_partitions", unexpected)
+    monkeypatch.setattr("backend.app.engine.parallel_csound_renderer.PartitionRenderCoordinator.start", unexpected)
+    # This is still NOT a supported runtime setting; no opt-in can activate T05.
+    monkeypatch.setenv("VISUALCSOUND_REALTIME_RENDERER", requested_mode)
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Planner remains diagnostic")
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert type(runtime.worker) is CsoundWorker
+        assert not any("partition" in key.lower() for key in runtime.compile_artifact.manifest)
+        assert client.post(f"/api/sessions/{session}/stop").status_code == 200
+        assert client.post(f"/api/sessions/{session}/start").status_code == 200
+        assert type(runtime.worker) is CsoundWorker
+
+
+@pytest.mark.parametrize("native", [False, True])
+def test_session_renderer_contract_covers_lifecycle_and_pcm_api(tmp_path, monkeypatch, native):
+    from typing import get_protocol_members
+
+    from backend.app.engine.realtime_renderer import RealtimeRenderer
+    from backend.app.engine.renderer_factory import create_realtime_renderer
+    from backend.app.services import session_service
+
+    members = get_protocol_members(RealtimeRenderer)
+    workers, options = [], []
+
+    class ContractOnlyRenderer:
+        # Deliberately neither a CsoundWorker subclass nor an unrestricted proxy:
+        # fail if services depend on native/private details outside the interface.
+        def __init__(self, worker):
+            self._wrapped = worker
+
+        def __getattr__(self, name):
+            if name not in members:
+                raise AssertionError(f"Session accessed undeclared renderer member: {name}")
+            return getattr(self._wrapped, name)
+
+    def factory(**kwargs):
+        options.append(kwargs)
+        worker = create_realtime_renderer(**kwargs)
+        workers.append(worker)
+        return ContractOnlyRenderer(worker)
+
+    monkeypatch.setattr(session_service, "create_realtime_renderer", factory)
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", str(not native))
+        session = _create_running_session(client, patch_name="Renderer interface")
+        base = f"/api/sessions/{session}"
+        runtime = client.app.state.container.session_service._sessions[session]
+        assert type(runtime.worker) is ContractOnlyRenderer
+        assert workers[0].backend == ("ctcsound" if native else "mock")
+        assert options == [{"gen_audio_assets_dir": str(tmp_path / "gen_audio_assets"),
+                            "csound_performance_logging": False}]
+        assert runtime.midi_router.lane_output is workers[0].lane_output
+        config = {"tracks": [{"track_id": "lead", "length_beats": 1,
+                              "pads": [{"pad_index": 0, "length_beats": 1, "steps": [60]}]}]}
+        assert client.post(base + "/sequencer/start", json={"config": config}).status_code == 200
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                              "queue_low_water_frames": 1024, "queue_high_water_frames": 2048,
+                              "max_blocks_per_request": 8})
+            assert socket.receive_json()["type"] == "stream_config"
+            for start in (0, 512):
+                socket.send_json({"type": "request_render", "block_count": 8})
+                metadata = socket.receive_json()
+                assert metadata["type"] == "render_chunk", metadata
+                assert (metadata["engine_sample_start"], metadata["engine_sample_end"]) == (start, start + 512)
+                assert metadata["target_frame_count"] == 512 and metadata["channels"] == 2
+                assert len(socket.receive_bytes()) == 512 * 2 * 4
+            socket.send_json({"type": "release_controller"})
+        assert client.post(base + "/panic").status_code == 200
+        assert client.post(base + "/stop").status_code == 200
+        assert client.post(base + "/start").status_code == 200
+        assert len(workers) == 1 and runtime.worker.render_sample_cursor == 0
+        assert client.delete(base).status_code == 204
+        assert not workers[0].is_running
+
+
 @pytest.mark.parametrize("logging_enabled", [False, True])
 def test_session_uses_configured_csound_performance_logging(tmp_path, monkeypatch, logging_enabled):
     monkeypatch.setenv("VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING", str(logging_enabled).lower())
@@ -2608,7 +3068,13 @@ def _midi_messages_with_absolute_ticks(midi_bytes: bytes):
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event_source: str) -> None:
+def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event_source: str, monkeypatch) -> None:
+    def unexpected(*_args, **_kwargs):
+        pytest.fail("CSD export must not invoke realtime partition compilation")
+
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.compile_realtime_partitions", unexpected)
+    monkeypatch.setattr("backend.app.services.compiler_service.CompilerService.analyze_realtime_graph", unexpected)
+    monkeypatch.setattr("backend.app.engine.parallel_csound_renderer.PartitionRenderCoordinator.start", unexpected)
     payload = _performance_csd_export_payload()
     payload["eventSource"] = event_source
     config = payload["performanceExport"]["performance"]["config"]
@@ -10177,3 +10643,189 @@ def test_browser_clock_clip_drummer_with_cli_row_ids_and_twelve_patterns(tmp_pat
                 response = socket.receive_json()
                 assert response["type"] == "sequencer_status", response
                 assert not any(t["enabled"] for t in response["sequencer_status"]["tracks"])
+
+
+@pytest.mark.parametrize("enabled,reason", [(True, "native_backend_unavailable"), (False, "parallel_disabled")])
+def test_public_parallel_opt_in_retains_native_and_operator_fallback(tmp_path, monkeypatch, enabled, reason):
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_PLAYBACK_ENABLED", str(enabled).lower())
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=_audio_source_patch_payload()).json()
+        response = client.post("/api/sessions", json={"patch_id": patch["id"], "renderer_mode": "auto",
+            "browser_settings": {"playbackMode": "auto"}, "allow_unqualified": True, "qualifications": [{"approved": True}]})
+        assert response.status_code == 201
+        identity = response.json()["session_id"]
+        started = client.post(f"/api/sessions/{identity}/start")
+        assert started.status_code == 200, started.text
+        renderer = client.get(f"/api/sessions/{identity}").json()["renderer"]
+        assert renderer["selected"] == "single" and not renderer["qualified"]
+        assert renderer["fallback_reason"] == reason
+        worker = client.app.state.container.session_service._sessions[identity].worker
+        assert not worker._coordinator.process_ids and worker._coordinator.shared_memory_name is None
+        assert not worker.options.allow_unqualified
+        assert client.post("/api/sessions", json={"patch_id": patch["id"], "renderer_mode": "parallel"}).status_code == 422
+
+
+def test_public_parallel_batch_size_validation_and_session_isolation(tmp_path, monkeypatch):
+    from backend.app.engine.csound_worker import CsoundWorker
+
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES", "128")
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=_audio_source_patch_payload()).json()
+        payload = {"patch_id": patch["id"], "renderer_mode": "auto"}
+        service = client.app.state.container.session_service
+        for value in (31, 1025, 128.5, "256", True):
+            response = client.post("/api/sessions", json={**payload, "parallel_batch_frames": value})
+            assert response.status_code == 422, response.text
+        for value in (None, 32, 255, 1024):
+            response = client.post("/api/sessions", json={**payload, "parallel_batch_frames": value})
+            assert response.status_code == 201, response.text
+            identity = response.json()["session_id"]
+            worker = service._sessions[identity].worker
+            assert worker.options.policy.coordination_frames == (128 if value is None else value)
+            assert not worker._coordinator.process_ids
+            client.delete(f"/api/sessions/{identity}")
+        response = client.post("/api/sessions", json={"patch_id": patch["id"], "parallel_batch_frames": 1024})
+        assert response.status_code == 201
+        assert type(service._sessions[response.json()["session_id"]].worker) is CsoundWorker
+
+
+def test_engine_stats_observation_has_no_idle_or_audio_side_effects(tmp_path, monkeypatch):
+    with _client(tmp_path) as client:
+        identity = _create_running_session(client)
+        service = client.app.state.container.session_service
+        runtime = service._sessions[identity]
+        activity = service._session_last_activity[identity]
+        cursor = runtime.worker.render_sample_cursor
+        calls = []
+        monkeypatch.setattr(runtime.engine_stats, "sample", lambda **kwargs: calls.append(kwargs) or dict(
+            available=True, scope="server_process", process_percent=45., cpus=[], sample_seconds=1.))
+        response = client.get(f"/api/sessions/{identity}/engine-stats")
+        assert response.status_code == 200
+        assert response.json()["process_percent"] == 45.
+        assert response.json()["renderer"] is None
+        assert calls == [{"running": True, "assignments": ()}]
+        assert runtime.worker.render_sample_cursor == cursor
+        assert service._session_last_activity[identity] == activity
+        assert client.delete(f"/api/sessions/{identity}").status_code == 204
+        assert client.get(f"/api/sessions/{identity}/engine-stats").status_code == 404
+
+
+@pytest.mark.parametrize("case", ["two", "bypass"])
+@pytest.mark.parametrize("coordination_frames", [32, 128, 256, 1024])
+def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch, case, coordination_frames):
+    from backend.tests.session_parallel_support import unpinned_test_workers
+    unpinned_test_workers(monkeypatch)
+    from dataclasses import replace
+    from backend.app.engine.csound_worker import CsoundWorker
+    from backend.tests.session_parallel_support import options, create_session
+
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, case=case, start=False)
+        assert client.post(f"/api/sessions/{identity}/compile").status_code == 200
+        service = client.app.state.container.session_service
+        original = service._sessions[identity]
+        policy = options("auto")
+        browser = {"playbackMode": "listening", "maxBlocksPerRequest": 74}
+        assert service._settings.parallel_qualification_file is None
+        release_options = service._render_release.options
+        # Controlled capacity, just like other native integration tests; no
+        # platform/performance claim or capacity detection override ships.
+        monkeypatch.setattr(service._render_release, "options", lambda settings, **kwargs: replace(release_options(settings, **kwargs), admission=policy.admission))
+        payload = {"instruments": [i.model_dump(mode="json") for i in original.instruments],
+                   "audio_graph": original.audio_graph.model_dump(mode="json", by_alias=True),
+                   "mixer": original.mixer.model_dump(mode="json", by_alias=True)}
+        default_id = client.post("/api/sessions", json=payload).json()["session_id"]
+        assert type(service._sessions[default_id].worker) is CsoundWorker
+        selected = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser,
+            "parallel_batch_frames": coordination_frames}).json()["session_id"]
+        response = client.post(f"/api/sessions/{selected}/start")
+        assert response.status_code == 200, response.text
+        assert client.get(f"/api/sessions/{selected}").json()["renderer"]["coordination_frames"] == coordination_frames
+        worker = service._sessions[selected].worker
+        assert not worker.renderer_diagnostics["qualified"]
+        assert worker.options.graph_selection and not worker.options.allow_unqualified
+        assert worker.renderer_diagnostics["selected"] == "parallel", str(worker.renderer_diagnostics)
+        assert worker._coordinator.process_ids
+        canonical = service._sessions[selected].compile_artifact
+        assert canonical.orc == original.compile_artifact.orc and canonical.manifest == original.compile_artifact.manifest
+        # Startup alone does not drain mixer writes. Exercise the first PCM
+        # request and live Master-insert bypass updates through the public path.
+        with client.websocket_connect(f"/ws/sessions/{selected}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 512})
+            assert socket.receive_json()["type"] == "stream_config"
+            for index in range(3 if case == "bypass" else 1):
+                if index:
+                    response = client.put(f"/api/sessions/{selected}/mixer",
+                        json={"strips": {"masterInsert": {"bypass": index == 1}}})
+                    assert response.status_code == 200, response.text
+                socket.send_json({"type": "request_render", "block_count": 16})
+                metadata = socket.receive_json()
+                assert metadata["type"] == "render_chunk", metadata
+                assert metadata["engine_sample_start"] == index * 512
+                assert len(socket.receive_bytes()) == 512 * 2 * 4
+            socket.send_json({"type": "release_controller"})
+        assert client.post(f"/api/sessions/{selected}/stop").status_code == 200
+        assert not worker._coordinator.process_ids and worker._coordinator.shared_memory_name is None
+        # Rollback applies at the next explicit compile/start, without replacing
+        # a running renderer or editing authored performance data.
+        service._settings.parallel_playback_enabled = False
+        assert client.post(f"/api/sessions/{selected}/start").status_code == 200
+        assert worker.renderer_diagnostics["selected"] == "single"
+        assert worker.renderer_diagnostics["fallback_reason"] == "parallel_disabled"
+        assert not worker._coordinator.process_ids
+        fallback = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser}).json()["session_id"]
+        assert client.post(f"/api/sessions/{fallback}/start").status_code == 200
+        assert service._sessions[fallback].worker.renderer_diagnostics["fallback_reason"] == "parallel_disabled"
+
+
+def test_grain_of_salt_public_parallel_selection_and_default(tmp_path, monkeypatch):
+    from backend.tests.session_parallel_support import unpinned_test_workers
+    unpinned_test_workers(monkeypatch)
+    from dataclasses import replace
+    from backend.app.engine.csound_worker import CsoundWorker
+    from backend.tests.grain_render_support import grain_inputs
+    from backend.tests.session_parallel_support import options
+
+    with _client(tmp_path) as client:
+        monkeypatch.setenv('VISUALCSOUND_FORCE_MOCK_ENGINE', 'false')
+        targets, graph, mixer = grain_inputs()
+        assignments, saved = [], {}
+        for target in targets:
+            if target.patch.id not in saved:
+                result = client.post('/api/patches', json={'name': target.patch.name,
+                    'always_on': target.always_on, 'graph': target.patch.graph.model_dump(mode='json')})
+                assert result.status_code == 201, result.text
+                saved[target.patch.id] = result.json()['id']
+            assignments.append({'id': target.assignment_id, 'patch_id': saved[target.patch.id],
+                'midi_channel': target.midi_channel,
+                'performance_controller_values': target.performance_controller_values})
+        payload = {'instruments': assignments, 'audio_graph': graph.model_dump(mode='json', by_alias=True),
+                   'mixer': mixer.model_dump(mode='json', by_alias=True)}
+        service = client.app.state.container.session_service
+        single = client.post('/api/sessions', json=payload)
+        assert single.status_code == 201, single.text
+        assert type(service._sessions[single.json()['session_id']].worker) is CsoundWorker
+        original = service._render_release.options
+        admission = options().admission
+        monkeypatch.setattr(service._render_release, 'options', lambda *a, **kw: replace(original(*a, **kw), admission=admission))
+        selected = client.post('/api/sessions', json={**payload, 'renderer_mode': 'auto'})
+        assert selected.status_code == 201, selected.text
+        identity = selected.json()['session_id']
+        started = client.post(f'/api/sessions/{identity}/start')
+        assert started.status_code == 200, started.text
+        info = client.get(f'/api/sessions/{identity}').json()
+        assert info['renderer']['selected'] == 'parallel', info['renderer']
+        assert info['renderer']['worker_count'] == 6
+        assert info['renderer']['coordination_frames'] == 256
+        with client.websocket_connect(f'/ws/sessions/{identity}/browser-clock') as socket:
+            socket.send_json({'type': 'claim_controller', 'audio_context_sample_rate': 48000,
+                'queue_low_water_frames': 1024, 'queue_high_water_frames': 2048, 'max_blocks_per_request': 512})
+            assert socket.receive_json()['type'] == 'stream_config'
+            socket.send_json({'type': 'request_render', 'block_count': 16})
+            assert socket.receive_json()['type'] == 'render_chunk'
+            assert len(socket.receive_bytes()) == 16 * targets[0].patch.graph.engine_config.ksmps * 2 * 4
+        assert client.post(f'/api/sessions/{identity}/stop').status_code == 200
+        worker = service._sessions[identity].worker
+        assert not worker._coordinator.process_ids and not admission.leases

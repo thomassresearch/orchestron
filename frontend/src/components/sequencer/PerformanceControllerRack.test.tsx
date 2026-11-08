@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PerformanceControllerRack } from "./PerformanceControllerRack";
 import { useAppStore } from "../../store/useAppStore";
@@ -57,4 +57,38 @@ it("equalizes slots across groups and releases space when an error hint disappea
   expect(heights()).toEqual(["277px", "277px", "277px"]);
   rerender(<PerformanceControllerRack binding={binding} patch={grouped} language="english" />);
   expect(heights()).toEqual(["225px", "225px", "225px"]);
+});
+
+it("reflows on ResizeObserver and window resize without remounting focused drafts", () => {
+  let width = 1070;
+  let resize = () => {};
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(callback: () => void) { resize = callback; }
+    observe() {} disconnect() {}
+  });
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const height = this.hasAttribute("data-performance-controller") ? 169 : this.hasAttribute("data-rack-controller-footer") ? 39 : 0;
+    return { width, height, x: 0, y: 0, top: 0, bottom: height, left: 0, right: width, toJSON() {} };
+  });
+  const names = ["Wavetable", "Motion", "Stereo", "Envelope", "Output & MIDI"];
+  const definitions = [3, 3, 2, 4, 2].flatMap((count, group) => Array.from({ length: count }, (_, i) => ({
+    ...patch.performance_controllers![0], node_id: `${group}:${i}`, label: `${names[group]} ${i}`, controller_group: names[group]
+  })));
+  const { container } = render(<PerformanceControllerRack binding={binding} patch={{ ...patch, performance_controllers: definitions }} language="english" />);
+  const envelope = screen.getByRole("group", { name: "Envelope" });
+  const columns = () => (envelope.querySelector("[data-controller-grid]") as HTMLElement).style.gridTemplateColumns;
+  expect(columns()).toBe("repeat(4, 80px)");
+  const input = screen.getByRole("spinbutton", { name: "Envelope 0 · Performance controller" });
+  fireEvent.change(input, { target: { value: "0.1234" } });
+  input.focus();
+  width = 200;
+  act(() => resize());
+  expect(columns()).toBe("repeat(2, 80px)");
+  width = 1070;
+  fireEvent(window, new Event("resize"));
+  expect(columns()).toBe("repeat(4, 80px)");
+  expect(document.activeElement).toBe(input);
+  expect((input as HTMLInputElement).value).toBe("0.1234");
+  expect([...container.querySelectorAll("[data-controller-group]")].map(group => group.getAttribute("data-controller-group"))).toEqual(names);
+  expect([...container.querySelectorAll("[data-performance-controller]")].map(tile => tile.getAttribute("data-performance-controller"))).toEqual(definitions.map(definition => definition.node_id));
 });

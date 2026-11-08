@@ -3,6 +3,7 @@ import { resolveClipDrafts } from "./lib/clipArranger/draftResolution";
 import { clipRuntimeView, attachClipSchedules, clipAuditionState } from "./lib/clipArranger/runtime";
 import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
 import { scoreTrackConfig } from "./lib/scoreSequencer";
+import { EngineStatusLine } from "./components/EngineStatusLine";
 import { PerformanceAuditionContext } from "./components/sequencer/PerformanceAudition";
 import { useMidiControllerRouting } from "./hooks/useMidiControllerRouting";
 import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels";
@@ -120,6 +121,8 @@ export default function App() {
   const setGuiLanguage = useAppStore((state) => state.setGuiLanguage);
   const browserClockLatencySettings = useAppStore((state) => state.browserClockLatencySettings);
   const setBrowserClockLatencySettings = useAppStore((state) => state.setBrowserClockLatencySettings);
+  const parallelRenderBatchFrames = useAppStore(state => state.parallelRenderBatchFrames);
+  const setParallelRenderBatchFrames = useAppStore(state => state.setParallelRenderBatchFrames);
   const appCopy = useMemo(() => APP_COPY[guiLanguage], [guiLanguage]);
   const importDialogCopy = useMemo(() => IMPORT_DIALOG_COPY[guiLanguage], [guiLanguage]);
 
@@ -1721,7 +1724,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
+    <div className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
+      {activePage === "sequencer" && <EngineStatusLine />}
       <div className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
         <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
           <div className="flex flex-1 items-center gap-3">
@@ -1988,6 +1992,9 @@ export default function App() {
               hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
               showBrowserClockLatencyConfig={runtimeAudioOutputMode === "browser_clock"}
               browserClockLatencySettings={browserClockLatencySettings}
+              parallelRenderBatchFrames={parallelRenderBatchFrames}
+              parallelSettingsLocked={instrumentsRunning || loading}
+              onApplyParallelRenderBatchFrames={setParallelRenderBatchFrames}
               browserAudioDiagnostics={browserAudioDiagnostics}
               onHelpRequest={onHelpRequest}
               onApplyEngineConfig={(config) => {

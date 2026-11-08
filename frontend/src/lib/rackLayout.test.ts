@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../../../backend/tests/fixtures/performances/controller_rack_layout.json";
 import type { PerformanceControllerDefinition } from "../types";
-import { groupControllers, instrumentSizeOptions, packOrdered, RACK_GAP, type SizeOption } from "./rackLayout";
+import { controllerGroupOptions, layoutControllerGroups, groupControllers, instrumentSizeOptions, packOrdered, RACK_GAP, type SizeOption } from "./rackLayout";
 
 const cards = fixture.cards as Array<{ definitions: PerformanceControllerDefinition[] }>;
 describe("ordered rack packing", () => {
@@ -58,5 +58,58 @@ describe("ordered rack packing", () => {
   it("handles empty racks and 64 instruments", () => {
     expect(packOrdered([], 1200)).toEqual({ items: [], height: 0, unusedArea: 0 });
     expect(packOrdered(Array.from({ length: 64 }, () => instrumentSizeOptions(cards[1], 1920)), 1920).items).toHaveLength(64);
+  });
+});
+
+const makeGroups = (counts: number[], names = counts.map((_, index) => `Group ${index}`)) => counts.map((count, index) => ({
+  name: names[index], controllers: Array.from({ length: count }, (_, i) => ({ ...cards[1].definitions[0], node_id: `${index}:${i}` }))
+}));
+
+describe("compact controller groups", () => {
+  it("fits the four Envelope controls horizontally within the 5% height allowance", () => {
+    const groups = makeGroups([3, 3, 2, 4, 2], ["Wavetable", "Motion", "Stereo", "Envelope", "Output & MIDI"]);
+    const result = layoutControllerGroups(groups, 1070);
+    expect(result.items.map(item => item.columns)).toEqual([3, 3, 2, 4, 2]);
+    expect(result.items.map(item => item.row)).toEqual([0, 0, 0, 1, 1]);
+    expect(result.items.map(item => item.width)).toEqual([274, 274, 186, 362, 186]);
+    const minimum = packOrdered(groups.map(group => controllerGroupOptions(group, 1070)), 1070).height;
+    expect(result.height).toBeGreaterThan(minimum);
+    expect(result.height).toBeLessThanOrEqual(minimum * 1.05);
+  });
+
+  it("uses measured fractional geometry and keeps wide containers' groups tight", () => {
+    const groups = makeGroups([4]);
+    const metrics = { controlWidth: 85.25, controlGapX: 8.5, groupPadding: 18.36 };
+    const result = layoutControllerGroups(groups, 1600, metrics);
+    expect(result.items[0]).toMatchObject({ columns: 4, controlRows: 1, width: 385 });
+    expect(layoutControllerGroups(groups, 200, metrics).items[0].columns).toBe(2);
+    expect(layoutControllerGroups(groups, 1600, metrics)).toEqual(result);
+    expect(layoutControllerGroups([], 1000).items).toEqual([]);
+  });
+
+  it("matches exhaustive height-constrained whitespace optimization across irregular groups", () => {
+    for (const counts of [[3, 4, 2], [2, 5, 3, 2], [1, 4, 3]]) for (const width of [190, 380, 570, 760, 1070]) {
+      const groups = makeGroups(counts, counts.map((_, i) => i === 0 ? "A longer controller group title" : i === 1 ? "" : "Tone"));
+      const options = groups.map(group => controllerGroupOptions(group, width));
+      const candidates: Array<{ height: number; unusedArea: number; controlRows: number }> = [];
+      const visit = (index: number, shelfWidth: number, shelfHeight: number, priorHeight: number, unusedArea: number, controlRows: number) => {
+        if (index === groups.length) { candidates.push({ height: priorHeight + shelfHeight, unusedArea, controlRows }); return; }
+        for (const size of options[index]) {
+          const nextWidth = shelfWidth + (shelfWidth ? RACK_GAP : 0) + size.width;
+          if (nextWidth <= width) visit(index + 1, nextWidth, Math.max(shelfHeight, size.height), priorHeight, unusedArea + size.unusedArea, controlRows + size.controlRows);
+          if (shelfWidth) visit(index + 1, size.width, size.height, priorHeight + shelfHeight + RACK_GAP, unusedArea + size.unusedArea, controlRows + size.controlRows);
+        }
+      };
+      visit(0, 0, 0, 0, 0, 0);
+      const minimum = Math.min(...candidates.map(candidate => candidate.height));
+      const expected = candidates.filter(candidate => candidate.height <= minimum * 1.05)
+        .sort((a, b) => a.unusedArea - b.unusedArea || a.controlRows - b.controlRows || a.height - b.height)[0];
+      const result = layoutControllerGroups(groups, width);
+      expect({ height: result.height, unusedArea: result.unusedArea, controlRows: result.items.reduce((sum, item) => sum + item.controlRows, 0) }).toEqual(expected);
+      for (const row of new Set(result.items.map(item => item.row))) {
+        const items = result.items.filter(item => item.row === row);
+        expect(items.reduce((sum, item) => sum + item.width, 0) + (items.length - 1) * RACK_GAP).toBeLessThanOrEqual(width);
+      }
+    }
   });
 });

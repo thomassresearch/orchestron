@@ -1,137 +1,220 @@
 # Multitrack Arranger
 
-A development preview of the clip-based performance workflow is described in [Clip arranger preview](clip_arranger_preview.md). The reference below describes the existing compatibility arranger.
-
 **Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
 
-The arranger is the only editor of song order. Each lane places references to its eight pads, reusable groups and supergroups, and rests. Sequencers edit pad contents; melodic and drummer devices assemble reusable phrases in their upper-right pattern workspace. In the arranger, edit phrases by ungrouping, rearranging, and regrouping timeline material. Editing a shared definition changes every occurrence; changing its duration shifts following material on that lane.
+The multitrack arranger brings melodic, Score, drummer, controller and arpeggiator tracks onto one timeline. Clips set where content plays; reusable patterns, groups and supergroups hold the music.
 
-Pads are labelled **1–8** in arranger lanes and palettes, and **#1–#8** in sequencers and phrase editors. Pads are green, groups are red, and supergroups are violet throughout the sequencers, phrase libraries, palettes and arranger lanes. Rests keep their dark styling; the number in **Rest 1/2/4/8/16/32** is its duration in local beats, while a pad number identifies a reusable slot. Right-click a musical item or palette entry to Set colour or Reset colour. Custom colours apply to every occurrence of that definition within its lane and are saved with the performance. The picker offers swatches and a custom colour; text contrast adjusts automatically. Sequencer colours remain the defaults for now. Selection outlines and Playing/Queued indicators remain separate from these colours.
+**New** creates an empty arrangement and one piano keyboard. Choose **Add track** to create a track with its first clip and pattern, then assign its instrument and MIDI channel. Double-click empty track space to add another clip. Use a clip’s **+** to add a new pattern or reuse existing content.
 
-## Compact track headers
+![Default new performance with the multitrack clip arranger](../../screenshots/clip-arranger-default.png)
 
-Each lane starts collapsed. Click the triangle or track title (Enter/Space when focused) to open or close its editing tools. Click anywhere in an occurrence box to select it and open the lane; the triangle can close it again while retaining the editing context. Clicking empty timeline space clears occurrence highlights and chooses the insertion position without changing panel expansion. Double-click a pad or choose Edit pattern to open its sequencer editor. Open in arranger opens the lane and focuses the definition in its palette.
+The top-right **?** opens help specifically for this clip workflow in the selected GUI language (English, German, French or Spanish). It covers clip windows, reusable content, musical and structural drafts, save scope, transport, sections, transposition and instrument automation. Close it with **Close**, Escape or a click outside the dialog.
 
-The expanded lane shows **Position (master beats)** followed by the wrapping palette. There is no separate Patterns and phrases panel in the arranger; melodic and drummer sequencers provide their own pattern workspace. Choose Playback source in the sequencer; the arranger transport provides the Loop song toggle for repeating or stopping at the song end. Disclosure choices survive view switches; New/Load/Import resets them. Closing panels preserves drafts, selections and scroll, cancels active gestures and momentary previews, and leaves normal playback running.
+![Clip arranger integrated help](../../screenshots/clip-arranger-integrated-help.png)
 
-## Temporary lane Mute and Solo
+## Arrange fixed windows
 
-The small **Mute** and **Solo** buttons control this sequencer lane, independently of the instrument mixer. Several lanes can drive the same instrument and still be controlled separately. A drummer's rows act together. Multiple Solo buttons may be active; explicitly muted lanes stay muted. A dashed amber Mute button indicates suppression by another lane's Solo.
+Unselected tracks stay compact. Click a track header to expand its clips into nested pattern, group and supergroup boxes. Drag a clip header to move it, or its borders to trim it; the inspector also accepts numeric start, length and source offset in master beats. Double-click empty lane space to create an empty four-master-beat Once clip immediately, snapped to quarter beats. The track **+** appends the same empty clip. Its inline **+** opens the content picker; inserted content replaces silence, preserving any remaining rest. Longer content can grow the window when space permits. Moves and deletion leave other clips in place. Overlap on the same lane is rejected.
 
-Lanes keep advancing through pads, rests, loops and auditions while suppressed. Changes apply at the next available engine block; already buffered audio still plays. New attacks are suppressed, while sounding notes complete their scheduled releases and effects decay normally. Unmuting resumes future events at the current position without retriggering held notes. Controller lanes stop sending CC values while muted; the last applied value remains until an active source updates it.
+The clip window and content duration are independent. **Once** plays the content from its source offset and leaves silence after its end. **Loop** repeats content within the window. Trimming preserves the original notes and content; **Fit clip to content** explicitly changes the window. A local edit of one generated repeat splits its original window into before, edited and after parts.
 
-Solo preserves the upstream inputs and downstream arpeggiator processing needed by the selected lane. Explicit mute overrides these dependencies. External MIDI and independent Live arpeggiators remain outside arranger solo selection. Instrument mixer mute/solo still applies independently.
+![Expanded clip hierarchy and contextual supergroup editor](../../screenshots/clip-arranger-nested.png)
 
-Lane controls survive transport stop/start and engine restart within this performance. They reset on New/Load/Import and browser reload; deleted lanes lose their controls. Save, autosave, native bundles and both CSD exports exclude this temporary state.
+Open **Content** for the selected clip to adopt existing definitions, create a new pattern, add a rest, reorder children, or select adjacent children for Group/Supergroup. Grouping retains reusable definitions. Ungroup opens one level. Removing an occurrence retains its definition. Groups and supergroups have their own contextual child editor.
 
-## Place and move material
+**Sections** copies a range of all tracks or the selected track. Paste and overwrite, paste and insert, insert time and close time show a preview before applying one undoable transaction. Track-order arrows change the visible lane order. Removing a track removes its source and drafts; source creation/removal clears clip history because source topology is outside clip-only undo.
 
-Expand a lane to show its palette of populated pattern pads, groups, supergroups and rests on the Position row. Melodic, drummer and arpeggiator pads appear only when they contain a non-rest step; their original numbers are preserved. Empty pads remain editable in the sequencer, and existing timeline occurrences remain intact. Controller curves remain available, including zero-valued curves. Drag a palette item to add an occurrence. Clicking an entry only focuses it. Empty phrase drafts cannot be placed or previewed. There are no placement toolbar buttons or number-key placement shortcuts; copy, paste and duplicate are available for timeline ranges through the context menu and keyboard.
+Undo/Redo retains up to 25 clip edits through performance save/load, autosave recovery and native bundles. History stores changes compactly so ordinary edits do not repeatedly duplicate every pattern in the saved performance.
 
-Drop at an element edge to insert and shift later material on this lane. Drop musical material inside a rest when it fits to replace that portion of silence. Drop after the final element to fill the gap with supported pause tokens and append. Dropping inside occupied musical material is rejected with a red preview. Rest palette items insert time at boundaries or extend the lane after its end.
+## Temporary lane mute and solo
 
-The ruler numbers master bars and beats. Placement snaps to whole local beats using the lane's beat ratio; previews show the exact master-beat position and duration. Drag an occurrence body to move it, or move a contiguous selection together. Moves leave equivalent silence at the source; dropping at the original position changes nothing. Moving left or right into a rest can overlap the vacated source position. Available silence is split before and after the moved item; other musical items keep their positions, and overlapping them is rejected. Placement stays within the originating lane. Invalid or over-limit edits leave the whole arrangement unchanged.
+Use **Mute** to silence a track or **Solo** to hear it on its own. These controls leave the track's clock and place in the song unchanged. Several tracks can be soloed together; an explicit mute still silences its track. Drum rows are controlled together.
 
-Right-click to open lane actions. Right-clicking a selected occurrence preserves the selection; right-clicking another selects it. Cmd/Ctrl-click toggles additional selections. Grouping requires at least two adjacent selected elements. **Group** accepts pads/rests; **Supergroup** also accepts groups. **Ungroup** expands one level and retains the reusable definition in the palette.
+Track Mute/Solo is separate from the mixer, so tracks sharing an instrument can be controlled independently. Existing notes release normally. A muted controller track sends no new values; its target keeps the last value received. Soloing an arpeggiator also keeps its required input tracks active.
 
-After ungrouping, rearrange the material, then select and group it again. Choose **Create new definition** (the default) to leave other occurrences unchanged, or explicitly select **Update existing definition** to update all its references. The dialog lists uses and explains that duration changes shift following material. Groups retain letter IDs and supergroups Roman numeral IDs.
+These controls are temporary: they are excluded from saved performances and exports and reset when a performance is loaded, imported or replaced.
 
-**Create variation** copies a pad into an unused slot, or copies a group/supergroup under a new ID, and retargets only the selected occurrence. It inherits the source colour. The eight-pad limit remains. Palette context menus allow deleting unused definitions; saved references list their uses and block deletion. Temporary workspace references expand into the saved contents, including retained drafts in closed panels; the deleted definition’s own draft is removed.
+## Instrument automation
 
-Use Enter/Space to select a focused occurrence, Cmd/Ctrl-click for multiple selection, and Shift+F10 or the Context Menu key for its menu. Arrow keys navigate occurrences or menu actions; Escape closes menus and cancels gestures. Menus return focus to their originating item.
+The [Performance Creator skill](../../integrations/skills/orchestron-performance-creator/SKILL.md)
+can author the same clip model through `orchestron_cli`. Start with
+`edit begin --new --arranger clips`, then apply a versioned song document with
+`edit apply-song --file PATH`. Definitions are shared across clip repetitions;
+pitch-only changes use transposition plans. Inspect returned occurrence targets
+before scoped musical/structural edits, use dry runs and undo, validate online,
+then commit. The CLI protects saved revisions and preserves unused definitions,
+hidden notes and trailing silence. It does not see unsaved GUI editor drafts.
+See the [command cookbook](../../integrations/skills/orchestron-performance-creator/references/song_workflow.md)
+for automation, audition and exports.
 
-## Copy and insert song sections
+Select an instrument clip and use **Generate automation** to create one bound controller lane per assigned MIDI CC. Edit song-length curves directly inside expanded clips, with at most ten points and explicit Save/Discard. MIDI channel and CC follow the rack instrument. See [Instrument automation clips](instrument_automation.md) for generation, duration, split/merge and suspended-target behavior.
 
-Drag the **top beat ruler** to select a section across every arranger lane, including collapsed and muted lanes. To select some lanes, drag a rectangle from empty timeline background, or **Shift-drag** over existing elements. The cyan highlight includes silence and displays its duration in master beats and the number of selected lanes. Selection expands outwards to preserve whole pads, groups and supergroups across all included lanes; rests can split at whole local beats. Lanes with different beat ratios may therefore expand the range farther than expected: check the preview before releasing.
+## Edit a pattern
 
-The top ruler’s cyan **edit position** is separate from playback. Click it to choose a paste position. The bottom **Loop selected range** ruler retains its seek and playback-loop behavior. Selecting or copying material does not seek or change the loop.
+For a Score track, add a clip, use its inline **+** / **Add content → New pattern**,
+then double-click the nested pattern to open the **Score sequencer**. Hold its
+piano keys to audition pitches or double-click them to append quarter notes.
+Use **Save** to choose a local variation or update all linked occurrences.
+See the [Score pattern walkthrough](score_sequencers.md#create-a-score-pattern-in-the-clip-arranger).
 
-For two 16-beat sections **A–B**, select the first 16 beats and choose **Duplicate — insert time, all lanes**, or press **Cmd/Ctrl+Shift+D**. The result is **A–A–B**. The new copy stays selected, so the same command can repeat it again.
+Double-click a nested box, or focus its name and press Enter, to open its sequencer or arpeggiator. The breadcrumb identifies the pattern you are editing; draft status, **Play edit** and **Save** sit above the musical controls. You can edit notes/chords/holds/strums, sparse score notes, drum velocities/ratchets, both controller datasets, and arpeggiator parameters/presets. Lane-wide timing, routing and instrument settings affect the whole track.
 
-| Action | Shortcut | Result |
-| --- | --- | --- |
-| Copy range | Cmd/Ctrl+C | Copies selected lanes and the entire range duration, including silence. |
-| Paste — overwrite | Cmd/Ctrl+V | Replaces that interval on copied lanes without shifting later material. |
-| Paste — insert time, all lanes | Cmd/Ctrl+Shift+V | Inserts the copied duration across all lanes, shifting later material together. Unselected lanes receive silence where needed. |
-| Paste — insert, copied lanes only | Context menu | Shifts later material only on the copied lanes. |
-| Duplicate — insert time, all lanes | Cmd/Ctrl+Shift+D | Inserts a copy immediately after the selection and shifts every lane’s later material. |
-| Duplicate — insert, selected lanes only | Context menu | Inserts the copy after the selection and shifts only its lanes. |
-| Undo / Redo | Cmd/Ctrl+Z / Cmd/Ctrl+Shift+Z | Reverses or restores one complete arranger action, including multi-lane range edits. Ctrl+Y also redoes. |
+Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.
 
-Right-click inside the highlighted range to keep the selection and open its commands. Right-click elsewhere in a timeline or on the ruler to choose a destination; occurrence menus also contain paste actions. **Shift+arrows** extends a selection in time or across lanes. **Shift+F10** opens its menu. Shortcuts apply only inside the arranger, outside text fields and controls.
+**Save** always asks whether to update **Only this occurrence** or **All linked occurrences**. Local is the default. A local variation gets a new definition; shared ancestors are copied only where necessary. Musical-pattern saves retain clip boundaries. Container assembly uses the structural growth rules described below. Cancel retains the draft. Conflicting revisions or invalid content leave the saved arrangement untouched.
 
-**Alt/Option-drag a selected occurrence** to copy the entire range with overwrite behavior. Hold **Shift** as well to insert time across all lanes. The destination preview states Overwrite or Insert, its position and the affected lanes; red indicates an invalid destination and explains why. Escape, pointer cancellation or loss of focus cancels the gesture. Ordinary occurrence dragging exits range selection and retains its lane-local move behavior. Delete commands remain occurrence actions; select individual occurrences before deleting them.
+![Save-scope dialog](../../screenshots/clip-arranger-save-scope.png)
 
-Paste keeps the copied lane assignments. It does not remap instruments or copy between performances. Copies reuse their original pads, groups, supergroups and colours. **Create variation** separates an occurrence’s definition; for independent note or controller edits, create a variation of its pad too. The eight-pad limit still applies.
+Performance save and native/CSD export use saved definitions. If drafts changed, return to resolve their individual scopes or explicitly use the saved definitions. Autosave does not commit drafts. New/Load/Import prompts before discarding changed drafts. Drafts survive ordinary view switches; they are not reload recovery data.
 
-Insertion requires a musical boundary on every shifted lane; overwrite requires valid start and end boundaries. Durations and rests must be whole local beats. Invalid boundaries, missing lanes, changed definitions/durations or sequence limits reject the whole edit. Empty space after a lane ends copies as silence. Insertion leaves already-ended lanes unchanged unless receiving copied material. Automatic repetitions are not expanded.
+## Play and jam
 
-After the first placement selects Arrangement, range edits preserve Playback source, Repeat, the transport cursor and loop coordinates, including dormant arrangements on Manual-pad lanes. Independently playing Manual pads continue. During playback, the whole edit follows the normal live-preparation workflow; preparation failure retains the previous playing configuration and the edited draft.
+**Play** (triangle) and **Play edit** start instruments when needed. The tape controls provide rewind/forward by one beat, Play/resume, Pause, and Stop. Pause holds the song cursor; Stop returns to the selected loop start or song start. With the song stopped, Play edit auditions its target. With the song playing, the editor audition temporarily replaces its source lane while other lanes continue. Song start/stop/seek preserves the editor audition; Stop edit returns to the arrangement's current position or silence when the song is stopped. Audition state appears in the compact lane header. The open editor follows the audible pattern position with its existing step highlights, score playhead, controller cursor or arpeggiator status; standalone audition leaves the song cursor still. Closing the editor or leaving Perform ends the audition and retains its draft.
 
-Selection and clipboard survive collapse and view switches within the session. New/Load/Import resets them; save/export excludes them. After definition or duration changes, copy again.
+Arpeggiator **Play edit** waits for incoming notes or a chord on its input channel. Once notes arrive, its existing rhythm-step highlight and generated-note previews follow the audition. The source’s saved enable switch does not need to be on. Both save scopes preserve playback and its indicators when the saved performance is reloaded.
 
-## Undo and redo
+![Arpeggiator audition with an input chord and current rhythm step](../../screenshots/clip-arranger-arpeggiator-playback.png)
 
-The two curved-arrow buttons immediately to the right of the device summary undo or redo one arranger action. Their tooltips describe the next action; unavailable directions are disabled. The same history is available through context menus and **Cmd/Ctrl+Z**, **Cmd/Ctrl+Shift+Z**, or **Ctrl+Y** inside the arranger. Text fields retain their normal editing shortcuts.
+![Drummer editor highlighting the current step during Play edit](../../screenshots/clip-arranger-edit-playback.png)
 
-Hold either button for **500 ms** to open its history without taking a step. Undo lists past actions, newest first; choosing one undoes that action and everything after it. Redo lists future actions in execution order; choosing one restores through that action. The result applies as one update. Arrow Down on a focused button opens the menu; arrows navigate, Enter selects, and Escape closes it. Menus also close on outside clicks, collapse, view changes and performance replacement.
+**Loop** repeats the selected clip’s time window across all tracks. With no clip selected, it repeats the whole song from the start through **Song end**, including trailing silence. Click empty timeline space or the ruler outside a clip to deselect it; clicking a clip selects it again. Click **Loop** again to turn it off. This is separate from **Loop** in the clip inspector, which repeats its content only within the fixed clip window. The playhead and Position field follow song position through loops and remain stationary during standalone audition. Newly created clips are selected automatically.
 
-History retains **25 actions total across Undo and Redo**, including placement, movement, deletion, rest resizing, range edits, grouping/ungrouping, definition updates/deletion, variations, colours and the automatic source change on first placement. Older saved source/repeat history entries remain supported. A completed drag, multi-lane edit or pad variation is one action. Failed, cancelled and unchanged edits do not count. After undoing, making a new arranger edit discards the future actions and starts a new branch.
+Loading selects a clip even when looping is off: a matching saved loop takes priority, then a clip at the cursor, then the earliest clip. Tracks stay compact and the editor stays closed. Explicitly clearing the selection stays cleared through Play, Stop and Rewind. You can toggle the loop without reopening its editor. See the [restored loop selection](../../screenshots/clip-arranger-restored-loop.png).
 
-Both past and future are saved with the performance, autosave and native exports. Load/Import restores the incoming history; New and older files start empty. History survives collapse and view switches. Invalid or incompatible saved history is discarded with a notice while the musical performance still loads.
+**Position** accepts a seek destination in master beats. While you edit it, playback continues without replacing your text or moving focus. Press Enter or leave the field to seek once; Escape cancels and resumes displaying the current song position. Empty or negative values are discarded. Loading or importing a performance clears an unfinished position edit.
 
-Changes outside the arranger are not recorded. Changes to related arrangement fields, shared definitions, pad lengths, beat ratios, removed lanes or a pad slot restored by a variation clear the entire history with a brief notice, even while the arranger is closed. Unrelated notes, mixer controls, Mute/Solo, transport, auditions and editor navigation preserve it. Undo does not restore the playhead, loop coordinates or editor selections, and does not overwrite unrelated musical edits. During playback, musical restoration follows the normal live-edit preparation rules; colour-only restoration does not prepare audio. Independently running devices keep their playback, with source changes applied only to the affected devices.
+![Position draft retained while playback advances](../../screenshots/clip-arranger-position-edit.png)
 
-## Delete and resize rests
+**Song end** shows the actual playback boundary in master beats, marked by a dashed amber line. Moving or shortening clips retains trailing silence. To stop at the last clip instead, press **Fit song to clips**, or enter a Song end at or beyond the final clip. This is an undoable arrangement edit, saved with the performance; it does not cut off clips. Position and Song end use master beats, while the ruler uses bar/beat labels.
 
-- **Delete/Backspace** and **Remove, leave gap** replace selected musical occurrences with equal-duration silence. Other occurrences keep their positions.
-- **Remove and close gap** (also Shift+Delete) removes selected musical occurrences or rest spans and closes their time on this lane. Multiple selections form one edit.
-- Consecutive pause tokens appear as one rest span. Drag its right edge or choose Duration from its context menu to resize it in whole local beats, shifting later items.
-- Leading, internal, trailing and rest-only arrangements are preserved. Trailing silence contributes to Fit, playback duration, repetition and exports.
+![Explicit song end and fitting to the last clip](../../screenshots/clip-arranger-song-end.png)
 
-## Playback and audition
+Move **Zoom** all the way left, or focus the slider and press **Home**, to see the entire song through **Song end**, including trailing silence. The overview adjusts when the song length or timeline width changes. Zoom back in for beat markers and detailed clip editing.
 
-**Playback source** is a two-option toggle in each sequencer: **Arrangement | Manual pads**. New devices use Manual pads until the first item is placed on their arranger lane, which selects Arrangement automatically. Subsequent source choices are saved with the performance and survive later edits and reloads. Closing all time returns an empty lane to Manual pads; ordinary deletion leaves rests and retains the selected source.
+![Full song at minimum zoom, including the trailing silence before the dashed Song end marker](../../screenshots/clip-arranger-full-song-zoom.png)
 
-The arranger controls provide **Loop song** to repeat or stop at the song end. Imported per-lane repeat settings remain intact. **Loop selected range** is the separate shared transport loop. Click its ruler to seek and clear the loop, or drag a range to loop it. Rewind/Fast forward move one master beat. Fit shows the whole longest lane, including trailing rests.
+![Loop enabled for the whole song with no clip selected](../../screenshots/clip-arranger-song-loop.png)
 
-**Play** runs from the current cursor to the end of the longest lane, including trailing rests. **Loop song** is the repeat-arrows toggle immediately left of Rewind: when enabled, playback returns to the beginning at the song end; when disabled, it stops at the end. Changing it during playback keeps the current position, and changing it while stopped does not start playback. The toggle is saved with the performance and defaults to off for new and older performances. It is independent of arranger Undo/Redo. With a marked loop range, playback repeats only that range regardless of the Loop song toggle; clearing the range restores the selected whole-song behavior. **Repeat track sequence** can repeat a shorter lane within these bounds; it never extends song playback beyond the end. The loop ruler and lane playheads share the same horizontal origin when zooming and scrolling.
+The actual piano keyboard and configurable MIDI controller rows sit below the arranger/editor, each full width. They retain Start/Stop, routing, channel/OMNI, scale/autochord, velocity and CC controls. Their existing Auto/Live/Listening buffer policy still applies. An enabled device does not force low-latency buffering indefinitely. Arpeggiator Arranger/Live clock settings remain separate from clip placement.
 
-**Play** ends temporary auditions and workspace playback, starts Arrangement lanes, and preserves independently playing Manual pads. It starts the instrument engine when needed. **Stop** clears temporary playback and stops Arrangement lanes while preserving independently started manual sequencers. If Play started the instruments, Stop also stops them. If the instruments were already running before Play, Stop leaves them running until you stop them manually. Double-click Stop resets the arranger cursor to the loop start or song start without resetting a running manual pad.
+Transport buttons wrap onto another row when the viewport or enlarged text leaves too little space. Track headers reserve less than half the viewport, leaving the timeline reachable at enlarged text sizes. Transposition controls wrap inside their dialog. The timeline keeps its own horizontal scrolling.
 
-![Composer stopped while manually started instruments remain running](../../screenshots/composer_instrument_transport.jpg)
+![Clip arranger at a narrow viewport](../../screenshots/clip-arranger-acceptance-narrow.png)
 
-Each device's **Play** works with the arranger stopped. With **Arrangement**, the first device starts at the selected loop's beginning, or at the stopped arranger cursor when no loop is selected. A cursor at song end restarts from song start. Further Arrangement devices join the current song position without restarting the others. Authored rests and each lane's Stop/Repeat setting still apply. Independent playback leaves the arranger's cursor and global Play indicator stopped.
+## Assemble content directly on the timeline
 
-With **Manual pads**, device Play starts the pad selected for editing from its beginning and repeats it. While it runs, clicking another pad queues it for the end of the current pattern: orange marks the queued pad, then blue-green marks it once playing. While stopped or using Arrangement, clicks only select the editing pad. Manual pads keep their phase through arrangement seeks, loops and endings. Device Stop affects only that device; changing Playback source while playing changes only that device. This lets you develop one pattern while other devices play backing parts from the arrangement. Controller sequencers and Arranger-mode arpeggiators follow the same rules; arpeggiators still need input notes. Live arpeggiators keep their existing behavior.
+Expand a track and click a content header to select it. Shift-click another header to select the inclusive chronological range. Shift+Left/Right extends or contracts the range, including across loop repetitions and beyond the visible area. **Group** combines consecutive patterns/rests; **Supergroup** combines consecutive groups. Enter a name in the selection toolbar before grouping. Right-click provides the same grouping actions. Double-click opens the musical/container editor.
 
-Every musical occurrence and available pad/group/supergroup has a small speaker icon near its right edge. Hold it for **250 ms** to begin a momentary preview from its first token. Shorter clicks do nothing. While the arranger is running, prepared previews start at the lane’s next pad/rest cycle boundary. While stopped, they start at the next available audio block without moving the arranger playhead; existing audio buffering still contributes latency. It repeats while held. Selecting content never launches it.
+**Content · 1, Content · 2, …** label loop repetitions. For four repetitions `A A A A`, click the pattern in Content 2, Shift-click the pattern in Content 3, choose **Group**, then **Save structure**. The result is one clip containing `A [A A] A`. The outer clip keeps its name, start and length; the selected occurrences become a group. Its patterns remain linked to their original definitions.
 
-Release the speaker to end preview and restore the lane's previous playback at the current shared-clock position. An Arrangement lane can return into a rest or a finite track that has ended. Previously stopped lanes stay stopped. Independently playing manual pads and existing sequencer auditions are restored. Other lanes continue and lane Mute/Solo remains effective. Releases preserve other lanes sharing an instrument/channel.
+Grouping across repetitions converts the clip to **Once** with explicit ordered content. Complete source content from cropped first/last repetitions is retained, including hidden notes and rests. Timing, neighboring clips and Song end stay unchanged. Repetition-specific transposition remains attached to the original occurrences, including after later edits to shared profiles. This save applies only to this clip; it does not offer an all-clips scope. The conversion and grouping form one draft Undo action and one saved arranger Undo action. Undo restores the compact loop.
 
-Hold Space/Enter on a focused speaker for the same behaviour. Releasing outside it, cancelling the gesture, losing focus, collapsing, or leaving the view ends the preview. Preparation failures retain current playback; releasing before preparation finishes prevents a late launch. Transport Play/Stop cancels previews, and a late release cannot restart playback.
+Cross-repetition selection applies to content directly inside one clip. Nested selection stays within one container occurrence; selection cannot cross clips or tracks. Command/Control and Option/Alt are not range-selection shortcuts. While a selection spans repetitions, dragging, reordering, removing and ungrouping are disabled. Group it first to obtain ordinary editable content. Existing hierarchy limits still apply. Save/Discard/Cancel resolves an existing structural draft before crossing repetitions; if saving changes the selected occurrences, select the range again. Capacity rejection preserves the selection and existing drafts.
 
-With the arranger stopped, preview starts only that lane through the normal instrument startup flow. The song cursor stays fixed and the Stop button stays highlighted. Play resumes the song from that cursor. During song playback, Play is highlighted instead. Seeks and loop wraps restart held previews at their first token on the shared clock. During song playback, song range/end remain authoritative. Arranger arpeggiators support previews; independent Live arpeggiators remain unchanged.
+![Middle two repetitions grouped inside one unchanged clip](../../screenshots/clip-arranger-repetition-grouping.png)
 
-Melodic and drummer sequencers use a [pattern workspace](pattern_pads_and_pad_looper.md) with a Play/Stop toggle and the same momentary speakers. A speaker held over workspace playback restores the workspace on release; stopping the workspace restores the prior lane state. Controller sequencers and arpeggiators retain their existing Audition/Return/Stop controls.
+Use **Add content** or the **+** insertion markers before, between or after boxes to search the track's existing definitions. **Adopt linked** retains sharing; **Create variation** gives the inserted definition its own identity. The picker also offers **New pattern** and explicit rests. Unused saved definitions remain available. Double-click an empty area or rest inside a clip to open the same picker at the clicked position, snapped to a quarter master beat. Inside a group or supergroup, the insertion belongs to that container. Existing content stays in place; an insertion that overlaps it is rejected. Content headers still open their editors on double-click, and automation curves retain their point-editing gestures.
 
-## Saved format
+Expanded tracks keep the cyan **+** insertion buttons fully visible with 21 × 15 px targets. Collapsed tracks use smaller 14 × 10 px transposition buttons. Content names, indigo **↕** transposition buttons and the final **+** each have their own space in the header. The content boxes retain their dimensions and timing positions.
 
-Performances store root sequences, pads, groups, supergroups and supported pause tokens. Optional `sequencer.arrangerSongLoopEnabled` stores the whole-song loop toggle and defaults to `false` when absent. Save/load, autosave, and native bundles preserve it; CSD exports still render the complete finite song. Optional `arrangerHistory` metadata has its own version 1 and stores up to 25 transactions with a current cursor; it is excluded from audio configuration. Current saves use performance version 18 and support imports of versions 1–18; app state uses version 3 and the native bundle envelope remains version 1. Old enabled arrangements that resolve to no tokens are imported as an explicit occurrence of their former active pad, preserving their repeat setting and sound.
+![Larger insertion and transposition buttons without changing content-box sizes](../../screenshots/clip-arranger-content-controls.png)
 
-Optional `definitionColors` metadata maps typed definition references (`pad:0`, `group:A`, `super:I`) to hexadecimal colours. It does not change sequence compilation or trigger audio preparation. Missing/invalid colours use type defaults. Save/load, autosave, and native bundles retain valid colours. CSD audio ignores them.
+![Add content opened at an empty clip position](../../screenshots/clip-arranger-empty-insertion.png)
 
-Audition/preview commands and restoration state, selection, position, sounding pads and temporary enablement are session state. Save, autosave, native bundles and both CSD exports use authored data. Musical edits made while auditioning save normally.
+Right-click a pattern, group or supergroup and choose **Duplicate** to append a linked occurrence at the clip root, immediately after its last musical item. Consecutive sibling selections retain their order and internal rests. Trailing silence is used first; unused silence remains. The clip grows only when needed, and neighboring clips stay in place. **Ungroup** appears only when all selected items are groups or supergroups. Rest-only and cross-repetition selections cannot be duplicated.
 
-## Score Sequencer lanes
+For a looped clip, Duplicate appends **once after the final repetition**, converting the original repetitions to explicit content in one Once clip. Complete cropped source content is retained; the duplicate follows the full retained final item. Existing repetition-specific transposition and definition links are preserved. This structural save affects only the selected clip, and one Undo restores the loop. Resolve any pending structure before duplicating a loop, then reselect the content if prompted. Capacity rejection retains the selection; a collision leaves the draft available for correction.
 
-The arranger remains available in performances made entirely from Score
-Sequencers, with one lane per device.
+![Pattern context menu with Duplicate and no Ungroup](../../screenshots/clip-arranger-duplicate.png)
 
-![Eight Score Sequencer lanes in Sonata for Cello and Piano — The Returning Light](../../screenshots/score-only-arranger.jpg)
+Drag a box or contiguous selection to a quarter-beat position. Moves within a clip/pass leave rests at the source and consume silence at the destination; other content stays in place. Overlapping drops are rejected. Between clips on the same track, dragging copies linked content. Between tracks of the same device type, it copies independent definitions using destination timing. Drum keys must have unambiguous destination rows; controller modes must match. Compact clips accept root drops, and hovering expands the destination track. The destination text shows the position. Self-nesting and moves across loop passes are rejected. Left/Right on a focused content header nudges it by a quarter beat. The toolbar move arrows and **Move into container** retain their explicit reorder behavior. Escape or cancelling a pointer gesture leaves the structure unchanged.
 
-[Score Sequencers](score_sequencers.md) use the same source controls, phrases,
-variations, speaker previews and lane mute/solo as other note lanes. Their pad
-lengths may span many minutes. A score is one indivisible occurrence: a range
-that touches it expands to include the entire score. Edit partial passages in
-its Score editor. Changing pad duration invalidates conflicting arranger history.
+Use **Remove selected**, the matching context-menu action, or Delete/Backspace while a box is focused to remove patterns, rests or containers. The same actions work inside groups and supergroups. Removing content closes its position within the container but does not shrink the clip window; unused pattern definitions remain available. Empty containers disappear. Removing an entire clip’s content leaves a timeline gap; removing one loop pass locally preserves its other passes. Save structure still asks which occurrences to change.
+
+![Remove selected in the expanded arranger](../../screenshots/clip-arranger-remove-content.png)
+
+Structural work is a session-only draft: the song continues to play saved content. **Save structure** applies the local/all-linked scope atomically; **Discard** abandons it. Draft Undo/Redo is separate from the arranger's saved history. Performance save/export offers the existing saved definitions when unresolved drafts remain; loading another performance requires resolving them.
+
+Longer content grows the affected windows if space permits. Loop windows preserve their full and partial repetition span. Saving all linked occurrences evaluates every affected clip together. A collision rejects the complete save, retains the draft and names the blocking clips; later independent clips are never shifted. Shortening content does not automatically shrink clips. Valid growth extends Song end when necessary.
+
+![Direct selection and reordering of nested patterns](../../screenshots/clip-arranger-direct-content.png)
+
+## Container inspector and musical draft conflicts
+
+Double-click a group or supergroup to open its child inspector. Adopt linked content, add a new pattern or rest, reorder, group, ungroup, rename or remove children there. These controls edit the **same structural draft** as the expanded timeline. **Save structure** shows the same affected definitions, clip boundaries and local/all-linked choices, including collision rejection and empty-container removal. Draft Undo/Redo and Discard apply to both surfaces.
+
+![Container inspector sharing the structural draft](../../screenshots/clip-arranger-container-structure.png)
+
+![Shared structural save and growth preview](../../screenshots/clip-arranger-container-impact.png)
+
+If the pending action intersects an unsaved musical draft, choose Save, Discard or Cancel. Save opens that pattern’s existing occurrence-scope dialog, then resumes the pending edit. Discard removes only the conflicting draft and resumes; Cancel keeps both drafts and leaves the arrangement unchanged. Other musical drafts remain available. If several drafts conflict, resolve them individually. A failed musical save keeps the draft and displays its error inside the dialog.
+
+![Save, Discard or Cancel an intersecting musical draft](../../screenshots/clip-arranger-musical-conflict.png)
+
+When a musical save forks shared parents or splits a loop pass, the pending structural edit follows the new occurrence paths and retains draft Undo/Redo. Following passes created from that same source during resolution still move when its edited portion grows. Independent clips stay in place. If the conflict was found while saving structure, review the refreshed impact preview and press Save again to commit the structural transaction.
+
+Container **Play edit** auditions a snapshot of the current structure. Further structural edits remain visual and do not re-prepare audio; stop and restart Play edit to hear the changed structure. Saving ends the editor audition through the existing lifecycle. Musical sequencer controls retain their existing live-edit behavior.
+
+See the [direct-content review](../../specifications/redesign-arranger/direct-content-review.md) for the implementation and verification record.
+
+## Transpose clips without changing notes
+
+Click the transposition badge on a pattern, group or supergroup in the expanded arranger lane. This opens **Transpose in arranger** for that occurrence without opening or replacing the musical editor. Compact lanes also offer badges on their pattern previews; expand the lane to edit a group or supergroup directly. The existing **Transpose** controls in the detail editor remain available.
+
+Transposition buttons always show a larger **↕** symbol with an indigo outline and background. Active buttons also show the effective signed offset when space permits: **D** means diatonic steps and **C** means chromatic semitones. Enclosing offsets are included, so each pattern shows its complete total. Hover or focus a button to identify the occurrence and its effective offset. Narrow active buttons retain their brighter indigo highlight. Click any button to add or change a transposition, including on a generated repetition.
+
+![Effective transposition badges on patterns, groups and supergroups in the arranger lane](../../screenshots/clip-transposition-lane.png)
+
+Choose **Diatonic steps** to move through each pattern’s configured scale and mode, or **Semitones** for chromatic movement. Negative values move down. Switching the displayed component preserves the other value. All pattern, group and supergroup contributions add; diatonic steps apply first, then semitones. Notes outside MIDI 0–127 after the complete transform are silent. The musical editor continues to show the original notes; timeline Note maps show the sounding pitches.
+
+![Editing a shared repetition directly from its arranger badge](../../screenshots/clip-transposition-lane-editor.png)
+
+Choose the owner before changing a value:
+
+- **Shared transposition** changes the selected definition everywhere it is used, including other clips. Its repetition settings are shared too.
+- **Offset in parent** belongs to this reference inside its parent. Reusing that parent also reuses this offset.
+- **Offset in this placement** belongs only to this nested location in this clip. It adds to the shared and parent settings and does not create a new pattern or split the clip.
+
+The contribution list shows the selected item and its enclosing offsets. The inspector lists affected linked clips, compares saved and draft totals, and reports selected-pattern notes that fall outside the MIDI range. Each leaf pattern uses its own scale and mode, including when a group contains patterns with different scales.
+
+![Shared repetition transposition with independent enclosing offsets](../../screenshots/clip-transposition-shared.png)
+
+Choose **Default** for the plan’s base value, or select a generated repetition in the timeline and edit that **Repetition**. Repetition numbers follow the source content: a cropped clip can begin partway through repetition 2. They do not count how often transport has played. Descendants normally inherit their enclosing reference’s repetition number. Grouping across repetitions retains each child’s original number: a new group uses the first selected occurrence’s number, while its children can retain different numbers. Each enclosing offset is evaluated at its own reference’s number.
+
+An explicit repetition replaces its own plan’s default; other plans still add. **Set repetition to zero** stores an explicit zero pair. **Inherit default** removes that repetition entry. **Reset component** clears only the displayed component; **Reset plan** clears the default and every repetition entry. Shortening a clip keeps hidden repetition settings for later extension.
+
+![Independent offset for one nested placement](../../screenshots/clip-transposition-placement.png)
+
+**Save transposition** commits the draft as one undoable edit. **Discard transposition** leaves saved music unchanged. The pattern editor’s **Save** can commit musical and transpose changes together. Shared transposition retains its explicitly selected scope even when musical notes are saved as a local variation; that new variation receives its own copied profile. Conflicting edits report an error instead of overwriting another change.
+
+Saving from the lane closes the dialog and updates affected badges and note previews, including linked clips. **Close**, **Escape**, or clicking the backdrop keeps the unsaved draft; its badge turns amber and gains an asterisk. Reopen it to **Save transposition** or **Discard transposition**. Badge totals continue to show saved settings until Save. Keyboard users can focus a badge and press **Enter** or **Space**; closing the dialog returns focus to that badge. Existing musical drafts are preserved.
+
+**Play edit** auditions the full selected definition from its own start, using the selected repetition and all enclosing offsets. It retains each reference’s repetition number while auditioning; a group assembled across repetitions therefore preserves its children’s distinct transpositions. Transposition and structural drafts are snapshots for audition. Saving during arrangement playback changes the next occurrence whose notes have not started; an early attack can already belong to the next repetition. A pending indicator names the target clip, repetition and leaf position. Seek or restart uses the latest saved settings immediately.
+
+Melodic, Score and Arpeggiator lanes support these controls. For arpeggiators, the new mapping follows their existing transpose and quantizer, and uses the pattern’s configured scale. Bypass remains unchanged. Drummer, controller and instrument-automation lanes do not offer pitch transposition.
+
+Transposition performances require a version-25-capable reader (app-state version 7, clip model version 3). Native bundles, CLI runtime projection and MIDI/SCORE CSD exports preserve the saved settings. Unsaved transpose drafts and temporary audition state are not exported. Older identity-only clip performances retain their existing format until transposition is saved.
+
+<!-- pagebreak -->
+
+## Resize patterns on the track
+
+In an expanded track, drag the lower left or right border of a pattern. The box follows your drag, and **Length** shows the new total duration in master beats. The opposite edge stays fixed; length follows the pattern editor’s supported beat increments. Notes remain relative to the pattern start, and shortening retains hidden notes. Growing consumes adjacent silence; shortening inserts rests. Occupied time cannot be overwritten. Focus a pattern border and use Left/Right for keyboard resizing. Escape cancels a gesture. Clip borders continue to trim the outer playback window.
+
+A trailing rest has a visible right-edge handle. Drag it or focus it and press Left/Right to change its duration in quarter-master-beat steps. The handle stays reachable at the visible clip edge when the rest extends beyond it; the next resize starts there. Shortening a nested trailing rest also shortens its enclosing containers when they end there. Other content keeps its position. A rest can be shortened to zero when other content remains; an otherwise empty clip keeps a positive duration.
+
+Trimming a clip changes only its playback window and preserves hidden patterns, notes and rests. To remove a silent tail from the content, shorten or delete the trailing rest and **Save structure**. Then use **Fit clip to content** to shorten the outer window too. Moving or trimming a clip keeps any pending structural edits and their Undo/Redo history. A genuine change to the underlying content still requires resolving the draft. For repeated clips, use **Only this occurrence** when changing the rest duration would move later repetitions.
+
+![Resized trailing rest inside nested content, with the clip window retained](../../screenshots/clip-arranger-rest-resize.jpg)
+
+Placement, copying and pattern resizing share the structural draft and Save/Discard workflow. Save defaults to Only this occurrence. All linked occurrences validates every affected use; collisions retain the draft. New empty clips commit immediately and support arranger Undo.
+
+A reserved strip below the last track keeps the horizontal scrollbar clear of collapsed clips.
+
+![Empty four-beat clip with inline content button](../../screenshots/clip-arranger-empty.jpg)
+
+![Pattern shortened directly on the track, retaining a trailing rest](../../screenshots/clip-arranger-pattern-resize.jpg)
+
+![Content moved into silence with a leading rest](../../screenshots/clip-arranger-timed-content.jpg)
+
+![Collapsed tracks clear of the horizontal scrollbar](../../screenshots/clip-arranger-scrollbar-clearance.jpg)

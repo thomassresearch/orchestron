@@ -37,7 +37,8 @@ New sessions default that MIDI input reference to `internal:loopback` unless a d
 ## What This Means In Practice
 
 - You can reload the app and continue from a similar workspace state.
-- Unsaved edits may reappear because they exist in the app-state snapshot.
+- Saved clip definitions and arrangement edits are restored. Unsaved pattern and structural drafts are session-only; resolve them before reloading.
+- Instrument graph edits may reappear because they exist in the app-state snapshot.
 - Unsaved edits are **not** the same as saved library data.
 
 Always use explicit save actions when you want stable, shareable library entries.

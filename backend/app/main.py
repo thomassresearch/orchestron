@@ -35,7 +35,7 @@ from backend.app.storage.repositories.app_state_repository import AppStateReposi
 from backend.app.storage.repositories.performance_repository import PerformanceRepository
 
 
-def _build_container(settings: Settings) -> AppContainer:
+def _build_container(settings: Settings, *, renderer_options=None) -> AppContainer:
     if settings.database_url.startswith("sqlite:///"):
         db_path = Path(settings.database_url.replace("sqlite:///", "", 1))
         db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -93,6 +93,7 @@ def _build_container(settings: Settings) -> AppContainer:
         compiler_service=compiler_service,
         midi_service=midi_service,
         event_bus=event_bus,
+        renderer_options=renderer_options,
     )
 
     container = AppContainer(
@@ -129,7 +130,7 @@ async def lifespan(app: FastAPI):
     (settings.static_dir / "icons").mkdir(parents=True, exist_ok=True)
     settings.gen_audio_assets_dir.mkdir(parents=True, exist_ok=True)
 
-    app.state.container = _build_container(settings)
+    app.state.container = _build_container(settings, renderer_options=app.state.renderer_options)
     try:
         await app.state.container.session_service.start_configuration_compiler()
         yield
@@ -137,12 +138,13 @@ async def lifespan(app: FastAPI):
         await app.state.container.session_service.shutdown()
 
 
-def create_app() -> FastAPI:
+def create_app(*, renderer_options=None) -> FastAPI:
     settings = get_settings()
     settings.static_dir.mkdir(parents=True, exist_ok=True)
     (settings.static_dir / "icons").mkdir(parents=True, exist_ok=True)
     settings.gen_audio_assets_dir.mkdir(parents=True, exist_ok=True)
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+    app.state.renderer_options = renderer_options
 
     app.add_middleware(
         PersistedJsonRequestLimitMiddleware,

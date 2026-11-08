@@ -1,4 +1,5 @@
 import { automationRouting, mappedControls, reconcileAutomation } from "../lib/clipArranger/automation";
+import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { useAutomationMerge } from "../lib/clipArranger/automationMerge";
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
 import { resolveClipDrafts } from "../lib/clipArranger/draftResolution";
@@ -22,6 +23,7 @@ import {
   resolveDefaultBrowserClockLatencySettings
 } from "../lib/browserClockLatencyConfig";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
+import { normalizeParallelBatchFrames, PARALLEL_BATCH_FRAMES_DEFAULT } from "../lib/parallelPlaybackConfig";
 import type {
   AppPage,
   CompileResponse,
@@ -53,8 +55,7 @@ import {
   defaultParams,
   defaultSequencerInstruments,
   defaultSequencerState,
-  defaultPianoRoll,
-  emptyPerformanceSequencerState,
+  newPerformanceSequencerState,
   hasPersistableStateChange,
   hydrateEmbeddedPerformancePatches,
   initialBrowserClockLatencySettings,
@@ -155,6 +156,16 @@ export const useAppStore = create<AppStore>((set, get) => {
     activePage: "instrument",
     guiLanguage: "english",
     browserClockLatencySettings: initialBrowserClockLatencySettings,
+    parallelRenderBatchFrames: PARALLEL_BATCH_FRAMES_DEFAULT,
+    setParallelRenderBatchFrames: (frames) => {
+      if (get().activeSessionState === "running" || get().loading) return;
+      set({ parallelRenderBatchFrames: normalizeParallelBatchFrames(frames) });
+    },
+    parallelPlaybackEnabled: false,
+    setParallelPlaybackEnabled: (enabled) => {
+      if (get().activeSessionState === "running" || get().loading) return;
+      set({ parallelPlaybackEnabled: enabled });
+    },
 
     opcodes: [],
     patches: [],
@@ -305,7 +316,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let activePage: AppPage = "instrument";
           let instrumentTabs: InstrumentTabState[] = [createInstrumentTab(currentPatch)];
           let activeInstrumentTabId = instrumentTabs[0].id;
-          let sequencer = defaultSequencerState();
+          let sequencer = isClipArrangerEnabled() ? newPerformanceSequencerState() : defaultSequencerState();
           let restoredHistory = readArrangerHistory(undefined, sequencer);
           let sequencerRuntime = sequencerRuntimeStateFromSequencer(sequencer);
           let sequencerInstruments = defaultSequencerInstruments(patches, currentPatch);
@@ -314,6 +325,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let performanceDescription = "";
           let guiLanguage: GuiLanguage = "english";
           let browserClockLatencySettings = resolveDefaultBrowserClockLatencySettings();
+          let parallelRenderBatchFrames = PARALLEL_BATCH_FRAMES_DEFAULT;
 
           const preferredMidi = normalizeMidiInputSelection(get().activeMidiInput, midiInputs);
           let audioGraph = emptyAudioGraph();
@@ -338,6 +350,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
               activePage = normalizeAppPage(payload.activePage);
               guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
+              parallelRenderBatchFrames = normalizeParallelBatchFrames(payload.parallelRenderBatchFrames);
               browserClockLatencySettings = normalizeBrowserClockLatencySettings(
                 payload.browserClockLatencySettings,
                 browserClockLatencySettings
@@ -389,6 +402,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            parallelRenderBatchFrames,
             instrumentTabs: instrumentTabs.map((tab) => ({
               id: tab.id,
               patch: {
@@ -420,6 +434,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            parallelRenderBatchFrames,
             instrumentTabs,
             activeInstrumentTabId,
             sequencer,
@@ -441,6 +456,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            parallelRenderBatchFrames,
             instrumentTabs,
             activeInstrumentTabId,
             currentPatch,
@@ -605,11 +621,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     newPerformanceWorkspace: async () => {
       if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts, true)) return;
       if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
-      const nextSequencer = emptyPerformanceSequencerState();
-      if (import.meta.env.VITE_CLIP_ARRANGER === "1") {
-        nextSequencer.clipArrangement = { version: 1, revision: 0, end: 20160 * 16, lanes: [] };
-        nextSequencer.pianoRolls = [defaultPianoRoll()];
-      }
+      const nextSequencer = newPerformanceSequencerState();
       set({
         performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
         sequencerEditingPads: {},
@@ -881,11 +893,18 @@ export const useAppStore = create<AppStore>((set, get) => {
         const requestedBindings = get().sequencerInstruments;
         const workspaceGeneration = get().performanceWorkspaceGeneration;
         const requestedAssignments = normalizeSessionInstrumentAssignments(requestedBindings);
-        const audioSignature = JSON.stringify({ graph: get().audioGraph, patches: get().patches.map((p) => [p.id, p.updated_at]) });
+        const requestedRenderer = () => get().parallelPlaybackEnabled
+          ? { renderer_mode: "auto" as const, browser_settings: get().browserClockLatencySettings,
+              parallel_batch_frames: get().parallelRenderBatchFrames } : undefined;
+        const rendererRequest = requestedRenderer();
+        const signature = () => JSON.stringify({ graph: get().audioGraph,
+          patches: get().patches.map((p) => [p.id, p.updated_at]),
+          ...(get().parallelPlaybackEnabled ? { renderer: requestedRenderer() } : {}) });
+        const audioSignature = signature();
         const setupIsCurrent = () => generation === sessionRequestGeneration &&
           workspaceGeneration === get().performanceWorkspaceGeneration &&
           requestedBindings === get().sequencerInstruments &&
-          audioSignature === JSON.stringify({ graph: get().audioGraph, patches: get().patches.map(p => [p.id, p.updated_at]) });
+          audioSignature === signature();
         const sameAudio = get().activeSessionAudioSignature === audioSignature;
         const sameWorkspace = get().activeSessionWorkspaceGeneration === workspaceGeneration;
         let sessionId = get().activeSessionId;
@@ -938,7 +957,9 @@ export const useAppStore = create<AppStore>((set, get) => {
           return sessionId;
         }
 
-        const session = await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
+        const session = rendererRequest
+          ? await api.createSession(requestedAssignments, get().audioGraph, get().mixer, rendererRequest)
+          : await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
         if (!setupIsCurrent()) {
           await api.deleteSession(session.session_id);
           throw new Error("Instrument session creation was cancelled because the setup changed.");
@@ -1152,6 +1173,10 @@ export const useAppStore = create<AppStore>((set, get) => {
     pushEvent: (event: SessionEvent) => {
       const events = get().events;
       set({ events: [...events.slice(-199), event] });
+      if (event.type === "renderer_failed" && event.session_id === get().activeSessionId) {
+        set({ activeSessionState: "error", error: String(event.payload.detail ?? "Audio rendering failed") });
+        get().syncSequencerRuntime({ isPlaying: false });
+      }
     }
   };
 });

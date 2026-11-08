@@ -1,5 +1,18 @@
 # Test fixtures
 
+`parallel_render/grain_of_salt.json` freezes the live rack, routing, mixer and per-instance
+controller overrides captured read-only on 2026-11-08. `grain_render_support.py` adds a
+deterministic overlapping-note/CC sequence for native resource-ownership parity tests;
+it does not claim to reproduce the saved musical arrangement. No test reads the live app
+or developer examples. Capability-v4 planner snapshots change only input/plan digests;
+conditional cost tests exercise overlapping notes across six drumkit cases.
+
+`parallel_render/evening_at_the_lake_master_insert.json` overlays the original Lake snapshot
+with the user's revised Master-compressor insert routing, captured read-only on 2026-11-08.
+Library synthesis graphs are unchanged. The matching compressed configuration preserves the
+saved arrangement for browser comparisons. Both variants remain versioned; tests load them
+through `lake_render_support.py`, never from the live library or developer examples.
+
 `patches/enough.patch.json` and `patches/logan.patch.json` are independent snapshots
 of the editable altamax ports. `csound/altamax.orc` preserves the original dry
 synthesis for native comparisons, with bus writes replaced by stereo output.
@@ -10,6 +23,35 @@ native round trips, saved overrides and MIDI/SCORE exports; none load examples.
 `csound/render_loop.csd` is the deterministic native K=1 render benchmark orchestra;
 `csound/midi_sample_probe.csd` exposes note and controller delivery as exact sample
 levels. Both exercise host MIDI without an OS MIDI device or audio output device.
+
+`parallel_render/workloads.json` fixes the T01 native single-renderer baseline:
+tiny, two/four/eight independent sources, shared delay and a serial-heavy source,
+at K=1/32. The bounded builder in `backend/tools/_parallel_render_workload.py`
+compiles synthetic LIVE mixer graphs with private delays, Master and direct paths.
+It never reads examples. This fixture defines diagnostic workloads, not library
+instruments; it does not activate a parallel renderer. See the
+[baseline contracts](../../../specifications/parallel-csound-rendering/contracts.md).
+
+`parallel_render/qualification_workloads.json` adds T07 diagnostic timing workloads:
+two sources plus heavier four/eight-source variants with sixteen voices and 32 filters
+per source. `backend.tools.benchmark_partition_render` compares native session rendering
+with identical sequencing and verifies exact PCM, meters, markers, status and canonical
+CSD separately from timing. These fixtures and synthetic planner costs do not qualify
+automatic selection; browser/final-image evidence is a separate gate.
+
+T07's IPC continuation adds `realtime_2/4/8`: sixteen total voices distributed over
+two/four/eight independent sources, with six zero-resonance filters per voice. These
+probe useful work near the measured deadline and branch-count scaling; the original
+small and oversized workloads are retained. Names describe diagnostic intent, not a
+promise of realtime qualification. Thresholds, K=32 and 512-frame requests stay fixed.
+
+`parallel_render/planner_cases.json` defines T03 graph/resource variants and explicitly
+synthetic cost inputs; `planner_snapshots.json` freezes 34 plans at K=1/32. The snapshots
+include ordered owners/buses and hashes of all immutable metadata. The builder in
+`backend/tests/render_plan_support.py` reuses the baseline inputs without native execution.
+It covers private/shared/sidechain processing, bypass and Master inserts, custom ports,
+disconnected work, legato/allocation helpers, MIDI initialization, unknown opcodes,
+tables, assets and legacy fallback. These costs are not measured performance evidence.
 
 `patches/trance_gate_original.patch.json` freezes the original CC24 stereo gate;
 `patches/trance_gate.patch.json` adds the CC29 swept triangle LFO. Paired renders
@@ -169,3 +211,17 @@ output at Stereo 0 without reading example files or importing its builder.
 `clip_transposition/repetition_grouping.json` pairs a four-pass compact loop with
 its v26 grouped Once representation and matching schedule-v2 projections. Frontend,
 backend and standalone CLI regressions share its per-occurrence pitch expectations.
+
+
+`parallel_render/partition_parity.json` freezes T04 MIDI, mixer/send/bypass changes and
+render duration for sequential native partition comparisons. The instruments and routing
+reuse versioned planner fixtures; tests never read examples. `t04_canonical_csd_hashes.json`
+contains 90 CSD SHA-256 hashes produced once from the recorded pre-T04 compiler commit
+(LIVE/MIDI and OFFLINE/MIDI/SCORE, 15 graph cases at K=1/32). Tests compare current output
+against those hashes without reading Git or updating expected results. Wrapper platform options
+are pinned to the recorded fixture platform, independently of the test host.
+
+The parallel-render fixtures include `evening_at_the_lake.json` (the 2026-11-08 live
+instrument/routing snapshot) and `evening_at_the_lake_config.json.gz` (the saved arrangement,
+without undo history). Gzip has a fixed zero timestamp. These are independent of the live
+library and developer examples; tests and isolated browser probes must use these snapshots.

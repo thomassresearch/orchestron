@@ -6,11 +6,9 @@ An arpeggiator processes MIDI notes and drives an existing rack instrument. Send
 
 ## Start and Synchronize
 
-The device uses the shared green **Start** and orange **Stop** button styles.
+**Arranger** follows song playback, seeks and loop selections. Incoming chords join the next subdivision of the shared beat; chord changes keep the phrase position. Seeks and loop wraps reconstruct the phrase at the destination, and playback stops at Song end. The arpeggiator needs input notes or a held chord to produce sound.
 
-**Arranger** is the default playback mode. Device Play starts the chosen playback source independently: Arrangement starts at the selected song loop or stopped arranger cursor, joining any Arrangement devices already playing; Manual pads starts the selected editing pad from its beginning. Arranger Play starts all Arrangement-source devices. Arranger Stop stops those devices and clears previews/workspace playback while preserving independently playing Manual pads and Live devices. Incoming chords join the next subdivision of the shared beat. Chord changes preserve the phrase position. Seeks and selected loop wraps reconstruct Arrangement phrases at the destination; finite arrangements stop at their end. Manual pads retain their phase through these song operations. Both sources still need input notes to make sound.
-
-**Live** runs independently while the instrument engine is active. Its Start button can start the engine. The first incoming note establishes the Live clock; subsequent chords retain its pulse. Both modes use global BPM, including tempo changes.
+**Live** runs independently while the instrument engine is active. The first incoming note establishes the Live clock; subsequent chords retain its pulse. Both modes use global BPM, including tempo changes.
 
 **Restart** controls phrase position without moving the subdivision clock:
 
@@ -26,30 +24,19 @@ Straight, triplet and dotted rates use musical beat positions. Swing alternates 
 
 **Active** generates the pattern; **Bypass** forwards incoming notes to the target; **Mute** consumes notes silently. Stop, removal, routing changes and processing/playback-mode changes release notes owned by this arpeggiator.
 
-## Eight Musical Pads
+## Musical patterns
 
-Each pad stores a complete musical variation: order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed. Click **#1–#8** to choose the editing pad. In Arranger mode with Manual pads running, this also queues the pad at the next launch boundary (rhythm cycle by default). The queued pad has an orange outline, then turns blue-green when playing. Clicking the playing pad cancels the queue. Hold its separate speaker for 250 ms to preview it. Use Launch pad for an explicit launch in Live/manual mode. The playing pad has a dot; a queued pad has a clock mark. Automatic pad changes leave your editing pad and unfinished preset name in place.
+Choose **Add track → Arpeggiator** in the arranger, add a clip and a pattern, then double-click the pattern to edit it. Each pattern stores its order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed.
 
-Each pad has two independent lengths:
+Rhythm length and pattern duration are independent. A rhythm has 1–32 steps; pattern duration is 1–8 or 16 master beats. A five-step rhythm can continue through repeated four-beat occurrences of the same pattern. Changing patterns restarts the musical cursors. Arrangement rests silence output while incoming pitches continue to be tracked.
 
-- **Rhythm steps:** 1–32 steps (default 16 sixteenths).
-- **Pad duration:** 1–8 or 16 master beats (default four beats), used by the arranger.
+Use linked patterns to repeat a phrase, or **Create variation** for an independent version. Groups and supergroups collect reusable content inside clips.
 
-For example, a five-step rhythm continues across successive four-beat occurrences of #1. Changing to #2 restarts the musical cursors at that launch boundary. Arrangement pauses silence output while still tracking incoming pitches.
+## Audition and save
 
-Drag one pad onto another to copy its musical variation. The shared phrase library defines groups and supergroups; song placement and repeat controls live in the multitrack arranger. New arpeggiators start with Manual pads and an empty arrangement. The Playback source toggle selects Arrangement or Manual pads; placing the first item on the lane selects Arrangement, and subsequent source choices are saved. Their named arranger lanes contribute to Fit, arrangement bounds, seeking and both CSD exports, including performances containing only arpeggiators.
+Use **Play edit** to audition the open pattern with incoming notes or a chord. During song playback it temporarily replaces its track while the other tracks continue. **Stop edit** restores the track at the current song position. Hold and Active/Bypass/Mute remain effective during audition.
 
-In Live mode, pad launches use **Next cycle** by default, or **Next master bar**. Stopped launches select immediately and Cancel launch removes a queued launch. In Arranger mode, held speakers start at the next pad/rest boundary while the arranger runs, or at an audio block while stopped. Releasing restores the previous playback.
-
-## Pattern Workspace in Arranger and Live
-
-The upper-right workspace offers the same drag assembly, Group/Supergroup, local Ungroup and explicit Apply/Save as new/Discard controls as the other sequencers. It stacks beneath routing controls on narrow screens; pads and the rhythm grid remain full-width. See [Pattern Workspace](pattern_pads_and_pad_looper.md#pattern-workspace) for draft retention and definition deletion.
-
-Play loops the entire displayed assembly, highlighting its current pad, phrase or rest. Its phrase timing uses pad duration, independently of rhythm length. A speaker held for 250 ms overrides the workspace until release; the workspace resumes at its current clock position. Stop restores the prior arrangement, manual or stopped state. Edits enter at the next workspace cycle boundary.
-
-Live starts follow Next cycle or Next master bar when a Live clock is established, otherwise an audio block. Live hides arrangement-only controls but keeps phrase editing and audition available. Input or held notes are required; no test chord is generated. Hold and Active/Bypass/Mute still apply. Chord changes during audition remain current when the underlying Live pulse resumes. A temporarily auditioned stopped device accepts notes without changing its saved Start/Stop setting.
-
-Green pads contain a note-producing step with positive velocity and probability. Rest-only, tie-only, zero-velocity and fully suppressed pads remain dark, regardless of held notes. Selection and queued outlines remain separate. Zero-velocity steps are silent.
+**Save** offers **Only this occurrence** or **All linked occurrences**. It preserves the rhythm, expression, harmony and random seed. See [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md).
 
 ## Edit the Rhythm Grid
 
@@ -83,23 +70,12 @@ Scale handling defaults to **Off**. **Follow source** uses the source's root/mod
 
 ## Presets, Live Edits and Collapse
 
-Presets apply only to the editing pad. **Modified** marks changes from its preset. **Update preset** overwrites a user preset; **Save as preset** creates a new one. Built-in presets remain available. Routing, playback settings and other pads are preserved.
+Presets apply only to the pattern being edited. **Modified** marks changes from its preset. **Update preset** overwrites a user preset; **Save as preset** creates a new one. Built-in presets remain available. Routing, playback settings and other patterns are preserved.
 
-Live edits coalesce for 80 ms and apply at audio render boundaries, preserving transport and pending launches. Invalid edits retain the working configuration. Status updates never resubmit musical settings. Collapse hides visual work while preserving playback, pad selection, details and drafts.
+Live edits coalesce for 80 ms and apply at audio render boundaries, preserving transport and pending launches. Invalid edits retain the working configuration. Status updates never resubmit musical settings. Collapse hides visual work while preserving playback, pattern selection, details and drafts.
 
-<p align="center">
-  <img src="../../screenshots/perform_arpeggiator.png" alt="Arpeggiator with routing, musical pads, rhythm grid, harmony settings and pattern workspace" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Arpeggiator showing its input and target routing, eight musical pads, per-step rhythm controls, custom harmony settings, and pattern workspace sequence.</em></p>
-
-## Migration to Performance Version 15
-
-Versions 1–14 load in memory into the new model. Existing settings become #1; the other seven pads use defaults. Identities, routes, rate, order, octaves, expression and user presets are retained; old accent cycles become grid velocities.
-
-Existing performances adopt Arranger mode, Hold Off, Continue, corrected swing and full-range ordering, so they can sound different. Save/export writes version 16; app-state version 2 and native bundle-envelope version 1 stay unchanged. Runtime positions and held notes are not saved.
-
-**Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)
+![Arpeggiator pattern playing with an input chord](../../screenshots/clip-arranger-arpeggiator-playback.png)
 
 ## Clip transposition
 
-The clip arranger supports [shared repetition transpositions and independent nested offsets](clip_arranger_preview.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.
+The clip arranger supports [shared repetition transpositions and independent nested offsets](multitrack_arranger.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.

@@ -1,0 +1,372 @@
+{
+  "task": "T07d: reduce parallel overhead and rerun matched ten-minute qualification",
+  "starting_head": "1c48b18d6243adce2498f515ba7aefe91ae5437d",
+  "image": "sha256:b6829d569bcdd005db0c91b5361f710710f3085c96302fcacd29638ccead900d",
+  "base_image": "sha256:4d8770ba1a5e15bdcce523d2c94eab9287b5e6ebf31f3ffec36e739783c3e9f4",
+  "platform": "Docker Desktop Linux ARM64; Python 3.13.18, Csound 6.18.1, MYFLT float64, Cython sequencer.",
+  "limits": {
+    "effective_cpus": 4,
+    "memory_bytes": 2147483648,
+    "shared_memory_bytes": 67108864,
+    "sample_rate": 48000,
+    "ksmps": 32,
+    "ring_capacity_frames": 288000
+  },
+  "requested_soak_seconds": 600,
+  "production_predicate_soak_seconds": 1800,
+  "default_renderer": "single",
+  "fallback_renderer": "single",
+  "registered_records": 0,
+  "csd_exports_changed": false,
+  "timing_and_buffer_policy_changed": false,
+  "arm_order": [
+    "rt4-parallel",
+    "rt4-single",
+    "rt2-single",
+    "rt2-parallel"
+  ],
+  "arm_exit_codes": {
+    "rt4-parallel": 1,
+    "rt4-single": 0,
+    "rt2-single": 0,
+    "rt2-parallel": 1
+  },
+  "failed_attempts_retained": {
+    "rt4-parallel": "Foreground was not silent for 50 ms before midi-107; 107/128 bursts. No retry or substitution.",
+    "rt2-parallel": "Foreground was not silent for 50 ms before midi-81; 81/128 bursts. No retry or substitution."
+  },
+  "result": {
+    "ten_minute_assessment": "not_passed",
+    "G7": "not_passed",
+    "four_branch_latency_tails_resolved": false,
+    "workloads": {
+      "realtime_2": "not_passed",
+      "realtime_4": "not_passed"
+    }
+  },
+  "validation": {
+    "focused_tests": {
+      "passed": 130,
+      "deselected": 430,
+      "seconds": 107.96,
+      "scope": "Process native parity/lifecycle, session integration, capacity, qualification, measurement analysis, selected API regressions",
+      "warning": "Existing Starlette/httpx deprecation"
+    },
+    "native_view_test_after_skip_guard": {
+      "passed": 1,
+      "seconds": 0.38
+    },
+    "linux_exact_audio_meter_cases": 16,
+    "linux_small_sample_resampling_pairs": 4,
+    "paired_native_cases": 2,
+    "native_rounds_per_arm": 3,
+    "frames_per_native_run": 98304,
+    "observer_controls": "passed",
+    "full_backend_suite": "Not rerun; focused renderer/API suite used",
+    "frontend_build": "Reused immutable base frontend; no frontend changes",
+    "final_analysis_tests": {
+      "passed": 9,
+      "seconds": 0.19,
+      "scope": "Six existing measurement regressions and three partial/calibration/complete report controls"
+    },
+    "backend_and_harness_ruff": "passed",
+    "git_diff_check": "passed",
+    "all_test_containers_and_browsers_removed": true,
+    "user_services_preserved": true,
+    "archived_analysis_reproduction": "Byte-identical JSON",
+    "documentation_and_artifacts": {
+      "raw_hashes": 43,
+      "report_hashes": 4,
+      "harness_files": 22,
+      "local_links": 157,
+      "calibration_pulses": 64,
+      "all_valid": true,
+      "javascript_syntax": "passed",
+      "embedded_observer_matches": true
+    },
+    "commands": [
+      ".venv/bin/python -m pytest backend/tests/test_parallel_csound_renderer.py backend/tests/test_session_parallel_renderer.py backend/tests/test_render_capacity.py backend/tests/test_render_qualification.py backend/tests/test_qualification_measurements.py backend/tests/test_api.py -k 'not test_api or renderer_baseline or parallel_session or parallel_capacity or parallel_manual_input' -q",
+      ".venv/bin/python -m pytest backend/tests/test_parallel_csound_renderer.py::test_native_output_view_follows_current_blocks_and_is_released_before_reset -q",
+      ".venv/bin/python -m pytest backend/tests/test_qualification_measurements.py specifications/parallel-csound-rendering/measurements/t07d-browser-harness/test_analysis.py -q",
+      ".venv/bin/ruff check backend specifications/parallel-csound-rendering/measurements/t07d-browser-harness",
+      "node specifications/parallel-csound-rendering/measurements/t07d-browser-harness/test_probe_processor.cjs",
+      "Candidate container: python /evidence/native_correctness.py",
+      "Candidate container: python -m backend.tools.benchmark_partition_render --cases realtime_2 realtime_4 --frames 98304 --rounds 3 --ksmps 32 --workers 4 --output /evidence/final-native.json"
+    ]
+  },
+  "diagnostic_controls": {
+    "old_image": [
+      "live-before.json.gz",
+      "live-before-repeat.json.gz",
+      "live-reverse.json.gz",
+      "live-spin50.json.gz",
+      "live-profile.json.gz"
+    ],
+    "candidate_image": [
+      "live-candidate.json.gz"
+    ],
+    "instrumented_not_qualification": [
+      "live-profile.json.gz"
+    ],
+    "rejected_experiments": [
+      "reverse completion collection",
+      "50 microsecond Python semaphore spin"
+    ],
+    "scope": "Sixteen sustained voices; 3072-frame requests; isolated native controls, not browser qualification"
+  },
+  "production_changed_source_hashes": {
+    "backend/app/engine/csound_process.py": {
+      "before": "990c25c9698e11def9ff676e74ebb906909c37d7c4a031f74be14bd6f9daba2a",
+      "after": "33963e3f1be5555337a00dc7ed02f406c7083ae41d5b4701777279c90cf4de87"
+    },
+    "backend/app/engine/parallel_csound_renderer.py": {
+      "before": "a4a71c1be690d03416136feb6aa0a6bff224a3e5f3b4ef1c78b490183758a00b",
+      "after": "990f763d9c908ba58ea53ccdbb6878aa0be7a12994b5c075bef12752daba3584"
+    },
+    "backend/app/engine/partition_native.py": {
+      "before": "c7ab4771a79e50c0fdfeaa0dec5aed3f69cf95686a3dddc071241283412cfb73",
+      "after": "6444865f3e90e8b72b5467ae61f79257de319509fa417635b422ac9d100e2664"
+    },
+    "backend/app/engine/session_parallel_renderer.py": {
+      "before": "d66ae15e28beb12af0171fc035b41f6795cc4c22b820a12e1411b839c268f775",
+      "after": "cd892c2eeb62988ba17cd416771d0366edee38c3854d23478de2eb3b6d34e139"
+    }
+  },
+  "unchanged_source_hashes": {
+    "backend/app/engine/renderer_factory.py": "a05e7ad01ae4de63c5fe93e6d53abfb79a908cd1b4a133fbb97f206801c0b102",
+    "backend/app/engine/csound_worker.py": "6cd3a937d4a71b3d8786de8a127b5c6bbcc0cc004aff10e7ef4187cf8f20f4e4",
+    "backend/app/models/render_protocol.py": "b33868cecb91862c47e1eb8cd3afb0f8346c9631cbb7378bb33c5359f6de1058",
+    "frontend/src/audio/browserClockWorker.ts": "ff79715f68fbab67756f84f488e2c413c622154fa2dc68a33d95ecc60dfaa6af",
+    "frontend/src/audio/browserClockProcessor.js": "72006e7ca2a626ef4c9b1432579ed336abc0682ae42d1756c56788ed2601665d",
+    "frontend/src/lib/browserClockLatencyConfig.ts": "d33dea5e8a84226e7d334f9c54204575b77fd17ed19c30638ea25137b0c91833",
+    "backend/app/services/performance_export_service.py": "af9d84a84c324072d0c63ad3200bede93c3a6f1861518b9da100d14ded8ed233",
+    "backend/app/services/compiler_service.py": "c958192cdbc53ee731f331a17db233fc3767b03f36e9514f679db8a87ce2f4e4",
+    "backend/app/services/compiler_mixer.py": "a8decf1697b354cfc67c578bd6c1c674de215b9ca989dd5a3635c95fe1626d3d",
+    "backend/app/engine/render_qualification.py": "4e7a60e52874e5af5a25cfddd88f1746f518c8ed0e27d45831f8870cd7d37679",
+    "backend/app/engine/session_renderer_options.py": "23eff3cb6df0bc22a621243198faa0fa2fd8d117d11548c2c69d32440ef934bf",
+    "backend/app/core/config.py": "e541da1db5ca0e959e2461478769518d9ab045f338cd2384fa949053ed1c7871"
+  },
+  "analysis_runtime": {
+    "python": "3.13.2 (main, Mar 17 2025, 21:26:38) [Clang 20.1.0 ]",
+    "platform": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+    "numpy": "2.5.1"
+  },
+  "protocol_sha256": "ba2ab32c5dabb97396ec788479dd6b48e03fae292a9cbad171b997424dbd91ee",
+  "raw_hashes": {
+    "t07d-browser-data/rt2-parallel-container.json.gz": {
+      "sha256": "b47641b3c32c39cf086443d55135e2d21a79ffc1f532910b3391e3d13d899186",
+      "uncompressed_sha256": "3d929d1624560218f3544a36fb019cb0b7a664b45727e9fc196285bc7363bbbe"
+    },
+    "t07d-browser-data/rt2-parallel-finish.json.gz": {
+      "sha256": "f7ce536f6a8b259d24a7b79c7d0654ad2f3c661dec0b76877c19832bf0f2b3eb",
+      "uncompressed_sha256": "092ad9fce8d1420ffd23e278a2cac8daee1f75bc8497ad54c7fcf79fb8c9b4fc"
+    },
+    "t07d-browser-data/rt2-parallel-latency.json.gz": {
+      "sha256": "ef0ca9e53d9be1f5830f50c972004cf2a24bd99c758042e4df907837828f4b03",
+      "uncompressed_sha256": "de50529f96dd22f2990fd72bfbd25a2ac83226244f6ca442de8e60392e4ff4ac"
+    },
+    "t07d-browser-data/rt2-parallel-probe.json.gz": {
+      "sha256": "fda6910656bf97fef73edf2c06591770dbd615e2e280efba52fa3f5d63d2bc98",
+      "uncompressed_sha256": "b2eaaa40b19dd0c51ef8a3f76251f241cbc1e82ac97c69137d0112956efdfbe8"
+    },
+    "t07d-browser-data/rt2-parallel-recovery.json.gz": {
+      "sha256": "6ae0433f5bf9c3b7e53bcbae57862ad14e49b1f82ddb8836b4e31d9a14623a1c",
+      "uncompressed_sha256": "774d69f30a5081821e0930069027dc0a72316f7f3ed98723820a74611758e24f"
+    },
+    "t07d-browser-data/rt2-parallel-resources.json.gz": {
+      "sha256": "a0ec6df882e915b8a24f4c347b26390f64a134c38449fa100d7d96bd3ce9894d",
+      "uncompressed_sha256": "cc1ab98f4617603d9e016f1a8a0456646e72ccc115f460262cab80ae665ba9c3"
+    },
+    "t07d-browser-data/rt2-parallel-soak.json.gz": {
+      "sha256": "c96e0fd1017556b7e114e1c687b1e729930b9b9d20170da67c421eb76aaa6631",
+      "uncompressed_sha256": "0c5ac5b63bef9f92efbe153c8ea015aa131b2c2a43a43eb9e7964ee424437bad"
+    },
+    "t07d-browser-data/rt2-parallel-start.json.gz": {
+      "sha256": "439ee49946e7e130918c800e5f3d3a0a4b8c9e4debc0206cb78b445fef4a97ae",
+      "uncompressed_sha256": "be94f7fe5eaf6d5745df44f4fc3d0f4395cf00ee20957360096ededad77dceb8"
+    },
+    "t07d-browser-data/rt2-single-container.json.gz": {
+      "sha256": "2a2763288bdb5db9355918e58ff81f7840a375d7f83c854251368bd9edfba9b4",
+      "uncompressed_sha256": "c30d193ac7626525ee30299bc9736f1366f4b122555d704d04bf3913a2a8f2e5"
+    },
+    "t07d-browser-data/rt2-single-finish.json.gz": {
+      "sha256": "f0350d98650d782a52b2659b51e4156223db1511650890b2a95378d93f505acc",
+      "uncompressed_sha256": "c0b209a243afa822bf6b309a1ba757e60020a83bf7b4ff8c03decee7a266ac1d"
+    },
+    "t07d-browser-data/rt2-single-latency.json.gz": {
+      "sha256": "c4e3146cefb643cb990628b96a084af1b99db87e7c2bf1d928a9e9efcfe0d3d6",
+      "uncompressed_sha256": "d899a706679a242438cea6100b9db8dad03880caaac4f238cea17b93b3ddd329"
+    },
+    "t07d-browser-data/rt2-single-probe.json.gz": {
+      "sha256": "ed07b21e92346962304cc2e750fe4c785b1e03d11da0e58ae775aa319bb23444",
+      "uncompressed_sha256": "c29544cab869a5d4c8fd8e16afb5d9b34dc05974fb6b0edd796e73eba5aa0fe6"
+    },
+    "t07d-browser-data/rt2-single-recovery.json.gz": {
+      "sha256": "69ce8517b1252306046f14c6bc53b82d4ac37e9098c7518a376699ca8eba04b0",
+      "uncompressed_sha256": "1e866862fb49783e3fef89a734519df33d3ac53c662bc04d2be9768bae990c58"
+    },
+    "t07d-browser-data/rt2-single-resources.json.gz": {
+      "sha256": "e8078355a2638200ee0d8819a18fefdac85e8cba2b9b17248c2b38cf56302269",
+      "uncompressed_sha256": "e6e6226a9f323b36ac31e204a79591a6ab0d1661216429516b403718d1be59c4"
+    },
+    "t07d-browser-data/rt2-single-soak.json.gz": {
+      "sha256": "9fd4fc67a27c387d4a951bf60a1a57ecb6c31610b5cb809dd8433f435c47afe4",
+      "uncompressed_sha256": "bb0c319680f09d61092f3156e0ca41d9f5356966c7067bdc60140a3304ca57c3"
+    },
+    "t07d-browser-data/rt2-single-start.json.gz": {
+      "sha256": "112d4d9a78fc0300db37e4a77c40962ebadc87edcaaea3bf1897407d4a5517f7",
+      "uncompressed_sha256": "54bef39dff6c852133a30b416f9ffe3605c000a22e93595d956a0bac8666a87e"
+    },
+    "t07d-browser-data/rt4-parallel-container.json.gz": {
+      "sha256": "872789702fabb8d1c6813dc76385f08e000344aaa9f4356b9db500b68a3c6dce",
+      "uncompressed_sha256": "7ec96a2c15043aac684e792c8e98a05e7ac2ccf8efeb2735b955e448b01af98b"
+    },
+    "t07d-browser-data/rt4-parallel-finish.json.gz": {
+      "sha256": "b134f4c240e23c084a4548b4e3a759ca9b24af699d6fd9c2ac8097ff83444e55",
+      "uncompressed_sha256": "0e82b3293d50b6c566a7a1cda6eed22dfb065cd46c8cbe2cdc95fc610daf1006"
+    },
+    "t07d-browser-data/rt4-parallel-latency.json.gz": {
+      "sha256": "f08e7ac1a644bc1093c586abaf0817d4fde3ac5a913d3cf9bff99819b340f2a8",
+      "uncompressed_sha256": "daace1f39c4bd855d14882ef8a903e3a489112d9dba7f2adb78f6bddc86f1a4d"
+    },
+    "t07d-browser-data/rt4-parallel-probe.json.gz": {
+      "sha256": "6bbde678153a138677bef8a2d424bb5bfdff46eb240a8be857f1a3af75b3e7fa",
+      "uncompressed_sha256": "200771cb39190962553b5914e1e4e33fa32c0b1d2e1740235aa5be88f979c3fe"
+    },
+    "t07d-browser-data/rt4-parallel-recovery.json.gz": {
+      "sha256": "8fff611651135e4c3ca56d07a5f3ec74bbb87cad9742f03ce64d45d016687ed9",
+      "uncompressed_sha256": "e82c023e410a78aad27085b31a6d8b27e2b6043291b2e63b354149279ecf8c81"
+    },
+    "t07d-browser-data/rt4-parallel-resources.json.gz": {
+      "sha256": "e53398f945c4653f6650bc771c4b5d246076ccc642aec2c51ffa77ec62bda825",
+      "uncompressed_sha256": "eac270e4be372dc09d7d4e0c4689856560f26fd39d5ea49f3f81d3313ddb4c46"
+    },
+    "t07d-browser-data/rt4-parallel-soak.json.gz": {
+      "sha256": "27e6eec3251cf66568cff61ab677c665c129127cb7563e10412c3b69bc7b7e5b",
+      "uncompressed_sha256": "5627672e5e27c008e077a7791f3cc4164389cdbbf9b01f0813d483e8aebbd966"
+    },
+    "t07d-browser-data/rt4-parallel-start.json.gz": {
+      "sha256": "23ff4f7da1a4f36e5ae9cec164e452e43f56ac580fa5a179b6ec0ba5b9b5545e",
+      "uncompressed_sha256": "29d71c914a6bc11896834f4bd9e6c6f9a4aa0d49fea4ba8d0c7cbf35eabc095a"
+    },
+    "t07d-browser-data/rt4-single-container.json.gz": {
+      "sha256": "d40f64c55c8bf0418b49315b7093eb5535138cf4f8f95636be9f5f0db7efe092",
+      "uncompressed_sha256": "5e06474209e7a5daabe8c3c06164bac43798e4eabdaa4aa8f4c15644aaa5e035"
+    },
+    "t07d-browser-data/rt4-single-finish.json.gz": {
+      "sha256": "80999b542b4a667162a1e605bf219ce49ced1776bf6f14713747b8a5f45dd628",
+      "uncompressed_sha256": "52429a35bf7b8c892fa418c51017611efc6ddcb72e1240becafc6322b8fd7d29"
+    },
+    "t07d-browser-data/rt4-single-latency.json.gz": {
+      "sha256": "91800df2c4ad182798bc6d39c49a6607cb999ee4d4d4d6a75ed8b460fc150a04",
+      "uncompressed_sha256": "ccd3a1724cf800ba5ad35415e8ef80c0dc61528fefed2f63c8818cc91e425040"
+    },
+    "t07d-browser-data/rt4-single-probe.json.gz": {
+      "sha256": "1bc95560207653e77c7ce653b2bbd108a48992d8e2cc01a87508349b063f7730",
+      "uncompressed_sha256": "9cc1e10a1ec60539fe8635c09a7ea3228236ca2dc6cc65f621f9fdf02734f3cc"
+    },
+    "t07d-browser-data/rt4-single-recovery.json.gz": {
+      "sha256": "ed175e26dc125e6f5e37df09961b5cda353d5ae6cdfa71a2577d19734a81441f",
+      "uncompressed_sha256": "e8d375002aa7c19090e13e782471ce9afec0521e4744338bd867c3a00f52c7e7"
+    },
+    "t07d-browser-data/rt4-single-resources.json.gz": {
+      "sha256": "8ad1e511ac87623a45911ab12a745e7bc39ba33dc7e2e1f549f2cda90f617f02",
+      "uncompressed_sha256": "23a4c308200ae9804d96296630b23844533607987e9dfa746b8f89baf702c174"
+    },
+    "t07d-browser-data/rt4-single-soak.json.gz": {
+      "sha256": "fc40f177f34e8fa7d7a3fe0d313287c7e648db76b18f867281a98c93b9c24e40",
+      "uncompressed_sha256": "d99d5b500e0dcf0dac2873b7c70886c2844206cf4baa26215e371ea4e06f909f"
+    },
+    "t07d-browser-data/rt4-single-start.json.gz": {
+      "sha256": "a7479b20ab30cb65e6ebcd0cd55368b5cbf18280933cd8516d51aa128b20c021",
+      "uncompressed_sha256": "fe87f2f5160f35013c1c589ad043909122552d981c2f9093308055f24428ef3c"
+    },
+    "t07d-browser-data/rt4p-run.log.gz": {
+      "sha256": "283131a2435f544537b07fc24892c00d574adb0e9240a50d1b0520594a1b4f81",
+      "uncompressed_sha256": "0179decb1e03a0d586c2835f79bd3f97768a623011127b72dd816c975b56cbe7"
+    },
+    "t07d-browser-data/rt4s-run.log.gz": {
+      "sha256": "f83313fc280a5b9b88378e97f17dea2b0b23cfcb8e8d78b11e4ec53e354d3b1e",
+      "uncompressed_sha256": "f2bc9c792524ef2f779a82984cbcce3bf9e750d786dc6a783d6aa3c097808c44"
+    },
+    "t07d-browser-data/rt2s-run.log.gz": {
+      "sha256": "50849cac0a6f05c4a91a80eaa8d7456d0deccc20064030d79079741bc419ed60",
+      "uncompressed_sha256": "e8ecd793339a879448a435110920f98dcbcfa8c7bb17f2c05370df3364c0d8c1"
+    },
+    "t07d-browser-data/rt2p-run.log.gz": {
+      "sha256": "3902698a8c136afd2e1dbe8f98a49e82b7306c47bd46fd31c504724b8e4bf467",
+      "uncompressed_sha256": "a4a38a2b8e13f4f3faa0ed6e71fa138e0ca1705a26e8bef06b8bb8ca85cf7701"
+    },
+    "t07d-native-diagnostics/live-before-repeat.json.gz": {
+      "sha256": "5875284e6db73bf6050939b634e8a79ac1656e76b81e93af8f4976582ba0d345",
+      "uncompressed_sha256": "6bf4e4a1c334115a450038419501be9587d89dec162fab2d933bb90ce0d4a640"
+    },
+    "t07d-native-diagnostics/live-before.json.gz": {
+      "sha256": "682f9540a35514d9a2b4b5ade4154441a6e1b2ae8dd155c19abe1dc9e01daaae",
+      "uncompressed_sha256": "8c00af631675cacaf686a8b2501cd2bf359fa47c9d4deb1cea2c6139e33e00fe"
+    },
+    "t07d-native-diagnostics/live-candidate.json.gz": {
+      "sha256": "bfc9194e0317bd95749237edb4a53980520473ee4d6073d92a24876161073b1c",
+      "uncompressed_sha256": "c1fba29b95e8b2e802574f0472538378e7385a72a2471d1144b4623ca9ce4a40"
+    },
+    "t07d-native-diagnostics/live-profile.json.gz": {
+      "sha256": "7a8cf51248d6511e8f333105c7f4872c6b8f80fcdee3173297e9019466c9f2f6",
+      "uncompressed_sha256": "d0a6049ff6334558d0cf030b5d36ef39304d1bbcc462828dfd2cae2897fe12a0"
+    },
+    "t07d-native-diagnostics/live-reverse.json.gz": {
+      "sha256": "2d630cf319ae8d94f5f443f9a1f5c020d74f4c73e00c591271d1cfc0c757e9b9",
+      "uncompressed_sha256": "d4858e71943c09157f4446136652edf1ed9820bf2fef27dfdd8850d07a91bdbf"
+    },
+    "t07d-native-diagnostics/live-spin50.json.gz": {
+      "sha256": "c62b6577d056d05d423c9bb20fbe9ada21d54d774e9f81d0d11d69560a2f7713",
+      "uncompressed_sha256": "f7b7a31aa180756cd6bd6da8cffe38154b334e0778abd3c401a7650de801cc78"
+    },
+    "t07d-native-diagnostics/probe_live.executed.py.gz": {
+      "sha256": "6c61d71891843b2914f5c9d9322d8840349ac5e48f9dabc2c6d0350a146073f2",
+      "uncompressed_sha256": "daf26eaae0f5bc9bb3145b73aae16d388f9f3d759e7572eede58790da1efed31"
+    }
+  },
+  "report_hashes": {
+    "t07d-browser-qualification.json": "2cb442db63c8808b07027e2fc04d9d351e0e33006ab164226d806e7bb5763d62",
+    "t07d-final-native.json": "2f8fe6cf639af208c882f69e8e7fccbc92b64d480d7a30735bf6f5e638e9eff1",
+    "t07d-native-correctness.json": "d41788aad36331b42b073a086960b7d818a1e0ac5833a3e789a32f6b241fac35",
+    "t07d-subnormal.json": "e8883771b282129d577927173a26234a5ccb51cb8dee09f6949db5b274d71bd7"
+  },
+  "harness_hashes": {
+    "Dockerfile": "1995fed6f68d9422a9de733091e7430b73dea2d30ddfe9e9b7fe9b20ca9c7a1a",
+    "README.md": "7edafe9612fa2b00a1849ab3460261824898cc1c63d23a75d4e6865aff5c140d",
+    "analyze.py": "52ecbfd353c67864d3646172ebd3f14e5e24a1ef1e107364db03fb360d4ed422",
+    "capture.js": "5648cdc6bf5b5bdbb6a08ac7082adc982f2096ef510edbd6f4affea67bd89a40",
+    "finish.js": "e9b80bf18fa411b47ced0e8bd34d3f5dbe05e36ae808293921f5353bc12959de",
+    "install_probe.js": "f81cb15f9a61ddf8db126456aba57980b275b3c9ede8da83c621890d64ae549f",
+    "install_probe_body.js": "3b5137ff567f526f88b16ecfc70a11d9626b64d220b8ff1c4fa0a1c41786834a",
+    "monitor_soak.py": "b5d2b8145b8ee941a224114aab1862b4a75739b13d9e7bae891c68f03755c096",
+    "native_correctness.py": "14ffc3f014193187428e0218c7793fe75ad25265b1379b0f72ee0a5a28f32197",
+    "playwright-cli.json": "90f374c7b921e05fcd19c7773425994c1b04052e7e4f708b4dfc7e62d58f751a",
+    "poll.js": "b9bcf7b4ddc98482a2626d823ec02da9044bc4647b9e93d1d84e37598afffb0d",
+    "probe_live.py": "5a340b2d0d825b9a91c9addee1d594db1de744fe5087748d7b3c6cddcc547ce8",
+    "probe_processor.js": "94a3e68f476b2c37357de5f16b70c38c1586dfdbe5cb9ba00e2cbba8502493ea",
+    "resources.py": "5bd5dae8833aa4b4f247d2a3d9d3c549841333eb8fa4acff162ee4d9720b8535",
+    "run_arm.py": "b144a6de038fe2679a18fcff82c049b53a6e569f9144dee5df078e6ca4ea3059",
+    "run_recovery.py": "6ef277235dcfa8721e98db339517f7b099c6531a24dab3fc3b4b000aa4b3bc02",
+    "server.py": "9aa1cfcd9e56a576bf7803b7cf7eb6f452dd9db74a80e781e82c63495c045a35",
+    "setup.js": "ec36fdc78954e8d1a001e167fa2e3e026c2a470c0f94c91fd6e084d6209f98a7",
+    "start.js": "ecb87f2716991be76b0649572e7e1e82f8b238f524efe8b1672c47c24b8353b7",
+    "start_latency.js": "f42b835066f6812c5d0a5660f4450bb9735c89f61c1178fe6c7a67dc74933923",
+    "test_analysis.py": "b8e6758165aa75bac0be74de136880c1ea70bdf90106e840c80f5b6146a2dc57",
+    "test_probe_processor.cjs": "119f7a55c123f6f8a566ae916ed609faf4415ce4fd5684b0248f09f4e050808c"
+  },
+  "executed_diagnostic_and_launcher_hashes": {
+    "probe_live.py": "daf26eaae0f5bc9bb3145b73aae16d388f9f3d759e7572eede58790da1efed31",
+    "monitor_soak.py": "0c25a5584904f6a039b5637d79c747386b2ec8f7b622a1a77ec25cd77516c266",
+    "run_recovery.py": "1996948c2f6bdfcd6a2ac9de21cadfc2b5484da0916c4eada76aa84493b35743",
+    "run_arm.py": "b144a6de038fe2679a18fcff82c049b53a6e569f9144dee5df078e6ca4ea3059",
+    "native_correctness.py": "14ffc3f014193187428e0218c7793fe75ad25265b1379b0f72ee0a5a28f32197"
+  },
+  "test_source_hashes": {
+    "backend/tests/test_api.py": "0114c5da65d3412f1a28e82eaecd11dccfd4bdaa4a9f793e282d2d8f0895ef9b",
+    "backend/tests/test_parallel_csound_renderer.py": "84ea859d6e5e0dab746c39fcb44dcddf02005c882a4361814b897e30281900e4",
+    "backend/tests/test_session_parallel_renderer.py": "9b78b65ea4c859eddc2f5d8c687a2399d6d6fbb76a41aa09e8bc62ad682525eb",
+    "backend/tests/test_qualification_measurements.py": "818ff228820d2f39e7cd76679b5636edc49cca7f4bca76e02ad9889304560be9"
+  }
+}

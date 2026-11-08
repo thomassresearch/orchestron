@@ -2,7 +2,7 @@
 
 Current follow-up: [implemented fixes, verification and remaining acceptance](acceptance-follow-up.md).
 
-Status: integrated development preview; default cutover remains gated. The original implementation started at `d82c682`. The [2026-11-05 implementation cross-check](remaining-work-review.md), reviewed at `de76638`, prioritizes the current remaining work and supersedes stale backlog descriptions. See the [implementation record](implementation-record.md) for delivery history.
+Status: default for first launch and new performances as of 2026-11-06. `VITE_CLIP_ARRANGER=0` retains legacy creation; saved formats remain unchanged. This requested cutover does not mark outstanding hardware/stress qualification complete. The original implementation started at `d82c682`. The [2026-11-05 implementation cross-check](remaining-work-review.md), reviewed at `de76638`, prioritizes the current remaining work and supersedes stale backlog descriptions. See the [implementation record](implementation-record.md) for delivery history.
 
 The multitrack arranger becomes the main place to compose a performance. Clips define when a source plays; reusable patterns, groups and supergroups define what it plays. Selecting a clip opens the existing sequencer or arpeggiator editor in that timeline context. A fixed piano keyboard and the existing manual MIDI controllers remain below the arranger.
 

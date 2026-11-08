@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 
 from backend.app.models.patch import PatchDocument
+from backend.app.models.audio import AudioGraph
+from backend.app.models.render_plan import RenderDependencyGraph
 from backend.app.models.session import CompileArtifact
 from backend.app.services.compiler_common import (
     CompiledInstrumentLines,
@@ -32,6 +34,18 @@ class CompilerService:
     ) -> None:
         self._opcode_service = opcode_service
         self._orchestra_emitter = OrchestraEmitter(gen_asset_service=gen_asset_service)
+
+    def analyze_realtime_graph(
+        self, targets: list[PatchInstrumentTarget], audio_graph: AudioGraph | None = None,
+    ) -> RenderDependencyGraph:
+        """Optional LIVE/MIDI analysis; never selects rendering or replaces compile validation."""
+        from backend.app.services.compiler_render_graph import analyze_render_graph
+        return analyze_render_graph(targets, audio_graph, self._opcode_service)
+
+    def compile_realtime_partitions(self, targets, audio_graph, mixer, plan):
+        """Internal qualification artifacts only; never used by sessions or CSD exports."""
+        from backend.app.services.compiler_partitioned import compile_realtime_partitions
+        return compile_realtime_partitions(self, targets, audio_graph, mixer, plan)
 
     def compile_patch(
         self,

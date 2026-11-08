@@ -6,6 +6,8 @@ This chapter covers the `Perform` page (labeled `Perform` / `Performance` depend
 
 The performance description field displays three lines with automatic text wrapping and preserves manual line breaks. Longer descriptions scroll vertically within the field. Hover over the description to see its full text in a tooltip.
 
+New performances start in the [multitrack arranger](multitrack_arranger.md) with one piano keyboard. Use **Add track** to create melodic, Score, drummer, controller or arpeggiator tracks, then add clips and patterns to build the song.
+
 ## Sequencer timing
 
 Use Meter, Pattern length and Subdivision for melodic, drum and controller sequencers. A one-bar 4/4 pad with three steps per beat displays twelve steps in four labeled beat groups. Playback speed is under Advanced timing. See [Sequencer timing](sequencer_timing.md) for the full guide.
@@ -26,11 +28,11 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 
 Click a panel title or focus it and press Enter or Space to collapse or expand its contents. Header actions, status and help remain available. Panels collapse independently, start expanded and remember your choices across view switches until browser reload. Adding a device opens its group. Collapsing preserves edits and does not stop playback. The shared tempo stays outside the sequencer groups.
 
-Instrument Rack, Melodic Sequencers, Score Sequencers, Drummer Sequencers, Controller Sequencers, Arpeggiators, Piano Rolls (keyboards), MIDI Controllers, and Multitrack Arranger each have their own toggle. Empty drummer/controller groups keep their Add buttons. The arranger appears when at least one melodic, score, drummer, controller sequencer, or arpeggiator exists. These layout choices are not saved into performances or exports.
+The Instrument Rack, Mixer, keyboard and controller panels can be collapsed to make room for the song. The arranger is visible before adding a track. Click a track header to expand its content; double-click a pattern to open its editor. These layout choices are not saved into performances or exports.
 
 Collapsed visual bodies are suspended: hidden grids and timelines are not built, animation loops stop, and hidden meters unsubscribe. This includes the Mixer and each nested routing, matrix, diagram, channel-mapping, diagnostic and insert section. Playback, pad switching, MIDI processing, audio controls and meter collection continue. Visible headers, rack summary, shared tempo and footer transport status keep updating. Expanding displays the current playback position and latest meters immediately, without replaying missed animation frames.
 
-Draft names and controller values, validation feedback, arpeggiator preset drafts, pad-loop selections, open containers, arranger selections, range clipboard and undo history, zoom and scroll positions survive collapse/expand and switching away from Perform. Nested Mixer sections remember their open state when a parent collapses. New, Load and Import clear retained editor state after successfully replacing the workspace, even when reloading the same performance. Saving does not clear it. Removed devices and invalid selections are discarded; restored scroll positions are limited to the current content. This temporary editor state is not stored in performance files or browser storage and does not survive a page reload.
+Draft names and controller values, validation feedback, arpeggiator preset drafts, clip selections, open containers, arranger selections, range clipboard and undo history, zoom and scroll positions survive collapse/expand and switching away from Perform. Nested Mixer sections remember their open state when a parent collapses. New, Load and Import clear retained editor state after successfully replacing the workspace, even when reloading the same performance. Saving does not clear it. Removed devices and invalid selections are discarded; restored scroll positions are limited to the current content. This temporary editor state is not stored in performance files or browser storage and does not survive a page reload.
 
 Collapsing closes temporary menus and pickers, cancels active drag previews and releases manually held piano notes. Already-applied edits remain, and existing input save/commit rules still apply. Sequenced notes continue playing. Offscreen panels that remain expanded still render normally. Collapsing reduces visual work; any reduction in audio dropouts depends on the workload and audio system.
 
@@ -44,7 +46,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - Start/stop the instrument engine session
 - Create multiple melodic sequencers, drummer sequencers, and controller sequencers
 - Add backend-run arpeggiators that turn held notes into routed arpeggiated instrument output
-- Edit reusable pads and phrases, assemble song order in the arranger, and audition phrases without changing the song
+- Edit reusable patterns and phrases, assemble song order in the arranger, and audition drafts in context
 - Arrange multiple track timelines in the multitrack arranger with shared transport and loop-range playback
 - Copy song sections across all or selected lanes, overwrite destinations, or insert time and shift later material together
 - Perform live with piano rolls and manual MIDI controller knobs
@@ -59,7 +61,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - [Melodic Sequencers and Step Editing](sequencer_tracks_and_steps.md)
 - [Score Sequencers](score_sequencers.md)
 - [Drummer Sequencers](drummer_sequencers.md)
-- [Pattern Pads and Reusable Phrases](pattern_pads_and_pad_looper.md)
+- [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md)
 - [Multitrack Arranger](multitrack_arranger.md)
 - [Controller Sequencers](controller_sequencers.md)
 - [Arpeggiators](arpeggiators.md)
@@ -80,7 +82,7 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 2. Add instruments to the performance rack and assign channels.
 3. Open Mixer, check the destination of each strip, and connect effects/returns. Guided instruments get a neutral Master automatically; existing direct routes stay direct.
 4. Use Routing diagnostics → Check routing, then Start Instruments. Adjust existing mixer controls during playback.
-5. Build melodic sequencers / drummer sequencers / controller sequencers / piano rolls.
+5. Choose **Add track**, add clips and patterns, then edit their musical content. Save each draft with the desired occurrence scope.
 6. Save the performance to retain the rack, routes and current mix.
 7. Export the performance bundle for backup/sharing, or use `Export CSD (MIDI)` / `Export CSD (SCORE)` when you need an offline Csound render package.
 
@@ -93,4 +95,4 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
 
-Arranger lane palettes start collapsed. Each sequencer provides an Arrangement / Manual pads toggle; Loop song in the arranger controls repeating or stopping at the song end. Melodic and drummer sequencers have an always-visible upper-right pattern workspace for assembling reusable phrases; controller and arpeggiator phrase panels remain collapsible. The arranger uses context menus for grouping and ungrouping. Lane Mute/Solo is temporary and independent of the instrument mixer; see [compact tracks and lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo).
+Tracks start compact. Expand a track to work with nested patterns, groups and supergroups. Double-click content to edit it and use **Play edit** to audition the draft. Lane Mute/Solo is temporary and independent of the instrument mixer; see [lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo).

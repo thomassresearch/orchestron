@@ -4,6 +4,36 @@ This document describes the FastAPI backend in `backend/app`, how it is wired to
 
 ## Overview
 
+The playback CI workflow runs Python and Cython suites in separate platform jobs,
+with a 60-minute budget per job. macOS uses the checksummed official Csound 6.18.1
+installer; a native binding preflight rejects incompatible major versions.
+Focused PCM conversion parity checks run before the full suite so platform
+floating-point regressions are reported without waiting for all DSP modules.
+`python -m backend.tools.run_playback_tests` runs every backend test module in a
+fresh process: Csound 6 native state can survive cleanup/reset and crash later DSP
+modules (reproduced with Altamax followed by Ambient Techno on Linux). Assertions
+are unchanged, failures are never retried, and failed or crashed modules fail the
+overall run while remaining modules still execute. Verbose test names and fault
+traces retain the location of abrupt exits.
+
+The Trance Gate stress tests additionally run each collected case in a fresh
+process because their repeated native renders can also crash within one module.
+DSP parity fixtures that deliberately request six or more owners disable CPU
+pinning in the test parent only; dedicated capacity/placement tests still exercise
+real admission and affinity failures. Production placement is unchanged.
+macOS CI builds the STK opcode against the pinned Csound 6 framework, since the
+official framework installer does not include `STKSaxofony`.
+
+Known separate acoustic failures (PR #6, workflow run `42499027436`): the tenor
+saxophone fixture's stochastic STK excitation sometimes violates the minimum
+fundamental-energy or overblown-octave ratios on Linux. Observed cases include
+`test_normal_register_is_tuned_and_releases_cleanly[96]` (fundamental fraction
+0.0282 versus 0.03) and `test_velocity_changes_loudness_and_overblown_register[76]`
+(the normal-velocity note was already octave-dominant). These need an instrument
+review; they are outside the rendering/CI correction scope. The fixture and its
+assertions remain unchanged, and failures continue to fail CI. Missing-STK compile
+errors on macOS are a separate environment issue addressed by the plugin build.
+
 The backend is responsible for four distinct jobs:
 
 1. Serving the FastAPI API used by the frontend.
@@ -22,6 +52,132 @@ At a high level, the code is organized like this:
 | `backend/app/services/` | Business logic for opcodes, persistence-backed resources, sessions, MIDI, compilation, assets, and sequencer runtime. |
 | `backend/app/engine/` | Csound worker, session runtime object, browser-clock PCM helpers. |
 | `backend/app/storage/` | SQLAlchemy database setup and repositories. |
+
+Sessions depend on the internal [RealtimeRenderer contract](backend/app/engine/realtime_renderer.py).
+The shared [renderer factory](backend/app/engine/renderer_factory.py) defaults to the original
+`CsoundWorker`, including its explicit/mock-on-missing-binding behavior. Native start errors still
+propagate. The interface adds no forwarding calls inside rendering, and the public API/PCM format
+is unchanged. The single renderer remains the default and compatibility fallback; parallel playback requires an explicit request, supported resource ownership and sufficient capacity. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
+for baseline comparisons and remaining work.
+
+T07 adds internal [capacity admission](backend/app/engine/render_capacity.py) and offline
+[benchmark evidence validation](backend/app/engine/render_qualification.py). Admission reads visible v1/v2
+cgroup ancestors, effective CPU sets, affinity, memory headroom and `/dev/shm`; unknown
+capacity stays single. Process-wide leases count running/pending single sessions, all
+rendering children (including the suffix), and preparation/API headroom. Capacity is checked
+again at Start, leases survive incomplete cleanup, and resource changes never resize an
+active renderer. Default single rendering performs no capacity filesystem probes in its
+audio loop. The former per-song deployment gate has been replaced by graph selection; benchmark evidence is optional. See the
+[T07 contract](specifications/parallel-csound-rendering/contracts.md#12-t07-capacity-and-performance-gate).
+For v2 root membership, detection checks `cgroup.type` to distinguish a constrained
+namespace root from the actual global root, where CPU and memory quota files are absent.
+Unreadable type metadata still makes capacity unknown.
+T07 now uses startup-only [Linux CPU placement](backend/app/engine/render_cpu_placement.py)
+to keep persistent native owners on distinct allowed logical CPUs. Reservations span live
+coordinators in this API process and release after reaping; existing capacity admission still
+owns quota/headroom limits. Parent, compiler and default single affinity remain unchanged.
+Placement failures retain the existing startup error/single fallback contract.
+The [final G7 summary](specifications/parallel-csound-rendering/t07-qualification-summary.md)
+records the measured scope, ten-minute soaks, native benefit, controller fan-out and matched
+recovery. The evidence predicate requires at least 600 seconds and zero parallel playback
+losses; baseline single losses remain visible. Live-input latency is non-blocking under the
+user's amended criteria, with historical failures retained. Timing, buffers and CSD exports
+are unchanged. T08 exposes the opt-in and a separate CPU observer; see the
+[release and rollback contract](specifications/parallel-csound-rendering/t08-release.md).
+
+`CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
+metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).
+It records compiler stage/port order, resource constraints and helper/control/meter ownership.
+Control ownership includes every parent mixer write, including the post/pan fields ignored
+by raw insert feeds; these known no-op writes must not fail the first PCM request.
+Planning uses supplied measured costs when available, otherwise structural weights for branch balancing; it does not inspect CPU capacity, allocate
+buffers or start Csound. Even a coarse candidate has `selected_renderer="single"` and
+`execution_eligible=false`. Default single-session compile/start never calls this optional path, and
+analysis does not replace canonical patch/asset validation. See the
+[T03 contract](specifications/parallel-csound-rendering/contracts.md#8-t03-pure-planning-contract).
+
+`CompilerService.compile_realtime_partitions()` is the optional T04 internal LIVE/MIDI
+program compiler. Canonical and partition emitters share structured stage lowering;
+public compile responses and offline CSD exports preserve canonical output. Internal
+programs include ordered native audio-channel adapters, scoped setup and local note/stage
+references. Compilation alone never authorizes their execution. The sequential native harness
+and an explicitly started internal process coordinator consume them for qualification. See the
+[T04 contract](specifications/parallel-csound-rendering/contracts.md#9-t04-internal-realtime-program-contract)
+and [compiler tests](backend/tests/test_compiler_partitioned.py).
+
+The T05 [PartitionRenderCoordinator](backend/app/engine/parallel_csound_renderer.py) starts
+persistent Csound processes with `spawn`, native-width shared audio slots and bounded
+command/reply mailboxes. The parent seals and dispatches one interval; dependent children
+acquire every predecessor's publication fence before DSP, and the parent validates every
+completion before committing the block. T07 caches dependency topology, channel transfers
+and generated meter pointers within the native owner. Empty-event blocks use a compact
+descriptor bound to the full bootstrap digest; event/control and lifecycle records retain
+the JSON protocol. No next interval can begin ahead of the global completion barrier.
+The current interval batches unchanged synthesis steps. Config stores `parallelRenderBatchFrames`
+in workspace app state (default 256, integer 32–1024). Parallel session creation sends
+`parallel_batch_frames`; omission uses `VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES` (same default/range).
+The immutable session policy floors this to whole `ksmps` steps, minimum one. Applying is
+locked while running/starting; a changed value recreates a stopped parallel session on next start.
+Single sessions ignore the setting. Shared buses and
+meters hold every step; parent scheduling still runs at each original sample boundary.
+Arrivals after sealing target the next unsealed interval. MIDI/control offsets, internal
+Csound state advancement and meter sampling remain per-step. See the
+[batch coordination contract](specifications/parallel-csound-rendering/coordination-batches.md).
+The output child converts native samples to float32; the parent resamples once per request
+and withholds an entire failed PCM request. Conversion stays in the native thread to preserve
+Csound's float32 subnormal handling; resampling retains that reported mode. The
+worker probes narrowing and widening independently: x86 input flushing (DAZ)
+does not imply output flushing (FTZ), or vice versa. The parent applies input
+flushing before interpolation and output flushing afterward. Both probes use
+NumPy array casts, matching the PCM conversion path. Native parity tests cover unchanged,
+lower, and higher output sample rates with both subnormal and small normal audio.
+Startup, cancellation, deadlines and cleanup are internal operations; default single sessions
+and CSD exports do not call this coordinator. A caller must supply
+already ordered/gated events through its parent-only block preparation callback. The
+session-facing facade supplies that callback; T07 admission gates its starts. See the
+[T05 contract](specifications/parallel-csound-rendering/contracts.md#10-t05-process-execution-contract)
+and [process tests](backend/tests/test_parallel_csound_renderer.py).
+
+T08 adds public `SessionCreateRequest.renderer_mode` (`single` by default, or `auto`) and
+optional `browser_settings`. Auto analyses the current whole-instrument graph and admits a
+supported layout against capacity; no per-song catalog or exact browser settings are required.
+Resource capability v4 supports private standalone `ftgenonce` GEN10/20 handles and
+explicitly seeded `grain3` voices, with bounded internal table caches and conservative
+fallback for unresolved aliases. See the [granular ownership contract](specifications/parallel-csound-rendering/private-granular-resources.md).
+Default structural work estimates count common DSP plus the heaviest case of each
+If/Switch block per voice, while resource analysis retains every case. Explicit cost
+profiles override this estimate. See [conditional DSP costs](specifications/parallel-csound-rendering/conditional-work-estimates.md).
+`VISUALCSOUND_PARALLEL_QUALIFICATION_FILE` is ignored. See the
+[whole-instrument contract](specifications/parallel-csound-rendering/whole-instrument-partitioning.md).
+`VISUALCSOUND_PARALLEL_PLAYBACK_ENABLED=false`
+is the deployment rollback switch. The Perform checkbox is stopped-only, session-local,
+and excluded from persistence and exports. See the [T08 release contract](specifications/parallel-csound-rendering/t08-release.md).
+
+The older `create_app(renderer_options=SessionRendererOptions(...))` injection remains for
+controlled tests/qualification. Only this explicit internal path can use `allow_unqualified`;
+there is no corresponding HTTP or deployment override. Default construction still uses the
+plain `CsoundWorker`. The optional facade retains its parent scheduler and boundary queue.
+
+`GET /api/sessions/{id}/engine-stats` is observation only: procfs sampling runs in a worker
+thread behind a one-second per-session cache. Parallel sessions report total Linux load on
+their assigned logical CPUs; single sessions report server-process CPU usage (100% = one
+CPU). Unsupported platforms/counter errors return unavailable/null. Reads never render,
+change controls or refresh idle retention. The fixed Perform status line suspends polling
+when hidden and rejects stale session responses. Its counters are separate from worklet
+underruns and render/audio ratios; they do not control admission or playback timing.
+
+The facade drains parent events and controls once per block and maps partition meters to the
+canonical mixer identities. Live preparation, auditions and device commands use the existing
+parent boundary queue, including while PCM requests pause. Explicit Stop/delete/shutdown signal
+cancellation before waiting for lifecycle ownership. Automatic disconnect cleanup still allows
+a reconnect to win while it waits. Generation and browser-lease checks reject stale responses.
+Auto startup failure cleans all children before attempting single; active rendering failure
+revokes the audio stream, stops transport and publishes `renderer_failed`. The browser discards
+queued PCM/markers and shows the session error. Auto mode quarantines parallel execution until
+a fresh session; explicit restart uses single from sample zero, without replaying the failed request.
+Opted-in `SessionInfo.renderer` reports selection, reason and committed/published cursors;
+ordinary sessions return `null`. See the [T06 contract](specifications/parallel-csound-rendering/contracts.md#11-t06-session-integration-contract).
+
 
 ## Application Lifecycle
 

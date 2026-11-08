@@ -43,6 +43,7 @@ def _client(
     patch_ui_layout_max_bytes: int | None = None,
     performance_config_max_bytes: int | None = None,
     persisted_json_string_max_bytes: int | None = None,
+    renderer_options=None,
 ) -> TestClient:
     db_path = tmp_path / "test.db"
     static_dir = tmp_path / "static"
@@ -181,7 +182,7 @@ def _client(
         os.environ["VISUALCSOUND_HOST_MIDI_TOKEN"] = host_midi_token
 
     get_settings.cache_clear()
-    app = create_app()
+    app = create_app(renderer_options=renderer_options)
     return TestClient(app)
 
 

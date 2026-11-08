@@ -1,4 +1,5 @@
 import { readAutomationTarget } from "../lib/clipArranger/automation";
+import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { readClipHistory } from "../lib/clipArranger/operations";
 import { clipHistoryForPersistence } from "../lib/clipArranger/history";
 import { sourceKeys } from "../lib/clipArranger/migration";
@@ -262,6 +263,7 @@ export type PersistWatchState = {
   activePage: AppPage;
   guiLanguage: GuiLanguage;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  parallelRenderBatchFrames: number;
   instrumentTabs: InstrumentTabState[];
   activeInstrumentTabId: string;
   sequencer: SequencerState;
@@ -1685,6 +1687,15 @@ export function emptyPerformanceSequencerState(): SequencerState {
   };
 }
 
+export function newPerformanceSequencerState(): SequencerState {
+  const sequencer = emptyPerformanceSequencerState();
+  if (isClipArrangerEnabled()) {
+    sequencer.clipArrangement = { version: 1, revision: 0, end: 20160 * 16, lanes: [] };
+    sequencer.pianoRolls = [defaultPianoRoll()];
+  }
+  return sequencer;
+}
+
 export function performanceDeviceCount(sequencer: SequencerState): number {
   return (
     sequencer.tracks.length + sequencer.scoreTracks.length +
@@ -2436,6 +2447,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
     browserClockLatencySettings: normalizeBrowserClockLatencySettings(state.browserClockLatencySettings),
+    parallelRenderBatchFrames: state.parallelRenderBatchFrames,
     instrumentTabs: state.instrumentTabs.map((tab) => ({
       id: tab.id,
       patch: {
@@ -2469,6 +2481,7 @@ export function capturePersistWatchState(state: AppStore): PersistWatchState {
     activePage: state.activePage,
     guiLanguage: state.guiLanguage,
     browserClockLatencySettings: state.browserClockLatencySettings,
+    parallelRenderBatchFrames: state.parallelRenderBatchFrames,
     instrumentTabs: state.instrumentTabs,
     activeInstrumentTabId: state.activeInstrumentTabId,
     sequencer: state.sequencer,
@@ -2491,6 +2504,7 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
     current.activePage !== previous.activePage ||
     current.guiLanguage !== previous.guiLanguage ||
     current.browserClockLatencySettings !== previous.browserClockLatencySettings ||
+    current.parallelRenderBatchFrames !== previous.parallelRenderBatchFrames ||
     current.instrumentTabs !== previous.instrumentTabs ||
     current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
     current.sequencer !== previous.sequencer ||

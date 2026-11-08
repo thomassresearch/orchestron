@@ -1,6 +1,6 @@
 # Instrument automation clips
 
-**Navigation:** [Clip arranger](clip_arranger_preview.md) | [Performance controllers](performance_controllers.md) | [Controller sequencers](controller_sequencers.md)
+**Navigation:** [Clip arranger](multitrack_arranger.md) | [Performance controllers](performance_controllers.md) | [Controller sequencers](controller_sequencers.md)
 
 In the clip arranger, **Generate automation** creates controller clips owned by a rack instrument. Assign MIDI CCs to its performance controllers in the rack first. Select a Melodic, Drummer, Score or Arpeggiator clip, then choose Generate automation in its inspector. If several rack instances receive that source's output channel, choose the instance in **Automation instrument**. Continuous instruments and invalid or unassigned controls are excluded.
 

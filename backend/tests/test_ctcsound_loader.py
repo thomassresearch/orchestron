@@ -142,3 +142,44 @@ def test_direct_binding_buffer_view_lifecycle() -> None:
     assert np.size(cs.spout()) == 0
     lib.size = 4
     assert cs.spout().shape == (8,)
+
+
+def test_direct_audio_channel_bridge_validates_native_abi_and_buffers():
+    from unittest.mock import Mock
+    from types import SimpleNamespace
+    import pytest
+
+    stored = np.arange(4, dtype=np.float64)
+
+    def get(_cs, _name, pointer):
+        np.ctypeslib.as_array(pointer, shape=(4,))[:] = stored
+
+    def put(_cs, _name, pointer):
+        stored[:] = np.ctypeslib.as_array(pointer, shape=(4,))
+
+    library = SimpleNamespace(csoundCreate=Mock(return_value=1), csoundDestroy=Mock(),
+        csoundGetSizeOfMYFLT=Mock(return_value=8), csoundGetKsmps=Mock(return_value=4),
+        csoundGetAudioChannel=Mock(side_effect=get), csoundSetAudioChannel=Mock(side_effect=put))
+    cs = ctcsound_loader._build_direct_csound_class(library)()
+    output = np.zeros(4, dtype=np.float64)
+    cs.audioChannel('bus', output)
+    np.testing.assert_array_equal(output, stored)
+    output[:] = [-.5, .25, 1e-20, -1e20]
+    cs.setAudioChannel('bus', output)
+    np.testing.assert_array_equal(stored, output)
+    for invalid in (np.zeros(3), np.zeros(8)[::2], np.zeros(4, dtype=np.float32), [0.] * 4, np.zeros((4, 1))):
+        with pytest.raises(ValueError):
+            cs.audioChannel('bus', invalid)
+        with pytest.raises(ValueError):
+            cs.setAudioChannel('bus', invalid)
+    output.flags.writeable = False
+    with pytest.raises(ValueError):
+        cs.audioChannel('bus', output)
+    cs.setAudioChannel('bus', output)  # Read-only input is valid.
+    library.csoundGetSizeOfMYFLT.return_value = 4
+    with pytest.raises(RuntimeError, match='MYFLT width'):
+        cs.audioChannel('bus', np.zeros(4))
+    with pytest.raises(RuntimeError, match='MYFLT width'):
+        cs.setAudioChannel('bus', np.zeros(4))
+    assert library.csoundGetAudioChannel.call_count == 1
+    assert library.csoundSetAudioChannel.call_count == 2

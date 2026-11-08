@@ -6,8 +6,10 @@ from typing import Any
 import threading
 import asyncio
 
-from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.realtime_renderer import RealtimeRenderer
+from backend.app.engine.renderer_factory import create_realtime_renderer
 from backend.app.engine.live_midi_activity import LiveMidiActivity
+from backend.app.engine.engine_stats import EngineStatsSampler
 from backend.app.models.audio import AudioGraph, MixerState
 from backend.app.models.session import CompileArtifact, SessionInstrumentAssignment, SessionState
 
@@ -25,7 +27,9 @@ class RuntimeSession:
     mixer: MixerState = field(default_factory=MixerState)
     mixer_revision: int = 0
     preview_patches: dict = field(default_factory=dict)
-    worker: CsoundWorker = field(default_factory=CsoundWorker)
+    worker: RealtimeRenderer = field(default_factory=create_realtime_renderer)
+    renderer_controller: Any = None
+    engine_stats: EngineStatsSampler = field(default_factory=EngineStatsSampler)
     midi_router: Any = None
     sequencer: Any = None
     sequencer_request: Any = None
@@ -37,6 +41,9 @@ class RuntimeSession:
     lifecycle_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     closing: bool = False
     stopping: bool = False
+    stop_requests: int = 0
+    lifecycle_generation: int = 0
+    failure_pending: bool = False
     live_midi_activity: LiveMidiActivity = field(default_factory=LiveMidiActivity)
 
     @property

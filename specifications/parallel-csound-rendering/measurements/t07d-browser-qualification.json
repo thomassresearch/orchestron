@@ -1,0 +1,606 @@
+{
+  "protocol": "t07d-test-plan.md",
+  "requested_soak_seconds": 600,
+  "production_predicate_soak_seconds": 1800,
+  "registered_qualification_records": 0,
+  "workloads": {
+    "realtime_2": {
+      "soaks": {
+        "single": {
+          "seconds": 602.4997849999667,
+          "underruns": 0,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 20352,
+          "render_audio_ratio": {
+            "count": 1205,
+            "mean": 0.8532353858913059,
+            "median": 0.8524940185546875,
+            "p95": 0.9621022939453125,
+            "p99": 0.983078736328125,
+            "max": 1.213578615234375
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.041475359350442886,
+          "renderer": null,
+          "connections": 1
+        },
+        "parallel": {
+          "seconds": 602.4147400000095,
+          "underruns": 0,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 21888,
+          "render_audio_ratio": {
+            "count": 1205,
+            "mean": 0.7104517818010893,
+            "median": 0.7123907460937501,
+            "p95": 0.788469240234375,
+            "p99": 0.8293604765625,
+            "max": 1.0729342060546876
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.041475359350442886,
+          "renderer": {
+            "requested": "parallel",
+            "selected": "parallel",
+            "worker_count": 3,
+            "qualified": false,
+            "fallback_reason": null,
+            "failed": false,
+            "committed_sample": 29439808,
+            "published_sample": 29430144,
+            "effective_cpus": 4,
+            "capacity_known": true,
+            "render_requests": 1797,
+            "slow_requests": 4,
+            "max_render_audio_ratio": 1.1391281747421544
+          },
+          "connections": 1
+        }
+      },
+      "settings": {
+        "playbackMode": "auto",
+        "inactivityTimeoutSeconds": 10,
+        "steadyLowWaterMs": 90,
+        "steadyHighWaterMs": 180,
+        "startupLowWaterMs": 180,
+        "startupHighWaterMs": 320,
+        "underrunRecoveryBoostMs": 120,
+        "maxUnderrunBoostMs": 600,
+        "maxBlocksPerRequest": 96,
+        "steadyMaxParallelRequests": 2,
+        "startupMaxParallelRequests": 3,
+        "recoveryMaxParallelRequests": 3,
+        "immediateRenderBlocks": 24,
+        "immediateRenderCooldownMs": 25
+      },
+      "recovery": {
+        "trials": {
+          "single": [
+            {
+              "status": "recovered",
+              "underruns": 307,
+              "missing_frames": 39296,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.00927734375,
+              "observed_seconds": 65.40533333333333,
+              "post_resume_observed_seconds": 60.935849609375,
+              "recovery_ms_bounds": [
+                282.516357421875,
+                330.747314453125
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 326,
+              "missing_frames": 41728,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.01171875,
+              "observed_seconds": 65.4,
+              "post_resume_observed_seconds": 60.93040380859375,
+              "recovery_ms_bounds": [
+                234.40380859375,
+                285.09814453125
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 328,
+              "missing_frames": 41984,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.020263671875,
+              "observed_seconds": 65.42666666666666,
+              "post_resume_observed_seconds": 60.951150390625,
+              "recovery_ms_bounds": [
+                191.150390625,
+                245.85791015625
+              ],
+              "stable_seconds_required": 10
+            }
+          ],
+          "parallel": [
+            {
+              "status": "recovered",
+              "underruns": 261,
+              "missing_frames": 33408,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.041748046875,
+              "observed_seconds": 65.496,
+              "post_resume_observed_seconds": 60.94778735351562,
+              "recovery_ms_bounds": [
+                150.453857421875,
+                188.1298828125
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 283,
+              "missing_frames": 36160,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.032470703125,
+              "observed_seconds": 65.39466666666667,
+              "post_resume_observed_seconds": 60.93929150390625,
+              "recovery_ms_bounds": [
+                205.958251953125,
+                234.4228515625
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 275,
+              "missing_frames": 35136,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.028076171875,
+              "observed_seconds": 65.46933333333334,
+              "post_resume_observed_seconds": 60.97211254882812,
+              "recovery_ms_bounds": [
+                228.112548828125,
+                278.3388671875
+              ],
+              "stable_seconds_required": 10
+            }
+          ]
+        },
+        "total_underruns": {
+          "single": 961,
+          "parallel": 819
+        },
+        "worst_recovery_ms_bounds": {
+          "single": [
+            282.516357421875,
+            330.747314453125
+          ],
+          "parallel": [
+            228.112548828125,
+            278.3388671875
+          ]
+        },
+        "decision": "pass"
+      },
+      "latency": {
+        "decision": "incomplete",
+        "reason": "Incomplete or uncalibrated MIDI latency evidence",
+        "runs": {
+          "single": {
+            "state": "complete",
+            "errors": [],
+            "measured_bursts": 128,
+            "warmups": 4,
+            "calibrations": 16,
+            "observed_ms": {
+              "count": 128,
+              "mean": 434.3117526088654,
+              "median": 484.5568333429401,
+              "p95": 736.3811666904949,
+              "p99": 747.4143333047396,
+              "max": 747.827333271387
+            },
+            "entire_phase_underruns": 186,
+            "measured_bursts_and_gaps_underruns": 183
+          },
+          "parallel": {
+            "state": "failed",
+            "errors": [
+              "Error: Foreground was not silent for 50 ms before midi-81"
+            ],
+            "measured_bursts": 81,
+            "warmups": 4,
+            "calibrations": 16,
+            "observed_ms": {
+              "count": 81,
+              "mean": 167.70458435797835,
+              "median": 123.24966663320083,
+              "p95": 371.51400002860464,
+              "p99": 722.1453333189711,
+              "max": 722.1453333189711
+            },
+            "entire_phase_underruns": 35,
+            "measured_bursts_and_gaps_underruns": 35
+          }
+        }
+      },
+      "final_errors": {
+        "single": {
+          "worker": [],
+          "frontend": null
+        },
+        "parallel": {
+          "worker": [],
+          "frontend": null
+        }
+      },
+      "private_memory_bytes": {
+        "single": 258887680,
+        "parallel": 465358848
+      },
+      "soak_provenance": "Fresh sequential T07d arms on the frozen candidate image",
+      "native": {
+        "single": {
+          "median": 11.0475,
+          "p95": 11.8585,
+          "p99": 12.47775,
+          "max": 12.84075
+        },
+        "parallel": {
+          "median": 8.24525,
+          "p95": 9.047708,
+          "p99": 9.811208,
+          "max": 19.080875
+        },
+        "p95_reduction": 0.23702761732090905
+      },
+      "existing_predicate": {
+        "rejection": "browser_soak_incomplete",
+        "inputs": {
+          "runtime": "c405c051ccc6461576c29ebb0ec1112e934894af63f0f54286a3302ec5b1db7c",
+          "artifact_hash": "81a17d5e4097ee308daefc8b087e0cbfbfa1fdb6cbcbe363b357b409cbe0fe37",
+          "plan_hash": "2d84ff9e4fc3919101e9515edc8fbf59dc53489d70ec96e89d8e054429a3eaa4",
+          "workload": "realtime_2",
+          "report_digest": "080ff273cdc18aea08cbaf6ce6b1547dae2823b64ea16d9a2528b296b2093b47",
+          "single_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "parallel_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "effective_cpus": 4,
+          "single_p95_ms": 11.8585,
+          "parallel_p95_ms": 9.047708,
+          "single_p99_ms": 12.47775,
+          "parallel_p99_ms": 9.811208,
+          "single_browser_seconds": 602.4997849999667,
+          "parallel_browser_seconds": 602.4147400000095,
+          "single_underruns": 0,
+          "parallel_underruns": 0,
+          "stress_single_underruns": 961,
+          "stress_parallel_underruns": 819,
+          "stress_single_recovery_ms": 330.747314453125,
+          "stress_parallel_recovery_ms": 278.3388671875,
+          "private_memory_bytes": 465358848,
+          "native_correctness": true,
+          "final_image": true
+        },
+        "scope": "Unmodified production predicate; actual observed durations, no registration"
+      },
+      "observations_clean": true,
+      "renderer_verified": true,
+      "ten_minute_checks": {
+        "observations_clean": true,
+        "renderer_verified": true,
+        "requested_duration": true,
+        "clean_soaks": true,
+        "native_benefit": true,
+        "live_latency": false,
+        "recovery": true
+      },
+      "ten_minute_decision": "not_passed"
+    },
+    "realtime_4": {
+      "soaks": {
+        "single": {
+          "seconds": 602.4026050000191,
+          "underruns": 727,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 0,
+          "render_audio_ratio": {
+            "count": 1205,
+            "mean": 0.9787531786452931,
+            "median": 0.9909584970703125,
+            "p95": 1.074662109375,
+            "p99": 1.0957308369140626,
+            "max": 1.3377126474609375
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.09053163975477219,
+          "renderer": null,
+          "connections": 1
+        },
+        "parallel": {
+          "seconds": 602.4149900000095,
+          "underruns": 0,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 19840,
+          "render_audio_ratio": {
+            "count": 1205,
+            "mean": 0.7827475294727374,
+            "median": 0.7808992939453125,
+            "p95": 0.85890673828125,
+            "p99": 0.8885637187500001,
+            "max": 1.10277270703125
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.09053163975477219,
+          "renderer": {
+            "requested": "parallel",
+            "selected": "parallel",
+            "worker_count": 3,
+            "qualified": false,
+            "fallback_reason": null,
+            "failed": false,
+            "committed_sample": 29433472,
+            "published_sample": 29430144,
+            "effective_cpus": 4,
+            "capacity_known": true,
+            "render_requests": 1797,
+            "slow_requests": 10,
+            "max_render_audio_ratio": 1.162340575149301
+          },
+          "connections": 1
+        }
+      },
+      "settings": {
+        "playbackMode": "auto",
+        "inactivityTimeoutSeconds": 10,
+        "steadyLowWaterMs": 90,
+        "steadyHighWaterMs": 180,
+        "startupLowWaterMs": 180,
+        "startupHighWaterMs": 320,
+        "underrunRecoveryBoostMs": 120,
+        "maxUnderrunBoostMs": 600,
+        "maxBlocksPerRequest": 96,
+        "steadyMaxParallelRequests": 2,
+        "startupMaxParallelRequests": 3,
+        "recoveryMaxParallelRequests": 3,
+        "immediateRenderBlocks": 24,
+        "immediateRenderCooldownMs": 25
+      },
+      "recovery": {
+        "trials": {
+          "single": [
+            {
+              "status": "recovered",
+              "underruns": 342,
+              "missing_frames": 43776,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.029541015625,
+              "observed_seconds": 65.40533333333333,
+              "post_resume_observed_seconds": 60.93124096679688,
+              "recovery_ms_bounds": [
+                373.90771484375,
+                430.52197265625
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 338,
+              "missing_frames": 43264,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.025146484375,
+              "observed_seconds": 65.41066666666667,
+              "post_resume_observed_seconds": 60.9289609375,
+              "recovery_ms_bounds": [
+                355.627685546875,
+                410.317626953125
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 332,
+              "missing_frames": 42496,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.031494140625,
+              "observed_seconds": 65.4,
+              "post_resume_observed_seconds": 60.93180859375,
+              "recovery_ms_bounds": [
+                673.141845703125,
+                725.5625
+              ],
+              "stable_seconds_required": 10
+            }
+          ],
+          "parallel": [
+            {
+              "status": "recovered",
+              "underruns": 297,
+              "missing_frames": 38016,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.023681640625,
+              "observed_seconds": 65.44266666666667,
+              "post_resume_observed_seconds": 60.92430151367188,
+              "recovery_ms_bounds": [
+                281.635009765625,
+                336.8828125
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 273,
+              "missing_frames": 34880,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.02490234375,
+              "observed_seconds": 65.42666666666666,
+              "post_resume_observed_seconds": 60.941552978515624,
+              "recovery_ms_bounds": [
+                234.88623046875,
+                288.068115234375
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 287,
+              "missing_frames": 36672,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.017822265625,
+              "observed_seconds": 65.42133333333334,
+              "post_resume_observed_seconds": 60.946034912109376,
+              "recovery_ms_bounds": [
+                223.368408203125,
+                268.4443359375
+              ],
+              "stable_seconds_required": 10
+            }
+          ]
+        },
+        "total_underruns": {
+          "single": 1012,
+          "parallel": 857
+        },
+        "worst_recovery_ms_bounds": {
+          "single": [
+            673.141845703125,
+            725.5625
+          ],
+          "parallel": [
+            281.635009765625,
+            336.8828125
+          ]
+        },
+        "decision": "pass"
+      },
+      "latency": {
+        "decision": "incomplete",
+        "reason": "Incomplete or uncalibrated MIDI latency evidence",
+        "runs": {
+          "single": {
+            "state": "complete",
+            "errors": [],
+            "measured_bursts": 128,
+            "warmups": 4,
+            "calibrations": 16,
+            "observed_ms": {
+              "count": 128,
+              "mean": 139.6442539017171,
+              "median": 140.35824997373857,
+              "p95": 159.55999999050982,
+              "p99": 167.36883328564,
+              "max": 168.71983331430238
+            },
+            "entire_phase_underruns": 201,
+            "measured_bursts_and_gaps_underruns": 188
+          },
+          "parallel": {
+            "state": "failed",
+            "errors": [
+              "Error: Foreground was not silent for 50 ms before midi-107"
+            ],
+            "measured_bursts": 107,
+            "warmups": 4,
+            "calibrations": 16,
+            "observed_ms": {
+              "count": 107,
+              "mean": 191.95297975146113,
+              "median": 124.15416666667443,
+              "p95": 629.0616666952847,
+              "p99": 728.982666757307,
+              "max": 729.8551665856503
+            },
+            "entire_phase_underruns": 106,
+            "measured_bursts_and_gaps_underruns": 106
+          }
+        }
+      },
+      "final_errors": {
+        "single": {
+          "worker": [],
+          "frontend": null
+        },
+        "parallel": {
+          "worker": [],
+          "frontend": null
+        }
+      },
+      "private_memory_bytes": {
+        "single": 260153344,
+        "parallel": 475856896
+      },
+      "soak_provenance": "Fresh sequential T07d arms on the frozen candidate image",
+      "native": {
+        "single": {
+          "median": 12.2021045,
+          "p95": 12.755083,
+          "p99": 13.012042,
+          "max": 14.127458
+        },
+        "parallel": {
+          "median": 9.0301045,
+          "p95": 9.887125,
+          "p99": 10.345166,
+          "max": 14.379
+        },
+        "p95_reduction": 0.22484824285345706
+      },
+      "existing_predicate": {
+        "rejection": "browser_soak_incomplete",
+        "inputs": {
+          "runtime": "c405c051ccc6461576c29ebb0ec1112e934894af63f0f54286a3302ec5b1db7c",
+          "artifact_hash": "31867cfbb43491a420be5e326ffd22ca5c6b9f26bc990eee30392bcc3bb09d9b",
+          "plan_hash": "da066478b566f725b56082d7399560a16c1fc631fea495dc8ec4ab121e29d7b8",
+          "workload": "realtime_4",
+          "report_digest": "03b6fbedc8504643a62bad750d8f761fea63efb87f0815007dfa259f03ef23cc",
+          "single_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "parallel_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "effective_cpus": 4,
+          "single_p95_ms": 12.755083,
+          "parallel_p95_ms": 9.887125,
+          "single_p99_ms": 13.012042,
+          "parallel_p99_ms": 10.345166,
+          "single_browser_seconds": 602.4026050000191,
+          "parallel_browser_seconds": 602.4149900000095,
+          "single_underruns": 727,
+          "parallel_underruns": 0,
+          "stress_single_underruns": 1012,
+          "stress_parallel_underruns": 857,
+          "stress_single_recovery_ms": 725.5625,
+          "stress_parallel_recovery_ms": 336.8828125,
+          "private_memory_bytes": 475856896,
+          "native_correctness": true,
+          "final_image": true
+        },
+        "scope": "Unmodified production predicate; actual observed durations, no registration"
+      },
+      "observations_clean": true,
+      "renderer_verified": true,
+      "ten_minute_checks": {
+        "observations_clean": true,
+        "renderer_verified": true,
+        "requested_duration": true,
+        "clean_soaks": false,
+        "native_benefit": true,
+        "live_latency": false,
+        "recovery": true
+      },
+      "ten_minute_decision": "not_passed"
+    }
+  },
+  "ten_minute_assessment": "not_passed",
+  "G7_production_qualification": "not_passed"
+}

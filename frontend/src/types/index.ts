@@ -787,6 +787,7 @@ export interface PersistedAppState {
   performanceDescription: string;
   activeMidiInput: string | null;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  parallelRenderBatchFrames?: number;
 }
 
 export interface AppStateResponse {
@@ -1121,7 +1122,25 @@ export interface PatchListItem {
 
 export type SessionState = "idle" | "compiled" | "running" | "error";
 
+export interface RendererDiagnostics {
+  requested: "single" | "auto" | "parallel";
+  selected: "single" | "parallel";
+  worker_count: number;
+  qualified: boolean;
+  fallback_reason?: string | null;
+  failed: boolean;
+  committed_sample: number;
+  published_sample: number;
+  effective_cpus?: number | null;
+  capacity_known?: boolean | null;
+  render_requests?: number;
+  slow_requests?: number;
+  max_render_audio_ratio?: number;
+  coordination_frames?: number | null;
+}
+
 export interface SessionInfo {
+  renderer?: RendererDiagnostics | null;
   audio_graph?: AudioGraph;
   mixer?: MixerState;
   mixer_revision?: number;
@@ -1132,6 +1151,23 @@ export interface SessionInfo {
   midi_input: string | null;
   created_at: string;
   started_at: string | null;
+}
+
+export interface SessionRendererRequest {
+  renderer_mode: "single" | "auto";
+  parallel_batch_frames?: number;
+  browser_settings?: BrowserClockLatencySettings;
+}
+
+export interface EngineStats {
+  session_id: string;
+  state: SessionState;
+  renderer: RendererDiagnostics | null;
+  available: boolean;
+  scope: "renderer_cpus" | "server_process" | "unavailable";
+  cpus: Array<{ cpu: number; percent: number | null }>;
+  process_percent: number | null;
+  sample_seconds: number | null;
 }
 
 export interface SessionCreateResponse {

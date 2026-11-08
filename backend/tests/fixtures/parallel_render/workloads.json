@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "sample_rate": 48000,
+  "ksmps": [1, 32],
+  "warmup_frames": 2048,
+  "request_frames": 512,
+  "edit_frame": 4096,
+  "control_frame": 8192,
+  "cases": [
+    {"id": "tiny_1", "sources": 1, "voices": 1, "filter_count": 0, "topology": "private"},
+    {"id": "independent_2", "sources": 2, "voices": 8, "filter_count": 4, "topology": "private"},
+    {"id": "independent_4", "sources": 4, "voices": 8, "filter_count": 4, "topology": "private"},
+    {"id": "independent_8", "sources": 8, "voices": 8, "filter_count": 4, "topology": "private"},
+    {"id": "shared_4", "sources": 4, "voices": 8, "filter_count": 4, "topology": "shared"},
+    {"id": "serial_1", "sources": 1, "voices": 8, "filter_count": 16, "topology": "private"}
+  ]
+}

@@ -37,16 +37,23 @@ order within each group. Ungrouped controls share an unbordered block at their
 first occurrence. Groups remain expanded and can sit beside one another or wrap.
 
 Perform uses the available browser width. Instrument cards and controller groups
-automatically choose widths and rows to reduce rack height while retaining the
-saved instrument order. Large instruments can span the rack; small instruments
-can share a row. Controls retain their normal size and remain fully visible.
+automatically choose widths and rows while retaining the saved instrument,
+group and controller order. Group borders fit their controls closely; spare space
+stays outside the borders. To avoid tall, narrow groups, the layout may use up to
+5% more height than the shortest group arrangement, favoring less empty space
+inside groups and horizontal rows. For example, Envelope can display Attack,
+Decay, Sustain and Release together in one row when space allows.
+
+Large instruments can span the rack; small instruments can share a row. The layout
+adapts when you resize the window or change browser zoom. Controls retain their
+normal size and remain fully visible, including at fractional zoom levels.
 Resizing preserves focus and unfinished value edits.
 
 Group names belong to the instrument definition, survive native export/import,
 and do not change controller identity, saved values, MIDI assignments or sound.
 Changing only a group name does not require restarting the rack.
 
-![Grouped controllers in a full-width adaptive instrument rack](../../screenshots/performance_controller_groups_rack.png)
+![Compact controller groups with a horizontal four-control Envelope](../../screenshots/performance_controller_groups_compact.png)
 
 **Float** retains its knob, caption, scale dashes, endpoints, LIN/LOG indicator and current value. Linear ticks are equally spaced; logarithmic ticks follow ratios and mark decade boundaries.
 

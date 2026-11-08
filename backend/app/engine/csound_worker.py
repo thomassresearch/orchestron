@@ -8,7 +8,6 @@ import os
 import re
 import sys
 import threading
-from dataclasses import dataclass
 from typing import Any, Callable
 
 from backend.app.engine.performance_controllers import PerformanceControllers
@@ -19,30 +18,14 @@ from backend.app.engine.browser_audio_pcm import (
 )
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.engine.midi_scheduler import EngineMidiOutputAdapter, EngineMidiScheduler
+from backend.app.engine.lane_output import LaneOutputGate
+# Preserve these imports for existing worker callers while sharing renderer results.
+from backend.app.engine.realtime_renderer import EngineRenderResult, EngineStartResult
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CSOUND_SOFTWARE_BUFFER_SAMPLES = 128
 DEFAULT_CSOUND_HARDWARE_BUFFER_SAMPLES = 512
-
-
-@dataclass(slots=True)
-class EngineStartResult:
-    backend: str
-    detail: str
-    audio_mode: str = "browser_clock"
-
-
-@dataclass(slots=True)
-class EngineRenderResult:
-    engine_sample_start: int
-    engine_sample_end: int
-    engine_sample_rate: int
-    target_sample_rate: int
-    channels: int
-    block_count: int
-    target_frame_count: int
-    pcm_f32le: bytes
 
 
 class CsoundWorker:
@@ -207,7 +190,7 @@ class CsoundWorker:
         )
 
     @property
-    def lane_output(self):
+    def lane_output(self) -> LaneOutputGate:
         return self._midi_scheduler.lane_output
 
     def release_lane_events(self, identities: list[str]) -> None:

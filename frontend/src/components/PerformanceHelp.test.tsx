@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useAppStore } from "../store/useAppStore";
 import { migrateClipArrangement } from "../lib/clipArranger/migration";
+import { clipCopy } from "./clipArranger/copy";
 import { documentationUiCopy } from "../lib/documentationUi";
 import type { GuiLanguage, HelpDocId } from "../types";
 import { INITIAL_PANEL_COLLAPSE_STATE } from "./CollapsiblePanel";
@@ -36,7 +37,7 @@ beforeEach(() => {
   sequencer.clipArrangement = migrateClipArrangement(sequencer).model!;
   useAppStore.setState({ sequencer });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 const cases = [
   ["english", "Mixer", "Multitrack Arranger", "Arrange clips and reusable content", "Feedback loops"],
@@ -44,6 +45,25 @@ const cases = [
   ["french", "Mixeur", "Arrangeur multipiste", "Organiser les clips et les contenus réutilisables", "Boucles audio"],
   ["spanish", "Mezclador", "Arreglador multipista", "Organizar clips y contenido reutilizable", "Bucles de audio"]
 ] as const;
+
+it.each(cases)("offers explicit conversion in %s by default and hides it for the legacy override", language => {
+  vi.stubEnv("VITE_CLIP_ARRANGER", undefined);
+  useAppStore.setState(state => ({ sequencer: { ...state.sequencer, clipArrangement: undefined } }));
+  const view = render(<Page language={language} />);
+  const name = clipCopy(language).convertToClips;
+  expect(screen.getByRole("button", { name })).toBeTruthy();
+  expect(useAppStore.getState().sequencer.clipArrangement).toBeUndefined();
+  vi.stubEnv("VITE_CLIP_ARRANGER", "0");
+  view.rerender(<Page language={language} />);
+  expect(screen.queryByRole("button", { name })).toBeNull();
+});
+
+it.each([undefined, "0"])("shows the clip arranger for saved clips with VITE_CLIP_ARRANGER=%s", flag => {
+  vi.stubEnv("VITE_CLIP_ARRANGER", flag);
+  render(<Page language="english" />);
+  expect(screen.getByRole("region", { name: /Multitrack arranger/i })).toBeTruthy();
+  expect(screen.getByRole("combobox", { name: "Add track" })).toBeTruthy();
+});
 
 it.each(cases)("opens Mixer help in %s while expanded and collapsed without toggling or changing the mix", (language, title, _arranger, _intro, feedback) => {
   useAppStore.setState({ guiLanguage: language });

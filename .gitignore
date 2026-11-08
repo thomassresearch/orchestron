@@ -50,3 +50,5 @@ examples/instruments/tenor_saxophone/
 compositions/
 
 /integrations/plugin-dist/
+
+specifications/parallel-csound-rendering/measurements

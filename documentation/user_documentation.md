@@ -2,7 +2,7 @@
 
 **Navigation:** [Next](instrument_design/instrument_design.md)
 
-This manual documents the current Orchestron user-facing functionality as implemented in the repository (frontend, backend API behavior visible to users, and feature history from the git log) as of **2026-09-07**, including the DAW audio-routing and persistent Perform mixer changes in commit `b487abd`.
+This manual explains how to design instruments, arrange music and perform with Orchestron.
 
 It is organized by chapter and subchapter so you can read it front-to-back or jump directly to a workflow.
 
@@ -47,7 +47,8 @@ The animation describes the existing native Csound runtime. See [clock ownership
 - [Audio Mixer and Routing](performance/audio_mixer_and_routing.md)
 - [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md)
 - [Score Sequencers](performance/score_sequencers.md)
-- [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md)
+- [Patterns and Reusable Phrases](performance/pattern_pads_and_pad_looper.md)
+- [Multitrack Arranger](performance/multitrack_arranger.md)
 - [Controller Sequencers](performance/controller_sequencers.md)
 - [Arpeggiators](performance/arpeggiators.md)
 - [Piano Rolls](performance/piano_rolls.md)
@@ -85,8 +86,8 @@ The animation describes the existing native Csound runtime. See [clock ownership
 | GEN meta-opcode editor (GEN01/GENpadsynth/etc.) | [GEN Table Editor (GEN Meta-Opcode)](instrument_design/gen_table_editor.md) |
 | Instrument import/export bundles + CSD export | [Instrument Import / Export and CSD Export](instrument_design/instrument_import_export.md) |
 | Performance rack, multi-instrument assignments, engine transport | [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md) |
-| Melodic sequencers, pattern pads, pad looper, transposition | [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md), [Pattern Pads, Queued Switching, and Pad Looper](performance/pattern_pads_and_pad_looper.md) |
-| Long polyphonic scores, note drawing, hidden material and eight pads | [Score Sequencers](performance/score_sequencers.md) |
+| Melodic sequencers, reusable patterns, arrangement and transposition | [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md), [Patterns and Reusable Phrases](performance/pattern_pads_and_pad_looper.md) |
+| Long polyphonic scores, note drawing and hidden material | [Score Sequencers](performance/score_sequencers.md) |
 | Controller sequencers and CC curve editor | [Controller Sequencers](performance/controller_sequencers.md) |
 | Backend arpeggiator virtual instruments and presets | [Arpeggiators](performance/arpeggiators.md) |
 | Piano rolls, scale/mode following, mixed-mode highlighting | [Piano Rolls](performance/piano_rolls.md) |

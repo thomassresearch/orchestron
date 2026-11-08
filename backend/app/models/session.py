@@ -113,6 +113,10 @@ class SessionInstrumentAssignment(BaseModel):
 
 
 class SessionCreateRequest(BaseModel):
+    renderer_mode: Literal["single", "auto"] = "single"
+    parallel_batch_frames: int | None = Field(default=None, ge=32, le=1024, strict=True)
+    # Requested browser policy, never qualification evidence or planner costs.
+    browser_settings: dict[str, int | str] | None = Field(default=None, max_length=32)
     audio_graph: AudioGraph | None = None
     mixer: MixerState = Field(default_factory=MixerState)
     patch_id: str | None = Field(default=None, min_length=1)
@@ -153,6 +157,23 @@ class SessionCreateResponse(BaseModel):
     state: SessionState
 
 
+class RendererDiagnostics(BaseModel):
+    requested: Literal["single", "auto", "parallel"]
+    selected: Literal["single", "parallel"]
+    worker_count: int
+    qualified: bool
+    fallback_reason: str | None = None
+    failed: bool = False
+    committed_sample: int = 0
+    published_sample: int = 0
+    effective_cpus: float | None = None
+    capacity_known: bool | None = None
+    render_requests: int = 0
+    slow_requests: int = 0
+    max_render_audio_ratio: float = 0.
+    coordination_frames: int | None = None
+
+
 class SessionInfo(BaseModel):
     audio_graph: AudioGraph | None = None
     mixer: MixerState = Field(default_factory=MixerState)
@@ -164,6 +185,7 @@ class SessionInfo(BaseModel):
     midi_input: str | None = None
     created_at: datetime
     started_at: datetime | None = None
+    renderer: RendererDiagnostics | None = None
 
 
 class CompileResponse(BaseModel):

@@ -1,18 +1,16 @@
 # Score Sequencers
 
 Score Sequencers hold long, polyphonic passages with an independent start, duration
-and velocity for every note. Add one in **Perform → Score Sequencers**, choose its
-MIDI channel to match a rack instrument, and draw notes in the score. Each device
-has eight pads; a new pad starts at four local bars.
+and velocity for every note. Choose **Add track → Score** in the arranger, add a clip and a pattern, then
+double-click the pattern to open its Score editor. Match its MIDI channel to a
+rack instrument. A new pattern starts at four local bars.
 
 The **?** button at the top right opens the standard help modal in English,
-German, French or Spanish, following the GUI language. It remains available
-while the panel is collapsed and also appears in the clip pattern editor.
+German, French or Spanish, following the GUI language. Use it from the Score pattern editor.
 
-The rose **Remove** button sits at the right end of each device header, alongside
-its name and Play/Stop controls, matching the other sequencers.
+Select a Score clip and use **Remove track** to remove its track.
 
-![Score Sequencer with independent note lengths, eight pads, a pattern workspace and scale-coloured pitch rows](../../screenshots/score-sequencer.jpg)
+![Score pattern editor with its occurrence breadcrumb and draft controls](../../screenshots/score-pattern-editor.png)
 
 ## Draw and edit notes
 
@@ -39,8 +37,6 @@ The score has a separate 25-action undo/redo history per pad. Selection,
 clipboard, history, zoom and scroll survive collapse and view switches during
 the session. New, Load and Import reset this temporary editor state. These
 settings are not stored in a performance or its arranger history.
-
-![Score Sequencer help opened with the question-mark button](../../screenshots/score-sequencer-help.png)
 
 <!-- pagebreak -->
 
@@ -70,31 +66,13 @@ supports 16 Score Sequencers and 50,000 score notes in total. Operations exceedi
 these limits are rejected as a whole. General save and export size limits also
 apply.
 
-## Pads, transport and arrangement
+## Transport and arrangement
 
-**Play** starts this device's selected source. **Manual pads** starts the editing
-pad from its beginning. While running, clicking another pad selects it for
-editing and queues playback: orange marks the queue, cyan marks the sounding
-pad. **Pad launch → Next bar** switches at the next local bar or the current
-score's earlier end. **End of score** waits for the score boundary. A later
-selection replaces the pending one, and the next pad starts from its beginning.
-Stopped devices and devices using **Arrangement** only change their editing pad
-when a pad is clicked.
+Use the arranger's **Play**, **Pause** and **Stop** controls for the song. **Play edit** auditions the open Score pattern while retaining the current song cursor. During song playback it replaces that track while the other tracks continue. **Stop edit** restores the arrangement at its current position.
 
-Drag pads into the [pattern workspace](pattern_pads_and_pad_looper.md) to assemble reusable
-phrases, or into the [multitrack arranger](multitrack_arranger.md) to place them in
-song order. Each score pad is one indivisible occurrence: range selection expands
-to include the whole score. Edit a partial passage inside the Score editor.
-Groups, variations, arranger undo/redo, lane mute/solo and speaker previews use
-the same controls as other sequencers.
+Use clips, groups and supergroups to arrange Score patterns on the timeline. Edit partial passages inside the Score editor. Pattern duration and clip duration are independent; trimming a clip retains the notes beyond its window.
 
-The multitrack arranger also appears when the performance contains only Score
-Sequencers; each score device has its own lane.
-
-Different pitches sustain independently. A repeated pitch retriggers it and
-replaces the previous release. Starting, seeking or returning from a preview
-inside a sustained note retriggers only its remaining duration. Independently
-running Manual pads keep their phase through arranger seeks and Play/Stop.
+Different pitches sustain independently. A repeated pitch retriggers it and replaces its previous release. Starting, seeking or returning from an audition inside a sustained note retriggers only its remaining duration.
 
 Live edits apply at a render boundary. Unchanged sounding notes remain held;
 changed durations update their releases; deleted or moved notes release. New
@@ -104,10 +82,7 @@ past its cursor stops it without rewinding.
 
 ## Save, export and authoring
 
-Save/Load, clone, autosave and native JSON/ZIP bundles preserve all eight scores,
-note IDs, hidden material, timing, source and arrangement. Current performances
-write version 21 and app state writes version 4; older supported versions load
-with no Score Sequencers. The native bundle envelope stays version 1.
+Save/Load, clone, autosave and native JSON/ZIP bundles preserve saved Score patterns, note identities, hidden material, timing and arrangement. Save the pattern draft before saving or exporting the performance.
 
 Both [MIDI and SCORE exports](performance_import_export.md) use the live event
 scheduler, including remaining-duration notes at an export range's start.
@@ -122,22 +97,19 @@ meaning.
 
 ## Clip transposition
 
-The clip arranger supports [shared repetition transpositions and independent nested offsets](clip_arranger_preview.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.
+The clip arranger supports [shared repetition transpositions and independent nested offsets](multitrack_arranger.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.
 
 ## Create a Score pattern in the clip arranger
 
-In the new [multitrack clip editor](clip_arranger_preview.md), Score patterns open
-this same Score editor. The clip arranger is currently a development preview;
-see its guide for enabling it.
+Score patterns are edited directly from their clips in the [multitrack arranger](multitrack_arranger.md).
 
 1. Choose **Add track → Score** and match its MIDI channel to a rack instrument.
-2. Add a clip with the track's **+**, or double-click empty lane space.
-3. Use the clip's inline **+** / **Add content**, then **New pattern** to insert a Score pattern. Existing definitions can also be adopted as linked patterns.
+2. Use the track's first pattern, or add another clip with the track's **+** or by double-clicking empty lane space.
+3. For an empty clip, use its inline **+** / **Add content**, then **New pattern** to insert a Score pattern. Existing definitions can also be adopted as linked patterns.
 4. Double-click the nested pattern box, or focus its name and press **Enter**. The Score sequencer opens in context with the clip breadcrumb and draft controls.
 5. Hold piano keys to try pitches and double-click to collect quarter notes; then move and resize notes. The **?** opens the same multilingual help.
 6. Use **Play edit** to audition the pattern. **Save** asks whether to update **Only this occurrence** or **All linked occurrences**. A local save creates a variation; cancelling keeps the draft. Save the pattern before saving or exporting the performance to include these edits.
 
 Pattern length and the clip window are independent. Saving musical edits keeps
 the clip boundaries; use **Fit clip to content** when the clip should match its
-content. The clip editor replaces the separate pad workspace and old pad-source
-controls with its draft controls.
+content.

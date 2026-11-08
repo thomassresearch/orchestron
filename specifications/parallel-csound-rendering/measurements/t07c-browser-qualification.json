@@ -1,0 +1,615 @@
+{
+  "protocol": "t07c-test-plan.md",
+  "registered_qualification_records": 0,
+  "workloads": {
+    "realtime_2": {
+      "soaks": {
+        "single": {
+          "seconds": 1802.3966600000858,
+          "underruns": 0,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 21376,
+          "render_audio_ratio": {
+            "count": 3604,
+            "mean": 0.8479970026738953,
+            "median": 0.8525231337890625,
+            "p95": 0.9482663583984375,
+            "p99": 0.9609083232421876,
+            "max": 1.0730026845703124
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.041475359350442886,
+          "renderer": null,
+          "connections": 1
+        },
+        "parallel": {
+          "seconds": 1802.4081150000095,
+          "underruns": 0,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 20352,
+          "render_audio_ratio": {
+            "count": 3605,
+            "mean": 0.7253503559894028,
+            "median": 0.7225917978515626,
+            "p95": 0.811759400390625,
+            "p99": 0.8398582763671876,
+            "max": 1.0973050546875
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.041475359350442886,
+          "renderer": {
+            "requested": "parallel",
+            "selected": "parallel",
+            "worker_count": 3,
+            "qualified": false,
+            "fallback_reason": null,
+            "failed": false,
+            "committed_sample": 87036288,
+            "published_sample": 87036288,
+            "effective_cpus": 4,
+            "capacity_known": true,
+            "render_requests": 5313,
+            "slow_requests": 13,
+            "max_render_audio_ratio": 1.2084530039260244
+          },
+          "connections": 1
+        }
+      },
+      "settings": {
+        "playbackMode": "auto",
+        "inactivityTimeoutSeconds": 10,
+        "steadyLowWaterMs": 90,
+        "steadyHighWaterMs": 180,
+        "startupLowWaterMs": 180,
+        "startupHighWaterMs": 320,
+        "underrunRecoveryBoostMs": 120,
+        "maxUnderrunBoostMs": 600,
+        "maxBlocksPerRequest": 96,
+        "steadyMaxParallelRequests": 2,
+        "startupMaxParallelRequests": 3,
+        "recoveryMaxParallelRequests": 3,
+        "immediateRenderBlocks": 24,
+        "immediateRenderCooldownMs": 25
+      },
+      "recovery": {
+        "trials": {
+          "single": [
+            {
+              "status": "recovered",
+              "underruns": 283,
+              "missing_frames": 36224,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.017333984375,
+              "observed_seconds": 65.39466666666667,
+              "post_resume_observed_seconds": 60.921063720703124,
+              "recovery_ms_bounds": [
+                353.063720703125,
+                405.3369140625
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 316,
+              "missing_frames": 40448,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.005615234375,
+              "observed_seconds": 65.4,
+              "post_resume_observed_seconds": 60.91777685546875,
+              "recovery_ms_bounds": [
+                285.77685546875,
+                328.433349609375
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 300,
+              "missing_frames": 38400,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.017822265625,
+              "observed_seconds": 65.39466666666667,
+              "post_resume_observed_seconds": 60.915393310546875,
+              "recovery_ms_bounds": [
+                176.7265625,
+                228.362548828125
+              ],
+              "stable_seconds_required": 10
+            }
+          ],
+          "parallel": [
+            {
+              "status": "recovered",
+              "underruns": 293,
+              "missing_frames": 37504,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.028076171875,
+              "observed_seconds": 65.42666666666666,
+              "post_resume_observed_seconds": 60.914796142578126,
+              "recovery_ms_bounds": [
+                288.12939453125,
+                316.21630859375
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 307,
+              "missing_frames": 39232,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.0166015625,
+              "observed_seconds": 65.416,
+              "post_resume_observed_seconds": 60.93079150390625,
+              "recovery_ms_bounds": [
+                69.458251953125,
+                123.259765625
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 287,
+              "missing_frames": 36672,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.027099609375,
+              "observed_seconds": 65.45333333333333,
+              "post_resume_observed_seconds": 60.9799716796875,
+              "recovery_ms_bounds": [
+                150.63818359375,
+                201.256103515625
+              ],
+              "stable_seconds_required": 10
+            }
+          ]
+        },
+        "total_underruns": {
+          "single": 899,
+          "parallel": 887
+        },
+        "worst_recovery_ms_bounds": {
+          "single": [
+            353.063720703125,
+            405.3369140625
+          ],
+          "parallel": [
+            288.12939453125,
+            316.21630859375
+          ]
+        },
+        "decision": "pass"
+      },
+      "latency": {
+        "single_ms": {
+          "count": 128,
+          "mean": 337.5080078069641,
+          "median": 249.36899999517482,
+          "p95": 728.7998332376592,
+          "p99": 746.115666646976,
+          "max": 746.405666728504
+        },
+        "parallel_ms": {
+          "count": 128,
+          "mean": 144.05891666824573,
+          "median": 121.3616665834561,
+          "p95": 211.9289999906905,
+          "p99": 722.4469999810681,
+          "max": 722.6280000382103
+        },
+        "difference": {
+          "replicates": 10000,
+          "seed": 70703,
+          "confidence": 0.95,
+          "mean_delta_ms_ci": [
+            -234.53375699042604,
+            -152.3092597270731
+          ],
+          "p95_delta_ms_ci": [
+            -601.772499918472,
+            -49.61566671449691
+          ]
+        },
+        "single_first_second_64": {
+          "replicates": 10000,
+          "seed": 70703,
+          "confidence": 0.95,
+          "mean_delta_ms_ci": [
+            25.807216153690845,
+            173.10716549590768
+          ],
+          "p95_delta_ms_ci": [
+            -1.824666752712801,
+            182.02566668577492
+          ]
+        },
+        "block_ms": 0.6666666666666666,
+        "decision": "pass",
+        "underruns": {
+          "single": {
+            "entire_phase": 106,
+            "measured_bursts_and_gaps": 103
+          },
+          "parallel": {
+            "entire_phase": 18,
+            "measured_bursts_and_gaps": 18
+          }
+        },
+        "scope": "Browser estimated output time; no physical speaker latency claim"
+      },
+      "final_errors": {
+        "single": {
+          "worker": [],
+          "frontend": null
+        },
+        "parallel": {
+          "worker": [],
+          "frontend": null
+        }
+      },
+      "private_memory_bytes": {
+        "single": 261394432,
+        "parallel": 466522112
+      },
+      "soak_provenance": "Sequential T07c arms",
+      "native": {
+        "single": {
+          "median": 10.715917000000001,
+          "p95": 12.259792,
+          "p99": 13.112458,
+          "max": 23.6375
+        },
+        "parallel": {
+          "median": 8.576395999999999,
+          "p95": 9.778125,
+          "p99": 10.324042,
+          "max": 11.2515
+        },
+        "p95_reduction": 0.20242325481541612
+      },
+      "existing_predicate": {
+        "rejection": null,
+        "inputs": {
+          "runtime": "90d6d5f33ffba97b5894079163a55e027e42e9f53d87c6371321f71fbbed23c1",
+          "artifact_hash": "81a17d5e4097ee308daefc8b087e0cbfbfa1fdb6cbcbe363b357b409cbe0fe37",
+          "plan_hash": "2d84ff9e4fc3919101e9515edc8fbf59dc53489d70ec96e89d8e054429a3eaa4",
+          "workload": "realtime_2",
+          "report_digest": "405cf66253e64fabcb7f983f6681d36e80ee6b9e620d442867d2fdb71ff6c78f",
+          "single_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "parallel_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "effective_cpus": 4,
+          "single_p95_ms": 12.259792,
+          "parallel_p95_ms": 9.778125,
+          "single_p99_ms": 13.112458,
+          "parallel_p99_ms": 10.324042,
+          "single_browser_seconds": 1802.3966600000858,
+          "parallel_browser_seconds": 1802.4081150000095,
+          "single_underruns": 0,
+          "parallel_underruns": 0,
+          "stress_single_underruns": 899,
+          "stress_parallel_underruns": 887,
+          "stress_single_recovery_ms": 405.3369140625,
+          "stress_parallel_recovery_ms": 316.21630859375,
+          "private_memory_bytes": 466522112,
+          "native_correctness": true,
+          "final_image": true
+        },
+        "scope": "Numerical check only; reuses exact-image native identities, does not register app artifacts"
+      },
+      "observations_clean": true,
+      "renderer_verified": true,
+      "decision": "pass"
+    },
+    "realtime_4": {
+      "soaks": {
+        "single": {
+          "seconds": 1802.4073500000238,
+          "underruns": 0,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 10368,
+          "render_audio_ratio": {
+            "count": 3605,
+            "mean": 0.9461540302709995,
+            "median": 0.9470158681640626,
+            "p95": 1.0455910634765626,
+            "p99": 1.0783726816406252,
+            "max": 1.3111658935546875
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.09053163975477219,
+          "renderer": null,
+          "connections": 1
+        },
+        "parallel": {
+          "seconds": 1823.6963949999808,
+          "underruns": 0,
+          "overruns": 0,
+          "warmup_underruns": 0,
+          "warmup_overruns": 0,
+          "minimum_sampled_queue": 20608,
+          "render_audio_ratio": {
+            "count": 3647,
+            "mean": 0.8321717812491968,
+            "median": 0.8410616455078126,
+            "p95": 0.8914683837890625,
+            "p99": 0.9401671142578125,
+            "max": 1.0820539570312502
+          },
+          "errors": [],
+          "frontend_error": null,
+          "ring_capacity_frames": 288000,
+          "peak": 0.09053163975477219,
+          "renderer": {
+            "requested": "parallel",
+            "selected": "parallel",
+            "worker_count": 3,
+            "qualified": false,
+            "fallback_reason": null,
+            "failed": false,
+            "committed_sample": 88057184,
+            "published_sample": 88052096,
+            "effective_cpus": 4,
+            "capacity_known": true,
+            "render_requests": 5375,
+            "slow_requests": 13,
+            "max_render_audio_ratio": 1.1915740986125911
+          },
+          "connections": 1
+        }
+      },
+      "settings": {
+        "playbackMode": "auto",
+        "inactivityTimeoutSeconds": 10,
+        "steadyLowWaterMs": 90,
+        "steadyHighWaterMs": 180,
+        "startupLowWaterMs": 180,
+        "startupHighWaterMs": 320,
+        "underrunRecoveryBoostMs": 120,
+        "maxUnderrunBoostMs": 600,
+        "maxBlocksPerRequest": 96,
+        "steadyMaxParallelRequests": 2,
+        "startupMaxParallelRequests": 3,
+        "recoveryMaxParallelRequests": 3,
+        "immediateRenderBlocks": 24,
+        "immediateRenderCooldownMs": 25
+      },
+      "recovery": {
+        "trials": {
+          "single": [
+            {
+              "status": "recovered",
+              "underruns": 343,
+              "missing_frames": 43904,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.020263671875,
+              "observed_seconds": 65.40533333333333,
+              "post_resume_observed_seconds": 60.9348642578125,
+              "recovery_ms_bounds": [
+                57.531005859375,
+                103.934326171875
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 390,
+              "missing_frames": 49920,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.021728515625,
+              "observed_seconds": 65.4,
+              "post_resume_observed_seconds": 60.92701147460937,
+              "recovery_ms_bounds": [
+                16215.011474609375,
+                16257.717041015625
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 312,
+              "missing_frames": 39936,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.022705078125,
+              "observed_seconds": 65.384,
+              "post_resume_observed_seconds": 60.9132216796875,
+              "recovery_ms_bounds": [
+                435.888427734375,
+                480.845947265625
+              ],
+              "stable_seconds_required": 10
+            }
+          ],
+          "parallel": [
+            {
+              "status": "recovered",
+              "underruns": 315,
+              "missing_frames": 40320,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.010986328125,
+              "observed_seconds": 65.42133333333334,
+              "post_resume_observed_seconds": 60.94363671875,
+              "recovery_ms_bounds": [
+                140.969970703125,
+                193.813720703125
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 306,
+              "missing_frames": 39168,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.0068359375,
+              "observed_seconds": 65.432,
+              "post_resume_observed_seconds": 60.93563061523437,
+              "recovery_ms_bounds": [
+                335.630615234375,
+                389.845458984375
+              ],
+              "stable_seconds_required": 10
+            },
+            {
+              "status": "recovered",
+              "underruns": 299,
+              "missing_frames": 38208,
+              "minimum_queue_frames": 0,
+              "clock_mapping_spread_ms": 0.0087890625,
+              "observed_seconds": 65.4,
+              "post_resume_observed_seconds": 60.92598266601563,
+              "recovery_ms_bounds": [
+                283.316162109375,
+                332.86669921875
+              ],
+              "stable_seconds_required": 10
+            }
+          ]
+        },
+        "total_underruns": {
+          "single": 1045,
+          "parallel": 920
+        },
+        "worst_recovery_ms_bounds": {
+          "single": [
+            16215.011474609375,
+            16257.717041015625
+          ],
+          "parallel": [
+            335.630615234375,
+            389.845458984375
+          ]
+        },
+        "decision": "pass"
+      },
+      "latency": {
+        "single_ms": {
+          "count": 128,
+          "mean": 187.24916015496274,
+          "median": 183.59024999290705,
+          "p95": 257.9973333426751,
+          "p99": 275.5354999471456,
+          "max": 278.6848333431408
+        },
+        "parallel_ms": {
+          "count": 128,
+          "mean": 146.04722135108386,
+          "median": 121.27499996428378,
+          "p95": 365.1398333905381,
+          "p99": 601.6004998951103,
+          "max": 661.5661666285596
+        },
+        "difference": {
+          "replicates": 10000,
+          "seed": 70703,
+          "confidence": 0.95,
+          "mean_delta_ms_ci": [
+            -57.93532988484429,
+            -22.66515774868913
+          ],
+          "p95_delta_ms_ci": [
+            -47.681999942753464,
+            230.92483330954565
+          ]
+        },
+        "single_first_second_64": {
+          "replicates": 10000,
+          "seed": 70703,
+          "confidence": 0.95,
+          "mean_delta_ms_ci": [
+            -30.721086066766837,
+            -0.3736126943124195
+          ],
+          "p95_delta_ms_ci": [
+            -11.446000052150339,
+            28.53250002907589
+          ]
+        },
+        "block_ms": 0.6666666666666666,
+        "decision": "inconclusive",
+        "underruns": {
+          "single": {
+            "entire_phase": 323,
+            "measured_bursts_and_gaps": 276
+          },
+          "parallel": {
+            "entire_phase": 22,
+            "measured_bursts_and_gaps": 10
+          }
+        },
+        "scope": "Browser estimated output time; no physical speaker latency claim"
+      },
+      "final_errors": {
+        "single": {
+          "worker": [],
+          "frontend": null
+        },
+        "parallel": {
+          "worker": [],
+          "frontend": null
+        }
+      },
+      "private_memory_bytes": {
+        "single": 264654848,
+        "parallel": 471461888
+      },
+      "soak_provenance": "Clean isolated T07c single; retained T07b parallel with concurrent-host caveat",
+      "native": {
+        "single": {
+          "median": 11.884458500000001,
+          "p95": 12.564458,
+          "p99": 13.247,
+          "max": 14.797959
+        },
+        "parallel": {
+          "median": 9.2237915,
+          "p95": 9.92275,
+          "p99": 10.805667,
+          "max": 13.708542
+        },
+        "p95_reduction": 0.21025244383800712
+      },
+      "existing_predicate": {
+        "rejection": null,
+        "inputs": {
+          "runtime": "90d6d5f33ffba97b5894079163a55e027e42e9f53d87c6371321f71fbbed23c1",
+          "artifact_hash": "31867cfbb43491a420be5e326ffd22ca5c6b9f26bc990eee30392bcc3bb09d9b",
+          "plan_hash": "da066478b566f725b56082d7399560a16c1fc631fea495dc8ec4ab121e29d7b8",
+          "workload": "realtime_4",
+          "report_digest": "c084b62d3d3e8207fcc099aa957733288f1cd9ed11445ce7fa741c1094ed6b42",
+          "single_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "parallel_settings": "{\"immediateRenderBlocks\": 24, \"immediateRenderCooldownMs\": 25, \"inactivityTimeoutSeconds\": 10, \"maxBlocksPerRequest\": 96, \"maxUnderrunBoostMs\": 600, \"playbackMode\": \"auto\", \"recoveryMaxParallelRequests\": 3, \"startupHighWaterMs\": 320, \"startupLowWaterMs\": 180, \"startupMaxParallelRequests\": 3, \"steadyHighWaterMs\": 180, \"steadyLowWaterMs\": 90, \"steadyMaxParallelRequests\": 2, \"underrunRecoveryBoostMs\": 120}",
+          "effective_cpus": 4,
+          "single_p95_ms": 12.564458,
+          "parallel_p95_ms": 9.92275,
+          "single_p99_ms": 13.247,
+          "parallel_p99_ms": 10.805667,
+          "single_browser_seconds": 1802.4073500000238,
+          "parallel_browser_seconds": 1823.6963949999808,
+          "single_underruns": 0,
+          "parallel_underruns": 0,
+          "stress_single_underruns": 1045,
+          "stress_parallel_underruns": 920,
+          "stress_single_recovery_ms": 16257.717041015625,
+          "stress_parallel_recovery_ms": 389.845458984375,
+          "private_memory_bytes": 471461888,
+          "native_correctness": true,
+          "final_image": true
+        },
+        "scope": "Numerical check only; reuses exact-image native identities, does not register app artifacts"
+      },
+      "observations_clean": true,
+      "renderer_verified": true,
+      "decision": "not_passed"
+    }
+  },
+  "G7_measurements": "not_passed"
+}

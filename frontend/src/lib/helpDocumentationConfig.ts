@@ -1,4 +1,5 @@
 import { BROWSER_PLAYBACK_COPY } from "./browserPlaybackCopy";
+import { PARALLEL_PLAYBACK_COPY } from "./parallelPlaybackCopy";
 import type { HelpDocumentAppendixSet, HelpDocumentSet, ConfigHelpDocId } from "./helpDocumentationTypes";
 
 export const configHelpDocuments: HelpDocumentSet<ConfigHelpDocId> = {
@@ -16,6 +17,9 @@ Configure patch-level Csound engine timing plus browser-clock latency controls w
 - apply validated values to the current patch.
 - browser-clock latency settings are stored in app state, not in the patch.
 
+${PARALLEL_PLAYBACK_COPY.english.title}: ${PARALLEL_PLAYBACK_COPY.english.description}
+${PARALLEL_PLAYBACK_COPY.english.storage} ${PARALLEL_PLAYBACK_COPY.english.locked}
+
 The GUI language setting controls integrated help and opcode docs language.`
     },
     german: {
@@ -30,6 +34,9 @@ Konfiguriert Patch-Timing der Csound-Engine plus Browser-Clock-Latenzwerte, wenn
 - im Browser-Clock-Modus erscheinen zusaetzliche Werte fuer PCM-Warteschlange, Render-Burst und Anfrage-Parallelitaet.
 - Gültige Werte auf den aktuellen Patch anwenden.
 - Browser-Clock-Latenzwerte werden im App-State gespeichert, nicht im Patch.
+
+${PARALLEL_PLAYBACK_COPY.german.title}: ${PARALLEL_PLAYBACK_COPY.german.description}
+${PARALLEL_PLAYBACK_COPY.german.storage} ${PARALLEL_PLAYBACK_COPY.german.locked}
 
 Die GUI-Sprache steuert integrierte Hilfe und Opcode-Dokumentation.`
     },
@@ -46,6 +53,9 @@ Configure le timing Csound du patch ainsi que les reglages de latence browser-cl
 - appliquer les valeurs validées au patch courant.
 - les reglages de latence browser-clock sont stockes dans l'etat applicatif, pas dans le patch.
 
+${PARALLEL_PLAYBACK_COPY.french.title}: ${PARALLEL_PLAYBACK_COPY.french.description}
+${PARALLEL_PLAYBACK_COPY.french.storage} ${PARALLEL_PLAYBACK_COPY.french.locked}
+
 La langue GUI contrôle l'aide intégrée et la doc opcode.`
     },
     spanish: {
@@ -60,6 +70,9 @@ Configura tiempos de Csound del patch y tambien ajustes de latencia browser-cloc
 - en modo browser-clock aparecen ajustes adicionales para la cola PCM, los bursts de render y el paralelismo de solicitudes.
 - aplicar valores validados al patch actual.
 - los ajustes de latencia browser-clock se guardan en el estado de la app, no en el patch.
+
+${PARALLEL_PLAYBACK_COPY.spanish.title}: ${PARALLEL_PLAYBACK_COPY.spanish.description}
+${PARALLEL_PLAYBACK_COPY.spanish.storage} ${PARALLEL_PLAYBACK_COPY.spanish.locked}
 
 El idioma de GUI controla la ayuda integrada y docs de opcodes.`
     }

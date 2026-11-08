@@ -32,7 +32,6 @@ import { clipCopy } from "./copy";
 
 
 const emptyArrangement: ClipArrangement = {version:1,revision:0,end:20160,lanes:[]};
-export const CLIP_ARRANGER_ENABLED = import.meta.env.VITE_CLIP_ARRANGER === "1";
 
 export function ClipPerformance({ language, renderEditor, transport, laneControls, onAddLane, position, onSeek, onLoopChange, onHelpRequest }: {
   onHelpRequest?: (id: HelpDocId) => void;

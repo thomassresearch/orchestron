@@ -79,6 +79,12 @@ class Settings(BaseSettings):
     host_midi_token: str | None = None
     audio_output_mode: Literal["browser_clock"] = "browser_clock"
     csound_performance_logging: bool = False
+    # Capability/rollback switch; sessions still default to the single renderer.
+    parallel_playback_enabled: bool = True
+    # Process handoff interval; synthesis ksmps and browser queues stay independent.
+    parallel_render_batch_frames: int = Field(default=256, ge=32, le=1024)
+    # Deprecated compatibility setting; playback no longer reads a per-song catalog.
+    parallel_qualification_file: Path | None = None
     frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)
     frontend_heartbeat_timeout_seconds: float = Field(default=5.0, gt=0.0)
     session_max_active: int = Field(default=32, gt=0)

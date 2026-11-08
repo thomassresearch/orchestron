@@ -1,0 +1,205 @@
+{
+  "scope": "Pre-fix Docker ARM64 heavy_4 K=32, fresh single/parallel processes, 24576 traced frames plus 2048 warmup. No tolerance was relaxed.",
+  "single": {
+    "renderer": "single",
+    "identity": {
+      "runtime": "3e00ace49e210db0b7866737cff8c49e93463c21146389ce20dd4c921735e34d",
+      "plan_hash": null,
+      "artifact_hash": null
+    },
+    "wall_ms": [],
+    "parent_cpu_ms": [],
+    "fingerprints": {
+      "pcm": "f658aad2f8db3539b1604d1876825532511a72d4c18fe21b52db182cecfaf5f6",
+      "meters": "2bb9ab695c9405d2942f61e19f5ed9f3dbb69fba3366949fe2b3ec42298ae858",
+      "markers": "8ef05ee41f95c6dedda786e953d387787add28602bd69d3d98dfb4477ac6a219",
+      "status": "7a69edf34f79690daada51abe6b7350eb1bef23dcfe03bf3676296e1b86dd1dc",
+      "sample_end": 26624,
+      "csd": "76f0d96ec82baa03f626ab1340bd30330f0999d541981b17e418e56dbc145f50"
+    },
+    "peak": 0.041166290640830994,
+    "startup_seconds": 0.024488583992933854,
+    "stop_seconds": 0.013410417013801634,
+    "children_cpu_seconds_including_startup": 0.000569,
+    "rss_after_render": {
+      "1": {
+        "VmHWM": "149108 kB",
+        "VmRSS": "149108 kB"
+      }
+    },
+    "parent_maxrss": 149008,
+    "shared_bytes": 0,
+    "capacity": {
+      "effective_cpus": 4.0,
+      "known": true,
+      "memory_available": 2101161984,
+      "shared_available": 67108864,
+      "provenance": [
+        "affinity=12",
+        "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpu: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:quota=400000/100000",
+        "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpuset: ancestors outside mount/namespace may be hidden",
+        "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "memory: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:memory_limit=2147483648,used=46321664"
+      ],
+      "throttling": [
+        [
+          "/sys/fs/cgroup",
+          8,
+          1
+        ]
+      ],
+      "descriptors_available": 1048571
+    },
+    "diagnostic_cpu_override": null,
+    "capacity_after": {
+      "effective_cpus": 4.0,
+      "known": true,
+      "memory_available": 2072043520,
+      "shared_available": 67108864,
+      "provenance": [
+        "affinity=12",
+        "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpu: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:quota=400000/100000",
+        "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpuset: ancestors outside mount/namespace may be hidden",
+        "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "memory: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:memory_limit=2147483648,used=75440128"
+      ],
+      "throttling": [
+        [
+          "/sys/fs/cgroup",
+          104,
+          1
+        ]
+      ],
+      "descriptors_available": 1048571
+    },
+    "diagnostics": {
+      "selected": "single"
+    },
+    "cleaned": true
+  },
+  "parallel": {
+    "renderer": "parallel",
+    "identity": {
+      "runtime": "3e00ace49e210db0b7866737cff8c49e93463c21146389ce20dd4c921735e34d",
+      "plan_hash": "e6a4859da63d31a736db0cff447c8ab148b851d55c015873d97c7cdd04ccf40f",
+      "artifact_hash": "d41346ebe9bb98bac3a187c6251ea9a6d0701d0e23a77ccd3dd51091844e6c49"
+    },
+    "wall_ms": [],
+    "parent_cpu_ms": [],
+    "fingerprints": {
+      "pcm": "46e82906a9587448d72ad9797b09410e85f891656a23e8ef5c46d0db81933729",
+      "meters": "2bb9ab695c9405d2942f61e19f5ed9f3dbb69fba3366949fe2b3ec42298ae858",
+      "markers": "8ef05ee41f95c6dedda786e953d387787add28602bd69d3d98dfb4477ac6a219",
+      "status": "7a69edf34f79690daada51abe6b7350eb1bef23dcfe03bf3676296e1b86dd1dc",
+      "sample_end": 26624,
+      "csd": "76f0d96ec82baa03f626ab1340bd30330f0999d541981b17e418e56dbc145f50"
+    },
+    "peak": 0.041166290640830994,
+    "startup_seconds": 0.6622997090162244,
+    "stop_seconds": 0.04765008398680948,
+    "children_cpu_seconds_including_startup": 12.071947,
+    "rss_after_render": {
+      "1": {
+        "VmHWM": "70224 kB",
+        "VmRSS": "68864 kB"
+      },
+      "20": {
+        "VmHWM": "130684 kB",
+        "VmRSS": "130684 kB"
+      },
+      "21": {
+        "VmHWM": "130828 kB",
+        "VmRSS": "130828 kB"
+      },
+      "22": {
+        "VmHWM": "125612 kB",
+        "VmRSS": "125612 kB"
+      }
+    },
+    "parent_maxrss": 70224,
+    "shared_bytes": 4038656,
+    "capacity": {
+      "effective_cpus": 4.0,
+      "known": true,
+      "memory_available": 2100834304,
+      "shared_available": 67108864,
+      "provenance": [
+        "affinity=12",
+        "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpu: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:quota=400000/100000",
+        "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpuset: ancestors outside mount/namespace may be hidden",
+        "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "memory: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:memory_limit=2147483648,used=46649344"
+      ],
+      "throttling": [
+        [
+          "/sys/fs/cgroup",
+          7,
+          1
+        ]
+      ],
+      "descriptors_available": 1048571
+    },
+    "diagnostic_cpu_override": null,
+    "capacity_after": {
+      "effective_cpus": 4.0,
+      "known": true,
+      "memory_available": 2082107392,
+      "shared_available": 67108864,
+      "provenance": [
+        "affinity=12",
+        "cpu:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpu: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:quota=400000/100000",
+        "cpuset:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "cpuset: ancestors outside mount/namespace may be hidden",
+        "memory:cgroup2:/sys/fs/cgroup; visible mount root=/",
+        "memory: ancestors outside mount/namespace may be hidden",
+        "/sys/fs/cgroup:memory_limit=2147483648,used=65376256"
+      ],
+      "throttling": [
+        [
+          "/sys/fs/cgroup",
+          70,
+          2
+        ]
+      ],
+      "descriptors_available": 1048570
+    },
+    "diagnostics": {
+      "requested": "parallel",
+      "selected": "parallel",
+      "worker_count": 3,
+      "qualified": false,
+      "fallback_reason": null,
+      "failed": false,
+      "committed_sample": 26624,
+      "published_sample": 26624,
+      "effective_cpus": 4.0,
+      "capacity_known": true,
+      "render_requests": 49,
+      "slow_requests": 41,
+      "max_render_audio_ratio": 16.300718812090054
+    },
+    "cleaned": true
+  },
+  "pcm_difference": {
+    "samples_compared": 53248,
+    "unequal_float32_values": 108,
+    "max_absolute_error": 7.909311087130028e-39,
+    "first_interleaved_index": 128,
+    "last_interleaved_index": 42147
+  },
+  "diagnosis": "Native single conversion flushes float32 subnormals on Linux in the native render thread; old parallel parent conversion retains them. Final PCM conversion moved to output-owning child, keeping the native-width final bus and parent-only resampling."
+}

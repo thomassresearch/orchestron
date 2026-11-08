@@ -29,6 +29,8 @@ Legacy paths and environment variables retain the VisualCSound name. Keep this g
   When layout or interaction changes, take new screenshots, save to `screenshots/` (or update existing)
   and update the relevant documentation to reference the new screenshots.
   Keep labels and integrated help consistent across EN/DE/FR/ES.
+  Remember the target audience for the `documentation/` pages is the end user, don't put information
+  that is only relevant for developers.
 - The user manual in `documentation/` and its generated PDF are English-only. Do not add
   translated sections or language-specific subchapters; multilingual UI/help remains separate.
 - README is for user capabilities, screenshots, and getting started. Preserve its title/opening
@@ -168,7 +170,7 @@ UI interactions, validation ranges, and operational procedures.
 | Audio settings, MIDI, and live editing | [Browser clock](documentation/configuration/browser_clock_latency.md), [engine settings](documentation/configuration/audio_engine_settings.md), [live edits](documentation/performance/live_status_and_safety_controls.md#editing-during-playback) |
 | Library, types, opcode defaults, and plugins | [Patch toolbar](documentation/instrument_design/patch_toolbar_and_tabs.md), [opcode catalog](documentation/instrument_design/opcode_catalog_and_documentation.md) |
 | Graph interfaces, branches, and audition | [Graph editor](documentation/instrument_design/graph_editor.md), [control flow](documentation/instrument_design/control_flow.md), [audition](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) |
-| Devices, timing, and editor state | [Performance](documentation/performance/performance.md), [arranger](documentation/performance/multitrack_arranger.md), [manual index](documentation/user_documentation.md) |
+| Devices, timing, and editor state | [Performance](documentation/performance/performance.md), [arranger](documentation/performance/multitrack_arranger.md), [compatibility contracts](specifications/redesign-arranger/legacy-arranger-reference.md), [manual index](documentation/user_documentation.md) |
 | Mixer, effects, and instance settings | [Routing](documentation/performance/audio_mixer_and_routing.md), [effect implementation](EFFECT_INSTRUMENTS.md), [performance controllers](documentation/performance/performance_controllers.md) |
 | Import/export formats and selection rules | [Instruments](documentation/instrument_design/instrument_import_export.md), [performances](documentation/performance/performance_import_export.md) |
 | Resource defaults and validation | [Settings](backend/app/core/config.py), [JSON limits](backend/app/services/persisted_json_limits.py), [GEN validation](backend/app/models/patch.py), [export limits](backend/app/models/export.py) |

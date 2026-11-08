@@ -18,6 +18,18 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllTimers(); vi.useRealTimers(); });
 
+it("stops the active runtime on renderer failure and ignores another session's failure", () => {
+  useAppStore.setState({ activeSessionId: "current", activeSessionState: "running" });
+  useAppStore.getState().syncSequencerRuntime({ isPlaying: true });
+  const failure = { session_id: "old", type: "renderer_failed", ts: "2026-11-07T00:00:00Z", payload: { detail: "Worker exited" } };
+  useAppStore.getState().pushEvent(failure);
+  expect(useAppStore.getState().activeSessionState).toBe("running");
+  useAppStore.getState().pushEvent({ ...failure, session_id: "current" });
+  expect(useAppStore.getState().activeSessionState).toBe("error");
+  expect(useAppStore.getState().sequencer.isPlaying).toBe(false);
+  expect(useAppStore.getState().error).toBe("Worker exited");
+});
+
 function savedPatch(id = "saved"): Patch {
   return { ...useAppStore.getState().currentPatch, id, name: "Saved",
     created_at: "2026-01-01", updated_at: "2026-01-02" };
@@ -165,5 +177,73 @@ it("retains clip app-state v5 when bootstrap saves a legacy mixer migration", as
   await useAppStore.getState().loadBootstrap();
   expect(useAppStore.getState().error).toBeNull();
   expect(save).toHaveBeenCalledWith(expect.objectContaining({ version: 5, sequencer: expect.objectContaining({ clipArrangement: app.sequencer.clipArrangement }) }));
+  useAppStore.setState({ hasLoadedBootstrap: false });
+});
+
+it("keeps parallel opt-in out of saved state and recreates a stopped session when it changes", async () => {
+  useAppStore.setState({ sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
+  const create = vi.spyOn(api, "createSession").mockResolvedValueOnce({ session_id: "single", state: "idle", patch_id: "patch", instruments: [] })
+    .mockResolvedValueOnce({ session_id: "auto", state: "idle", patch_id: "patch", instruments: [] });
+  vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "single", state: "compiled", detail: "stopped" });
+  const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
+  await useAppStore.getState().ensureSession();
+  expect(create.mock.calls[0]).toHaveLength(3);
+  useAppStore.getState().setParallelPlaybackEnabled(true);
+  expect(JSON.stringify(buildPersistedAppStateSnapshot(useAppStore.getState()))).not.toContain("parallelPlaybackEnabled");
+  await useAppStore.getState().ensureSession();
+  expect(remove).toHaveBeenCalledWith("single");
+  expect(create.mock.calls[1][3]).toEqual({ renderer_mode: "auto", browser_settings: useAppStore.getState().browserClockLatencySettings, parallel_batch_frames: 256 });
+  useAppStore.setState({ activeSessionState: "running" });
+  useAppStore.getState().setParallelPlaybackEnabled(false);
+  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(true);
+});
+
+it("discards an in-flight session created for a superseded renderer preference", async () => {
+  useAppStore.setState({ sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
+  const pending = deferred<SessionCreateResponse>();
+  vi.spyOn(api, "createSession").mockReturnValue(pending.promise);
+  const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
+  const creating = useAppStore.getState().ensureSession();
+  useAppStore.getState().setParallelPlaybackEnabled(true);
+  pending.resolve({ session_id: "old", state: "idle", patch_id: "patch", instruments: [] });
+  await expect(creating).rejects.toThrow("setup changed");
+  expect(remove).toHaveBeenCalledWith("old");
+  expect(useAppStore.getState().activeSessionId).toBeNull();
+});
+
+it("saves batch size separately from opt-in and replaces a stopped parallel session on change", async () => {
+  useAppStore.setState({ parallelPlaybackEnabled: true,
+    sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
+  const create = vi.spyOn(api, "createSession")
+    .mockResolvedValueOnce({ session_id: "first", state: "idle", patch_id: "patch", instruments: [] })
+    .mockResolvedValueOnce({ session_id: "second", state: "idle", patch_id: "patch", instruments: [] });
+  const stop = vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "first", state: "compiled", detail: "stopped" });
+  const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
+  await useAppStore.getState().ensureSession();
+  useAppStore.setState({ activeSessionState: "running" });
+  useAppStore.getState().setParallelRenderBatchFrames(1024);
+  expect(useAppStore.getState().parallelRenderBatchFrames).toBe(256);
+  expect(stop).not.toHaveBeenCalled();
+  useAppStore.setState({ activeSessionState: "compiled" });
+  useAppStore.getState().setParallelRenderBatchFrames(1024);
+  expect(buildPersistedAppStateSnapshot(useAppStore.getState()).parallelRenderBatchFrames).toBe(1024);
+  await useAppStore.getState().ensureSession();
+  expect(remove).toHaveBeenCalledWith("first");
+  expect(create.mock.calls[1][3]).toMatchObject({ renderer_mode: "auto", parallel_batch_frames: 1024 });
+});
+
+it.each([undefined, 32, 255, 1024, 31, 1025, 128.5, "512"])("restores batch preference safely (%s)", async value => {
+  const app = buildPersistedAppStateSnapshot(useAppStore.getState());
+  Object.assign(app, { parallelRenderBatchFrames: value });
+  vi.spyOn(api, "listOpcodes").mockResolvedValue([]);
+  vi.spyOn(api, "listPerformances").mockResolvedValue([]);
+  vi.spyOn(api, "listMidiInputs").mockResolvedValue([]);
+  vi.spyOn(api, "getAppState").mockResolvedValue({ state: app, updated_at: "2026-11-08" });
+  vi.spyOn(api, "saveAppState").mockResolvedValue(undefined);
+  await useAppStore.getState().loadBootstrap();
+  const expected = [32, 255, 1024].includes(value as number) ? value : 256;
+  expect(useAppStore.getState().parallelRenderBatchFrames).toBe(expected);
+  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(false);
+  expect(useAppStore.getState().error).toBeNull();
   useAppStore.setState({ hasLoadedBootstrap: false });
 });

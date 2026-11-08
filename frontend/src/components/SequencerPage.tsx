@@ -3,7 +3,8 @@ import { useContext } from "react";
 import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
 import { addScoreTrack } from "../store/scoreActions";
 import { addClipLane } from "../store/clipActions";
-import { ClipPerformance, CLIP_ARRANGER_ENABLED } from "./clipArranger/ClipPerformance";
+import { ClipPerformance } from "./clipArranger/ClipPerformance";
+import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { ClipEditingContext } from "./clipArranger/context";
 import { clipCopy } from "./clipArranger/copy";
 import { migrateClipArrangement } from "../lib/clipArranger/migration";
@@ -935,7 +936,7 @@ function SequencerPageContent(props: SequencerPageProps) {
             const editorContext = { ...context, sequencer: view };
             return kind === "sequencer" ? <MelodicSequencersBody context={editorContext} /> : kind === "drummer" ? <DrummerSequencersBody context={editorContext} /> : kind === "controller" ? <ControllerSequencersBody context={editorContext} /> : kind === "arpeggiator" ? <ArpeggiatorsBody context={editorContext} /> : <ScoreSequencers onHelpRequest={onHelpRequest} sequencer={view} language={guiLanguage} collapsed={false} onCollapse={() => {}} readPosition={props.data.readPlaybackTransportSubunit} />;
           }} /> : <>
-        {CLIP_ARRANGER_ENABLED && <button className="mt-3 rounded border border-cyan-700 px-3 py-2 text-xs text-cyan-200" onClick={() => {
+        {isClipArrangerEnabled() && <button className="mt-3 rounded border border-cyan-700 px-3 py-2 text-xs text-cyan-200" onClick={() => {
           const result = migrateClipArrangement(useAppStore.getState().sequencer);
           if (result.model) {
             // Export a recoverable original before introducing the new authored format.
@@ -947,7 +948,7 @@ function SequencerPageContent(props: SequencerPageProps) {
             if (!useAppStore.getState().sequencer.pianoRolls.length) onAddPianoRoll();
           }
           else useAppStore.setState({ error: `${clipCopy(guiLanguage).compatibility}: ${result.reasons.join(", ")}` });
-        }}>{clipCopy(guiLanguage).title} · {clipCopy(guiLanguage).developmentPreview}</button>}
+        }}>{clipCopy(guiLanguage).convertToClips}</button>}
         <CollapsiblePanel unmountOnCollapse
           title={ui.sequencers}
           collapsed={collapsedPanels.melodic}

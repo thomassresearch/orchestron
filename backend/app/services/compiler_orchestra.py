@@ -64,6 +64,7 @@ class OrchestraEmitter:
         direct_output_ports: dict[str, tuple[str, str]] | None = None,
         performance_controllers: dict | None = None,
         legato_identity: str | None = None,
+        private_table_limit: int | None = None,
     ) -> CompiledInstrumentLines:
         deferred_audio_outlet_inputs: list[str] = []
         deferred_audio_outlets: list[str] = []
@@ -450,6 +451,8 @@ class OrchestraEmitter:
                 raise CompilationError([f"Template value missing for node '{compiled.node.id}': {err}"]) from err
 
             rendered = self._cleanup_optional_placeholders(rendered)
+            if compiled.spec.name == "ftgenonce" and private_table_limit is not None:
+                rendered += f"\nif {env['ift']} > {private_table_limit} then\n exitnow 1\nendif"
             if compiled.spec.name == "zfilter2":
                 rendered = self._guard_zfilter2_coefficients(compiled.node.id, env, rendered)
             instrument_lines.extend([self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()])

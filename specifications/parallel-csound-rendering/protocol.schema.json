@@ -1,0 +1,680 @@
+{
+  "$defs": {
+    "BusSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "bus_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Bus Id",
+          "type": "string"
+        },
+        "slot": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Slot",
+          "type": "integer"
+        },
+        "generation": {
+          "minimum": 0,
+          "title": "Generation",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bus_id",
+        "slot",
+        "generation"
+      ],
+      "title": "BusSlot",
+      "type": "object"
+    },
+    "ControlWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Channel",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "channel",
+        "value"
+      ],
+      "title": "ControlWrite",
+      "type": "object"
+    },
+    "Done": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sample_start": {
+          "minimum": 0,
+          "title": "Sample Start",
+          "type": "integer"
+        },
+        "frame_count": {
+          "maximum": 192000,
+          "minimum": 1,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "control_revision": {
+          "minimum": 0,
+          "title": "Control Revision",
+          "type": "integer"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/BusSlot"
+          },
+          "maxItems": 2048,
+          "title": "Slots",
+          "type": "array"
+        },
+        "type": {
+          "const": "DONE",
+          "default": "DONE",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash",
+        "sequence",
+        "sample_start",
+        "frame_count",
+        "control_revision",
+        "slots"
+      ],
+      "title": "Done",
+      "type": "object"
+    },
+    "EngineFormat": {
+      "additionalProperties": false,
+      "properties": {
+        "sample_rate": {
+          "maximum": 192000,
+          "minimum": 8000,
+          "title": "Sample Rate",
+          "type": "integer"
+        },
+        "ksmps": {
+          "maximum": 192000,
+          "minimum": 1,
+          "title": "Ksmps",
+          "type": "integer"
+        },
+        "zero_dbfs": {
+          "exclusiveMinimum": 0,
+          "title": "Zero Dbfs",
+          "type": "number"
+        },
+        "native_sample_type": {
+          "enum": [
+            "float32",
+            "float64"
+          ],
+          "title": "Native Sample Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sample_rate",
+        "ksmps",
+        "zero_dbfs",
+        "native_sample_type"
+      ],
+      "title": "EngineFormat",
+      "type": "object"
+    },
+    "Error": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "type": {
+          "const": "ERROR",
+          "default": "ERROR",
+          "title": "Type",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "compile",
+            "start",
+            "render",
+            "protocol",
+            "capacity",
+            "shutdown"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "maxLength": 2048,
+          "title": "Detail",
+          "type": "string"
+        },
+        "last_complete_sequence": {
+          "minimum": -1,
+          "title": "Last Complete Sequence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash",
+        "code",
+        "detail",
+        "last_complete_sequence"
+      ],
+      "title": "Error",
+      "type": "object"
+    },
+    "Init": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "type": {
+          "const": "INIT",
+          "default": "INIT",
+          "title": "Type",
+          "type": "string"
+        },
+        "artifact_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Artifact Hash",
+          "type": "string"
+        },
+        "engine": {
+          "$ref": "#/$defs/EngineFormat"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash",
+        "artifact_hash",
+        "engine"
+      ],
+      "title": "Init",
+      "type": "object"
+    },
+    "MidiDelivery": {
+      "additionalProperties": false,
+      "properties": {
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "source": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "target_engine_sample": {
+          "minimum": 0,
+          "title": "Target Engine Sample",
+          "type": "integer"
+        },
+        "message": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Message",
+          "type": "array"
+        },
+        "late": {
+          "title": "Late",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sequence",
+        "source",
+        "target_engine_sample",
+        "message",
+        "late"
+      ],
+      "title": "MidiDelivery",
+      "type": "object"
+    },
+    "Ready": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "type": {
+          "const": "READY",
+          "default": "READY",
+          "title": "Type",
+          "type": "string"
+        },
+        "artifact_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Artifact Hash",
+          "type": "string"
+        },
+        "engine": {
+          "$ref": "#/$defs/EngineFormat"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash",
+        "artifact_hash",
+        "engine"
+      ],
+      "title": "Ready",
+      "type": "object"
+    },
+    "Render": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sample_start": {
+          "minimum": 0,
+          "title": "Sample Start",
+          "type": "integer"
+        },
+        "frame_count": {
+          "maximum": 192000,
+          "minimum": 1,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "control_revision": {
+          "minimum": 0,
+          "title": "Control Revision",
+          "type": "integer"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/BusSlot"
+          },
+          "maxItems": 2048,
+          "title": "Slots",
+          "type": "array"
+        },
+        "type": {
+          "const": "RENDER",
+          "default": "RENDER",
+          "title": "Type",
+          "type": "string"
+        },
+        "midi": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MidiDelivery"
+          },
+          "maxItems": 16384,
+          "title": "Midi",
+          "type": "array"
+        },
+        "controls": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ControlWrite"
+          },
+          "maxItems": 16384,
+          "title": "Controls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash",
+        "sequence",
+        "sample_start",
+        "frame_count",
+        "control_revision",
+        "slots"
+      ],
+      "title": "Render",
+      "type": "object"
+    },
+    "RenderBatch": {
+      "additionalProperties": false,
+      "description": "One fenced interval containing unchanged, individually timed k-blocks.",
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "sample_start": {
+          "minimum": 0,
+          "title": "Sample Start",
+          "type": "integer"
+        },
+        "frame_count": {
+          "maximum": 192000,
+          "minimum": 1,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "control_revision": {
+          "minimum": 0,
+          "title": "Control Revision",
+          "type": "integer"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/BusSlot"
+          },
+          "maxItems": 2048,
+          "title": "Slots",
+          "type": "array"
+        },
+        "type": {
+          "const": "RENDER_BATCH",
+          "default": "RENDER_BATCH",
+          "title": "Type",
+          "type": "string"
+        },
+        "blocks": {
+          "items": {
+            "$ref": "#/$defs/Render"
+          },
+          "maxItems": 1024,
+          "minItems": 2,
+          "title": "Blocks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash",
+        "sequence",
+        "sample_start",
+        "frame_count",
+        "control_revision",
+        "slots",
+        "blocks"
+      ],
+      "title": "RenderBatch",
+      "type": "object"
+    },
+    "Stop": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "type": {
+          "const": "STOP",
+          "default": "STOP",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash"
+      ],
+      "title": "Stop",
+      "type": "object"
+    },
+    "Stopped": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": {
+          "const": 1,
+          "title": "Protocol Version",
+          "type": "integer"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "partition_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Partition Id",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "type": {
+          "const": "STOPPED",
+          "default": "STOPPED",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocol_version",
+        "epoch",
+        "partition_id",
+        "plan_hash"
+      ],
+      "title": "Stopped",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "DONE": "#/$defs/Done",
+      "ERROR": "#/$defs/Error",
+      "INIT": "#/$defs/Init",
+      "READY": "#/$defs/Ready",
+      "RENDER": "#/$defs/Render",
+      "RENDER_BATCH": "#/$defs/RenderBatch",
+      "STOP": "#/$defs/Stop",
+      "STOPPED": "#/$defs/Stopped"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Init"
+    },
+    {
+      "$ref": "#/$defs/Ready"
+    },
+    {
+      "$ref": "#/$defs/Render"
+    },
+    {
+      "$ref": "#/$defs/RenderBatch"
+    },
+    {
+      "$ref": "#/$defs/Done"
+    },
+    {
+      "$ref": "#/$defs/Error"
+    },
+    {
+      "$ref": "#/$defs/Stop"
+    },
+    {
+      "$ref": "#/$defs/Stopped"
+    }
+  ]
+}

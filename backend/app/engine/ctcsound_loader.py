@@ -242,6 +242,20 @@ def _configure_libcsound_signatures(libcsound: _PrefixedSymbolLibrary) -> None:
     libcsound.csoundGetControlChannel.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(ctypes.c_int)]
     libcsound.csoundSetControlChannel.argtypes = [ctypes.c_void_p, ctypes.c_char_p, MYFLT]
 
+    # Optional qualification APIs. Missing symbols must not disable single rendering.
+    for name in ("csoundGetAudioChannel", "csoundSetAudioChannel"):
+        try:
+            function = getattr(libcsound, name)
+            function.restype = None
+            function.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.POINTER(MYFLT)]
+        except AttributeError:
+            pass
+    try:
+        libcsound.csoundGetSizeOfMYFLT.restype = ctypes.c_int
+        libcsound.csoundGetSizeOfMYFLT.argtypes = []
+    except AttributeError:
+        pass
+
 
 def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
     class DirectCsound:
@@ -366,5 +380,27 @@ def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
 
         def setControlChannel(self, name: str, value: float) -> None:
             libcsound.csoundSetControlChannel(self.cs, self._cstring(name), MYFLT(float(value)))
+
+        def sizeOfMYFLT(self) -> int:  # noqa: N802
+            return int(libcsound.csoundGetSizeOfMYFLT())
+
+        def _audio_channel_buffer(self, samples: Any, *, writable: bool) -> Any:
+            import numpy as np
+
+            if self.sizeOfMYFLT() != ctypes.sizeof(MYFLT):
+                raise RuntimeError("Native MYFLT width does not match the direct binding.")
+            if (not isinstance(samples, np.ndarray) or samples.dtype != np.dtype(np.float64)
+                    or samples.shape != (self.ksmps(),) or not samples.flags.c_contiguous
+                    or not samples.flags.aligned or (writable and not samples.flags.writeable)):
+                raise ValueError("Audio channel requires a contiguous native float64 ksmps buffer.")
+            return samples.ctypes.data_as(ctypes.POINTER(MYFLT))
+
+        def audioChannel(self, name: str, samples: Any) -> None:  # noqa: N802
+            buffer = self._audio_channel_buffer(samples, writable=True)
+            libcsound.csoundGetAudioChannel(self.cs, self._cstring(name), buffer)
+
+        def setAudioChannel(self, name: str, samples: Any) -> None:  # noqa: N802
+            buffer = self._audio_channel_buffer(samples, writable=False)
+            libcsound.csoundSetAudioChannel(self.cs, self._cstring(name), buffer)
 
     return DirectCsound

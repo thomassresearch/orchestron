@@ -1,0 +1,383 @@
+"""Session facade over the T05 coordinator, with the original worker as fallback.
+
+The parent inherits the existing scheduler, controller state, lane gate and
+boundary queue. Children own DSP only. Default construction still uses the plain
+CsoundWorker, whose render loop is unchanged.
+"""
+from __future__ import annotations
+
+import threading
+import time
+
+from backend.app.engine.csound_worker import CsoundWorker
+from backend.app.engine.parallel_csound_renderer import (
+    BlockInputs, MAX_REQUEST_FRAMES, PartitionCancelled, PartitionRenderCoordinator, PartitionRuntimeError,
+)
+from backend.app.engine.realtime_renderer import EngineStartResult
+from backend.app.engine.render_capacity import MIB, RenderAdmissionError
+from backend.app.engine.render_ipc import build_layout
+from backend.app.engine.render_qualification import runtime_fingerprint, select_qualification
+from backend.app.models.render_protocol import ControlWrite, MidiDelivery
+from backend.app.services.compiler_common import CompilationError
+from backend.app.services.render_partition_plan import plan_render_partitions
+
+
+class ParallelCsoundRenderer(CsoundWorker):
+    def __init__(self, *, options, coordinator_factory=PartitionRenderCoordinator, **kwargs):
+        super().__init__(**kwargs)
+        self.options = options
+        self._coordinator = coordinator_factory(policy=options.policy)
+        self._render_lock = threading.RLock()
+        self._lifecycle_guard = threading.Lock()
+        self._generation = 0
+        self._cancel_start = threading.Event()
+        self._stopping = 0
+        self._parallel = False
+        self._candidate = None
+        self._canonical_csd = None
+        self._fallback_reason = None
+        self._quarantined = False
+        self.fatal_error = None
+        self._failure_diagnostics = None
+        self._control_revision = 0
+        self._empty_inputs = BlockInputs()
+        self._qualification = None
+        self._capacity = None
+        self._render_requests = self._slow_requests = self._consecutive_slow = 0
+        self._max_render_audio_ratio = 0.
+
+    def prepare(self, compiler, targets, graph, mixer, canonical):
+        """Called after canonical validation, outside rendering, under session lifecycle ownership."""
+        if self.is_running:
+            raise RuntimeError("Stop before preparing a renderer.")
+        self._candidate = None
+        self._canonical_csd = canonical.csd
+        self._fallback_reason = None
+        self._qualification = None
+        if self.options.enabled is not None and not self.options.enabled():
+            self._fallback_reason = "parallel_disabled"
+        elif self.options.blocked_reason:
+            self._fallback_reason = self.options.blocked_reason
+        elif self._quarantined and self.options.policy.mode == "auto":
+            self._fallback_reason = "previous_parallel_failure"
+        elif self.backend == "mock":
+            self._fallback_reason = "native_backend_unavailable"
+        elif not (self.options.graph_selection or self.options.allow_unqualified or self.options.qualifications):
+            self._fallback_reason = "parallel_not_qualified"
+        else:
+            try:
+                self._prepare_candidate(compiler, targets, graph, mixer, canonical)
+            except Exception as exc:
+                # Canonical validation has already succeeded. Only optional
+                # partition preparation can be abandoned in favour of that CSD.
+                self._fallback_reason = f"parallel_prepare_failed: {str(exc)[:512]}"
+                if self.options.policy.mode == "parallel":
+                    raise CompilationError([self._fallback_reason]) from exc
+
+    def _prepare_candidate(self, compiler, targets, graph, mixer, canonical):
+        try:
+            limit = self.options.admission.planning_limit(self, self.options.policy.max_workers)
+        except RenderAdmissionError as exc:
+            self._fallback_reason = str(exc)
+            return
+        finally:
+            self._capacity = self.options.admission.last_capacity
+        dependency = compiler.analyze_realtime_graph(targets, graph)
+        costs = self.options.costs(dependency) if self.options.costs is not None else None
+        plan = plan_render_partitions(dependency, policy=self.options.policy.model_copy(update={"max_workers": limit}), costs=costs)
+        if plan.layout != "coarse":
+            self._fallback_reason = ",".join(d.code for d in plan.diagnostics)
+        else:
+            compilation = compiler.compile_realtime_partitions(targets, graph, mixer, plan)
+            if compilation.canonical.orc != canonical.orc or compilation.canonical.manifest != canonical.manifest:
+                raise ValueError("Parallel compilation does not match the canonical session artifact.")
+            if self.options.qualifications:
+                self._qualification = select_qualification(self.options.qualifications,
+                    runtime=runtime_fingerprint(), compilation=compilation, plan=plan)
+            if not (self._qualification or self.options.graph_selection or self.options.allow_unqualified):
+                self._fallback_reason = "parallel_not_qualified"
+                return
+            self._candidate = (compilation, plan)
+
+    def _admit(self):
+        compilation, plan = self._candidate
+        # Provisioning can change between preparation and Start. Charge the full
+        # mailbox/bootstrap/meter layout, not only the planner's audio cut buses.
+        layout = build_layout(compilation, plan, self._coordinator.epoch + 1,
+            limit=min(plan.shared_audio_limit, self.options.policy.max_shared_memory_bytes),
+            coordination_frames=self.options.policy.coordination_frames)
+        workers = len(compilation.programs)
+        if self._qualification and self._qualification.runtime != runtime_fingerprint():
+            raise RenderAdmissionError("qualification_build_changed")
+        private = self._qualification.private_memory_bytes if self._qualification else workers * 128 * MIB
+        # Compiler-owned table allocations are charged once per process/resource;
+        # built-in read-only tables are already covered by the native base budget.
+        for partition in plan.partitions:
+            allocations = {}
+            for resource in plan.graph.resources:
+                if resource.stage in partition.stages:
+                    allocations[resource.resource] = max(allocations.get(resource.resource, 0), resource.memory_bytes)
+            private += sum(allocations.values())
+        memory = private + layout.size + MAX_REQUEST_FRAMES * 2 * 4
+        try:
+            lease = self.options.admission.acquire(self, workers=workers, memory_bytes=memory, shared_bytes=layout.size,
+                minimum_cpus=self._qualification.effective_cpus if self._qualification else 0.)
+        finally:
+            self._capacity = self.options.admission.last_capacity
+        self._capacity = lease.capacity
+
+    def _release_if_reaped(self):
+        if not self._coordinator.process_ids and self._coordinator.shared_memory_name is None:
+            self.options.admission.release(self)
+
+    @property
+    def render_cpu_assignments(self):
+        """Observation only; no CPU sampling or IPC on the rendering path."""
+        if not self._parallel:
+            return ()
+        return tuple(zip(self._coordinator.process_ids, self._coordinator._worker_cpus, strict=True))
+
+    @property
+    def renderer_diagnostics(self):
+        if self._failure_diagnostics is not None:
+            return dict(self._failure_diagnostics)
+        return {
+            "requested": self.options.policy.mode,
+            "selected": "parallel" if self._parallel else "single",
+            "worker_count": self._coordinator.worker_count if self._parallel else int(self.is_running),
+            "qualified": self._parallel and self._qualification is not None,
+            "fallback_reason": self._fallback_reason,
+            "failed": self.fatal_error is not None,
+            "committed_sample": self._coordinator.committed_sample if self._parallel else self.render_sample_cursor,
+            "published_sample": self._coordinator.published_sample if self._parallel else self.render_sample_cursor,
+            "effective_cpus": self._capacity.effective_cpus if self._capacity else None,
+            "capacity_known": self._capacity.known if self._capacity else None,
+            "render_requests": self._render_requests,
+            "slow_requests": self._slow_requests,
+            "max_render_audio_ratio": self._max_render_audio_ratio,
+            "coordination_frames": self._coordinator.coordination_frames if self._parallel else None,
+        }
+
+    @property
+    def render_sample_cursor(self):
+        return self._coordinator.render_sample_cursor if self._parallel else self._render_sample_cursor
+
+    def request_stop(self):
+        """Nonblocking intent, also usable while session Start owns its lifecycle lock."""
+        with self._lifecycle_guard:
+            self._generation += 1
+            self._cancel_start.set()
+
+    def _check_start(self, generation):
+        if generation != self._generation or self._cancel_start.is_set():
+            raise PartitionCancelled("Session start/render cancelled.")
+
+    @property
+    def start_generation(self):
+        return self._generation
+
+    def start(self, csd, midi_input, rtmidi_module, *, expected_generation=None):
+        with self._lifecycle_guard:
+            if self._stopping or (expected_generation is not None and expected_generation != self._generation):
+                raise PartitionCancelled("Session is stopping.")
+            if self.is_running:
+                return EngineStartResult(self.backend, "already running")
+            generation = self._generation
+            cancel = self._cancel_start = threading.Event()
+        with self._render_lock:
+            self._check_start(generation)
+            if self.is_running:
+                return EngineStartResult(self.backend, "already running")
+            if self._coordinator.process_ids or self._coordinator.shared_memory_name is not None:
+                raise PartitionRuntimeError("Previous parallel owners must be reaped before restart/fallback.")
+            if csd != self._canonical_csd:
+                raise ValueError("Session renderer requires the current prepared canonical artifact.")
+            self.fatal_error = None
+            self._failure_diagnostics = None
+            self._parallel = False
+            self._render_requests = self._slow_requests = self._consecutive_slow = 0
+            self._max_render_audio_ratio = 0.
+            self.options.admission.reserve_single(self)
+            if self.options.enabled is not None and not self.options.enabled():
+                self._candidate = None
+                self._fallback_reason = "parallel_disabled"
+            if self._candidate is not None and not (self._quarantined and self.options.policy.mode == "auto"):
+                try:
+                    self._admit()
+                    self._coordinator.start(*self._candidate, cancel_event=cancel)
+                    self._check_start(generation)
+                except Exception as exc:
+                    self._coordinator.stop()
+                    self._release_if_reaped()
+                    self._check_start(generation)
+                    if self.options.policy.mode != "auto":
+                        raise
+                    if isinstance(exc, RenderAdmissionError):
+                        self._fallback_reason = str(exc)
+                    else:
+                        self._fallback_reason = f"parallel_start_failed: {str(exc)[:512]}"
+                        self._quarantined = True
+                else:
+                    _, plan = self._candidate
+                    with self._lock:
+                        self._runtime_sr = plan.graph.engine.sample_rate
+                        self._runtime_ksmps = plan.graph.engine.ksmps
+                        self._runtime_nchnls = 2
+                        self._render_sample_cursor = 0
+                        self._midi_scheduler.reset()
+                        self._midi_scheduler.set_engine_sample_rate(self._runtime_sr)
+                        self._host_midi_enabled = True
+                        self._parallel = self._running = True
+                    with self._mixer_lock:
+                        self._control_pending.clear()
+                        self._control_revision = 0
+                        self._empty_inputs = BlockInputs()
+                    return EngineStartResult("ctcsound", "started with parallel Csound processes")
+            elif self.options.policy.mode == "parallel":
+                self._release_if_reaped()
+                raise PartitionRuntimeError(f"Parallel rendering unavailable: {self._fallback_reason or 'no candidate'}")
+            self._check_start(generation)
+            try:
+                self.options.admission.reserve_single(self)
+                result = super().start(csd, midi_input, rtmidi_module)
+                self._check_start(generation)
+                return result
+            except Exception as exc:
+                super().stop()
+                self._release_if_reaped()
+                self._check_start(generation)
+                if self._fallback_reason:
+                    raise PartitionRuntimeError(f"{self._fallback_reason}; single start failed: {exc}") from exc
+                raise
+
+    def stop(self):
+        with self._lifecycle_guard:
+            self._generation += 1
+            self._cancel_start.set()
+            self._stopping += 1
+        try:
+            # External cancellation makes the coordinator yield render ownership.
+            self._coordinator.stop()
+            with self._render_lock:
+                result = super().stop()
+                self._parallel = False
+                self._release_if_reaped()
+                return result
+        finally:
+            with self._lifecycle_guard:
+                self._stopping -= 1
+
+    def run_at_render_boundary(self, action):
+        generation = self._generation
+
+        def guarded():
+            if generation != self._generation or self._stopping:
+                raise PartitionCancelled("Boundary action cancelled by session lifecycle.")
+            return action()
+
+        return super().run_at_render_boundary(guarded)
+
+    def enqueue_timestamped_midi(self, message, *, source, target_engine_sample=None, delivery_delay_seconds=None,
+                                 source_timestamp_ns=None, mapped_backend_monotonic_ns=None, sync_stale=False):
+        if not self._parallel:
+            return super().enqueue_timestamped_midi(message, source=source, target_engine_sample=target_engine_sample,
+                delivery_delay_seconds=delivery_delay_seconds, source_timestamp_ns=source_timestamp_ns,
+                mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale)
+        if len(message) != 3:
+            return False
+        sample = self.render_sample_cursor
+        metadata = dict(source=source, source_timestamp_ns=source_timestamp_ns,
+                        mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale)
+        if target_engine_sample is not None:
+            return self._midi_scheduler.enqueue(message, target_engine_sample=max(sample, int(target_engine_sample)),
+                late=target_engine_sample < sample, **metadata)[0]
+        return self._midi_scheduler.enqueue_after_delay(message, current_engine_sample=sample,
+            delivery_delay_seconds=delivery_delay_seconds, source=source, source_timestamp_ns=source_timestamp_ns,
+            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns)[0]
+
+    def release_lane_events(self, identities):
+        self._midi_scheduler.release_sources({f"lane:{identity}" for identity in identities}, sample=self.render_sample_cursor)
+
+    def panic(self):
+        if not self._parallel:
+            return super().panic()
+
+        def apply():
+            self._midi_scheduler.reset()
+            self._midi_scheduler.set_engine_sample_rate(self.runtime_sample_rate)
+            # Full ordered broadcast reaches every local note assignment and the
+            # scoped legato panic listeners, independent of instrument numbers.
+            for channel in range(16):
+                for control in (64, 120, 123):
+                    self.enqueue_timestamped_midi([0xB0 + channel, control, 0], source="panic")
+
+        self.run_at_render_boundary(apply)
+        return "panic queued"
+
+    def render_blocks(self, *, block_count, target_sample_rate, before_block=None, expected_generation=None):
+        with self._render_lock:
+            if expected_generation is not None:
+                self._check_start(expected_generation)
+            if not self._parallel:
+                return super().render_blocks(block_count=block_count, target_sample_rate=target_sample_rate, before_block=before_block)
+            # Reject caller input before treating an exception as a DSP failure.
+            # No native work or parent scheduling has occurred at this point.
+            if (type(block_count) is not int or block_count < 1 or type(target_sample_rate) is not int
+                    or not 8000 <= target_sample_rate <= 192000
+                    or block_count * self.runtime_ksmps > MAX_REQUEST_FRAMES):
+                raise ValueError("Invalid parallel render request size/rate.")
+            generation = self._generation
+            arity = self._callback_arity(before_block)
+
+            def prepare(index, sample):
+                self._check_start(generation)
+                self._apply_boundary_actions()
+                if before_block is not None:
+                    before_block(index, sample) if arity >= 2 else before_block(index)
+                events = self._midi_scheduler.drain_block(block_start_sample=sample,
+                                                        block_end_sample=sample + self.runtime_ksmps)
+                self.performance_controllers.deliver(events)
+                with self._mixer_lock:
+                    pending, self._control_pending = self._control_pending, {}
+                if pending:
+                    self._control_revision += 1
+                    self._empty_inputs = BlockInputs(control_revision=self._control_revision)
+                elif not events:
+                    # Immutable empty payload only. Drain schedulers and boundary
+                    # actions on every block, including between requests.
+                    return self._empty_inputs
+                return BlockInputs(control_revision=self._control_revision,
+                    midi=tuple(MidiDelivery(sequence=e.sequence, source=e.source, target_engine_sample=e.target_engine_sample,
+                                           message=tuple(e.message), late=e.late) for e in events),
+                    controls=tuple(ControlWrite(channel=name, value=float(value)) for name, value in pending.items()))
+
+            try:
+                started = time.monotonic()
+                result = self._coordinator.render_blocks(block_count=block_count, target_sample_rate=target_sample_rate,
+                                                         prepare_block=prepare)
+                self._check_start(generation)
+                ratio = (time.monotonic() - started) / (block_count * self.runtime_ksmps / self.runtime_sample_rate)
+                self._render_requests += 1
+                self._max_render_audio_ratio = max(self._max_render_audio_ratio, ratio)
+                self._slow_requests += int(ratio > 1.)
+                self._consecutive_slow = self._consecutive_slow + 1 if ratio > 1. else 0
+                if self._consecutive_slow >= 3:
+                    self.options.admission.report_pressure()
+                with self._mixer_lock:
+                    for frame in self._coordinator.drain_meter_frames():
+                        levels = {identity: {key: max(0., frame["channels"][channel]) for key, channel in names.items()}
+                                  for identity, names in self._mixer_meters.items()}
+                        self._mixer_meter_frames.append({"engineSample": frame["engineSample"], "levels": levels})
+                    self._mixer_meter_frames = self._mixer_meter_frames[-32:]
+                return result
+            except Exception as exc:
+                self._release_if_reaped()
+                with self._lock:
+                    self._running = False
+                if not self._cancel_start.is_set():
+                    self.fatal_error = str(exc)
+                    self._quarantined = True
+                    self._fallback_reason = "previous_parallel_failure"
+                    self._failure_diagnostics = self.renderer_diagnostics
+                    self.request_stop()
+                raise

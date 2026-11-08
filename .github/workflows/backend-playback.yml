@@ -15,8 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, macos-15-intel]
+        implementation: [cython, python]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -32,26 +33,62 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y csound csound-plugins libcsound64-dev libcsnd-dev stk
       - name: Install Csound on macOS
         if: runner.os == 'macOS'
-        run: brew install csound
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 https://github.com/csound/csound/releases/download/6.18.1/Csound-MacOS-universal-6.18.1.dmg -o "$RUNNER_TEMP/csound.dmg"
+          echo "f103680851876f82988886fe6bc062450b87d3dcf647805d7b1a7228a3e868b9  $RUNNER_TEMP/csound.dmg" | shasum -a 256 -c -
+          hdiutil attach "$RUNNER_TEMP/csound.dmg" -nobrowse -mountpoint "$RUNNER_TEMP/csound-volume"
+          trap 'hdiutil detach "$RUNNER_TEMP/csound-volume"' EXIT
+          sudo installer -pkg "$RUNNER_TEMP/csound-volume/csound-MacOS-universal-6.18.1.pkg" -target /
+          echo 'VISUALCSOUND_CSOUNDLIB_PATH=/Library/Frameworks/CsoundLib64.framework/CsoundLib64' >> "$GITHUB_ENV"
+      - name: Build Csound 6 STK plugin on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install stk
+          curl --fail --location --retry 3 https://api.github.com/repos/csound/plugins/tarball/e57f73f751e924909371609741531cd5b6215b03 -o "$RUNNER_TEMP/plugins.tar.gz"
+          mkdir -p "$RUNNER_TEMP/plugins" "$RUNNER_TEMP/opcodes"
+          tar -xzf "$RUNNER_TEMP/plugins.tar.gz" -C "$RUNNER_TEMP/plugins" --strip-components=1
+          clang++ -std=c++11 -dynamiclib -DUSE_DOUBLE \
+            -I/Library/Frameworks/CsoundLib64.framework/Headers -I"$(brew --prefix stk)/include/stk" \
+            "$RUNNER_TEMP/plugins/stk/stkOpcodes.cpp" "$(brew --prefix stk)/lib/libstk.a" \
+            -o "$RUNNER_TEMP/opcodes/libstkops.dylib"
+          echo "OPCODE6DIR64=$RUNNER_TEMP/opcodes:/Library/Frameworks/CsoundLib64.framework/Resources/Opcodes64" >> "$GITHUB_ENV"
+          echo "RAWWAVE_PATH=$(brew --prefix stk)/share/stk/rawwaves" >> "$GITHUB_ENV"
       - name: Build the extension
         env:
           VISUALCSOUND_BUILD_CYTHON: required
         run: uv sync --frozen --extra dev --python 3.13
+      - name: Verify native Csound 6 binding
+        run: |
+          .venv/bin/python - <<'PY'
+          from backend.app.engine.ctcsound_loader import load_ctcsound_module
+          native = load_ctcsound_module()
+          version = native.libcsound.csoundGetVersion()
+          assert 6000 <= version < 7000, f"Csound 6 required, found {version}"
+          engine = native.Csound()
+          print(f"Native Csound {version}: {type(engine).__name__}")
+          del engine
+          PY
       - name: Lint
         run: .venv/bin/ruff check backend/app backend/tests backend/tools hatch_build.py
-      - name: Full compiled regression suite
+      - name: Verify native PCM conversion parity
         env:
-          VISUALCSOUND_SEQUENCER_IMPLEMENTATION: cython
-        run: .venv/bin/python -m pytest backend/tests -q
-      - name: Full Python regression suite
+          VISUALCSOUND_SEQUENCER_IMPLEMENTATION: ${{ matrix.implementation }}
+        run: .venv/bin/python -m pytest backend/tests/test_parallel_csound_renderer.py -k 'subnormal or flushing_independently' -q
+      - name: Full ${{ matrix.implementation }} regression suite
         env:
-          VISUALCSOUND_SEQUENCER_IMPLEMENTATION: python
-        run: .venv/bin/python -m pytest backend/tests -q
+          VISUALCSOUND_SEQUENCER_IMPLEMENTATION: ${{ matrix.implementation }}
+          PYTHONFAULTHANDLER: '1'
+        run: .venv/bin/python -m backend.tools.run_playback_tests
       - name: Compare MIDI, transport and preparation fingerprints
+        if: matrix.implementation == 'cython'
         run: .venv/bin/python -m backend.tools.benchmark_cython_playback --check-only --output output/parity
       - name: Build wheel and source distribution
+        if: matrix.implementation == 'cython'
         env:
           VISUALCSOUND_BUILD_CYTHON: required
         run: uv build
       - name: Verify installed wheel and stale-binary rollback outside the checkout
+        if: matrix.implementation == 'cython'
         run: .venv/bin/python -m backend.tools.verify_playback_wheel dist/*.whl

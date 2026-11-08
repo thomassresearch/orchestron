@@ -38,4 +38,4 @@ The performance utility writes configuration version 22 and accepts versions 1â€
 
 The backend launch option `--audio-output-mode browser_clock` belongs to the application server, not to either authoring utility. Browser-clock mode is the normal audio path.
 
-Use `edit add-score-sequencer --spec PATH` for dedicated [Score Sequencers](../performance/score_sequencers.md). The JSON/YAML track object holds eight pads of sparse tick-based notes. Existing composition-score inputs retain their meaning.
+Use `edit add-score-sequencer --spec PATH` for dedicated [Score Sequencers](../performance/score_sequencers.md). Use the [song workflow](../../integrations/skills/orchestron-performance-creator/references/song_workflow.md) to place reusable Score patterns in clips.
