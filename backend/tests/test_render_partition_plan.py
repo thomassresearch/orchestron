@@ -87,12 +87,13 @@ def test_port_connections_references_and_meters_match_live_compiler(compiler, ca
             assert stage.note_reference == refs[stage.instance_id]
 
 
-def test_default_policy_and_missing_costs_keep_single(compiler):
+def test_default_policy_stays_single_and_opt_in_needs_no_cost_catalog(compiler):
     graph = analyze(compiler)
     default = plan_render_partitions(graph, costs=synthetic_costs(graph))
     assert default.layout == "single" and default.diagnostics[-1].code == "single_requested"
     missing = plan_render_partitions(graph, policy=RendererPolicy(mode="auto"))
-    assert missing.layout == "single" and missing.diagnostics[-1].code == "missing_cost_profile"
+    assert missing.layout == "coarse" and missing.cost_profile is None
+    assert missing.single_microseconds is None and missing.candidate_microseconds is None
     explicit = plan_render_partitions(graph, policy=RendererPolicy(mode="parallel"), costs=synthetic_costs(graph))
     assert explicit.layout == "coarse" and explicit.selected_renderer == "single" and not explicit.execution_eligible
 
@@ -201,8 +202,8 @@ def test_performance_controls_are_instance_scoped_host_subscriptions(compiler):
         assert [p.id for p in plan.partitions if name in p.controls] == [ownership(plan)[reader.stage]]
 
 
-@pytest.mark.parametrize("case,code", [("unknown", "opcode_unclassified"), ("tables", "table_lifetime_unqualified"),
-    ("dynamic_table", "table_access_unqualified"), ("asset", "asset_state_unqualified"), ("legacy", "legacy_compile_path")])
+@pytest.mark.parametrize("case,code", [("unsupported", "opcode_unclassified"),
+    ("dynamic_table", "unbounded_table_allocation"), ("asset", "asset_state_unqualified"), ("legacy", "legacy_compile_path")])
 def test_unsafe_resources_have_reasoned_single_fallback(compiler, case, code):
     plan = candidate(analyze(compiler, case))
     assert plan.layout == "single" and not plan.buses
@@ -280,7 +281,7 @@ def test_resource_accesses_alone_enforce_shared_state_ownership(compiler):
 
 
 def test_unknown_resource_scope_cannot_be_enabled_by_omitting_diagnostics(compiler):
-    graph = replace(analyze(compiler, "unknown"), blockers=())
+    graph = replace(analyze(compiler, "unsupported"), blockers=())
     plan = candidate(graph)
     assert plan.layout == "single" and plan.diagnostics[-1].code == "resource_scope_unclassified"
 

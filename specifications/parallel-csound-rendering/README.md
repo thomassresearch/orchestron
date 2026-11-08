@@ -1,5 +1,9 @@
 # Parallel Csound rendering
 
+Current playback selection is defined by [whole-instrument graph partitioning](whole-instrument-partitioning.md).
+It supersedes the historical per-song catalog and mandatory cost-profile gates below; timing,
+ownership, lifecycle and export contracts remain in force.
+
 Status: T01–T08 delivered; updated 2026-11-07. **G7 and G8 pass for the measured Linux ARM64, four-CPU, 48 kHz/K=32 scope.**
 The [T08 release summary](t08-qualification-summary.md) records fresh native/browser qualification,
 public opt-in, CPU observation and rollback. Single remains the default and fallback. The

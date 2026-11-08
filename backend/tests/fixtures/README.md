@@ -207,3 +207,8 @@ contains 90 CSD SHA-256 hashes produced once from the recorded pre-T04 compiler 
 (LIVE/MIDI and OFFLINE/MIDI/SCORE, 15 graph cases at K=1/32). Tests compare current output
 against those hashes without reading Git or updating expected results. Wrapper platform options
 are pinned to the recorded fixture platform, independently of the test host.
+
+The parallel-render fixtures include `evening_at_the_lake.json` (the 2026-11-08 live
+instrument/routing snapshot) and `evening_at_the_lake_config.json.gz` (the saved arrangement,
+without undo history). Gzip has a fixed zero timestamp. These are independent of the live
+library and developer examples; tests and isolated browser probes must use these snapshots.

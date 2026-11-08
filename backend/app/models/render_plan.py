@@ -41,8 +41,9 @@ class RenderResourceAccess:
     resource: str
     stage: str
     node: str
-    scope: Literal["voice", "instance", "performance", "host", "unknown"]
+    scope: Literal["voice", "instance", "performance", "replicated", "host", "unknown"]
     access: Literal["read", "write", "read_write", "subscribe"]
+    memory_bytes: int = 0
 
 
 @dataclass(frozen=True, slots=True)

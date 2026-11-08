@@ -62,7 +62,7 @@ class ParallelCsoundRenderer(CsoundWorker):
             self._fallback_reason = "previous_parallel_failure"
         elif self.backend == "mock":
             self._fallback_reason = "native_backend_unavailable"
-        elif not self.options.allow_unqualified and not self.options.qualifications:
+        elif not (self.options.graph_selection or self.options.allow_unqualified or self.options.qualifications):
             self._fallback_reason = "parallel_not_qualified"
         else:
             try:
@@ -94,7 +94,7 @@ class ParallelCsoundRenderer(CsoundWorker):
             if self.options.qualifications:
                 self._qualification = select_qualification(self.options.qualifications,
                     runtime=runtime_fingerprint(), compilation=compilation, plan=plan)
-            if not self._qualification and not self.options.allow_unqualified:
+            if not (self._qualification or self.options.graph_selection or self.options.allow_unqualified):
                 self._fallback_reason = "parallel_not_qualified"
                 return
             self._candidate = (compilation, plan)
@@ -108,11 +108,15 @@ class ParallelCsoundRenderer(CsoundWorker):
         workers = len(compilation.programs)
         if self._qualification and self._qualification.runtime != runtime_fingerprint():
             raise RenderAdmissionError("qualification_build_changed")
-        # Tables, samples and SoundFonts are currently blocked by resource analysis.
-        # Do not treat an unmeasured replicated asset as zero-cost if that changes.
-        if any(r.resource.startswith(("asset:", "table:", "tables:")) for r in plan.graph.resources):
-            raise RenderAdmissionError("native_resource_memory_unqualified")
         private = self._qualification.private_memory_bytes if self._qualification else workers * 128 * MIB
+        # Compiler-owned table allocations are charged once per process/resource;
+        # built-in read-only tables are already covered by the native base budget.
+        for partition in plan.partitions:
+            allocations = {}
+            for resource in plan.graph.resources:
+                if resource.stage in partition.stages:
+                    allocations[resource.resource] = max(allocations.get(resource.resource, 0), resource.memory_bytes)
+            private += sum(allocations.values())
         memory = private + layout.size + MAX_REQUEST_FRAMES * 2 * 4
         try:
             lease = self.options.admission.acquire(self, workers=workers, memory_bytes=memory, shared_bytes=layout.size,
@@ -226,8 +230,7 @@ class ParallelCsoundRenderer(CsoundWorker):
                         self._control_pending.clear()
                         self._control_revision = 0
                         self._empty_inputs = BlockInputs()
-                    return EngineStartResult("ctcsound", "started with parallel Csound processes" +
-                        ("" if self._qualification else " (unqualified)"))
+                    return EngineStartResult("ctcsound", "started with parallel Csound processes")
             elif self.options.policy.mode == "parallel":
                 self._release_if_reaped()
                 raise PartitionRuntimeError(f"Parallel rendering unavailable: {self._fallback_reason or 'no candidate'}")

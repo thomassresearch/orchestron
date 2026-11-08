@@ -51,7 +51,7 @@ def events_for(targets):
 
 
 @pytest.mark.parametrize('ksmps', [1, 32])
-@pytest.mark.parametrize('case', ['two', 'four', 'eight', 'shared', 'bypass', 'sidechain', 'custom_ports', 'disconnected', 'legato'])
+@pytest.mark.parametrize('case', ['two', 'four', 'eight', 'shared', 'bypass', 'sidechain', 'custom_ports', 'disconnected', 'legato', 'tables'])
 def test_native_partition_audio_and_meter_parity(compiler, native_module, case, ksmps):
     targets, _, _, plan, compilation = prepare(compiler, case, ksmps)
     assert compilation.programs
@@ -80,7 +80,7 @@ def test_partition_artifacts_are_deterministic_and_owned(compiler, case):
     assert result.canonical == compiler.compile_patch_bundle(targets, 'internal:loopback', 'null', audio_graph=graph, mixer=mixer)
 
 
-@pytest.mark.parametrize('case', ['tiny', 'serial', 'unknown', 'tables', 'dynamic_table', 'legacy', 'midi_initialization'])
+@pytest.mark.parametrize('case', ['tiny', 'serial', 'unsupported', 'dynamic_table', 'legacy', 'midi_initialization'])
 def test_single_plans_keep_canonical_artifact_without_partition_programs(compiler, case):
     *_, compilation = prepare(compiler, case)
     assert not compilation.programs

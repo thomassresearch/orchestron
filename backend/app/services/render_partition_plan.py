@@ -61,12 +61,16 @@ def _validate_graph(graph):
         raise ValueError("Duplicate helper identity.")
     if any(r.stage not in positions for r in graph.resources) or set(graph.downstream_stages) - set(stages):
         raise ValueError("Resource/downstream ownership references unknown stages.")
-    if any(r.scope not in {"voice", "instance", "performance", "host", "unknown"}
+    if any(r.scope not in {"voice", "instance", "performance", "replicated", "host", "unknown"}
            or r.access not in {"read", "write", "read_write", "subscribe"} for r in graph.resources):
         raise ValueError("Unknown resource scope or access declaration.")
+    if any(r.scope == "replicated" and r.access != "read" for r in graph.resources):
+        raise ValueError("Replicated native resources must be read-only.")
     if (graph.engine.sample_rate < 1 or graph.engine.ksmps < 1 or graph.engine.channels < 1
             or not math.isfinite(graph.engine.zero_dbfs) or graph.engine.zero_dbfs <= 0):
         raise ValueError("Invalid full-performance engine settings.")
+    if any(type(r.memory_bytes) is not int or r.memory_bytes < 0 for r in graph.resources):
+        raise ValueError("Invalid resource memory estimate.")
     return order
 
 
@@ -146,7 +150,11 @@ def plan_render_partitions(
     _validate_graph(graph)
     if sample_bytes not in (4, 8):
         raise ValueError("Bus estimates require 4- or 8-byte native samples.")
-    weights = _costs(graph, costs)
+    measured_weights = _costs(graph, costs)
+    # Structural load balances whole branches only; it is not a measured time
+    # or a claim of speedup. Supplied benchmark profiles retain their benefit gate.
+    weights = measured_weights or {s.id: 1 + sum(r.stage == s.id and r.scope == "voice"
+                                               for r in graph.resources) for s in graph.stages}
     if costs is not None:
         by_stage = {c.stage: c for c in costs.stages}
         costs = replace(costs, stages=tuple(by_stage[s.id] for s in graph.stages))
@@ -166,9 +174,6 @@ def plan_render_partitions(
     if graph.engine.channels != 2:
         diagnostics.append(RenderPlanDiagnostic("engine_channels_unqualified", "Only stereo output is a planning candidate."))
     if diagnostics:
-        return finish(single)
-    if weights is None:
-        diagnostics.append(RenderPlanDiagnostic("missing_cost_profile", "No full-stage cost evidence; automatic planning stays single."))
         return finish(single)
     if policy.max_workers < 3:
         diagnostics.append(RenderPlanDiagnostic("insufficient_capacity", "Two upstream workers plus the shared suffix require at least three slots."))
@@ -199,11 +204,26 @@ def plan_render_partitions(
     if useful < 2:
         diagnostics.append(RenderPlanDiagnostic("insufficient_concurrency", "Fewer than two independent upstream domains with nonzero work remain."))
         return finish(single)
-    bins = [0.0] * min(policy.max_workers - 1, useful)
+    ordered_branches = sorted(branches, key=lambda b: (-branch_costs[b], b))
+
+    def distribute(count):
+        loads, placement = [0.0] * count, {}
+        for branch in ordered_branches:
+            index = min(range(count), key=lambda i: (loads[i], i))
+            loads[index] += branch_costs[branch]
+            placement[branch] = index
+        return loads, placement
+
+    count = min(policy.max_workers - 1, useful)
+    if costs is None:
+        # More processes cannot shorten a dominant indivisible branch. Prefer
+        # the smallest equally balanced layout and avoid paying extra barriers
+        # merely because spare CPUs exist. These are structural weights, not us.
+        count = min(range(2, count + 1), key=lambda n: (max(distribute(n)[0]), n))
+    bins, placement = distribute(count)
     assignment = {stage: "downstream" for group in suffix for stage in members[group]}
-    for branch in sorted(branches, key=lambda b: (-branch_costs[b], b)):
-        index = min(range(len(bins)), key=lambda i: (bins[i], i))
-        bins[index] += branch_costs[branch]
+    for branch in ordered_branches:
+        index = placement[branch]
         assignment.update((stage, f"upstream-{index}") for stage in branches[branch])
     cuts = sum(assignment[c.source] != assignment[c.target] for c in graph.connections)
     byte_count = cuts * graph.engine.ksmps * sample_bytes * 2
@@ -211,14 +231,14 @@ def plan_render_partitions(
         diagnostics.append(RenderPlanDiagnostic("boundary_budget_exceeded", f"Candidate needs {cuts} buses and {byte_count} shared audio bytes."))
         return finish(single)
     suffix_cost = sum(weights[stage] for stage, owner in assignment.items() if owner == "downstream")
-    predicted = (max(bins) + suffix_cost + costs.dispatch_microseconds * (len(bins) + 1)
-                 + costs.copy_microseconds_per_sample * cuts * graph.engine.ksmps)
+    predicted = ((max(bins) + suffix_cost + costs.dispatch_microseconds * (len(bins) + 1)
+                  + costs.copy_microseconds_per_sample * cuts * graph.engine.ksmps) if costs else None)
     total = sum(weights.values())
-    if predicted >= total or predicted > total * (1 - costs.minimum_reduction):
+    if costs and (predicted >= total or predicted > total * (1 - costs.minimum_reduction)):
         diagnostics.append(RenderPlanDiagnostic("insufficient_estimated_benefit",
             f"Estimated candidate {predicted:.6g} us versus single {total:.6g} us per block."))
         return finish(single)
-    diagnostics.append(RenderPlanDiagnostic("parallel_execution_unavailable", "Candidate ownership only; native lowering, qualification and admission remain pending."))
+    diagnostics.append(RenderPlanDiagnostic("coarse_candidate", "Whole-instrument ownership candidate; native startup and capacity admission remain required."))
     return finish(assignment, predicted)
 
 
@@ -241,7 +261,7 @@ def _finish(graph, policy, costs, weights, sample_bytes, owners, diagnostics, pr
             buses.append(RenderBoundaryBus(f"bus:{index}", index, source, target, graph.engine.ksmps, sample_bytes))
     plan = RenderPartitionPlan(version=1, graph=graph, layout="coarse" if len(partitions) > 1 else "single",
         requested_mode=policy.mode, partitions=tuple(partitions), buses=tuple(buses), local_connections=tuple(local),
-        diagnostics=tuple(diagnostics), cost_profile=costs, single_microseconds=sum(weights.values()) if weights else None,
+        diagnostics=tuple(diagnostics), cost_profile=costs, single_microseconds=sum(weights.values()) if costs else None,
         candidate_microseconds=predicted, shared_audio_bytes=sum(b.frames * b.sample_bytes * b.slots for b in buses),
         worker_limit=policy.max_workers, shared_audio_limit=policy.max_shared_memory_bytes,
         sample_bytes=sample_bytes, plan_hash="")
@@ -313,23 +333,30 @@ def validate_partition_plan(plan: RenderPartitionPlan) -> None:
             raise ValueError("Single fallback must have one owner and no cut buses.")
     elif plan.layout == "coarse":
         if (len(ids) < 3 or ids[-1] != "downstream" or graph.blockers or graph.source_kind != "explicit"
-                or plan.cost_profile is None or plan.candidate_microseconds is None
                 or plan.requested_mode == "single" or graph.engine.channels != 2
                 or any(r.scope == "unknown" for r in graph.resources)
                 or any(b != "downstream" for _, b in edges)
                 or any(owners[s] != "downstream" for s in graph.downstream_stages)):
             raise ValueError("Invalid branch-plus-shared-suffix candidate.")
-        loads = {p.id: sum(weights[s] for s in p.stages) for p in plan.partitions}
-        if sum(load > 0 for owner, load in loads.items() if owner != "downstream") < 2:
-            raise ValueError("Candidate lacks useful upstream work.")
-        predicted = (max(load for owner, load in loads.items() if owner != "downstream") + loads["downstream"]
-                     + plan.cost_profile.dispatch_microseconds * len(ids)
-                     + plan.cost_profile.copy_microseconds_per_sample * len(plan.buses) * graph.engine.ksmps)
-        if (not math.isclose(predicted, plan.candidate_microseconds, rel_tol=1e-12, abs_tol=1e-9)
-                or predicted >= plan.single_microseconds
-                or predicted > plan.single_microseconds * (1 - plan.cost_profile.minimum_reduction)):
-            raise ValueError("Candidate cost/benefit estimate mismatch.")
+        if plan.cost_profile is None:
+            if plan.candidate_microseconds is not None:
+                raise ValueError("Structural planning cannot claim measured benefit.")
+        else:
+            _validate_cost_benefit(plan, weights, ids)
     else:
         raise ValueError("Unknown plan layout.")
     if plan.plan_hash != partition_plan_hash(plan):
         raise ValueError("Plan hash mismatch.")
+
+
+def _validate_cost_benefit(plan, weights, ids):
+    loads = {p.id: sum(weights[s] for s in p.stages) for p in plan.partitions}
+    if sum(load > 0 for owner, load in loads.items() if owner != "downstream") < 2:
+        raise ValueError("Candidate lacks useful upstream work.")
+    predicted = (max(load for owner, load in loads.items() if owner != "downstream") + loads["downstream"]
+                 + plan.cost_profile.dispatch_microseconds * len(ids)
+                 + plan.cost_profile.copy_microseconds_per_sample * len(plan.buses) * plan.graph.engine.ksmps)
+    if (not math.isclose(predicted, plan.candidate_microseconds, rel_tol=1e-12, abs_tol=1e-9)
+            or predicted >= plan.single_microseconds
+            or predicted > plan.single_microseconds * (1 - plan.cost_profile.minimum_reduction)):
+        raise ValueError("Candidate cost/benefit estimate mismatch.")

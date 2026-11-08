@@ -27,17 +27,17 @@ Sessions depend on the internal [RealtimeRenderer contract](backend/app/engine/r
 The shared [renderer factory](backend/app/engine/renderer_factory.py) defaults to the original
 `CsoundWorker`, including its explicit/mock-on-missing-binding behavior. Native start errors still
 propagate. The interface adds no forwarding calls inside rendering, and the public API/PCM format
-is unchanged. The single renderer remains the default and compatibility fallback; parallel playback requires an explicit request and matching operator-installed qualification. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
+is unchanged. The single renderer remains the default and compatibility fallback; parallel playback requires an explicit request, supported resource ownership and sufficient capacity. See the [implementation record](specifications/parallel-csound-rendering/implementation-record.md)
 for baseline comparisons and remaining work.
 
-T07 adds internal [capacity admission](backend/app/engine/render_capacity.py) and an
-[evidence gate](backend/app/engine/render_qualification.py). Admission reads visible v1/v2
+T07 adds internal [capacity admission](backend/app/engine/render_capacity.py) and offline
+[benchmark evidence validation](backend/app/engine/render_qualification.py). Admission reads visible v1/v2
 cgroup ancestors, effective CPU sets, affinity, memory headroom and `/dev/shm`; unknown
 capacity stays single. Process-wide leases count running/pending single sessions, all
 rendering children (including the suffix), and preparation/API headroom. Capacity is checked
 again at Start, leases survive incomplete cleanup, and resource changes never resize an
 active renderer. Default single rendering performs no capacity filesystem probes in its
-audio loop. Qualification is supplied only through the reviewed deployment catalog. See the
+audio loop. The former per-song deployment gate has been replaced by graph selection; benchmark evidence is optional. See the
 [T07 contract](specifications/parallel-csound-rendering/contracts.md#12-t07-capacity-and-performance-gate).
 T07 now uses startup-only [Linux CPU placement](backend/app/engine/render_cpu_placement.py)
 to keep persistent native owners on distinct allowed logical CPUs. Reservations span live
@@ -49,13 +49,13 @@ records the measured scope, ten-minute soaks, native benefit, controller fan-out
 recovery. The evidence predicate requires at least 600 seconds and zero parallel playback
 losses; baseline single losses remain visible. Live-input latency is non-blocking under the
 user's amended criteria, with historical failures retained. Timing, buffers and CSD exports
-are unchanged. T08 exposes the qualified opt-in and a separate CPU observer; see the
+are unchanged. T08 exposes the opt-in and a separate CPU observer; see the
 [release and rollback contract](specifications/parallel-csound-rendering/t08-release.md).
 
 `CompilerService.analyze_realtime_graph()` produces optional immutable LIVE/MIDI dependency
 metadata for the [pure partition planner](backend/app/services/render_partition_plan.py).
 It records compiler stage/port order, resource constraints and helper/control/meter ownership.
-Planning uses caller-supplied costs and limits; it does not inspect CPU capacity, allocate
+Planning uses supplied measured costs when available, otherwise structural weights for branch balancing; it does not inspect CPU capacity, allocate
 buffers or start Csound. Even a coarse candidate has `selected_renderer="single"` and
 `execution_eligible=false`. Default single-session compile/start never calls this optional path, and
 analysis does not replace canonical patch/asset validation. See the
@@ -89,9 +89,11 @@ session-facing facade supplies that callback; T07 admission gates its starts. Se
 and [process tests](backend/tests/test_parallel_csound_renderer.py).
 
 T08 adds public `SessionCreateRequest.renderer_mode` (`single` by default, or `auto`) and
-optional `browser_settings`. Auto loads only server-controlled profiles through
-`VISUALCSOUND_PARALLEL_QUALIFICATION_FILE`, checks exact build/settings/input/plan/artifact
-identity and capacity, and retains single fallback. `VISUALCSOUND_PARALLEL_PLAYBACK_ENABLED=false`
+optional `browser_settings`. Auto analyses the current whole-instrument graph and admits a
+supported layout against capacity; no per-song catalog or exact browser settings are required.
+`VISUALCSOUND_PARALLEL_QUALIFICATION_FILE` is ignored. See the
+[whole-instrument contract](specifications/parallel-csound-rendering/whole-instrument-partitioning.md).
+`VISUALCSOUND_PARALLEL_PLAYBACK_ENABLED=false`
 is the deployment rollback switch. The Perform checkbox is stopped-only, session-local,
 and excluded from persistence and exports. See the [T08 release contract](specifications/parallel-csound-rendering/t08-release.md).
 

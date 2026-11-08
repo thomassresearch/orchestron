@@ -1,5 +1,9 @@
 # Persistent Csound process implementation plan
 
+Current playback selection is defined by [whole-instrument graph partitioning](whole-instrument-partitioning.md).
+It supersedes the historical per-song catalog and mandatory cost-profile gates below; timing,
+ownership, lifecycle and export contracts remain in force.
+
 Status: T01–T08 delivered; updated 2026-11-07. G7 and G8 pass for the measured Linux ARM64, four-CPU, 48 kHz/K=32 scope. See the [T08 release summary](t08-qualification-summary.md) and [operator controls](t08-release.md). Single remains the default and fallback; public opt-in requires matching reviewed evidence and capacity. This document defines the implementation sequence; the [implementation record](implementation-record.md), [scope](README.md), [contracts](contracts.md) and [acceptance plan](acceptance.md) identify delivered behavior and limits. No default cutover is part of T08.
 
 ## 1. Outcome and invariants

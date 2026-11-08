@@ -81,6 +81,7 @@ class Settings(BaseSettings):
     csound_performance_logging: bool = False
     # Capability/rollback switch; sessions still default to the single renderer.
     parallel_playback_enabled: bool = True
+    # Deprecated compatibility setting; playback no longer reads a per-song catalog.
     parallel_qualification_file: Path | None = None
     frontend_disconnect_grace_seconds: float = Field(default=5.0, gt=0.0)
     frontend_heartbeat_timeout_seconds: float = Field(default=5.0, gt=0.0)

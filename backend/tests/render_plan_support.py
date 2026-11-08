@@ -70,8 +70,8 @@ def planner_inputs(case_id, ksmps=32):
             route("custom-" + name, "source0", name, "$master", side, sourceStage="raw")
         patch.audio_interface = AudioInterface(groups=[AudioPortGroup(
             id="custom", name="Reordered", direction="output", layout="custom", ports=["b", "a", "$direct.right", "$direct.left"])])
-    elif variant == "unknown":
-        sources[0].patch.graph.nodes.append(NodeInstance(id="noise", opcode="noise"))
+    elif variant in {"unknown", "unsupported"}:
+        sources[0].patch.graph.nodes.append(NodeInstance(id="noise", opcode="noise" if variant == "unknown" else "vco2init"))
     elif variant in {"tables", "dynamic_table"}:
         for source in sources[:2]:
             patch = source.patch.graph

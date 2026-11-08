@@ -17,7 +17,8 @@
     {"id": "midi_initialization", "base": "independent_4", "variant": "midi_initialization"},
     {"id": "disconnected", "base": "independent_4", "variant": "disconnected"},
     {"id": "legacy", "base": "independent_4", "variant": "legacy"},
-    {"id": "asset", "base": "independent_4", "variant": "asset"}
+    {"id": "asset", "base": "independent_4", "variant": "asset"},
+    {"id": "unsupported", "base": "independent_4", "variant": "unsupported"}
   ],
   "synthetic_costs": {"source": 100, "effect": 8, "mixer_stage": 1, "dispatch": 1, "copy_per_sample": 0.001},
   "dag_seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],

@@ -32,11 +32,18 @@ A narrow **Engine stats** line stays fixed at the bottom of the Perform window. 
 whether the session uses **Single** or **Parallel** rendering. It also contains the optional
 **Parallel playback** checkbox.
 
-To opt in, stop the instruments, enable **Parallel playback**, then start them again. Only
-workloads, builds and browser settings that have been qualified on the server can use parallel
-rendering, and the server must have enough available capacity. Other cases display **Single
-fallback** and continue with the original renderer. Ask the server operator to install matching
-qualification profiles if none are available. A checkbox alone does not qualify a workload.
+To opt in, stop the instruments, enable **Parallel playback**, then start them again. The engine
+analyses the connections between whole instruments, inserts, sends and shared effects. It
+keeps dependent work and shared mutable resources together and distributes independent groups
+across available CPUs. Instruments are never split internally. No catalog or per-song
+registration is required, and browser latency settings do not control eligibility.
+
+The number of processes depends on the graph and available container capacity; one process
+handles the shared downstream effects and output. Built-in read-only sine tables are present
+in each process. Shared mutable tables, MIDI initialization and shared random state keep their
+users together. Unsupported resource behavior, insufficient independent work or insufficient
+CPU/memory capacity selects **Single fallback**. Splitting a graph does not guarantee a speedup:
+small instruments and shared effects can still dominate the work.
 
 The choice is off by default, resets when the page reloads, and is not saved in a performance
 or an export. It cannot be changed while instruments are running. Turning it off while stopped

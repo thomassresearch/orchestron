@@ -1,19 +1,12 @@
-"""Operator-owned, exact-build qualification catalog for opt-in playback.
-
-No synthetic costs, historic build aliases or unqualified override are exposed
-through deployment settings or the session API. The file lives outside app source
-so adding evidence cannot change the runtime fingerprint it certifies.
-"""
+"""Graph-based playback selection and offline benchmark report schemas."""
 from __future__ import annotations
 
 import json
-import logging
-from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend.app.engine.render_qualification import QualificationEvidence, runtime_fingerprint
+from backend.app.engine.render_qualification import QualificationEvidence
 from backend.app.engine.session_renderer_options import SessionRendererOptions
 from backend.app.models.render_plan import RenderCostProfile, RenderStageCost
 from backend.app.models.render_protocol import Digest, RendererPolicy
@@ -88,47 +81,17 @@ class ReleaseCatalog(BaseModel):
 
 
 class RenderRelease:
+    """Deployment switch for graph-based opt-in playback.
+
+    ReleaseCatalog remains a benchmark report format for offline validation. It
+    is deliberately not read here: ordinary performances need no song/build/
+    browser-settings registration, and browser buffers never affect ownership.
+    """
     def __init__(self, settings):
-        self.catalog = None
-        self.reason = None
         self.settings = settings
-        if not settings.parallel_playback_enabled:
-            self.reason = "parallel_disabled"
-        elif settings.parallel_qualification_file is None:
-            self.reason = "parallel_not_qualified"
-        else:
-            try:
-                with Path(settings.parallel_qualification_file).open("rb") as stream:
-                    raw = stream.read(MAX_CATALOG_BYTES + 1)
-                if len(raw) > MAX_CATALOG_BYTES:
-                    raise ValueError("Qualification catalog exceeds size limit")
-                self.catalog = ReleaseCatalog.model_validate_json(raw)
-            except (OSError, ValueError):
-                self.reason = "qualification_catalog_invalid"
-                logging.getLogger(__name__).warning("Parallel qualification catalog unavailable or invalid; using single rendering")
 
-    def options(self, browser_settings):
-        reason = "parallel_disabled" if not self.settings.parallel_playback_enabled else self.reason
-        profiles = ()
-        if not reason:
-            try:
-                runtime = runtime_fingerprint()
-                key = settings_key(browser_settings)
-                current = tuple(p for p in self.catalog.profiles if p.evidence.runtime == runtime)
-                if not current:
-                    reason = "qualification_build_mismatch"
-                profiles = tuple(p for p in current if settings_key(p.evidence.single_settings) == key)
-            except Exception:
-                reason = "qualification_unavailable"
-            if not profiles and not reason:
-                reason = "browser_settings_not_qualified"
-
-        def costs(graph):
-            # Exact source/engine/resource identity, followed by exact compiled
-            # artifact/plan/build checks in the facade. No node-count estimates.
-            return next((p.costs.to_profile() for p in profiles if p.input_hash == graph.input_hash), None)
-
+    def options(self, browser_settings=None):
         return SessionRendererOptions(
-            policy=self.catalog.policy if self.catalog else RendererPolicy(mode="auto"),
-            costs=costs, qualifications=tuple(p.evidence for p in profiles), blocked_reason=reason,
+            policy=RendererPolicy(mode="auto"), graph_selection=True,
+            blocked_reason=None if self.settings.parallel_playback_enabled else "parallel_disabled",
             enabled=lambda: self.settings.parallel_playback_enabled)

@@ -17,6 +17,9 @@ class SessionRendererOptions:
     # Explicitly acknowledges unqualified execution for integration diagnostics.
     # Does not bypass capacity admission or claim performance qualification.
     allow_unqualified: bool = False
+    # Public opt-in: derive ownership from this performance's resource graph.
+    # Benchmark evidence remains optional diagnostics, never a song allowlist.
+    graph_selection: bool = False
     admission: RenderAdmission = field(default_factory=lambda: PROCESS_RENDER_ADMISSION)
     qualifications: tuple[QualificationEvidence, ...] = ()
     blocked_reason: str | None = None

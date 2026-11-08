@@ -383,7 +383,7 @@ def test_parallel_session_ineligible_graph_and_invalid_canonical_compile(tmp_pat
     from backend.tests.session_parallel_support import options, create_session
     with _client(tmp_path, renderer_options=options(mode)) as client:
         monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
-        identity = create_session(client, case="unknown", start=False)
+        identity = create_session(client, case="unsupported", start=False)
         response = client.post(f"/api/sessions/{identity}/start")
         assert response.status_code == (200 if mode == "auto" else 500), response.text
         runtime = client.app.state.container.session_service._sessions[identity]
@@ -10622,8 +10622,8 @@ def test_browser_clock_clip_drummer_with_cli_row_ids_and_twelve_patterns(tmp_pat
                 assert not any(t["enabled"] for t in response["sequencer_status"]["tracks"])
 
 
-@pytest.mark.parametrize("enabled,reason", [(True, "parallel_not_qualified"), (False, "parallel_disabled")])
-def test_public_parallel_opt_in_falls_back_without_installed_release(tmp_path, monkeypatch, enabled, reason):
+@pytest.mark.parametrize("enabled,reason", [(True, "native_backend_unavailable"), (False, "parallel_disabled")])
+def test_public_parallel_opt_in_retains_native_and_operator_fallback(tmp_path, monkeypatch, enabled, reason):
     monkeypatch.setenv("VISUALCSOUND_PARALLEL_PLAYBACK_ENABLED", str(enabled).lower())
     with _client(tmp_path) as client:
         patch = client.post("/api/patches", json=_audio_source_patch_payload()).json()
@@ -10663,39 +10663,20 @@ def test_engine_stats_observation_has_no_idle_or_audio_side_effects(tmp_path, mo
         assert client.get(f"/api/sessions/{identity}/engine-stats").status_code == 404
 
 
-def test_public_release_catalog_selects_exact_native_workload_and_preserves_default(tmp_path, monkeypatch):
-    """Fabricated evidence exercises the public gate; this is NOT qualification."""
-    from dataclasses import asdict, replace
+def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch):
+    from dataclasses import replace
     from backend.app.engine.csound_worker import CsoundWorker
-    from backend.app.engine.render_release import RenderRelease
-    from backend.app.engine.session_parallel_renderer import ParallelCsoundRenderer
     from backend.tests.session_parallel_support import options, create_session
-    from backend.tests.test_render_qualification import evidence
-    from backend.tests.render_plan_support import synthetic_costs
 
-    monkeypatch.setattr("backend.app.engine.render_release.runtime_fingerprint", lambda: "a" * 64)
-    monkeypatch.setattr("backend.app.engine.session_parallel_renderer.runtime_fingerprint", lambda: "a" * 64)
     with _client(tmp_path) as client:
         monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
         identity = create_session(client, start=False)
         assert client.post(f"/api/sessions/{identity}/compile").status_code == 200
         service = client.app.state.container.session_service
         original = service._sessions[identity]
-        targets = [service._instrument_resolver.compile_target(i) for i in original.instruments]
         policy = options("auto")
-        probe = ParallelCsoundRenderer(options=policy)
-        probe.prepare(service._compiler_service, targets, original.audio_graph, original.mixer, original.compile_artifact)
-        compilation, plan = probe._candidate
-        browser = {"playbackMode": "auto"}
-        record = replace(evidence(), runtime="a" * 64, artifact_hash=compilation.artifact_hash,
-                         plan_hash=plan.plan_hash, single_settings=json.dumps(browser), parallel_settings=json.dumps(browser))
-        profiles = [{"input_hash": plan.graph.input_hash, "costs": asdict(synthetic_costs(plan.graph)), "evidence": asdict(record)},
-                    {"input_hash": "d" * 64, "costs": asdict(synthetic_costs(plan.graph)),
-                     "evidence": asdict(replace(record, workload="heavy-b", artifact_hash="e" * 64))}]
-        path = tmp_path / "release.json"
-        path.write_text(json.dumps({"version": 1, "policy": policy.policy.model_dump(mode="json"), "profiles": profiles}))
-        service._settings.parallel_qualification_file = path
-        service._render_release = RenderRelease(service._settings)
+        browser = {"playbackMode": "listening", "maxBlocksPerRequest": 74}
+        assert service._settings.parallel_qualification_file is None
         release_options = service._render_release.options
         # Controlled capacity, just like other native integration tests; no
         # platform/performance claim or capacity detection override ships.
@@ -10709,7 +10690,9 @@ def test_public_release_catalog_selects_exact_native_workload_and_preserves_defa
         response = client.post(f"/api/sessions/{selected}/start")
         assert response.status_code == 200, response.text
         worker = service._sessions[selected].worker
-        assert worker.renderer_diagnostics["qualified"] and worker.renderer_diagnostics["selected"] == "parallel", str(worker.renderer_diagnostics)
+        assert not worker.renderer_diagnostics["qualified"]
+        assert worker.options.graph_selection and not worker.options.allow_unqualified
+        assert worker.renderer_diagnostics["selected"] == "parallel", str(worker.renderer_diagnostics)
         assert worker._coordinator.process_ids
         canonical = service._sessions[selected].compile_artifact
         assert canonical.orc == original.compile_artifact.orc and canonical.manifest == original.compile_artifact.manifest

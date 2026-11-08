@@ -1,5 +1,9 @@
 # Parallel rendering implementation record
 
+Current playback selection is defined by [whole-instrument graph partitioning](whole-instrument-partitioning.md).
+It supersedes the historical per-song catalog and mandatory cost-profile gates below; timing,
+ownership, lifecycle and export contracts remain in force.
+
 Updated: 2026-11-07. T01–T08 delivered. G7 and G8 pass for the measured Linux ARM64, four-CPU, 48 kHz/K=32 scope; see the [T08 release summary](t08-qualification-summary.md). Single remains the default and fallback. Public opt-in requires the explicit operator catalog and capacity admission; no catalog is installed into an existing deployment and no default cutover is made.
 
 ## T01 delivered work
