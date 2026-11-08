@@ -23,7 +23,7 @@ def test_compact_empty_block_binds_exact_epoch_layout_and_counters():
     first = next(iter(layouts[0].workers.values()))
     codec = SteadyBlockCodec(first.bootstrap_hash)
     data = codec.render(2, 64, 3)
-    assert codec.validate(data, sequence=2, sample=64, revision=2) == 3
+    assert codec.validate(data, sequence=2, sample=64, revision=2) == (3, 1)
     assert codec.done(data) == DONE_MAGIC + data[4:]
     # Digest binds epoch and every worker's distinct identity/bus ownership.
     for layout in layouts:
@@ -31,7 +31,7 @@ def test_compact_empty_block_binds_exact_epoch_layout_and_counters():
             if regions.bootstrap_hash != first.bootstrap_hash:
                 with pytest.raises(ValueError, match="ownership"):
                     SteadyBlockCodec(regions.bootstrap_hash).validate(data, sequence=2, sample=64, revision=3)
-    for index, replacement in [(0, DONE_MAGIC), (1, bytes(32)), (2, 1), (3, 63), (4, 2)]:
+    for index, replacement in [(0, DONE_MAGIC), (1, bytes(32)), (2, 1), (3, 63), (4, 2), (5, 0), (5, 2)]:
         fields = list(BLOCK.unpack(data))
         fields[index] = replacement
         with pytest.raises(ValueError, match="mismatch"):

@@ -54,7 +54,7 @@ def test_native_output_view_follows_current_blocks_and_is_released_before_reset(
 
 
 def coordinator(**kwargs):
-    return PartitionRenderCoordinator(policy=RendererPolicy(startup_timeout_seconds=10.,
+    return PartitionRenderCoordinator(policy=RendererPolicy(coordination_frames=1, startup_timeout_seconds=10.,
         stop_timeout_seconds=.5, render_timeout_seconds=2.), **kwargs)
 
 

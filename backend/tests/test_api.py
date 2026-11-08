@@ -10664,7 +10664,8 @@ def test_engine_stats_observation_has_no_idle_or_audio_side_effects(tmp_path, mo
 
 
 @pytest.mark.parametrize("case", ["two", "bypass"])
-def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch, case):
+@pytest.mark.parametrize("coordination_frames", [32, 128, 256])
+def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch, case, coordination_frames):
     from dataclasses import replace
     from backend.app.engine.csound_worker import CsoundWorker
     from backend.tests.session_parallel_support import options, create_session
@@ -10674,6 +10675,7 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         identity = create_session(client, case=case, start=False)
         assert client.post(f"/api/sessions/{identity}/compile").status_code == 200
         service = client.app.state.container.session_service
+        service._settings.parallel_render_batch_frames = coordination_frames
         original = service._sessions[identity]
         policy = options("auto")
         browser = {"playbackMode": "listening", "maxBlocksPerRequest": 74}
@@ -10690,6 +10692,7 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         selected = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser}).json()["session_id"]
         response = client.post(f"/api/sessions/{selected}/start")
         assert response.status_code == 200, response.text
+        assert client.get(f"/api/sessions/{selected}").json()["renderer"]["coordination_frames"] == coordination_frames
         worker = service._sessions[selected].worker
         assert not worker.renderer_diagnostics["qualified"]
         assert worker.options.graph_selection and not worker.options.allow_unqualified

@@ -1135,6 +1135,7 @@ export interface RendererDiagnostics {
   render_requests?: number;
   slow_requests?: number;
   max_render_audio_ratio?: number;
+  coordination_frames?: number | null;
 }
 
 export interface SessionInfo {

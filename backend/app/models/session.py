@@ -170,6 +170,7 @@ class RendererDiagnostics(BaseModel):
     render_requests: int = 0
     slow_requests: int = 0
     max_render_audio_ratio: float = 0.
+    coordination_frames: int | None = None
 
 
 class SessionInfo(BaseModel):

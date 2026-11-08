@@ -1,8 +1,4 @@
-"""T01 internal contracts only: not wired into session or renderer selection.
-
-Stateful epoch/plan/ownership checks belong to the future coordinator. Structural
-validation here cannot make an unknown graph or native runtime safe to partition.
-"""
+"""Internal process contracts; runtime ownership is validated by the coordinator."""
 from __future__ import annotations
 
 from typing import Annotated, Literal
@@ -19,15 +15,16 @@ class Contract(BaseModel):
 
 
 class RendererPolicy(Contract):
-    """Frozen initial policy; these are not yet Settings/environment options."""
+    """Immutable session policy, independent of synthesis and browser buffering."""
     mode: Literal["single", "auto", "parallel"] = "single"
+    coordination_frames: int = Field(default=128, ge=1, le=1024)
     max_workers: int = Field(default=8, ge=1, le=64)
     max_shared_memory_bytes: int = Field(default=64 * 1024 * 1024, ge=1024, le=1024 * 1024 * 1024)
     startup_timeout_seconds: float = Field(default=30.0, ge=1, le=300)
     stop_timeout_seconds: float = Field(default=2.0, ge=.1, le=30)
     render_timeout_seconds: float = Field(default=5.0, ge=.1, le=60)
     slots_per_bus: Literal[2] = 2
-    max_inflight_blocks: Literal[1] = 1
+    max_inflight_blocks: Literal[1] = 1  # One coordination batch, possibly multiple k-blocks.
 
 
 class EngineFormat(Contract):
@@ -128,6 +125,29 @@ class Done(Block):
     type: Literal["DONE"] = "DONE"
 
 
+class RenderBatch(Block):
+    """One fenced interval containing unchanged, individually timed k-blocks."""
+    type: Literal["RENDER_BATCH"] = "RENDER_BATCH"
+    blocks: tuple[Render, ...] = Field(min_length=2, max_length=1024)
+
+    @model_validator(mode="after")
+    def contiguous_blocks(self):
+        first = self.blocks[0]
+        if self.frame_count != len(self.blocks) * first.frame_count:
+            raise ValueError("Batch frame count does not match its synthesis blocks")
+        revision = first.control_revision
+        for index, block in enumerate(self.blocks):
+            if (any(getattr(block, key) != getattr(self, key) for key in
+                    ("protocol_version", "epoch", "partition_id", "plan_hash", "sequence", "slots"))
+                    or block.sample_start != self.sample_start + index * first.frame_count
+                    or block.frame_count != first.frame_count or block.control_revision < revision):
+                raise ValueError("Batch blocks must retain exact ownership, timing and revision order")
+            revision = block.control_revision
+        if revision != self.control_revision:
+            raise ValueError("Batch final control revision mismatch")
+        return self
+
+
 class Error(Envelope):
     type: Literal["ERROR"] = "ERROR"
     code: Literal["compile", "start", "render", "protocol", "capacity", "shutdown"]
@@ -143,4 +163,4 @@ class Stopped(Envelope):
     type: Literal["STOPPED"] = "STOPPED"
 
 
-RenderMessage = Annotated[Init | Ready | Render | Done | Error | Stop | Stopped, Field(discriminator="type")]
+RenderMessage = Annotated[Init | Ready | Render | RenderBatch | Done | Error | Stop | Stopped, Field(discriminator="type")]

@@ -29,6 +29,21 @@ def test_opt_in_uses_graph_without_catalog_costs_or_browser_setting_gate():
         assert options.blocked_reason is None and options.graph_selection
         assert options.policy.mode == "auto" and not options.allow_unqualified
         assert options.qualifications == () and options.costs is None
+        assert options.policy.coordination_frames == 128
+
+
+@pytest.mark.parametrize("frames", [1, 32, 128, 256, 1024])
+def test_coordination_setting_reaches_policy_without_changing_single_default(monkeypatch, frames):
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES", str(frames))
+    assert RenderRelease(Settings()).options().policy.coordination_frames == frames
+    assert RendererPolicy().mode == "single"
+
+
+@pytest.mark.parametrize("frames", ["0", "1025", "128.5", "invalid"])
+def test_coordination_setting_is_bounded(monkeypatch, frames):
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES", frames)
+    with pytest.raises(ValueError):
+        Settings()
 
 
 def test_operator_rollback_blocks_graph_selection():

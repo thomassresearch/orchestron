@@ -5,8 +5,8 @@ from backend.app.engine.render_capacity import MIB, RenderAdmission, RenderCapac
 from backend.tests.render_plan_support import planner_inputs, synthetic_costs
 
 
-def options(mode="auto", *, qualified_opt_in=True):
-    return SessionRendererOptions(policy=RendererPolicy(mode=mode, max_workers=4,
+def options(mode="auto", *, qualified_opt_in=True, coordination_frames=128):
+    return SessionRendererOptions(policy=RendererPolicy(mode=mode, max_workers=4, coordination_frames=coordination_frames,
         startup_timeout_seconds=10, stop_timeout_seconds=.5, render_timeout_seconds=2),
         costs=synthetic_costs, allow_unqualified=qualified_opt_in,
         admission=RenderAdmission(lambda: RenderCapacity(12., True, 4096 * MIB, 64 * MIB)))

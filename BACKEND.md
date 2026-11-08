@@ -80,6 +80,12 @@ completion before committing the block. T07 caches dependency topology, channel 
 and generated meter pointers within the native owner. Empty-event blocks use a compact
 descriptor bound to the full bootstrap digest; event/control and lifecycle records retain
 the JSON protocol. No next interval can begin ahead of the global completion barrier.
+The current interval batches unchanged synthesis steps: `VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES`
+defaults to 128 (range 1–1024, floored to whole `ksmps` steps, minimum one). Shared buses and
+meters hold every step; parent scheduling still runs at each original sample boundary.
+Arrivals after sealing target the next unsealed interval. MIDI/control offsets, internal
+Csound state advancement and meter sampling remain per-step. See the
+[batch coordination contract](specifications/parallel-csound-rendering/coordination-batches.md).
 The output child converts native samples to float32; the parent resamples once per request
 and withholds an entire failed PCM request. Conversion stays in the native thread to preserve
 Csound's float32 subnormal handling; resampling retains that reported mode.

@@ -26,10 +26,11 @@ from backend.app.engine.render_block_codec import SteadyBlockCodec
 from backend.app.engine.render_cpu_placement import PROCESS_RENDER_CPU_PLACEMENT
 from backend.app.engine.render_notification import completion_notification
 from backend.app.engine.render_ipc import (
-    FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS, MESSAGE, SharedArena, build_layout, expected_done, slots_for, validate_envelope,
+    FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS, MESSAGE, MailboxCapacityError, SharedArena,
+    build_layout, coordination_blocks, expected_done, slots_for, validate_envelope,
 )
 from backend.app.models.render_protocol import (
-    Contract, ControlWrite, EngineFormat, Error, Init, MidiDelivery, Ready, Render, RendererPolicy, Stop,
+    Contract, ControlWrite, EngineFormat, Error, Init, MidiDelivery, Ready, Render, RenderBatch, RendererPolicy, Stop,
 )
 from backend.app.services.compiler_partitioned import validate_realtime_partition_compilation
 
@@ -63,7 +64,7 @@ class _Child:
 
 
 class PartitionRenderCoordinator:
-    """One render owner, one sealed block, and an all-predecessor completion barrier.
+    """One render owner, one sealed batch, and an all-predecessor completion barrier.
 
     prepare_block(index, S) is a trusted, nonblocking parent callback. It must not
     recursively call lifecycle/render methods. No callback is sent to a child.
@@ -89,6 +90,8 @@ class PartitionRenderCoordinator:
         self.epoch = 0
         self.committed_sample = self.sealed_sample = self.published_sample = 0
         self._sequence = self._revision = 0
+        self._preparing_sample = None
+        self._batch_blocks = 1
         self._meter_frames = []
         self._next_meter_sample = 0
         self.last_meters = {}
@@ -100,7 +103,14 @@ class PartitionRenderCoordinator:
 
     @property
     def render_sample_cursor(self):
-        return self.committed_sample
+        # Incoming events cannot enter an already drained block. During parent
+        # preparation callbacks this is the original k-block's exact boundary;
+        # once sealed, new arrivals target the next unsealed interval.
+        return self._preparing_sample if self._preparing_sample is not None else max(self.committed_sample, self.sealed_sample)
+
+    @property
+    def coordination_frames(self):
+        return self._batch_blocks * self._format.ksmps
 
     @property
     def process_ids(self):
@@ -222,7 +232,9 @@ class PartitionRenderCoordinator:
                 self._format = EngineFormat(sample_rate=plan.graph.engine.sample_rate, ksmps=plan.graph.engine.ksmps,
                     zero_dbfs=plan.graph.engine.zero_dbfs, native_sample_type="float64" if plan.sample_bytes == 8 else "float32")
                 self._layout = build_layout(compilation, plan, self.epoch,
-                    limit=min(self.policy.max_shared_memory_bytes, plan.shared_audio_limit))
+                    limit=min(self.policy.max_shared_memory_bytes, plan.shared_audio_limit),
+                    coordination_frames=self.policy.coordination_frames)
+                self._batch_blocks = coordination_blocks(self._format.ksmps, self.policy.coordination_frames)
                 self._arena = SharedArena(size=self._layout.size)
                 for identity, regions in self._layout.workers.items():
                     self._arena.write(regions.bootstrap, self._layout.bootstraps[identity])
@@ -232,7 +244,8 @@ class PartitionRenderCoordinator:
                         self._arena.audio(region, slot)
                 self._pcm_views = tuple(self._arena.audio(self._layout.audio[FINAL_PCM_BUS], slot) for slot in (0, 1))
                 self._mode_views = tuple(self._arena.audio(self._layout.audio[FINAL_F32_MODE_BUS], slot) for slot in (0, 1))
-                self._meter_views = tuple(tuple((p.meters, self._arena.audio(self._layout.workers[p.id].meters, slot))
+                self._meter_views = tuple(tuple((p.meters, self._arena.audio(self._layout.workers[p.id].meters, slot)
+                                                .reshape(self._batch_blocks, len(p.meters)))
                                                for p in compilation.programs) for slot in (0, 1))
                 ready = {}
                 for program, cpu in zip(compilation.programs, self._worker_cpus, strict=True):
@@ -263,6 +276,76 @@ class PartitionRenderCoordinator:
                 self._invalidate_and_cleanup()
                 raise
 
+    def _descriptors(self, sample, inputs):
+        descriptors = {}
+        for program, buses, subscribed in self._render_programs:
+            child = self._children[program.id]
+            deliveries = tuple((entry, tuple(c for c in entry.controls if c.channel in subscribed)) for entry in inputs)
+            if not any(entry.midi or controls for entry, controls in deliveries):
+                encoded = child.codec.render(self._sequence, sample, inputs[-1].control_revision, len(inputs))
+                descriptors[program.id] = (None, encoded, child.codec.done(encoded))
+                continue
+            slots = slots_for(buses, self._sequence)
+            blocks = tuple(Render(**child.identity, sequence=self._sequence,
+                sample_start=sample + index * self._format.ksmps, frame_count=self._format.ksmps,
+                control_revision=entry.control_revision, slots=slots, midi=entry.midi, controls=controls)
+                for index, (entry, controls) in enumerate(deliveries))
+            message = blocks[0] if len(blocks) == 1 else RenderBatch(**child.identity,
+                sequence=self._sequence, sample_start=sample, frame_count=len(blocks) * self._format.ksmps,
+                control_revision=inputs[-1].control_revision, slots=slots, blocks=blocks)
+            descriptors[program.id] = (message, self._arena.encode(message, child.regions.command), expected_done(message))
+        return descriptors
+
+    def _render_prepared(self, inputs, pcm, request_start, deadline):
+        sample, count = self.committed_sample, len(inputs)
+        while True:
+            try:
+                descriptors = self._descriptors(sample, inputs[:count])
+                break
+            except MailboxCapacityError:
+                if count == 1:
+                    raise
+                # A valid dense k-block must not fail just because its neighbours
+                # share this batch. Split before dispatch; never truncate events.
+                count = max(1, count // 2)
+        self._check(deadline)
+        self._check_quiescent()
+        self.sealed_sample = sample + count * self._format.ksmps
+        expected = {}
+        for wave in self._waves:
+            for partition_id in wave:
+                message, encoded, completion = descriptors[partition_id]
+                self._send(self._children[partition_id], message, encoded)
+                expected[partition_id] = completion
+        self._collect(expected, deadline)
+        self._check(deadline)
+        self._check_quiescent()
+        slot = self._sequence % 2
+        output = self._pcm_views[slot][:count * self._format.ksmps]
+        mode = float(self._mode_views[slot][0])
+        if mode not in (0., 1.) or (self._flush_float32 is not None and mode != self._flush_float32):
+            raise PartitionRuntimeError("Invalid/changed native float32 conversion mode.")
+        self._flush_float32 = mode
+        if not np.isfinite(output).all():
+            raise PartitionRuntimeError("Partition output contains nonfinite audio/meters.")
+        pcm[sample - request_start:self.sealed_sample - request_start] = output
+        with self._state:
+            self._check(deadline)
+            for index in range(count):
+                meters = {name: float(value) for names, values in self._meter_views[slot]
+                          for name, value in zip(names, values[index], strict=True)}
+                if not all(map(math.isfinite, meters.values())):
+                    raise PartitionRuntimeError("Partition output contains nonfinite audio/meters.")
+                self.committed_sample = sample + (index + 1) * self._format.ksmps
+                self._revision = inputs[index].control_revision
+                self.last_meters = meters
+                if self.committed_sample >= self._next_meter_sample:
+                    self._meter_frames.append({"engineSample": self.committed_sample, "channels": meters})
+                    self._meter_frames = self._meter_frames[-32:]
+                    self._next_meter_sample = self.committed_sample + max(1, self._format.sample_rate // 15)
+            self._sequence += 1
+        return count
+
     def render_blocks(self, *, block_count, target_sample_rate, prepare_block: Callable | None = None):
         if (type(block_count) is not int or block_count < 1 or type(target_sample_rate) is not int
                 or not 8000 <= target_sample_rate <= 192000):
@@ -277,65 +360,30 @@ class PartitionRenderCoordinator:
             start = self.committed_sample
             pcm = np.empty((frames, 2), dtype=np.float32)
             try:
-                for index in range(block_count):
-                    deadline = time.monotonic() + self.policy.render_timeout_seconds
-                    self._check(deadline)
-                    sample = self.committed_sample
-                    inputs = prepare_block(index, sample) if prepare_block is not None else BlockInputs(control_revision=self._revision)
-                    if not isinstance(inputs, BlockInputs):
-                        raise ValueError("Parent preparation must return BlockInputs.")
-                    if inputs.control_revision < self._revision:
-                        raise ValueError("Control revision moved backwards.")
-                    if (len({c.channel for c in inputs.controls}) != len(inputs.controls)
-                            or any(c.channel not in self._all_controls for c in inputs.controls)):
-                        raise ValueError("Unknown or uncoalesced parent control write.")
-                    descriptors = {}
-                    for program, buses, subscribed in self._render_programs:
-                        child = self._children[program.id]
-                        controls = tuple(c for c in inputs.controls if c.channel in subscribed)
-                        if not inputs.midi and not controls:
-                            encoded = child.codec.render(self._sequence, sample, inputs.control_revision)
-                            descriptors[program.id] = (None, encoded, child.codec.done(encoded))
-                            continue
-                        message = Render(**child.identity, sequence=self._sequence, sample_start=sample,
-                            frame_count=self._format.ksmps, control_revision=inputs.control_revision,
-                            slots=slots_for(buses, self._sequence), midi=inputs.midi, controls=controls)
-                        # Reject any oversized descriptor BEFORE dispatching any worker.
-                        descriptors[program.id] = (message, self._arena.encode(message, child.regions.command), expected_done(message))
-                    self._check(deadline)
-                    self._check_quiescent()
-                    self.sealed_sample = sample + self._format.ksmps
-                    expected = {}
-                    for wave in self._waves:
-                        for partition_id in wave:
-                            message, encoded, completion = descriptors[partition_id]
-                            self._send(self._children[partition_id], message, encoded)
-                            expected[partition_id] = completion
-                    self._collect(expected, deadline)
-                    self._check(deadline)
-                    self._check_quiescent()
-                    slot = self._sequence % 2
-                    output = self._pcm_views[slot]
-                    mode = float(self._mode_views[slot][0])
-                    if mode not in (0., 1.) or (self._flush_float32 is not None and mode != self._flush_float32):
-                        raise PartitionRuntimeError("Invalid/changed native float32 conversion mode.")
-                    self._flush_float32 = mode
-                    meters = {name: float(value) for names, values in self._meter_views[slot]
-                              for name, value in zip(names, values, strict=True)}
-                    if not np.isfinite(output).all() or not all(map(math.isfinite, meters.values())):
-                        raise PartitionRuntimeError("Partition output contains nonfinite audio/meters.")
-                    converted = pcm[index * self._format.ksmps:(index + 1) * self._format.ksmps]
-                    converted[:] = output  # already checked float32; no conversion/overflow here
-                    with self._state:
+                for first in range(0, block_count, self._batch_blocks):
+                    batch_start, revision = self.committed_sample, self._revision
+                    prepared = []
+                    for index in range(first, min(block_count, first + self._batch_blocks)):
+                        deadline = time.monotonic() + self.policy.render_timeout_seconds
                         self._check(deadline)
-                        self.committed_sample = self.sealed_sample
-                        self._sequence += 1
-                        self._revision = inputs.control_revision
-                        self.last_meters = meters
-                        if self.committed_sample >= self._next_meter_sample:
-                            self._meter_frames.append({"engineSample": self.committed_sample, "channels": meters})
-                            self._meter_frames = self._meter_frames[-32:]
-                            self._next_meter_sample = self.committed_sample + max(1, self._format.sample_rate // 15)
+                        sample = batch_start + (index - first) * self._format.ksmps
+                        self._preparing_sample = sample
+                        inputs = prepare_block(index, sample) if prepare_block is not None else BlockInputs(control_revision=revision)
+                        if not isinstance(inputs, BlockInputs):
+                            raise ValueError("Parent preparation must return BlockInputs.")
+                        if inputs.control_revision < revision:
+                            raise ValueError("Control revision moved backwards.")
+                        if (len({c.channel for c in inputs.controls}) != len(inputs.controls)
+                                or any(c.channel not in self._all_controls for c in inputs.controls)):
+                            raise ValueError("Unknown or uncoalesced parent control write.")
+                        prepared.append(inputs)
+                        revision = inputs.control_revision
+                        self._preparing_sample = sample + self._format.ksmps
+                    offset = 0
+                    while offset < len(prepared):
+                        deadline = time.monotonic() + self.policy.render_timeout_seconds
+                        offset += self._render_prepared(prepared[offset:], pcm, start, deadline)
+                    self._preparing_sample = None
                 # Keep the single renderer's order: float32 engine blocks (now
                 # converted in the native owner), then one resample per request.
                 pcm = resample_stereo_block_linear(pcm, source_sample_rate=self._format.sample_rate,
@@ -357,6 +405,8 @@ class PartitionRenderCoordinator:
             except BaseException:
                 self._invalidate_and_cleanup()
                 raise
+            finally:
+                self._preparing_sample = None
 
     def drain_meter_frames(self):
         with self._state:

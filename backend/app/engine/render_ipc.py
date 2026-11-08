@@ -18,7 +18,7 @@ import sys
 import numpy as np
 from pydantic import TypeAdapter
 
-from backend.app.models.render_protocol import BusSlot, Done, Render, RenderMessage
+from backend.app.models.render_protocol import BusSlot, Done, Render, RenderBatch, RenderMessage
 
 COMMAND_BYTES = 1024 * 1024
 REPLY_BYTES = 256 * 1024
@@ -27,6 +27,10 @@ FINAL_PCM_BUS = "$final-pcm"
 FINAL_F32_MODE_BUS = "$final-f32-mode"
 MESSAGE = TypeAdapter(RenderMessage)
 LENGTH = struct.Struct("<I")
+
+
+class MailboxCapacityError(ValueError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -64,7 +68,12 @@ def json_bytes(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
-def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES):
+def coordination_blocks(ksmps, frames):
+    """Round down to whole synthesis steps; never change the engine control rate."""
+    return max(1, frames // ksmps)
+
+
+def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES, coordination_frames=128):
     """Account for audio, meters, mailboxes AND CSD bootstrap before allocating."""
     position = 0
 
@@ -81,14 +90,17 @@ def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES
 
     if command_bytes < 1024 or command_bytes > COMMAND_BYTES:
         raise ValueError("Invalid command mailbox capacity.")
-    audio = {b.id: audio_region(b.frames, b.channels, b.sample_bytes) for b in plan.buses}
-    audio[FINAL_BUS] = audio_region(plan.graph.engine.ksmps, 2, plan.sample_bytes)
-    audio[FINAL_PCM_BUS] = audio_region(plan.graph.engine.ksmps, 2, 4)
+    if type(coordination_frames) is not int or not 1 <= coordination_frames <= 1024:
+        raise ValueError("Invalid coordination frame capacity.")
+    batch_blocks = coordination_blocks(plan.graph.engine.ksmps, coordination_frames)
+    audio = {b.id: audio_region(b.frames * batch_blocks, b.channels, b.sample_bytes) for b in plan.buses}
+    audio[FINAL_BUS] = audio_region(plan.graph.engine.ksmps * batch_blocks, 2, plan.sample_bytes)
+    audio[FINAL_PCM_BUS] = audio_region(plan.graph.engine.ksmps * batch_blocks, 2, 4)
     audio[FINAL_F32_MODE_BUS] = audio_region(1, 1, 8)
     workers, bootstraps = {}, {}
     for program in compilation.programs:
         command, reply = allocate(command_bytes), allocate(REPLY_BYTES)
-        meters = audio_region(len(program.meters), 1, 8)
+        meters = audio_region(len(program.meters) * batch_blocks, 1, 8)
         owned = tuple(b for b, _ in (*program.inputs, *program.outputs))
         if program.owns_output:
             owned += (FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS)
@@ -97,6 +109,7 @@ def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES
         data = json_bytes({
             "epoch": epoch, "plan_hash": plan.plan_hash, "artifact_hash": compilation.artifact_hash,
             "engine": asdict(plan.graph.engine), "sample_bytes": plan.sample_bytes,
+            "batch_blocks": batch_blocks,
             "program": asdict(program), "audio": {b: asdict(audio[b]) for b in owned},
             "predecessors": next(p.predecessors for p in plan.partitions if p.id == program.id),
             "successors": tuple(p.id for p in plan.partitions if program.id in p.predecessors),
@@ -161,13 +174,13 @@ class SharedArena:
     def encode(message, region):
         data = message.model_dump_json().encode()
         if len(data) + LENGTH.size > region.size:
-            raise ValueError("Partition descriptor exceeds mailbox capacity.")
+            raise MailboxCapacityError("Partition descriptor exceeds mailbox capacity.")
         return data
 
     def send(self, region, data):
         self.check(region)
         if not data or len(data) + LENGTH.size > region.size:
-            raise ValueError("Partition descriptor exceeds mailbox capacity.")
+            raise MailboxCapacityError("Partition descriptor exceeds mailbox capacity.")
         start = region.offset
         self.memory.buf[start + LENGTH.size:start + LENGTH.size + len(data)] = data
         LENGTH.pack_into(self.memory.buf, start, len(data))
@@ -216,8 +229,16 @@ def validate_envelope(message, identity):
         raise ValueError("Partition epoch/identity mismatch.")
 
 
-def validate_render(message, identity, *, sequence, sample, frames, revision, buses, controls):
+def validate_render(message, identity, *, sequence, sample, frames, revision, buses, controls, max_blocks=1):
     validate_envelope(message, identity)
+    if isinstance(message, RenderBatch):
+        if len(message.blocks) > max_blocks:
+            raise ValueError("Partition batch capacity mismatch.")
+        for index, block in enumerate(message.blocks):
+            validate_render(block, identity, sequence=sequence, sample=sample + index * frames,
+                            frames=frames, revision=revision, buses=buses, controls=controls)
+            revision = block.control_revision
+        return
     if (not isinstance(message, Render) or message.sequence != sequence or message.sample_start != sample
             or message.frame_count != frames or message.control_revision < revision
             or message.slots != slots_for(buses, sequence)
@@ -226,4 +247,4 @@ def validate_render(message, identity, *, sequence, sample, frames, revision, bu
 
 
 def expected_done(message):
-    return Done(**message.model_dump(exclude={"type", "midi", "controls"}))
+    return Done(**message.model_dump(exclude={"type", "midi", "controls", "blocks"}))

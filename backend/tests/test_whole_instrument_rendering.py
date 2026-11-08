@@ -143,7 +143,8 @@ def test_lake_sequential_native_audio_and_meters_match_exactly(master_insert):
 
 
 @pytest.mark.parametrize('case', ['lake', 'lake_master_insert', 'shared_tables'])
-def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch, case):
+@pytest.mark.parametrize('coordination_frames', [32, 128, 256])
+def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch, case, coordination_frames):
     from backend.app.engine.parallel_csound_renderer import MAX_REQUEST_FRAMES
     from backend.app.engine.render_capacity import MIB
 
@@ -152,7 +153,8 @@ def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch
     targets, graph, mixer = (lake_inputs(master_insert=case == 'lake_master_insert')
                              if case.startswith('lake') else planner_inputs('tables'))
     canonical = compiler.compile_patch_bundle(targets, 'internal:loopback', 'null', audio_graph=graph, mixer=mixer)
-    selected = replace(RenderRelease(Settings()).options(None), admission=options().admission)
+    selected = replace(RenderRelease(Settings(parallel_render_batch_frames=coordination_frames)).options(None),
+                       admission=options().admission)
     parallel = ParallelCsoundRenderer(options=selected)
     single = CsoundWorker()
     parallel.prepare(compiler, targets, graph, mixer, canonical)

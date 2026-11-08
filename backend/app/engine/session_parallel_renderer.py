@@ -104,7 +104,8 @@ class ParallelCsoundRenderer(CsoundWorker):
         # Provisioning can change between preparation and Start. Charge the full
         # mailbox/bootstrap/meter layout, not only the planner's audio cut buses.
         layout = build_layout(compilation, plan, self._coordinator.epoch + 1,
-            limit=min(plan.shared_audio_limit, self.options.policy.max_shared_memory_bytes))
+            limit=min(plan.shared_audio_limit, self.options.policy.max_shared_memory_bytes),
+            coordination_frames=self.options.policy.coordination_frames)
         workers = len(compilation.programs)
         if self._qualification and self._qualification.runtime != runtime_fingerprint():
             raise RenderAdmissionError("qualification_build_changed")
@@ -154,11 +155,12 @@ class ParallelCsoundRenderer(CsoundWorker):
             "render_requests": self._render_requests,
             "slow_requests": self._slow_requests,
             "max_render_audio_ratio": self._max_render_audio_ratio,
+            "coordination_frames": self._coordinator.coordination_frames if self._parallel else None,
         }
 
     @property
     def render_sample_cursor(self):
-        return self._coordinator.committed_sample if self._parallel else self._render_sample_cursor
+        return self._coordinator.render_sample_cursor if self._parallel else self._render_sample_cursor
 
     def request_stop(self):
         """Nonblocking intent, also usable while session Start owns its lifecycle lock."""

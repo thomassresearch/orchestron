@@ -19,10 +19,11 @@ from backend.tests.render_plan_support import planner_inputs
 from backend.tests.session_parallel_support import options
 
 
-def prepared(monkeypatch, *, mode="auto", case="two", ksmps=32, target=None, opt_in=True):
+def prepared(monkeypatch, *, mode="auto", case="two", ksmps=32, target=None, opt_in=True, coordination_frames=128):
     monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
     factory = partial(PartitionRenderCoordinator, _worker_target=target) if target else PartitionRenderCoordinator
-    worker = ParallelCsoundRenderer(options=options(mode, qualified_opt_in=opt_in), coordinator_factory=factory)
+    worker = ParallelCsoundRenderer(options=options(mode, qualified_opt_in=opt_in,
+        coordination_frames=coordination_frames), coordinator_factory=factory)
     if worker.backend != "ctcsound":
         pytest.skip("Native Csound unavailable")
     compiler = CompilerService(OpcodeService("/static/icons"))
@@ -261,10 +262,11 @@ def test_render_queued_before_stop_cannot_advance_restarted_engine(monkeypatch):
 
 
 @pytest.mark.parametrize("cancel", [False, True])
-def test_boundary_and_late_midi_during_active_block_are_not_partially_applied(monkeypatch, cancel):
+@pytest.mark.parametrize("coordination_frames", [32, 128, 256])
+def test_boundary_and_late_midi_during_active_block_are_not_partially_applied(monkeypatch, cancel, coordination_frames):
     context = multiprocessing.get_context("spawn")
     entered, release = context.Event(), context.Event()
-    worker, artifact, mixer = prepared(monkeypatch, target=partial(controlled_process,
+    worker, artifact, mixer = prepared(monkeypatch, coordination_frames=coordination_frames, target=partial(controlled_process,
         mode="hold_once", entered=entered, release=release))
     start(worker, artifact, mixer)
     trace, applied, queued = [], [], threading.Event()
@@ -286,7 +288,7 @@ def test_boundary_and_late_midi_during_active_block_are_not_partially_applied(mo
     worker._boundary_lock = ObservedLock()
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
-            rendering = pool.submit(worker.render_blocks, block_count=2, target_sample_rate=48000)
+            rendering = pool.submit(worker.render_blocks, block_count=coordination_frames // 32 + 1, target_sample_rate=48000)
             assert entered.wait(5)
             worker.enqueue_timestamped_midi([0x90, 61, 90], source="after-drain", target_engine_sample=0)
             editing = pool.submit(worker.run_at_render_boundary, lambda: applied.append(worker.render_sample_cursor))
@@ -303,8 +305,9 @@ def test_boundary_and_late_midi_during_active_block_are_not_partially_applied(mo
             else:
                 rendering.result(5)
                 editing.result(5)
-                assert applied == [32]
-                assert trace == [(0, []), (32, [("after-drain", 32, True)])]
+                assert applied == [coordination_frames]
+                assert trace == [(sample, []) for sample in range(0, coordination_frames, 32)] + [
+                    (coordination_frames, [("after-drain", coordination_frames, True)])]
     finally:
         release.set()
         worker.stop()
@@ -336,10 +339,10 @@ def test_startup_failure_fallback_and_active_failure_quarantine(monkeypatch, mod
         with pytest.raises(PartitionRuntimeError):
             worker.render_blocks(block_count=3, target_sample_rate=48000)
         assert worker.fatal_error and not worker.is_running and worker._csound is None
-        assert worker.renderer_diagnostics["committed_sample"] == 32
+        assert worker.renderer_diagnostics["committed_sample"] == 0
         assert worker.renderer_diagnostics["published_sample"] == 0
         worker.stop()
-        assert worker.renderer_diagnostics["committed_sample"] == 32
+        assert worker.renderer_diagnostics["committed_sample"] == 0
         start(worker, artifact, mixer)
         assert worker.renderer_diagnostics["selected"] == ("single" if mode == "auto" else "parallel")
         assert worker.render_sample_cursor == 0

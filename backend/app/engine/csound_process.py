@@ -19,7 +19,7 @@ from backend.app.engine.render_cpu_placement import apply_worker_cpu
 from backend.app.engine.render_ipc import (
     FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS, MESSAGE, Region, SharedArena, decode_audio, expected_done, validate_envelope, validate_render,
 )
-from backend.app.models.render_protocol import EngineFormat, Error, Init, Ready, Stop, Stopped
+from backend.app.models.render_protocol import EngineFormat, Error, Init, Ready, RenderBatch, Stop, Stopped
 
 
 def _exit_with_parent():
@@ -68,6 +68,7 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
             raise ValueError("Dependency barriers do not match provisioned graph.")
         program = SimpleNamespace(**config["program"])
         engine = SimpleNamespace(**config["engine"])
+        batch_blocks = config["batch_blocks"]
         identity = dict(protocol_version=1, epoch=config["epoch"], partition_id=program.id,
                         plan_hash=config["plan_hash"])
         command, reply = Region(**config["command"]), Region(**config["reply"])
@@ -95,23 +96,27 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
         codec = SteadyBlockCodec(digest)
         # Layout and ownership are immutable for this epoch. Validate/view once,
         # rather than hash AudioRegion dataclasses for each channel every block.
-        inputs = tuple(tuple((channel, arena.audio(audio[bus], slot)) for bus, channel in program.inputs) for slot in (0, 1))
-        outputs = tuple(tuple((channel, arena.audio(audio[bus], slot)) for bus, channel in program.outputs) for slot in (0, 1))
-        meter_views = tuple(arena.audio(meters, slot) for slot in (0, 1))
+        def block_views(connections):
+            return tuple(tuple(tuple((channel, arena.audio(audio[bus], slot)[
+                index * engine.ksmps:(index + 1) * engine.ksmps]) for bus, channel in connections)
+                for index in range(batch_blocks)) for slot in (0, 1))
+
+        inputs, outputs = block_views(program.inputs), block_views(program.outputs)
+        meter_views = tuple(arena.audio(meters, slot).reshape(batch_blocks, len(program.meters)) for slot in (0, 1))
         final_views = tuple(arena.audio(audio[FINAL_BUS], slot) for slot in (0, 1)) if program.owns_output else ()
         pcm_views = tuple(arena.audio(audio[FINAL_PCM_BUS], slot) for slot in (0, 1)) if program.owns_output else ()
         mode_views = tuple(arena.audio(audio[FINAL_F32_MODE_BUS], slot) for slot in (0, 1)) if program.owns_output else ()
         if native_factory is None:
-            input_copies = tuple(tuple(instance.bind_audio_transfer(channel, values, into_csound=True)
-                                       for channel, values in slot) for slot in inputs)
-            output_copies = tuple(tuple(instance.bind_audio_transfer(channel, values, into_csound=False)
-                                        for channel, values in slot) for slot in outputs)
+            input_copies = tuple(tuple(tuple(instance.bind_audio_transfer(channel, values, into_csound=True)
+                                            for channel, values in block) for block in slot) for slot in inputs)
+            output_copies = tuple(tuple(tuple(instance.bind_audio_transfer(channel, values, into_csound=False)
+                                             for channel, values in block) for block in slot) for slot in outputs)
             meter_readers = tuple(instance.bind_meter_reader(channel) for channel in program.meters)
         else:
-            input_copies = tuple(tuple(partial(instance.cs.setAudioChannel, channel, values)
-                                       for channel, values in slot) for slot in inputs)
-            output_copies = tuple(tuple(partial(instance.cs.audioChannel, channel, values)
-                                        for channel, values in slot) for slot in outputs)
+            input_copies = tuple(tuple(tuple(partial(instance.cs.setAudioChannel, channel, values)
+                                            for channel, values in block) for block in slot) for slot in inputs)
+            output_copies = tuple(tuple(tuple(partial(instance.cs.audioChannel, channel, values)
+                                             for channel, values in block) for block in slot) for slot in outputs)
             meter_readers = tuple(partial(instance.cs.controlChannel, channel) for channel in program.meters)
         ready = Ready(**identity, artifact_hash=config["artifact_hash"], engine=native_format)
         arena.send(reply, arena.encode(ready, reply))
@@ -121,8 +126,9 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
             phase = "protocol"
             data = arena.receive_bytes(command)
             if data.startswith(RENDER_MAGIC):
-                next_revision = codec.validate(data, sequence=sequence, sample=sample, revision=revision)
-                midi, controls = (), ()
+                next_revision, block_count = codec.validate(data, sequence=sequence, sample=sample,
+                                                            revision=revision, max_blocks=batch_blocks)
+                deliveries = None
                 completion = codec.done(data)
             else:
                 message = MESSAGE.validate_json(data)
@@ -135,15 +141,15 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
                     reply_ready.release()
                     break
                 validate_render(message, identity, sequence=sequence, sample=sample, frames=engine.ksmps,
-                                revision=revision, buses=tuple(audio), controls=program.controls)
+                                revision=revision, buses=tuple(audio), controls=program.controls, max_blocks=batch_blocks)
                 next_revision = message.control_revision
-                midi = [event.message for event in message.midi]
-                controls = [(c.channel, c.value) for c in message.controls]
+                deliveries = message.blocks if isinstance(message, RenderBatch) else (message,)
+                block_count = len(deliveries)
                 completion = arena.encode(expected_done(message), reply)
             phase = "render"
-            # Parent has sealed this block for every partition. Wait directly on
+            # Parent has sealed this batch for every partition. Wait directly on
             # each predecessor's publication fence, without a parent wakeup and
-            # redispatch between waves. No next block is issued until *all* DONEs
+            # redispatch between waves. No next batch is issued until *all* DONEs
             # are validated. Cancellation/error uses bounded parent reaping, and
             # the watchdog still handles parent death even while blocked here.
             for predecessor in predecessor_ready:
@@ -151,34 +157,35 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
                 if predecessor.acquire(False):
                     raise ValueError("Duplicate dependency publication.")
             slot = sequence % 2
-            for copy in input_copies[slot]:
-                copy()
-            instance.perform(midi, controls)
-            for copy in output_copies[slot]:
-                copy()
-            if program.owns_output:
-                output = (instance.output_buffer if native_factory is None else
-                          np.asarray(instance.cs.spout()).reshape(engine.ksmps, 2))
-                np.copyto(final_views[slot], output)
-                del output  # No borrowed native view survives shutdown/reset.
-                # Csound may set thread-local flush-to-zero behavior. Convert
-                # beside performKsmps, as the single worker does, not in a parent
-                # thread with a different floating-point environment. Retain the
-                # native-width final bus for bridge validation and diagnostics.
-                with np.errstate(over="ignore"):
-                    pcm_views[slot][:] = final_views[slot]
-                if not np.isfinite(pcm_views[slot]).all():
-                    raise RuntimeError("Partition output exceeds float32 PCM range.")
-                if flush_float32 is None:
-                    flush_float32 = int(np.asarray([1e-40], dtype=np.float32).view(np.uint32)[0] == 0)
-                mode_views[slot][0] = flush_float32
-            for index, read_meter in enumerate(meter_readers):
-                value = read_meter()
-                meter_views[slot][index] = value if native_factory is None else value[0]
-            if (any(not np.isfinite(values).all() for _, values in outputs[slot])
-                    or (program.owns_output and not np.isfinite(final_views[slot]).all())
-                    or not np.isfinite(meter_views[slot]).all()):
-                raise RuntimeError("Native partition produced nonfinite audio/meters.")
+            for block_index in range(block_count):
+                delivery = deliveries[block_index] if deliveries is not None else None
+                midi = [event.message for event in delivery.midi] if delivery else ()
+                controls = [(c.channel, c.value) for c in delivery.controls] if delivery else ()
+                for copy in input_copies[slot][block_index]:
+                    copy()
+                instance.perform(midi, controls)
+                for copy in output_copies[slot][block_index]:
+                    copy()
+                if program.owns_output:
+                    span = slice(block_index * engine.ksmps, (block_index + 1) * engine.ksmps)
+                    output = (instance.output_buffer if native_factory is None else
+                              np.asarray(instance.cs.spout()).reshape(engine.ksmps, 2))
+                    np.copyto(final_views[slot][span], output)
+                    del output  # No borrowed native view survives shutdown/reset.
+                    # Retain the native thread's float32/subnormal behavior.
+                    with np.errstate(over="ignore"):
+                        pcm_views[slot][span] = final_views[slot][span]
+                    if not np.isfinite(pcm_views[slot][span]).all():
+                        raise RuntimeError("Partition output exceeds float32 PCM range.")
+                    if flush_float32 is None:
+                        flush_float32 = int(np.asarray([1e-40], dtype=np.float32).view(np.uint32)[0] == 0)
+                    mode_views[slot][0] = flush_float32
+                for index, read_meter in enumerate(meter_readers):
+                    value = read_meter()
+                    meter_views[slot][block_index, index] = value if native_factory is None else value[0]
+                if (any(not np.isfinite(values).all() for _, values in outputs[slot][block_index])
+                        or not np.isfinite(meter_views[slot][block_index]).all()):
+                    raise RuntimeError("Native partition produced nonfinite audio/meters.")
             arena.send(reply, completion)
             for successor in successor_ready:
                 successor.release()
@@ -187,7 +194,7 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
             # leftover edge count is an invalid duplicate, not a late valid write.
             reply_ready.release()
             sequence += 1
-            sample += engine.ksmps
+            sample += block_count * engine.ksmps
             revision = next_revision
     except BaseException as exc:
         if identity is not None and reply is not None:
