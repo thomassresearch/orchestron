@@ -73,7 +73,7 @@ def coordination_blocks(ksmps, frames):
     return max(1, frames // ksmps)
 
 
-def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES, coordination_frames=128):
+def build_layout(compilation, plan, epoch, *, limit, command_bytes=COMMAND_BYTES, coordination_frames=256):
     """Account for audio, meters, mailboxes AND CSD bootstrap before allocating."""
     position = 0
 

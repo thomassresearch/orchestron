@@ -121,6 +121,8 @@ export default function App() {
   const setGuiLanguage = useAppStore((state) => state.setGuiLanguage);
   const browserClockLatencySettings = useAppStore((state) => state.browserClockLatencySettings);
   const setBrowserClockLatencySettings = useAppStore((state) => state.setBrowserClockLatencySettings);
+  const parallelRenderBatchFrames = useAppStore(state => state.parallelRenderBatchFrames);
+  const setParallelRenderBatchFrames = useAppStore(state => state.setParallelRenderBatchFrames);
   const appCopy = useMemo(() => APP_COPY[guiLanguage], [guiLanguage]);
   const importDialogCopy = useMemo(() => IMPORT_DIALOG_COPY[guiLanguage], [guiLanguage]);
 
@@ -1990,6 +1992,9 @@ export default function App() {
               hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
               showBrowserClockLatencyConfig={runtimeAudioOutputMode === "browser_clock"}
               browserClockLatencySettings={browserClockLatencySettings}
+              parallelRenderBatchFrames={parallelRenderBatchFrames}
+              parallelSettingsLocked={instrumentsRunning || loading}
+              onApplyParallelRenderBatchFrames={setParallelRenderBatchFrames}
               browserAudioDiagnostics={browserAudioDiagnostics}
               onHelpRequest={onHelpRequest}
               onApplyEngineConfig={(config) => {

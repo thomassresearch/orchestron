@@ -23,6 +23,7 @@ import {
   resolveDefaultBrowserClockLatencySettings
 } from "../lib/browserClockLatencyConfig";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
+import { normalizeParallelBatchFrames, PARALLEL_BATCH_FRAMES_DEFAULT } from "../lib/parallelPlaybackConfig";
 import type {
   AppPage,
   CompileResponse,
@@ -155,6 +156,11 @@ export const useAppStore = create<AppStore>((set, get) => {
     activePage: "instrument",
     guiLanguage: "english",
     browserClockLatencySettings: initialBrowserClockLatencySettings,
+    parallelRenderBatchFrames: PARALLEL_BATCH_FRAMES_DEFAULT,
+    setParallelRenderBatchFrames: (frames) => {
+      if (get().activeSessionState === "running" || get().loading) return;
+      set({ parallelRenderBatchFrames: normalizeParallelBatchFrames(frames) });
+    },
     parallelPlaybackEnabled: false,
     setParallelPlaybackEnabled: (enabled) => {
       if (get().activeSessionState === "running" || get().loading) return;
@@ -319,6 +325,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let performanceDescription = "";
           let guiLanguage: GuiLanguage = "english";
           let browserClockLatencySettings = resolveDefaultBrowserClockLatencySettings();
+          let parallelRenderBatchFrames = PARALLEL_BATCH_FRAMES_DEFAULT;
 
           const preferredMidi = normalizeMidiInputSelection(get().activeMidiInput, midiInputs);
           let audioGraph = emptyAudioGraph();
@@ -343,6 +350,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
               activePage = normalizeAppPage(payload.activePage);
               guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
+              parallelRenderBatchFrames = normalizeParallelBatchFrames(payload.parallelRenderBatchFrames);
               browserClockLatencySettings = normalizeBrowserClockLatencySettings(
                 payload.browserClockLatencySettings,
                 browserClockLatencySettings
@@ -394,6 +402,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            parallelRenderBatchFrames,
             instrumentTabs: instrumentTabs.map((tab) => ({
               id: tab.id,
               patch: {
@@ -425,6 +434,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            parallelRenderBatchFrames,
             instrumentTabs,
             activeInstrumentTabId,
             sequencer,
@@ -446,6 +456,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            parallelRenderBatchFrames,
             instrumentTabs,
             activeInstrumentTabId,
             currentPatch,
@@ -882,11 +893,13 @@ export const useAppStore = create<AppStore>((set, get) => {
         const requestedBindings = get().sequencerInstruments;
         const workspaceGeneration = get().performanceWorkspaceGeneration;
         const requestedAssignments = normalizeSessionInstrumentAssignments(requestedBindings);
-        const rendererRequest = get().parallelPlaybackEnabled
-          ? { renderer_mode: "auto" as const, browser_settings: get().browserClockLatencySettings } : undefined;
+        const requestedRenderer = () => get().parallelPlaybackEnabled
+          ? { renderer_mode: "auto" as const, browser_settings: get().browserClockLatencySettings,
+              parallel_batch_frames: get().parallelRenderBatchFrames } : undefined;
+        const rendererRequest = requestedRenderer();
         const signature = () => JSON.stringify({ graph: get().audioGraph,
           patches: get().patches.map((p) => [p.id, p.updated_at]),
-          ...(get().parallelPlaybackEnabled ? { renderer: { renderer_mode: "auto", browser_settings: get().browserClockLatencySettings } } : {}) });
+          ...(get().parallelPlaybackEnabled ? { renderer: requestedRenderer() } : {}) });
         const audioSignature = signature();
         const setupIsCurrent = () => generation === sessionRequestGeneration &&
           workspaceGeneration === get().performanceWorkspaceGeneration &&

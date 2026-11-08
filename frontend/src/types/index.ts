@@ -787,6 +787,7 @@ export interface PersistedAppState {
   performanceDescription: string;
   activeMidiInput: string | null;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  parallelRenderBatchFrames?: number;
 }
 
 export interface AppStateResponse {
@@ -1154,6 +1155,7 @@ export interface SessionInfo {
 
 export interface SessionRendererRequest {
   renderer_mode: "single" | "auto";
+  parallel_batch_frames?: number;
   browser_settings?: BrowserClockLatencySettings;
 }
 

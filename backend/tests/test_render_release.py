@@ -29,17 +29,17 @@ def test_opt_in_uses_graph_without_catalog_costs_or_browser_setting_gate():
         assert options.blocked_reason is None and options.graph_selection
         assert options.policy.mode == "auto" and not options.allow_unqualified
         assert options.qualifications == () and options.costs is None
-        assert options.policy.coordination_frames == 128
+        assert options.policy.coordination_frames == 256
 
 
-@pytest.mark.parametrize("frames", [1, 32, 128, 256, 1024])
+@pytest.mark.parametrize("frames", [32, 128, 256, 1024])
 def test_coordination_setting_reaches_policy_without_changing_single_default(monkeypatch, frames):
     monkeypatch.setenv("VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES", str(frames))
     assert RenderRelease(Settings()).options().policy.coordination_frames == frames
     assert RendererPolicy().mode == "single"
 
 
-@pytest.mark.parametrize("frames", ["0", "1025", "128.5", "invalid"])
+@pytest.mark.parametrize("frames", ["0", "31", "1025", "128.5", "invalid"])
 def test_coordination_setting_is_bounded(monkeypatch, frames):
     monkeypatch.setenv("VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES", frames)
     with pytest.raises(ValueError):
@@ -50,6 +50,15 @@ def test_operator_rollback_blocks_graph_selection():
     release = RenderRelease(Settings(parallel_playback_enabled=False))
     assert release.options(BROWSER).blocked_reason == "parallel_disabled"
     assert not release.options(BROWSER).enabled()
+
+
+def test_session_batch_choice_overrides_server_default_without_mutating_it():
+    release = RenderRelease(Settings(parallel_render_batch_frames=128))
+    first = release.options(parallel_batch_frames=1024)
+    assert first.policy.coordination_frames == 1024
+    assert release.options().policy.coordination_frames == 128
+    assert release.options(parallel_batch_frames=32).policy.coordination_frames == 32
+    assert first.policy.coordination_frames == 1024
 
 
 @pytest.mark.parametrize("change", ["single_workload", "duplicate", "force_parallel", "failed_gate", "extra_override", "nonfinite", "bad_digest"])

@@ -80,8 +80,12 @@ completion before committing the block. T07 caches dependency topology, channel 
 and generated meter pointers within the native owner. Empty-event blocks use a compact
 descriptor bound to the full bootstrap digest; event/control and lifecycle records retain
 the JSON protocol. No next interval can begin ahead of the global completion barrier.
-The current interval batches unchanged synthesis steps: `VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES`
-defaults to 128 (range 1–1024, floored to whole `ksmps` steps, minimum one). Shared buses and
+The current interval batches unchanged synthesis steps. Config stores `parallelRenderBatchFrames`
+in workspace app state (default 256, integer 32–1024). Parallel session creation sends
+`parallel_batch_frames`; omission uses `VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES` (same default/range).
+The immutable session policy floors this to whole `ksmps` steps, minimum one. Applying is
+locked while running/starting; a changed value recreates a stopped parallel session on next start.
+Single sessions ignore the setting. Shared buses and
 meters hold every step; parent scheduling still runs at each original sample boundary.
 Arrivals after sealing target the next unsealed interval. MIDI/control offsets, internal
 Csound state advancement and meter sampling remain per-step. See the

@@ -26,8 +26,9 @@ control. Independent instrument groups can use multiple Csound processes, with s
 and resources kept in dependency order. No per-song registration is needed; single rendering
 remains the default and fallback. Enable the option while stopped. Timing, buffers and CSD
 exports stay unchanged. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
-Parallel workers exchange audio in configurable batches, defaulting to 128 samples, while
-instruments retain their synthesis and controller timing. See [parallel playback settings](documentation/configuration/audio_engine_settings.md#parallel-playback).
+Set the parallel batch size in **Config → Parallel Playback**: **32–1024 samples**, default **256**.
+Apply while stopped; the saved preference takes effect on the next parallel start. Instruments
+retain their synthesis and controller timing. See [parallel playback settings](documentation/configuration/audio_engine_settings.md#parallel-playback).
 
 ![Engine statistics in Perform](screenshots/performance_engine_stats.png)
 

@@ -2,6 +2,8 @@
 
 This contract replaces T08's per-song release catalog. It does not change the canonical
 compiler, exports, audio clock, request sizes, buffering, event scheduling or process protocol.
+Subsequent [coordination batching and matched Lake results](coordination-batches.md) reduce
+process handoffs independently of synthesis steps; the measurements below remain historical.
 
 ## Selection
 

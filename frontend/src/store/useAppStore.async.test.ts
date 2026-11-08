@@ -192,7 +192,7 @@ it("keeps parallel opt-in out of saved state and recreates a stopped session whe
   expect(JSON.stringify(buildPersistedAppStateSnapshot(useAppStore.getState()))).not.toContain("parallelPlaybackEnabled");
   await useAppStore.getState().ensureSession();
   expect(remove).toHaveBeenCalledWith("single");
-  expect(create.mock.calls[1][3]).toEqual({ renderer_mode: "auto", browser_settings: useAppStore.getState().browserClockLatencySettings });
+  expect(create.mock.calls[1][3]).toEqual({ renderer_mode: "auto", browser_settings: useAppStore.getState().browserClockLatencySettings, parallel_batch_frames: 256 });
   useAppStore.setState({ activeSessionState: "running" });
   useAppStore.getState().setParallelPlaybackEnabled(false);
   expect(useAppStore.getState().parallelPlaybackEnabled).toBe(true);
@@ -209,4 +209,41 @@ it("discards an in-flight session created for a superseded renderer preference",
   await expect(creating).rejects.toThrow("setup changed");
   expect(remove).toHaveBeenCalledWith("old");
   expect(useAppStore.getState().activeSessionId).toBeNull();
+});
+
+it("saves batch size separately from opt-in and replaces a stopped parallel session on change", async () => {
+  useAppStore.setState({ parallelPlaybackEnabled: true,
+    sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
+  const create = vi.spyOn(api, "createSession")
+    .mockResolvedValueOnce({ session_id: "first", state: "idle", patch_id: "patch", instruments: [] })
+    .mockResolvedValueOnce({ session_id: "second", state: "idle", patch_id: "patch", instruments: [] });
+  const stop = vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "first", state: "compiled", detail: "stopped" });
+  const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
+  await useAppStore.getState().ensureSession();
+  useAppStore.setState({ activeSessionState: "running" });
+  useAppStore.getState().setParallelRenderBatchFrames(1024);
+  expect(useAppStore.getState().parallelRenderBatchFrames).toBe(256);
+  expect(stop).not.toHaveBeenCalled();
+  useAppStore.setState({ activeSessionState: "compiled" });
+  useAppStore.getState().setParallelRenderBatchFrames(1024);
+  expect(buildPersistedAppStateSnapshot(useAppStore.getState()).parallelRenderBatchFrames).toBe(1024);
+  await useAppStore.getState().ensureSession();
+  expect(remove).toHaveBeenCalledWith("first");
+  expect(create.mock.calls[1][3]).toMatchObject({ renderer_mode: "auto", parallel_batch_frames: 1024 });
+});
+
+it.each([undefined, 32, 255, 1024, 31, 1025, 128.5, "512"])("restores batch preference safely (%s)", async value => {
+  const app = buildPersistedAppStateSnapshot(useAppStore.getState());
+  Object.assign(app, { parallelRenderBatchFrames: value });
+  vi.spyOn(api, "listOpcodes").mockResolvedValue([]);
+  vi.spyOn(api, "listPerformances").mockResolvedValue([]);
+  vi.spyOn(api, "listMidiInputs").mockResolvedValue([]);
+  vi.spyOn(api, "getAppState").mockResolvedValue({ state: app, updated_at: "2026-11-08" });
+  vi.spyOn(api, "saveAppState").mockResolvedValue(undefined);
+  await useAppStore.getState().loadBootstrap();
+  const expected = [32, 255, 1024].includes(value as number) ? value : 256;
+  expect(useAppStore.getState().parallelRenderBatchFrames).toBe(expected);
+  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(false);
+  expect(useAppStore.getState().error).toBeNull();
+  useAppStore.setState({ hasLoadedBootstrap: false });
 });

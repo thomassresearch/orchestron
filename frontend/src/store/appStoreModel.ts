@@ -263,6 +263,7 @@ export type PersistWatchState = {
   activePage: AppPage;
   guiLanguage: GuiLanguage;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  parallelRenderBatchFrames: number;
   instrumentTabs: InstrumentTabState[];
   activeInstrumentTabId: string;
   sequencer: SequencerState;
@@ -2446,6 +2447,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
     browserClockLatencySettings: normalizeBrowserClockLatencySettings(state.browserClockLatencySettings),
+    parallelRenderBatchFrames: state.parallelRenderBatchFrames,
     instrumentTabs: state.instrumentTabs.map((tab) => ({
       id: tab.id,
       patch: {
@@ -2479,6 +2481,7 @@ export function capturePersistWatchState(state: AppStore): PersistWatchState {
     activePage: state.activePage,
     guiLanguage: state.guiLanguage,
     browserClockLatencySettings: state.browserClockLatencySettings,
+    parallelRenderBatchFrames: state.parallelRenderBatchFrames,
     instrumentTabs: state.instrumentTabs,
     activeInstrumentTabId: state.activeInstrumentTabId,
     sequencer: state.sequencer,
@@ -2501,6 +2504,7 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
     current.activePage !== previous.activePage ||
     current.guiLanguage !== previous.guiLanguage ||
     current.browserClockLatencySettings !== previous.browserClockLatencySettings ||
+    current.parallelRenderBatchFrames !== previous.parallelRenderBatchFrames ||
     current.instrumentTabs !== previous.instrumentTabs ||
     current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
     current.sequencer !== previous.sequencer ||

@@ -172,7 +172,8 @@ class SessionService:
 
             renderer_options = self._renderer_options
             if renderer_options is None and request.renderer_mode == "auto":
-                renderer_options = self._render_release.options(request.browser_settings)
+                renderer_options = self._render_release.options(
+                    request.browser_settings, parallel_batch_frames=request.parallel_batch_frames)
             runtime = RuntimeSession(
                 session_id=str(uuid4()),
                 instruments=instruments,

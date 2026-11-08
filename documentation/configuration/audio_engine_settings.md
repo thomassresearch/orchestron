@@ -2,11 +2,11 @@
 
 **Navigation:** [Up](configuration.md) | [Prev](gui_language_and_integrated_help.md) | [Next](midi_setup_and_inputs.md)
 
-The Config page controls both patch-level Csound engine settings and browser-clock latency settings for the current workspace.
+The Config page controls patch-level Csound engine settings, parallel playback batch size and browser-clock latency settings for the current workspace.
 
 ## Where These Settings Are Stored
 
-Config page changes are stored in the current patch's `graph.engine_config`.
+The Audio Engine Configuration section is stored in the current patch's `graph.engine_config`.
 
 That means:
 
@@ -28,19 +28,24 @@ uses available CPU and memory capacity to choose a parallel layout. No per-song 
 The choice does not change engine timing, browser buffering or CSD exports. See
 [Engine Stats and Parallel Playback](../performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
 
-Parallel playback normally exchanges **128 samples** between workers at a time. This reduces
+Parallel playback normally exchanges **256 samples** between workers at a time. This reduces
 communication overhead while each instrument keeps its existing synthesis block size and
 scheduled note/controller timing. A live action received after a batch has begun takes effect
-at the next available batch; 128 samples span about **2.7 ms at 48 kHz**. This is separate from
+at the next available batch; 256 samples span about **5.3 ms at 48 kHz**. This is separate from
 the browser's playback queue and does not change exported CSDs.
 
-For Docker, set `VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES` in your Compose environment or
-project `.env` file, then recreate the app container. The default is `128`; try `256` for
-larger batches, or `32` to compare with the previous behavior on a 32-sample synthesis block.
-Values from `1` to `1024` are accepted and rounded down to whole synthesis blocks, with at
-least one synthesis block per batch. This server setting applies only to parallel playback;
-it is not stored in instruments or performances. Larger batches reduce handoffs but can add
-a small delay to newly arriving live actions, so compare with your actual performance.
+In **Config → Parallel Playback**, enter a **Batch size (samples)** from **32 to 1024**
+and click **Apply Batch Size**. The default is **256**. Stop playback before applying;
+the choice takes effect on the next start with **Parallel playback** enabled in Perform.
+It is saved in app state across reloads, separately from the parallel playback checkbox,
+which still resets to off. It is not stored in instruments, performances or CSD exports.
+
+The engine rounds down to whole synthesis blocks, with at least one block per batch.
+For example, with a 32-sample synthesis block, entering 255 uses 224 samples. Try 128 for
+shorter batches or 32 to compare with one handoff per synthesis block. Larger batches reduce
+handoffs but can delay newly arriving live actions; 1024 samples span about 21.3 ms at 48 kHz.
+
+![Parallel playback batch size in Config](../../screenshots/config_parallel_batch.png)
 
 ## Editable Settings (Config Page)
 

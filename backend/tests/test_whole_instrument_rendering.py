@@ -143,7 +143,7 @@ def test_lake_sequential_native_audio_and_meters_match_exactly(master_insert):
 
 
 @pytest.mark.parametrize('case', ['lake', 'lake_master_insert', 'shared_tables'])
-@pytest.mark.parametrize('coordination_frames', [32, 128, 256])
+@pytest.mark.parametrize('coordination_frames', [32, 128, 255, 256, 1024])
 def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch, case, coordination_frames):
     from backend.app.engine.parallel_csound_renderer import MAX_REQUEST_FRAMES
     from backend.app.engine.render_capacity import MIB
@@ -153,7 +153,7 @@ def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch
     targets, graph, mixer = (lake_inputs(master_insert=case == 'lake_master_insert')
                              if case.startswith('lake') else planner_inputs('tables'))
     canonical = compiler.compile_patch_bundle(targets, 'internal:loopback', 'null', audio_graph=graph, mixer=mixer)
-    selected = replace(RenderRelease(Settings(parallel_render_batch_frames=coordination_frames)).options(None),
+    selected = replace(RenderRelease(Settings()).options(parallel_batch_frames=coordination_frames),
                        admission=options().admission)
     parallel = ParallelCsoundRenderer(options=selected)
     single = CsoundWorker()
@@ -165,6 +165,8 @@ def test_public_selection_persistent_processes_and_midi_match_single(monkeypatch
             worker.configure_mixer(canonical.manifest, mixer_control_values(canonical.manifest, mixer))
         assert parallel.renderer_diagnostics['selected'] == 'parallel', parallel.renderer_diagnostics
         assert parallel.renderer_diagnostics['worker_count'] == 3
+        ksmps = parallel.runtime_ksmps
+        assert parallel.renderer_diagnostics['coordination_frames'] == ksmps * max(1, coordination_frames // ksmps)
         resource_bytes = sum(r.memory_bytes for r in parallel._candidate[1].graph.resources)
         assert selected.admission.leases[0].memory_bytes == (
             3 * 128 * MIB + parallel._coordinator._layout.size + MAX_REQUEST_FRAMES * 8 + resource_bytes)

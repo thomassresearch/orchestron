@@ -17,7 +17,7 @@ class Contract(BaseModel):
 class RendererPolicy(Contract):
     """Immutable session policy, independent of synthesis and browser buffering."""
     mode: Literal["single", "auto", "parallel"] = "single"
-    coordination_frames: int = Field(default=128, ge=1, le=1024)
+    coordination_frames: int = Field(default=256, ge=1, le=1024)
     max_workers: int = Field(default=8, ge=1, le=64)
     max_shared_memory_bytes: int = Field(default=64 * 1024 * 1024, ge=1024, le=1024 * 1024 * 1024)
     startup_timeout_seconds: float = Field(default=30.0, ge=1, le=300)

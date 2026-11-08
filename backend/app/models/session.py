@@ -114,6 +114,7 @@ class SessionInstrumentAssignment(BaseModel):
 
 class SessionCreateRequest(BaseModel):
     renderer_mode: Literal["single", "auto"] = "single"
+    parallel_batch_frames: int | None = Field(default=None, ge=32, le=1024, strict=True)
     # Requested browser policy, never qualification evidence or planner costs.
     browser_settings: dict[str, int | str] | None = Field(default=None, max_length=32)
     audio_graph: AudioGraph | None = None

@@ -90,8 +90,10 @@ class RenderRelease:
     def __init__(self, settings):
         self.settings = settings
 
-    def options(self, browser_settings=None):
+    def options(self, browser_settings=None, *, parallel_batch_frames: int | None = None):
         return SessionRendererOptions(
-            policy=RendererPolicy(mode="auto", coordination_frames=self.settings.parallel_render_batch_frames), graph_selection=True,
+            policy=RendererPolicy(mode="auto", coordination_frames=(
+                self.settings.parallel_render_batch_frames if parallel_batch_frames is None else parallel_batch_frames)),
+            graph_selection=True,
             blocked_reason=None if self.settings.parallel_playback_enabled else "parallel_disabled",
             enabled=lambda: self.settings.parallel_playback_enabled)

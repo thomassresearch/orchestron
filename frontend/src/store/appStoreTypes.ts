@@ -68,6 +68,8 @@ export interface AppStore {
   activePage: AppPage;
   guiLanguage: GuiLanguage;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  parallelRenderBatchFrames: number;
+  setParallelRenderBatchFrames: (frames: number) => void;
   /** Session-only opt-in; never serialized into performances, bundles or app state. */
   parallelPlaybackEnabled: boolean;
   setParallelPlaybackEnabled: (enabled: boolean) => void;

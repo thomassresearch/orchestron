@@ -2,9 +2,14 @@
 
 ## Contract
 
-Process coordination defaults to 128 engine frames, configured through
-`VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES` (integer 1–1024). Compose passes this setting
-through. `RendererPolicy.coordination_frames` carries the immutable per-session choice;
+Process coordination defaults to 256 engine frames. Config stores the integer 32–1024
+workspace preference `parallelRenderBatchFrames` and sends `parallel_batch_frames` on opt-in
+session creation. Apply is locked while running/starting; stopped session reuse includes the
+batch choice in its signature. Reload restores the batch preference but not the parallel opt-in.
+The optional API field is strictly validated; omitted/null uses the server default
+`VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES` (integer 32–1024), passed through by Compose.
+The setting never enters patch/performance data or CSD exports.
+`RendererPolicy.coordination_frames` carries the immutable per-session choice;
 `RendererDiagnostics.coordination_frames` reports the effective value while parallel is active.
 Effective frames are `ksmps * max(1, configured_frames // ksmps)`. Requests shorter than the
 target, including their final remainder, use smaller batches. Single remains the default and
@@ -53,7 +58,15 @@ Tests cover compact and eventful capacity/ownership checks, timing/revision corr
 per-step MIDI/CC/mixer changes, partial requests, exact audio and meter parity at 32/128/256
 coordination frames, shared resources, Lake's original and Master-insert routing, late live
 input, queued edits, cancellation, dense-command splitting and no partial publication.
-Performance measurements are recorded below once the measured image and runs are complete.
+The measurements below distinguish synthetic render cost from saved-arrangement playback.
+
+Config UI follow-up: all 1,401 frontend tests, lint and production build passed. All 60
+selected backend checks and backend lint passed, including strict API bounds, per-session
+overrides, default/fallback and native Lake/shared-table audio parity at 32/128/255/256/1024.
+The 255-frame case checks rounding without changing synthesis timing. Browser validation
+confirmed 1024 persists across reload; the default Config screenshot is in
+`screenshots/config_parallel_batch.png`. This adds configuration coverage, not new performance
+qualification at 1024. Existing ten-minute measurements below remain the performance evidence.
 
 ## Native measurements (2026-11-08)
 
@@ -91,7 +104,72 @@ The arrangement loops only in the isolated test browser. Live-app state is sampl
 every arm to record possible overlapping playback; no task-launched build or native regression
 test runs during a timed browser measurement.
 
+An initial browser baseline overlapped an independent rebuild/restart of the live application
+and was interrupted after 420.23 seconds. Its 5,926 underrun increments are retained under
+`contended-initial/`, not used as a matched baseline. After the user confirmed the live app
+would remain idle, all browser arms were restarted for a clean comparison.
+
 Validation before measurement: 504 focused backend checks passed, including canonical CSD
 byte fixtures, default/fallback single behavior, native parity and process lifecycle. Frontend
 lint, build and 1,384 tests passed. The Docker build and backend lint passed. The English
 manual was regenerated and the changed settings page was visually checked in the PDF.
+
+## Matched browser results and default selection
+
+After the user reserved an idle window, the clean runs were:
+
+- Single: 12:39:45–12:49:48 UTC (603.43 seconds).
+- Parallel/128: 12:50:18–13:00:21 UTC (602.44 seconds).
+- Parallel/256: 13:00:59–13:11:02 UTC (602.94 seconds).
+
+All 43 live-app observations per arm show no active sessions, and live-container logs contain
+no playback starts or browser-clock connections during the combined window. All three captures
+retain running transport and nonzero audio. The parallel arms retain three workers, with
+the requested effective coordination size, no failure and no fallback. Each arm uses the
+same saved arrangement and browser settings, including the same ten-second startup warmup.
+
+| Observed browser metric | Single | Parallel/128 | Parallel/256 |
+| --- | ---: | ---: | ---: |
+| Underrun callback increase | 10 | 92 | 10 |
+| Overruns / stream errors | 0 / 0 | 0 / 0 | 0 / 0 |
+| Median render/audio ratio | 0.873 | 0.868 | 0.834 |
+| p95 render/audio ratio | 1.031 | 1.046 | 1.004 |
+| p99 render/audio ratio | 1.095 | 1.142 | 1.062 |
+| Maximum render/audio ratio | 1.922 | 2.310 | 1.159 |
+
+These are 1,205–1,207 samples of the existing browser diagnostic per arm, with linear
+percentile interpolation, not independent request-latency percentiles. Ratios above one mean
+backend render service time exceeded the corresponding audio duration. Underruns count
+AudioWorklet callbacks with insufficient PCM, not distinct audible glitches. No run is
+underrun-free. Raw evidence and exact settings are in `browser-comparison.json` and the three
+`*-soak.json` files under `output/coordination-batches/`.
+
+**Choose 256 as the parallel coordination default.** It has the best short native timings,
+matches single's underrun count in this saved-arrangement comparison, and reduces the median
+observed render/audio ratio by approximately 4.5% versus single and 4.0% versus 128. Its observed
+tail ratios are also lower. The actual song improvement is modest; the much larger native
+synthetic speedup is not an arrangement speedup. This is one matched comparison, not a new G7
+qualification or evidence that arbitrary performances will improve. The 128 setting remains
+available for a shorter live-input scheduling horizon, and 32 restores the former coordination
+interval for K=32. None of these changes selects parallel rendering by default.
+
+Earlier Lake underrun counts came from different observation windows and should not be used
+to attribute their entire reduction to batching. The interrupted baseline and variable
+short-probe tails demonstrate that competing activity matters. This retest did not enlarge
+browser or Csound I/O buffers. Larger browser queues can absorb brief stalls, but cannot make
+a sustained render path faster. CPU footer percentages are approximately one-second logical
+CPU activity observations; dependency and scheduling waits consume wall-clock time without
+requiring a CPU to stay fully busy. They are not a measure of remaining audio-deadline headroom.
+
+The measured image initially defaulted to 128; the 256 arm supplied the environment setting
+explicitly. Final defaults select that already-measured 256 configuration. The batching DSP,
+event timing and browser-buffer implementation were not changed after these measurements.
+After Stop, all three final DSP PIDs and the shared audio allocation were gone. The isolated
+browser and container were removed. This task did not rebuild, restart or reconfigure the live app.
+
+After selecting 256, all 95 affected configuration, allocation, native-parity and public-API
+checks passed again, as did backend lint and `git diff --check`. The final Docker build passed:
+`sha256:7ae808c23f7c4b7b59b19e9320eb1eeadf6652b6ff48b52d4de04d046e15562e`.
+The English manual was regenerated for the final default. The independently rebuilt live
+container still reported a 128-frame setting at the final read-only check; this task did
+not deploy the new default there.

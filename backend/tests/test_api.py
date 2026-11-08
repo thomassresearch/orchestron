@@ -10642,6 +10642,30 @@ def test_public_parallel_opt_in_retains_native_and_operator_fallback(tmp_path, m
         assert client.post("/api/sessions", json={"patch_id": patch["id"], "renderer_mode": "parallel"}).status_code == 422
 
 
+def test_public_parallel_batch_size_validation_and_session_isolation(tmp_path, monkeypatch):
+    from backend.app.engine.csound_worker import CsoundWorker
+
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES", "128")
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=_audio_source_patch_payload()).json()
+        payload = {"patch_id": patch["id"], "renderer_mode": "auto"}
+        service = client.app.state.container.session_service
+        for value in (31, 1025, 128.5, "256", True):
+            response = client.post("/api/sessions", json={**payload, "parallel_batch_frames": value})
+            assert response.status_code == 422, response.text
+        for value in (None, 32, 255, 1024):
+            response = client.post("/api/sessions", json={**payload, "parallel_batch_frames": value})
+            assert response.status_code == 201, response.text
+            identity = response.json()["session_id"]
+            worker = service._sessions[identity].worker
+            assert worker.options.policy.coordination_frames == (128 if value is None else value)
+            assert not worker._coordinator.process_ids
+            client.delete(f"/api/sessions/{identity}")
+        response = client.post("/api/sessions", json={"patch_id": patch["id"], "parallel_batch_frames": 1024})
+        assert response.status_code == 201
+        assert type(service._sessions[response.json()["session_id"]].worker) is CsoundWorker
+
+
 def test_engine_stats_observation_has_no_idle_or_audio_side_effects(tmp_path, monkeypatch):
     with _client(tmp_path) as client:
         identity = _create_running_session(client)
@@ -10664,7 +10688,7 @@ def test_engine_stats_observation_has_no_idle_or_audio_side_effects(tmp_path, mo
 
 
 @pytest.mark.parametrize("case", ["two", "bypass"])
-@pytest.mark.parametrize("coordination_frames", [32, 128, 256])
+@pytest.mark.parametrize("coordination_frames", [32, 128, 256, 1024])
 def test_public_graph_selection_without_catalog_preserves_default_and_rollback(tmp_path, monkeypatch, case, coordination_frames):
     from dataclasses import replace
     from backend.app.engine.csound_worker import CsoundWorker
@@ -10675,7 +10699,6 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         identity = create_session(client, case=case, start=False)
         assert client.post(f"/api/sessions/{identity}/compile").status_code == 200
         service = client.app.state.container.session_service
-        service._settings.parallel_render_batch_frames = coordination_frames
         original = service._sessions[identity]
         policy = options("auto")
         browser = {"playbackMode": "listening", "maxBlocksPerRequest": 74}
@@ -10683,13 +10706,14 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         release_options = service._render_release.options
         # Controlled capacity, just like other native integration tests; no
         # platform/performance claim or capacity detection override ships.
-        monkeypatch.setattr(service._render_release, "options", lambda settings: replace(release_options(settings), admission=policy.admission))
+        monkeypatch.setattr(service._render_release, "options", lambda settings, **kwargs: replace(release_options(settings, **kwargs), admission=policy.admission))
         payload = {"instruments": [i.model_dump(mode="json") for i in original.instruments],
                    "audio_graph": original.audio_graph.model_dump(mode="json", by_alias=True),
                    "mixer": original.mixer.model_dump(mode="json", by_alias=True)}
         default_id = client.post("/api/sessions", json=payload).json()["session_id"]
         assert type(service._sessions[default_id].worker) is CsoundWorker
-        selected = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser}).json()["session_id"]
+        selected = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser,
+            "parallel_batch_frames": coordination_frames}).json()["session_id"]
         response = client.post(f"/api/sessions/{selected}/start")
         assert response.status_code == 200, response.text
         assert client.get(f"/api/sessions/{selected}").json()["renderer"]["coordination_frames"] == coordination_frames

@@ -1,4 +1,6 @@
 import { BROWSER_PLAYBACK_COPY } from "../lib/browserPlaybackCopy";
+import { PARALLEL_PLAYBACK_COPY } from "../lib/parallelPlaybackCopy";
+import { PARALLEL_BATCH_FRAMES_MIN, PARALLEL_BATCH_FRAMES_MAX } from "../lib/parallelPlaybackConfig";
 import type { BrowserClockWorkerDiagnostics } from "../audio/browserClockWorkerProtocol";
 import { useEffect, useMemo, useState } from "react";
 
@@ -250,6 +252,9 @@ interface ConfigPageProps {
   hardwareBuffer: number;
   showBrowserClockLatencyConfig: boolean;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  parallelRenderBatchFrames: number;
+  parallelSettingsLocked: boolean;
+  onApplyParallelRenderBatchFrames: (frames: number) => void;
   browserAudioDiagnostics?: BrowserClockWorkerDiagnostics | null;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
   onApplyEngineConfig: (config: {
@@ -327,6 +332,9 @@ export function ConfigPage({
   hardwareBuffer,
   showBrowserClockLatencyConfig,
   browserClockLatencySettings,
+  parallelRenderBatchFrames,
+  parallelSettingsLocked,
+  onApplyParallelRenderBatchFrames,
   browserAudioDiagnostics,
   onHelpRequest,
   onApplyEngineConfig,
@@ -334,6 +342,11 @@ export function ConfigPage({
 }: ConfigPageProps) {
   const copy = CONFIG_PAGE_COPY[guiLanguage];
   const playbackCopy = BROWSER_PLAYBACK_COPY[guiLanguage];
+  const parallelCopy = PARALLEL_PLAYBACK_COPY[guiLanguage];
+  const [batchInput, setBatchInput] = useState(String(parallelRenderBatchFrames));
+  useEffect(() => setBatchInput(String(parallelRenderBatchFrames)), [parallelRenderBatchFrames]);
+  const batchFrames = parsePositiveInteger(batchInput);
+  const batchError = validateRange(batchFrames, PARALLEL_BATCH_FRAMES_MIN, PARALLEL_BATCH_FRAMES_MAX, parallelCopy.frames, copy);
   const [playbackMode, setPlaybackMode] = useState(browserClockLatencySettings.playbackMode);
   const [timeoutInput, setTimeoutInput] = useState(String(browserClockLatencySettings.inactivityTimeoutSeconds));
 
@@ -622,6 +635,33 @@ export function ConfigPage({
               {copy.actualControlRate}: {previewActualControlRate}
             </span>
           </div>
+        </section>
+
+        <section className="relative rounded-2xl border border-slate-700/70 bg-slate-900/65 p-5">
+          {onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_audio_engine")} /> : null}
+          <h3 className="font-display text-base font-semibold text-slate-100">{parallelCopy.title}</h3>
+          <p className="mt-1 text-sm text-slate-400">{parallelCopy.description}</p>
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-2 text-sm text-slate-200">
+              {parallelCopy.frames}
+              <input aria-label={parallelCopy.frames} type="number" inputMode="numeric"
+                min={PARALLEL_BATCH_FRAMES_MIN} max={PARALLEL_BATCH_FRAMES_MAX} step={1}
+                value={batchInput} disabled={parallelSettingsLocked} onChange={event => setBatchInput(event.target.value)}
+                aria-invalid={batchError !== null} aria-describedby="parallel-batch-validation"
+                className="w-44 rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono disabled:opacity-50" />
+            </label>
+            <button type="button" disabled={parallelSettingsLocked || batchError !== null || batchFrames === parallelRenderBatchFrames}
+              onClick={() => { if (!parallelSettingsLocked && !batchError && batchFrames !== null) onApplyParallelRenderBatchFrames(batchFrames); }}
+              className="rounded-lg border border-accent/60 bg-accent/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent enabled:hover:bg-accent/30 disabled:cursor-not-allowed disabled:opacity-50">
+              {parallelCopy.apply}
+            </button>
+          </div>
+          <p id="parallel-batch-validation" role={batchError ? "alert" : undefined}
+            className={`mt-2 text-xs ${batchError ? "text-rose-300" : "text-slate-500"}`}>
+            {batchError ?? copy.allowedRange(PARALLEL_BATCH_FRAMES_MIN, PARALLEL_BATCH_FRAMES_MAX)}
+          </p>
+          <p className="mt-2 text-xs text-slate-400">{parallelCopy.storage}</p>
+          {parallelSettingsLocked && <p className="mt-2 text-xs text-amber-200/90">{parallelCopy.locked}</p>}
         </section>
 
         {showBrowserClockLatencyConfig ? (
