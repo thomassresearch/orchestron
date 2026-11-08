@@ -22,7 +22,7 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 ## What you can create
 
 Perform has a fixed **Engine stats** line with CPU usage and an optional **Parallel playback**
-control. Independent instrument groups can use multiple Csound processes, with shared effects
+control. CPU readings stay aligned as percentages change. Independent instrument groups can use multiple Csound processes, with shared effects
 and resources kept in dependency order. No per-song registration is needed; single rendering
 remains the default and fallback. Enable the option while stopped. Timing, buffers and CSD
 exports stay unchanged. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).

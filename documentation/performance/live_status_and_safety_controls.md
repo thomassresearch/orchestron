@@ -56,6 +56,8 @@ for example `cpu0: 60% cpu1: 45% cpu3: 77%`. These CPU readings include other wo
 CPUs. With single rendering, **Server process** shows the combined CPU usage of the server
 process: 100% represents one CPU, and the value can exceed 100%. It is not a per-instrument meter.
 Unsupported platforms or unavailable readings show **CPU usage unavailable**, not zero.
+Each CPU percentage has a reserved, right-aligned space, so neighbouring readings stay in place
+as the load changes between one, two and three digits.
 
 - **Green:** 0–50%.
 - **Orange:** above 50% through 85%, including the 50–60% interval.
@@ -69,7 +71,7 @@ If a parallel worker fails during playback, the engine stops and reports the err
 silently replace the running synths or replay audio. Stop and explicitly restart; automatic
 fallback can use single rendering on that restart.
 
-![Fixed engine statistics and parallel playback option](../../screenshots/performance_engine_stats.png)
+![Fixed engine statistics and parallel playback option](../../screenshots/performance_engine_stats_alignment.png)
 
 ## Track State Labels (Queued Changes)
 

@@ -62,7 +62,7 @@ export function EngineStatusLine() {
   const selection = !current && state === "running" ? copy.pending : renderer?.selected === "parallel" ? `${copy.parallel} (${renderer.worker_count})`
     : renderer?.fallback_reason === "parallel_disabled" ? copy.disabled
     : renderer?.fallback_reason ? copy.fallback : copy.single;
-  const value = (percent: number | null) => <span className={cpuLoadColor(percent)}>{percent === null ? "—" : `${Number(percent.toFixed(1))}%`}</span>;
+  const value = (percent: number | null) => <span className={`inline-block min-w-[6ch] text-right ${cpuLoadColor(percent)}`}>{percent === null ? "—" : `${Number(percent.toFixed(1))}%`}</span>;
 
   return <footer aria-label={copy.title} className="fixed inset-x-0 bottom-0 z-50 flex h-7 items-center gap-3 overflow-x-auto whitespace-nowrap border-t border-slate-700 bg-slate-950 px-4 font-mono text-[11px] text-slate-300 shadow-lg sm:px-6 lg:px-8">
     <span className="shrink-0 font-semibold">{copy.title}</span>
