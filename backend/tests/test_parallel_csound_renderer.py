@@ -73,7 +73,7 @@ def drain(scheduler, sample, ksmps, *, controls=(), revision=0):
         controls=controls, control_revision=revision)
 
 
-@pytest.mark.parametrize("rate", [48000, 44100])
+@pytest.mark.parametrize("rate", [48000, 44100, 96000])
 @pytest.mark.parametrize("amplitude", [1e-39, 1e-36])
 def test_pcm_conversion_preserves_native_thread_subnormal_behavior_in_fresh_processes(rate, amplitude):
     try:
@@ -101,7 +101,9 @@ def test_pcm_conversion_preserves_native_thread_subnormal_behavior_in_fresh_proc
             process.close()
             reader.close()
             writer.close()
-    assert results[0] == results[1]
+    # Compare bit patterns without dumping thousands of PCM bytes on failure.
+    np.testing.assert_array_equal(np.frombuffer(results[0], dtype="<u4"),
+                                  np.frombuffer(results[1], dtype="<u4"))
 
 
 @pytest.mark.parametrize("ksmps", [1, 32])

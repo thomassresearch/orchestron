@@ -178,7 +178,11 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
                     if not np.isfinite(pcm_views[slot][span]).all():
                         raise RuntimeError("Partition output exceeds float32 PCM range.")
                     if flush_float32 is None:
-                        flush_float32 = int(np.asarray([1e-40], dtype=np.float32).view(np.uint32)[0] == 0)
+                        # Probe NumPy's double-array cast, as used by PCM and
+                        # interpolation. Python-float packing can preserve tiny
+                        # values even when the native thread flushes array casts.
+                        probe = np.full(32, 1e-40, dtype=np.float64).astype(np.float32)
+                        flush_float32 = int(not np.any(probe.view(np.uint32)))
                     mode_views[slot][0] = flush_float32
                 for index, read_meter in enumerate(meter_readers):
                     value = read_meter()

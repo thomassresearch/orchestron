@@ -123,7 +123,10 @@ Csound state advancement and meter sampling remain per-step. See the
 [batch coordination contract](specifications/parallel-csound-rendering/coordination-batches.md).
 The output child converts native samples to float32; the parent resamples once per request
 and withholds an entire failed PCM request. Conversion stays in the native thread to preserve
-Csound's float32 subnormal handling; resampling retains that reported mode.
+Csound's float32 subnormal handling; resampling retains that reported mode. The
+mode probe casts a float64 NumPy array to float32, matching the PCM conversion
+path rather than Python scalar packing. Native parity tests cover unchanged,
+lower, and higher output sample rates with both subnormal and small normal audio.
 Startup, cancellation, deadlines and cleanup are internal operations; default single sessions
 and CSD exports do not call this coordinator. A caller must supply
 already ordered/gated events through its parent-only block preparation callback. The
