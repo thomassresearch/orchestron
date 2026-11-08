@@ -22,6 +22,19 @@ from backend.app.engine.render_ipc import (
 from backend.app.models.render_protocol import EngineFormat, Error, Init, Ready, RenderBatch, Stop, Stopped
 
 
+def native_float32_mode():
+    """Report output flushing (bit 0) and input flushing (bit 1) independently.
+
+    x86 DAZ and FTZ are separate flags. In particular, Csound can preserve
+    subnormal PCM on narrowing while treating it as zero during interpolation.
+    Integer views construct/inspect subnormals without floating-point arithmetic.
+    """
+    narrowed = np.full(32, 1e-40, dtype=np.float64).astype(np.float32)
+    inputs = np.full(32, 0x00010000, dtype=np.uint32).view(np.float32)
+    widened = inputs.astype(np.float64)
+    return int(not np.any(narrowed.view(np.uint32))) | (int(not np.any(widened.view(np.uint64))) << 1)
+
+
 def _exit_with_parent():
     # A native call can hang indefinitely. Do not rely on the render loop polling
     # getppid(): the sentinel also detects death while compiling or performing.
@@ -58,7 +71,7 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
     identity = reply = None
     sequence, sample, revision = 0, 0, 0
     phase = "protocol"
-    flush_float32 = None
+    float32_mode = None
     try:
         raw = arena.read(bootstrap)
         if hashlib.sha256(raw).hexdigest() != digest:
@@ -177,13 +190,9 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
                         pcm_views[slot][span] = final_views[slot][span]
                     if not np.isfinite(pcm_views[slot][span]).all():
                         raise RuntimeError("Partition output exceeds float32 PCM range.")
-                    if flush_float32 is None:
-                        # Probe NumPy's double-array cast, as used by PCM and
-                        # interpolation. Python-float packing can preserve tiny
-                        # values even when the native thread flushes array casts.
-                        probe = np.full(32, 1e-40, dtype=np.float64).astype(np.float32)
-                        flush_float32 = int(not np.any(probe.view(np.uint32)))
-                    mode_views[slot][0] = flush_float32
+                    if float32_mode is None:
+                        float32_mode = native_float32_mode()
+                    mode_views[slot][0] = float32_mode
                 for index, read_meter in enumerate(meter_readers):
                     value = read_meter()
                     meter_views[slot][block_index, index] = value if native_factory is None else value[0]

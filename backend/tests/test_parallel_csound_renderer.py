@@ -523,6 +523,28 @@ def test_failed_fresh_start_has_zero_cursor_after_previous_epoch():
     assert renderer.committed_sample == renderer.published_sample == renderer.sealed_sample == 0
 
 
+@pytest.mark.parametrize("float32_mode", [0, 1, 2, 3])
+@pytest.mark.parametrize("source", ["subnormal_pcm", "normal_pcm"])
+def test_resampling_handles_input_and_output_flushing_independently(float32_mode, source):
+    _, plan, compilation = prepared()
+    renderer = coordinator(_worker_target=partial(controlled_process, mode=source, float32_mode=float32_mode))
+    try:
+        renderer.start(compilation, plan)
+        result = renderer.render_blocks(block_count=5, target_sample_rate=44100)
+        magnitude = np.frombuffer(result.pcm_f32le, dtype="<u4") & 0x7fffffff
+        has_subnormals = bool(np.any((magnitude > 0) & (magnitude < 0x00800000)))
+        # Normal inputs cross zero during interpolation: DAZ alone must keep
+        # the newly created subnormal outputs, whereas FTZ removes them.
+        expected_subnormals = float32_mode == 0 if source == "subnormal_pcm" else not (float32_mode & 1)
+        assert has_subnormals == expected_subnormals
+        if source == "subnormal_pcm" and float32_mode & 2:
+            assert not np.any(magnitude)
+        if source == "normal_pcm":
+            assert np.any(magnitude == 0x00800000), "Normal endpoints must remain intact"
+    finally:
+        renderer.stop()
+
+
 def test_request_conversion_matches_single_resampler_once_per_request():
     from backend.app.engine.browser_audio_pcm import resample_stereo_block_linear
     _, plan, compilation = prepared()

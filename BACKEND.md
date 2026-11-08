@@ -7,6 +7,8 @@ This document describes the FastAPI backend in `backend/app`, how it is wired to
 The playback CI workflow runs Python and Cython suites in separate platform jobs,
 with a 60-minute budget per job. macOS uses the checksummed official Csound 6.18.1
 installer; a native binding preflight rejects incompatible major versions.
+Focused PCM conversion parity checks run before the full suite so platform
+floating-point regressions are reported without waiting for all DSP modules.
 `python -m backend.tools.run_playback_tests` runs every backend test module in a
 fresh process: Csound 6 native state can survive cleanup/reset and crash later DSP
 modules (reproduced with Altamax followed by Ambient Techno on Linux). Assertions
@@ -124,8 +126,10 @@ Csound state advancement and meter sampling remain per-step. See the
 The output child converts native samples to float32; the parent resamples once per request
 and withholds an entire failed PCM request. Conversion stays in the native thread to preserve
 Csound's float32 subnormal handling; resampling retains that reported mode. The
-mode probe casts a float64 NumPy array to float32, matching the PCM conversion
-path rather than Python scalar packing. Native parity tests cover unchanged,
+worker probes narrowing and widening independently: x86 input flushing (DAZ)
+does not imply output flushing (FTZ), or vice versa. The parent applies input
+flushing before interpolation and output flushing afterward. Both probes use
+NumPy array casts, matching the PCM conversion path. Native parity tests cover unchanged,
 lower, and higher output sample rates with both subnormal and small normal audio.
 Startup, cancellation, deadlines and cleanup are internal operations; default single sessions
 and CSD exports do not call this coordinator. A caller must supply

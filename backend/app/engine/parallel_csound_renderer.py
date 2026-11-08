@@ -199,7 +199,7 @@ class PartitionRenderCoordinator:
                 self.committed_sample = self.sealed_sample = self.published_sample = 0
                 self._sequence = self._revision = self._next_meter_sample = 0
                 self._meter_frames.clear()
-                self._flush_float32 = None
+                self._float32_mode = None
                 self.last_meters = {}
             deadline = time.monotonic() + self.policy.startup_timeout_seconds
             try:
@@ -323,9 +323,9 @@ class PartitionRenderCoordinator:
         slot = self._sequence % 2
         output = self._pcm_views[slot][:count * self._format.ksmps]
         mode = float(self._mode_views[slot][0])
-        if mode not in (0., 1.) or (self._flush_float32 is not None and mode != self._flush_float32):
+        if mode not in (0., 1., 2., 3.) or (self._float32_mode is not None and mode != self._float32_mode):
             raise PartitionRuntimeError("Invalid/changed native float32 conversion mode.")
-        self._flush_float32 = mode
+        self._float32_mode = int(mode)
         if not np.isfinite(output).all():
             raise PartitionRuntimeError("Partition output contains nonfinite audio/meters.")
         pcm[sample - request_start:self.sealed_sample - request_start] = output
@@ -386,7 +386,7 @@ class PartitionRenderCoordinator:
                     self._preparing_sample = None
                 # Keep the single renderer's order: float32 engine blocks (now
                 # converted in the native owner), then one resample per request.
-                if target_sample_rate != self._format.sample_rate and self._flush_float32:
+                if target_sample_rate != self._format.sample_rate and self._float32_mode & 2:
                     # The native thread also treats float32 subnormal *inputs*
                     # as zero when widening them for interpolation (DAZ on x86).
                     bits = pcm.view(np.uint32)
@@ -394,7 +394,7 @@ class PartitionRenderCoordinator:
                     bits[(magnitude > 0) & (magnitude < 0x00800000)] &= 0x80000000
                 pcm = resample_stereo_block_linear(pcm, source_sample_rate=self._format.sample_rate,
                                                    target_sample_rate=target_sample_rate)
-                if target_sample_rate != self._format.sample_rate and self._flush_float32:
+                if target_sample_rate != self._format.sample_rate and self._float32_mode & 1:
                     # Interpolation may create new float32 subnormals. Match the
                     # native thread's cast without changing this API thread's FP
                     # environment; integer masks retain the sign of zero.

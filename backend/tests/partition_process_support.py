@@ -62,6 +62,12 @@ class FakeNative:
         values[:] = self.value
 
     def spout(self):
+        if self.mode == "subnormal_pcm":
+            return np.full((self.frames, 2), 1e-40, dtype=self.dtype)
+        if self.mode == "normal_pcm":
+            values = np.full((self.frames, 2), 2 ** -126, dtype=self.dtype)
+            values[1::2] *= -1
+            return values
         return np.full((self.frames, 2), self.value, dtype=self.dtype)
 
     def controlChannel(self, channel):
@@ -73,8 +79,11 @@ class FakeNative:
             self.release.wait()
 
 
-def controlled_process(*args, mode="normal", entered=None, release=None, barrier=None, **dependencies):
+def controlled_process(*args, mode="normal", entered=None, release=None, barrier=None, float32_mode=None, **dependencies):
     threading.Thread(target=_exit_with_parent, daemon=True).start()
+    if float32_mode is not None:
+        from backend.app.engine import csound_process
+        csound_process.native_float32_mode = lambda: float32_mode
     if mode == "affinity_error":
         dependencies["cpu_affinity"] = -1
     _serve(*args, native_factory=functools.partial(FakeNative, mode=mode, entered=entered, release=release, barrier=barrier),

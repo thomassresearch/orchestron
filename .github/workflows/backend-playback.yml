@@ -72,6 +72,10 @@ jobs:
           PY
       - name: Lint
         run: .venv/bin/ruff check backend/app backend/tests backend/tools hatch_build.py
+      - name: Verify native PCM conversion parity
+        env:
+          VISUALCSOUND_SEQUENCER_IMPLEMENTATION: ${{ matrix.implementation }}
+        run: .venv/bin/python -m pytest backend/tests/test_parallel_csound_renderer.py -k 'subnormal or flushing_independently' -q
       - name: Full ${{ matrix.implementation }} regression suite
         env:
           VISUALCSOUND_SEQUENCER_IMPLEMENTATION: ${{ matrix.implementation }}
