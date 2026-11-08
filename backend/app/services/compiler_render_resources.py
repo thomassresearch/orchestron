@@ -25,7 +25,7 @@ from backend.app.services.compiler_legato import has_legato, validate_legato
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.compiler_private_tables import TABLE_CACHE_ENTRIES, input_bounds, private_table_size
 
-CAPABILITY_VERSION = "whole-instrument-resources-v3"
+CAPABILITY_VERSION = "whole-instrument-resources-v4"
 
 # Semantic identities bind the resource rules to shipped compiler definitions.
 # Ordinary filters, arithmetic, envelopes and internal branches remain intact.

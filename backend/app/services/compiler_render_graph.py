@@ -5,7 +5,7 @@ Port metadata uses the same structured connection lowering as CSD emission.
 """
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 from backend.app.models.render_plan import (
     RenderCoLocation, RenderConnection, RenderDependencyGraph, RenderEngineSettings,
@@ -17,6 +17,7 @@ from backend.app.services.compiler_graph import resolve_shared_engine, validate_
 from backend.app.services.compiler_mixer import OUTPUT, ResolvedMixerGraph, channel
 from backend.app.services.compiler_render_resources import CAPABILITY_VERSION, analyze_render_resources, stable_hash
 from backend.app.services.compiler_stage_lowering import live_audio_connections
+from backend.app.services.compiler_render_costs import estimate_patch_work
 from backend.app.services.render_graph_order import topological_order
 
 
@@ -100,6 +101,10 @@ def analyze_render_graph(targets, audio_graph, opcode_service) -> RenderDependen
         if audio_graph.master_id is not None:
             downstream.append("patch:" + audio_graph.master_id)
 
+    patch_work = {"patch:" + identity: estimate_patch_work(target.patch.graph,
+                    [r for r in resources.accesses if r.stage == "patch:" + identity])
+                  for identity, target in zip(identities, targets, strict=True)}
+    stages = [replace(stage, estimated_work=patch_work.get(stage.id, 1)) for stage in stages]
     fingerprint = stable_hash({
         "capability": CAPABILITY_VERSION, "engine": asdict(engine),
         "targets": [{"identity": identity, "patch_id": t.patch.id, "graph": t.patch.graph.model_dump(mode="json"),

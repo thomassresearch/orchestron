@@ -26,6 +26,8 @@ class RenderStage:
     always_on: bool = True
     controls: tuple[str, ...] = ()
     meters: tuple[str, ...] = ()
+    # Relative per-voice work, not microseconds or a polyphony prediction.
+    estimated_work: int = 1
 
 
 @dataclass(frozen=True, slots=True)

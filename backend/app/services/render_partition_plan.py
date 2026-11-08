@@ -71,6 +71,8 @@ def _validate_graph(graph):
         raise ValueError("Invalid full-performance engine settings.")
     if any(type(r.memory_bytes) is not int or r.memory_bytes < 0 for r in graph.resources):
         raise ValueError("Invalid resource memory estimate.")
+    if any(type(stage.estimated_work) is not int or stage.estimated_work < 1 for stage in graph.stages):
+        raise ValueError("Invalid stage work estimate.")
     return order
 
 
@@ -153,8 +155,7 @@ def plan_render_partitions(
     measured_weights = _costs(graph, costs)
     # Structural load balances whole branches only; it is not a measured time
     # or a claim of speedup. Supplied benchmark profiles retain their benefit gate.
-    weights = measured_weights or {s.id: 1 + sum(r.stage == s.id and r.scope == "voice"
-                                               for r in graph.resources) for s in graph.stages}
+    weights = measured_weights or {s.id: s.estimated_work for s in graph.stages}
     if costs is not None:
         by_stage = {c.stage: c for c in costs.stages}
         costs = replace(costs, stages=tuple(by_stage[s.id] for s in graph.stages))

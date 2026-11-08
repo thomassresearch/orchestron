@@ -20,7 +20,7 @@ def grain_events():
     events = []
     for beat in range(6):
         for channel in (*range(7), 9):
-            note = (36 if channel == 9 else 48 + channel * 3) + beat % 3
+            note = (36, 38, 42, 46, 49, 51)[beat] if channel == 9 else 48 + channel * 3 + beat % 3
             events.extend([(beat * 8000, [0x90 + channel, note, 80]),
                            (beat * 8000 + 14000, [0x80 + channel, note, 0]),
                            (beat * 8000 + 3001, [0xB0 + channel, 1, 30 + beat * 10])])

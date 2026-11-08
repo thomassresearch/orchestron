@@ -21,7 +21,7 @@ from backend.tools._sequential_partition_probe import compare_sequential
 def test_grain_ownership_and_sequential_parity():
     inputs = grain_inputs()
     plan, compilation = prepare(inputs)
-    assert plan.layout == 'coarse' and len(plan.partitions) == 3
+    assert plan.layout == 'coarse' and len(plan.partitions) == 6
     assert plan == prepare(grain_inputs())[0]
     assert not plan.graph.blockers
     assert {r.stage for r in plan.graph.resources if r.resource == 'engine:random'} == {'patch:salt-drums'}
@@ -51,7 +51,7 @@ def test_grain_persistent_workers_exact_pcm(monkeypatch, frames):
             for sample, message in grain_events():
                 worker.enqueue_timestamped_midi(message, source='grain-parity', target_engine_sample=sample)
         assert parallel.renderer_diagnostics['selected'] == 'parallel', parallel.renderer_diagnostics
-        assert parallel.renderer_diagnostics['worker_count'] == 3
+        assert parallel.renderer_diagnostics['worker_count'] == 6
         processes = parallel._coordinator.process_ids
         controls = controller_bindings(targets[0], targets[0].assignment_id)
         def before(renderer):

@@ -4,7 +4,8 @@
 controller overrides captured read-only on 2026-11-08. `grain_render_support.py` adds a
 deterministic overlapping-note/CC sequence for native resource-ownership parity tests;
 it does not claim to reproduce the saved musical arrangement. No test reads the live app
-or developer examples. Capability-v3 planner snapshots change only input/plan digests.
+or developer examples. Capability-v4 planner snapshots change only input/plan digests;
+conditional cost tests exercise overlapping notes across six drumkit cases.
 
 `parallel_render/evening_at_the_lake_master_insert.json` overlays the original Lake snapshot
 with the user's revised Master-compressor insert routing, captured read-only on 2026-11-08.

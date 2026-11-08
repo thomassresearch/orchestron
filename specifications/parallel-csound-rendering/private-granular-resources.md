@@ -43,7 +43,11 @@ Source audit: [ftgenonce manual](https://csound.com/docs/manual/ftgenonce.html),
 [FTAlloc](https://github.com/csound/csound/blob/6.18.0/Engine/fgens.c),
 [ftgenonce cache](https://github.com/csound/csound/blob/6.18.0/Opcodes/signalflowgraph.cpp).
 
-## Grain of Salt result
+## Initial Grain of Salt result (v3)
+
+The results below record the initial resource fix. Capability v4 subsequently changes
+the default split to six workers using [conditional DSP estimates](conditional-work-estimates.md);
+the ownership and cache rules above remain unchanged.
 
 The frozen live rack contains seven Granular Synthesis instances, Analog Drumkit,
 Stereo Delay, Reverb Effect and the bass Tube Overdrive insert. At unchanged 48 kHz,

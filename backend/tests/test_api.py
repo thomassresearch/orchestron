@@ -10792,7 +10792,7 @@ def test_grain_of_salt_public_parallel_selection_and_default(tmp_path, monkeypat
         assert started.status_code == 200, started.text
         info = client.get(f'/api/sessions/{identity}').json()
         assert info['renderer']['selected'] == 'parallel', info['renderer']
-        assert info['renderer']['worker_count'] == 3
+        assert info['renderer']['worker_count'] == 6
         assert info['renderer']['coordination_frames'] == 256
         with client.websocket_connect(f'/ws/sessions/{identity}/browser-clock') as socket:
             socket.send_json({'type': 'claim_controller', 'audio_context_sample_rate': 48000,
