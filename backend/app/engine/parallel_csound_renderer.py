@@ -147,6 +147,15 @@ class PartitionRenderCoordinator:
         if any(fence.acquire(False) for fence in self._dependency_fences.values()):
             raise PartitionRuntimeError("Duplicate/unconsumed dependency publication.")
 
+    def _receive_completion(self, child, wanted):
+        received = self._arena.receive_bytes(child.regions.reply)
+        if not isinstance(wanted, bytes) or received.startswith(b"{"):
+            received = MESSAGE.validate_json(received)
+            validate_envelope(received, child.identity)
+            if isinstance(received, Error):
+                raise PartitionRuntimeError(f"Partition {child.identity['partition_id']} {received.code}: {received.detail}")
+        return received
+
     def _collect(self, expected, deadline):
         pending = dict(expected)
         while pending:
@@ -155,12 +164,7 @@ class PartitionRenderCoordinator:
                 self._check(deadline)
                 child = self._children[identity]
                 if child.reply_ready.acquire(timeout=min(.005, max(0, deadline - time.monotonic()))):
-                    received = self._arena.receive_bytes(child.regions.reply)
-                    if not isinstance(wanted, bytes) or received.startswith(b"{"):
-                        received = MESSAGE.validate_json(received)
-                        validate_envelope(received, child.identity)
-                        if isinstance(received, Error):
-                            raise PartitionRuntimeError(f"Partition {identity} {received.code}: {received.detail}")
+                    received = self._receive_completion(child, wanted)
                     if received != wanted:
                         raise PartitionRuntimeError("Partition completion does not match sealed interval/artifact.")
                     child.busy = False
@@ -169,6 +173,13 @@ class PartitionRenderCoordinator:
                 # at the global barrier. On a missing reply, detect death promptly
                 # without one waitpid syscall per child on every successful block.
                 elif self._death_poll.select(0):
+                    # A different pending child may have published its failure
+                    # and exited while we waited on this child's reply. Drain
+                    # published replies before replacing that error with death.
+                    for pending_identity, pending_wanted in pending.items():
+                        pending_child = self._children[pending_identity]
+                        if pending_child.reply_ready.acquire(False):
+                            self._receive_completion(pending_child, pending_wanted)
                     raise PartitionRuntimeError("A partition exited unexpectedly.")
 
     @contextmanager

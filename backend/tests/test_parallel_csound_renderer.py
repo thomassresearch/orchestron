@@ -571,6 +571,38 @@ def test_request_conversion_matches_single_resampler_once_per_request():
         renderer.stop()
 
 
+@pytest.mark.parametrize("failed_child", ["first", "second", None])
+def test_published_startup_error_wins_over_process_exit(failed_child):
+    from types import SimpleNamespace
+    from backend.app.models.render_protocol import Error
+
+    renderer = coordinator()
+    children = {}
+    for name in ("first", "second"):
+        identity = dict(protocol_version=1, epoch=1, partition_id=name, plan_hash="a" * 64)
+        children[name] = SimpleNamespace(identity=identity, reply_ready=threading.Semaphore(0),
+                                        regions=SimpleNamespace(reply=name), busy=True)
+
+    class ExitedWorker:
+        def select(self, timeout):
+            # Publish only after the first child's wait returns empty. Cover
+            # both a just-published current reply and a different child's reply.
+            if failed_child is not None:
+                children[failed_child].reply_ready.release()
+            return [object()]
+
+    def receive(region):
+        return Error(**children[region].identity, code="start", detail="Plan/native sample ABI mismatch.",
+                     last_complete_sequence=-1).model_dump_json().encode()
+
+    renderer._children = children
+    renderer._death_poll = ExitedWorker()
+    renderer._arena = SimpleNamespace(receive_bytes=receive)
+    message = "ABI mismatch" if failed_child is not None else "exited unexpectedly"
+    with pytest.raises(PartitionRuntimeError, match=message):
+        renderer._collect(dict(first=b"ready", second=b"ready"), time.monotonic() + 1)
+
+
 def test_native_abi_mismatch_rolls_back_before_ready_or_audio():
     try:
         module = load_ctcsound_module()

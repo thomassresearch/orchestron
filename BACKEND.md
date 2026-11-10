@@ -131,6 +131,9 @@ does not imply output flushing (FTZ), or vice versa. The parent applies input
 flushing before interpolation and output flushing afterward. Both probes use
 NumPy array casts, matching the PCM conversion path. Native parity tests cover unchanged,
 lower, and higher output sample rates with both subnormal and small normal audio.
+When a worker exits during a completion barrier, published pending error replies
+are read before reporting a generic process exit, preserving startup diagnostics
+such as native sample ABI mismatches.
 Startup, cancellation, deadlines and cleanup are internal operations; default single sessions
 and CSD exports do not call this coordinator. A caller must supply
 already ordered/gated events through its parent-only block preparation callback. The
