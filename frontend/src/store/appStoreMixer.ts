@@ -6,6 +6,7 @@ import { audioCopy } from "../lib/audioCopy";
 import { canBypassInsert } from "../lib/insertRouting";
 import type { MixerState } from "../types";
 import type { AppStore } from "./appStoreTypes";
+import { sessionAudioSignature } from "./sessionSignature";
 
 type Actions = Pick<AppStore, "setAudioGraph" | "setMixerStrip" | "setMixerSend" | "flushMixer" | "ensureMaster">;
 export function createMixerActions(set: StoreApi<AppStore>["setState"], get: StoreApi<AppStore>["getState"]): Actions {
@@ -19,7 +20,7 @@ export function createMixerActions(set: StoreApi<AppStore>["setState"], get: Sto
     if (running) { await running; if (dirty) return flush(immediate); return; }
     if (!immediate && Date.now() - lastSentAt < 34) { schedule(); return; }
     const state = get();
-    if (!state.activeSessionId || state.activeSessionAudioSignature !== JSON.stringify({ graph: state.audioGraph, patches: state.patches.map((p) => [p.id, p.updated_at]) })) { dirty = false; return; }
+    if (!state.activeSessionId || state.activeSessionAudioSignature !== sessionAudioSignature(state)) { dirty = false; return; }
     const id = state.activeSessionId;
     const mixer: MixerState = structuredClone(state.mixer);
     dirty = false;

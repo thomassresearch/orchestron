@@ -14,6 +14,7 @@ import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { stereoOpcodeDirection } from "../lib/stereoCatalog";
 import { createPerformanceControllerActions } from "./appStorePerformanceControllers";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
+import { sessionAudioSignature, sessionRendererRequest } from "./sessionSignature";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
 import { create } from "zustand";
 
@@ -893,18 +894,12 @@ export const useAppStore = create<AppStore>((set, get) => {
         const requestedBindings = get().sequencerInstruments;
         const workspaceGeneration = get().performanceWorkspaceGeneration;
         const requestedAssignments = normalizeSessionInstrumentAssignments(requestedBindings);
-        const requestedRenderer = () => get().parallelPlaybackEnabled
-          ? { renderer_mode: "auto" as const, browser_settings: get().browserClockLatencySettings,
-              parallel_batch_frames: get().parallelRenderBatchFrames } : undefined;
-        const rendererRequest = requestedRenderer();
-        const signature = () => JSON.stringify({ graph: get().audioGraph,
-          patches: get().patches.map((p) => [p.id, p.updated_at]),
-          ...(get().parallelPlaybackEnabled ? { renderer: requestedRenderer() } : {}) });
-        const audioSignature = signature();
+        const rendererRequest = sessionRendererRequest(get());
+        const audioSignature = sessionAudioSignature(get());
         const setupIsCurrent = () => generation === sessionRequestGeneration &&
           workspaceGeneration === get().performanceWorkspaceGeneration &&
           requestedBindings === get().sequencerInstruments &&
-          audioSignature === signature();
+          audioSignature === sessionAudioSignature(get());
         const sameAudio = get().activeSessionAudioSignature === audioSignature;
         const sameWorkspace = get().activeSessionWorkspaceGeneration === workspaceGeneration;
         let sessionId = get().activeSessionId;

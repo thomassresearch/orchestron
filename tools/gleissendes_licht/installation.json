@@ -1,0 +1,7 @@
+{
+  "patch_id": "9324c937-637b-4742-9c30-61c1646847de",
+  "name": "Gleissendes Licht",
+  "compile_state": "compiled",
+  "diagnostics": [],
+  "native_export": "examples/instruments/Gleissendes_Licht.orch.instrument.json"
+}

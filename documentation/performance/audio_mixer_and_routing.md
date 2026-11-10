@@ -102,7 +102,7 @@ Open **Routing diagram** to follow the same connections as source → destinatio
 
 New guided instruments connect to Master automatically. Loading an older performance preserves its authored direct/custom paths. Master gain or mute affects only paths routed into Master: a direct strip can still be audible. Check the **Direct Audio Output** badge and the final Audio Output meter when tracking down sound that remains after lowering Master.
 
-Topology changes require stopping the engine. **Stop to edit routing** makes that action explicit. Existing mixer controls remain live. Invalid references and genuine feedback cycles block playback and CSD export. Broken routes remain available for repair. Unused ports, incomplete stereo pairs and parallel direct/processed paths are warnings.
+Topology changes require stopping the engine. **Stop to edit routing** makes that action explicit. Existing mixer controls remain live, including with **Parallel playback** enabled: faders, balance, mute, solo, sends and insert bypass continue to affect the sound. Invalid references and genuine feedback cycles block playback and CSD export. Broken routes remain available for repair. Unused ports, incomplete stereo pairs and parallel direct/processed paths are warnings.
 
 ### Troubleshoot routing and silence
 

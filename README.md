@@ -28,7 +28,8 @@ remains the default and fallback. Enable the option while stopped. Timing, buffe
 exports stay unchanged. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
 Set the parallel batch size in **Config → Parallel Playback**: **32–1024 samples**, default **256**.
 Apply while stopped; the saved preference takes effect on the next parallel start. Instruments
-retain their synthesis and controller timing. See [parallel playback settings](documentation/configuration/audio_engine_settings.md#parallel-playback).
+retain their synthesis and controller timing. Rack controller edits and live mixer changes
+also work with parallel playback enabled. See [parallel playback settings](documentation/configuration/audio_engine_settings.md#parallel-playback).
 
 ![Engine statistics in Perform](screenshots/performance_engine_stats.png)
 

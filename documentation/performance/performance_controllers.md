@@ -67,7 +67,7 @@ Changing only a group name does not require restarting the rack.
 
 ![Float knobs, an Integer stepper and a Bool toggle in the Perform rack](../../screenshots/performance_controller_types_rack.png)
 
-Changes affect newly started notes. Sounding notes keep their initialized value. Continuous instruments require a rack restart. Changing a controller’s type while the rack runs also requires a restart.
+Changes affect newly started notes. Sounding notes keep their initialized value. Continuous instruments require a rack restart. Changing a controller’s type while the rack runs also requires a restart. The same behavior applies with **Parallel playback** enabled, including when the engine falls back to single rendering.
 
 For an instrument using [`midi_legato`](../instrument_design/midi_legato.md), settings are sampled at the start of each **phrase**. Touching and overlapping notes keep the same voice and settings; the next note after a gap reads current values.
 

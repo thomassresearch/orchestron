@@ -1,0 +1,602 @@
+{
+  "sourcePatchId": "9324c937-637b-4742-9c30-61c1646847de",
+  "name": "Gleissendes Licht",
+  "description": "Dazzling, stinging metallic melody voice: upper harmonics dominate a quiet pitch anchor, with a bright attack and rippling FM spectrum. Velocity shapes both level and bite. Polyphonic; each note has a fresh attack. Start in C3-C6 (MIDI 48-84). Brilliance controls harmonic density, Motion controls the shimmer, and Release sets the tail. Stereo Output routes through the mixer to Master.",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "melody",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 50.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1.0
+        },
+        "position": {
+          "x": 50.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 390.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "env_attack_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.006
+        },
+        "position": {
+          "x": 50.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "env_decay_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.24
+        },
+        "position": {
+          "x": 50.0,
+          "y": 1070.0
+        }
+      },
+      {
+        "id": "env_sustain_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 0.72
+        },
+        "position": {
+          "x": 50.0,
+          "y": 1410.0
+        }
+      },
+      {
+        "id": "amp_madsr",
+        "opcode": "madsr",
+        "params": {},
+        "position": {
+          "x": 390.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "amp_velocity_envelope",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 390.0,
+          "y": 1070.0
+        }
+      },
+      {
+        "id": "light_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.42
+        },
+        "position": {
+          "x": 730.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "light_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 730.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "light_foscili",
+        "opcode": "foscili",
+        "params": {
+          "xcar": 3,
+          "xmod": 2,
+          "ifn": 1
+        },
+        "position": {
+          "x": 1410.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "anchor_gain",
+        "opcode": "const_k",
+        "params": {
+          "value": 0.035
+        },
+        "position": {
+          "x": 730.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "anchor_amp",
+        "opcode": "k_mul",
+        "params": {},
+        "position": {
+          "x": 730.0,
+          "y": 1070.0
+        }
+      },
+      {
+        "id": "anchor_oscili",
+        "opcode": "oscili",
+        "params": {
+          "ifn": 1
+        },
+        "position": {
+          "x": 1410.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "layer_mix_1",
+        "opcode": "mix2",
+        "params": {},
+        "position": {
+          "x": 1750.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "effect_1_butterhp",
+        "opcode": "butterhp",
+        "params": {
+          "xfreq": 600
+        },
+        "position": {
+          "x": 1750.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "effect_2_butterlp",
+        "opcode": "butterlp",
+        "params": {
+          "xfreq": 13500
+        },
+        "position": {
+          "x": 2090.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "xp": 0.5,
+          "imode": 0
+        },
+        "position": {
+          "x": 2090.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "sting_envelope",
+        "opcode": "expseg",
+        "params": {
+          "ia": 1,
+          "idur1": 0.19,
+          "ib": 0.025,
+          "idur2": 0.01,
+          "ic": 0.025
+        },
+        "position": {
+          "x": 1070.0,
+          "y": 730.0
+        }
+      },
+      {
+        "id": "shimmer_lfo",
+        "opcode": "lfo",
+        "params": {
+          "kcps": 3.7,
+          "itype": 0
+        },
+        "position": {
+          "x": 1070.0,
+          "y": 1070.0
+        }
+      },
+      {
+        "id": "slow_lfo",
+        "opcode": "lfo",
+        "params": {
+          "kamp": 0.25,
+          "kcps": 0.43,
+          "itype": 0
+        },
+        "position": {
+          "x": 1070.0,
+          "y": 1410.0
+        }
+      },
+      {
+        "id": "light_brilliance",
+        "opcode": "perf_controller",
+        "params": {
+          "controller_type": "float",
+          "min": 1.4,
+          "max": 4.8,
+          "default": 2.8,
+          "scale": "linear",
+          "label": "Brilliance",
+          "controller_group": "Light"
+        },
+        "position": {
+          "x": 1070.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "light_motion",
+        "opcode": "perf_controller",
+        "params": {
+          "controller_type": "float",
+          "min": 0,
+          "max": 0.65,
+          "default": 0.36,
+          "scale": "linear",
+          "label": "Motion",
+          "controller_group": "Light"
+        },
+        "position": {
+          "x": 1070.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "light_release",
+        "opcode": "perf_controller",
+        "params": {
+          "controller_type": "float",
+          "min": 0.06,
+          "max": 0.9,
+          "default": 0.26,
+          "scale": "logarithmic",
+          "label": "Release (s)",
+          "controller_group": "Envelope"
+        },
+        "position": {
+          "x": 390.0,
+          "y": 390.0
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2430.0,
+          "y": 50.0
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2430.0,
+          "y": 390.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "from_node_id": "env_attack_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "iatt"
+      },
+      {
+        "from_node_id": "env_decay_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "idec"
+      },
+      {
+        "from_node_id": "env_sustain_const",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "islev"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "amp_madsr",
+        "from_port_id": "kenv",
+        "to_node_id": "amp_velocity_envelope",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "light_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "light_gain",
+        "from_port_id": "kout",
+        "to_node_id": "light_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "light_amp",
+        "from_port_id": "kout",
+        "to_node_id": "light_foscili",
+        "to_port_id": "xamp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "light_foscili",
+        "to_port_id": "kcps"
+      },
+      {
+        "from_node_id": "amp_velocity_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "anchor_amp",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "anchor_gain",
+        "from_port_id": "kout",
+        "to_node_id": "anchor_amp",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "anchor_amp",
+        "from_port_id": "kout",
+        "to_node_id": "anchor_oscili",
+        "to_port_id": "amp"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "anchor_oscili",
+        "to_port_id": "freq"
+      },
+      {
+        "from_node_id": "anchor_oscili",
+        "from_port_id": "asig",
+        "to_node_id": "layer_mix_1",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "effect_2_butterlp",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "light_brilliance",
+        "from_port_id": "iout",
+        "to_node_id": "light_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "light_motion",
+        "from_port_id": "iout",
+        "to_node_id": "shimmer_lfo",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "light_release",
+        "from_port_id": "iout",
+        "to_node_id": "amp_madsr",
+        "to_port_id": "irel"
+      },
+      {
+        "from_node_id": "light_foscili",
+        "from_port_id": "asig",
+        "to_node_id": "effect_1_butterhp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "effect_1_butterhp",
+        "from_port_id": "aout",
+        "to_node_id": "layer_mix_1",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "layer_mix_1",
+        "from_port_id": "aout",
+        "to_node_id": "effect_2_butterlp",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "effect_1_butterhp",
+        "to_port_id": "xfreq"
+      },
+      {
+        "from_node_id": "light_motion",
+        "from_port_id": "iout",
+        "to_node_id": "slow_lfo",
+        "to_port_id": "kamp"
+      },
+      {
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "light_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "sting_envelope",
+        "from_port_id": "kenv",
+        "to_node_id": "light_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "shimmer_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "light_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "slow_lfo",
+        "from_port_id": "kout",
+        "to_node_id": "light_foscili",
+        "to_port_id": "kndx"
+      },
+      {
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "light_foscili",
+        "to_port_id": "kndx"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      },
+      "input_formulas": {
+        "output_pan2::asig": {
+          "expression": "0.65 * in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "effect_2_butterlp",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "effect_1_butterhp::xfreq": {
+          "expression": "1.7 * in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        },
+        "slow_lfo::kamp": {
+          "expression": "0.25 * in1",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "light_motion",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "light_foscili::kndx": {
+          "expression": "(edge * (0.72 + 0.28 * velocity) + 0.85 * sting + shimmer + drift) / (1 + pitch / 1200)",
+          "inputs": [
+            {
+              "token": "edge",
+              "from_node_id": "light_brilliance",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "velocity",
+              "from_node_id": "velocity_ampmidi",
+              "from_port_id": "iamp"
+            },
+            {
+              "token": "sting",
+              "from_node_id": "sting_envelope",
+              "from_port_id": "kenv"
+            },
+            {
+              "token": "shimmer",
+              "from_node_id": "shimmer_lfo",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "drift",
+              "from_node_id": "slow_lfo",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "pitch",
+              "from_node_id": "pitch_cpsmidi",
+              "from_port_id": "kfreq"
+            }
+          ]
+        }
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 750,
+      "ksmps": 64,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

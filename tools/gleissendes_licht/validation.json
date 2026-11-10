@@ -1,0 +1,566 @@
+{
+  "patch_sha256": "f5d48bed7a911f75d110fa78a2c638b835edf1f71af18cc8deb9b9d165174ee0",
+  "sample_rate": 48000,
+  "duration_seconds_per_scenario": 15,
+  "notes_start_duration_pitch_velocity": [
+    [
+      0.2,
+      0.35,
+      64,
+      32
+    ],
+    [
+      1.8,
+      0.35,
+      64,
+      64
+    ],
+    [
+      3.4000000000000004,
+      0.35,
+      64,
+      100
+    ],
+    [
+      5.000000000000001,
+      0.35,
+      64,
+      127
+    ],
+    [
+      6.5,
+      0.6,
+      48,
+      100
+    ],
+    [
+      7.8,
+      0.6,
+      84,
+      100
+    ],
+    [
+      8.9,
+      0.075,
+      67,
+      105
+    ],
+    [
+      9.030000000000001,
+      0.075,
+      67,
+      105
+    ],
+    [
+      9.16,
+      0.075,
+      67,
+      105
+    ],
+    [
+      9.290000000000001,
+      0.075,
+      67,
+      105
+    ],
+    [
+      9.42,
+      0.075,
+      67,
+      105
+    ],
+    [
+      10.2,
+      2,
+      64,
+      100
+    ],
+    [
+      12.8,
+      0.5,
+      60,
+      127
+    ],
+    [
+      12.8,
+      0.5,
+      64,
+      127
+    ],
+    [
+      12.8,
+      0.5,
+      67,
+      127
+    ],
+    [
+      12.8,
+      0.5,
+      71,
+      127
+    ]
+  ],
+  "scenarios": {
+    "default": {
+      "overrides": {},
+      "finite": true,
+      "peak": 0.6463750335722589,
+      "rms_left": 0.050435592043946875,
+      "rms_right": 0.05043559204394686,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020624528134850884,
+        0.04171538255405617,
+        0.06671831121021378,
+        0.08621023378174009
+      ],
+      "held_note": {
+        "centroid_hz": 1791.5032281853175,
+        "upper_vs_fundamental_db": 15.499965456359897
+      },
+      "retriggers_rms": [
+        0.0858448912883357,
+        0.07868448447372578,
+        0.09934431289177062,
+        0.0730647717758683,
+        0.09934431289177062
+      ]
+    },
+    "light_brilliance_min": {
+      "overrides": {
+        "light_brilliance": 1.4
+      },
+      "finite": true,
+      "peak": 0.6368570581786738,
+      "rms_left": 0.05561638974326399,
+      "rms_right": 0.05561638974326398,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.02427207760859239,
+        0.04770726398031475,
+        0.07298117886146793,
+        0.0911523389422849
+      ],
+      "held_note": {
+        "centroid_hz": 1200.203290533994,
+        "upper_vs_fundamental_db": 16.92042465051156
+      },
+      "retriggers_rms": [
+        0.0847976406784287,
+        0.10794357470794766,
+        0.10355846189656705,
+        0.10334138712341676,
+        0.10355846189656705
+      ]
+    },
+    "light_brilliance_max": {
+      "overrides": {
+        "light_brilliance": 4.8
+      },
+      "finite": true,
+      "peak": 0.7419758014931407,
+      "rms_left": 0.054234019886395445,
+      "rms_right": 0.054234019886395445,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020539294642167697,
+        0.04074609489442426,
+        0.06896142357125964,
+        0.09565786698564847
+      ],
+      "held_note": {
+        "centroid_hz": 2328.302929621751,
+        "upper_vs_fundamental_db": 12.937227171623846
+      },
+      "retriggers_rms": [
+        0.08647038665138075,
+        0.11153940115089257,
+        0.08689416145636177,
+        0.10812485295151242,
+        0.08689416145636177
+      ]
+    },
+    "light_motion_min": {
+      "overrides": {
+        "light_motion": 0
+      },
+      "finite": true,
+      "peak": 0.6304053911295646,
+      "rms_left": 0.049627971562072284,
+      "rms_right": 0.04962797156207227,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020285709547385823,
+        0.040831919150107365,
+        0.0652613801438421,
+        0.08451656529826204
+      ],
+      "held_note": {
+        "centroid_hz": 1806.306336918258,
+        "upper_vs_fundamental_db": 15.354971081415922
+      },
+      "retriggers_rms": [
+        0.08229801914808854,
+        0.07535580960813675,
+        0.09723819094564026,
+        0.06901221118833695,
+        0.09723819094564026
+      ]
+    },
+    "light_motion_max": {
+      "overrides": {
+        "light_motion": 0.65
+      },
+      "finite": true,
+      "peak": 0.655943797469473,
+      "rms_left": 0.0516117402997675,
+      "rms_right": 0.05161174029976749,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.021232907242755273,
+        0.04303865470430312,
+        0.06864158531708334,
+        0.08830548971940287
+      ],
+      "held_note": {
+        "centroid_hz": 1754.4800390694684,
+        "upper_vs_fundamental_db": 15.69483782535561
+      },
+      "retriggers_rms": [
+        0.08939696485171046,
+        0.08168822420773385,
+        0.10235271578226472,
+        0.07690406902960024,
+        0.10235271578226472
+      ]
+    },
+    "light_release_min": {
+      "overrides": {
+        "light_release": 0.06
+      },
+      "finite": true,
+      "peak": 0.6463750335722589,
+      "rms_left": 0.047636626210007874,
+      "rms_right": 0.047636626210007874,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020624528134850884,
+        0.04171538255405617,
+        0.06671831121021378,
+        0.08621023378174009
+      ],
+      "held_note": {
+        "centroid_hz": 1791.5032281853175,
+        "upper_vs_fundamental_db": 15.499965456359897
+      },
+      "retriggers_rms": [
+        0.0858448912883357,
+        0.08586318952094416,
+        0.0858448912883357,
+        0.08586318952094416,
+        0.0858448912883357
+      ]
+    },
+    "light_release_max": {
+      "overrides": {
+        "light_release": 0.9
+      },
+      "finite": true,
+      "peak": 0.6605854721209012,
+      "rms_left": 0.0567864488537461,
+      "rms_right": 0.0567864488537461,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020624528134850884,
+        0.04171538255405617,
+        0.06671831121021378,
+        0.08621023378174009
+      ],
+      "held_note": {
+        "centroid_hz": 1791.5032281853175,
+        "upper_vs_fundamental_db": 15.499965456359897
+      },
+      "retriggers_rms": [
+        0.08900069263903702,
+        0.08484960955226475,
+        0.08408205802216828,
+        0.06447311437384587,
+        0.08916014515335713
+      ]
+    },
+    "corner_0": {
+      "overrides": {
+        "light_brilliance": 1.4,
+        "light_motion": 0,
+        "light_release": 0.06
+      },
+      "finite": true,
+      "peak": 0.6443211733645653,
+      "rms_left": 0.05236495522837364,
+      "rms_right": 0.052364955228373616,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024549378636827848,
+        0.048254483295831416,
+        0.07378895784780756,
+        0.0920960620833559
+      ],
+      "held_note": {
+        "centroid_hz": 1192.7489000450964,
+        "upper_vs_fundamental_db": 17.12185066654728
+      },
+      "retriggers_rms": [
+        0.08756170694487668,
+        0.08766665016001196,
+        0.08756170694487668,
+        0.08766665016001196,
+        0.08756170694487668
+      ]
+    },
+    "corner_1": {
+      "overrides": {
+        "light_brilliance": 1.4,
+        "light_motion": 0,
+        "light_release": 0.9
+      },
+      "finite": true,
+      "peak": 0.6614957057266648,
+      "rms_left": 0.06574323326834614,
+      "rms_right": 0.06574323326834612,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024549378636827848,
+        0.048254483295831416,
+        0.07378895784780756,
+        0.0920960620833559
+      ],
+      "held_note": {
+        "centroid_hz": 1192.7489000450964,
+        "upper_vs_fundamental_db": 17.12185066654728
+      },
+      "retriggers_rms": [
+        0.09203949733215798,
+        0.12837266751992107,
+        0.13322271049968185,
+        0.15222130920636026,
+        0.11815067893609214
+      ]
+    },
+    "corner_2": {
+      "overrides": {
+        "light_brilliance": 1.4,
+        "light_motion": 0.65,
+        "light_release": 0.06
+      },
+      "finite": true,
+      "peak": 0.6352535510483541,
+      "rms_left": 0.051522377958136495,
+      "rms_right": 0.05152237795813648,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024069815807532372,
+        0.04735658425637208,
+        0.07257428501337854,
+        0.09081497523579864
+      ],
+      "held_note": {
+        "centroid_hz": 1210.4479182159796,
+        "upper_vs_fundamental_db": 16.69641087424564
+      },
+      "retriggers_rms": [
+        0.08307849661862582,
+        0.08319379638243,
+        0.08307849661862582,
+        0.08319379638243,
+        0.08307849661862582
+      ]
+    },
+    "corner_3": {
+      "overrides": {
+        "light_brilliance": 1.4,
+        "light_motion": 0.65,
+        "light_release": 0.9
+      },
+      "finite": true,
+      "peak": 0.6458399433198132,
+      "rms_left": 0.06452755133535368,
+      "rms_right": 0.06452755133535368,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.024069815807532372,
+        0.04735658425637208,
+        0.07257428501337854,
+        0.09081497523579864
+      ],
+      "held_note": {
+        "centroid_hz": 1210.4479182159796,
+        "upper_vs_fundamental_db": 16.69641087424564
+      },
+      "retriggers_rms": [
+        0.08741274953997635,
+        0.12077840468129265,
+        0.13034722550547947,
+        0.13738360944888947,
+        0.1286181679803349
+      ]
+    },
+    "corner_4": {
+      "overrides": {
+        "light_brilliance": 4.8,
+        "light_motion": 0,
+        "light_release": 0.06
+      },
+      "finite": true,
+      "peak": 0.7401915713417446,
+      "rms_left": 0.050407401013322535,
+      "rms_right": 0.05040740101332253,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020345058243945755,
+        0.04005517496849312,
+        0.06776460066533381,
+        0.09473693650547878
+      ],
+      "held_note": {
+        "centroid_hz": 2331.1474071127873,
+        "upper_vs_fundamental_db": 12.932920534118072
+      },
+      "retriggers_rms": [
+        0.08316479975350372,
+        0.08318244182687083,
+        0.08316479975350372,
+        0.08318244182687083,
+        0.08316479975350372
+      ]
+    },
+    "corner_5": {
+      "overrides": {
+        "light_brilliance": 4.8,
+        "light_motion": 0,
+        "light_release": 0.9
+      },
+      "finite": true,
+      "peak": 0.762472276267457,
+      "rms_left": 0.06230474633404899,
+      "rms_right": 0.06230474633404898,
+      "channel_difference_peak": 3.3306690738754696e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020345058243945755,
+        0.04005517496849312,
+        0.06776460066533381,
+        0.09473693650547878
+      ],
+      "held_note": {
+        "centroid_hz": 2331.1474071127873,
+        "upper_vs_fundamental_db": 12.932920534118072
+      },
+      "retriggers_rms": [
+        0.0864141489375866,
+        0.122194227720236,
+        0.10838947390210565,
+        0.11494735224800656,
+        0.11565850717910746
+      ]
+    },
+    "corner_6": {
+      "overrides": {
+        "light_brilliance": 4.8,
+        "light_motion": 0.65,
+        "light_release": 0.06
+      },
+      "finite": true,
+      "peak": 0.7277729175971199,
+      "rms_left": 0.05157662855239278,
+      "rms_right": 0.05157662855239276,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020878136979561927,
+        0.041750554043020346,
+        0.07034893343703823,
+        0.09649048155589869
+      ],
+      "held_note": {
+        "centroid_hz": 2312.1347822446555,
+        "upper_vs_fundamental_db": 12.833752364786918
+      },
+      "retriggers_rms": [
+        0.0896304657085661,
+        0.08968878742405102,
+        0.0896304657085661,
+        0.08968878742405102,
+        0.0896304657085661
+      ]
+    },
+    "corner_7": {
+      "overrides": {
+        "light_brilliance": 4.8,
+        "light_motion": 0.65,
+        "light_release": 0.9
+      },
+      "finite": true,
+      "peak": 0.758264540310652,
+      "rms_left": 0.06356648802972141,
+      "rms_right": 0.0635664880297214,
+      "channel_difference_peak": 2.220446049250313e-16,
+      "tail_peak": 0.0,
+      "velocity_rms_32_64_100_127": [
+        0.020878136979561927,
+        0.041750554043020346,
+        0.07034893343703823,
+        0.09649048155589869
+      ],
+      "held_note": {
+        "centroid_hz": 2312.1347822446555,
+        "upper_vs_fundamental_db": 12.833752364786918
+      },
+      "retriggers_rms": [
+        0.09289316661767841,
+        0.12939242160576778,
+        0.11191294699818237,
+        0.11945854612679407,
+        0.11896701632174174
+      ]
+    }
+  },
+  "overlap_error": 0.0,
+  "preview_peak": 0.4366565598255566,
+  "listened_to": false,
+  "spectrogram_inspection": {
+    "opened_both_views": true,
+    "auditions": [
+      "preview",
+      "default",
+      "light_brilliance_min",
+      "light_brilliance_max",
+      "light_motion_min",
+      "light_motion_max",
+      "light_release_min",
+      "light_release_max"
+    ],
+    "settings": {
+      "sample_rate": 48000,
+      "n_fft": 4096,
+      "hop_length": 256,
+      "n_mels": 128,
+      "fmin": 20,
+      "fmax": 16000,
+      "vmin": -100,
+      "vmax": 0
+    },
+    "observations": "Stable harmonic pitch and strong upper partials; increased Brilliance adds high partials, Motion varies their amplitude, and Release changes tail duration. Channels match and tails reach silence. No unexpected sustained tones or bursts between notes. Combined control corners were numerically checked, not visually inspected."
+  }
+}

@@ -10,6 +10,7 @@ import { onMixerConnected } from "../lib/mixerRuntime";
 import { normalizeControllerValue } from "../lib/performanceControllers";
 import type { PerformanceControllerSnapshot } from "../types";
 import type { AppStore } from "./appStoreTypes";
+import { sessionAudioSignature } from "./sessionSignature";
 
 type Actions = Pick<AppStore, "setPerformanceControllerValue" | "setPerformanceControllerMidiCC" | "flushPerformanceControllers" | "receivePerformanceControllers" | "refreshPerformanceControllers">;
 type Edit = { value?: number | null; cc?: number | null; revision?: number; midiRevision?: number; sequence: number };
@@ -27,7 +28,7 @@ export function createPerformanceControllerActions(set: StoreApi<AppStore>["setS
 
   const sessionIsCurrent = (state: AppStore) =>
     state.activeSessionWorkspaceGeneration === state.performanceWorkspaceGeneration &&
-    state.activeSessionAudioSignature === JSON.stringify({ graph: state.audioGraph, patches: state.patches.map(p => [p.id, p.updated_at]) });
+    state.activeSessionAudioSignature === sessionAudioSignature(state);
 
   function context() {
     const state = get();

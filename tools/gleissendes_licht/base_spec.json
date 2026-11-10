@@ -1,0 +1,16 @@
+{
+  "name": "Gleissendes Licht",
+  "description": "Dazzling, stinging metallic melody voice: upper harmonics dominate a quiet pitch anchor, with a bright attack and rippling FM spectrum. Velocity shapes both level and bite. Polyphonic; each note has a fresh attack. Start in C3-C6 (MIDI 48-84). Brilliance controls harmonic density, Motion controls the shimmer, and Release sets the tail. Stereo Output routes through the mixer to Master.",
+  "family": "fm_pad",
+  "engine": {"sr": 48000, "ksmps": 32, "nchnls": 2, "0dbfs": 1},
+  "envelope": {"attack": 0.006, "decay": 0.24, "sustain": 0.72, "release": 0.26},
+  "layers": [
+    {"id": "light", "opcode": "foscili", "gain": 0.42, "carrier_ratio": 3, "mod_ratio": 2, "mod_index": 2.65, "table": 1},
+    {"id": "anchor", "opcode": "oscili", "gain": 0.035, "table": 1}
+  ],
+  "effects": [
+    {"opcode": "butterhp", "cutoff": 600},
+    {"opcode": "butterlp", "cutoff": 13500}
+  ],
+  "output": {"pan": 0.5, "mode": 0}
+}
