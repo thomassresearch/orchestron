@@ -1,0 +1,891 @@
+{
+  "sourcePatchId": "stereo-auto-wah-wah-v1",
+  "name": "Stereo Auto Wah Wah",
+  "description": "Stereo RMS-driven auto wah using two moogvcf filters. Stereo Link combines channel energy without phase cancellation; Off follows each channel independently. Quantization 0 is continuous; positive values set musical cutoff steps relative to Base cutoff. Transition half-time softens the jumps independently of RMS integration. Fully wet output; use mixer level and insert bypass. No MIDI notes or CCs required. Restart the rack after changing performance controllers.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "saw_base",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Base cutoff (Hz)",
+          "min": 50,
+          "max": 2000,
+          "default": 200,
+          "scale": "logarithmic",
+          "controller_group": "Filter"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "saw_range",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Sweep range (octaves)",
+          "min": 0,
+          "max": 6,
+          "default": 4,
+          "scale": "linear",
+          "controller_group": "Filter"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "saw_sensitivity",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Sensitivity",
+          "min": 0.25,
+          "max": 32,
+          "default": 8,
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "saw_integration",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "RMS integration time (ms)",
+          "min": 1,
+          "max": 1000,
+          "default": 30,
+          "scale": "logarithmic",
+          "controller_group": "Envelope"
+        },
+        "position": {
+          "x": 1080.0,
+          "y": -1000.0
+        }
+      },
+      {
+        "id": "saw_resonance",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Resonance",
+          "min": 0,
+          "max": 0.95,
+          "default": 0.65,
+          "scale": "linear",
+          "controller_group": "Filter"
+        },
+        "position": {
+          "x": 0.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "saw_quantization",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Quantization step (semitones)",
+          "min": 0,
+          "max": 24,
+          "default": 0,
+          "scale": "linear",
+          "controller_group": "Cutoff steps"
+        },
+        "position": {
+          "x": 360.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "saw_transition",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Transition half-time (ms)",
+          "min": 1,
+          "max": 100,
+          "default": 5,
+          "scale": "logarithmic",
+          "controller_group": "Cutoff steps"
+        },
+        "position": {
+          "x": 720.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "saw_link",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Stereo Link",
+          "min": 0,
+          "max": 1,
+          "default": 1,
+          "scale": "linear",
+          "controller_group": "Envelope",
+          "controller_type": "bool"
+        },
+        "position": {
+          "x": 1080.0,
+          "y": -500.0
+        }
+      },
+      {
+        "id": "saw_in_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_in_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_rms_left",
+        "opcode": "rms",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 350.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_rms_right",
+        "opcode": "rms",
+        "params": {
+          "iskip": 0
+        },
+        "position": {
+          "x": 350.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_linked_power",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 700.0,
+          "y": 650.0
+        }
+      },
+      {
+        "id": "saw_linked_envelope",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1050.0,
+          "y": 650.0
+        }
+      },
+      {
+        "id": "saw_envelope_left",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1400.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_offset_left",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1750.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_quantized_left",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2100.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_smooth_left",
+        "opcode": "portk",
+        "params": {
+          "isig": 0
+        },
+        "position": {
+          "x": 2450.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_interpolate_left",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2800.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_filter_left",
+        "opcode": "moogvcf",
+        "params": {
+          "iscale": 1,
+          "iskip": 0
+        },
+        "position": {
+          "x": 3150.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_envelope_right",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1400.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_offset_right",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 1750.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_quantized_right",
+        "opcode": "k_mul",
+        "params": {
+          "b": 1
+        },
+        "position": {
+          "x": 2100.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_smooth_right",
+        "opcode": "portk",
+        "params": {
+          "isig": 0
+        },
+        "position": {
+          "x": 2450.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_interpolate_right",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2800.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_filter_right",
+        "opcode": "moogvcf",
+        "params": {
+          "iscale": 1,
+          "iskip": 0
+        },
+        "position": {
+          "x": 3150.0,
+          "y": 1100.0
+        }
+      },
+      {
+        "id": "saw_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 3500.0,
+          "y": 200.0
+        }
+      },
+      {
+        "id": "saw_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 3500.0,
+          "y": 1100.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "saw_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "saw_rms_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "saw_integration",
+        "from_port_id": "iout",
+        "to_node_id": "saw_rms_left",
+        "to_port_id": "ihp"
+      },
+      {
+        "from_node_id": "saw_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "saw_rms_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "saw_integration",
+        "from_port_id": "iout",
+        "to_node_id": "saw_rms_right",
+        "to_port_id": "ihp"
+      },
+      {
+        "from_node_id": "saw_rms_left",
+        "from_port_id": "krms",
+        "to_node_id": "saw_linked_power",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_rms_right",
+        "from_port_id": "krms",
+        "to_node_id": "saw_linked_power",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_linked_power",
+        "from_port_id": "kout",
+        "to_node_id": "saw_linked_envelope",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_sensitivity",
+        "from_port_id": "iout",
+        "to_node_id": "saw_envelope_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_link",
+        "from_port_id": "iout",
+        "to_node_id": "saw_envelope_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_linked_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_envelope_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_rms_left",
+        "from_port_id": "krms",
+        "to_node_id": "saw_envelope_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_range",
+        "from_port_id": "iout",
+        "to_node_id": "saw_offset_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_envelope_left",
+        "from_port_id": "kout",
+        "to_node_id": "saw_offset_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_quantization",
+        "from_port_id": "iout",
+        "to_node_id": "saw_quantized_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_offset_left",
+        "from_port_id": "kout",
+        "to_node_id": "saw_quantized_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_quantized_left",
+        "from_port_id": "kout",
+        "to_node_id": "saw_smooth_left",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "saw_range",
+        "from_port_id": "iout",
+        "to_node_id": "saw_smooth_left",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "saw_transition",
+        "from_port_id": "iout",
+        "to_node_id": "saw_smooth_left",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "saw_smooth_left",
+        "from_port_id": "kout",
+        "to_node_id": "saw_interpolate_left",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "saw_in_left",
+        "from_port_id": "asignal",
+        "to_node_id": "saw_filter_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "saw_resonance",
+        "from_port_id": "iout",
+        "to_node_id": "saw_filter_left",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "saw_base",
+        "from_port_id": "iout",
+        "to_node_id": "saw_filter_left",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "saw_interpolate_left",
+        "from_port_id": "aout",
+        "to_node_id": "saw_filter_left",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "saw_sensitivity",
+        "from_port_id": "iout",
+        "to_node_id": "saw_envelope_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_link",
+        "from_port_id": "iout",
+        "to_node_id": "saw_envelope_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_linked_envelope",
+        "from_port_id": "kout",
+        "to_node_id": "saw_envelope_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_rms_right",
+        "from_port_id": "krms",
+        "to_node_id": "saw_envelope_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_range",
+        "from_port_id": "iout",
+        "to_node_id": "saw_offset_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_envelope_right",
+        "from_port_id": "kout",
+        "to_node_id": "saw_offset_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_quantization",
+        "from_port_id": "iout",
+        "to_node_id": "saw_quantized_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_offset_right",
+        "from_port_id": "kout",
+        "to_node_id": "saw_quantized_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "saw_quantized_right",
+        "from_port_id": "kout",
+        "to_node_id": "saw_smooth_right",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "saw_range",
+        "from_port_id": "iout",
+        "to_node_id": "saw_smooth_right",
+        "to_port_id": "ksig"
+      },
+      {
+        "from_node_id": "saw_transition",
+        "from_port_id": "iout",
+        "to_node_id": "saw_smooth_right",
+        "to_port_id": "khtim"
+      },
+      {
+        "from_node_id": "saw_smooth_right",
+        "from_port_id": "kout",
+        "to_node_id": "saw_interpolate_right",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "saw_in_right",
+        "from_port_id": "asignal",
+        "to_node_id": "saw_filter_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "saw_resonance",
+        "from_port_id": "iout",
+        "to_node_id": "saw_filter_right",
+        "to_port_id": "xres"
+      },
+      {
+        "from_node_id": "saw_base",
+        "from_port_id": "iout",
+        "to_node_id": "saw_filter_right",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "saw_interpolate_right",
+        "from_port_id": "aout",
+        "to_node_id": "saw_filter_right",
+        "to_port_id": "xfco"
+      },
+      {
+        "from_node_id": "saw_filter_left",
+        "from_port_id": "aout",
+        "to_node_id": "saw_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "saw_filter_right",
+        "from_port_id": "aout",
+        "to_node_id": "saw_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "saw_rms_left::ihp": {
+          "expression": "1000 / (6.283185307179586 * time)",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "saw_integration",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_rms_right::ihp": {
+          "expression": "1000 / (6.283185307179586 * time)",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "saw_integration",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_linked_power::a": {
+          "expression": "(left * left + right * right) / 2",
+          "inputs": [
+            {
+              "token": "left",
+              "from_node_id": "saw_rms_left",
+              "from_port_id": "krms"
+            },
+            {
+              "token": "right",
+              "from_node_id": "saw_rms_right",
+              "from_port_id": "krms"
+            }
+          ]
+        },
+        "saw_linked_envelope::a": {
+          "expression": "ampdb(dbamp(power + 0.000000000000000000000001) / 2) - 0.000000000001",
+          "inputs": [
+            {
+              "token": "power",
+              "from_node_id": "saw_linked_power",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_envelope_left::a": {
+          "expression": "sensitivity * (link * linked + (1 - link) * own)",
+          "inputs": [
+            {
+              "token": "sensitivity",
+              "from_node_id": "saw_sensitivity",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "link",
+              "from_node_id": "saw_link",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "linked",
+              "from_node_id": "saw_linked_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "own",
+              "from_node_id": "saw_rms_left",
+              "from_port_id": "krms"
+            }
+          ]
+        },
+        "saw_offset_left::a": {
+          "expression": "12 * span * (abs(env) - abs(env - 1) + 1) / 2",
+          "inputs": [
+            {
+              "token": "span",
+              "from_node_id": "saw_range",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "saw_envelope_left",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_quantized_left::a": {
+          "expression": "(1 - ceil(q / 24)) * offset + q * floor(offset / (q + 1 - ceil(q / 24)) + 0.5)",
+          "inputs": [
+            {
+              "token": "q",
+              "from_node_id": "saw_quantization",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "offset",
+              "from_node_id": "saw_offset_left",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_smooth_left::ksig": {
+          "expression": "(step + 12 * span - abs(step - 12 * span)) / 2",
+          "inputs": [
+            {
+              "token": "step",
+              "from_node_id": "saw_quantized_left",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "span",
+              "from_node_id": "saw_range",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_smooth_left::khtim": {
+          "expression": "time / 1000",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "saw_transition",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_filter_left::xfco": {
+          "expression": "(abs(base * ampdb(6.020599913279624 * offset / 12) - 20) - abs(base * ampdb(6.020599913279624 * offset / 12) - ((18000 + 0.4 * sr - abs(18000 - 0.4 * sr)) / 2)) + ((18000 + 0.4 * sr - abs(18000 - 0.4 * sr)) / 2) + 20) / 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "saw_base",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "offset",
+              "from_node_id": "saw_interpolate_left",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "saw_envelope_right::a": {
+          "expression": "sensitivity * (link * linked + (1 - link) * own)",
+          "inputs": [
+            {
+              "token": "sensitivity",
+              "from_node_id": "saw_sensitivity",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "link",
+              "from_node_id": "saw_link",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "linked",
+              "from_node_id": "saw_linked_envelope",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "own",
+              "from_node_id": "saw_rms_right",
+              "from_port_id": "krms"
+            }
+          ]
+        },
+        "saw_offset_right::a": {
+          "expression": "12 * span * (abs(env) - abs(env - 1) + 1) / 2",
+          "inputs": [
+            {
+              "token": "span",
+              "from_node_id": "saw_range",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "env",
+              "from_node_id": "saw_envelope_right",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_quantized_right::a": {
+          "expression": "(1 - ceil(q / 24)) * offset + q * floor(offset / (q + 1 - ceil(q / 24)) + 0.5)",
+          "inputs": [
+            {
+              "token": "q",
+              "from_node_id": "saw_quantization",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "offset",
+              "from_node_id": "saw_offset_right",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "saw_smooth_right::ksig": {
+          "expression": "(step + 12 * span - abs(step - 12 * span)) / 2",
+          "inputs": [
+            {
+              "token": "step",
+              "from_node_id": "saw_quantized_right",
+              "from_port_id": "kout"
+            },
+            {
+              "token": "span",
+              "from_node_id": "saw_range",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_smooth_right::khtim": {
+          "expression": "time / 1000",
+          "inputs": [
+            {
+              "token": "time",
+              "from_node_id": "saw_transition",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "saw_filter_right::xfco": {
+          "expression": "(abs(base * ampdb(6.020599913279624 * offset / 12) - 20) - abs(base * ampdb(6.020599913279624 * offset / 12) - ((18000 + 0.4 * sr - abs(18000 - 0.4 * sr)) / 2)) + ((18000 + 0.4 * sr - abs(18000 - 0.4 * sr)) / 2) + 20) / 2",
+          "inputs": [
+            {
+              "token": "base",
+              "from_node_id": "saw_base",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "offset",
+              "from_node_id": "saw_interpolate_right",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "saw_input": true,
+        "saw_output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "saw_input",
+          "name": "Stereo Input",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "saw_output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "saw_input",
+      "mainOutput": "saw_output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}

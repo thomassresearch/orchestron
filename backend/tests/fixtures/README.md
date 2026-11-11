@@ -179,6 +179,12 @@ the stop reset at several host control-block sizes, independently of examples.
 
 `patches/granular_capture.patch.json` and `sequencers/granular_capture_steps.json` independently cover MIDI-controlled capture, looping, granular DSP, step resets, native round trips and both CSD exports.
 
+`patches/stereo_auto_wah_wah.patch.json` is the independent Continuous stereo RMS
+auto-wah fixture. DSP tests cover energy linking, phase invariance, independent
+channels, sensitivity, integration, musical quantization and transition smoothing.
+API tests cover native round trips, instance settings and both CSD export modes.
+Refresh it explicitly from the reviewed raw export; tests never import its builder.
+
 `patches/stereo_moog_filter.patch.json` is the independent continuous stereo filter
 snapshot. It covers CC20/21 scaling, startup initialization, channel selection,
 stereo separation, cutoff recovery, controller endpoints, native round trips and

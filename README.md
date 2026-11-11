@@ -268,6 +268,11 @@ after changing settings.
 resonant stereo low-pass filtering with per-instance Cutoff and Resonance settings.
 CC20 and CC21 scale those settings together for both channels during playback.
 
+[Stereo Auto Wah Wah](documentation/instrument_design/stereo_auto_wah_wah.md)
+follows input loudness with resonant stereo filters. Choose linked or independent
+envelopes, smooth sweeps or musical cutoff steps, and separate loudness integration
+and transition times. Restart the rack after changing its per-instance settings.
+
 The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
 includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
 with a waveguide string model, velocity-sensitive plucking and finger/plectrum,

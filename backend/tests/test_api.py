@@ -8537,6 +8537,11 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
 
 
 @pytest.mark.parametrize("fixture,values,defaults", [
+    ("stereo_auto_wah_wah",
+     {"saw_base": 300, "saw_range": 5, "saw_sensitivity": 4, "saw_integration": 100,
+      "saw_resonance": .8, "saw_quantization": 7, "saw_transition": 15, "saw_link": 0},
+     {"saw_base": 200, "saw_range": 4, "saw_sensitivity": 8, "saw_integration": 30,
+      "saw_resonance": .65, "saw_quantization": 0, "saw_transition": 5, "saw_link": 1}),
     ("trance_gate", {"tg_attack": 3, "tg_release": 17, "tg_lfo_start": 7, "tg_lfo_end": 25,
                     "tg_lfo_time": 2.5, "tg_lfo_threshold": .7, "tg_stereo": .6},
      {"tg_attack": 5, "tg_release": 10, "tg_lfo_start": 2, "tg_lfo_end": 16,
@@ -8710,7 +8715,7 @@ def test_tenor_saxophone_native_roundtrip_preserves_legato_and_controls(tmp_path
 
 
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
-@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture", "stereo_moog_filter", "autopanner", "trance_gate"])
+@pytest.mark.parametrize("fixture", ["stereo_delay", "parametric_equalizer", "stereo_flanger", "stereo_widener", "bit_crusher", "harmonizer", "granular_capture", "stereo_moog_filter", "autopanner", "trance_gate", "stereo_auto_wah_wah"])
 def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_source, fixture):
     import re
 
@@ -8719,7 +8724,14 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
     from backend.tools.stereo_delay_audio import insert_graph, probe_source
 
     patch = load_patch_fixture(fixture)
-    if fixture == "trance_gate":
+    if fixture == "stereo_auto_wah_wah":
+        values = dict(saw_base=300, saw_range=5, saw_sensitivity=4, saw_integration=100,
+                      saw_resonance=.8, saw_quantization=7, saw_transition=15, saw_link=0)
+        controls = [("Base cutoff (Hz)", 50, 2000, 200), ("Sweep range (octaves)", 0, 6, 4),
+                    ("Sensitivity", .25, 32, 8), ("RMS integration time (ms)", 1, 1000, 30),
+                    ("Resonance", 0, .95, .65), ("Quantization step (semitones)", 0, 24, 0),
+                    ("Transition half-time (ms)", 1, 100, 5), ("Stereo Link", 0, 1, 1)]
+    elif fixture == "trance_gate":
         values = dict(tg_attack=3, tg_release=17, tg_lfo_start=7, tg_lfo_end=25,
                       tg_lfo_time=2.5, tg_lfo_threshold=.7, tg_stereo=.6)
         controls = [("Attack half-time (ms)", 1, 500, 5), ("Release half-time (ms)", 1, 1000, 10),
@@ -8785,7 +8797,7 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         listed = next(p for p in client.get("/api/patches").json() if p["id"] == restored["id"])
         assert [(c["label"], c["min"], c["max"], c["default"]) for c in listed["performance_controllers"]] == controls
         assert [c["scale"] for c in listed["performance_controllers"]] == [
-            "logarithmic" if (fixture in {"stereo_flanger", "stereo_moog_filter"} and index == 0) or (fixture == "bit_crusher" and index == 1) or (fixture == "trance_gate" and index < 5) else "linear"
+            "logarithmic" if (fixture in {"stereo_flanger", "stereo_moog_filter"} and index == 0) or (fixture == "bit_crusher" and index == 1) or (fixture == "trance_gate" and index < 5) or (fixture == "stereo_auto_wah_wah" and index in {0, 2, 3, 6}) else "linear"
             for index in range(len(controls))
         ]
         saved = client.post("/api/performances", json=dict(name="Delay controls", config=config))
@@ -8802,7 +8814,15 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         assert "ksmps = 1" in csd
-        if fixture == "trance_gate":
+        if fixture == "stereo_auto_wah_wah":
+            from backend.tests.csound_test_support import orc_code_lines
+            code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
+            assert code.count(" moogvcf ") == 2
+            assert code.count(" rms ") == 2
+            assert code.count(" portk ") == 2
+            assert code.count(" interp ") == 2
+            assert listed["performance_controllers"][-1]["controller_type"] == "bool"
+        elif fixture == "trance_gate":
             assert csd.count("opcode vcs_swept_gate,") == 1
             assert (" ctrl7 " in csd) == (event_source == "midiFile")
             assert "setksmps 1" in csd and " follow2 " in csd
