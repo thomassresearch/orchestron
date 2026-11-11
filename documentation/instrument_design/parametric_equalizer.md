@@ -24,7 +24,7 @@ amplitude gain 0.1, and +20 dB gives 10. The graph converts each setting with
 `ampdb(db)` before feeding `pareq.kv`, as in the
 [Csound EQ example](https://csound.com/docs/manual/pareq.html).
 
-**Restart the rack after changing these controls**, then Save Performance to retain
+Controls marked **Live** respond during playback. Use Save Performance to retain
 the instance settings. Allow headroom when boosting: overlapping bands add gain,
 and this EQ has no limiter. Its named stereo inputs and outputs are `left`/`right`.
 Use it as an insert; a parallel dry return changes the resulting EQ response.

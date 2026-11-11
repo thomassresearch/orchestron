@@ -13,7 +13,7 @@ instrument adds warm stereo saturation with standard Csound opcodes. The origina
 
 1. Import the instrument and open **Perform** with the instruments stopped.
 2. Select the source strip in **Mixer**, choose **Tube Overdrive** in **Inserts…**, and click **Add**. It can also process the combined signal as a Master insert.
-3. Set its performance controls, then start the instruments. **Restart the rack after changing a control**: this continuous effect reads settings at startup.
+3. Set its performance controls, then start the instruments. Controls marked **Live** respond during playback; restart the rack for controls marked **Requires restart**.
 4. Adjust Output to match the untreated level when judging the sound. Save Performance to retain that instance's settings.
 
 The stereo input and output use the exact channel names `left` and `right`.

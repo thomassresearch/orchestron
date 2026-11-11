@@ -70,10 +70,10 @@ def test_patch_analysis_and_controller_channels_are_not_stripped(mode):
     target.performance_controller_values = {"setting": 0.37}
     live = compile_audio([target], mode=mode)
     offline = compile_audio([target], mode=mode, profile=CompilationProfile.OFFLINE)
-    # Compare the entire patch body, not just a list of opcodes safe to remove.
+    # Live-compatible continuous controllers are the only patch-body rate change.
     pattern = r"; mixer stage patch:source.*?\ninstr [^\n]+\n(.*?)\nendin"
     body = re.search(pattern, live.orc, re.S)[1]
-    assert re.search(pattern, offline.orc, re.S)[1] == body
+    assert re.search(pattern, offline.orc, re.S)[1] == body.replace("k_setting_iout_1", "i_setting_iout_1").replace("k_meter_krms_2", "k_meter_krms_1")
     assert " rms " in body and " chnget " in body
     binding = offline.manifest["performanceControllers"]["source"]["setting"]
     assert f'chnset 0.37, "{binding["channel"]}"' in offline.orc

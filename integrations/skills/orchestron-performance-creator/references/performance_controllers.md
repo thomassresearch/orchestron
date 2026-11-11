@@ -77,7 +77,7 @@ uv run --locked orchestron_cli --json edit performance-controllers set --binding
 
 The Compressor Effect in the inspected TB303 Demo exposes Rise, Fall, Upper, Lower and Threshold. These labels and their units/ranges come from that patch; do not assume conventional compressor parameters or reuse its UUIDs for another library. Reverb and delay patches may expose different controls or none at all. If no suitable control exists, mixer commands can still change the send/return level, but cannot tune the effect algorithm.
 
-Continuous effects keep initialized values until rack restart. Validate and commit the override, then rebuild a CLI-owned runtime to hear it. Ordinary mixer gain, balance, mute and send changes remain live without restarting.
+Continuous effects update live when every wired controller destination accepts K-rate. Push these values to a matching runtime. I-rate-only and mixed controllers keep initialized values until rack restart; rebuild a CLI-owned runtime to hear those changes. Both CSD export modes keep continuous settings fixed at initialization. Ordinary mixer gain, balance, mute and send changes remain live without restarting.
 
 ### Apply to an attached runtime
 

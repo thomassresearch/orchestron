@@ -504,6 +504,7 @@ class PatchUpdateRequest(BaseModel):
 
 
 class PatchResponse(PatchBase):
+    performance_controllers: list[PerformanceControllerDefinition] = Field(default_factory=list)
     id: str
     created_at: datetime
     updated_at: datetime

@@ -89,7 +89,7 @@ class CompilerService:
                 raise CompilationError(["midi_legato cannot be assigned as a continuous instrument."])
 
         controller_manifest = {
-            target.assignment_id or f"instrument-{index}": controller_bindings(target, f"instrument-{index}")
+            target.assignment_id or f"instrument-{index}": controller_bindings(target, f"instrument-{index}", self._opcode_service)
             for index, target in enumerate(targets, start=1)
             if target.assignment_id not in bypassed
         }
@@ -169,6 +169,7 @@ class CompilerService:
                 performance_input_mode=performance_input_mode,
                 score_midi_channel=target.midi_channel,
                 performance_controllers=controller_manifest.get(target.assignment_id or f"instrument-{instrument_number}", {}),
+                live_continuous_controllers=target.always_on and profile == CompilationProfile.LIVE,
                 legato_identity=f"{instrument_number}_{target.patch.id}" if instrument_number in legato_targets else None,
             )
             compiled_instruments.append((instrument_number, target, compiled_lines))

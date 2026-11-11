@@ -4,7 +4,7 @@
 
 ## Controller types
 
-Use `controller_type: float | integer | bool`. Missing type means `float` and preserves the previous behavior. All outputs remain numeric I-rate values through `iout`; Bool uses numeric `0`/`1`, not JSON booleans. Node IDs and per-instance numeric override maps are unchanged; no persistence-version change is required.
+Use `controller_type: float | integer | bool`. Missing type means `float` and preserves the previous behavior. The saved socket remains `iout`; realtime continuous instruments use K-rate reads when every wired input accepts K-rate, otherwise I-rate (including mixed connections). Note/phrase initialization and both CSD export modes remain I-rate; Bool uses numeric `0`/`1`, not JSON booleans. Node IDs and per-instance numeric override maps are unchanged; no persistence-version change is required.
 
 - **Float:** finite min/max/default, linear or logarithmic scale; defaults `0`, `1`, `0.5`, linear.
 - **Integer:** safe whole-number min/max/default (−9007199254740991 through 9007199254740991), `min < max`, default within range, linear only; defaults `0`, `1`, `0`. Perform shows triangle buttons and direct integer entry.

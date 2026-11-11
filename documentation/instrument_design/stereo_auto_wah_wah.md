@@ -23,7 +23,7 @@ The output is fully processed; use the mixer for level and insert bypass.
 | Transition half-time (ms) | 1–100, logarithmic | 5 | Time to move halfway toward each new cutoff target. |
 | Stereo Link | Off / On | On | Use one combined envelope, or let each channel move independently. |
 
-Settings belong to each rack instance. **Restart the rack after changing them.**
+Settings belong to each rack instance. Controls marked **Live** respond during playback; restart the rack for controls marked **Requires restart**.
 These are performance settings, not live MIDI CC controls.
 
 ## Continuous sweeps and musical steps

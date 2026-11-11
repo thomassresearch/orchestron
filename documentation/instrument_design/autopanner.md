@@ -12,7 +12,7 @@ stays in its original channel; the effect never sums or cross-feeds them.
 1. With instruments stopped, open **Perform → Mixer**.
 2. On a source strip or Master, open **Inserts…**, select **Autopanner**, and click **Add**.
 3. Enter your performance's tempo and the number of quarter-note beats per full cycle.
-4. Start the instruments. **Restart the rack after changing any setting.**
+4. Start the instruments. Controls marked **Live** respond during playback. Restart the rack for settings marked **Requires restart**.
 5. Save Performance to retain that instance's values.
 
 Use an insert for the full sweep. A parallel send leaves the original signal

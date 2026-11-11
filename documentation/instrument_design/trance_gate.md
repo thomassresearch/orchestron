@@ -46,7 +46,7 @@ Starting an instance does not initialize or reset either shared controller. A fr
 | Threshold | 0–1, linear | 0.5 |
 | Stereo | 0–1, linear | 0 |
 
-Restart the rack after changing these per-instance initialization settings. MIDI commands act during playback. A half-time halves the remaining distance to the requested gain; ten half-times cover approximately 99.9% of a transition. High LFO rates or long half-times soften the gate and may prevent it from fully opening or closing between pulses.
+**Attack**, **Release** and **Stereo** update live during realtime playback. Restart the rack after changing **Start frequency**, **End frequency**, **Sweep time** or **Threshold**. Both CSD export modes keep all these settings fixed at initialization. MIDI commands act during playback. A half-time halves the remaining distance to the requested gain; ten half-times cover approximately 99.9% of a transition. High LFO rates or long half-times soften the gate and may prevent it from fully opening or closing between pulses.
 
 ## Stereo movement
 
@@ -56,7 +56,7 @@ Restart the rack after changing these per-instance initialization settings. MIDI
 - **CC24 / manual:** each transition from 0 to any positive value samples a fresh noise value and holds that random pan position. Repeated positive values, or changes between positive values, do not resample. The position holds through the release envelope.
 - **Both sources:** the running LFO takes priority for pan. CC24 openings still sample a position in the background; if CC24 remains positive after the LFO stops, its held random position takes over. With neither source active, the last pan position holds through release. A new instance starts centered.
 
-For pan position `p` and Stereo `s`, left gain is `1 − s × p` and right gain is `1 − s × (1 − p)`, applied after the shared gate envelope. This adds no gain or crossfeed. The stable performance-controller ID is `tg_stereo`; its setting takes effect after rack restart. Random choices belong to each instance and are not saved automation, so separate renders can choose different manual positions.
+For pan position `p` and Stereo `s`, left gain is `1 − s × p` and right gain is `1 − s × (1 − p)`, applied after the shared gate envelope. This adds no gain or crossfeed. The stable performance-controller ID is `tg_stereo`; its **Live** setting takes effect during realtime playback. Random choices belong to each instance and are not saved automation, so separate renders can choose different manual positions.
 
 ## Graph and exports
 

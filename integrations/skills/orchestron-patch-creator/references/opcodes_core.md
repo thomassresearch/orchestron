@@ -32,7 +32,7 @@ Purpose: Expose an instrument setting as a rack knob, independently configurable
 
 Inputs: none. Fixed node parameters: `min=0`, `max=1`, `default=0.5`, `scale="linear"`, `label="Parameter"`, optional `controller_group=""`. Group names are trimmed, case-sensitive display metadata of at most 128 characters. `scale` also accepts `"logarithmic"`, which requires a positive minimum. Require finite numbers, `min < max`, and default within range.
 
-Output: `iout` (`i`). Read at note initialization; held notes retain their value. Always-on instruments take changes after rack restart. This is an editor construct compiled to initialized Csound software channels and I-rate `chnget`, not a native Csound opcode or MIDI CC source. See [authoring and identity rules](performance_controllers.md).
+Output: `iout` (`i`). Read at note initialization; held notes retain their value. For always-on instruments, realtime compilation promotes the controller to K-rate only when every wired destination accepts K-rate. Mixed/I-only connections retain initialization values until restart. Both CSD export modes retain I-rate behavior. This is an editor construct compiled to initialized Csound software channels and rate-appropriate `chnget`, not a native Csound opcode or MIDI CC source. See [authoring and identity rules](performance_controllers.md).
 
 ## ampmidi
 

@@ -579,6 +579,7 @@ export type PerformanceControllerType = "float" | "integer" | "bool";
 
 export interface PerformanceControllerDefinition {
   node_id: string;
+  update_mode?: "live" | "init" | "mixed" | "unused";
   controller_group?: string;
   controller_type?: PerformanceControllerType;
   min: number;
@@ -1092,6 +1093,7 @@ export interface SessionSequencerStatus {
 export type InstrumentType = "percussion" | "melody" | "bass" | "effects_noise" | "continuous";
 
 export interface Patch {
+  performance_controllers?: PerformanceControllerDefinition[];
   id: string;
   name: string;
   description: string;

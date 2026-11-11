@@ -15,6 +15,8 @@ def is_safe_integer(value: float) -> bool:
 
 class PerformanceControllerDefinition(BaseModel):
     node_id: str
+    # Derived from graph wiring, never trusted from node parameters/imports.
+    update_mode: Literal["live", "init", "mixed", "unused"] = "init"
     controller_type: Literal["float", "integer", "bool"] = "float"
     min: ControllerNumber = 0
     max: ControllerNumber = 1

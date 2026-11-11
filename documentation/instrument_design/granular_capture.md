@@ -42,7 +42,7 @@ The [reproducible example](../../examples/instruments/granular_capture/README.md
 
 ## Performance settings
 
-These are per-instance I-rate settings. Restart the rack after changing them; MIDI switches act during playback.
+These settings belong to each rack instance. Controls marked **Live** respond during playback; **Requires restart** identifies initialization settings. MIDI switches act during playback.
 
 | Setting | Range | Default |
 | --- | --- | --- |

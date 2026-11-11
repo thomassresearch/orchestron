@@ -58,7 +58,7 @@ The compact rack and mixer strips follow this order. Master stays pinned at the 
 
 ### Instrument Controls
 
-Patches containing [`perf_controller`](performance_controllers.md) show five compact tuning knobs per standard rack-card row; extras wrap below. They remain editable while playing. New notes use updated values; continuous instruments adopt them after restarting the rack. Save Performance stores explicit overrides.
+Patches containing [`perf_controller`](performance_controllers.md) show five compact tuning knobs per standard rack-card row; extras wrap below. They remain editable while playing. New notes use updated values; continuous controls marked **Live** update during playback, while **Requires restart** identifies I-rate or mixed connections. Save Performance stores explicit overrides.
 
 The separate [audio mixer](audio_mixer_and_routing.md) below the rack provides audio faders, pan/balance knobs, mute/solo, pre/post sends, inserts and meters. The old numeric Level field has been removed. Mixer gain affects held notes and external MIDI audio without changing note velocity.
 

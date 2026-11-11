@@ -388,7 +388,7 @@ class SessionService:
                 bindings = state.bindings.get(assignment_id, {})
                 if set(bindings) != {d.node_id for d in definitions} or any(d.error or any(
                         bindings[d.node_id].get(key) != getattr(d, key)
-                        for key in ("controller_type", "min", "max", "default", "scale")) for d in definitions):
+                        for key in ("controller_type", "min", "max", "default", "scale", "update_mode")) for d in definitions):
                     raise HTTPException(status_code=409, detail="Controller definitions changed; restart the rack.")
             try:
                 if update.sequencer_config is not None:
@@ -462,7 +462,7 @@ class SessionService:
                 bindings = runtime.compile_artifact.manifest.get("performanceControllers", {}).get(assignment_id, {})
                 if set(bindings) != {d.node_id for d in definitions} or any(
                     bindings[d.node_id].get(key) != getattr(d, key)
-                    for d in definitions for key in ("controller_type", "min", "max", "default", "scale")
+                    for d in definitions for key in ("controller_type", "min", "max", "default", "scale", "update_mode")
                 ):
                     raise HTTPException(status_code=409, detail="Controller definitions changed; restart the rack.")
             if assignment.performance_controller_values == normalized:

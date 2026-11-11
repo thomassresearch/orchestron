@@ -5,15 +5,52 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from functools import cache
 
 from pydantic import ValidationError
 
 from backend.app.models.performance_controller import PerformanceControllerDefinition, is_safe_integer
+from backend.app.models.opcode import SignalType
 from backend.app.services.compiler_common import CompilationError
+from backend.app.services.compiler_control_flow import resolve_control_flow_spec
+from backend.app.services.compiler_graph import is_compatible_type
+from backend.app.services.opcode_service import OpcodeService
 
 
-def controller_definitions(graph, *, strict=True) -> list[PerformanceControllerDefinition]:
+@cache
+def _default_opcodes():
+    return OpcodeService(icon_prefix="/static/icons")
+
+
+def controller_update_modes(graph, opcode_service=None) -> dict[str, str]:
+    """Conservative capability analysis, including connections used by input formulas.
+
+    Each input is an evaluation boundary: a K-rate destination may change live;
+    an I-rate destination (including branch selectors) must retain initialization.
+    Unknown/incomplete destinations never authorize promotion. Formula bindings
+    resolve only connected sources, so checking every wire also covers formulas
+    without guessing which expressions will actually use a connected value.
+    """
+    consumers = {node.id: set() for node in graph.nodes if node.opcode == "perf_controller"}
+    if not consumers:
+        return {}
+    opcodes = opcode_service or _default_opcodes()
+    nodes = {node.id: node for node in graph.nodes}
+    for link in graph.connections:
+        if link.from_node_id not in consumers:
+            continue
+        node = nodes.get(link.to_node_id)
+        spec = resolve_control_flow_spec(graph, node.id, opcodes.get_opcode(node.opcode)) if node else None
+        port = next((p for p in spec.inputs if p.id == link.to_port_id), None) if spec else None
+        accepts_k = bool(port and is_compatible_type(SignalType.CONTROL, port.signal_type, port.accepted_signal_types))
+        consumers[link.from_node_id].add(accepts_k)
+    return {node: "unused" if not rates else "live" if rates == {True} else "init" if rates == {False} else "mixed"
+            for node, rates in consumers.items()}
+
+
+def controller_definitions(graph, *, strict=True, opcode_service=None) -> list[PerformanceControllerDefinition]:
     result = []
+    modes = controller_update_modes(graph, opcode_service)
     for node in graph.nodes:
         if node.opcode != "perf_controller":
             continue
@@ -21,6 +58,7 @@ def controller_definitions(graph, *, strict=True) -> list[PerformanceControllerD
             definition = PerformanceControllerDefinition.model_validate({
                 "node_id": node.id,
                 **{key: node.params[key] for key in ("controller_type", "min", "max", "default", "scale", "label", "controller_group") if key in node.params},
+                "update_mode": modes[node.id],
             })
         except ValidationError as exc:
             message = f"perf_controller '{node.id}': " + "; ".join(e["msg"] for e in exc.errors())
@@ -46,8 +84,8 @@ def validate_controller_values(definitions, values: dict[str, float]) -> dict[st
     return dict(values)
 
 
-def controller_bindings(target, fallback_identity: str) -> dict:
-    definitions = controller_definitions(target.patch.graph)
+def controller_bindings(target, fallback_identity: str, opcode_service=None) -> dict:
+    definitions = controller_definitions(target.patch.graph, opcode_service=opcode_service)
     values = validate_controller_values(definitions, target.performance_controller_values)
     validate_controller_midi_ccs(definitions, target.performance_controller_midi_ccs, target.midi_channel)
     identity = target.assignment_id or fallback_identity

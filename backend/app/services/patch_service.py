@@ -58,13 +58,13 @@ class PatchService:
             updated_at=now,
         )
         self._repository.create(document)
-        return PatchResponse.model_validate(document.model_dump())
+        return self._response(document)
 
     def get_patch(self, patch_id: str) -> PatchResponse:
         document = self._repository.get(patch_id)
         if not document:
             raise HTTPException(status_code=404, detail=f"Patch '{patch_id}' not found")
-        return PatchResponse.model_validate(document.model_dump())
+        return self._response(document)
 
     def get_patch_document(self, patch_id: str) -> PatchDocument:
         document = self._repository.get(patch_id)
@@ -126,7 +126,12 @@ class PatchService:
         if not persisted:
             raise HTTPException(status_code=404, detail=f"Patch '{patch_id}' not found")
 
-        return PatchResponse.model_validate(persisted.model_dump())
+        return self._response(persisted)
+
+    @staticmethod
+    def _response(document: PatchDocument) -> PatchResponse:
+        return PatchResponse(**document.model_dump(),
+                             performance_controllers=controller_definitions(document.graph, strict=False))
 
     def delete_patch(self, patch_id: str) -> None:
         deleted = self._repository.delete(patch_id)

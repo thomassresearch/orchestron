@@ -63,6 +63,7 @@ class OrchestraEmitter:
         score_midi_channel: int = 0,
         direct_output_ports: dict[str, tuple[str, str]] | None = None,
         performance_controllers: dict | None = None,
+        live_continuous_controllers: bool = False,
         legato_identity: str | None = None,
         private_table_limit: int | None = None,
     ) -> CompiledInstrumentLines:
@@ -98,6 +99,11 @@ class OrchestraEmitter:
 
         for node_id, compiled in compiled_nodes.items():
             for output in compiled.spec.outputs:
+                if (live_continuous_controllers and compiled.spec.name == "perf_controller"
+                        and (performance_controllers or {}).get(node_id, {}).get("update_mode") == "live"):
+                    # Keep the saved iout socket stable; only this compilation's
+                    # variable and formula references become K-rate.
+                    output = output.model_copy(update={"signal_type": SignalType.CONTROL})
                 if compiled.spec.name == "sfload":
                     output_vars[(node_id, output.id)] = self._allocate_global_var_name(global_scope_key, node_id, output)
                 else:

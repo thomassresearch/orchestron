@@ -646,7 +646,8 @@ def lower_mixer_bundle(
                 performance_input_mode=performance_input_mode,
                 score_midi_channel=target.midi_channel,
                 direct_output_ports=resolved.direct_ports[identity],
-                performance_controllers=controller_bindings(target, identity),
+                performance_controllers=controller_bindings(target, identity, service._opcode_service),
+                live_continuous_controllers=target.always_on and profile == CompilationProfile.LIVE,
                 legato_identity=identity if identity in legato_refs else None,
                 private_table_limit=(private_table_limits or {}).get(stage),
             )

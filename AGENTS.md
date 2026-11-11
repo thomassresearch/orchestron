@@ -139,8 +139,9 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 - Clip transposition uses shared profiles plus additive parent/placement plans; preparation owns pitch variants and occurrence latches. See the [transposition contract](specifications/clip-transposition/implementation-record.md).
 - Instrument-bound automation uses clip model v2 (also supported in v3–4), ten-point curves and independent master-tick duration;
   routing follows rack/controller identities. See [automation](documentation/performance/instrument_automation.md).
-- `perf_controller` values are per-instance I-rate settings: new notes adopt changes; continuous
-  instruments require restart. Per-performance CC 1–50 mappings use the instance MIDI channel;
+- `perf_controller` values are per-instance settings: new notes/phrases sample at initialization. Continuous
+  instruments update live only when all wired inputs accept K-rate; mixed/I-only controllers require restart.
+  Recompute derived `update_mode` from wiring; both offline CSD modes retain I-rate reads. Per-performance CC 1–50 mappings use the instance MIDI channel;
   continuous instances have none. Save Performance, native bundles, and both CSD modes preserve values and mappings.
 - Collapsed panels suspend visual work and meter subscriptions while playback continues.
   Preserve drafts, selections, clipboard, zoom, and scroll on expansion. Collapse closes menus,

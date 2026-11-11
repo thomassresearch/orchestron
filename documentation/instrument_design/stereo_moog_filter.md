@@ -18,8 +18,7 @@ same cutoff and resonance settings. No MIDI notes are required.
 | Resonance | 0–1, linear | 0.3 |
 | MIDI Control Channel | 1–16, rounded | 16 |
 
-These settings belong to each rack instance. **Restart the rack after changing
-them.** The effect is fully processed, with no additional output gain, dry/wet
+These settings belong to each rack instance. Controls marked **Live** respond during playback; restart the rack for settings marked **Requires restart**. The effect is fully processed, with no additional output gain, dry/wet
 blend or smoothing. Use the mixer strip for output level. Resonance near 1 can
 self-oscillate, so leave headroom.
 

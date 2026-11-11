@@ -171,6 +171,8 @@ Load instruments into the Perform rack, assign MIDI channels, and play from the 
 
 Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Each instrument strip shows its rack patch number and MIDI channel above the instrument name; continuous instruments show **Continuous** instead of a channel. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 
+Continuous instruments automatically detect which performance controllers can update live. **Live** controls respond during playback; controls feeding I-rate or mixed inputs show **Requires restart**. Both CSD export modes retain initialization values. See [performance controller timing](documentation/performance/performance_controllers.md).
+
 Compare effects during playback with **Bypass** on each continuous insert. Switching uses a smooth 20 ms transition and preserves the rest of the chain. Save/load and native bundles retain each insert’s state; MIDI and SCORE CSD exports omit bypassed effect processing and its exclusive assets. See [insert bypass](documentation/performance/audio_mixer_and_routing.md#compare-inserts-with-bypass).
 
 Removing a rack instrument also removes its dedicated inserts and connections; removing one insert reconnects the remaining simple chain. **Routing diagnostics → Check routing** catches missing insert assignments and displays validation errors beside the check button. Feedback errors show a closed routing path with instrument names, instance IDs, MIDI channels, audio ports and processing stages. **Show offending connections** highlights the affected mixer strips, inserts, sends and routes, and filters the diagram to the loop. Serial inserts, including Master inserts, are distinguished from parallel direct and processed output paths in routing checks and CSD export warnings. See the [routing diagnostics example](documentation/performance/audio_mixer_and_routing.md#troubleshoot-routing-and-silence).
@@ -259,7 +261,7 @@ Its continuous stereo insert supports signed feedback and a wet-only send return
 
 [Autopanner](documentation/instrument_design/autopanner.md) sweeps stereo balance
 with manual Tempo, Beats per cycle and Depth controls. It preserves separate
-channels, passes audio unchanged at zero Depth, and requires a rack restart
+channels, passes audio unchanged at zero Depth, and supports automatic live updates
 after changing settings.
 
 [Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns.

@@ -30,6 +30,19 @@ it("disables assignments for continuous instruments", () => {
   expect(screen.getAllByRole("combobox").every(element => (element as HTMLSelectElement).disabled)).toBe(true);
 });
 
+it("labels automatic live, mixed and unused continuous controllers without changing MIDI availability", () => {
+  const modes = ["live", "mixed", "unused"] as const;
+  const continuous = { ...patch, always_on: true, performance_controllers: patch.performance_controllers!.map((d, i) => ({ ...d, update_mode: modes[i] })) };
+  const { rerender } = render(<PerformanceControllerRack binding={{ ...binding, midiChannel: 0 }} patch={continuous} language="english" />);
+  expect(screen.getByText("Live")).toBeTruthy();
+  expect(screen.getByText("Requires restart").title).toContain("I-rate input");
+  expect(screen.getByText("Not connected")).toBeTruthy();
+  expect(screen.getAllByRole("combobox").every(element => (element as HTMLSelectElement).disabled)).toBe(true);
+  rerender(<PerformanceControllerRack binding={binding} patch={{ ...continuous, always_on: false }} language="english" />);
+  expect(screen.queryByText("Live")).toBeNull();
+  expect(screen.queryByText("Requires restart")).toBeNull();
+});
+
 it("groups mixed controls by name within each instrument and preserves edits on resize", () => {
   const grouped = { ...patch, performance_controllers: patch.performance_controllers!.map((d, i) => ({ ...d, controller_group: i === 1 ? "" : "Tone" })) };
   const { rerender } = render(<PerformanceControllerRack binding={binding} patch={grouped} language="english" />);

@@ -12,7 +12,7 @@ unity gain.
 1. With instruments stopped, open **Perform → Mixer**.
 2. On a source strip or Master, open **Inserts…**, select **Stereo Delay**, and click **Add**.
 3. Set Tempo to your performance's BPM and Beats to the desired echo interval.
-4. Start the instruments. **Restart the rack after changing any of these controls**; the continuous effect reads its settings at startup.
+4. Start the instruments. Controls marked **Live** respond during playback; restart the rack for settings marked **Requires restart**.
 5. Save Performance to retain that instance's settings.
 
 The named stereo input and output channels are `left` and `right`. The effect

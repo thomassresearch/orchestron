@@ -175,6 +175,35 @@ def test_native_instance_controls_and_cross_channel_midi_readers(compiler, nativ
 
 
 @pytest.mark.parametrize('ksmps', [1, 32])
+def test_continuous_live_controller_updates_match_partition_rendering(compiler, native_module, ksmps):
+    from backend.app.models.patch import NodeInstance
+    from backend.tools._parallel_render_workload import connection
+    targets, graph, mixer = planner_inputs('two', ksmps)
+    target = next(t for t in targets if t.assignment_id == 'delay0')
+    patch = target.patch.graph
+    audio = next(c for c in patch.connections if c.to_node_id == 'out')
+    patch.nodes += [NodeInstance(id='setting', opcode='perf_controller', params={'default': 1}),
+                    NodeInstance(id='gain_audio', opcode='upsamp')]
+    patch.connections += [connection('setting', 'iout', 'gain_audio', 'ksig'),
+                          connection('gain_audio', 'aout', 'out', 'asignal')]
+    patch.ui_layout['input_formulas'] = {'out::asignal': {'expression': 'signal * gain', 'inputs': [
+        {'token': 'signal', 'from_node_id': audio.from_node_id, 'from_port_id': audio.from_port_id},
+        {'token': 'gain', 'from_node_id': 'gain_audio', 'from_port_id': 'aout'}]}}
+    dependency = compiler.analyze_realtime_graph(targets, graph)
+    plan = plan_render_partitions(dependency, policy=RendererPolicy(mode='parallel', max_workers=4), costs=synthetic_costs(dependency))
+    compilation = compiler.compile_realtime_partitions(targets, graph, mixer, plan)
+    assert compilation.programs
+    binding = compilation.canonical.manifest['performanceControllers']['delay0']['setting']
+    assert binding['update_mode'] == 'live'
+    baseline = compare_sequential(compilation, plan, frames=8192, events=events_for(targets), module=native_module)
+    changed = compare_sequential(compilation, plan, frames=8192, events=events_for(targets),
+                                 controls=[(512, binding['channel'], 0)], module=native_module)
+    np.testing.assert_array_equal(changed.partitioned, changed.canonical)
+    np.testing.assert_array_equal(changed.partitioned[:1024], baseline.partitioned[:1024])
+    assert np.max(np.abs(changed.partitioned[1024:] - baseline.partitioned[1024:])) > 1e-6
+
+
+@pytest.mark.parametrize('ksmps', [1, 32])
 def test_legato_helpers_allocation_and_same_boundary_panic_retrigger(compiler, native_module, ksmps):
     targets, graph, mixer = planner_inputs('legato', ksmps)
     from backend.tools._parallel_render_workload import connection

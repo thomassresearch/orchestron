@@ -12,7 +12,7 @@ Left and right retain separate audio paths; Stereo Phase offsets their sweeps.
 1. With instruments stopped, open **Perform → Mixer**.
 2. On an instrument strip or Master, open **Inserts…**, select **Stereo Flanger**, and click **Add**.
 3. Start with the defaults, then adjust the six performance controllers.
-4. **Restart the rack after changing settings.** Continuous instruments read these values at startup.
+4. Controls marked **Live** respond during playback. Restart the rack for settings marked **Requires restart**.
 5. Save Performance to retain that instance's settings.
 
 For a shared send effect, set Mix to **1** so the return contains only wet audio.

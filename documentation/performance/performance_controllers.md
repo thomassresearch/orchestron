@@ -20,7 +20,7 @@ The fields are fixed values, without input sockets or formulas. Float numbers mu
 
 Changing Type to Integer rounds the numeric fields to the nearest integer, with ties toward positive infinity (`-1.5` becomes `-1`). If rounding makes minimum and maximum equal, correct the range before saving. Changing to Bool maps a default below `0.5` to Off and any default at least `0.5` to On. Integer and Bool always use linear scale.
 
-For a logarithmic attack-time control, choose Float, minimum `0.001`, maximum `5`, default `0.01`, and label `Attack (s)`. Connect `iout` to the envelope’s I-rate attack input, then save the patch. All three types use the same numeric I-rate output and existing compatible connections.
+For a logarithmic attack-time control, choose Float, minimum `0.001`, maximum `5`, default `0.01`, and label `Attack (s)`. Connect `iout` to the envelope’s I-rate attack input, then save the patch. All three types use the same numeric `iout` socket and existing compatible connections. Continuous instruments automatically use live updates when every connected input accepts K-rate.
 
 ![Controller Group in the controller configuration dialog](../../screenshots/performance_controller_group_configuration.png)
 
@@ -67,7 +67,17 @@ Changing only a group name does not require restarting the rack.
 
 ![Float knobs, an Integer stepper and a Bool toggle in the Perform rack](../../screenshots/performance_controller_types_rack.png)
 
-Changes affect newly started notes. Sounding notes keep their initialized value. Continuous instruments require a rack restart. Changing a controller’s type while the rack runs also requires a restart. The same behavior applies with **Parallel playback** enabled, including when the engine falls back to single rendering.
+Changes affect newly started notes. Sounding notes keep their initialized value. For continuous instruments, Orchestron detects each controller’s behavior from its connections:
+
+- **Live**: every connected input accepts K-rate, so edits apply during realtime playback.
+- **Requires restart**: at least one input requires I-rate. If a controller feeds both kinds, all of its destinations keep the initial value until the rack restarts.
+- **Not connected**: the controller has no destinations.
+
+Input formulas follow the same connection rules. If/Switch selectors remain initialization settings. Save the instrument after rewiring; changing a controller’s type or detected timing while it runs requires restarting the rack. Existing instruments are analyzed automatically when loaded or compiled. The same behavior applies with **Parallel playback**, including fallback to single rendering.
+
+Both **CSD (MIDI)** and **CSD (SCORE)** exports keep continuous-instrument settings fixed at initialization, including controls marked Live. Note and legato-phrase behavior is unchanged.
+
+![Continuous controllers showing Live and Requires restart](../../screenshots/performance_controller_live_updates.png)
 
 For an instrument using [`midi_legato`](../instrument_design/midi_legato.md), settings are sampled at the start of each **phrase**. Touching and overlapping notes keep the same voice and settings; the next note after a gap reads current values.
 
@@ -79,27 +89,25 @@ moving the knob does not morph a string that is already sounding.
 
 The [Tube Overdrive example](../instrument_design/tube_overdrive.md) exposes Drive
 (dB), Tone (Hz), and Output (dB) for warm stereo saturation. Each insert instance
-retains its own settings; restart the rack after changing these continuous-effect
-controls.
+retains its own settings; controls marked **Live** respond during playback.
 
 [Stereo Delay](../instrument_design/stereo_delay.md) exposes Tempo (BPM), Beats,
 Feedback and Stereo. At its defaults, echoes repeat every two seconds. Set Tempo
-manually and restart the rack to apply changed settings.
+manually; controls marked **Live** respond during playback.
 
 [Stereo Flanger](../instrument_design/stereo_flanger.md) provides Rate, Delay,
 Depth, Feedback, Stereo Phase and Mix. It preserves separate left/right paths,
 supports positive and negative feedback, and can provide a wet-only send return.
-Restart the rack after changing its six per-instance settings.
+Controls marked **Live** respond during playback; **Requires restart** identifies initialization settings.
 
 [Autopanner](../instrument_design/autopanner.md) provides Tempo (BPM), Beats per
 cycle and Depth. Tempo is entered manually; the default sweep takes four beats
-at 120 BPM. Depth zero passes stereo audio unchanged. Restart the rack after
-changing any of these per-instance settings.
+at 120 BPM. Depth zero passes stereo audio unchanged. Controls marked **Live** respond during playback.
 
 [Parametric Equalizer](../instrument_design/parametric_equalizer.md) provides seven
 gain controls at 63 Hz, 160 Hz, 400 Hz, 1 kHz, 2.5 kHz, 6.3 kHz and 16 kHz.
 All use a linear −20 to +20 dB range with 0 dB defaults. The graph converts dB
-to amplitude for each filter; restart the rack after changing settings.
+to amplitude for each filter; controls marked **Live** respond during playback.
 
 The [Analog Drumkit](../../examples/instruments/analog_drumkit/README.md) has shared
 **BD snappiness** for notes 35/36, shared **Hi-hat tuning** for 42/46, and **Snare
@@ -137,8 +145,7 @@ remain unchanged.
 [Download Stereo Chorus](../../examples/instruments/Stereo_Chorus.orch.instrument.json)
 and add it as a mixer insert. **Amount** controls all twelve LFO amplitudes from
 `0.001` to `0.1` seconds (default `0.02`); **LFO Frequency Multiplier** ranges from
-`0.1` to `10` (default `1`). Both controls use logarithmic scales and require a
-rack restart. Existing controller IDs and performance overrides are preserved.
+`0.1` to `10` (default `1`). Both controls use logarithmic scales; check each control’s **Live** or **Requires restart** label. Existing controller IDs and performance overrides are preserved.
 
 Each tap uses `base delay + Amount + LFO`, with a 250 ms buffer. Since the LFO
 swings between negative and positive Amount, taps remain between 14 and 230.5 ms
@@ -193,9 +200,9 @@ Untouched controls follow the patch default. After a value changes, an explicit 
 
 Node IDs identify controls; duplicate labels are allowed. Changing the selected patch clears its overrides. Editing a patch range clamps saved values. Changing to Integer rounds overrides to the nearest integer (ties toward positive infinity) and clamps to the range. Changing to Bool maps values below `0.5` to `0` and values at least `0.5` to `1`. Deleting a controller removes its override. These adjustments show a notice in the rack; untouched defaults remain implicit. External API and CLI submissions must already satisfy the selected type: fractional Integer values and Bool values other than `0`/`1` are rejected. Standalone patch export and isolated audition use defaults; audition within a performance uses the selected instance’s values.
 
-`perf_controller` is an Orchestron editor construct lowered to [I-rate chnget](https://csound.com/docs/manual/chnget.html) and channel initialization. It is not a native Csound opcode.
+`perf_controller` is an Orchestron editor construct lowered to [chnget](https://csound.com/docs/manual/chnget.html) and channel initialization. Realtime continuous controllers marked Live use K-rate reads; other controllers use I-rate reads. It is not a native Csound opcode.
 
-The [Stereo Widener, Bit Crusher, and Harmonizer](../instrument_design/continuous_effects.md) examples expose four, five, and six performance controls respectively. These continuous effects read their settings when the rack starts. Restart the rack after editing them. Harmonizer aligns its dry signal with its measured 32 ms processing delay at 48 kHz.
+The [Stereo Widener, Bit Crusher, and Harmonizer](../instrument_design/continuous_effects.md) examples expose four, five, and six performance controls respectively. Check each controller’s **Live** or **Requires restart** label to see when edits take effect. Harmonizer aligns its dry signal with its measured 32 ms processing delay at 48 kHz.
 
 ## Automation from instrument clips
 

@@ -784,7 +784,14 @@ Integer values and non-binary Bool values fail validation. Frontend reconciliati
 rounds/clamps saved Integer values and thresholds Bool at 0.5 with a notice.
 Type is part of the running-manifest compatibility check, so a change requires
 restart even if the numeric definition is otherwise identical. All types retain
-I-rate initialization, independent instance channels, and native/CSD persistence.
+note/phrase initialization, independent instance channels, and native/CSD persistence.
+`update_mode` is derived from all wired destinations (including formula sources):
+`live` when all accept K-rate, `init` when none do, `mixed` for both, and `unused`
+without destinations. Unknown ports are conservative. Only LIVE compilation of
+always-on targets promotes `live` controllers to K-rate; OFFLINE always retains
+I-rate reads. The saved `iout` socket and node parameters remain unchanged.
+Save/get/list responses and compiler manifests expose the freshly derived mode;
+imports cannot override it. Running definition compatibility includes the mode.
 
 `controller_group` is optional display metadata on controller definitions and node
 parameters. It defaults to empty, trims surrounding whitespace, and accepts at most

@@ -35,6 +35,10 @@ export function PerformanceControllerRack({ binding, patch, language }: {
               value={binding.performanceControllerValues?.[definition.node_id] ?? definition.default} language={language}
               onChange={(value) => setValue(binding.id, definition.node_id, value)} onReset={() => setValue(binding.id, definition.node_id, null)} />
                 <label data-rack-controller-footer className="mt-auto flex flex-col gap-1 text-[10px] text-slate-400" title={disabled ? (definition.error ? copy.invalid : copy.midiUnavailable) : copy.midiHelp}>
+                  {patch?.always_on && !definition.error && <span title={definition.update_mode === "mixed" ? copy.mixedHelp : copy.continuous}
+                    className={definition.update_mode === "live" ? "text-emerald-300" : "text-amber-200"}>
+                    {definition.update_mode === "live" ? copy.live : definition.update_mode === "unused" ? copy.unused : copy.restart}
+                  </span>}
                   <span>{copy.midiCC}</span>
                   {disabled && <span>{definition.error ? copy.invalid : copy.midiUnavailable}</span>}
                   <select aria-label={`${definition.label} · ${copy.midiCC}`} disabled={disabled}

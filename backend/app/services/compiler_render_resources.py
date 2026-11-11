@@ -101,7 +101,7 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
         if has_legato(patch) and target.always_on:
             raise CompilationError(["midi_legato cannot be assigned as a continuous instrument."])
         context = compile_graph_context(patch.graph, opcode_service)
-        controllers = controller_bindings(target, identity)
+        controllers = controller_bindings(target, identity, opcode_service)
         layout = patch.graph.ui_layout
         private_tables = {c.node.id: size for c in context.compiled_nodes.values()
                           if (size := private_table_size(c, context, layout,

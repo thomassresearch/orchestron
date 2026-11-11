@@ -7210,6 +7210,57 @@ def test_perf_controller_opcode_metadata(tmp_path: Path) -> None:
         assert "virtual" in opcode["documentation_markdown"].lower()
 
 
+@pytest.mark.parametrize("method", ["put", "patch"])
+def test_continuous_controller_detection_on_save_reload_and_running_rewire(tmp_path: Path, method: str) -> None:
+    from backend.tests.test_performance_controllers import controller_patch, add_init_consumer
+    patch = controller_patch(always_on=True)
+    with _client(tmp_path) as client:
+        saved = client.post("/api/patches", json=patch.model_dump(mode="json")).json()
+        identity = saved["id"]
+        assert saved["performance_controllers"][0]["update_mode"] == "live"
+        assert client.get(f"/api/patches/{identity}").json()["performance_controllers"] == saved["performance_controllers"]
+        listed = next(item for item in client.get("/api/patches").json() if item["id"] == identity)
+        assert listed["performance_controllers"] == saved["performance_controllers"]
+        session = client.post("/api/sessions", json={"instruments": [
+            {"id": "one", "patch_id": identity, "midi_channel": 0}]}).json()["session_id"]
+        assert client.post(f"/api/sessions/{session}/start").status_code == 200
+        endpoint = f"/api/sessions/{session}/instruments/one/performance-controllers"
+        def update(value):
+            body = {"values": {"setting": value}}
+            if method == "patch":
+                body["revisions"] = client.get(endpoint).json()["revisions"]
+            return getattr(client, method)(endpoint, json=body)
+        assert update(0.8).status_code == 200
+        add_init_consumer(patch)
+        patch.graph.nodes[0].params["update_mode"] = "live"  # Untrusted imported/cached classification.
+        revised = client.put(f"/api/patches/{identity}", json={"graph": patch.graph.model_dump(mode="json")}).json()
+        assert revised["performance_controllers"][0]["update_mode"] == "mixed"
+        assert update(0.3).status_code == 409
+        assert client.post(f"/api/sessions/{session}/stop").status_code == 200
+        assert update(0.3).status_code == 200
+        compiled = client.post(f"/api/sessions/{session}/compile").json()
+        assert compiled["manifest"]["performanceControllers"]["one"]["setting"]["update_mode"] == "mixed"
+
+
+@pytest.mark.parametrize("event_source", ["midiFile", "score"])
+def test_performance_csd_keeps_live_compatible_continuous_controllers_at_init(tmp_path: Path, event_source: str) -> None:
+    from backend.tests.test_performance_controllers import controller_patch
+    payload = _performance_csd_export_payload()
+    payload["eventSource"] = event_source
+    definition = payload["performanceExport"]["patch_definitions"][0]
+    definition.update(always_on=True, instrument_type="continuous", graph=controller_patch(always_on=True).graph.model_dump(mode="json"))
+    instrument = payload["performanceExport"]["performance"]["config"]["instruments"][0]
+    instrument.update(midiChannel=0, performanceControllerValues={"setting": 0.2})
+    with _client(tmp_path) as client:
+        response = client.post("/api/bundles/export/performance-csd", json=payload)
+        assert response.status_code == 200, response.text
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            csd = archive.read(next(name for name in archive.namelist() if name.endswith(".csd"))).decode()
+        assert "i_setting_iout_1 chnget" in csd
+        assert "k_setting_iout_" not in csd
+        assert "chnset 0.2" in csd
+
+
 @pytest.mark.parametrize("event_source", ["midiFile", "score"])
 def test_performance_csd_exports_respect_controller_channel_selections(tmp_path: Path, event_source: str) -> None:
     payload = _performance_csd_export_payload()

@@ -14,7 +14,8 @@ from pydantic import ValidationError
 
 from backend.app.models.audio import AudioGraph, MixerState, MixerStrip
 from backend.app.models.patch import Connection, EngineConfig, NodeInstance, PatchDocument, PatchGraph
-from backend.app.services.compiler_common import CompilationError, PatchInstrumentTarget
+from backend.app.services.compiler_common import CompilationError, CompilationProfile, PatchInstrumentTarget
+from backend.app.services.performance_controller_service import controller_definitions
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 from backend.tests.api_test_support import _client
@@ -32,9 +33,9 @@ def controller_patch(*, always_on=False, params=None, ksmps=32):
     ))
 
 
-def compile_targets(targets, *, mixer=False, mode="midi"):
+def compile_targets(targets, *, mixer=False, mode="midi", profile=CompilationProfile.LIVE):
     return CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch_bundle(
-        targets, midi_input="0", rtmidi_module="none", performance_input_mode=mode,
+        targets, midi_input="0", rtmidi_module="none", performance_input_mode=mode, profile=profile,
         audio_graph=AudioGraph() if mixer else None,
         mixer=MixerState(strips={"one": MixerStrip(gainDb=-6.020599913279624)}) if mixer else None,
     )
@@ -108,20 +109,102 @@ def test_i_rate_held_notes_next_notes_and_independent_instances(mixer, ksmps):
 
 
 @pytest.mark.parametrize("mixer", [False, True])
-def test_continuous_settings_are_initialized_before_alwayson_and_change_on_restart(mixer):
+@pytest.mark.parametrize("profile", list(CompilationProfile))
+@pytest.mark.parametrize("mode", ["midi", "score"])
+def test_continuous_settings_live_and_offline_initialization(mixer, profile, mode):
     target = PatchInstrumentTarget(controller_patch(always_on=True), 0, assignment_id="one", always_on=True,
                                    performance_controller_values={"setting": 0.2})
-    artifact = compile_targets([target], mixer=mixer)
+    artifact = compile_targets([target], mixer=mixer, profile=profile, mode=mode)
     binding = artifact.manifest["performanceControllers"]["one"]["setting"]
+    assert binding["update_mode"] == "live"
     assert artifact.orc.index('chnset 0.2') < artifact.orc.index("alwayson")
     gain = 0.5 if mixer else 1
     with engine(artifact) as cs:
         np.testing.assert_allclose(render(cs, 3), 0.2 * gain, atol=1e-9)
         cs.setControlChannel(binding["channel"], 0.8)
-        np.testing.assert_allclose(render(cs, 3), 0.2 * gain, atol=1e-9)
+        np.testing.assert_allclose(render(cs, 3), (0.8 if profile == CompilationProfile.LIVE else 0.2) * gain, atol=1e-9)
     target.performance_controller_values = {"setting": 0.8}
     with engine(compile_targets([target], mixer=mixer)) as cs:
         np.testing.assert_allclose(render(cs, 3), 0.8 * gain, atol=1e-9)
+
+
+def add_init_consumer(patch):
+    patch.graph.nodes.append(NodeInstance(id="phase", opcode="phasor"))
+    patch.graph.connections.append(Connection(from_node_id="setting", from_port_id="iout",
+                                              to_node_id="phase", to_port_id="iphs"))
+
+
+@pytest.mark.parametrize("mixer", [False, True])
+@pytest.mark.parametrize("mixed", [False, True])
+def test_continuous_init_and_mixed_controllers_retain_initial_values(mixer, mixed):
+    patch = controller_patch(always_on=True)
+    add_init_consumer(patch)
+    patch.graph.ui_layout["input_formulas"] = {"phase::iphs": {
+        "expression": "phase / 2", "inputs": [{"token": "phase", "from_node_id": "setting", "from_port_id": "iout"}]}}
+    if not mixed:
+        patch.graph.connections = [c for c in patch.graph.connections if c.to_node_id != "audio"]
+        patch.graph.nodes[1].params["ksig"] = 0
+    target = PatchInstrumentTarget(patch, 0, assignment_id="one", always_on=True,
+                                   performance_controller_values={"setting": 0.2})
+    artifact = compile_targets([target], mixer=mixer)
+    binding = artifact.manifest["performanceControllers"]["one"]["setting"]
+    assert binding["update_mode"] == ("mixed" if mixed else "init")
+    assert 'i_setting_iout_1 chnget' in artifact.orc
+    with engine(artifact) as cs:
+        before = render(cs, 3)
+        cs.setControlChannel(binding["channel"], 0.8)
+        np.testing.assert_array_equal(render(cs, 3), before)
+
+
+@pytest.mark.parametrize("controller_type", ["float", "integer", "bool"])
+def test_live_controller_formulas_types_reset_and_instance_isolation(controller_type):
+    from backend.app.engine.csound_worker import CsoundWorker
+    from backend.app.models.session import SessionInstrumentAssignment
+    patch = controller_patch(always_on=True, params={"controller_type": controller_type})
+    patch.graph.ui_layout["input_formulas"] = {"audio::ksig": {
+        "expression": "amount * 0.25", "inputs": [{"token": "amount", "from_node_id": "setting", "from_port_id": "iout"}]}}
+    targets = [PatchInstrumentTarget(patch, 0, assignment_id=identity, always_on=True,
+                                     performance_controller_values={"setting": 0}) for identity in ("one", "two")]
+    artifact = compile_targets(targets)
+    worker = CsoundWorker()
+    assignments = [SessionInstrumentAssignment(id=t.assignment_id, patch_id=patch.id, midi_channel=0,
+                                               performance_controller_values={"setting": 0}) for t in targets]
+    worker.performance_controllers.configure(assignments, artifact.manifest["performanceControllers"])
+    with engine(artifact) as cs:
+        np.testing.assert_allclose(render(cs, 3), 0, atol=1e-9)
+        worker.performance_controllers.update("one", {"setting": 1})
+        worker._apply_control_channels(cs)
+        np.testing.assert_allclose(render(cs, 3), 0.25, atol=1e-9)
+        worker.performance_controllers.update("one", {"setting": None})
+        worker._apply_control_channels(cs)
+        np.testing.assert_allclose(render(cs, 3), (0.5 if controller_type == "float" else 0) * 0.25, atol=1e-9)
+
+
+def test_controller_rate_detection_is_conservative_and_uses_actual_port_metadata():
+    from backend.app.models.opcode import SignalType
+    service = OpcodeService("/static/icons")
+    patch = controller_patch(always_on=True, params={"update_mode": "live"})
+    def mode():
+        return controller_definitions(patch.graph, opcode_service=service)[0].update_mode
+    assert mode() == "live"
+    port = service.get_opcode("upsamp").inputs[0]
+    port.signal_type = SignalType.INIT
+    port.accepted_signal_types = [SignalType.CONTROL]
+    assert mode() == "live"
+    port.accepted_signal_types = []
+    assert mode() == "init"  # Imported/cached node metadata cannot override the analysis.
+    patch.graph.connections[0].to_port_id = "missing"
+    assert mode() == "init"
+    patch.graph.connections = [c for c in patch.graph.connections if c.from_node_id != "setting"]
+    assert mode() == "unused"
+
+
+@pytest.mark.parametrize("opcode,port", [("If", "lhs"), ("Switch", "selector")])
+def test_branch_selector_connections_prevent_live_controller_promotion(opcode, port):
+    patch = controller_patch(always_on=True)
+    patch.graph.nodes.append(NodeInstance(id="branch", opcode=opcode))
+    patch.graph.connections.append(Connection(from_node_id="setting", from_port_id="iout", to_node_id="branch", to_port_id=port))
+    assert controller_definitions(patch.graph)[0].update_mode == "mixed"
 
 
 def test_session_updates_reset_validation_persistence_and_restart(tmp_path):
@@ -307,7 +390,7 @@ def test_discrete_audio_values_and_initialization(controller_type, initial, chan
     with engine(artifact, "" if always_on else f'i {ref} 0 1\nf 0 2') as cs:
         np.testing.assert_allclose(render(cs, 3), initial * gain, atol=1e-9)
         cs.setControlChannel(binding["channel"], changed)
-        np.testing.assert_allclose(render(cs, 3), initial * gain, atol=1e-9)
+        np.testing.assert_allclose(render(cs, 3), (changed if always_on else initial) * gain, atol=1e-9)
         if not always_on:
             cs.inputMessage(f'i {ref} 0 1')
             np.testing.assert_allclose(render(cs, 3)[-1], (initial + changed) * gain, atol=1e-9)

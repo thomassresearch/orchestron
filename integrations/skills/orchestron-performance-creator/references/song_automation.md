@@ -50,5 +50,6 @@ mapping changes and the projected sequencers through the backend's coordinated,
 revision-checked controller PATCH. This backend coordinates one changed owner
 per request; stage/push owners separately, or rebuild an owned runtime for a
 multi-owner remap. Stale revisions or failed preparation leave the previous
-playing configuration intact. Fixed controller values remain per-instance
-I-rate settings: new notes adopt them; continuous instances need a restart.
+playing configuration intact. Fixed controller values remain per-instance settings: new notes adopt them at initialization.
+Continuous instances update live only for controllers whose wired inputs all accept K-rate;
+I-rate-only and mixed controllers need a restart. Both CSD export modes retain initialization values.
