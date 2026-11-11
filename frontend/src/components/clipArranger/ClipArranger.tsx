@@ -1,3 +1,5 @@
+import type { EditScope } from "../../lib/clipArranger/relationships";
+import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { clipButton, clipButtonClass, clipButtonTone } from "./buttonStyles";
 import { HelpIconButton } from "../HelpIconButton";
 import { PositionInput } from "./PositionInput";
@@ -30,7 +32,7 @@ export type ClipArrangerProps = {
   structure: ReturnType<typeof useStructureEditor>;
   zoom: number; minZoom: number; setZoom: (zoom: number | null) => void;
   viewport: RefObject<HTMLDivElement>; viewportWidth: number; laneHeaderWidth: number;
-  onEdit: (target: OccurrenceTarget) => void;
+  onEdit: (target: OccurrenceTarget, scope?: EditScope) => void;
   stopAudition?: () => Promise<void>;
   editingTarget?: OccurrenceTarget;
   renderAutomation?: (target: OccurrenceTarget, range: [number, number]) => ReactNode;
@@ -152,10 +154,17 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
       const headerLeft = Math.max(0, scroll - origin - left, clip.start * unit - origin - left);
       const headerRight = Math.min(duration * unit, scroll + viewportWidth - laneHeaderWidth - origin - left, (clip.start + clip.length) * unit - origin - left);
       const selectedItem = structure.isSelected(target,item.id);
+      const related = !!def && structure.selectedTarget?.laneId === lane.id && structure.selectedDefinition?.id === def.id && !selectedItem;
+      const relationship = def ? structure.relationships.get(lane.id)?.get(def.id) : undefined;
+      const repeated = clip.mode === 'loop' && pass > 0;
+      const sc = scopeCopy(language);
+      const repeatColor = !repeated || !def ? '' : def.kind === 'pattern' ? '!bg-emerald-900/40' : def.kind === 'group' ? '!bg-rose-900/25' : '!bg-violet-900/25';
       const offset = def ? addOffsets(transposePlans(lane,clip,itemPath).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass))) : undefined;
-      return <div data-structure-node={JSON.stringify({ focus: target, index: itemIndex })} key={item.id} className={`absolute top-0 overflow-hidden rounded border ${color}`} style={{ outline: selectedItem ? "2px solid #67e8f9" : undefined, left, width: duration * unit, height: (boundCurve ? 108 : 46) + (def && def.kind !== "pattern" ? (2 - depth) * 22 : 0) }}>
+      return <div data-structure-node={JSON.stringify({ focus: target, index: itemIndex })} key={item.id} data-linked-highlight={related || undefined} data-loop-repetition={repeated || undefined} className={`absolute top-0 overflow-hidden rounded border ${color} ${repeatColor}`} style={{ outline: selectedItem ? "2px solid #67e8f9" : related ? "1px dashed #94a3b8" : undefined, left, width: duration * unit, height: (boundCurve ? 108 : 46) + (def && def.kind !== "pattern" ? (2 - depth) * 22 : 0) }}>
         <div className="flex h-5 min-w-0 items-center gap-0.5 overflow-hidden" style={{marginLeft:headerLeft,width:Math.max(0,headerRight-headerLeft-2)}}>
         {structure.boundary(target, itemIndex)}
+        {relationship?.shared && <span className="shrink-0 text-[10px]" title={sc.linked} aria-label={sc.linked}>↔</span>}
+        {repeated && <span className="shrink-0 text-[10px]" title={sc.repeat} aria-label={sc.repeat}>↻</span>}
         <button data-structure-key={JSON.stringify([lane.id, clip.id, pass, ...path, item.id])} onPointerDown={e => structure.pointerDown(e, target, item.id)} onContextMenu={e => { e.preventDefault(); structure.contextMenu(target, item.id, e.clientX, e.clientY); }} className="block h-5 min-w-0 flex-1 truncate px-1 text-left text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" title={def ? `${def.kind}: ${def.name}` : c.rest}
           onClick={e => { e.stopPropagation(); select({ laneId: lane.id, clipId: clip.id }); setExpanded(lane.id); structure.select(target, item.id, e.shiftKey); }} onDoubleClick={e => { e.stopPropagation(); if (def) open(lane, clip, itemPath, pass); }}
           onKeyDown={e => { if (!e.shiftKey && ["ArrowLeft","ArrowRight"].includes(e.key)) {e.preventDefault();e.stopPropagation();structure.nudge(target,item.id,(e.key==="ArrowLeft"?-1:1)*Q/4);} if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); e.stopPropagation(); structure.remove(target, item.id); } if (e.shiftKey && ["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); const next = structure.extendSelection(target,item.id,e.key === "ArrowLeft" ? -1 : 1); if(next)focusStructureOccurrence(lane,clip,next.focus.pass,[...next.focus.parent,next.id]); } if (e.key === "Enter" && def) { e.stopPropagation(); open(lane, clip, itemPath, pass); } }}>{def ? `${def.kind === "pattern" ? "♪" : def.kind === "group" ? "▣" : "▤"} ${def.name}` : c.rest}</button>

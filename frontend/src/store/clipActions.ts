@@ -1,4 +1,7 @@
-import { refreshStructureWindows } from '../lib/clipArranger/structure';
+import { definitionRelationships, effectiveScope, initialEditIntent, uniqueVariationName, type EditScope } from "../lib/clipArranger/relationships";
+import { scopeCopy } from "../lib/clipArranger/scopeCopy";
+import { hasChangedClipDrafts } from "../lib/clipArranger/draftResolution";
+import { beginStructure, refreshStructureWindows } from '../lib/clipArranger/structure';
 import { useAppStore } from "./useAppStore";
 import { arrangementTimings, migrateClipArrangement, sourceKeys } from "../lib/clipArranger/migration";
 import { contentLength, validateArrangement, type ClipArrangement, type Definition, type OccurrenceTarget } from "../lib/clipArranger/model";
@@ -34,7 +37,7 @@ export function openClipTransposition(target: OccurrenceTarget) {
   // A closed, clean inspector may predate a shared edit or undo in another clip.
   // Refresh that snapshot while preserving unfinished musical/transposition work.
   if (!existing || (!existing.transposeEdits?.length && !existing.additions?.length && existing.baseFingerprint === JSON.stringify(existing.definition))) {
-    useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: beginDraft(model,target) } });
+    useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...beginDraft(model,target), editIntent: existing?.editIntent } } });
   }
 }
 
@@ -46,12 +49,44 @@ export function commitClipArrangement(next: ClipArrangement, label: string) {
   useAppStore.setState({ sequencer: { ...state.sequencer, clipArrangement: next,
     clipHistory: before ? recordClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), before, next, label, arrangementTimings(state.sequencer)) : emptyClipHistory() }, sequencerEditRevision: state.sequencerEditRevision + 1 });
 }
-export function openClipEditor(target: OccurrenceTarget) {
+export function openClipEditor(target: OccurrenceTarget, scope?: EditScope) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
   if (!model) return;
   const key = draftKey({ target });
-  useAppStore.setState({ clipEditingKey: key, clipDrafts: { ...state.clipDrafts, [key]: state.clipDrafts[key] ?? beginDraft(model, target) },
+  const draft = state.clipDrafts[key] ?? beginDraft(model, target);
+  const lane = model.lanes.find(l => l.id === target.laneId)!;
+  const relationship = definitionRelationships(lane, arrangementTimings(state.sequencer)[lane.id]).get(draft.definition.id);
+  let editIntent = scope !== undefined ? { ...draft.editIntent, scope, explicit: true } : draft.editIntent ?? initialEditIntent(relationship);
+  editIntent = { ...editIntent, variationName: editIntent.variationName ?? uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix) };
+  if (draft.definition.kind !== 'pattern') {
+    const existing = useStructureDraft.getState().draft;
+    const matches = existing?.laneId === target.laneId && existing.clipId === target.clipId && existing.pass === target.pass;
+    if (existing?.cursor && !matches) throw Error('Resolve the current structure before editing another container.');
+    const structure = matches ? existing : beginStructure(model, target.laneId, target.clipId, target.pass);
+    if (scope === undefined && structure.editIntent) editIntent = structure.editIntent;
+    useStructureDraft.setState({ draft: { ...structure, editIntent, editorTarget: target } });
+  }
+  useAppStore.setState({ clipEditingKey: key, clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent } },
     sequencerEditingPads: { ...state.sequencerEditingPads, [target.laneId]: 0 } });
+}
+export function setClipEditIntent(scope: EditScope, variationName?: string, resolvingKey?: string) {
+  const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey;
+  if (!key || !state.clipDrafts[key]) return;
+  const draft = state.clipDrafts[key];
+  const lane = state.sequencer.clipArrangement?.lanes.find(l => l.id === draft.target.laneId);
+  const name = variationName ?? draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix) : undefined);
+  useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent: { ...draft.editIntent, scope, explicit: true, variationName: name } } } });
+}
+/** UI saves consume intent; domain callers retain their explicit scope API. */
+export function saveClipDraftWithIntent(resolvingKey?: string) {
+  const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey, model = state.sequencer.clipArrangement;
+  if (!key || !model) return;
+  const draft = state.clipDrafts[key]; if (!draft) return;
+  const lane = model.lanes.find(l => l.id === draft.target.laneId)!;
+  const scope = effectiveScope(draft.editIntent, definitionRelationships(lane, arrangementTimings(state.sequencer)[lane.id]).get(draft.definition.id));
+  if (!scope) throw Error('Choose the editing scope before saving.');
+  if (!hasChangedClipDrafts(model, { [key]: draft })) return;
+  saveClipDraft(scope, scope === 'local' ? draft.editIntent?.variationName?.trim() || uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix) : draft.definition.name, key);
 }
 export function updateClipDraft(definition: Definition, additions?: Definition[]) {
   const state = useAppStore.getState(), key = state.clipEditingKey;

@@ -1,3 +1,6 @@
+import { definitionRelationships, effectiveScope, localLoopWindows, uniqueVariationName } from "../../lib/clipArranger/relationships";
+import { EditScopeControls } from "./EditScopeControls";
+import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { TransposeInspector } from "./TransposeInspector";
 import { AutomationDuration, AutomationMergeDialog } from "./AutomationControls";
 import { automationCopy } from "./automationCopy";
@@ -17,7 +20,7 @@ import type { ClipArrangement, SourceKind } from "../../lib/clipArranger/model";
 import { contentLength, resolveContent, patternDuration, QUARTER_TICKS } from "../../lib/clipArranger/model";
 import { clipEditorPlaybackView } from "../../lib/clipArranger/editorAdapter";
 import { useAppStore } from "../../store/useAppStore";
-import { clipHistoryStep, commitClipArrangement, openClipEditor, saveClipDraft, removeClipLane } from "../../store/clipActions";
+import { clipHistoryStep, commitClipArrangement, openClipEditor, saveClipDraftWithIntent, setClipEditIntent, removeClipLane } from "../../store/clipActions";
 import { ClipArranger } from "./ClipArranger";
 import { clipButton, clipButtonClass } from "./buttonStyles";
 import { useStructureEditor } from "./StructureEditor";
@@ -27,7 +30,6 @@ import { structureAuditionDraft } from "../../lib/clipArranger/structureAudition
 import { structureCopy } from "./structureCopy";
 import { ContentEditor } from "./ContentEditor";
 import { InlineCurve } from "./InlineCurve";
-import { SaveScopeDialog } from "./SaveScopeDialog";
 import { clipCopy } from "./copy";
 
 
@@ -79,7 +81,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
     if (previous) void auditionRef.current?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
     useAppStore.setState({ clipAuditionDraft: null });
   }, []);
-  const [saving, setSaving] = useState(false), [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     const current = active.current;
     const editing = current ? drafts[current.key] : undefined;
@@ -95,7 +97,11 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
     }, 80);
     return () => clearTimeout(timer);
   }, [drafts, auditioning, audition]);
-  const draft = key ? drafts[key] : undefined, c = clipCopy(language), t=structureCopy(language);
+  const draft = key ? drafts[key] : undefined, c = clipCopy(language), t=structureCopy(language), sc=scopeCopy(language);
+  const relationships=useMemo(()=>new Map(model.lanes.map(lane=>[lane.id,definitionRelationships(lane,timings[lane.id])])),[model,timings]);
+  const relationship=draft?relationships.get(draft.target.laneId)?.get(draft.definition.id):undefined;
+  const scope=draft?(draft.definition.kind==='pattern'?effectiveScope(draft.editIntent,relationship):structure.draft?.editIntent?.scope??null):null;
+  const dirty=!!draft&&hasChangedClipDrafts(model,{current:draft});
   const containerRoots=useMemo(()=>{
     if(!draft||draft.definition.kind==='pattern'||!model.lanes.find(l=>l.id===draft.target.laneId)?.clips.some(c=>c.id===draft.target.clipId))return null;
     const structural=structure.draft;
@@ -105,7 +111,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   if(containerRoots&&draft)try{container=structureChildren(containerRoots,draft.target.path.slice(0,-1)).find(n=>n.id===draft.target.path[draft.target.path.length-1]);}catch{/* Empty containers disappear from the draft. */}
   if (!sequencer.clipArrangement) return null;
   const lane = model.lanes.find(l => l.id === draft?.target.laneId);
-  const curve = draft?.definition.kind === "pattern" && draft.definition.source === "controller" ? clipEditorPlaybackView(playback, draft, auditionDraft).controllerSequencers.find(t => t.id === lane?.id && t.controllerMode === "curve") : undefined;
+  const curve = scope && draft?.definition.kind === "pattern" && draft.definition.source === "controller" ? clipEditorPlaybackView(playback, draft, auditionDraft).controllerSequencers.find(t => t.id === lane?.id && t.controllerMode === "curve") : undefined;
   const selectedClip = lane?.clips.find(cl => cl.id === draft?.target.clipId);
   let curveWindow: [number, number] = [0, 1];
   let curvePlaying = auditioning && !!lane && !!statuses[lane.id]?.workspace_active;
@@ -130,7 +136,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   return <>
     <DraftResolutionDialog language={language} />
     <AutomationMergeDialog language={language} />
-    <ClipArranger onHelpRequest={onHelpRequest} stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={target => attempt(() => openClipEditor(target))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
+    <ClipArranger onHelpRequest={onHelpRequest} stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={(target, intent) => attempt(() => openClipEditor(target, intent))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
       renderAutomation={(target, range) => {
         if (!curve?.automationTarget || !draft || !lane || draftKey({ target }) !== draftKey(draft) || draft.definition.kind !== "pattern") return null;
         const original = lane.definitions.find(d => d.id === draft.definition.id);
@@ -152,7 +158,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
       <header className="mb-3 flex flex-wrap items-center gap-2 text-xs"><span className="mr-auto text-cyan-100">{breadcrumb}</span>
         {active.current && <span role="status" className="text-cyan-200">{statuses[active.current.id]?.workspace_queued ? c.auditionQueued : c.auditioning}</span>}
         <span className="text-amber-200">{(draft.definition.kind==="pattern"?hasChangedClipDrafts(model,{current:draft}):!!structure.draft?.cursor)?c.unsaved:c.saved}</span>
-        <button className={clipButtonClass(auditioning ? "edit" : "add")} disabled={!auditioning&&draft.definition.kind!=="pattern"&&!container} onClick={() => { void (async () => {
+        <button className={clipButtonClass(auditioning ? "edit" : "add")} disabled={!auditioning && (!scope || (draft.definition.kind!=="pattern"&&!container))} onClick={() => { void (async () => {
           if (auditioning) { await stopEdit(); return; }
           const gesture = crypto.randomUUID();
           let played=draft;
@@ -163,18 +169,24 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
           active.current = { id: lane.id, gesture, key: draftKey(draft), last: draft };
           try { await audition?.(lane.id, { action: "workspace_start", gestureId: gesture, clipDraft: played }); if (active.current?.gesture === gesture) setAuditioning(true); }
           catch (e) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); }
-        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind!=="pattern"&&!structure.draft?.cursor} onClick={() => draft.definition.kind==="pattern"?setSaving(true):structure.openSave()}>{draft.definition.kind==="pattern"?c.save:t.save}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
+        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind==="pattern" ? !scope || !dirty : !structure.canSave} onClick={() => { if(draft.definition.kind==='pattern') void stopEdit().then(()=>attempt(()=>saveClipDraftWithIntent(key ?? undefined))).catch(e=>setError(String(e))); else structure.openSave(); }}>{draft.definition.kind==="pattern" ? scope==='local'?sc.saveLocal:relationship?.shared?`${sc.saveAll} (${relationship.occurrences})`:c.save : structure.draft?.editIntent?.scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
       </header>
+      {draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}
+        variationName={draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane,draft.definition.name,sc.variationSuffix) : '')}
+        onChoose={next=>setClipEditIntent(next,draft.editIntent?.variationName??uniqueVariationName(lane,draft.definition.name,sc.variationSuffix))}
+        onNameChange={name=>setClipEditIntent('local',name)} /> : structure.scopeControls}
+      {scope && <>
       <TransposeInspector key={key} language={language} stopAudition={stopEdit} />
       <AutomationDuration language={language} />
       {curve?.automationTarget && <button className={`${clipButtonClass("remove")} mb-2`} onClick={() => { void stopEdit().then(() => { const state = useAppStore.getState(); const remaining = { ...state.clipDrafts }; if (key) delete remaining[key]; useAppStore.setState({ clipDrafts: remaining, clipEditingKey: null }); }); }}>{automationCopy(language).discard}</button>}
       <p className="mb-2 text-[10px] text-slate-500">{c.laneSettings}</p>
       {draft.definition.kind === "pattern" ? <ClipEditingContext.Provider value>{renderEditor(draft.definition.source, lane.id, clipEditorPlaybackView(playback, draft, auditionDraft))}</ClipEditingContext.Provider>
-        : container?.children ? <ContentEditor lane={lane} nodes={container.children} path={draft.target.path} name={container.definition!.name} level={draft.definition.kind} sequencer={sequencer} language={language} onCommand={command=>structure.run(command,{laneId:lane.id,clipId:draft.target.clipId,pass:draft.target.pass,parent:draft.target.path})}/> : <p>{t.containerRemoved}</p>}
+        : container?.children ? <ContentEditor showName={scope!=='local'} lane={lane} nodes={container.children} path={draft.target.path} name={container.definition!.name} level={draft.definition.kind} sequencer={sequencer} language={language} onCommand={command=>structure.run(command,{laneId:lane.id,clipId:draft.target.clipId,pass:draft.target.pass,parent:draft.target.path})}/> : <p>{t.containerRemoved}</p>}
+      </>}
 
 
     </section> : <p className="px-3 py-2 text-xs text-slate-500">{c.select}</p>}
     {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
-    {saving && draft && lane && <SaveScopeDialog draft={draft} lane={lane} language={language} timing={arrangementTimings(sequencer)[lane.id]} onCancel={() => setSaving(false)} onSave={(scope, name) => { void stopEdit().then(() => attempt(() => { saveClipDraft(scope, name); setSaving(false); })).catch(e => setError(String(e))); }} />}
+
   </>;
 }

@@ -1,22 +1,23 @@
+import { affectedClipIds, definitionRelationships, effectiveScope, localLoopWindows, type EditScope } from "../../lib/clipArranger/relationships";
+import { EditScopeControls, EditScopeDialog, RelationshipSummary } from "./EditScopeControls";
+import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { sumPlans, offsetAt, type OffsetPlan } from '../../lib/clipArranger/transposition';
 import { copyNodes, nodeTicks } from '../../lib/clipArranger/timedStructure';
 import { structureDropLayout, structureInsertionAt, STRUCTURE_TREE_TOP, type StructureDropLayout } from '../../lib/clipArranger/structureHitTest';
-import { sourceKeys } from '../../lib/clipArranger/migration';
 import { structureCopy } from "./structureCopy";
 import { newStructurePattern } from "./ContentEditor";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { useStructureDraft } from '../../lib/clipArranger/structureStore';
 import type { GuiLanguage, SequencerState } from '../../types';
-import { type ContainerTarget, type StructureNode, type StructureSelection, type StructureCommand, applyStructure, isExpandedStructure, beginStructure, prepareStructure, stepStructure, structureChildren, structurePreview, type StructureDraft } from '../../lib/clipArranger/structure';
+import { type ContainerTarget, type StructureNode, type StructureSelection, type StructureCommand, applyStructure, structureDefinitionChanges, isExpandedStructure, beginStructure, prepareStructure, stepStructure, structureChildren, structurePreview, type StructureDraft } from '../../lib/clipArranger/structure';
 import type { ClipArrangement, LaneTiming, OccurrenceTarget } from '../../lib/clipArranger/model';
-import { ClipError, contentLength, resolveContent } from '../../lib/clipArranger/model';
+import { ClipError, contentLength } from '../../lib/clipArranger/model';
 import { useAppStore } from '../../store/useAppStore';
 import { hasChangedClipDrafts } from '../../lib/clipArranger/draftResolution';
 import { beginDraft } from '../../lib/clipArranger/operations';
 import { draftKey } from '../../lib/clipArranger/editorAdapter';
 import { affectedDraftKeys, rebaseStructure, remapStructureCommand } from '../../lib/clipArranger/structuralDraftResolution';
-import { SaveScopeDialog } from './SaveScopeDialog';
-import { commitClipArrangement, saveClipDraft } from '../../store/clipActions';
+import { commitClipArrangement, openClipEditor, saveClipDraftWithIntent, setClipEditIntent } from '../../store/clipActions';
 import { PatternPreview } from './PatternPreview';
 import { clipInput } from "./ClipArranger";
 import { clipButton, clipButtonClass } from "./buttonStyles";
@@ -25,16 +26,20 @@ import { clipCopy } from './copy';
 const equal=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b);
 export type StructureFocus = { laneId:string;clipId:string;pass:number;parent:string[] };
 export function useStructureEditor(model:ClipArrangement, sequencer:SequencerState, timings:LaneTiming, language:GuiLanguage, beforeSave:(()=>Promise<void>)|undefined, unit:number) {
- const draft=useStructureDraft(s=>s.draft), c=clipCopy(language), t=structureCopy(language);
+ const draft=useStructureDraft(s=>s.draft), c=clipCopy(language), t=structureCopy(language), sc=scopeCopy(language);
+ const scope=draft?.editIntent?.scope??'local';
+ const relationships=useMemo(()=>new Map(model.lanes.map(l=>[l.id,definitionRelationships(l,timings[l.id])])),[model,timings]);
+ const impact=useMemo(()=>draft?.cursor?structureDefinitionChanges(draft):null,[draft]);
+ const [pendingScope,setPendingScope]=useState<{next:StructureDraft;focus:StructureFocus;model:ClipArrangement;previous:StructureDraft|null;incompatible:boolean}|null>(null);
  const [focus,setFocus]=useState<StructureFocus|null>(null),[selection,setSelection]=useState<StructureSelection|null>(null);
- const [picker,setPicker]=useState<ContainerTarget|null>(null),[query,setQuery]=useState(''),[saving,setSaving]=useState(false),[scope,setScope]=useState<'local'|'all'>('local');
+ const [picker,setPicker]=useState<ContainerTarget|null>(null),[query,setQuery]=useState('');
  const [menu,setMenu]=useState<{x:number;y:number}|null>(null),[ghost,setGhost]=useState<{x:number;y:number;count:number}|null>(null);
  const [groupName,setGroupName]=useState('');
  const [resizeFeedback,setResizeFeedback]=useState<string|null>(null);
  const [previewDraft,setPreviewDraft]=useState<StructureDraft|null>(null);
  const [error,setError]=useState<string|null>(null),[pending,setPending]=useState<((model?:ClipArrangement,draft?:StructureDraft,paths?:{before:string[];after:string[]}[])=>void)|null>(null);
  const [musical,setMusical]=useState<{key:string;resume:(before:ClipArrangement,after:ClipArrangement)=>void}|null>(null);
- const [musicalSaving,setMusicalSaving]=useState(false),[busy,setBusy]=useState(false);
+ const [busy,setBusy]=useState(false);
  const musicalDialog=useRef<HTMLDialogElement>(null);
  const generation=useAppStore(s=>s.performanceWorkspaceGeneration);
  const suppressClick=useRef(false);
@@ -42,13 +47,19 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const scrollFrame=useRef<number|null>(null);
  const [drop,setDrop]=useState<{focus:StructureFocus;target:ContainerTarget;screenX?:number;screenY?:number}|null>(null);
  const dialog=useRef<HTMLDialogElement>(null);
- useEffect(()=>{setFocus(null);setSelection(null);setPicker(null);setSaving(false);setMusical(null);setMusicalSaving(false);setPending(null);},[generation]);
- useEffect(()=>{if(musical&&!musicalSaving)musicalDialog.current?.showModal?.();},[musical,musicalSaving]);
- useEffect(()=>{if(picker||saving||pending)dialog.current?.showModal?.();else dialog.current?.close?.();},[picker,saving,pending]);
+ useEffect(()=>{setFocus(null);setSelection(null);setPicker(null);setMusical(null);setPending(null);setPendingScope(null);},[generation]);
+ useEffect(()=>{if(musical)musicalDialog.current?.showModal?.();},[musical]);
+ useEffect(()=>{if(picker||pending)dialog.current?.showModal?.();else dialog.current?.close?.();},[picker,pending]);
  useEffect(()=>{setSelection(null);cancelDrag();},[model.revision]);
- const discard=()=>{useStructureDraft.setState({draft:null});setSelection(null);setSaving(false);};
+ const discard=()=>{
+  const state=useAppStore.getState(),target=useStructureDraft.getState().draft?.editorTarget;
+  if(target){const key=draftKey({target}),clipDrafts={...state.clipDrafts};delete clipDrafts[key];useAppStore.setState({clipDrafts,clipEditingKey:state.clipEditingKey===key?null:state.clipEditingKey});}
+  useStructureDraft.setState({draft:null});setSelection(null);setPendingScope(null);
+ };
  const guard=(action:(model?:ClipArrangement,draft?:StructureDraft,paths?:{before:string[];after:string[]}[])=>void)=>{if(draft?.cursor){setPending(()=>action);return;} useStructureDraft.setState({draft:null});action();};
- const guardEdit=(requested:OccurrenceTarget,action:(target:OccurrenceTarget)=>void)=>guard((saved,structural,paths)=>{
+ const guardEdit=(requested:OccurrenceTarget,action:(target:OccurrenceTarget)=>void)=>{
+  if(draft?.editorTarget&&equal(requested,draft.editorTarget)){action(requested);return;}
+  guard((saved,structural,paths)=>{
   try {
    if(saved&&structural&&requested.laneId===structural.laneId&&requested.clipId===structural.clipId&&requested.pass===structural.pass){
     if(isExpandedStructure(structural)){
@@ -64,6 +75,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    }else action(requested);
   }catch(e){setError(String(e));}
  });
+ };
  const target=(f:StructureFocus)=>{
   const draft=useStructureDraft.getState().draft;
   if(draft && (draft.laneId!==f.laneId||draft.clipId!==f.clipId||draft.pass!==f.pass)) throw Error('Save or discard the current structure first.');
@@ -73,7 +85,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
   const state=useAppStore.getState();
   return keys.filter(key=>state.clipDrafts[key]&&hasChangedClipDrafts(state.sequencer.clipArrangement,{[key]:state.clipDrafts[key]}));
  };
- const resolveMusical=(key:string,resume:(before:ClipArrangement,after:ClipArrangement)=>void)=>{setError(null);setMusicalSaving(false);setMusical({key,resume});};
+ const resolveMusical=(key:string,resume:(before:ClipArrangement,after:ClipArrangement)=>void)=>{setError(null);setMusical({key,resume});};
  const run=(command:StructureCommand,f=focus)=>{
   if(!f)return;setMenu(null);
   try {
@@ -89,13 +101,22 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
      if(mapped.kind==='rest')run(remapStructureCommand(command,base.roots,next.roots),{...f,laneId:next.laneId,clipId:next.clipId,pass:next.pass,parent:mapped.target.path});
     });return;
    }
-   const next=applyStructure(base,command,timings,state.sequencer.clipArrangement!);
+   let next=applyStructure(base,command,timings,state.sequencer.clipArrangement!);
+   if(next===base)return;
+   const changes=structureDefinitionChanges(next);
+   const shared=changes.definitions.some(d=>relationships.get(f.laneId)?.get(d.id)?.shared);
+   const intent=base.editIntent;
+   const incompatible=!!intent?.explicit&&intent.scope==='all'&&changes.localOnly;
+   if(incompatible || !intent?.explicit && shared) {
+    setPendingScope({next,focus:f,model:state.sequencer.clipArrangement!,previous:useStructureDraft.getState().draft,incompatible});setError(null);return;
+   }
+   next={...next,editIntent:intent?.explicit?intent:{scope:changes.localOnly?'local':'all',explicit:false}};
    if(command.kind==='groupRepetitions')prepareStructure(state.sequencer.clipArrangement!,next,'local',timings);
    if(command.kind==='duplicate')try{prepareStructure(state.sequencer.clipArrangement!,next,'local',timings);}catch(e){if(!(e instanceof ClipError&&e.code==='collision'))throw e;}
    useStructureDraft.setState({draft:next});setFocus({...f,pass:next.pass});setError(null);setSelection(null);
   }catch(e){setError(String(e));}
  };
- const finishMusical=async(choice:'discard'|'local'|'all',name?:string)=>{
+ const finishMusical=async(choice:'discard'|'save')=>{
   if(!musical||busy)return;setBusy(true);
   const pending=musical, before=useAppStore.getState();
   try {
@@ -104,8 +125,8 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    if(choice==='discard'){
     const state=useAppStore.getState(),drafts={...state.clipDrafts};delete drafts[pending.key];
     useAppStore.setState({clipDrafts:drafts,clipEditingKey:state.clipEditingKey===pending.key?null:state.clipEditingKey});
-   }else saveClipDraft(choice,name??before.clipDrafts[pending.key].definition.name,pending.key);
-   setMusical(null);setMusicalSaving(false);setError(null);
+   }else saveClipDraftWithIntent(pending.key);
+   setMusical(null);setError(null);
    pending.resume(before.sequencer.clipArrangement!,useAppStore.getState().sequencer.clipArrangement!);
   }catch(e){setError(String(e));}finally{setBusy(false);}
  };
@@ -264,7 +285,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  };
 
  const remove=(f=focus,id?:string)=>{if(!f||spansPasses)return;const ids=selection&&equal(f,focus)&&(!id||selection.ids.includes(id))?selection.ids:id?[id]:[];if(ids.length)run({kind:'remove',parent:f.parent,ids},f);};
- const openSave=()=>{setScope('local');setSaving(true);setPicker(null);};
+ const openSave=()=>{setPicker(null);void submit();};
  const boundary=(f:StructureFocus,index:number)=>{const data={focus:f,target:{path:f.parent,index}};return <button type="button" key={`insert-${index}`} data-structure-target={JSON.stringify(data)} aria-label={`${t.add} ${index+1}`} title={`${t.add} ${index+1}`} onPointerDown={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();add(f,index);}} className={`relative z-20 flex h-[15px] w-[21px] shrink-0 items-center justify-center rounded border text-[13.5px] font-semibold leading-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200 ${equal(drop,data)?'border-cyan-200 bg-cyan-300 text-slate-950':'border-emerald-400/55 bg-emerald-950 text-emerald-300 hover:bg-emerald-900'}`}>+{equal(drop,data)&&<span className="pointer-events-none absolute left-0 top-0 h-24 border-l-2 border-cyan-200"/>}</button>;};
  const source=focus?model.lanes.find(l=>l.id===focus.laneId):undefined;
  const focusedLane=focus?.laneId,focusedClip=focus?.clipId,focusedPass=focus?.pass??0;
@@ -331,12 +352,14 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
   return names.join(' / ');
  };
  const submit=async()=>{
-  const draft=useStructureDraft.getState().draft;if(!draft||busy)return;
+  const draft=useStructureDraft.getState().draft;if(!draft?.cursor||busy)return;
   try{
    const state=useAppStore.getState(),model=state.sequencer.clipArrangement!;
-   const result=prepareStructure(model,draft,scope,timings);
+   const changes=structureDefinitionChanges(draft);
+   if(!draft.editIntent?.scope || !draft.editIntent.explicit && changes.definitions.some(d=>definitionRelationships(draft.basis,timings[draft.laneId]).get(d.id)?.shared))throw Error(sc.scopeChanged);
+   const result=prepareStructure(model,draft,draft.editIntent.scope,timings);
    const affected=affectedDraftKeys(model,result.model,state.clipDrafts),conflicting=dirtyKeys(affected);
-   if(conflicting.length){resolveMusical(conflicting[0],()=>setSaving(true));return;}
+   if(conflicting.length){resolveMusical(conflicting[0],()=>void submit());return;}
    setBusy(true);await beforeSave?.();
    if(useAppStore.getState().sequencer.clipArrangement!==model)throw Error(t.changed);
    const retained={...useAppStore.getState().clipDrafts};let editingKey=state.clipEditingKey;
@@ -347,20 +370,43 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  };
  const conflictDraft=musical?useAppStore.getState().clipDrafts[musical.key]:undefined;
  const conflictLane=conflictDraft?model.lanes.find(l=>l.id===conflictDraft.target.laneId):undefined;
- const conflictModal=musical&&conflictDraft&&conflictLane?(musicalSaving?
-  <SaveScopeDialog draft={conflictDraft} lane={conflictLane} language={language} timing={timings[conflictLane.id]} error={error} busy={busy} onCancel={()=>{setMusicalSaving(false);setError(null);}} onSave={(scope,name)=>void finishMusical(scope,name)}/>:
-  <dialog ref={musicalDialog} aria-label={t.musicalConflict} onCancel={e=>{e.preventDefault();if(!busy)setMusical(null);}} className="max-w-lg space-y-4 rounded-xl border border-slate-600 bg-slate-900 p-5 text-slate-200 backdrop:bg-black/70">
-   <h3>{t.musicalConflict}</h3><p>{t.resolveMusical}</p><p>{sequencer[sourceKeys[conflictLane.source]].find(track=>track.id===conflictLane.id)?.name??conflictLane.id} / {conflictLane.clips.find(c=>c.id===conflictDraft.target.clipId)?.name} / {conflictDraft.definition.name}</p>
-   {error&&<p role="alert">{error}</p>}<div className="flex gap-2"><button disabled={busy} className={clipButtonClass("save")} onClick={()=>setMusicalSaving(true)}>{c.save}</button><button disabled={busy} className={clipButtonClass("remove")} onClick={()=>void finishMusical('discard')}>{t.discard}</button><button disabled={busy} className={clipButton} onClick={()=>setMusical(null)}>{c.cancel}</button></div>
-  </dialog>):null;
- let preview:ReturnType<typeof prepareStructure>|null=null,saveError='';if(saving&&draft)try{preview=prepareStructure(model,draft,scope,timings);}catch(e){saveError=String(e);}
- let allIssue='';if(saving&&draft)try{if(!prepareStructure(model,draft,'all',timings).shared)allIssue=t.root;}catch(e){allIssue=draft&&isExpandedStructure(draft)?t.localRepetitions:String(e);}
- const modal=<dialog ref={dialog} aria-label={saving?t.save:pending?t.unsaved:t.add} onCancel={e=>{e.preventDefault();if(busy)return;setSaving(false);setPicker(null);setPending(null);}} className="max-h-[80vh] w-[min(95vw,620px)] overflow-auto rounded-xl border border-slate-600 bg-slate-900 p-4 text-sm text-slate-200 backdrop:bg-black/60">
- {pending&&!saving?<><p>{t.resolve}</p><button className={clipButtonClass("save")} onClick={openSave}>{t.save}</button><button className={clipButtonClass("remove")} onClick={()=>{const next=pending;discard();setPending(null);setFocus(null);next();}}>{t.discard}</button><button className={clipButton} onClick={()=>setPending(null)}>{c.cancel}</button></>:saving?<><h3>{t.save}</h3><label className="block"><input type="radio" checked={scope==='local'} onChange={()=>setScope('local')}/>{c.local}</label>{(!draft||!isExpandedStructure(draft))&&<label className="block"><input type="radio" disabled={!!allIssue} checked={scope==='all'} onChange={()=>setScope('all')}/>{c.all}</label>}{allIssue&&<p>{allIssue}</p>}{preview&&draft&&<ul>{preview.model.lanes.find(l=>l.id===draft.laneId)?.definitions.filter(d=>JSON.stringify(d)!==JSON.stringify(draft.basis.definitions.find(old=>old.id===d.id))).map(d=><li key={d.id}>{d.name} · {c[d.kind]}</li>)}{draft.basis.clips.filter(old=>!preview.model.lanes.find(l=>l.id===draft.laneId)?.clips.some(cl=>cl.id===old.id)).map(old=><li key={old.id}>{c.remove}: {old.name}</li>)}</ul>}{preview&&draft&&preview.model.lanes.find(l=>l.id===draft.laneId)?.clips.map(cl=>{
- const old=draft.basis.clips.find(x=>x.id===cl.id),lane=preview!.model.lanes.find(l=>l.id===draft.laneId)!;
- const changed=!old||cl.length!==old.length||cl.start!==old.start||!equal(resolveContent(draft.basis,old.children,timings[lane.id]),resolveContent(lane,cl.children,timings[lane.id]));
- return changed?<p key={cl.id}>{cl.name} · {c.start}: {cl.start/20160} · {c.length}: {old?`${old.length/20160} → `:''}{cl.length/20160} {c.beats}</p>:null;
- })}{saveError&&<p role="alert">{saveError}</p>}<button disabled={busy||!preview||(scope==='all'&&!!allIssue)} className={clipButtonClass("save")} onClick={submit}>{c.save}</button><button disabled={busy} className={clipButton} onClick={()=>setSaving(false)}>{c.cancel}</button></>:picker&&source?<>{picker.ticks!==undefined&&<p className="mb-2 text-cyan-200">{t.insert}: {picker.ticks/20160} {c.beats} · {containerLabel(picker.path)}</p>}<input aria-label={t.search} placeholder={t.search} className={`${clipInput} !w-full`} value={query} onChange={e=>setQuery(e.target.value)}/>{source.definitions.filter(d=>{const parent=picker.path.length?structureChildren(roots,picker.path.slice(0,-1)).find(n=>n.id===picker.path[picker.path.length-1]):null;return !parent||d.kind==='pattern'||parent.definition?.kind==='supergroup'&&d.kind==='group';}).filter(d=>d.name.toLowerCase().includes(query.toLowerCase())).map(d=><div key={d.id} className="my-2 rounded border border-slate-700 p-2"><span>{d.name} · {c[d.kind]} · {contentLength(source,[{id:'preview',definitionId:d.id}],timings[source.id])/20160} {c.beats}</span>{d.kind==='pattern'&&<PatternPreview definition={d} timing={timings[source.id]} controllerMode={sequencer.controllerSequencers.find(t=>t.id===source.id)?.controllerMode}/>}<button className={clipButtonClass("add")} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:false});setPicker(null);}}>{c.addContent}</button><button className={clipButtonClass("add")} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:true});setPicker(null);}}>{c.copy}</button></div>)}<button className={clipButtonClass("add")} onClick={()=>{run({kind:'insert',target:picker,definition:newStructurePattern(source,sequencer,language),variation:false});setPicker(null);}}>{c.newPattern}</button><button className={clipButtonClass("add")} onClick={()=>{run({kind:'rest',target:picker,ticks:20160});setPicker(null);}}>{c.rest} +1</button><button className={clipButton} onClick={()=>setPicker(null)}>{c.cancel}</button></>:null}</dialog>;
- const toolbar=<>{drop&&ghost&&<div aria-hidden className="pointer-events-none fixed z-50 h-16 border-l-2 border-cyan-300" style={{left:drop.screenX??ghost.x-12,top:drop.screenY??ghost.y-12}}/>}{resizeFeedback&&<p role="status" className="text-cyan-300">{resizeFeedback}</p>}{ghost&&<div className="pointer-events-none fixed z-50 rounded border border-cyan-300 bg-slate-900 px-3 py-2 text-xs text-cyan-100" style={{left:ghost.x,top:ghost.y}}>{ghost.count} · {c.content}</div>}{menu&&<div role="menu" className="fixed z-50 flex gap-2 rounded border border-slate-500 bg-slate-900 p-2" style={{left:menu.x,top:menu.y}}><button role="menuitem" className={clipButtonClass("remove")} disabled={!selection||spansPasses} onClick={()=>remove()}>{t.remove}</button><button role="menuitem" disabled={!canGroup('group')} className={clipButtonClass("add")} onClick={()=>group('group')}>{c.group}</button><button role="menuitem" disabled={!canGroup('supergroup')} className={clipButtonClass("add")} onClick={()=>group('supergroup')}>{c.supergroup}</button>{canUngroup&&<button role="menuitem" className={clipButtonClass("edit")} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button>}<button role="menuitem" className={clipButtonClass("add")} disabled={!canDuplicate} onClick={duplicate}>{t.duplicate}</button><button role="menuitem" className={clipButtonClass("add")} onClick={()=>{setMenu(null);if(focus)add(focus,items.length);}}>{c.addContent}</button></div>}<div className="my-2 flex flex-wrap items-center gap-2 text-xs text-slate-200">{focus&&<><input aria-label={c.name} placeholder={c.name} value={groupName} onChange={e=>setGroupName(e.target.value)} className={clipInput}/><button className={clipButtonClass("add")} onClick={()=>add(focus,items.length)}>{t.add}</button><button disabled={!selection||spansPasses} className={clipButtonClass("remove")} onClick={()=>remove()}>{t.remove}</button><button disabled={!canGroup('group')} className={clipButtonClass("add")} onClick={()=>group('group')}>{c.group}</button><button disabled={!canGroup('supergroup')} className={clipButtonClass("add")} onClick={()=>group('supergroup')}>{c.supergroup}</button>{canUngroup&&<button className={clipButtonClass("edit")} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button>}<button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(-1)}>←</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(1)}>→</button><select disabled={spansPasses} aria-label={t.move} className={clipInput} value="" onChange={e=>{const dest=destinations[Number(e.target.value)];if(selection)run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:dest.path,index:dest.length}});}}><option value="">{t.move}</option>{destinations.map((d,i)=><option key={i} value={i}>{d.label}</option>)}</select></>}{draft&&<><span className="text-amber-300">{c.unsaved}</span><button className={clipButtonClass("edit")} disabled={!draft.cursor} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,-1)})}>{c.undo}</button><button className={clipButtonClass("edit")} disabled={draft.cursor===draft.history.length-1} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,1)})}>{c.redo}</button><button className={clipButtonClass("save")} disabled={!draft.cursor} onClick={openSave}>{t.save}</button><button className={clipButtonClass("remove")} onClick={discard}>{t.discard}</button></>}</div>{error&&<p role="alert" className="text-rose-300">{error}</p>}{drop&&<p className="text-cyan-300">{t.insert} {drop.target.ticks!==undefined?`${drop.target.ticks/20160} ${c.beats}`:drop.target.index+1} · {containerLabel(drop.target.path)}</p>}{modal}{conflictModal}</>;
- return {startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number)=>{if(!isSelected(f,id))select(f,id,false);setMenu({x,y});},focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current||resizing.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
+ const conflictRelationship=conflictDraft?relationships.get(conflictDraft.target.laneId)?.get(conflictDraft.definition.id):undefined;
+ const conflictScope=effectiveScope(conflictDraft?.editIntent,conflictRelationship);
+ const conflictModal=musical&&conflictDraft&&conflictLane?<dialog ref={musicalDialog} aria-label={t.musicalConflict} onCancel={e=>{e.preventDefault();if(!busy)setMusical(null);}} className="max-w-lg space-y-4 rounded-xl border border-slate-600 bg-slate-900 p-4 text-slate-200 backdrop:bg-black/70">
+   <h3>{t.musicalConflict}</h3><p>{t.resolveMusical}</p><p>{conflictDraft.definition.name}</p>
+   {!conflictScope&&<EditScopeControls language={language} scope={null} relationship={conflictRelationship} onChoose={scope=>setClipEditIntent(scope,undefined,musical.key)}/>}
+   {error&&<p role="alert">{error}</p>}<div className="flex gap-2"><button disabled={busy||!conflictScope} className={clipButtonClass("save")} onClick={()=>void finishMusical('save')}>{conflictScope==='local'?sc.saveLocal:sc.saveAll}</button><button disabled={busy} className={clipButtonClass("remove")} onClick={()=>void finishMusical('discard')}>{t.discard}</button><button disabled={busy} className={clipButton} onClick={()=>setMusical(null)}>{c.cancel}</button></div>
+  </dialog>:null;
+ const chooseStructureScope=(scope:EditScope,variationName?:string)=>{
+  const current=useStructureDraft.getState().draft;
+  if(!current)return;
+  useStructureDraft.setState({draft:{...current,editIntent:{...current.editIntent,scope,explicit:true,...(variationName!==undefined?{variationName}:{})}}});
+ };
+ const acceptPendingScope=(scope:EditScope)=>{
+  if(!pendingScope)return;
+  if(useAppStore.getState().sequencer.clipArrangement!==pendingScope.model || useStructureDraft.getState().draft!==pendingScope.previous){setError(t.changed);setPendingScope(null);return;}
+  const next={...pendingScope.next,editIntent:{...pendingScope.next.editIntent,scope,explicit:true}};
+  useStructureDraft.setState({draft:next});setFocus({...pendingScope.focus,pass:next.pass});setSelection(null);setPendingScope(null);setError(null);
+ };
+ const scopeModal=pendingScope?<EditScopeDialog language={language} onCancel={()=>setPendingScope(null)}>
+   <p>{pendingScope.incompatible?sc.incompatible:sc.pending}</p>
+   <EditScopeControls language={language} kind="structure" scope={null} localOnly={pendingScope.incompatible} repeat={!isExpandedStructure(pendingScope.next)&&pendingScope.next.basis.clips.find(c=>c.id===pendingScope.next.clipId)?.mode==='loop'} splitWindows={localLoopWindows(pendingScope.next.basis,pendingScope.next.clipId,pendingScope.next.pass,timings[pendingScope.next.laneId])} onChoose={acceptPendingScope}>
+    <p>{sc.effects}: {structureDefinitionChanges(pendingScope.next).definitions.map(d=>d.name).join(', ')||c.content} · {affectedClipIds(relationships.get(pendingScope.next.laneId),structureDefinitionChanges(pendingScope.next).definitions).length||1} {sc.clips}</p>
+   </EditScopeControls>
+  </EditScopeDialog>:null;
+ const currentEditor=useAppStore(s=>s.clipEditingKey?s.clipDrafts[s.clipEditingKey]:undefined);
+ const containerEditing=currentEditor&&currentEditor.definition.kind!=='pattern'&&currentEditor.target.laneId===draft?.laneId&&currentEditor.target.clipId===draft?.clipId;
+ const scopeControls=draft?<EditScopeControls language={language} kind={containerEditing?currentEditor.definition.kind:'structure'} relationship={containerEditing?relationships.get(draft.laneId)?.get(currentEditor.definition.id):undefined} scope={draft.editIntent?.scope??null} localOnly={!!impact?.localOnly} repeat={!isExpandedStructure(draft)&&draft.basis.clips.find(c=>c.id===draft.clipId)?.mode==='loop'} splitWindows={localLoopWindows(draft.basis,draft.clipId,draft.pass,timings[draft.laneId])} onChoose={chooseStructureScope} variationName={draft.editIntent?.variationName} onNameChange={containerEditing?name=>chooseStructureScope('local',name):undefined}>
+   {impact&&<p>{sc.effects}: {impact.definitions.map(d=>d.name).join(', ')||c.content} · {scope==='local'?1:affectedClipIds(relationships.get(draft.laneId),impact.definitions).length||1} {sc.clips}</p>}
+  </EditScopeControls>:null;
+ const preview=useMemo(()=>{if(!draft?.cursor||!draft.editIntent?.scope)return {result:null,error:''};try{return {result:prepareStructure(model,draft,draft.editIntent.scope,timings),error:''};}catch(e){return {result:null,error:String(e)};}},[model,draft,timings]);
+ const modal=<dialog ref={dialog} aria-label={pending?t.unsaved:t.add} onCancel={e=>{e.preventDefault();if(busy)return;setPicker(null);setPending(null);}} className="max-h-[80vh] w-[min(95vw,620px)] overflow-auto rounded-xl border border-slate-600 bg-slate-900 p-4 text-sm text-slate-200 backdrop:bg-black/60">
+ {pending?<><p>{t.resolve}</p><button className={clipButtonClass("save")} onClick={openSave}>{t.save}</button><button className={clipButtonClass("remove")} onClick={()=>{const next=pending;discard();setPending(null);setFocus(null);next();}}>{t.discard}</button><button className={clipButton} onClick={()=>setPending(null)}>{c.cancel}</button></>:picker&&source?<>{picker.ticks!==undefined&&<p className="mb-2 text-cyan-200">{t.insert}: {picker.ticks/20160} {c.beats} · {containerLabel(picker.path)}</p>}<input aria-label={t.search} placeholder={t.search} className={`${clipInput} !w-full`} value={query} onChange={e=>setQuery(e.target.value)}/>{source.definitions.filter(d=>{const parent=picker.path.length?structureChildren(roots,picker.path.slice(0,-1)).find(n=>n.id===picker.path[picker.path.length-1]):null;return !parent||d.kind==='pattern'||parent.definition?.kind==='supergroup'&&d.kind==='group';}).filter(d=>d.name.toLowerCase().includes(query.toLowerCase())).map(d=><div key={d.id} className="my-2 rounded border border-slate-700 p-2"><span>{d.name} · {c[d.kind]} · {contentLength(source,[{id:'preview',definitionId:d.id}],timings[source.id])/20160} {c.beats}</span>{d.kind==='pattern'&&<PatternPreview definition={d} timing={timings[source.id]} controllerMode={sequencer.controllerSequencers.find(t=>t.id===source.id)?.controllerMode}/>}<button className={clipButtonClass("add")} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:false});setPicker(null);}}>{c.addContent}</button><button className={clipButtonClass("add")} onClick={()=>{run({kind:'insert',target:picker,definition:d,variation:true});setPicker(null);}}>{c.copy}</button></div>)}<button className={clipButtonClass("add")} onClick={()=>{run({kind:'insert',target:picker,definition:newStructurePattern(source,sequencer,language),variation:false});setPicker(null);}}>{c.newPattern}</button><button className={clipButtonClass("add")} onClick={()=>{run({kind:'rest',target:picker,ticks:20160});setPicker(null);}}>{c.rest} +1</button><button className={clipButton} onClick={()=>setPicker(null)}>{c.cancel}</button></>:null}</dialog>;
+ const selectedDefinition=selectionSize===1&&!spansPasses?selectedNodes[0]?.definition:undefined;
+ const selectedTarget=selectedDefinition&&focus&&selection?{laneId:focus.laneId,clipId:focus.clipId,pass:focus.pass,path:[...selection.parent,selectedNodes[0].id]}:undefined;
+ const selectedRelationship=selectedDefinition&&focus?relationships.get(focus.laneId)?.get(selectedDefinition.id):undefined;
+ const editSelected=(scope:EditScope)=>{if(selectedTarget)guardEdit(selectedTarget,target=>openClipEditor(target,scope));setMenu(null);};
+ const editButtons=(menu=false)=><><button role={menu?"menuitem":undefined} disabled={!selectedDefinition} className={clipButtonClass('edit')} onClick={()=>editSelected('all')}>{selectedDefinition?sc[selectedDefinition.kind]:c.edit}{selectedRelationship?` (${selectedRelationship.occurrences})`:''}</button><button role={menu?"menuitem":undefined} disabled={!selectedDefinition||!selectedRelationship?.shared} className={clipButtonClass('add')} onClick={()=>editSelected('local')}>{sc.variation}</button></>;
+ const toolbar=<>{drop&&ghost&&<div aria-hidden className="pointer-events-none fixed z-50 h-16 border-l-2 border-cyan-300" style={{left:drop.screenX??ghost.x-12,top:drop.screenY??ghost.y-12}}/>}{resizeFeedback&&<p role="status" className="text-cyan-300">{resizeFeedback}</p>}{ghost&&<div className="pointer-events-none fixed z-50 rounded border border-cyan-300 bg-slate-900 px-3 py-2 text-xs text-cyan-100" style={{left:ghost.x,top:ghost.y}}>{ghost.count} · {c.content}</div>}{menu&&<div role="menu" className="fixed z-50 flex gap-2 rounded border border-slate-500 bg-slate-900 p-2" style={{left:menu.x,top:menu.y}}>{editButtons(true)}<button role="menuitem" className={clipButtonClass("remove")} disabled={!selection||spansPasses} onClick={()=>remove()}>{t.remove}</button><button role="menuitem" disabled={!canGroup('group')} className={clipButtonClass("add")} onClick={()=>group('group')}>{c.group}</button><button role="menuitem" disabled={!canGroup('supergroup')} className={clipButtonClass("add")} onClick={()=>group('supergroup')}>{c.supergroup}</button>{canUngroup&&<button role="menuitem" className={clipButtonClass("edit")} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button>}<button role="menuitem" className={clipButtonClass("add")} disabled={!canDuplicate} onClick={duplicate}>{t.duplicate}</button><button role="menuitem" className={clipButtonClass("add")} onClick={()=>{setMenu(null);if(focus)add(focus,items.length);}}>{c.addContent}</button></div>}<div className="my-2 flex flex-wrap items-center gap-2 text-xs text-slate-200">{focus&&<>{editButtons()}{selectedDefinition&&<span>{selectedDefinition.name} · <RelationshipSummary relationship={selectedRelationship} language={language}/></span>}<input aria-label={c.name} placeholder={c.name} value={groupName} onChange={e=>setGroupName(e.target.value)} className={clipInput}/><button className={clipButtonClass("add")} onClick={()=>add(focus,items.length)}>{t.add}</button><button disabled={!selection||spansPasses} className={clipButtonClass("remove")} onClick={()=>remove()}>{t.remove}</button><button disabled={!canGroup('group')} className={clipButtonClass("add")} onClick={()=>group('group')}>{c.group}</button><button disabled={!canGroup('supergroup')} className={clipButtonClass("add")} onClick={()=>group('supergroup')}>{c.supergroup}</button>{canUngroup&&<button className={clipButtonClass("edit")} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button>}<button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(-1)}>←</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(1)}>→</button><select disabled={spansPasses} aria-label={t.move} className={clipInput} value="" onChange={e=>{const dest=destinations[Number(e.target.value)];if(selection)run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:dest.path,index:dest.length}});}}><option value="">{t.move}</option>{destinations.map((d,i)=><option key={i} value={i}>{d.label}</option>)}</select></>}{draft&&<><span className="text-amber-300">{draft.cursor?c.unsaved:c.saved}</span><button className={clipButtonClass("edit")} disabled={!draft.cursor} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,-1)})}>{c.undo}</button><button className={clipButtonClass("edit")} disabled={draft.cursor===draft.history.length-1} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,1)})}>{c.redo}</button><button className={clipButtonClass("save")} disabled={!draft.cursor||!preview.result||busy} onClick={openSave}>{scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button><button className={clipButtonClass("remove")} onClick={discard}>{t.discard}</button></>}</div>{error&&<p role="alert" className="text-rose-300">{error}</p>}{drop&&<p className="text-cyan-300">{t.insert} {drop.target.ticks!==undefined?`${drop.target.ticks/20160} ${c.beats}`:drop.target.index+1} · {containerLabel(drop.target.path)}</p>}{!containerEditing&&scopeControls}{preview.error&&<p role="alert" className="text-rose-300">{preview.error}</p>}{preview.result&&draft&&<p className="text-xs text-slate-400">{sc.effects}: {preview.result.model.lanes.find(l=>l.id===draft.laneId)?.clips.filter(cl=>!equal(cl,draft.basis.clips.find(old=>old.id===cl.id))||scope==='all'&&affectedClipIds(relationships.get(draft.laneId),impact?.definitions??[]).includes(cl.id)).map(cl=>`${cl.name} (${cl.start/20160}–${(cl.start+cl.length)/20160})`).join(", ")}</p>}{modal}{conflictModal}{scopeModal}</>;
+ return {canSave:!!draft?.cursor&&!!preview.result&&!busy,scopeControls,selectedDefinition,selectedTarget,relationships,startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number)=>{if(!isSelected(f,id))select(f,id,false);setMenu({x,y});},focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current||resizing.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
 }

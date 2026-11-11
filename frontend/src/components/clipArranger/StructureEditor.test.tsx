@@ -1,3 +1,4 @@
+import { chooseStructureScope, structureSaveButton } from './scope.testHelpers';
 import { useStructureEditor } from './StructureEditor';
 import { clipHistoryStep } from "../../store/clipActions";
 import fixture from "../../../../backend/tests/fixtures/performances/device_names.json";
@@ -38,16 +39,12 @@ it.each(([{source:'sequencer'},{source:'score'},{source:'drummer'},{source:'cont
  fireEvent.click(screen.getByRole('button',{name:'Group'}));
  expect(useAppStore.getState().sequencer).toBe(before);
  expect(useStructureDraft.getState().draft?.roots[0].definition?.name).toBe('Phrase');
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));
- fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
+ fireEvent.click(structureSaveButton());
  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  expect(useAppStore.getState().sequencer.clipArrangement!.lanes.find(l=>l.id===lane.id)!.clips[0].children).toHaveLength(1);
  const reordered=screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
  fireEvent.click(reordered[1]);fireEvent.click(screen.getByRole('button',{name:'←'}));
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));
- const dialog=within(screen.getByRole('dialog',{name:'Save structure'}));
- fireEvent.click(dialog.getByRole('radio',{name:scope==='all'?'All linked occurrences':'Only this occurrence'}));
- fireEvent.click(dialog.getByRole('button',{name:'Save'}));
+ chooseStructureScope(scope);fireEvent.click(structureSaveButton());
  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  const saved=structuredClone(useAppStore.getState().sequencer.clipArrangement);
  const snapshot=JSON.parse(JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()));
@@ -69,10 +66,7 @@ it.each([0,1,2].flatMap(depth=>(depth?['local','all']:['local']).map(scope=>({de
  const buttons=screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
  fireEvent.click(buttons[0]);fireEvent.click(screen.getByRole('button',{name:'Remove selected'}));
  expect(useAppStore.getState().sequencer).toBe(original);
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));
- const dialog=within(screen.getByRole('dialog',{name:'Save structure'}));
- if(scope==='all')fireEvent.click(dialog.getByRole('radio',{name:'All linked occurrences'}));
- fireEvent.click(dialog.getByRole('button',{name:'Save'}));await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ chooseStructureScope(scope);fireEvent.click(structureSaveButton());await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  const snapshot=JSON.parse(JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()));
  act(()=>useAppStore.getState().applySequencerConfigSnapshot(snapshot));
  const saved=useAppStore.getState().sequencer.clipArrangement!.lanes[0];
@@ -86,7 +80,7 @@ it('removes the last item without closing surrounding time and retains undo',asy
  fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
  const item=screen.getAllByRole('button').find(b=>b.title.startsWith('pattern:'))!;
  fireEvent.click(item);fireEvent.keyDown(item,{key:'Delete'});
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
+ fireEvent.click(structureSaveButton());
  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips).toEqual([]);
  expect(useAppStore.getState().sequencer.clipArrangement!.end).toBe(s.clipArrangement!.end);
@@ -109,9 +103,8 @@ it.each(['local','all'] as const)('moves between linked groups with pointer inpu
  const dest=Array.from(document.querySelectorAll<HTMLElement>('[data-structure-target]')).find(n=>{const d=JSON.parse(n.dataset.structureTarget!);return d.focus.parent.join()==='right-use'&&d.target.index===1;})!;
  Object.defineProperty(document,'elementFromPoint',{value:vi.fn(()=>dest),configurable:true});
  fireEvent.pointerDown(source,{button:0,clientX:0,clientY:0});fireEvent.pointerMove(source,{clientX:100,clientY:10});fireEvent.pointerUp(source,{clientX:100,clientY:10});
- expect(useStructureDraft.getState().draft?.roots.map(n=>n.children!.length)).toEqual([2,2]);
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));const dialog=within(screen.getByRole('dialog',{name:'Save structure'}));
- fireEvent.click(dialog.getByRole('radio',{name:scope==='all'?'All linked occurrences':'Only this occurrence'}));fireEvent.click(dialog.getByRole('button',{name:'Save'}));await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ chooseStructureScope(scope);expect(useStructureDraft.getState().draft?.roots.map(n=>n.children!.length)).toEqual([2,2]);
+ chooseStructureScope(scope);fireEvent.click(structureSaveButton());await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  act(()=>useAppStore.getState().applySequencerConfigSnapshot(JSON.parse(JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()))));
  const saved=useAppStore.getState().sequencer.clipArrangement!.lanes[0];
  const counts=(index:number)=>saved.clips[index].children.map(i=>{const d=saved.definitions.find(d=>'definitionId' in i&&d.id===i.definitionId)!;return d.kind==='pattern'?0:d.children.length;});
@@ -164,7 +157,7 @@ it.each(['pattern', 'group', 'supergroup'] as const)('selects adjacent %s boxes 
   fireEvent.click(button,{shiftKey});
  };
  click(buttons[0]); click(buttons[1],true);
- const selected = () => buttons.filter(b=>(b.closest('[data-structure-node]') as HTMLElement).style.outline);
+ const selected = () => buttons.filter(b=>(b.closest('[data-structure-node]') as HTMLElement).style.outline.startsWith('2px'));
  expect(selected()).toHaveLength(2);
  click(buttons[0]); expect(selected()).toHaveLength(1);
 });
@@ -184,7 +177,7 @@ it.each(['forward','backward','keyboard'] as const)('groups across repetitions u
   fireEvent.pointerDown(button,{button:0,shiftKey}); fireEvent.pointerUp(button,{button:0,shiftKey}); fireEvent.click(button,{shiftKey});
  };
  if(gesture==='backward'){click(buttons[2]);click(buttons[1],true);}else {click(buttons[1]);if(gesture==='keyboard')fireEvent.keyDown(buttons[1],{key:'ArrowRight',shiftKey:true});else click(buttons[2],true);}
- expect(buttons.map(b=>!!(b.closest('[data-structure-node]') as HTMLElement).style.outline)).toEqual([false,true,true,false]);
+ expect(buttons.map(b=>!!(b.closest('[data-structure-node]') as HTMLElement).style.outline.startsWith('2px'))).toEqual([false,true,true,false]);
  expect(screen.getByRole('button',{name:'Remove selected'}).hasAttribute('disabled')).toBe(true);
  expect(useAppStore.getState().sequencer).toBe(state);expect(useStructureDraft.getState().draft).toBeNull();
  fireEvent.change(screen.getByRole('textbox',{name:'Name'}),{target:{value:'Middle'}});
@@ -192,10 +185,8 @@ it.each(['forward','backward','keyboard'] as const)('groups across repetitions u
  expect(useStructureDraft.getState().draft?.roots).toHaveLength(3);
  expect(screen.getByRole('button',{name:'▣ Middle'})).toBeTruthy();
  expect(useAppStore.getState().sequencer).toBe(state);
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));
- const dialog=within(screen.getByRole('dialog',{name:'Save structure'}));
- expect(dialog.queryByRole('radio',{name:'All linked occurrences'})).toBeNull();
- fireEvent.click(dialog.getByRole('button',{name:'Save'}));await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ expect(document.querySelector('[data-edit-scope=structure]')?.textContent).toContain('only this clip');
+ fireEvent.click(structureSaveButton());await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  const saved=structuredClone(useAppStore.getState().sequencer.clipArrangement!);
  expect(saved.lanes[0].clips).toHaveLength(1);expect(saved.lanes[0].clips[0]).toMatchObject({id:clip.id,start:0,length:clip.length,mode:'once'});
  const snapshot=useAppStore.getState().buildSequencerConfigSnapshot();expect(snapshot.version).toBe(26);
@@ -213,7 +204,7 @@ it.each(['pattern','group'] as const)('uses the context menu for %s ranges and c
  fireEvent.click(screen.getByRole('button',{expanded:false,name:/▸/}));
  const boxes=()=>screen.getAllByRole('button').filter(b=>b.title.startsWith(`${kind}:`));const buttons=boxes();
  fireEvent.click(buttons[1]);fireEvent.keyDown(buttons[1],{key:'ArrowRight',shiftKey:true});fireEvent.keyDown(buttons[2],{key:'ArrowRight',shiftKey:true});fireEvent.keyDown(buttons[3],{key:'ArrowLeft',shiftKey:true});
- expect(boxes().map(b=>!!(b.closest('[data-structure-node]') as HTMLElement).style.outline)).toEqual([false,true,true,false]);
+ expect(boxes().map(b=>!!(b.closest('[data-structure-node]') as HTMLElement).style.outline.startsWith('2px'))).toEqual([false,true,true,false]);
  fireEvent.contextMenu(buttons[2]);fireEvent.click(screen.getByRole('menuitem',{name:kind==='group'?'Supergroup':'Group'}));
  const draft=useStructureDraft.getState().draft!;expect(draft.roots).toHaveLength(3);expect(draft.roots[1].definition?.kind).toBe(kind==='group'?'supergroup':'group');
  expect(screen.getByRole('button',{name:'Remove selected'}).hasAttribute('disabled')).toBe(false);
@@ -226,7 +217,7 @@ it('retains an oversized range and authored state when grouping exceeds capacity
  const buttons=screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
  fireEvent.click(buttons[1]);fireEvent.click(buttons[2],{shiftKey:true});fireEvent.click(screen.getByRole('button',{name:'Group'}));
  expect(screen.getByRole('alert').textContent).toContain('content limit');
- expect(buttons.slice(1,3).every(b=>(b.closest('[data-structure-node]') as HTMLElement).style.outline)).toBe(true);
+ expect(buttons.slice(1,3).every(b=>(b.closest('[data-structure-node]') as HTMLElement).style.outline.startsWith('2px'))).toBe(true);
  expect(useStructureDraft.getState().draft).toBeNull();expect(useAppStore.getState().sequencer).toBe(state);
 });
 it.each(['discard','save'])('resolves a dirty single-pass structure and revalidates after %s',async choice=>{
@@ -243,7 +234,6 @@ it.each(['discard','save'])('resolves a dirty single-pass structure and revalida
  fireEvent.click(buttons()[2],{shiftKey:true});
  if(choice==='save'){
   fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved structure'})).getByRole('button',{name:'Save structure'}));
-  fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
   await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
   expect(screen.getByRole('alert').textContent).toContain('Select the range again');
   expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips).toHaveLength(3);
@@ -323,7 +313,7 @@ it('resizes the visible trailing rest after trimming, then saves without losing 
  expect(parseFloat(restHandle.style.left)).toBeLessThan(parseFloat(restNode.style.width)-10);
  fireEvent.keyDown(restHandle,{key:'ArrowLeft'});
  expect(useStructureDraft.getState().draft?.roots.slice(-1)[0]?.restTicks).toBe(20160*3.75);
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
+ fireEvent.click(structureSaveButton());
  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  const saved=useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0];
  expect(saved.length).toBe(20160*7);expect(saved.children.slice(-1)[0]).toMatchObject({restTicks:20160*3.75});
@@ -338,7 +328,7 @@ it('removes a trailing rest and saves after trimming an existing structure draft
  fireEvent.keyDown(screen.getByRole('separator',{name:'Length: right'}),{key:'ArrowLeft'});
  const rest=screen.getAllByRole('button').find(b=>b.title==='Rest')!;
  fireEvent.keyDown(rest,{key:'Delete'});
- fireEvent.click(screen.getByRole('button',{name:'Save structure'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));
+ fireEvent.click(structureSaveButton());
  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  expect(screen.queryByRole('alert')).toBeNull();
  expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0].length).toBe(20160*7.75);

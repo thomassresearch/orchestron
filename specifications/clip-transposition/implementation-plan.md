@@ -134,7 +134,7 @@ The same fixture produces the same sounding notes and timing through authored pl
 
 ### Source seams
 
-Use the existing [clip arranger](../../frontend/src/components/clipArranger/ClipArranger.tsx), [contextual performance host](../../frontend/src/components/clipArranger/ClipPerformance.tsx), [scope dialog](../../frontend/src/components/clipArranger/SaveScopeDialog.tsx), [Note map preview](../../frontend/src/components/clipArranger/PatternPreview.tsx), copy/help modules and T3 commands. Avoid duplicate musical editors or independent UI-only pitch algorithms.
+Use the existing [clip arranger](../../frontend/src/components/clipArranger/ClipArranger.tsx), [contextual performance host](../../frontend/src/components/clipArranger/ClipPerformance.tsx), [scope controls](../../frontend/src/components/clipArranger/EditScopeControls.tsx), [Note map preview](../../frontend/src/components/clipArranger/PatternPreview.tsx), copy/help modules and T3 commands. Avoid duplicate musical editors or independent UI-only pitch algorithms.
 
 ### Work
 

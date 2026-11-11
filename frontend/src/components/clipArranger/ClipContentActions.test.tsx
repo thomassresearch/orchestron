@@ -1,3 +1,4 @@
+import { structureSaveButton } from './scope.testHelpers';
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -23,7 +24,7 @@ const lane=()=>useAppStore.getState().sequencer.clipArrangement!.lanes[0];
 const patterns=()=>Array.from(document.querySelectorAll<HTMLButtonElement>('button[data-structure-key]')).filter(b=>b.title.startsWith('pattern:'));
 function show(expand=true){render(<ClipPerformance language="english" renderEditor={()=>null}/>);const toggle=screen.queryByRole('button',{expanded:false,name:/▸/});if(expand&&toggle)fireEvent.click(toggle);}
 function context(item:HTMLElement){fireEvent.contextMenu(item,{clientX:200,clientY:100});return within(screen.getByRole('menu'));}
-async function save(){fireEvent.click(screen.getByRole('button',{name:'Save structure'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Save structure'})).getByRole('button',{name:'Save'}));await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());}
+async function save(){fireEvent.click(structureSaveButton());await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());}
 
 it('hides Ungroup for a pattern and duplicates a linked occurrence through save/reload and undo',async()=>{
   show();const original=structuredClone(lane());

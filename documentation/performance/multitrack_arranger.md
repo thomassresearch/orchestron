@@ -8,7 +8,7 @@ The multitrack arranger brings melodic, Score, drummer, controller and arpeggiat
 
 ![Default new performance with the multitrack clip arranger](../../screenshots/clip-arranger-default.png)
 
-The top-right **?** opens help specifically for this clip workflow in the selected GUI language (English, German, French or Spanish). It covers clip windows, reusable content, musical and structural drafts, save scope, transport, sections, transposition and instrument automation. Close it with **Close**, Escape or a click outside the dialog.
+The top-right **?** opens help specifically for this clip workflow in the selected GUI language (English, German, French or Spanish). It covers clip windows, reusable content, musical and structural drafts, editing scope, transport, sections, transposition and instrument automation. Close it with **Close**, Escape or a click outside the dialog.
 
 ![Clip arranger integrated help](../../screenshots/clip-arranger-integrated-help.png)
 
@@ -54,16 +54,20 @@ Select an instrument clip and use **Generate automation** to create one bound co
 For a Score track, add a clip, use its inline **+** / **Add content → New pattern**,
 then double-click the nested pattern to open the **Score sequencer**. Hold its
 piano keys to audition pitches or double-click them to append quarter notes.
-Use **Save** to choose a local variation or update all linked occurrences.
+Choose **Edit linked pattern** or **Create variation here** before editing shared content. Save applies that choice directly.
 See the [Score pattern walkthrough](score_sequencers.md#create-a-score-pattern-in-the-clip-arranger).
 
 Double-click a nested box, or focus its name and press Enter, to open its sequencer or arpeggiator. The breadcrumb identifies the pattern you are editing; draft status, **Play edit** and **Save** sit above the musical controls. You can edit notes/chords/holds/strums, sparse score notes, drum velocities/ratchets, both controller datasets, and arpeggiator parameters/presets. Lane-wide timing, routing and instrument settings affect the whole track.
 
 Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.
 
-**Save** always asks whether to update **Only this occurrence** or **All linked occurrences**. Local is the default. A local variation gets a new definition; shared ancestors are copied only where necessary. Musical-pattern saves retain clip boundaries. Container assembly uses the structural growth rules described below. Cancel retains the draft. Conflicting revisions or invalid content leave the saved arrangement untouched.
+For shared content, choose **Edit linked pattern** or **Create variation here** before the musical controls become available. Independent content opens directly and saves in place. The toolbar and context menu offer the same actions. **Change scope** preserves your note edits; the header always shows the current scope and affected occurrence count. The proposed variation name is separate from the shared name. **Save variation here** creates an independent definition only when saving changed content; **Save to linked occurrences** updates the shared pattern. Neither asks for scope again. Closing and reopening an unfinished draft preserves its scope and edits. An unchanged draft creates no variation or undo entry.
 
-![Save-scope dialog](../../screenshots/clip-arranger-save-scope.png)
+A local loop variation isolates the chosen pass into before, edited and after clip windows. The editor explains this before editing. Shared ancestors are copied only where necessary, and musical edits retain the original overall window coverage. Container assembly uses the structural growth rules below. Conflicting revisions or invalid content leave the saved arrangement untouched.
+
+![Choose scope before editing shared content](../../screenshots/clip-arranger-edit-scope.png)
+
+![Local variation with persistent scope and save action](../../screenshots/clip-arranger-local-variation.png)
 
 Performance save and native/CSD export use saved definitions. If drafts changed, return to resolve their individual scopes or explicitly use the saved definitions. Autosave does not commit drafts. New/Load/Import prompts before discarding changed drafts. Drafts survive ordinary view switches; they are not reload recovery data.
 
@@ -99,11 +103,17 @@ The actual piano keyboard and configurable MIDI controller rows sit below the ar
 
 Transport buttons wrap onto another row when the viewport or enlarged text leaves too little space. Track headers reserve less than half the viewport, leaving the timeline reachable at enlarged text sizes. Transposition controls wrap inside their dialog. The timeline keeps its own horizontal scrolling.
 
-![Clip arranger at a narrow viewport](../../screenshots/clip-arranger-acceptance-narrow.png)
+![Upfront scope controls at a narrow viewport](../../screenshots/clip-arranger-scope-narrow.png)
+
+![Scope controls with enlarged text](../../screenshots/clip-arranger-scope-large-text.png)
 
 ## Assemble content directly on the timeline
 
 Expand a track and click a content header to select it. Shift-click another header to select the inclusive chronological range. Shift+Left/Right extends or contracts the range, including across loop repetitions and beyond the visible area. **Group** combines consecutive patterns/rests; **Supergroup** combines consecutive groups. Enter a name in the selection toolbar before grouping. Right-click provides the same grouping actions. Double-click opens the musical/container editor.
+
+Base content uses a stronger fill; generated loop repetitions use a lighter fill and **↻**. **↔** marks shared content independently of repetition. Selecting one occurrence gives it a strong outline and its related uses a quiet dashed outline. Related uses are not selected for dragging, deleting or grouping. The summary counts nested occurrences, partial repetitions and off-screen clips. Unused saved references are indicated separately, as are repeating lane cycles. Names and colors do not determine sharing. Selecting several items disables the single-content editing actions.
+
+![Related occurrences highlighted without multi-selection](../../screenshots/clip-arranger-relationships.png)
 
 **Content · 1, Content · 2, …** label loop repetitions. For four repetitions `A A A A`, click the pattern in Content 2, Shift-click the pattern in Content 3, choose **Group**, then **Save structure**. The result is one clip containing `A [A A] A`. The outer clip keeps its name, start and length; the selected occurrences become a group. Its patterns remain linked to their original definitions.
 
@@ -129,11 +139,11 @@ For a looped clip, Duplicate appends **once after the final repetition**, conver
 
 Drag a box or contiguous selection to a quarter-beat position. Moves within a clip/pass leave rests at the source and consume silence at the destination; other content stays in place. Overlapping drops are rejected. Between clips on the same track, dragging copies linked content. Between tracks of the same device type, it copies independent definitions using destination timing. Drum keys must have unambiguous destination rows; controller modes must match. Compact clips accept root drops, and hovering expands the destination track. The destination text shows the position. Self-nesting and moves across loop passes are rejected. Left/Right on a focused content header nudges it by a quarter beat. The toolbar move arrows and **Move into container** retain their explicit reorder behavior. Escape or cancelling a pointer gesture leaves the structure unchanged.
 
-Use **Remove selected**, the matching context-menu action, or Delete/Backspace while a box is focused to remove patterns, rests or containers. The same actions work inside groups and supergroups. Removing content closes its position within the container but does not shrink the clip window; unused pattern definitions remain available. Empty containers disappear. Removing an entire clip’s content leaves a timeline gap; removing one loop pass locally preserves its other passes. Save structure still asks which occurrences to change.
+Use **Remove selected**, the matching context-menu action, or Delete/Backspace while a box is focused to remove patterns, rests or containers. The same actions work inside groups and supergroups. Removing content closes its position within the container but does not shrink the clip window; unused pattern definitions remain available. Empty containers disappear. Removing an entire clip’s content leaves a timeline gap; removing one loop pass locally preserves its other passes. The first change to shared structure asks for scope before entering the draft; Save structure then uses that choice.
 
 ![Remove selected in the expanded arranger](../../screenshots/clip-arranger-remove-content.png)
 
-Structural work is a session-only draft: the song continues to play saved content. **Save structure** applies the local/all-linked scope atomically; **Discard** abandons it. Draft Undo/Redo is separate from the arranger's saved history. Performance save/export offers the existing saved definitions when unresolved drafts remain; loading another performance requires resolving them.
+Structural work is a session-only draft: the song continues to play saved content. **Save structure · local** or **Save structure · all linked** applies the established scope atomically; **Discard** abandons it. Draft Undo/Redo is separate from the arranger's saved history. Performance save/export offers the existing saved definitions when unresolved drafts remain; loading another performance requires resolving them.
 
 Longer content grows the affected windows if space permits. Loop windows preserve their full and partial repetition span. Saving all linked occurrences evaluates every affected clip together. A collision rejects the complete save, retains the draft and names the blocking clips; later independent clips are never shifted. Shortening content does not automatically shrink clips. Valid growth extends Song end when necessary.
 
@@ -141,17 +151,17 @@ Longer content grows the affected windows if space permits. Loop windows preserv
 
 ## Container inspector and musical draft conflicts
 
-Double-click a group or supergroup to open its child inspector. Adopt linked content, add a new pattern or rest, reorder, group, ungroup, rename or remove children there. These controls edit the **same structural draft** as the expanded timeline. **Save structure** shows the same affected definitions, clip boundaries and local/all-linked choices, including collision rejection and empty-container removal. Draft Undo/Redo and Discard apply to both surfaces.
+Double-click a group or supergroup to open its child inspector. Adopt linked content, add a new pattern or rest, reorder, group, ungroup, rename or remove children there. These controls edit the **same structural draft** as the expanded timeline. Choose the scope before editing shared containers. The editor shows the affected definitions and clip boundaries, including collision rejection and empty-container removal. Save structure uses the established choice. Draft Undo/Redo and Discard apply to both surfaces.
 
 ![Container inspector sharing the structural draft](../../screenshots/clip-arranger-container-structure.png)
 
-![Shared structural save and growth preview](../../screenshots/clip-arranger-container-impact.png)
+![Structural draft with persistent scope and affected clips](../../screenshots/clip-arranger-structure-impact.png)
 
-If the pending action intersects an unsaved musical draft, choose Save, Discard or Cancel. Save opens that pattern’s existing occurrence-scope dialog, then resumes the pending edit. Discard removes only the conflicting draft and resumes; Cancel keeps both drafts and leaves the arrangement unchanged. Other musical drafts remain available. If several drafts conflict, resolve them individually. A failed musical save keeps the draft and displays its error inside the dialog.
+If the pending action intersects an unsaved musical draft, choose Save, Discard or Cancel. Save uses that pattern’s established editing scope, then resumes the pending edit. Discard removes only the conflicting draft and resumes; Cancel keeps both drafts and leaves the arrangement unchanged. Other musical drafts remain available. If several drafts conflict, resolve them individually. A failed musical save keeps the draft and displays its error inside the dialog.
 
 ![Save, Discard or Cancel an intersecting musical draft](../../screenshots/clip-arranger-musical-conflict.png)
 
-When a musical save forks shared parents or splits a loop pass, the pending structural edit follows the new occurrence paths and retains draft Undo/Redo. Following passes created from that same source during resolution still move when its edited portion grows. Independent clips stay in place. If the conflict was found while saving structure, review the refreshed impact preview and press Save again to commit the structural transaction.
+When a musical save forks shared parents or splits a loop pass, the pending structural edit follows the new occurrence paths and retains draft Undo/Redo. Following passes created from that same source during resolution still move when its edited portion grows. Independent clips stay in place. If resolving a conflict makes the pending structural save valid, it resumes using the established scope; otherwise the draft remains available with an error.
 
 Container **Play edit** auditions a snapshot of the current structure. Further structural edits remain visual and do not re-prepare audio; stop and restart Play edit to hear the changed structure. Saving ends the editor audition through the existing lifecycle. Musical sequencer controls retain their existing live-edit behavior.
 
@@ -207,7 +217,11 @@ Trimming a clip changes only its playback window and preserves hidden patterns, 
 
 ![Resized trailing rest inside nested content, with the clip window retained](../../screenshots/clip-arranger-rest-resize.jpg)
 
-Placement, copying and pattern resizing share the structural draft and Save/Discard workflow. Save defaults to Only this occurrence. All linked occurrences validates every affected use; collisions retain the draft. New empty clips commit immediately and support arranger Undo.
+Placement, copying and pattern resizing share the structural draft and Save/Discard workflow. A first direct action that changes shared definitions is held for **Only this occurrence** or **All linked definitions**. Cancel or Escape leaves the existing draft and selection unchanged. After choosing, the action enters the draft once; subsequent actions reuse the scope. **Change scope** changes the whole draft without losing edits. If a later action requires local scope, choose to switch the entire draft or cancel that action. Root-only changes, cross-repetition grouping and loop duplication are local. All linked editing validates every affected use; collisions retain the draft.
+
+![Scope choice for a proposed structural action](../../screenshots/clip-arranger-structure-scope.png)
+
+New empty clips commit immediately and support arranger Undo.
 
 A reserved strip below the last track keeps the horizontal scrollbar clear of collapsed clips.
 

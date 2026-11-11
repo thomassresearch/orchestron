@@ -40,17 +40,14 @@ it.each(["local", "all"] as const)("edits points inside the clip, saves %s scope
   model.end = clip.length * 2;
   useAppStore.setState({ sequencer: seq });
   const target = { laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 };
-  openClipEditor(target);
+  openClipEditor(target, scope);
   const view = render(<ClipPerformance language="english" renderEditor={() => null} />);
   const svg = view.container.querySelector('[data-expanded="true"] svg')!;
   expect(svg).toBeTruthy();
   fireEvent.pointerDown(svg.querySelector("rect")!, { button: 0, clientX: 480, clientY: 15 });
   expect(screen.getByText("Curve points: 3/10")).toBeTruthy();
   expect(useAppStore.getState().sequencer.clipArrangement).toBe(model);
-  fireEvent.click(within(screen.getByRole("region", { name: "Editing" })).getByRole("button", { name: "Save" }));
-  const dialog = screen.getByRole("dialog");
-  if (scope === "all") fireEvent.click(within(dialog).getByRole("radio", { name: /All linked/ }));
-  await act(async () => fireEvent.click(within(dialog).getByRole("button", { name: "Save" })));
+  await act(async () => fireEvent.click(within(screen.getByRole("region", { name: "Editing" })).getByRole("button", { name: scope === 'local' ? 'Save variation here' : /^Save to linked/ })));
   const saved = useAppStore.getState().sequencer.clipArrangement!;
   const savedLane = saved.lanes[1];
   const firstId = "definitionId" in savedLane.clips[0].children[0] && savedLane.clips[0].children[0].definitionId;
@@ -61,7 +58,7 @@ it.each(["local", "all"] as const)("edits points inside the clip, saves %s scope
   act(() => clipHistoryStep(true));
   expect(useAppStore.getState().sequencer.clipArrangement!.lanes).toEqual(saved.lanes);
   const currentClip = savedLane.clips[0];
-  act(() => openClipEditor({ ...target, path: [currentClip.children[0].id] }));
+  act(() => openClipEditor({ ...target, path: [currentClip.children[0].id] }, "all"));
   fireEvent.change(screen.getByRole("spinbutton", { name: "Curve duration · master beats" }), { target: { value: "128" } });
   const committed = useAppStore.getState().sequencer;
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Discard curve edits" })));
@@ -72,7 +69,7 @@ it.each(["local", "all"] as const)("edits points inside the clip, saves %s scope
 
 it("rescales point coordinates inside the clip while a longer duration is still a draft", () => {
   const seq = useAppStore.getState().sequencer, lane = seq.clipArrangement!.lanes[1], clip = lane.clips[0];
-  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });
+  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 }, "all");
   const view = render(<ClipPerformance language="english" renderEditor={() => null} />);
   const length = clip.length / 20160;
   fireEvent.change(screen.getByRole("spinbutton", { name: "Curve duration · master beats" }), { target: { value: String(length * 2) } });

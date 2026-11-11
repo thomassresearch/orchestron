@@ -10,7 +10,11 @@ Drag a clip header to move its window and its edges to trim it. Start, length an
 
 ### Edit and save
 
-Double-click a pattern, or focus its name and press Enter, to open its musical editor. **Play edit** auditions the draft. **Save** asks for **Only this occurrence** (the default, creating a local variation) or **All linked occurrences**. Cancel keeps the draft. Groups and supergroups share reusable definitions. **Save structure** commits their assembly separately from musical edits.
+Double-click a pattern, group or supergroup, or focus its name and press Enter. For shared content, choose **Edit linked pattern/group/supergroup** or **Create variation here** before editing. Independent content opens directly. The editor keeps the scope visible; **Change scope** preserves your edits. **Play edit** auditions the draft. Save uses the chosen scope without asking again. A local loop variation splits the clip into before, edited and after windows.
+
+Loop repetitions use a lighter fill and ↻; ↔ marks shared content. Selecting one occurrence highlights its linked uses without selecting them for moving or deleting. Counts include arranged repetitions and off-screen clips; unused references and repeating lane cycles are shown separately. The selection toolbar and context menu offer the same editing actions.
+
+The first direct structural action waits for a scope choice when it changes shared definitions. Cancel leaves the draft and selection unchanged; subsequent actions reuse the choice. Root-only edits and grouping across repetitions are local. Scope, affected definitions, window changes and collision errors appear before **Save structure**. Musical conflicts use their already chosen scope.
 
 Performance save and export use saved definitions. Resolve changed drafts or explicitly choose the saved version. Autosave does not commit drafts; drafts survive view switches but not a reload. New, Load and Import ask you to resolve them.
 
@@ -27,7 +31,11 @@ Den Clip-Kopf ziehen, um sein Fenster zu verschieben; die Ränder ziehen, um es 
 
 ### Bearbeiten und speichern
 
-Ein Pattern doppelklicken oder seinen Namen fokussieren und Enter drücken, um den musikalischen Editor zu öffnen. **Entwurf abspielen** hört den Entwurf vor. **Speichern** fragt nach **Nur dieses Vorkommen** (Standard, erstellt eine lokale Variante) oder **Alle verknüpften Vorkommen**. Abbrechen erhält den Entwurf. Gruppen und Supergruppen teilen wiederverwendbare Definitionen. **Struktur speichern** übernimmt ihren Aufbau getrennt von musikalischen Änderungen.
+Ein Pattern, eine Gruppe oder Supergruppe doppelklicken oder den Namen fokussieren und Enter drücken. Bei verknüpftem Inhalt vorab **Verknüpftes Pattern/Gruppe/Supergruppe bearbeiten** oder **Hier eine Variante erstellen** wählen. Unabhängiger Inhalt öffnet sich direkt. Der Umfang bleibt sichtbar; **Umfang ändern** erhält die Bearbeitung. **Entwurf abspielen** hört vor. Speichern verwendet den gewählten Umfang ohne erneute Abfrage. Eine lokale Schleifenvariante teilt den Clip in Fenster davor, bearbeitet und danach.
+
+Wiederholungen erscheinen heller mit ↻; ↔ kennzeichnet verknüpften Inhalt. Ein ausgewähltes Vorkommen hebt seine Verknüpfungen hervor, ohne sie zum Verschieben oder Löschen auszuwählen. Zähler enthalten angeordnete Wiederholungen und nicht sichtbare Clips; ungenutzte Verweise und Spurzyklen werden separat angezeigt. Auswahlleiste und Kontextmenü bieten dieselben Bearbeitungsaktionen.
+
+Die erste direkte Strukturaktion wartet bei gemeinsam genutzten Definitionen auf die Umfangswahl. Abbrechen erhält Entwurf und Auswahl; weitere Aktionen verwenden denselben Umfang. Änderungen nur an der Clip-Wurzel und Gruppieren über Wiederholungen hinweg sind lokal. Umfang, betroffene Definitionen, Fensteränderungen und Kollisionen erscheinen vor **Struktur speichern**. Musikalische Konflikte verwenden den bereits gewählten Umfang.
 
 Performance-Speichern und Export verwenden gespeicherte Definitionen. Geänderte Entwürfe auflösen oder ausdrücklich die gespeicherte Fassung wählen. Autosave übernimmt keine Entwürfe; sie überstehen Ansichtswechsel, aber kein Neuladen. Neu, Laden und Import verlangen ihre Auflösung.
 
@@ -44,7 +52,11 @@ Glissez l’en-tête d’un clip pour déplacer sa fenêtre et ses bords pour la
 
 ### Modifier et enregistrer
 
-Double-cliquez sur un motif, ou focalisez son nom et appuyez sur Entrée, pour ouvrir son éditeur musical. **Écouter le brouillon** permet de l’auditionner. **Enregistrer** propose **Cette occurrence seulement** (par défaut, crée une variation locale) ou **Toutes les occurrences liées**. Annuler conserve le brouillon. Groupes et supergroupes partagent des définitions réutilisables. **Enregistrer la structure** valide leur assemblage séparément des modifications musicales.
+Double-cliquez sur un motif, groupe ou supergroupe, ou focalisez son nom et appuyez sur Entrée. Pour le contenu partagé, choisissez **Modifier le motif/groupe/supergroupe lié** ou **Créer une variante ici** avant de modifier. Le contenu indépendant s’ouvre directement. La portée reste visible ; **Changer la portée** conserve vos modifications. **Écouter le brouillon** permet de l’auditionner. L’enregistrement utilise la portée choisie sans nouvelle question. Une variante locale de boucle sépare le clip en fenêtres avant, modifiée et après.
+
+Les répétitions ont un fond plus clair et ↻ ; ↔ indique le contenu partagé. Sélectionner une occurrence met ses utilisations liées en évidence sans les sélectionner pour un déplacement ou une suppression. Les compteurs incluent les répétitions placées et les clips hors écran ; les références inutilisées et cycles de piste sont indiqués séparément. La barre de sélection et le menu contextuel proposent les mêmes actions.
+
+La première action structurelle directe attend un choix de portée si elle modifie des définitions partagées. Annuler conserve le brouillon et la sélection ; les actions suivantes réutilisent le choix. Les modifications de la racine seule et le groupement entre répétitions sont locaux. Portée, définitions affectées, changements des fenêtres et collisions apparaissent avant **Enregistrer la structure**. Les conflits musicaux utilisent la portée déjà choisie.
 
 L’enregistrement de la performance et l’export utilisent les définitions enregistrées. Résolvez les brouillons modifiés ou choisissez explicitement la version enregistrée. La sauvegarde automatique ne valide pas les brouillons ; ils survivent aux changements de vue, mais pas au rechargement. Nouveau, Charger et Importer demandent de les résoudre.
 
@@ -61,7 +73,11 @@ Arrastra la cabecera de un clip para mover su ventana y sus bordes para recortar
 
 ### Editar y guardar
 
-Haz doble clic en un patrón, o enfoca su nombre y pulsa Enter, para abrir su editor musical. **Reproducir edición** permite escuchar el borrador. **Guardar** ofrece **Solo esta aparición** (predeterminado, crea una variación local) o **Todas las apariciones vinculadas**. Cancelar conserva el borrador. Los grupos y supergrupos comparten definiciones reutilizables. **Guardar estructura** confirma su organización por separado de las ediciones musicales.
+Haz doble clic en un patrón, grupo o supergrupo, o enfoca su nombre y pulsa Enter. Para contenido compartido, elige **Editar patrón/grupo/supergrupo vinculado** o **Crear variación aquí** antes de editar. El contenido independiente se abre directamente. El alcance permanece visible; **Cambiar alcance** conserva tus cambios. **Reproducir edición** permite escuchar el borrador. Guardar utiliza el alcance elegido sin volver a preguntar. Una variación local de bucle separa el clip en ventanas anterior, editada y posterior.
+
+Las repeticiones usan un fondo más claro y ↻; ↔ indica contenido compartido. Seleccionar una aparición resalta sus usos vinculados sin seleccionarlos para moverlos o eliminarlos. Los contadores incluyen repeticiones colocadas y clips fuera de pantalla; las referencias sin usar y los ciclos de pista aparecen por separado. La barra de selección y el menú contextual ofrecen las mismas acciones.
+
+La primera acción estructural directa espera un alcance si modifica definiciones compartidas. Cancelar conserva el borrador y la selección; las acciones siguientes reutilizan el alcance. Los cambios solo en la raíz y la agrupación entre repeticiones son locales. El alcance, las definiciones afectadas, los cambios de ventanas y las colisiones aparecen antes de **Guardar estructura**. Los conflictos musicales utilizan el alcance ya elegido.
 
 Guardar la interpretación y exportar usan las definiciones guardadas. Resuelve los borradores modificados o elige explícitamente la versión guardada. El autoguardado no confirma borradores; estos sobreviven a cambios de vista, pero no a una recarga. Nuevo, Cargar e Importar piden resolverlos.
 

@@ -74,7 +74,7 @@ export function rebaseStructure(draft: StructureDraft, model: ClipArrangement, t
     }
     next = applyStructure(next, command, timings, model);
   }
-  return stepStructure(next, draft.cursor - next.cursor);
+  return { ...stepStructure(next, draft.cursor - next.cursor), editIntent: draft.editIntent, editorTarget: draft.editorTarget ? remapMusicalTarget(before,model,draft.editorTarget,timings) : undefined };
 }
 
 /** Include descendants whose parent forks/changes even if their own definition is unchanged. */
@@ -99,7 +99,7 @@ export function retainMusicalDrafts(before: ClipArrangement, after: ClipArrangem
     let next = draft;
     try {
       const target = remapMusicalTarget(before, after, draft.target, timings);
-      next = hasChangedClipDrafts(before, { draft }) ? { ...draft, target } : beginDraft(after, target);
+      next = hasChangedClipDrafts(before, { draft }) ? { ...draft, target } : { ...beginDraft(after, target), editIntent: draft.editIntent };
     } catch { /* Retain conflicting drafts for explicit resolution, never silently discard them. */ }
     const nextKey = JSON.stringify(next.target);
     // Use the same key order as editorAdapter.draftKey (see caller).

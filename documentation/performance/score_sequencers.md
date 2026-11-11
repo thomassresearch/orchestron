@@ -108,7 +108,7 @@ Score patterns are edited directly from their clips in the [multitrack arranger]
 3. For an empty clip, use its inline **+** / **Add content**, then **New pattern** to insert a Score pattern. Existing definitions can also be adopted as linked patterns.
 4. Double-click the nested pattern box, or focus its name and press **Enter**. The Score sequencer opens in context with the clip breadcrumb and draft controls.
 5. Hold piano keys to try pitches and double-click to collect quarter notes; then move and resize notes. The **?** opens the same multilingual help.
-6. Use **Play edit** to audition the pattern. **Save** asks whether to update **Only this occurrence** or **All linked occurrences**. A local save creates a variation; cancelling keeps the draft. Save the pattern before saving or exporting the performance to include these edits.
+6. Use **Play edit** to audition the pattern. Choose **Edit linked pattern** or **Create variation here** before editing shared content. The chosen scope remains visible, and Save applies it without another scope question. A local save creates a variation only when content changed. Save the pattern before saving or exporting the performance to include these edits.
 
 Pattern length and the clip window are independent. Saving musical edits keeps
 the clip boundaries; use **Fit clip to content** when the clip should match its

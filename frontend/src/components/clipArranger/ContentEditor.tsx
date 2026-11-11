@@ -21,16 +21,17 @@ export function newStructurePattern(lane: ClipLane, sequencer: SequencerState, l
 }
 
 /** Optional inspector; every action uses the timeline's structural transaction. */
-export function ContentEditor({ lane, nodes, path, name, level, sequencer, language, onCommand }: {
+export function ContentEditor({ lane, nodes, path, name, level, sequencer, language, onCommand, showName = true }: {
   lane: ClipLane; nodes: StructureNode[]; path: string[]; name: string; level: "group" | "supergroup";
   sequencer: SequencerState; language: GuiLanguage; onCommand: (command: StructureCommand) => void;
+  showName?: boolean;
 }) {
   const c = clipCopy(language), [selected, setSelected] = useState<string[]>([]);
   useEffect(() => setSelected([]), [nodes]);
   const valid = lane.definitions.filter(d => d.kind === "pattern" || level === "supergroup" && d.kind === "group");
   const insert = (definition: PatternDefinition | ClipLane["definitions"][number]) => onCommand({kind:'insert',target:{path,index:nodes.length},definition,variation:false});
   return <div className="w-full space-y-2 text-xs text-slate-300">
-    <label>{c.name} <input key={name} className={clipInput} defaultValue={name} onBlur={e=>{if(e.target.value!==name)onCommand({kind:'rename',path,name:e.target.value});}} /></label>
+    {showName && <label>{c.name} <input key={name} className={clipInput} defaultValue={name} onBlur={e=>{if(e.target.value!==name)onCommand({kind:'rename',path,name:e.target.value});}} /></label>}
     {nodes.map((node, index) => <div key={node.id} className="flex items-center gap-2 rounded border border-slate-700 p-2">
       <input type="checkbox" aria-label={`${c.choose}: ${node.definition?.name ?? c.rest} ${index + 1}`} checked={selected.includes(node.id)} onChange={e => setSelected(e.target.checked ? [...selected,node.id] : selected.filter(id=>id!==node.id))}/>
       <span className="mr-auto">{node.definition ? `${c[node.definition.kind]} · ${node.definition.name}` : `${c.rest} · ${(node.restTicks??0)/20160}`}</span>

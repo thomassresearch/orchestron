@@ -1,3 +1,4 @@
+import { chooseStructureScope } from './scope.testHelpers';
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -72,7 +73,7 @@ it("discards a Position draft when replacing the performance workspace", () => {
 
 it("uses the looping song cursor instead of the advancing shared clock and toggles a visible clip loop", () => {
   const lane = useAppStore.getState().sequencer.clipArrangement!.lanes[0], clip = lane.clips[0];
-  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });
+  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 }, "all");
   useAppStore.setState(s => ({ sequencerRuntime: { ...s.sequencerRuntime, arrangerTransportSubunit: 20160 } }));
   render(<ClipPerformance language="english" position={20160 * 80} renderEditor={() => null}
     onLoopChange={range => useAppStore.getState().setSequencerArrangerLoopSelection(range)} onSeek={() => {}} />);
@@ -148,11 +149,11 @@ it("keeps empty-space deselection through transport changes and loops the whole 
 
 it("deselects nested content on ruler clicks without discarding its open editor", () => {
   const lane = useAppStore.getState().sequencer.clipArrangement!.lanes[0], clip = lane.clips[0];
-  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });
+  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 }, "all");
   const seek = vi.fn();
   render(<ClipPerformance language="english" renderEditor={() => null} onSeek={seek}
     onLoopChange={value => useAppStore.getState().setSequencerArrangerLoopSelection(value)} />);
-  fireEvent.click(screen.getByRole("button", { name: "▤ S" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "▤ S" })[0]);
   fireEvent.click(document.querySelector("[data-arranger-viewport] [aria-hidden]")!);
   expect(seek).toHaveBeenCalledOnce();
   expect(screen.queryByRole("button", { name: "Remove clip" })).toBeNull();
@@ -244,7 +245,7 @@ it("does not restart an audition on transport ticks and coalesces musical draft 
     const supergroup = lane.definitions.find(d => d.kind === "supergroup")!;
     const group = lane.definitions.find(d => d.kind === "group")!;
     if (supergroup.kind === "pattern" || group.kind === "pattern") throw Error("Expected containers");
-    openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id, supergroup.children[0].id, group.children[0].id], pass: 0 });
+    openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id, supergroup.children[0].id, group.children[0].id], pass: 0 }, "all");
     const audition = vi.fn().mockResolvedValue(undefined);
     render(<PerformanceAuditionContext.Provider value={audition}><ClipPerformance language="english" renderEditor={() => null} /></PerformanceAuditionContext.Provider>);
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Play edit" })));
@@ -267,25 +268,21 @@ it("does not restart an audition on transport ticks and coalesces musical draft 
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-it("expands the nested boxes, opens a container, defaults to local save and preserves a cancelled draft", async () => {
-  useAppStore.getState().sequencer.clipArrangement!.lanes[0].cycleTicks=null;
+it("expands the nested boxes, opens a container, establishes local scope upfront and saves without a scope dialog", async () => {
+  const model=useAppStore.getState().sequencer.clipArrangement!,lane=model.lanes[0];lane.cycleTicks=null;
+  lane.clips.push({...structuredClone(lane.clips[0]),id:'linked-container',start:lane.clips[0].length*2});model.end=lane.clips[0].length*3;
   const track = useAppStore.getState().sequencer.tracks[0];
   render(<ClipPerformance language="english" renderEditor={() => null} />);
   const toggle = screen.getByRole("button", { name: `▸ ${track.name}` });
   expect(toggle.getAttribute("aria-expanded")).toBe("false");
   fireEvent.click(toggle);
-  fireEvent.keyDown(screen.getByRole("button", { name: "▤ S" }), { key: "Enter" });
+  fireEvent.keyDown(screen.getAllByRole("button", { name: "▤ S" })[0], { key: "Enter" });
   expect(screen.getByRole("region", { name: "Editing" })).toBeTruthy();
+  chooseStructureScope('local');
   fireEvent.click(within(screen.getByRole("region", { name: "Editing" })).getByRole("button", { name: "Rest +1" }));
-  fireEvent.click(within(screen.getByRole("region", {name:"Editing"})).getByRole("button", { name: "Save structure" }));
-  let dialog = screen.getByRole("dialog", { name: "Save structure" });
-  expect((within(dialog).getByRole("radio", { name: "Only this occurrence" }) as HTMLInputElement).checked).toBe(true);
-  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
-  expect(screen.queryByRole("dialog", {name:"Save structure"})).toBeNull();
   expect(within(screen.getByRole("region", {name:"Editing"})).getByText("Unsaved draft")).toBeTruthy();
-  fireEvent.click(within(screen.getByRole("region", {name:"Editing"})).getByRole("button", { name: "Save structure" }));
-  dialog = screen.getByRole("dialog");
-  await act(async () => fireEvent.click(within(dialog).getByRole("button", { name: "Save" })));
+  await act(async () => fireEvent.click(within(screen.getByRole("region", {name:"Editing"})).getByRole("button", { name: "Save structure · local" })));
+  expect(screen.queryByRole('dialog',{name:'Save changes'})).toBeNull();
   expect(useAppStore.getState().clipEditingKey).toBeNull();
   expect(useAppStore.getState().sequencer.clipHistory?.cursor).toBe(1);
 });

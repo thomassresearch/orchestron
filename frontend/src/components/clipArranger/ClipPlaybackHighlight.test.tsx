@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "../../../../backend/tests/fixtures/performances/device_names.json";
 import { useAppStore } from "../../store/useAppStore";
@@ -53,7 +53,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it.each(["sequencer", "drummer", "controller"] as const)("animates the %s clip editor on Play edit and clears it on Stop edit", async source => {
   const lane = useAppStore.getState().sequencer.clipArrangement!.lanes.find(l => l.source === source)!;
   const clip = lane.clips[0];
-  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });
+  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 }, "all");
   const authored = useAppStore.getState().sequencer;
   const revision = useAppStore.getState().sequencerEditRevision;
   const track = authored[sourceKeys[source]][0];
@@ -91,7 +91,7 @@ it.each(["sequencer", "drummer", "controller"] as const)("animates the %s clip e
 it.each(["score", "arpeggiator"] as const)("passes live %s status through without replacing the draft", source => {
   const lane = useAppStore.getState().sequencer.clipArrangement!.lanes.find(l => l.source === source)!;
   const clip = lane.clips[0];
-  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });
+  openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 }, "all");
   let view!: SequencerState;
   render(<ClipPerformance language="english" renderEditor={(_kind, _id, state) => { view = state; return null; }} />);
   act(() => useAppStore.setState(s => ({ sequencerRuntime: { ...s.sequencerRuntime, isPlaying: true,
@@ -129,7 +129,7 @@ it.each(editorCases.flatMap(editor => (["local", "all"] as const).map(scope => (
     useAppStore.setState({ sequencer: initial });
     const open = () => {
       const cl = useAppStore.getState().sequencer.clipArrangement!.lanes.find(l => l.id === lane.id)!.clips[0];
-      openClipEditor({ laneId: lane.id, clipId: cl.id, path: [cl.children[0].id], pass: 0 });
+      openClipEditor({ laneId: lane.id, clipId: cl.id, path: [cl.children[0].id], pass: 0 }, scope);
     };
     open();
     const original = structuredClone(useAppStore.getState().clipDrafts[useAppStore.getState().clipEditingKey!].definition);
@@ -218,10 +218,7 @@ it.each(editorCases.flatMap(editor => (["local", "all"] as const).map(scope => (
       expect(useAppStore.getState().sequencerEditRevision).toBe(revision);
     };
     await checkPlayback();
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    const dialog = within(screen.getByRole("dialog", { name: "Save changes" }));
-    fireEvent.click(dialog.getByRole("radio", { name: scope === "local" ? "Only this occurrence" : "All linked occurrences" }));
-    await act(async () => fireEvent.click(dialog.getByRole("button", { name: "Save" })));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: scope === 'local' ? 'Save variation here' : /^Save to linked/ })));
     act(open);
     await checkPlayback();
     const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();

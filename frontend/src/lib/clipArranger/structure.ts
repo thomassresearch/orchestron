@@ -1,3 +1,4 @@
+import type { EditIntent } from "./relationships";
 import { nodeTicks, placeAt, resizeNode } from './timedStructure';
 import { sumPlans, offsetAt, TRANSPOSE_LIMITS, type OffsetPlan } from "./transposition";
 import { remapPlacementChildren } from "./transposeEdits";
@@ -20,7 +21,7 @@ export type StructureCommand =
   | { kind: 'group'; parent: string[]; ids: string[]; level: 'group' | 'supergroup'; name: string }
   | { kind: 'remove'; parent: string[]; ids: string[] }
   | { kind: 'ungroup'; parent: string[]; ids: string[] };
-export type StructureDraft = { laneId: string; clipId: string; pass: number; basis: ClipLane; roots: StructureNode[]; history: StructureNode[][]; commands: StructureCommand[]; cursor: number; emptied: string[]; emptyHistory: string[][]; followingPassClipIds?: string[]; expanded?: {at:number;sourcePass:number;contentTicks:number;offset:number;repeatIndexBase:number} };
+export type StructureDraft = { editorTarget?: OccurrenceTarget; editIntent?: EditIntent; laneId: string; clipId: string; pass: number; basis: ClipLane; roots: StructureNode[]; history: StructureNode[][]; commands: StructureCommand[]; cursor: number; emptied: string[]; emptyHistory: string[][]; followingPassClipIds?: string[]; expanded?: {at:number;sourcePass:number;contentTicks:number;offset:number;repeatIndexBase:number} };
 const copy = <T,>(value: T): T => structuredClone(value);
 const fail = (message: string): never => { throw new ClipError('invalid', message); };
 function expand(lane: ClipLane, items: ContentItem[], clip?: Clip, path: string[] = []): StructureNode[] {
@@ -362,6 +363,8 @@ function materialize(draft: StructureDraft, scope: 'local'|'all', preview = fals
     if (def.kind!=='pattern') def.children=visit(n.children!);
     const changed = !original || JSON.stringify(def)!==JSON.stringify(original);
     if (!changed) return {id:n.id,definitionId:def.id,...(n.repeatIndex !== undefined ? {repeatIndex:n.repeatIndex} : {}),...(n.transpose?{transpose:copy(n.transpose)}:{})};
+    // The proposed local name never mutates the shared definition or the draft tree.
+    if (scope==='local' && draft.editIntent?.scope==='local' && draft.editorTarget && JSON.stringify(n.originalPath)===JSON.stringify(draft.editorTarget.path) && draft.editIntent.variationName?.trim()) def.name=draft.editIntent.variationName.trim();
     if (original) shared=true;
     if (scope==='all' && original) {
       const signature=JSON.stringify(def.kind==='pattern'?def:{...def,children:def.children.map(i=>'definitionId' in i?{definitionId:i.definitionId,transpose:i.transpose,repeatIndex:i.repeatIndex}:{restTicks:i.restTicks})});
@@ -401,6 +404,16 @@ function materialize(draft: StructureDraft, scope: 'local'|'all', preview = fals
   });
   collect(draft.roots,children,[]);
   return {lane,children,shared,placements,pathRules,occurrences,previewPaths};
+}
+
+/** Scope eligibility is independent of clip-growth/collision validation. */
+export function structureDefinitionChanges(draft: StructureDraft): { definitions: Definition[]; localOnly: boolean; issue?: string } {
+  if (isExpandedStructure(draft)) return { definitions: [], localOnly: true };
+  try {
+    const { lane } = materialize(draft, 'all', true);
+    const definitions = draft.basis.definitions.filter(before => draft.emptied.includes(before.id) || JSON.stringify(lane.definitions.find(d => d.id === before.id)) !== JSON.stringify(before));
+    return { definitions, localOnly: !definitions.length };
+  } catch (error) { return { definitions: [], localOnly: true, issue: error instanceof Error ? error.message : String(error) }; }
 }
 const scaled = (value: number, before: number, after: number) => Number((BigInt(value)*BigInt(after)+BigInt(Math.floor(before/2)))/BigInt(before));
 /** The timeline preview and local commit must use the same partial-pass geometry. */

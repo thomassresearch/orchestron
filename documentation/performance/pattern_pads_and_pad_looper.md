@@ -29,9 +29,9 @@ Groups and supergroups are reusable definitions. **Ungroup** opens one level and
 
 Double-click a pattern, group or supergroup to edit it. The breadcrumb identifies the selected occurrence. Musical edits and structural edits have separate drafts.
 
-**Save** offers **Only this occurrence** or **All linked occurrences**. The first creates a local variation; the second updates the shared definition. **Save structure** applies changes to a group's or clip's assembly. Cancel keeps the draft. Save/Discard/Cancel resolves conflicting drafts before another operation proceeds.
+**Edit linked pattern/group/supergroup** and **Create variation here** choose scope before editing shared content. Independent content opens directly. The scope remains visible and can be changed while retaining edits; Save applies it without another question. The first structural action that changes shared definitions also waits for a scope choice. Cancel keeps the draft and selection. Save/Discard/Cancel resolves conflicting drafts before another operation proceeds.
 
-![Choosing which occurrences receive an edit](../../screenshots/clip-arranger-save-scope.png)
+![Choosing which occurrences receive an edit](../../screenshots/clip-arranger-edit-scope.png)
 
 Performance save, autosave and exports use saved definitions. Resolve changed drafts before saving the performance, or explicitly choose the saved definitions. Drafts survive view switches, but a browser reload does not restore them.
 
