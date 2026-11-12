@@ -12,6 +12,11 @@
             "type": "command",
             "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/protect_example_exports.py\"",
             "statusMessage": "Checking example export destinations"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/protect_documentation_headings.py\"",
+            "statusMessage": "Checking documentation headings before saving"
           }
         ]
       }

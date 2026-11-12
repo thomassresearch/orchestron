@@ -54,6 +54,11 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 - Import/export performance bundles (with optional patch definitions)
 - Export offline Csound render ZIPs either with `.csd` + `.mid` playback or with inline Csound score playback
 
+<p align="center">
+  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Ratchet drums demo mixer with note-triggered instruments before continuous effects and pinned Master" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Live “Ratchet drums demo” mixer with World Drumkit and Flute before the continuous effect strips, followed by pinned Master. Playback is stopped. See the following chapters for rack and sequencer controls.</em></p>
+
 ## Chapter Contents
 
 - [Instrument Rack and Engine Transport](instrument_rack_and_engine_transport.md)
@@ -85,13 +90,6 @@ The collapsed rack shows channel and patch name in one horizontally scrolling ro
 5. Choose **Add track**, add clips and patterns, then edit their musical content. Save each draft with the desired occurrence scope.
 6. Save the performance to retain the rack, routes and current mix.
 7. Export the performance bundle for backup/sharing, or use `Export CSD (MIDI)` / `Export CSD (SCORE)` when you need an offline Csound render package.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Ratchet drums demo mixer with note-triggered instruments before continuous effects and pinned Master" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Live “Ratchet drums demo” mixer with World Drumkit and Flute before the continuous effect strips, followed by pinned Master. Playback is stopped. See the following chapters for rack and sequencer controls.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
 

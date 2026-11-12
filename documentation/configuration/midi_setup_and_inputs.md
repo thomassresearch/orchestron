@@ -19,6 +19,11 @@ Workflow:
 
 The selected MIDI input is reflected in the Perform page footer status line.
 
+<p align="center">
+  <img src="../../screenshots/instrument_runtime_panel_midi_input_dropdown_open.png" alt="Runtime panel MIDI input dropdown" width="560" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Runtime panel MIDI input dropdown expanded with available MIDI inputs.</em></p>
+
 ## Internal Performance Controls Do Not Require External MIDI
 
 These features generate MIDI/control events internally and do not require an external MIDI input device or host bridge:
@@ -83,12 +88,5 @@ For DAW/app -> Orchestron MIDI routing on macOS:
 
 - [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_and_compilation.md)
 - [Live Status and Safety Controls](../performance/live_status_and_safety_controls.md)
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_runtime_panel_midi_input_dropdown_open.png" alt="Runtime panel MIDI input dropdown" width="560" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Runtime panel MIDI input dropdown expanded with available MIDI inputs.</em></p>
 
 **Navigation:** [Up](configuration.md) | [Prev](audio_engine_settings.md) | [Next](browser_clock_latency.md)

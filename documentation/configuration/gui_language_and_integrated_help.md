@@ -17,6 +17,11 @@ Supported languages:
 
 The selector is presented as quick language links (short labels) for fast switching.
 
+<p align="center">
+  <img src="../../screenshots/header_gui_language_selector_links.png" alt="GUI language selector in app header" width="560" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Top-right header language selector links.</em></p>
+
 ## What Changes When You Switch Language
 
 Language switching affects user-facing text such as:
@@ -26,6 +31,11 @@ Language switching affects user-facing text such as:
 - Context help pages (integrated help modals)
 - Opcode documentation modal content (localized generated markdown)
 - Many labels inside advanced editors (including the GEN editor)
+
+<p align="center">
+  <img src="../../screenshots/integrated_help_pages_multilingual.png" alt="Integrated help pages in multiple languages" width="980" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Integrated help and UI localization in multiple supported languages.</em></p>
 
 ## Integrated Help (`?` Buttons)
 
@@ -50,6 +60,13 @@ double-click quarter-note insertion, drawing, editing and playback in all four
 GUI languages.
 
 On the Instrument Design, Perform, and Config pages, these help modals focus on the current tool, device, transport section, or engine setting panel instead of repeating generic UI conventions.
+
+![Mixer and clip arranger help buttons](../../screenshots/performance-help-buttons.png)
+
+<p align="center">
+  <img src="../../screenshots/integrated_help_pages.png" alt="Integrated help pages" width="980" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Context help modal integrated into the workflow.</em></p>
 
 ## Opcode Documentation (`?` On Opcode Node)
 
@@ -76,24 +93,5 @@ Both help modals and opcode documentation modals support:
 Use context help for workflow guidance and opcode docs for technical/operator details.
 
 This combination is faster than switching repeatedly between the app and external documentation while designing patches.
-
-## Screenshots
-
-![Mixer and clip arranger help buttons](../../screenshots/performance-help-buttons.png)
-
-<p align="center">
-  <img src="../../screenshots/header_gui_language_selector_links.png" alt="GUI language selector in app header" width="560" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Top-right header language selector links.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/integrated_help_pages.png" alt="Integrated help pages" width="980" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Context help modal integrated into the workflow.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/integrated_help_pages_multilingual.png" alt="Integrated help pages in multiple languages" width="980" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Integrated help and UI localization in multiple supported languages.</em></p>
 
 **Navigation:** [Up](configuration.md) | [Prev](configuration.md) | [Next](audio_engine_settings.md)

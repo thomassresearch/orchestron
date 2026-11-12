@@ -77,6 +77,11 @@ This is the target control-rate value used to derive `ksmps`.
 - Allowed range: **32 .. 8192**
 - Integer only
 
+<p align="center">
+  <img src="../../screenshots/config.png" alt="Audio engine settings normal state" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Config page audio engine settings in a valid state.</em></p>
+
 ## Derived Values Shown In The UI
 
 The Config page previews derived values before applying:
@@ -121,6 +126,8 @@ The patch engine sample rate and `ksmps` still determine synthesis timing. The S
 Choose **Auto / Live / Listening** in the Browser-Clock Latency section. Auto is the default, with a configurable 10-second inactivity timeout (1–300 seconds). It detects manual piano/controller and selected external MIDI input, while ignoring sequencer automation and controller initialization. Held notes, sustain and controller gestures prevent the timeout. Queued audio is preserved on every switch, so the first note after Listening may still be delayed. The current state appears in Config and Runtime.
 
 The advanced **Live buffering and recovery** controls retain your existing tuning. Listening adds minimum steady targets of 750/1500 ms and startup targets of 1000/1800 ms, retaining larger custom targets. See [Playback Mode](browser_clock_latency.md#playback-mode) for the complete behavior.
+
+The dedicated [Browser-Clock Latency](browser_clock_latency.md) chapter shows the browser-clock tuning section in detail.
 
 ### Field-By-Field Meaning
 
@@ -177,6 +184,11 @@ The page validates:
 
 `Apply Configuration` is disabled until all visible values are valid.
 
+<p align="center">
+  <img src="../../screenshots/config_audio_engine_validation_state.png" alt="Audio engine settings validation state" width="760" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Config page validation messages with invalid values entered.</em></p>
+
 ## Apply Configuration
 
 `Apply Configuration` writes the new engine settings into the current patch state.
@@ -204,19 +216,5 @@ These are part of the patch model, but the current Config page focuses on the us
 - Use the Runtime panel and live testing to find a stable setting for your machine and patch complexity.
 - On the browser-clock path, start by adjusting browser-clock low/high water, render blocks, and parallel request limits before changing patch `-b/-B`.
 - For live MIDI sessions, prefer `ksmps <= 32`. The runtime warns when a live session starts with a larger `ksmps` because MIDI execution is still quantized to the k-period.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/config.png" alt="Audio engine settings normal state" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Config page audio engine settings in a valid state.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/config_audio_engine_validation_state.png" alt="Audio engine settings validation state" width="760" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Config page validation messages with invalid values entered.</em></p>
-
-<p align="center"><em>The dedicated [Browser-Clock Latency](browser_clock_latency.md) chapter shows the browser-clock tuning section in detail.</em></p>
 
 **Navigation:** [Up](configuration.md) | [Prev](gui_language_and_integrated_help.md) | [Next](midi_setup_and_inputs.md)

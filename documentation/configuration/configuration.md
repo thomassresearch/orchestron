@@ -13,6 +13,11 @@ The Configuration chapter covers both UI-visible settings and practical runtime/
 - Internal loopback versus external host-bridge MIDI binding
 - App-state persistence and default values
 
+<p align="center">
+  <img src="../../screenshots/config.png" alt="Configuration page overview" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Configuration page overview of engine settings. The dedicated Browser-Clock Latency chapter shows the browser-clock-specific tuning section in detail.</em></p>
+
 ## Chapter Contents
 
 - [GUI Language and Integrated Help](gui_language_and_integrated_help.md)
@@ -30,12 +35,5 @@ Orchestron has three kinds of configuration:
 - **Workspace runtime tuning** (browser-clock latency settings stored in app state)
 
 Both are important for successful use.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/config.png" alt="Configuration page overview" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Configuration page overview of engine settings. The dedicated Browser-Clock Latency chapter shows the browser-clock-specific tuning section in detail.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/granular_capture.md) | [Next](gui_language_and_integrated_help.md)

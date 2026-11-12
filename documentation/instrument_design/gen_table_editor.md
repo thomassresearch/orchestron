@@ -20,6 +20,11 @@ The editor has two main areas:
 - Left side: generation mode, routine selection, parameters
 - Right side: preview (`Effective GEN`, flattened args, rendered line) and notes
 
+<p align="center">
+  <img src="../../screenshots/instrument_gen_editor_structured_preview.png" alt="GEN editor structured routine mode" width="1000" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>GEN editor in structured routine mode with live preview panel.</em></p>
+
 ## Table Generation Mode (Top Section)
 
 ### Opcode Mode
@@ -87,6 +92,11 @@ Orchestron supports a named GEN routine for padsynth (`GENpadsynth`).
 - Enter padsynth parameters and partial amplitude/frequency pairs in the raw arguments editor.
 - Argument order follows the Csound `GENpadsynth` documentation.
 
+<p align="center">
+  <img src="../../screenshots/instrument_gen_editor_padsynth_raw_args.png" alt="GENpadsynth editor using raw arguments" width="980" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>GENpadsynth named routine using raw arguments input.</em></p>
+
 ## Custom / Raw Routine Arguments
 
 For routines without a dedicated structured editor:
@@ -119,6 +129,11 @@ Benefits:
 - Imports can restore the asset automatically when using ZIP bundles
 - Runtime compilation resolves the asset inside the configured backend asset directory
 - Raw absolute paths and parent-traversal paths are rejected before Csound starts
+
+<p align="center">
+  <img src="../../screenshots/instrument_gen_editor_gen01_uploaded_asset.png" alt="GEN01 editor with uploaded audio asset" width="980" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>GEN01 table setup using an uploaded backend audio asset.</em></p>
 
 ### Additional GEN01 Parameters
 
@@ -156,22 +171,5 @@ Use this to verify the exact Csound line before compile.
 
 - `Save GEN` writes the GEN node configuration into patch UI metadata (`graph.ui_layout`).
 - Closing without saving leaves the previous GEN node settings unchanged.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_gen_editor_structured_preview.png" alt="GEN editor structured routine mode" width="1000" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>GEN editor in structured routine mode with live preview panel.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/instrument_gen_editor_gen01_uploaded_asset.png" alt="GEN01 editor with uploaded audio asset" width="980" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>GEN01 table setup using an uploaded backend audio asset.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/instrument_gen_editor_padsynth_raw_args.png" alt="GENpadsynth editor using raw arguments" width="980" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>GENpadsynth named routine using raw arguments input.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](input_formula_assistant.md) | [Next](runtime_panel_and_compilation.md)

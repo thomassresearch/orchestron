@@ -56,6 +56,11 @@ With the instrument engine stopped, drag a card's `::` handle onto another card 
 
 The compact rack and mixer strips follow this order. Master stays pinned at the right of the mixer, and insert processors remain inside their owner's insert chain. Moving a rack card changes display order without changing MIDI channels, routing, insert processing order, or controller and mixer values. Autosave, Save/Load, Clone, and native export/import preserve the instrument order.
 
+<p align="center">
+  <img src="../../screenshots/perform_instrument_rack_transport_controls.png" alt="Instrument Rack with drag handles and a divider between note-triggered instruments and continuous effects" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>World Drumkit and Lake Bamboo Flute sit above the thin divider, with continuous compressor and reverb below. The :: handles reorder instruments within each group while the engine is stopped.</em></p>
+
 ### Instrument Controls
 
 Patches containing [`perf_controller`](performance_controllers.md) show five compact tuning knobs per standard rack-card row; extras wrap below. They remain editable while playing. New notes use updated values. Continuous controls marked **Live** update during playback. **Requires restart** identifies I-rate or mixed connections. Both CSD export modes use initialization values for continuous controls. Open the rack’s **?** help and look for **Performance Controllers** for details. Save Performance stores explicit overrides.
@@ -106,12 +111,5 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 - Save the performance after significant changes (rack assignments, sequencers, piano rolls, controller mappings).
 - Use distinct MIDI channels for note-triggered rack instances.
 - Use `sname` labels on source `outleta` nodes to name the available matrix channels. The label can be stored directly on the node or supplied by a direct `const_s` connection.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/perform_instrument_rack_transport_controls.png" alt="Instrument Rack with drag handles and a divider between note-triggered instruments and continuous effects" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>World Drumkit and Lake Bamboo Flute sit above the thin divider, with continuous compressor and reverb below. The :: handles reorder instruments within each group while the engine is stopped.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](audio_mixer_and_routing.md)

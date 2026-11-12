@@ -35,6 +35,11 @@ Each controller lane includes:
 - Knob control (value `0..127`)
 - Numeric value display
 
+<p align="center">
+  <img src="../../screenshots/perform_midi_controllers_knob_lanes_closeup.png" alt="MIDI controller knob lanes" width="980" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Compact manual MIDI controller cards below the clip arranger, with knobs, CC numbers, channel selections, and values.</em></p>
+
 ## MIDI Channels
 
 Check the channels that should receive this lane's CC messages. All 16 are checked by default (OMNI); at least one must remain checked. The last checked box cannot be unchecked until another channel is selected.
@@ -76,12 +81,5 @@ Use controller sequencers when you want:
 - curve-based modulation patterns
 
 Both can exist in the same performance.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/perform_midi_controllers_knob_lanes_closeup.png" alt="MIDI controller knob lanes" width="980" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Compact manual MIDI controller cards below the clip arranger, with knobs, CC numbers, channel selections, and values.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](piano_rolls.md) | [Next](performance_import_export.md)

@@ -192,6 +192,11 @@ Typical uses:
 - Import only patch definitions (extract instruments from a performance file)
 - Import only performance (if the destination machine already has matching patches)
 
+<p align="center">
+  <img src="../../screenshots/perform_import_options_dialog.png" alt="Performance import options dialog" width="760" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Performance import options dialog for importing performance and/or patch definitions.</em></p>
+
 ## Conflict Resolution Dialog
 
 If names already exist, Orchestron opens a conflict dialog.
@@ -212,6 +217,11 @@ For the performance itself you can choose:
 - Rename and create a new performance
 
 (Performance entries do not use `Skip` in the conflict dialog; skipping is handled via the import options step.)
+
+<p align="center">
+  <img src="../../screenshots/perform_import_conflict_dialog.png" alt="Performance import conflict dialog" width="900" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Conflict dialog for imported patch/performance name collisions.</em></p>
 
 ## Patch ID Remapping During Performance Import
 
@@ -245,18 +255,6 @@ Offline rendering remains 48 kHz with ksmps=1, float WAV output, packaged assets
 Both performance CSD modes use an offline compilation profile. Saved mixer settings become fixed coefficients, so rendering avoids interactive mixer smoothing and unused peak/RMS meters. These exported coefficients cannot be changed through live mixer control channels. Musical MIDI/controller curves, per-instance settings, synthesis, routing and effect tails retain their existing behavior. Previously exported CSD files are unchanged.
 
 Csound's default logging is preserved: inlet/outlet instance creation and removal messages may still appear as notes play. For optional quiet rendering, run `csound -m0 Offline_Export.csd` from the extracted package directory. This also suppresses warning-level messages; omit `-m0` when diagnosing a render.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/perform_import_options_dialog.png" alt="Performance import options dialog" width="760" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Performance import options dialog for importing performance and/or patch definitions.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/perform_import_conflict_dialog.png" alt="Performance import conflict dialog" width="900" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Conflict dialog for imported patch/performance name collisions.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](midi_controllers.md) | [Next](live_status_and_safety_controls.md)
 

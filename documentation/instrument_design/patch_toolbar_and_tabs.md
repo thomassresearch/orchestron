@@ -18,6 +18,11 @@ The toolbar includes:
 - Grouped, searchable patch picker (`Load Patch`)
 - Action buttons (`New`, `Clone`, `Delete`, `Save`, `Compile`, `Export`, `Import`, `Export CSD`)
 
+<p align="center">
+  <img src="../../screenshots/instrument_patch_toolbar_tabs_actions.png" alt="Patch toolbar and instrument tabs" width="900" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Earlier toolbar with a continuous stereo-effect draft and library actions. Instrument Type now replaces Activation; an updated screenshot is pending.</em></p>
+
 ## Instrument Tabs
 
 - Use the `+` button to add a new instrument tab.
@@ -127,12 +132,5 @@ Role describes the patch's audio interface; Instrument Type determines whether i
 Existing always-on patches become Continuous without changing playback. Other older patches are classified from their names first, then descriptions: drum/percussion terms precede bass terms, followed by melodic and sound-effect terms. Unmatched patches default to Melody. Review the inferred Instrument Type and change it when needed; later name or description edits do not reclassify a patch.
 
 Types are saved with the patch and retained in clones, templates, restored tabs, and instrument/performance JSON or ZIP bundles. New playable and empty patches default to Melody, drumsets to Percussion, and effect/output starters to Continuous.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_patch_toolbar_tabs_actions.png" alt="Patch toolbar and instrument tabs" width="900" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Earlier toolbar with a continuous stereo-effect draft and library actions. Instrument Type now replaces Activation; an updated screenshot is pending.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](instrument_design.md) | [Next](opcode_catalog_and_documentation.md)

@@ -51,3 +51,35 @@ Run the focused regression tests from the repository root:
 ```sh
 python3 -m unittest discover -s .codex/hooks/tests -v
 ```
+
+## Documentation heading guard
+
+`protect_documentation_headings.py` previews edits to `documentation/**/*.md`
+before a Codex tool writes them. It rejects headings beginning with English,
+French, German, Spanish, Français/Francais, Deutsch or Español/Espanol (ignoring
+case and accents), and headings whose entire title is Screenshots. Use English
+topic titles and place images beside the explanation they illustrate.
+
+The validator recognizes ATX (`#`) and Setext (underlined) headings, HTML heading
+tags, and inline formatting. Fenced/indented code and HTML comments are excluded.
+Errors include the file, line, offending heading, and how to fix it; the hook
+exits with code 2 before the write runs. It checks the full proposed document,
+including existing text that becomes a heading after an edit.
+
+Supported writes are `apply_patch` additions, updates and moves, full-content
+Write tools, and old/new-text Edit or MultiEdit tools (including filesystem MCP
+variants). Ambiguous or unsupported previews are rejected. Explicit shell writes
+recognized by the shared destination scanner are blocked with instructions to
+use `apply_patch` or a structured Write/Edit tool instead, because their resulting
+content cannot be safely previewed. Reads and deletions are allowed.
+
+As with the other repository hooks, arbitrary scripts and dynamically computed
+paths can bypass this tool-input guard. It is not an editor-wide save hook or a
+filesystem policy. Enable and trust the new hook in Codex's `/hooks` review before
+relying on automatic enforcement. No global hook settings are changed.
+
+Check all existing documentation independently of a tool event:
+
+```sh
+python3 .codex/hooks/protect_documentation_headings.py --check
+```

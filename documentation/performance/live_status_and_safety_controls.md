@@ -26,6 +26,11 @@ At the bottom of the Perform page, Orchestron shows live status values such as:
 
 This footer is useful during performance because it gives quick feedback without opening the Instrument Design runtime panel.
 
+<p align="center">
+  <img src="../../screenshots/perform_footer_status_safety_controls.png" alt="Performance footer status" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Footer status bar with playhead/cycle/MIDI input.</em></p>
+
 ## Engine Stats and Parallel Playback
 
 A narrow **Engine stats** line stays fixed at the bottom of the Perform window. It shows
@@ -112,13 +117,6 @@ See [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_
 2. Confirm expected MIDI input is bound.
 3. Check track/controller/piano-roll enable states.
 5. Save the performance after major routing changes.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/perform_footer_status_safety_controls.png" alt="Performance footer status" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Footer status bar with playhead/cycle/MIDI input.</em></p>
 
 **Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](standard_effects.md)
 

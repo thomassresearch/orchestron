@@ -64,6 +64,11 @@ Per patch, you can choose:
 
 The dialog validates name collisions before proceeding. Cancelling leaves the library and audio storage unchanged. After confirmation, the selected patches and their new audio assets are saved together; a failed import rolls back the whole batch. Invalid definitions and duplicate source IDs are rejected before anything is stored.
 
+<p align="center">
+  <img src="../../screenshots/instrument_import_patch_conflict_dialog.png" alt="Instrument import patch conflict dialog" width="760" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Patch import conflict dialog with overwrite/rename/skip decisions.</em></p>
+
 ## Audio Dependency Handling
 
 For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets or `adsyn` analysis files:
@@ -90,12 +95,5 @@ Use the right export for the right task:
 - Performance bundle: share a full performance setup (instrument rack + sequencers + controllers + piano rolls + optional patch definitions)
 
 See [Performance Import / Export](../performance/performance_import_export.md) for performance bundles.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_import_patch_conflict_dialog.png" alt="Instrument import patch conflict dialog" width="760" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Patch import conflict dialog with overwrite/rename/skip decisions.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](runtime_panel_and_compilation.md) | [Next](supported_opcodes.md)

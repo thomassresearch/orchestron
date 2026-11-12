@@ -14,6 +14,8 @@ See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and edit
 
 Double-click a pattern in the arranger to open its editor. **Close editor** returns to the timeline and retains its draft. Closing the editor ends **Play edit** auditioning; the song's transport remains independent.
 
+![Melodic pattern editor with occurrence breadcrumb, draft controls and step grid](../../screenshots/melodic-pattern-editor.png)
+
 ## Global Sequencer Clock
 
 The sequencer section contains a global clock with:
@@ -162,9 +164,5 @@ The panel edits the displayed pad and closes on pad changes, collapse, removal, 
 ## Related Features
 
 - Linked patterns, local variations, transposition and grouping are documented in [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md).
-
-## Screenshots
-
-![Melodic pattern editor with occurrence breadcrumb, draft controls and step grid](../../screenshots/melodic-pattern-editor.png)
 
 **Navigation:** [Up](performance.md) | [Prev](audio_mixer_and_routing.md) | [Next](drummer_sequencers.md)

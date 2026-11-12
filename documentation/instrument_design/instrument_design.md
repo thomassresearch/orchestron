@@ -17,6 +17,11 @@ Patches have an editable Instrument Type. Load Patch browses collapsed type grou
 - Configure function tables with the `GEN` meta-opcode (including `GEN01` audio-file tables and `GENpadsynth`).
 - Export instruments as Orchestron bundle files and as `.csd`.
 
+<p align="center">
+  <img src="../../screenshots/instrument_design.png" alt="Instrument Design page overview" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Instrument Design page overview with catalog, graph editor, and runtime panel.</em></p>
+
 ## Chapter Contents
 
 - [Patch Toolbar and Instrument Tabs](patch_toolbar_and_tabs.md)
@@ -50,12 +55,5 @@ For the supplied stereo effects and their performance controls, see [Standard Ef
 - Runtime starts collapsed to give more graph space; open it with `Show runtime`. Collapse `Patch controls` to hide metadata and file actions while keeping instrument tabs visible. Both choices survive view switches until browser reload.
 - Saving a normal patch performs compile validation first; a failing compile prevents a bad save.
 - Saving a patch marked `Template?` skips compile validation so incomplete starter graphs can be stored and reused. Template patches remain loadable in Instrument Design but are not selectable as Perform rack instruments.
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_design.png" alt="Instrument Design page overview" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Instrument Design page overview with catalog, graph editor, and runtime panel.</em></p>
 
 **Navigation:** [Up](../user_documentation.md) | [Prev](../user_documentation.md) | [Next](patch_toolbar_and_tabs.md)

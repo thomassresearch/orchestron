@@ -73,6 +73,11 @@ The assistant tokenizes the current expression and displays clickable tokens.
 - Click a token to select that exact range in the text area.
 - Use `Delete Selection` to remove the selected token/range quickly.
 
+<p align="center">
+  <img src="../../screenshots/instrument_input_formula_assistant_modal.png" alt="Input Formula Assistant modal" width="1000" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Input Formula Assistant with connected input tokens and editable formula.</em></p>
+
 ## Validation Rules
 
 The formula must be syntactically valid before it can be saved.
@@ -142,12 +147,5 @@ abs(in1)
 ```text
 sr * 0.5
 ```
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_input_formula_assistant_modal.png" alt="Input Formula Assistant modal" width="1000" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Input Formula Assistant with connected input tokens and editable formula.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](graph_editor.md) | [Next](gen_table_editor.md)

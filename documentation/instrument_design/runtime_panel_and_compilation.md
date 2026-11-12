@@ -11,6 +11,11 @@ The Runtime panel supports live testing of the current patch and exposes compile
 - `Browser Audio` status for browser-clock mode
 - `Session Events` log (recent backend/runtime events)
 
+<p align="center">
+  <img src="../../screenshots/instrument_runtime_panel_browser_clock_active.png" alt="Runtime panel with active browser-clock PCM status, queue diagnostics and session events" width="560" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Runtime panel showing MIDI input selection, generated ORC, active browser-owned PCM runtime, queue diagnostics and recent session events.</em></p>
+
 ## MIDI Input Binding
 
 Use the `MIDI Input` dropdown to bind an external MIDI input to the active runtime session.
@@ -112,13 +117,6 @@ If you edit the draft after preparing, prepare again before listening. Preview i
   <img src="../../screenshots/instrument_audition_performance_instance.png" alt="Prepared audition replacing one selected performance instance" width="600" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>Current-performance preview targets one explicitly selected rack instance.</em></p>
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_runtime_panel_browser_clock_active.png" alt="Runtime panel with active browser-clock PCM status, queue diagnostics and session events" width="560" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Runtime panel showing MIDI input selection, generated ORC, active browser-owned PCM runtime, queue diagnostics and recent session events.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)
 

@@ -28,6 +28,11 @@ If the graph is empty, `Fit` resets toward a centered default view.
 
 Horizontal and vertical scrollbars along the canvas edges let you reach every part of a large patch, including expanded If/Switch case frames. They remain available when **Patch controls** is collapsed and adjust when Runtime or the browser window changes the canvas size. Drag a scrollbar, or focus it with **Tab** and use the arrow keys for that direction. Scrolling moves the view without moving nodes or clearing selection. The scrollbars stay synchronized with background panning, zoom, and `Fit`.
 
+<p align="center">
+  <img src="../../screenshots/instrument_graph_editor_selection_zoom_delete.png" alt="Graph editor selection and zoom controls" width="520" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Graph editor detail showing selection state, delete button, and zoom controls.</em></p>
+
 ## Node Appearance and Visual Cues
 
 ### Category Coloring
@@ -98,6 +103,11 @@ Deletion flow:
 
 - If one item is selected, deletion can happen directly.
 - If multiple items are selected, Orchestron opens a confirmation dialog listing all affected items (nodes and connections) before deletion.
+
+<p align="center">
+  <img src="../../screenshots/instrument_graph_delete_selection_dialog.png" alt="Delete selection confirmation dialog" width="760" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Delete-selection confirmation dialog listing selected graph items.</em></p>
 
 ## Node-Specific Controls
 
@@ -173,17 +183,5 @@ The interface panel describes musical role, stable group IDs, display names, exa
   <img src="../../screenshots/instrument_stereo_audio_interface.png" alt="Stereo effect interface metadata and collapsed input/output blocks" width="900" style="max-width: 100%; height: auto;" />
 </p>
 <p align="center"><em>A continuous pass-through effect with explicit left/right groups and collapsed Stereo Input and Stereo Output blocks.</em></p>
-
-## Screenshots
-
-<p align="center">
-  <img src="../../screenshots/instrument_graph_editor_selection_zoom_delete.png" alt="Graph editor selection and zoom controls" width="520" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Graph editor detail showing selection state, delete button, and zoom controls.</em></p>
-
-<p align="center">
-  <img src="../../screenshots/instrument_graph_delete_selection_dialog.png" alt="Delete selection confirmation dialog" width="760" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Delete-selection confirmation dialog listing selected graph items.</em></p>
 
 **Navigation:** [Up](instrument_design.md) | [Prev](opcode_catalog_and_documentation.md) | [Next](input_formula_assistant.md)

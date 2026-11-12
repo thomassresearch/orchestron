@@ -14,6 +14,8 @@ See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and edit
 
 Double-click a pattern in the arranger to open its editor. **Close editor** returns to the timeline and retains its draft. Closing the editor ends **Play edit** auditioning; the song's transport remains independent.
 
+![Drummer pattern editor during Play edit](../../screenshots/clip-arranger-edit-playback.png)
+
 ## What Makes Them Different
 
 Compared to melodic sequencers, drummer sequencers:
@@ -111,10 +113,6 @@ Double-click a pattern inside an expanded clip to open this editor. The breadcru
 Assemble patterns, groups, supergroups and rests directly inside clips. See [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md) for linked content, variations and structural editing.
 
 Pattern length uses local beats, while meter, subdivision and playback speed belong to the track. All drum rows share the pattern duration. Choose a duration that fits the meter to create one-bar patterns in odd meters.
-
-## Screenshots
-
-![Drummer pattern editor during Play edit](../../screenshots/clip-arranger-edit-playback.png)
 
 ## Typical Uses
 
