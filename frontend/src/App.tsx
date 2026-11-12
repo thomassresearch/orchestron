@@ -1882,8 +1882,7 @@ export default function App() {
 
               <section className="relative flex h-full min-h-[440px] flex-col gap-2">
                 <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <AuditionPanel stopPerformance={() => stopPerformance(false)} buildConfig={(state) => buildBackendSequencerConfig(state)} />
+                  <AuditionPanel key={`${activeInstrumentTabId}:${currentPatch.id}`} stopPerformance={() => stopPerformance(false)}>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
                         {appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}
@@ -1895,7 +1894,7 @@ export default function App() {
                       onClick={() => onHelpRequest("instrument_graph_editor")}
                       className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
                     />
-                  </div>
+                  </AuditionPanel>
                   <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
                     <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
                       {appCopy.selectedSummary(selection.nodeIds.length, selection.connections.length)}

@@ -82,44 +82,50 @@ This helps you avoid assuming a graph is live-valid after edits.
 
 ## Recommended Test Loop
 
-1. Edit the graph
-2. Compile
-3. Read compile output / diagnostics
-4. Open Audition, choose a preview context, then Prepare audition
-5. Use Stop and audition to hear the draft; close the preview when finished
-6. Save only after compile is clean
+1. Edit the graph.
+2. Click **Audition** to compile and start an isolated preview.
+3. Play the mini keyboard and adjust the compact performance controls.
+4. Click **Stop audition** when finished.
+5. Save the instrument when you are happy with it.
 
 The integrated `?` help for this panel now focuses on session-specific external MIDI binding, generated ORC inspection, runtime event feedback, and browser-clock PCM playback.
 
 ## Audition a draft
 
-Compile validates the graph without starting audio. Audition offers Isolated and In current performance. An isolated effect receives the built-in test instrument or a selected saved source. Current-performance audition replaces one selected rack instance in a temporary snapshot; choose the instance explicitly when a patch appears more than once.
+**Audition** is a toggle in the graph header. Click it to compile the current draft and start an isolated preview. While it is running, the button reads **Stop audition**, and compact performance controls and a mini keyboard appear below it. Click again to stop and hide both. The graph stays accessible throughout. Compile remains available to validate the graph without starting audio.
 
-Prepare compiles the temporary preview before interrupting the performance. Stop and audition explicitly stops the original performance and starts the preview. Closing deletes the temporary session and restores the original performance state and playhead with transport stopped. Draft patches, test sources and preview routes are never saved into the library.
+Compilation finishes before any current performance is stopped. A compilation error leaves that performance running and appears beside the audition controls. During preparation, click **Preparing… · Cancel** to cancel the pending start.
 
-### Preview step by step
+![Isolated audition with compact performance controls and mini keyboard](../../screenshots/instrument_audition_compact.png)
 
-1. Click **Audition** in the graph header with the draft you want to hear.
-2. Choose **Isolated** to test only this patch. For an effect, select **Test source**: the built-in Playable instrument or a saved source with suitable outputs. Isolated preview needs a stereo main output; source outputs must match the effect input count.
-3. Alternatively choose **In current performance** and select the rack instance in **Source**. The short ID distinguishes instances of the same patch, including a return and a separate insert. The draft replaces only that selected instance in the temporary performance snapshot.
-4. Click **Prepare audition**. Compilation errors appear in the dialog; fix the draft and prepare again. Preparation does not interrupt the original performance.
-5. Click **Stop and audition** to stop the original engine and start the compiled preview. Note-triggered preview sources receive a test note (MIDI 60, velocity 96); current-performance mode also uses the performance sequencer configuration.
-6. Click **Close audition · transport stays stopped**. The preview session is deleted and the original performance state/playhead is restored with transport stopped. Restart the performance explicitly when ready.
+### Play and adjust the sound
 
-If you edit the draft after preparing, prepare again before listening. Preview is temporary: use Save separately to update the library patch.
+- **Float** controls have a label and tiny knob. Drag vertically or use the arrow keys; hold Shift for fine adjustments. Hover to see the value, or double-click to reset to the patch default.
+- **Integer** controls have a label and number field. Type a whole number or use Up/Down; Home/End selects the limits. Enter or leaving the field applies an entry; Escape cancels. Fractional entries are rejected and whole numbers are clamped to the configured range.
+- **Bool** controls have a label and small on/off toggle.
+- Controls appear in one flat row that wraps as needed. There are no controller groups, MIDI assignments or automation controls in audition.
+- Hold a piano key to play, then release it to stop the note. Focused keys also respond to Space or Enter. The **−** and **+** buttons shift the two-octave keyboard. It uses fixed velocity, with no scale, mode or automatic chords. Starting audition does not hold a test note automatically.
 
-<p align="center">
-  <img src="../../screenshots/instrument_audition_isolated_effect.png" alt="Prepared isolated effect audition with built-in test source" width="600" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Isolated effect preview after successful preparation, ready for Stop and audition.</em></p>
+Controls start at the patch defaults. Changes are temporary and do not change the library patch or a performance. They survive stopping and restarting audition for the same instrument, and reset when you leave Instrument Design or switch instrument tabs. Changing a controller range or type reconciles its temporary value on the next start.
 
-<p align="center">
-  <img src="../../screenshots/instrument_audition_performance_instance.png" alt="Prepared audition replacing one selected performance instance" width="600" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Current-performance preview targets one explicitly selected rack instance.</em></p>
+Note instruments use changed values on the next note or phrase. Continuous instruments update live when all connected inputs support it; other settings require stopping and restarting audition. Hover over a control for its timing behavior. See [Using Performance Controls](../performance/performance_controllers.md).
+
+### Effects and continuous instruments
+
+An isolated effect automatically receives the built-in playable test instrument. Play the mini keyboard to send that source through the effect. Audition needs a stereo main output; effects also need a stereo main input compatible with the built-in source. Direct Audio Output is supported.
+
+Continuous generators start immediately. If there is no note-triggered instrument in the preview, the mini keyboard remains visible but disabled.
+
+![Isolated effect audition using the built-in test instrument](../../screenshots/instrument_audition_isolated_effect.png)
+
+### Stop or change the draft
+
+Stopping audition releases held notes, removes the temporary session and restores the original performance playhead with transport stopped. Restart that performance explicitly when ready. Switching instruments or leaving Instrument Design also ends audition. Temporary patches, test sources and routes are never saved into the library.
+
+If you edit the graph during audition, a **Draft changed** message reminds you to stop and restart audition to hear the updated draft. Performance controls continue to address the running snapshot until then.
 
 ### Audition notes for branching instruments
 
-The **Test MIDI note** field chooses which note audition sends. A Switch driven by `notnum` starts with its first MIDI-number case (36 for Drumset); other patches start at 60. Change it to 38 or 42 to test the other drums, or to an unmatched note to check Default Silence. [Branching guide](control_flow.md).
+The mini keyboard initially shows the octave containing the first MIDI-number Switch case (36 for Drumset); other patches start at 60. Play 38 or 42 to test other drums, or an unmatched note to check Default Silence. Use the octave buttons to reach other pitches. See the [Branching guide](control_flow.md).
 
 **Navigation:** [Up](instrument_design.md) | [Previous](performance_controls.md) | [Next](instrument_import_export.md)

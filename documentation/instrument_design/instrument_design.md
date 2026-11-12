@@ -30,7 +30,7 @@ Create or load an instrument, connect its graph, compile and audition it, then s
 - Maintain multiple instrument tabs (parallel drafts or different patches).
 - Use localized integrated help and opcode-level documentation without leaving the app.
 - Choose built-in instrument, effect and output starters and define grouped stereo audio interfaces.
-- Compile the current graph, inspect generated ORC, and audition drafts in isolation or in a temporary performance snapshot.
+- Compile the current graph, inspect generated ORC, and audition drafts in isolation with compact performance controls and a mini keyboard.
 - Define advanced input-combine formulas when multiple signals feed the same input.
 - Configure function tables with the `GEN` meta-opcode (including `GEN01` audio-file tables and `GENpadsynth`).
 - Export instruments as Orchestron bundle files and as `.csd`.
