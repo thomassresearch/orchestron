@@ -204,7 +204,7 @@ See [Audio Mixer and Routing](documentation/performance/audio_mixer_and_routing.
 
 ## Learn and share
 
-The interface and integrated help are available in **English, German, French, and Spanish**. Open a tool's **?** button for guidance in context, including the Mixer and clip-based Multitrack Arranger, or explore an opcode's reference while building a patch.
+The interface and integrated help are available in **English, German, French, and Spanish**. Open a tool's **?** button for guidance in context, including the Mixer and clip-based Multitrack Arranger, or explore an opcode's reference while building a patch. In the Instrument Rack help, **Performance Controllers** explains when continuous controls update live, require a restart, or use initialization values in CSD exports.
 
 ![Spanish integrated help explaining the graph editor and input formulas](screenshots/integrated_help_pages_multilingual.png)
 

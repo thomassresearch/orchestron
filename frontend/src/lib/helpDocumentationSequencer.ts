@@ -864,7 +864,7 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 }
 
 for (const language of ["english", "german", "french", "spanish"] as const) {
-  sequencerHelpAppendices.sequencer_instrument_rack![language] += "\n\n" + performanceControllerHelp[language];
+  sequencerHelpAppendices.sequencer_instrument_rack![language] += "\n\n" + performanceControllerHelp(language, "rack");
 }
 
 for (const language of ["english", "german", "french", "spanish"] as const) {

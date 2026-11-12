@@ -15,8 +15,7 @@ export function AdaptiveInstrumentRack({ rows, patches, language, renderCard }: 
     const patch = patches.get(binding.patchId);
     return { id: binding.id, name: patch?.name, definitions: patch?.performance_controllers ?? [], notices: [
       ...(patch?.performance_controllers?.some(definition => definition.error) ? [copy.invalid] : []),
-      ...(binding.performanceControllerNotice ? [copy.reconciled] : []),
-      ...(patch?.always_on && patch.performance_controllers?.length ? [copy.continuous] : [])
+      ...(binding.performanceControllerNotice ? [copy.reconciled] : [])
     ] };
   })]);
   const { ref, width, metrics } = useRackGeometry(contentKey);

@@ -100,3 +100,22 @@ it.each(cases)("opens clip-specific Arranger help in %s and dismisses it with Es
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(useAppStore.getState().sequencer).toBe(before);
 });
+
+const rackHelpCases = [
+  ["english", "Instrument Rack", "Performance Controllers", /accepts K-rate.*I-rate-only and mixed.*rack restarts.*Both CSD export modes.*fixed at initialization/],
+  ["german", "Instrument-Rack", "Performance-Regler", /K-Rate.*I-Rate- und gemischte.*Rack-Neustart.*Beide CSD-Exportmodi.*Initialwerten/],
+  ["french", "Rack instrument", "Réglages de performance", /K-rate.*I-rate.*mixtes.*redémarrage.*Les deux modes d’export CSD.*initialisation/],
+  ["spanish", "Rack de instrumentos", "Controles de interpretación", /K-rate.*I-rate o mixtas.*reiniciar el rack.*Ambos modos de exportación CSD.*inicialización/]
+] as const;
+
+it.each(rackHelpCases)("explains continuous controller timing in %s rack help", (language, title, controllerTitle, timing) => {
+  useAppStore.setState({ guiLanguage: language });
+  render(<Page language={language} />);
+  const rack = screen.getByRole("button", { name: title }).closest("section")!;
+  const ui = documentationUiCopy(language);
+  fireEvent.click(within(rack).getByRole("button", { name: ui.showDocumentation }));
+  const dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getByRole("heading", { name: controllerTitle })).toBeTruthy();
+  expect(dialog.getByText(timing)).toBeTruthy();
+  expect(dialog.queryByRole("heading", { name: /^(perf_controller|Autopanner)$/ })).toBeNull();
+});

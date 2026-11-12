@@ -57,7 +57,6 @@ export function PerformanceControllerRack({ binding, patch, language }: {
     </div>
     {definitions.some((definition) => definition.error) && <p role="alert" className="mt-2 text-xs text-rose-300">{copy.invalid}</p>}
     {binding.performanceControllerNotice && <p role="status" className="mt-2 text-xs text-amber-200">{copy.reconciled}</p>}
-    {patch?.always_on && definitions.length > 0 && <p className="mt-2 text-[10px] text-slate-400">{copy.continuous}</p>}
   </div>;
 }
 

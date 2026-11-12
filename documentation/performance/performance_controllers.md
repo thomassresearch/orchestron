@@ -77,7 +77,7 @@ Input formulas follow the same connection rules. If/Switch selectors remain init
 
 Both **CSD (MIDI)** and **CSD (SCORE)** exports keep continuous-instrument settings fixed at initialization, including controls marked Live. Note and legato-phrase behavior is unchanged.
 
-![Continuous controllers showing Live and Requires restart](../../screenshots/performance_controller_live_updates.png)
+![Stereo Flanger in the Instrument Rack with Live and Requires restart labels beneath its controls](../../screenshots/performance_controller_live_updates.png)
 
 For an instrument using [`midi_legato`](../instrument_design/midi_legato.md), settings are sampled at the start of each **phrase**. Touching and overlapping notes keep the same voice and settings; the next note after a gap reads current values.
 

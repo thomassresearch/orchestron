@@ -513,8 +513,8 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 }
 
 for (const language of ["english", "german", "french", "spanish"] as const) {
-  instrumentHelpAppendices.instrument_graph_editor![language] += "\n\n" + performanceControllerHelp[language];
-  instrumentHelpAppendices.instrument_opcode_catalog![language] += "\n\n" + performanceControllerHelp[language];
+  instrumentHelpAppendices.instrument_graph_editor![language] += "\n\n" + performanceControllerHelp(language, "design");
+  instrumentHelpAppendices.instrument_opcode_catalog![language] += "\n\n" + performanceControllerHelp(language, "design");
 }
 
 for (const language of ["english", "german", "french", "spanish"] as const) {

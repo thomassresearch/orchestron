@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PerformanceControllerRack } from "./PerformanceControllerRack";
+import { performanceControllerCopy } from "../../lib/performanceControllerCopy";
 import { useAppStore } from "../../store/useAppStore";
 import type { PatchListItem, SequencerInstrumentBinding } from "../../types";
 const binding: SequencerInstrumentBinding = { id: "one", patchId: "patch", midiChannel: 3, level: 10, effectSourceIds: [], effectRoutes: [], performanceControllerMidiCCs: { gain: 21 } };
@@ -35,6 +36,7 @@ it("labels automatic live, mixed and unused continuous controllers without chang
   const continuous = { ...patch, always_on: true, performance_controllers: patch.performance_controllers!.map((d, i) => ({ ...d, update_mode: modes[i] })) };
   const { rerender } = render(<PerformanceControllerRack binding={{ ...binding, midiChannel: 0 }} patch={continuous} language="english" />);
   expect(screen.getByText("Live")).toBeTruthy();
+  expect(screen.queryByText(performanceControllerCopy("english").continuous)).toBeNull();
   expect(screen.getByText("Requires restart").title).toContain("I-rate input");
   expect(screen.getByText("Not connected")).toBeTruthy();
   expect(screen.getAllByRole("combobox").every(element => (element as HTMLSelectElement).disabled)).toBe(true);
