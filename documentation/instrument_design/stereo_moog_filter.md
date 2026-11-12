@@ -1,6 +1,6 @@
 # Stereo Moog Filter
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](granular_capture.md) | [Next](../configuration/configuration.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](granular_capture.md) | [Next](stereo_auto_wah_wah.md)
 
 **Stereo Moog Filter** is a Continuous stereo resonant low-pass effect. Import and
 save the [native instrument](../../examples/instruments/Stereo_Moog_Filter.orch.instrument.json),
@@ -67,5 +67,6 @@ settings. CSD MIDI and SCORE exports preserve initialization and automation;
 SCORE uses the explicit-channel controller array. Their event timing can differ
 by one control block. Controller state itself is runtime state.
 
-See the [example README](../../examples/instruments/stereo_moog_filter/README.md)
-for reproduction, auditions and validation.
+Open the imported instrument in Instrument Design to inspect its two filter paths.
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](granular_capture.md) | [Next](stereo_auto_wah_wah.md)

@@ -1,10 +1,12 @@
 # Granular Capture: Stutter, Freeze and Grains
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](continuous_effects.md) | [Next](stereo_moog_filter.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](continuous_effects.md) | [Next](stereo_moog_filter.md)
 
 **Granular Capture** is one continuous stereo effect with Stutter and Granular playback and a shared Freeze control. Add it as a mixer insert, feed its grouped stereo input, and route its grouped output onward. It records incoming audio continuously, even while playing a frozen snapshot. The two channels keep separate samples and share capture timing and grain positions.
 
-![Granular Capture compiled in Instrument Design](../../screenshots/granular_capture_library.png)
+<p align="center">
+  <img src="../../screenshots/granular_capture_library.png" alt="Granular Capture compiled in Instrument Design" width="560" style="max-width: 100%; height: auto;" />
+</p>
 
 ## MIDI switches
 
@@ -18,8 +20,6 @@ The default **MIDI Control Channel is 16**. This setting is independent of MIDI 
 | Granular | 23 | Loop playback when Stutter/Freeze is on; otherwise dry | Play windowed grains from live history or the held snapshot |
 
 Use **0 and 127** in step cells. Capture is a value-edge trigger: put **0 between successive 127 values**. Repeating 127 sends another MIDI message but does not produce another rising edge. Capture alone updates the snapshot without enabling wet playback. Stutter or Freeze alone produces a loop; Granular on produces grains. Freeze off resumes live grains unless Stutter is still holding the snapshot. All three playback/hold switches off returns to dry audio with Output gain.
-
-<!-- pagebreak -->
 
 ## Configure a step pattern
 
@@ -38,7 +38,7 @@ A four-beat pattern at 120 BPM with four steps per beat can use:
 | Capture, CC22 | 13: 127; 14: 0 |
 | Granular, CC23 | 11: 127; 16: 0 |
 
-The [reproducible example](../../examples/instruments/granular_capture/README.md) includes the matching API sequencer configuration. Sequencer start/stop and finite endings send Reset Value. Pad changes and loops hold the current value. A controller stopped with a nonzero Reset Value can leave an effect active. Muted controller lanes do not send their reset; release the corresponding CC manually or restart the rack.
+The [reproducible example](../../examples/instruments/granular_capture/README.md) includes a matching sequencer example. Sequencer start/stop and finite endings send Reset Value. Pad changes and loops hold the current value. A controller stopped with a nonzero Reset Value can leave an effect active. Muted controller lanes do not send their reset; release the corresponding CC manually or restart the rack.
 
 ## Performance settings
 
@@ -60,19 +60,19 @@ Slice is the **stutter repeat period**, with an extra 5 ms of history captured f
 
 Mix zero preserves dry audio, with Output gain and no processing delay. Inactive playback also passes dry. Use an insert: a parallel send would duplicate dry audio while inactive. Freeze can intentionally sustain indefinitely, so send a release before the end of an offline render. Capture before enough history exists includes silence. Engine stop/restart clears both history and snapshot buffers.
 
-<!-- pagebreak -->
+<a id="implementation-and-limits"></a>
 
-## Implementation and limits
+## Playback limits
 
-The editable graph uses four native [ctrl7](https://csound.com/docs/manual/ctrl7.html) readers feeding the Orchestron `stereo_capture` processor. The processor is an application-defined Csound UDO, not a stock Csound opcode. Its generated code is included in standalone compilation and both CSD exports. SCORE mode rewrites explicit-channel readers to the score controller array, including channels with no note instrument. No channel assignment or persistence schema extension is needed.
+Each instance has its own capture history. Loop seams and state changes use short crossfades. High Grain Pitch values can introduce aliasing; reduce the interval if the result becomes too harsh. This is a time-domain freeze, so it retains a slice of the waveform rather than holding a spectral analysis.
 
-Each instance owns separate two-second live and snapshot stereo tables, freed when the instance ends. Captures copy the live tables once per rising edge; recording continues. Loop seams overlap for 5 ms. State changes crossfade from the preceding output sample over 5 ms. Up to 16 Hann-windowed grains share a deterministic private position sequence; summed gain is bounded by their window weights. Pitch shifting uses interpolated resampling, so high transpositions can alias. This is a time-domain freeze, not a spectral freeze.
+Use normal sequencer step lengths for the MIDI switches. Extremely short on/off pulses can pass between audio updates and fail to trigger a capture. Stop/restart clears captured audio.
 
-MIDI switch changes are observed on the engine control-block boundary. The internal processor runs sample by sample, independently of the parent block size. MIDI and SCORE paths may differ by one control block because of event ordering. Very short high/low pulses within the same block are not guaranteed to be observed; normal sequencer steps leave ample separation.
+<a id="files-and-validation"></a>
 
-## Files and validation
+## Download and further details
 
-- [Native instrument](../../examples/instruments/Granular_Capture.orch.instrument.json)
-- [Builder, step pattern and auditions](../../examples/instruments/granular_capture/README.md)
-- Independent DSP, API, native round-trip, per-instance settings, controller-step and export tests use committed fixtures.
-- Audio validation checks dry identity, held history, recapture, reset tails, stereo isolation, grain pitches, extremes, and finite preview headroom. Mel and log-STFT plots accompany the auditions. Listening is reported separately.
+- [Download Granular Capture](../../examples/instruments/Granular_Capture.orch.instrument.json)
+- [Processor design and technical checks](../../specifications/manual-reference/granular_capture.md)
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](continuous_effects.md) | [Next](stereo_moog_filter.md)

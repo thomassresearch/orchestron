@@ -1,5 +1,7 @@
 # Orchestron Patch Creator Skill
 
+**Navigation:** [Up](appendix.md) | [Previous](agent_cli.md) | [Next](performance_creator_skill.md)
+
 Use [Orchestron Patch Creator](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-patch-creator/SKILL.md) to turn a sound description into an Instrument Design patch, or to revise an existing instrument or effect. The skill combines synthesis guidance with the `orchestron_patch_cli` utility.
 
 ## What It Does
@@ -26,3 +28,5 @@ uv run --project integrations/skills/orchestron-patch-creator \
 ```
 
 Use `patch update PATCH_ID patch.yaml --compile` for an explicitly selected existing patch. A failed validation or compile preflight must be corrected before updating it. See the [authoring workflow](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-patch-creator/references/workflow.md) and [audio validation procedure](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-patch-creator/references/audio_validation.md) for the full process.
+
+**Navigation:** [Up](appendix.md) | [Previous](agent_cli.md) | [Next](performance_creator_skill.md)

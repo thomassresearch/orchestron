@@ -1,6 +1,8 @@
 # If, Switch and Drumset
 
-**Navigation:** [Graph Editor](graph_editor.md) | [Supported constructs](supported_opcodes.md) | [Audio Mixer](../performance/audio_mixer_and_routing.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](gen_table_editor.md) | [Next](midi_legato.md)
+
+<a id="patchapi-format"></a>
 
 ## Choose a Synthesis Case at Note Start
 
@@ -14,7 +16,7 @@
 
 ### Arrange and transfer nodes
 
-The block stays above and left-aligned with the first case, with room for its complete body and buttons. Case frames measure every visible parameter row at any zoom. They automatically grow to the right and bottom and retain their size when nodes move inward, are removed, or become smaller; **Case Result** stays in a separate row at the bottom-right. Later cases move down or up without changing their internal arrangement. The title band is 40 graph units, padding is 24, and cases have a 32-unit gap. Empty cases keep a 240 × 160 content area.
+The block stays above and left-aligned with the first case, with room for its complete body and buttons. Case frames measure every visible parameter row at any zoom. They automatically grow to the right and bottom and retain their size when nodes move inward, are removed, or become smaller; **Case Result** stays in a separate row at the bottom-right. Later cases move down or up without changing their internal arrangement.
 
 Drag the **Case Result title or unused body** to resize a branch in both dimensions, including shrinking it. This also works for the Silence marker. The pointer displacement sets the requested size; complete node bounds, padding and the reserved result row limit how small it can become. Other selected nodes stay still and selection is preserved. Sockets, formula editing and help buttons keep their usual actions. Release commits the size and managed positions together; **Escape**, cancellation or focus loss restores the full prior layout. Ordinary dragging retains the largest frame size reached during the gesture. Bright purple borders stay about two screen pixels wide at every zoom. Sizes survive collapse, block movement, reordering, save/reload, copies and export/import.
 
@@ -28,42 +30,12 @@ Drag the **Case Result title or unused body** to resize a branch in both dimensi
 
 Choose **New from template → Drumset** for 17 analog percussion voices: **35/36** kicks, **37** side stick, **38** snare, **39** clap, **40** electric snare, **41/43/45/47/48/50** toms, **42/46** closed/open hi-hat, **49** crash, **51** ride and **54** tambourine. Other notes select Default Silence. Velocity scales finite envelopes; branch-local `xtratim` preserves tails after short note-offs. Shared BD snappiness, shared hi-hat tuning and snare tuning default to **1**, preserving the previous sounds. Each added voice has one characteristic control. Save, assign a MIDI channel in Perform and route Stereo Output through the mixer. Controls affect newly started notes.
 
-Processing after the block runs **once per voice**. Put effects in the performance mixer when they should process the **sum of the whole kit**. The [velocity-dependent If example](../../backend/tests/fixtures/patches/velocity_if.patch.json) uses `ampmidi` and If to choose sine or saw timbre by velocity; it requires no separate layering subsystem.
+Processing after the block runs **once per voice**. Put effects in the performance mixer when they should process the **sum of the whole kit**. For velocity-dependent timbre, feed `ampmidi` into an If selector and place the alternative sounds in its cases.
 
 Continuous switching, nested blocks, numeric results, raw jumps, crossfades, MIDI learn, ranges and choke groups are outside this release. Keep `outs`, `inleta`, `outleta`, `sfload`, `maxalloc` and `midi_legato` in the main graph. GEN nodes and duration controls may belong to cases. Cycles and illegal scope crossings are compile errors, and all cases are validated.
 
-## Patch/API format
+## Saving and sharing
 
-Existing patches remain at `schema_version: 1`. Adding a block promotes the patch to **2**; removing the last block does not downgrade it. Create, update and compile use the existing APIs. Unsupported versions and malformed structural records are rejected. Native instrument/performance exports, application state, patch copies, audition and both CSD export modes retain the configuration.
+Save the instrument to retain its branches, case sizes and formulas. Native export/import and performance exports preserve the selected synthesis behavior. For programmatic authoring, see the [control-flow technical reference](../../specifications/manual-reference/control_flow.md).
 
-The graph remains flat. Add a typed `graph.control_flow` map keyed by the structural node's ID; each key must reference an `If` or `Switch` node. The example below describes a mono Switch whose ordinary flat node array also contains `kit`, `kick`, `kick_result` and `default_result`:
-
-```json
-{
-  "kit": {
-    "kind": "switch",
-    "output_format": "mono",
-    "operator": "==",
-    "cases": [
-      {"id": "kick_case", "name": "Kick", "value": 36,
-       "node_ids": ["kick", "kick_result"],
-       "result_node_id": "kick_result", "silence": false},
-      {"id": "default_case", "name": "Default", "value": null,
-       "node_ids": ["default_result"],
-       "result_node_id": "default_result", "silence": true}
-    ]
-  }
-}
-```
-
-- `kind`: `if` or `switch`; `output_format`: `mono` or `stereo`.
-- `operator`: one of the six comparison operators; only If uses it.
-- `cases`: ordered records with stable `id`, editable `name`, numeric `value` for Switch cases, and `null` for Default or both If cases.
-- `node_ids`: exclusive membership, including the managed `CaseResult` node identified by `result_node_id`. Nesting and overlapping membership are invalid.
-- `silence`: explicit boolean. A silent case contains only its result marker, with no input wiring, parameters or formulas.
-- Block inputs: `lhs`/`rhs` for If, `selector` for Switch, all init-rate. Result and block output ports: `left`, plus `right` for stereo. CaseResult has no output ports.
-- `graph.ui_layout.editor_state`: optional presentation with `selection` (`nodeIds` and canonical `connections`) and `viewport` (`x`, `y`, positive zoom `k`).
-- `graph.ui_layout.control_flow_blocks[blockId]`: `true` means collapsed.
-- `graph.ui_layout.control_flow_case_sizes[blockId][caseId]`: optional `{ "width": 1200, "height": 900 }` dimensions in graph units. Missing or malformed entries are initialized after all visible bodies are measured. Case/block deletion removes corresponding entries. Positions stay on ordinary node records; measured bounds and drag previews are transient. Input formulas retain their existing `ui_layout.input_formulas["nodeId::portId"]` format. Presentation never defines execution scope.
-
-The compiler orders the main graph with each block as one operation, orders each case separately, emits shared dependencies first and downstream consumers afterwards, and assigns the common audio variables on every path. Score export retains the `notnum` to score-note conversion. Use the [full drumset fixture](../../backend/tests/fixtures/patches/drumset.patch.json) as a complete authoring reference.
+**Navigation:** [Up](instrument_design.md) | [Previous](gen_table_editor.md) | [Next](midi_legato.md)

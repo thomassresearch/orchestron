@@ -1,6 +1,6 @@
 # Parametric Equalizer
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](autopanner.md) | [Next](continuous_effects.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](autopanner.md) | [Next](continuous_effects.md)
 
 [Download Parametric Equalizer](../../examples/instruments/Parametric_Equalizer.orch.instrument.json)
 and import it using **Instrument Design → Import**. This continuous stereo effect
@@ -49,7 +49,9 @@ gain when all controls are zero.
 
 ![Measured seven-band boosts and cuts](../../screenshots/parametric_equalizer_response.png)
 
-![Seven-band stereo EQ graph](../../screenshots/parametric_equalizer_graph.png)
+<p align="center">
+  <img src="../../screenshots/parametric_equalizer_graph.png" alt="Seven-band stereo EQ graph" width="520" style="max-width: 100%; height: auto;" />
+</p>
 
 ## Updating the original three-band instrument
 
@@ -66,3 +68,5 @@ performances and reload open browser sessions after migration.
 
 See the [example and validation guide](../../examples/instruments/parametric_equalizer/README.md)
 for the preserved original graph, rebuild commands and audio checks.
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](autopanner.md) | [Next](continuous_effects.md)

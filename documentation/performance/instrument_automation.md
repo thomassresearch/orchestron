@@ -1,6 +1,6 @@
-# Instrument automation clips
+# Instrument Automation Clips
 
-**Navigation:** [Clip arranger](multitrack_arranger.md) | [Performance controllers](performance_controllers.md) | [Controller sequencers](controller_sequencers.md)
+**Navigation:** [Up](performance.md) | [Previous](controller_sequencers.md) | [Next](live_status_and_safety_controls.md)
 
 In the clip arranger, **Generate automation** creates controller clips owned by a rack instrument. Assign MIDI CCs to its performance controllers in the rack first. Select a Melodic, Drummer, Score or Arpeggiator clip, then choose Generate automation in its inspector. If several rack instances receive that source's output channel, choose the instance in **Automation instrument**. Continuous instruments and invalid or unassigned controls are excluded.
 
@@ -16,7 +16,7 @@ The counter allows **10 points including both endpoints**. Endpoint positions st
 
 **Curve duration · master beats** stretches the normalized curve without changing its points or the clip window. **Use clip length** copies the selected window's duration. Trimming crops the existing content. Extending Song end leaves existing curves at their saved durations. Curves can span up to the arrangement limit of 1,000,000 master beats.
 
-Choose **Edit linked pattern** or **Create variation here** before editing a shared curve, including its inline points. Independent curves open directly. The scope remains visible and Save commits that choice without asking again. **Discard curve edits** removes the selected draft. Play edit auditions the draft through the usual workspace controls. Performance save, autosave and native/CSD export retain committed definitions; unsaved curves remain session-only. Committed edits use arranger Undo/Redo. Adding, splitting or merging source lanes clears clip history, following the existing topology rules.
+Shared curves follow the same [editing scope and saving rules](pattern_pads_and_pad_looper.md#edit-and-save) as musical patterns, including when editing their inline points. **Discard curve edits** removes the selected draft. Play edit auditions the draft through the usual workspace controls. Performance save, autosave and native/CSD export retain committed definitions; unsaved curves remain session-only. Committed edits use arranger Undo/Redo. Adding, splitting or merging source lanes clears clip history, following the existing topology rules.
 
 ![Editing an instrument's CC curve directly inside a song-length clip](../../screenshots/clip-arranger-instrument-automation.png)
 
@@ -24,7 +24,7 @@ Choose **Edit linked pattern** or **Create variation here** before editing a sha
 
 The owning rack instance determines MIDI channel and CC. Both are read-only in the automation editor. Changing its rack channel follows automatically. Changing one mapped CC retargets the lane without changing its music. If controls sharing a lane move to different CCs, their complete automation is copied into independent lanes.
 
-When mappings merge, identical automation combines automatically. If candidates differ, choose which complete lane survives; **Cancel** preserves both the old mapping and all automation. Save or discard affected automation drafts before changing assignments. Live changes prepare first and apply mapping and automation together at an engine block boundary. Failed preparation or stale revisions leave the previous playing configuration in place.
+When mappings merge, identical automation combines automatically. If candidates differ, choose which complete lane survives; **Cancel** preserves both the old mapping and all automation. Save or discard affected automation drafts before changing assignments. Live changes prepare first. If preparation fails, the previous playing configuration remains in place and the error is shown.
 
 Off mappings, removed controls and missing instruments retain their automation with a suspended warning. Suspended lanes send no MIDI. Reassignment uses the same split/merge rules. Ownership stays with the rack instance, even if the original note source disappears.
 
@@ -34,6 +34,8 @@ Step Mode keeps its local timing controls, 128 stored cells, hidden-cell retenti
 
 To generate another curve on an existing Step Mode automation lane, switch that lane back to Curve Mode first. Generation preserves its existing music and does not change the lane mode for you.
 
-Performances using this feature require a v24 reader; app-state recovery uses v6 and clip model v2. Earlier performances keep their existing music and generic controller behavior. Native bundle envelope versions are unchanged.
+Use a current Orchestron version when sharing performances with instrument automation. Older performances retain their existing generic controller behavior.
 
-Performance controllers remain I-rate settings: automation affects newly started notes or phrases. It does not continuously retune an already sounding note's I-rate value.
+For note instruments, mapped performance settings affect newly started notes or phrases. Continuous controls marked **Live** can change during playback; **Requires restart** controls retain their values until restart. See [Using Performance Controls](performance_controllers.md).
+
+**Navigation:** [Up](performance.md) | [Previous](controller_sequencers.md) | [Next](live_status_and_safety_controls.md)

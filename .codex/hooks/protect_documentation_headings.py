@@ -69,8 +69,8 @@ def violations(content):
         normalized = plain_title(title)
         if LANGUAGE.match(normalized):
             found.append((number, title, "Headings must not start with a language name; use an English topic title."))
-        elif normalized.casefold() == "screenshots":
-            found.append((number, title, 'Do not use a standalone "Screenshots" heading; place each image beside the text it illustrates.'))
+        elif normalized.casefold() in {"screenshot", "screenshots"}:
+            found.append((number, title, 'Do not use a standalone "Screenshot" or "Screenshots" heading; place each image beside the text it illustrates.'))
     return found
 
 

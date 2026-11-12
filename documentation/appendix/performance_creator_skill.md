@@ -1,5 +1,7 @@
 # Orchestron Performance Creator Skill
 
+**Navigation:** [Up](appendix.md) | [Previous](patch_creator_skill.md) | [Next](composition_creator_skill.md)
+
 Use [Orchestron Performance Creator](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-performance-creator/SKILL.md) to compose, edit, import, validate and save performances using instruments in the library. It guides an agent through the `orchestron_cli` utility, with references for musical form, harmony, rhythm, routing and mixing.
 
 ## What It Does
@@ -55,3 +57,5 @@ The score is separate from a native `.orch.json` performance bundle.
 ## Combine Both Skills
 
 Ask the agent to create and validate a new sound with Patch Creator, then read Performance Creator and discover the saved patch in the backend library. It can add that patch to a new performance, connect its Stereo Output to Master, write complementary parts, validate and save. Include the desired names, musical constraints and playback preference in the same request. Creating the patch, saving the performance and starting playback are separate operations.
+
+**Navigation:** [Up](appendix.md) | [Previous](patch_creator_skill.md) | [Next](composition_creator_skill.md)

@@ -1,6 +1,6 @@
 # Instrument Import / Export and CSD Export
 
-**Navigation:** [Up](instrument_design.md) | [Prev](runtime_panel_and_compilation.md) | [Next](supported_opcodes.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](runtime_panel_and_compilation.md) | [Next](supported_opcodes.md)
 
 This page documents all user-facing import/export options available from the Instrument Design page.
 
@@ -36,9 +36,7 @@ An instrument bundle contains:
 - patch description
 - template flag
 - instrument type (Percussion, Melody, Bass, Effects / Noise, or Continuous)
-- synchronized always-on flag for compatibility
-- schema version
-- full patch graph (`nodes`, `connections`, `ui_layout`, `engine_config`)
+- complete editable graph, layout and engine settings
 
 If a ZIP bundle is required, it also contains referenced uploaded audio/SoundFont/analysis assets under an `audio/` folder in the archive.
 
@@ -74,18 +72,17 @@ The dialog validates name collisions before proceeding. Cancelling leaves the li
 For ZIP imports that include referenced GEN01 audio or `sfload` SoundFont assets or `adsyn` analysis files:
 
 - Orchestron validates the archive structure
-- Imports the selected patches' audio files into backend storage after confirmation
+- Stores the selected instruments' audio files after confirmation
 - Restores the patch graph with the asset references intact
-- Rejects archives that exceed backend bundle limits before unpacking large members
+- Rejects archives that exceed import limits before unpacking large members
 
-## Advanced Format Notes (for power users)
+<a id="advanced-format-notes-for-power-users"></a>
 
-- Type metadata is exported as `instrumentType`; imports also accept `instrument_type`. Supported values are `percussion`, `melody`, `bass`, `effects_noise`, and `continuous`. An explicit type determines activation even if an older `alwaysOn` / `always_on` flag conflicts. Existing graph schema and bundle version numbers are unchanged.
-- Instrument ZIP exports contain exactly one root JSON file plus optional `audio/...` entries
-- Missing referenced audio assets in a ZIP import cause import failure (prevents broken GEN01 references)
-- Default import limits are 256 MiB compressed request body, 8 MiB root JSON, 512 ZIP entries, and 256 MiB total uncompressed ZIP content
-- Deployments can tune these with `VISUALCSOUND_BUNDLE_IMPORT_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_JSON_MAX_BYTES`, `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_MEMBERS`, and `VISUALCSOUND_BUNDLE_IMPORT_ZIP_MAX_UNCOMPRESSED_BYTES`
-- Individual imported audio/SoundFont/analysis assets are still limited by `VISUALCSOUND_GEN_AUDIO_ASSET_MAX_BYTES`
+## Import limits and compatibility
+
+Keep the downloaded archive intact: missing audio assets prevent import. Default limits are 256 MiB for the compressed file, 8 MiB for its instrument/performance definitions, 512 ZIP entries, and 256 MiB total unpacked content. An installation may use different limits; the import error identifies the rejected input.
+
+Instrument Type survives export/import. Older bundles infer Continuous for always-on instruments and Melody for unmatched MIDI instruments. For format and deployment details, see the [technical reference](../../specifications/manual-reference/instrument_import_export.md).
 
 ## Instrument Bundle vs Performance Bundle
 
@@ -96,4 +93,4 @@ Use the right export for the right task:
 
 See [Performance Import / Export](../performance/performance_import_export.md) for performance bundles.
 
-**Navigation:** [Up](instrument_design.md) | [Prev](runtime_panel_and_compilation.md) | [Next](supported_opcodes.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](runtime_panel_and_compilation.md) | [Next](supported_opcodes.md)

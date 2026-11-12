@@ -1,6 +1,6 @@
 # Autopanner
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](stereo_flanger.md) | [Next](parametric_equalizer.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_flanger.md) | [Next](parametric_equalizer.md)
 
 [Download Autopanner](../../examples/instruments/Autopanner.orch.instrument.json)
 and import it with **Instrument Design → Import**. This Continuous stereo effect
@@ -66,3 +66,5 @@ graph and each instance's settings.
 
 See the [example guide](../../examples/instruments/autopanner/README.md) for the
 builder, matched previews and regression checks.
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_flanger.md) | [Next](parametric_equalizer.md)

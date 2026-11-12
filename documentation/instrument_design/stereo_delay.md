@@ -1,6 +1,6 @@
 # Stereo Delay
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](tube_overdrive.md) | [Next](stereo_flanger.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](tube_overdrive.md) | [Next](stereo_flanger.md)
 
 [Download Stereo Delay](../../examples/instruments/Stereo_Delay.orch.instrument.json)
 and import it using **Instrument Design → Import**. This continuous stereo effect
@@ -47,24 +47,22 @@ Intermediate values linearly blend these behaviors. Averaging keeps identical
 left/right input from doubling in level; a one-sided signal becomes half as
 large in the fully panned branch, and opposite-phase channels can cancel there.
 
-The four per-instance settings use stable IDs `sd_tempo`, `sd_beats`,
-`sd_feedback` and `sd_stereo`. Native instrument/performance bundles and both
-CSD export modes retain the controls and selected instance values.
+Native bundles and both CSD export modes retain the selected instance values.
 
-## Editable graph and validation
+<a id="editable-graph-and-validation"></a>
 
-Each input channel has separate odd- and even-echo streams. A feedback delay at
-twice the interval generates the even echoes; a second delay fills the odd
-positions. A one-sample seed delay and matching feedback-loop compensation keep
-successive echoes on the selected sample interval. The dry path bypasses these
-delays and the panning formulas.
+## Edit the sound
+
+Open the saved instrument in Instrument Design to explore its delay paths and performance controls. Clone it before changing the graph if you want to keep the supplied version.
 
 ![Stereo Delay graph with its four performance controllers](../../screenshots/stereo_delay_graph.png)
 
 The graph uses existing `delay`, `flanger`, `upsamp`, `mix2`, `inleta`, `outleta`
 and `perf_controller` nodes. See the [example and validation guide](../../examples/instruments/stereo_delay/README.md)
-for reproducible renders and tests. Long intervals with high Feedback need long
+for graph details. Long intervals with high Feedback need long
 render tails; the instrument does not extend the export duration automatically.
 
 References: [Csound flanger](https://csound.com/docs/manual/flanger.html),
 [Csound delay](https://csound.com/docs/manual/delay.html).
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](tube_overdrive.md) | [Next](stereo_flanger.md)

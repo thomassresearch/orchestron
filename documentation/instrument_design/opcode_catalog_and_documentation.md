@@ -1,6 +1,6 @@
 # Opcode Catalog and Integrated Documentation
 
-**Navigation:** [Up](instrument_design.md) | [Prev](patch_toolbar_and_tabs.md) | [Next](graph_editor.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](patch_toolbar_and_tabs.md) | [Next](graph_editor.md)
 
 The opcode catalog is the source list of all supported building blocks you can place in the graph editor.
 
@@ -159,8 +159,6 @@ See also:
 - [GUI Language and Integrated Help](../configuration/gui_language_and_integrated_help.md)
 - [Supported Opcodes](supported_opcodes.md) for the full opcode index table
 
-**Navigation:** [Up](instrument_design.md) | [Prev](patch_toolbar_and_tabs.md) | [Next](graph_editor.md)
-
 ## Additive Resynthesis with adsyn
 
 [`adsyn`](https://csound.com/docs/manual/adsyn.html) resynthesizes sinusoidal
@@ -202,3 +200,5 @@ Orchestron resolves uploaded/imported files from its asset storage; raw paths
 and numeric Csound filename aliases are not supported. Instrument/performance
 ZIPs carry the analysis file, and both performance CSD modes include it under
 `assets/`. No analysis-generation tool or piano conversion is included.
+
+**Navigation:** [Up](instrument_design.md) | [Previous](patch_toolbar_and_tabs.md) | [Next](graph_editor.md)

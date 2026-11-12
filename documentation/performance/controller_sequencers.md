@@ -1,6 +1,6 @@
 # Controller Sequencers
 
-**Navigation:** [Up](performance.md) | [Prev](multitrack_arranger.md) | [Next](arpeggiators.md)
+**Navigation:** [Up](performance.md) | [Previous](arpeggiators.md) | [Next](instrument_automation.md)
 
 Controller Sequencers automate MIDI CC values using editable curves or discrete steps.
 
@@ -135,4 +135,4 @@ Controller curves can also be edited directly inside an expanded clip. See [Inst
 
 ![Controller curves inside the arranger](../../screenshots/clip-arranger-instrument-automation.png)
 
-**Navigation:** [Up](performance.md) | [Prev](multitrack_arranger.md) | [Next](arpeggiators.md)
+**Navigation:** [Up](performance.md) | [Previous](arpeggiators.md) | [Next](instrument_automation.md)

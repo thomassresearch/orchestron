@@ -1,6 +1,8 @@
 # Monophonic Legato
 
-**Navigation:** [Up](instrument_design.md) | [Opcode catalog](opcode_catalog_and_documentation.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](control_flow.md) | [Next](performance_controls.md)
+
+<a id="implementation-references"></a>
 
 ## Phrase Behavior
 
@@ -18,8 +20,8 @@ This is an **Orchestron virtual opcode**, not a native Csound opcode. Use it onc
 
 ## Steel-string guitar example
 
-The [acoustic steel-string guitar pair](../../examples/instruments/steel_string_guitar/README.md)
-includes a legato patch that rounds its pitch slide to equal-tempered semitones.
+The supplied pair includes a [legato guitar](../../examples/instruments/Steel_String_Guitar_Legato.orch.instrument.json) and a [polyphonic guitar](../../examples/instruments/Steel_String_Guitar_Polyphonic.orch.instrument.json).
+The legato patch rounds its pitch slide to equal-tempered semitones.
 Connected notes preserve the decaying string without another pluck; the phrase's
 initial velocity sets its pluck strength. A gap starts a new pluck and reads the
 current performance controls. The Slide setting is a smoothing half-time, so
@@ -62,6 +64,8 @@ timbre. The graph stays editable using existing opcodes. Csound STK and its
 rawwave data are required and included in Orchestron's Docker image. The example
 guide includes native import instructions, control translations and WAV previews.
 
-## Implementation references
+## Further reading
 
-[Csound release](https://csound.com/docs/manual/release.html), [madsr](https://csound.com/docs/manual/madsr.html), [reinit](https://csound.com/docs/manual/reinit.html), [portk](https://csound.com/docs/manual/portk.html).
+For implementation and authoring references, see the [legato technical notes](../../specifications/manual-reference/midi_legato.md).
+
+**Navigation:** [Up](instrument_design.md) | [Previous](control_flow.md) | [Next](performance_controls.md)

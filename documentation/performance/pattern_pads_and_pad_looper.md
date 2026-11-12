@@ -1,6 +1,6 @@
 # Patterns and Reusable Phrases
 
-**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](multitrack_arranger.md)
+**Navigation:** [Up](performance.md) | [Previous](multitrack_arranger.md) | [Next](sequencer_timing.md)
 
 A pattern holds the musical content for one track. A clip places that content on the song timeline. The same pattern can appear in several clips, so you can reuse a phrase and choose whether an edit affects one occurrence or all linked occurrences.
 
@@ -37,12 +37,10 @@ Performance save, autosave and exports use saved definitions. Resolve changed dr
 
 ## Audition a phrase
 
-Use **Play edit** to hear the open pattern or container. With the song stopped, the audition leaves the song cursor still. During song playback it replaces that track while the other tracks continue. **Stop edit** returns the track to its current song position or silence when the song is stopped. Arpeggiators need incoming notes or a chord.
-
-Auditioning does not commit the draft. Save it with the desired occurrence scope to include the changes in the performance.
+Use **Play edit** to hear a draft and **Stop edit** to return to the song. Audition does not save your work. See [Play and jam](multitrack_arranger.md#play-and-jam) for how previews interact with song playback, looping and arpeggiator input.
 
 ## Transpose reusable content
 
 Use the arranger's transposition controls to change pitch without rewriting notes. Shared repetition settings and local placement offsets can combine. Review the affected occurrences before saving. See [Transpose clips without changing notes](multitrack_arranger.md#transpose-clips-without-changing-notes).
 
-**Navigation:** [Up](performance.md) | [Prev](drummer_sequencers.md) | [Next](multitrack_arranger.md)
+**Navigation:** [Up](performance.md) | [Previous](multitrack_arranger.md) | [Next](sequencer_timing.md)

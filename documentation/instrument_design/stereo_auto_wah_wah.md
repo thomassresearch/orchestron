@@ -1,6 +1,6 @@
 # Stereo Auto Wah Wah
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_moog_filter.md) | [Next](trance_gate.md)
 
 **Stereo Auto Wah Wah** is a Continuous stereo filter effect that opens with the
 input's loudness and closes as the sound fades. Import and save the
@@ -68,3 +68,5 @@ CSD exports retain the envelope following and softened cutoff steps.
 The filter uses [moogvcf](https://csound.com/docs/manual/moogvcf.html), with
 [rms](https://csound.com/docs/manual/rms.html) detection and
 [portk](https://csound.com/docs/manual/portk.html) transition smoothing.
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_moog_filter.md) | [Next](trance_gate.md)

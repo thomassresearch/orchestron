@@ -1,10 +1,12 @@
 # Supported Opcodes
 
-**Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This appendix is generated from `backend/app/data/opcodes.json` and currently lists **199** user-selectable opcodes and editor constructs in the Instrument Design opcode catalog.
+This reference lists **199** user-selectable opcodes and editor constructs in the Instrument Design catalog. Use the catalog search to find an opcode and its **?** button to open integrated help.
 
-## How To Use This Appendix
+<a id="how-to-use-this-appendix"></a>
+
+## How to Use This Reference
 
 - Use the table for quick discovery (category, signal I/O, one-line purpose).
 - In the app, click the `?` on an opcode node to open the integrated, localized documentation with port-level details and a Csound reference link.
@@ -94,7 +96,6 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | powershape | 3 (a, k, i) | 1 (a) | Power-law waveshaper for controllable nonlinear distortion. |
 | mirror | 3 (a, k, k) | 1 (a) | Reflect an audio signal between lower and upper thresholds. |
 
-
 ### dynamics
 
 | Opcode | Inputs | Outputs | Short Description |
@@ -120,7 +121,6 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | mxadsr | 6 (i, i, i, i, i, i) | 1 (k) | Extended MIDI release-sensitive ADSR envelope. |
 | transegr | 7 (i, i, i, i, i, i, i) | 1 (k) | Control-rate transition envelope with release-triggered final segment. |
 | linseg_a | 7 (i, i, i, i, i, i, i) | 1 (a) | Audio-rate linear breakpoint envelope; holds its final value. |
-
 
 ### filter
 
@@ -258,7 +258,6 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | vosim | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Vocal formant synthesis using overlapping sinusoidal bursts. |
 | phasor | 2 (k, i) | 1 (a) | Audio-rate normalized phase ramp; accepts audio-rate frequency. |
 
-
 ### output
 
 | Opcode | Inputs | Outputs | Short Description |
@@ -360,6 +359,6 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | upsamp | 1 (k) | 1 (a) | Convert a control signal to audio-rate by repeating k-values. |
 | xtratim | 1 (i) | - | Extend current note duration by an additional init-time amount. |
 
-**Navigation:** [Up](instrument_design.md) | [Prev](instrument_import_export.md) | [Next](../performance/performance.md)
-
 See [Physical steel-string guitar](steel_string_waveguide.md) for the editable excitation, string and body example.
+
+**Navigation:** [Up](instrument_design.md) | [Previous](instrument_import_export.md) | [Next](../performance/performance.md)

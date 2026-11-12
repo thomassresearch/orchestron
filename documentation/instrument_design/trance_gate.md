@@ -1,6 +1,6 @@
 # Trance Gate
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_auto_wah_wah.md) | [Next](../configuration/configuration.md)
 
 **Trance Gate** is a continuous stereo insert with direct MIDI gating and a swept triangle LFO. Import the [native instrument](../../examples/instruments/Trance_Gate.orch.instrument.json), save it, and insert it on an instrument strip or Master. Both channels share the same gain envelope while keeping their audio separate. Use a serial insert: a parallel dry route continues passing ungated audio.
 
@@ -56,12 +56,12 @@ Starting an instance does not initialize or reset either shared controller. A fr
 - **CC24 / manual:** each transition from 0 to any positive value samples a fresh noise value and holds that random pan position. Repeated positive values, or changes between positive values, do not resample. The position holds through the release envelope.
 - **Both sources:** the running LFO takes priority for pan. CC24 openings still sample a position in the background; if CC24 remains positive after the LFO stops, its held random position takes over. With neither source active, the last pan position holds through release. A new instance starts centered.
 
-For pan position `p` and Stereo `s`, left gain is `1 − s × p` and right gain is `1 − s × (1 − p)`, applied after the shared gate envelope. This adds no gain or crossfeed. The stable performance-controller ID is `tg_stereo`; its **Live** setting takes effect during realtime playback. Random choices belong to each instance and are not saved automation, so separate renders can choose different manual positions.
+Stereo movement does not add gain or crossfeed. Random manual pan positions belong to each instance and are not saved automation, so separate renders can choose different positions.
 
 ## Graph and exports
 
-Two `ctrl7` readers feed the direct gain and the Orchestron **swept_gate** node. This application-defined Csound UDO keeps its state per instance and computes triangle phase and frequency travel with local `ksmps=1`. The command reader retains the host's control-block timing. Its binary audio-rate output combines with the direct gain before the existing `follow2` envelope and separate stereo multipliers. The Pan output controls the two final balance multipliers; a local `rand` noise stream and `samphold` choose each manual opening’s position.
-
 Native exports preserve the graph and seven performance controls. MIDI and SCORE CSD exports include the processor and the same explicit-channel automation. The finite export must include enough time for the return and release: send 0 early enough, leave trailing rests, or extend the final `f 0` duration as described in the export's rendering instructions.
 
-Rebuild the authoring payloads and native export with `.venv/bin/python tools/trance_gate/build.py`. The builder compiles before writing files and does not write the library. Automated audio tests use independent versioned original and extended fixtures, checking sweep timing against an analytic phase integral and verifying sample-identical CC24-only playback. See [Csound local control periods](https://csound.com/docs/manual/setksmps.html) and [follow2](https://csound.com/docs/manual/follow2.html).
+See the [processor design and reproduction notes](../../specifications/manual-reference/trance_gate.md) for technical details.
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_auto_wah_wah.md) | [Next](../configuration/configuration.md)

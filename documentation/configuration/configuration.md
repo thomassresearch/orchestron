@@ -1,39 +1,30 @@
 # Configuration
 
-**Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/granular_capture.md) | [Next](gui_language_and_integrated_help.md)
+**Navigation:** [Up](../user_documentation.md) | [Previous](../instrument_design/trance_gate.md) | [Next](gui_language_and_integrated_help.md)
 
-The Configuration chapter covers both UI-visible settings and practical runtime/deployment behaviors that affect how Orchestron is used.
+<a id="what-is-covered"></a>
 
-## What Is Covered
+<a id="configuration-scope-clarification"></a>
 
-- GUI language switching and integrated help/docs behavior
-- Config page engine settings (`sr`, control rate, buffers, derived `ksmps`) plus browser-clock latency controls when relevant
-- MIDI setup and runtime input binding workflow
-- Unified browser-clock playback and latency tuning from the Config page
-- Internal loopback versus external host-bridge MIDI binding
-- App-state persistence and default values
-
-<p align="center">
-  <img src="../../screenshots/config.png" alt="Configuration page overview" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Configuration page overview of engine settings. The dedicated Browser-Clock Latency chapter shows the browser-clock-specific tuning section in detail.</em></p>
+Use Config to adjust synthesis and browser playback, and consult this chapter when you want to change language, improve responsiveness or understand what survives a reload. Start with the defaults unless you have a specific problem to solve.
 
 ## Chapter Contents
 
+<!-- manual-contents:start -->
 - [GUI Language and Integrated Help](gui_language_and_integrated_help.md)
 - [Audio Engine Settings (Config Page)](audio_engine_settings.md)
-- [MIDI Setup and Inputs](midi_setup_and_inputs.md)
 - [Browser-Clock Latency](browser_clock_latency.md)
-- [Persistence and Defaults](persistence_and_defaults.md)
+- [Saving, Workspace Recovery and Defaults](persistence_and_defaults.md)
+<!-- manual-contents:end -->
 
-## Configuration Scope Clarification
+## Choose the right setting
 
-Orchestron has three kinds of configuration:
+- **Instrument engine settings** control synthesis for the patch, including sample rate and block size.
+- **Browser playback settings** control buffering and the balance between responsive playing and resilient listening.
+- **Workspace preferences** include language and settings restored with your working context.
 
-- **Patch-level configuration** (stored with a patch, editable in the Config page)
-- **Runtime/startup configuration** (browser-clock startup options and optional host MIDI bridge token)
-- **Workspace runtime tuning** (browser-clock latency settings stored in app state)
+If you want to connect a keyboard or another MIDI application, follow [MIDI Setup and Inputs](midi_setup_and_inputs.md) in Performance. Internal piano rolls and sequencers work without an external MIDI device.
 
-Both are important for successful use.
+![The Config page](../../screenshots/config.png)
 
-**Navigation:** [Up](../user_documentation.md) | [Prev](../instrument_design/granular_capture.md) | [Next](gui_language_and_integrated_help.md)
+**Navigation:** [Up](../user_documentation.md) | [Previous](../instrument_design/trance_gate.md) | [Next](gui_language_and_integrated_help.md)

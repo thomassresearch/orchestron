@@ -1,6 +1,6 @@
 # MIDI Setup and Inputs
 
-**Navigation:** [Up](configuration.md) | [Prev](audio_engine_settings.md) | [Next](browser_clock_latency.md)
+**Navigation:** [Up](../performance/performance.md) | [Previous](../performance/performance_controllers.md) | [Next](../performance/piano_rolls.md)
 
 This page covers practical MIDI setup and how external MIDI binding works in Orchestron's unified browser-clock runtime.
 
@@ -43,7 +43,7 @@ That means:
 
 ## External MIDI Bridge
 
-The backend no longer relies on direct OS MIDI enumeration for session playback. External MIDI arrives through the optional Rust host bridge in [`host-midi-helper/`](../../host-midi-helper/README.md).
+External MIDI arrives through the optional host helper in [`host-midi-helper/`](../../host-midi-helper/README.md).
 
 General setup pattern:
 
@@ -52,8 +52,6 @@ General setup pattern:
 3. Bind the helper-published input in the Runtime panel.
 
 If no helper is running, `internal:loopback` remains available and internal performance tools still work.
-
-The backend still performs backend-native MIDI enumeration where available, but live session playback now uses the helper-backed `host_bridge` path for external devices.
 
 ## macOS Loopback Setup (IAC Driver)
 
@@ -89,4 +87,4 @@ For DAW/app -> Orchestron MIDI routing on macOS:
 - [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_and_compilation.md)
 - [Live Status and Safety Controls](../performance/live_status_and_safety_controls.md)
 
-**Navigation:** [Up](configuration.md) | [Prev](audio_engine_settings.md) | [Next](browser_clock_latency.md)
+**Navigation:** [Up](../performance/performance.md) | [Previous](../performance/performance_controllers.md) | [Next](../performance/piano_rolls.md)

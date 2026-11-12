@@ -1,6 +1,12 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := frontend-build
 
+.PHONY: docs-check
+docs-check:
+	node tools/build_user_docs_pdf.mjs --check
+	node --test tools/manual.test.mjs
+	python3 -m unittest discover -s .codex/hooks/tests
+
 MIDI_PULSE_BIN := tools/midi_pulse
 MIDI_PULSE_SRC := tools/midi_pulse.c
 MIDI_PULSE_CFLAGS := -O2 -Wall -Wextra -std=c11

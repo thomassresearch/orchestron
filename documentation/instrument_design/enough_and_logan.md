@@ -1,6 +1,6 @@
 # Enough and Logan
 
-**Navigation:** [Up](instrument_design.md)
+**Navigation:** [Up](../supplied/instruments.md) | [Previous](hsb_mono.md) | [Next](goa_trance_fm_lead.md)
 
 Enough and Logan are dry, polyphonic Melody instruments adapted from
 [joel / ebmtranceboy's altamax Csound project](https://ide.csound.com/editor/pXPRc5Y1vALtxqgszdhI).
@@ -55,4 +55,4 @@ between thresholds), and `linseg_a` (an audio-rate linear envelope). Existing
 `linseg`; its final value holds after the last segment. Omit optional duration
 and endpoint pairs together.
 
-**Navigation:** [Up](instrument_design.md)
+**Navigation:** [Up](../supplied/instruments.md) | [Previous](hsb_mono.md) | [Next](goa_trance_fm_lead.md)

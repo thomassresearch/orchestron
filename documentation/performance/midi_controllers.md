@@ -1,6 +1,6 @@
 # MIDI Controllers
 
-**Navigation:** [Up](performance.md) | [Prev](piano_rolls.md) | [Next](performance_import_export.md)
+**Navigation:** [Up](performance.md) | [Previous](piano_rolls.md) | [Next](multitrack_arranger.md)
 
 The MIDI Controllers panel provides manual CC control lanes with interactive knobs.
 
@@ -82,4 +82,4 @@ Use controller sequencers when you want:
 
 Both can exist in the same performance.
 
-**Navigation:** [Up](performance.md) | [Prev](piano_rolls.md) | [Next](performance_import_export.md)
+**Navigation:** [Up](performance.md) | [Previous](piano_rolls.md) | [Next](multitrack_arranger.md)

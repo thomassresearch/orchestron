@@ -1,6 +1,6 @@
 # Patch Toolbar and Instrument Tabs
 
-**Navigation:** [Up](instrument_design.md) | [Prev](instrument_design.md) | [Next](opcode_catalog_and_documentation.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](instrument_design.md) | [Next](opcode_catalog_and_documentation.md)
 
 The patch toolbar is the main control surface for patch metadata, patch library operations, and instrument-level file actions.
 
@@ -19,9 +19,9 @@ The toolbar includes:
 - Action buttons (`New`, `Clone`, `Delete`, `Save`, `Compile`, `Export`, `Import`, `Export CSD`)
 
 <p align="center">
-  <img src="../../screenshots/instrument_patch_toolbar_tabs_actions.png" alt="Patch toolbar and instrument tabs" width="900" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/instrument_toolbar_current.jpg" alt="Patch toolbar and instrument tabs" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Earlier toolbar with a continuous stereo-effect draft and library actions. Instrument Type now replaces Activation; an updated screenshot is pending.</em></p>
+<p align="center"><em>The saved First Sound starter: Instrument Type, library actions and Audition are available above the graph.</em></p>
 
 ## Instrument Tabs
 
@@ -82,7 +82,7 @@ The toolbar includes:
 ### Save
 
 - Performs compile validation first for normal patches.
-- If compile succeeds, persists the patch to the backend patch library.
+- If compile succeeds, saves the patch to the instrument library.
 - If compile fails, save is blocked and the patch remains unsaved.
 - Template patches skip compile validation so incomplete starter graphs can be saved.
 - Always-on patches still save as normal patch definitions; they run continuously only after they are added to a started Perform rack. A continuous source need not be an effect or have audio inlets.
@@ -108,7 +108,7 @@ The toolbar includes:
 
 ## Built-in creation choices
 
-New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Audio effect (stereo pass-through), Audio Output (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to an fixed internal Master when added to a performance.
+New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Audio effect (stereo pass-through), Audio Output (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to the fixed Master when added to a performance.
 
 ### Choose a starter
 
@@ -133,4 +133,4 @@ Existing always-on patches become Continuous without changing playback. Other ol
 
 Types are saved with the patch and retained in clones, templates, restored tabs, and instrument/performance JSON or ZIP bundles. New playable and empty patches default to Melody, drumsets to Percussion, and effect/output starters to Continuous.
 
-**Navigation:** [Up](instrument_design.md) | [Prev](instrument_design.md) | [Next](opcode_catalog_and_documentation.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](instrument_design.md) | [Next](opcode_catalog_and_documentation.md)

@@ -1,6 +1,6 @@
 # Arpeggiators
 
-**Navigation:** [Up](performance.md) | [Prev](controller_sequencers.md) | [Next](piano_rolls.md)
+**Navigation:** [Up](performance.md) | [Previous](score_sequencers.md) | [Next](controller_sequencers.md)
 
 An arpeggiator processes MIDI notes and drives an existing rack instrument. Send chords from a melodic sequencer, an on-screen keyboard, or external MIDI to its **Input Channel**. Choose the named instrument in **Target Channel**. Both controls are always visible in the top row, with **Input Channel → Target Channel** showing the MIDI direction. Inputs must be unique; an arpeggiator cannot target another arpeggiator input.
 
@@ -78,4 +78,6 @@ Live edits coalesce for 80 ms and apply at audio render boundaries, preserving t
 
 ## Clip transposition
 
-The clip arranger supports [shared repetition transpositions and independent nested offsets](multitrack_arranger.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.
+The clip arranger supports [shared repetition transpositions and independent nested offsets](multitrack_arranger.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Use a current Orchestron version when sharing transposed performances.
+
+**Navigation:** [Up](performance.md) | [Previous](score_sequencers.md) | [Next](controller_sequencers.md)

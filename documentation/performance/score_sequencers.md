@@ -1,8 +1,9 @@
 # Score Sequencers
 
+**Navigation:** [Up](performance.md) | [Previous](drummer_sequencers.md) | [Next](arpeggiators.md)
+
 Score Sequencers hold long, polyphonic passages with an independent start, duration
-and velocity for every note. Choose **Add track → Score** in the arranger, add a clip and a pattern, then
-double-click the pattern to open its Score editor. Match its MIDI channel to a
+and velocity for every note. Choose **Add track → Score** in the arranger. Its first clip and pattern open automatically; double-click an existing pattern to reopen its Score editor. Match its MIDI channel to a
 rack instrument. A new pattern starts at four local bars.
 
 The **?** button at the top right opens the standard help modal in English,
@@ -84,20 +85,16 @@ past its cursor stops it without rewinding.
 
 Save/Load, clone, autosave and native JSON/ZIP bundles preserve saved Score patterns, note identities, hidden material, timing and arrangement. Save the pattern draft before saving or exporting the performance.
 
-Both [MIDI and SCORE exports](performance_import_export.md) use the live event
-scheduler, including remaining-duration notes at an export range's start.
+Both [MIDI and SCORE exports](performance_import_export.md) retain the musical timing, including the remaining duration of notes already sounding at the export range's start.
 Score notes can also feed arpeggiators through their input MIDI channel.
 
-For CLI authoring, use `edit add-score-sequencer --spec score-track.json` with
-the dedicated [Score Sequencer format](../../integrations/skills/orchestron-performance-creator/references/score_sequencer.md).
-Existing composition-score inputs and `edit apply-score` keep their established
-meaning.
+Optional agent-assisted score authoring is covered in [Performance Creator](../appendix/performance_creator_skill.md).
 
 <!-- pagebreak -->
 
 ## Clip transposition
 
-The clip arranger supports [shared repetition transpositions and independent nested offsets](multitrack_arranger.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Transposition uses performance format v25; older readers cannot safely edit it.
+The clip arranger supports [shared repetition transpositions and independent nested offsets](multitrack_arranger.md#transpose-clips-without-changing-notes). Saved settings are preserved by native bundles and both MIDI and SCORE CSD exports. Use a current Orchestron version when sharing transposed performances.
 
 ## Create a Score pattern in the clip arranger
 
@@ -113,3 +110,5 @@ Score patterns are edited directly from their clips in the [multitrack arranger]
 Pattern length and the clip window are independent. Saving musical edits keeps
 the clip boundaries; use **Fit clip to content** when the clip should match its
 content.
+
+**Navigation:** [Up](performance.md) | [Previous](drummer_sequencers.md) | [Next](arpeggiators.md)

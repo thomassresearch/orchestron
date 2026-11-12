@@ -31,6 +31,16 @@ class HeadingsTest(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual([], guard.violations(text))
 
+    def test_singular_screenshot(self):
+        for text in ('# Screenshot', '## **SCREENSHOT** ###', 'Screenshot\n---',
+                     '<h2>Screenshot</h2>'):
+            with self.subTest(text=text):
+                self.assertTrue(guard.violations(text))
+        for text in ('Screenshot in body text', '## Screenshot placement',
+                     '```md\n## Screenshot\n```'):
+            with self.subTest(text=text):
+                self.assertEqual([], guard.violations(text))
+
     def test_line_numbers_and_fence_lengths(self):
         text = '# Good\n\n````md\n```\n## English\n````\n\n## Screenshots\n'
         self.assertEqual(8, guard.violations(text)[0][0])

@@ -1,6 +1,6 @@
 # GUI Language and Integrated Help
 
-**Navigation:** [Up](configuration.md) | [Prev](configuration.md) | [Next](audio_engine_settings.md)
+**Navigation:** [Up](configuration.md) | [Previous](configuration.md) | [Next](audio_engine_settings.md)
 
 Orchestron includes multilingual UI labels and integrated documentation so you can stay inside the app while learning and working.
 
@@ -94,4 +94,4 @@ Use context help for workflow guidance and opcode docs for technical/operator de
 
 This combination is faster than switching repeatedly between the app and external documentation while designing patches.
 
-**Navigation:** [Up](configuration.md) | [Prev](configuration.md) | [Next](audio_engine_settings.md)
+**Navigation:** [Up](configuration.md) | [Previous](configuration.md) | [Next](audio_engine_settings.md)

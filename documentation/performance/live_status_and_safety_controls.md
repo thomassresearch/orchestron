@@ -1,6 +1,8 @@
-# Live Status 
+# Live Status and Troubleshooting
 
-**Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](standard_effects.md)
+**Navigation:** [Up](performance.md) | [Previous](instrument_automation.md) | [Next](performance_import_export.md)
+
+<a id="live-status"></a>
 
 The Perform page includes several status for live operation.
 
@@ -116,20 +118,14 @@ See [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_
 1. Confirm instrument session is running.
 2. Confirm expected MIDI input is bound.
 3. Check track/controller/piano-roll enable states.
-5. Save the performance after major routing changes.
-
-**Navigation:** [Up](performance.md) | [Prev](performance_import_export.md) | [Next](standard_effects.md)
-
+4. Save the performance after major routing changes.
 
 ## Definition audition
 
-Audition is a session-only track override on the shared transport. The sequencer’s existing Audition control switches a running track at its next pad/rest boundary after preparation succeeds; failures preserve current playback and edited drafts. Other tracks continue. Return to arrangement locates the authored sequence at the then-current song position, including pauses and finite endings. Stop audition clears the override and stops only that track.
-
-Arranger Play clears all auditions before applying normal playback-source behavior. Arranger Stop clears/stops auditions while preserving independently started manual tracks. Seeks and loop wraps restart active auditions from their first token at the destination. Removing devices, replacing the performance or engine session, and engine shutdown clear transient audition state. Runtime status never becomes authored configuration.
-
+A preview is temporary and does not save a pattern or change its authored arrangement. If it fails to prepare, current playback continues and your draft remains available. See [Play and jam](multitrack_arranger.md#play-and-jam) for the current clip-editor transport controls.
 
 ## Temporary lane output controls
 
-Arranger Mute/Solo gates a lane's future MIDI output without disabling its sequencer or changing its playhead, audition, repeat or playback source. Existing notes release normally. Drummer rows change together; multiple solos are supported and explicit mute wins. These controls are separate from mixer-strip controls, so lanes sharing one instrument remain independently controllable. See [lane Mute/Solo](multitrack_arranger.md#temporary-lane-mute-and-solo) for arpeggiator dependencies, controller values and reset behavior.
+Lane **Mute** and **Solo** affect future output while the track keeps its place in the song. A muted controller leaves its target at the last value received. See [lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo) for the complete behavior and how they differ from mixer controls.
 
-Arranger speaker previews use a 250 ms hold delay, then switch at the next lane cycle boundary during arranger playback. While stopped, they start at the next available engine block after preparation without moving the arranger cursor or changing its highlighted Stop state. Play is highlighted only during song playback. Releasing before the queued boundary cancels the preview without disturbing the current notes. Release restores the previous arrangement/manual/audition mode at the current clock position; stopped lanes stay stopped. Gesture identities and revisions reject stale commands, including release-before-start. Pending attacks and controllers from replaced material are discarded; note releases retain source ownership so other lanes sharing a channel remain intact. Preview restoration state is temporary and never saved.
+**Navigation:** [Up](performance.md) | [Previous](instrument_automation.md) | [Next](performance_import_export.md)

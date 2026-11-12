@@ -1,6 +1,55 @@
 # Tools
 
-Native macOS MIDI diagnostics used to isolate timing behavior outside the main app runtime.
+Documentation tooling and native macOS MIDI diagnostics.
+
+## User manual
+
+`documentation/manual.json` is the only source of inclusion, reading order and parentage.
+Its `root` is an ordered tree of `{ "path": "...md", "children": [...] }` entries;
+paths are relative to `documentation/`. Titles come from each page's opening H1.
+Every Markdown file under that directory must appear exactly once in the tree or in
+`excluded` with a nonempty `reason`. Keep developer material in `specifications/`
+or other technical references outside the manual.
+
+When adding or reordering a page:
+
+1. Update the manifest, including a reason for any exclusion.
+2. Update each affected page's top and bottom `**Navigation:**` line. **Up** points
+   to its manifest parent; **Previous** and **Next** follow the complete preorder sequence.
+   The bottom navigation must follow all content. `navigation()` in `tools/manual.mjs`
+   returns the required line.
+3. Update direct child lists between `manual-contents:start` / `manual-contents:end`
+   comments in each parent. `contents()` returns the required block.
+4. Preserve referenced heading anchors when renaming sections, with standalone
+   `<a id="old-anchor"></a>` aliases or coordinated reference updates. Place screenshots
+   beside their explanation, without a Screenshot/Screenshots heading. The manual is English-only.
+5. Run `make docs-check`, then `git diff --check`.
+
+`make docs-check` uses only Node and Python standard libraries. It validates coverage,
+navigation, local links, heading anchors, images and prohibited headings, and runs the
+manifest/link tests and save-hook regressions. No backend, audio engine or PDF renderer is needed.
+CI runs it for documentation and related tooling changes.
+
+Build with `node tools/build_user_docs_pdf.mjs` (requires `wkhtmltopdf`). Existing
+`--output`, `--logo`, `--title` and `--keep-temp` options remain available. `--input`
+selects a declared page and its descendants; excluded/unknown inputs fail.
+`--check` validates without rendering. Cross-references never change the selected pages.
+Links to selected pages retain their heading destinations; other repository files become
+repository URLs in the PDF. An HTML architecture guide must be downloaded and opened locally.
+
+The PDF preserves the custom dotted contents and cover/header/footer layout. Heading levels
+follow manifest depth. Page-number reconciliation checks the entire rendered heading sequence
+against wkhtmltopdf's outline, including nested and repeated headings. After rebuilding,
+inspect the complete contents, chapter starts, nested guide entries and changed image layouts.
+
+For an independent PDF audit, build with `--keep-temp` and run
+`uv run --with pypdf python tools/check_user_docs_pdf.py --build-dir <printed-directory>`.
+It checks the rendered contents numbers, both links on every contents row, all internal
+link destinations, and bookmark parentage against the manifest. Visual inspection is still required.
+
+The [retained technical background](../specifications/manual-reference/README.md) contains
+material removed from the end-user guide. Current behavior is defined by the linked source
+contracts; historical format descriptions there are not a current compatibility matrix.
 
 ## Contents
 

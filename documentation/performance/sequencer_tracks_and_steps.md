@@ -1,6 +1,6 @@
 # Melodic Sequencers and Step Editing
 
-**Navigation:** [Up](performance.md) | [Prev](audio_mixer_and_routing.md) | [Next](drummer_sequencers.md)
+**Navigation:** [Up](performance.md) | [Previous](sequencer_timing.md) | [Next](drummer_sequencers.md)
 
 Melodic sequencers are step-based pattern sequencers used for note playback.
 
@@ -165,4 +165,4 @@ The panel edits the displayed pad and closes on pad changes, collapse, removal, 
 
 - Linked patterns, local variations, transposition and grouping are documented in [Patterns and Reusable Phrases](pattern_pads_and_pad_looper.md).
 
-**Navigation:** [Up](performance.md) | [Prev](audio_mixer_and_routing.md) | [Next](drummer_sequencers.md)
+**Navigation:** [Up](performance.md) | [Previous](sequencer_timing.md) | [Next](drummer_sequencers.md)

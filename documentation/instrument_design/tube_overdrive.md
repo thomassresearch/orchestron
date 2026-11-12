@@ -1,6 +1,6 @@
 # Tube Overdrive
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](../performance/standard_effects.md) | [Next](stereo_delay.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](../performance/standard_effects.md) | [Next](stereo_delay.md)
 
 [Download Tube Overdrive](../../examples/instruments/Tube_Overdrive.orch.instrument.json)
 and import it using **Instrument Design → Import**. This separate continuous
@@ -78,3 +78,5 @@ to judge the sound for your source.
 
 References: [Csound tanh](https://csound.com/docs/manual/tanh.html),
 [tube-distortion techniques](https://csoundjournal.com/ezine/winter1999/processing/index.html).
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](../performance/standard_effects.md) | [Next](stereo_delay.md)

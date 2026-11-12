@@ -1,6 +1,6 @@
 # Multitrack Arranger
 
-**Navigation:** [Up](performance.md) | [Prev](pattern_pads_and_pad_looper.md) | [Next](controller_sequencers.md)
+**Navigation:** [Up](performance.md) | [Previous](midi_controllers.md) | [Next](pattern_pads_and_pad_looper.md)
 
 The multitrack arranger brings melodic, Score, drummer, controller and arpeggiator tracks onto one timeline. Clips set where content plays; reusable patterns, groups and supergroups hold the music.
 
@@ -36,17 +36,6 @@ These controls are temporary: they are excluded from saved performances and expo
 
 ## Instrument automation
 
-The [Performance Creator skill](../../integrations/skills/orchestron-performance-creator/SKILL.md)
-can author the same clip model through `orchestron_cli`. Start with
-`edit begin --new --arranger clips`, then apply a versioned song document with
-`edit apply-song --file PATH`. Definitions are shared across clip repetitions;
-pitch-only changes use transposition plans. Inspect returned occurrence targets
-before scoped musical/structural edits, use dry runs and undo, validate online,
-then commit. The CLI protects saved revisions and preserves unused definitions,
-hidden notes and trailing silence. It does not see unsaved GUI editor drafts.
-See the [command cookbook](../../integrations/skills/orchestron-performance-creator/references/song_workflow.md)
-for automation, audition and exports.
-
 Select an instrument clip and use **Generate automation** to create one bound controller lane per assigned MIDI CC. Edit song-length curves directly inside expanded clips, with at most ten points and explicit Save/Discard. MIDI channel and CC follow the rack instrument. See [Instrument automation clips](instrument_automation.md) for generation, duration, split/merge and suspended-target behavior.
 
 ## Edit a pattern
@@ -61,15 +50,9 @@ Double-click a nested box, or focus its name and press Enter, to open its sequen
 
 Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.
 
-For shared content, choose **Edit linked pattern** or **Create variation here** before the musical controls become available. Independent content opens directly and saves in place. The toolbar and context menu offer the same actions. **Change scope** preserves your note edits; the header always shows the current scope and affected occurrence count. The proposed variation name is separate from the shared name. **Save variation here** creates an independent definition only when saving changed content; **Save to linked occurrences** updates the shared pattern. Neither asks for scope again. Closing and reopening an unfinished draft preserves its scope and edits. An unchanged draft creates no variation or undo entry.
-
-A local loop variation isolates the chosen pass into before, edited and after clip windows. The editor explains this before editing. Shared ancestors are copied only where necessary, and musical edits retain the original overall window coverage. Container assembly uses the structural growth rules below. Conflicting revisions or invalid content leave the saved arrangement untouched.
-
-![Choose scope before editing shared content](../../screenshots/clip-arranger-edit-scope.png)
+Choose **Edit linked pattern** to change every occurrence or **Create variation here** to change only this one. The [pattern editing guide](pattern_pads_and_pad_looper.md#edit-and-save) owns the scope, save and draft rules. A variation within a loop can split its window into before, edited and after parts while preserving the song's timing.
 
 ![Local variation with persistent scope and save action](../../screenshots/clip-arranger-local-variation.png)
-
-Performance save and native/CSD export use saved definitions. If drafts changed, return to resolve their individual scopes or explicitly use the saved definitions. Autosave does not commit drafts. New/Load/Import prompts before discarding changed drafts. Drafts survive ordinary view switches; they are not reload recovery data.
 
 ## Play and jam
 
@@ -165,8 +148,6 @@ When a musical save forks shared parents or splits a loop pass, the pending stru
 
 Container **Play edit** auditions a snapshot of the current structure. Further structural edits remain visual and do not re-prepare audio; stop and restart Play edit to hear the changed structure. Saving ends the editor audition through the existing lifecycle. Musical sequencer controls retain their existing live-edit behavior.
 
-See the [direct-content review](../../specifications/redesign-arranger/direct-content-review.md) for the implementation and verification record.
-
 ## Transpose clips without changing notes
 
 Click the transposition badge on a pattern, group or supergroup in the expanded arranger lane. This opens **Transpose in arranger** for that occurrence without opening or replacing the musical editor. Compact lanes also offer badges on their pattern previews; expand the lane to edit a group or supergroup directly. The existing **Transpose** controls in the detail editor remain available.
@@ -203,7 +184,7 @@ Saving from the lane closes the dialog and updates affected badges and note prev
 
 Melodic, Score and Arpeggiator lanes support these controls. For arpeggiators, the new mapping follows their existing transpose and quantizer, and uses the pattern’s configured scale. Bypass remains unchanged. Drummer, controller and instrument-automation lanes do not offer pitch transposition.
 
-Transposition performances require a version-25-capable reader (app-state version 7, clip model version 3). Native bundles, CLI runtime projection and MIDI/SCORE CSD exports preserve the saved settings. Unsaved transpose drafts and temporary audition state are not exported. Older identity-only clip performances retain their existing format until transposition is saved.
+Use a current Orchestron version when sharing performances with transposition. Native bundles and both CSD exports retain saved transposition settings; unsaved drafts and auditions are not exported.
 
 <!-- pagebreak -->
 
@@ -232,3 +213,5 @@ A reserved strip below the last track keeps the horizontal scrollbar clear of co
 ![Content moved into silence with a leading rest](../../screenshots/clip-arranger-timed-content.jpg)
 
 ![Collapsed tracks clear of the horizontal scrollbar](../../screenshots/clip-arranger-scrollbar-clearance.jpg)
+
+**Navigation:** [Up](performance.md) | [Previous](midi_controllers.md) | [Next](pattern_pads_and_pad_looper.md)

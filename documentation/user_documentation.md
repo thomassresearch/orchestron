@@ -1,111 +1,66 @@
 # Orchestron User Documentation
 
-**Navigation:** [Next](instrument_design/instrument_design.md)
+**Navigation:** [Next](getting_started.md)
 
-This manual explains how to design instruments, arrange music and perform with Orchestron.
+<a id="interactive-architecture-guide"></a>
 
-It is organized by chapter and subchapter so you can read it front-to-back or jump directly to a workflow.
+<a id="scope"></a>
 
-When Orchestron is served locally from the backend, opening `http://localhost:8000/` redirects to the client application at `/client`.
+<a id="reading-order"></a>
 
-## Interactive Architecture Guide
+<a id="instrument-design"></a>
 
-Open [Orchestron: A score becomes sound](orchestron_architecture_animated.html) in a browser to explore the current Docker architecture. The self-contained page works offline: download the HTML or open the repository file directly. Repository previews such as GitHub show its source instead of running it.
+<a id="performance"></a>
 
-Six animated chapters explain the system map, graph compilation, PCM refills, MIDI timing, live sequencer edits and persistence. Select components for source-linked explanations; use Pause, the timeline and speed controls to inspect the flow. The experiments illustrate a React stall, MIDI notes, successful or failed preparation, and a backend restart. They do not control the application or play audio. Motion starts paused when the browser requests reduced motion, and narrow screens show a compact component view.
+<a id="configuration"></a>
 
-![The animated architecture guide showing browser playback and native Csound in Docker](../screenshots/orchestron_architecture_animated.jpg)
+<a id="appendix"></a>
 
-The animation describes the existing native Csound runtime. See [clock ownership](../CLOCK_OWNERS.md), the [backend reference](../BACKEND.md) and [browser-clock latency](configuration/browser_clock_latency.md) for implementation details.
+<a id="feature-coverage-map"></a>
 
-## Scope
+<a id="file-format-quick-reference"></a>
 
-- Visual instrument design (opcode graph editor, formulas, GEN tables, compile/runtime testing)
-- Live performance workflow (instrument rack, audio mixer, Master, inserts, sends, sequencers, piano rolls, MIDI controllers, import/export)
-- Configuration and runtime behavior (audio engine settings, MIDI setup, browser-clock audio, persistence)
+Orchestron lets you build instruments, arrange music and perform it in your browser. You can start with a built-in instrument, import a supplied sound, or design your own graph of Csound opcodes.
 
-## Reading Order
+## Start here
 
-- Start with **Instrument Design** if you are creating patches.
-- Continue with **Performance** to build and perform a multi-instrument setup.
-- Use **Configuration** for audio engine tuning, MIDI setup, UI language/help, and browser-clock audio.
+Follow [Getting Started](getting_started.md) to make a sound and save a short performance. No external MIDI keyboard or existing instrument library is required. If Orchestron is not running yet, use the [installation and startup instructions](../README.md#install-and-open-orchestron).
 
-## [Instrument Design](instrument_design/instrument_design.md)
+The app has three working areas:
 
-- [Patch Toolbar and Instrument Tabs](instrument_design/patch_toolbar_and_tabs.md)
-- [Opcode Catalog and Integrated Documentation](instrument_design/opcode_catalog_and_documentation.md)
-- [Graph Editor](instrument_design/graph_editor.md)
-- [Input Formula Assistant](instrument_design/input_formula_assistant.md)
-- [GEN Table Editor (GEN Meta-Opcode)](instrument_design/gen_table_editor.md)
-- [Runtime Panel and Compilation Workflow](instrument_design/runtime_panel_and_compilation.md)
-- [Instrument Import / Export and CSD Export](instrument_design/instrument_import_export.md)
-- [Supported Opcodes](instrument_design/supported_opcodes.md)
+- **Instrument Design** creates, edits and saves individual instruments and effects.
+- **Perform** assembles saved instruments into a rack, mixes them and plays notes, patterns and songs.
+- **Config** adjusts audio-engine and browser playback settings. Language and help are available throughout the app.
 
-## [Performance](performance/performance.md)
+Read Instrument Design before Performance when learning the whole app. For ready-made sounds, go directly to Supplied Instruments and Effects. Configuration and the optional authoring tools can be consulted when needed.
 
-- [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md)
-- [Audio Mixer and Routing](performance/audio_mixer_and_routing.md)
-- [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md)
-- [Score Sequencers](performance/score_sequencers.md)
-- [Patterns and Reusable Phrases](performance/pattern_pads_and_pad_looper.md)
-- [Multitrack Arranger](performance/multitrack_arranger.md)
-- [Controller Sequencers](performance/controller_sequencers.md)
-- [Arpeggiators](performance/arpeggiators.md)
-- [Piano Rolls](performance/piano_rolls.md)
-- [MIDI Controllers](performance/midi_controllers.md)
-- [Performance Import / Export](performance/performance_import_export.md)
-- [Live Status and Safety Controls](performance/live_status_and_safety_controls.md)
-- [Standard Effects](performance/standard_effects.md)
+## Manual contents
 
-## [Configuration](configuration/configuration.md)
+<!-- manual-contents:start -->
+- [Getting Started](getting_started.md)
+- [Instrument Design](instrument_design/instrument_design.md)
+- [Performance](performance/performance.md)
+- [Supplied Instruments and Effects](supplied/supplied.md)
+- [Configuration](configuration/configuration.md)
+- [Appendix: Optional Authoring Tools](appendix/appendix.md)
+<!-- manual-contents:end -->
 
-- [GUI Language and Integrated Help](configuration/gui_language_and_integrated_help.md)
-- [Audio Engine Settings (Config Page)](configuration/audio_engine_settings.md)
-- [MIDI Setup and Inputs](configuration/midi_setup_and_inputs.md)
-- [Browser-Clock Latency](configuration/browser_clock_latency.md)
-- [Persistence and Defaults](configuration/persistence_and_defaults.md)
+## Musical terms
 
-## [Appendix](appendix/appendix.md)
-
-- [Agent CLI](appendix/agent_cli.md)
-- [Orchestron Patch Creator Skill](appendix/patch_creator_skill.md)
-- [Orchestron Performance Creator Skill](appendix/performance_creator_skill.md)
-- [Orchestron Composition Creator Skill](appendix/composition_creator_skill.md)
-- [Sung Melody Transcription Skill](appendix/sung_melody_transcription_skill.md)
-
-## Feature Coverage Map
-
-| Feature | Where It Is Documented |
+| Term | Meaning in Orchestron |
 | --- | --- |
-| Multi-language UI (EN/DE/FR/ES) | [GUI Language and Integrated Help](configuration/gui_language_and_integrated_help.md) |
-| Integrated help pages and opcode docs modal | [GUI Language and Integrated Help](configuration/gui_language_and_integrated_help.md), [Opcode Catalog and Integrated Documentation](instrument_design/opcode_catalog_and_documentation.md) |
-| Visual graph editor, zoom, selection, deletion | [Graph Editor](instrument_design/graph_editor.md) |
-| Stereo audio interfaces, built-in patch starters and draft audition | [Patch Toolbar](instrument_design/patch_toolbar_and_tabs.md), [Graph Editor](instrument_design/graph_editor.md), [Audition](instrument_design/runtime_panel_and_compilation.md#audition-a-draft) |
-| Persistent audio mixer, Master, inserts, sends and routing repair | [Audio Mixer and Routing](performance/audio_mixer_and_routing.md) |
-| Input Formula Assistant (multi-input formulas + functions) | [Input Formula Assistant](instrument_design/input_formula_assistant.md) |
-| GEN meta-opcode editor (GEN01/GENpadsynth/etc.) | [GEN Table Editor (GEN Meta-Opcode)](instrument_design/gen_table_editor.md) |
-| Instrument import/export bundles + CSD export | [Instrument Import / Export and CSD Export](instrument_design/instrument_import_export.md) |
-| Performance rack, multi-instrument assignments, engine transport | [Instrument Rack and Engine Transport](performance/instrument_rack_and_engine_transport.md) |
-| Melodic sequencers, reusable patterns, arrangement and transposition | [Melodic Sequencers and Step Editing](performance/sequencer_tracks_and_steps.md), [Patterns and Reusable Phrases](performance/pattern_pads_and_pad_looper.md) |
-| Long polyphonic scores, note drawing and hidden material | [Score Sequencers](performance/score_sequencers.md) |
-| Controller sequencers and CC curve editor | [Controller Sequencers](performance/controller_sequencers.md) |
-| Backend arpeggiator virtual instruments and presets | [Arpeggiators](performance/arpeggiators.md) |
-| Piano rolls, scale/mode following, mixed-mode highlighting | [Piano Rolls](performance/piano_rolls.md) |
-| Manual MIDI controller panel (up to 6 knobs) | [MIDI Controllers](performance/midi_controllers.md) |
-| Performance bundle import/export with conflict resolution | [Performance Import / Export](performance/performance_import_export.md) |
-| Offline performance render export (`.csd` + `.mid` ZIP or inline-score `.csd` ZIP) | [Performance Import / Export](performance/performance_import_export.md) |
-| Audio engine settings (`sr`, `control_rate`, `ksmps`, buffers) | [Audio Engine Settings (Config Page)](configuration/audio_engine_settings.md) |
-| Browser audio mode (`browser_clock` PCM) | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
-| Browser-clock latency tuning for unified browser audio | [Browser-Clock Latency](configuration/browser_clock_latency.md) |
-| App-state persistence and defaults | [Persistence and Defaults](configuration/persistence_and_defaults.md) |
-| Supported opcode catalog | [Supported Opcodes](instrument_design/supported_opcodes.md) |
+| Instrument or patch | A saved graph that generates or processes sound. “Patch” is used in some controls and file formats. |
+| Rack instance | One use of a saved instrument in a performance, with its own channel, controls and mixer settings. |
+| Performance | A saved setup containing instruments, routes, mixer settings and musical material. |
+| Track | A lane in the arranger assigned to a source of notes or controller values. |
+| Pattern | Musical content such as a melody, drum rhythm or controller curve. |
+| Clip | A window that places patterns or phrases on the song timeline; trimming the window retains the underlying content. |
+| Arrangement | The song order and timing of clips across tracks. |
+| Audition | Temporary playback used to hear an instrument or musical draft before saving it. |
+| Workspace | The current editing context. Some workspace state is recovered after reload, but it is not a substitute for saving library entries. |
 
-## File Format Quick Reference
+<a id="save-and-share"></a>
 
-- Instrument definition export: `.orch.instrument.json` or `.orch.instrument.zip`
-- Performance export: `.orch.json` or `.orch.zip`
-- Offline performance Csound export: `.csd.zip` (`Export CSD (MIDI)` includes a `.mid`; `Export CSD (SCORE)` embeds notes and controller sweeps in the score)
-- Csound export from Instrument Design: `.csd`
-- ZIP exports are used automatically when referenced GEN01 audio assets are included.
+For backups and sharing, see [saving and recovery](configuration/persistence_and_defaults.md), [instrument files](instrument_design/instrument_import_export.md), and [performance files](performance/performance_import_export.md).
 
-**Navigation:** [Next](instrument_design/instrument_design.md)
+**Navigation:** [Next](getting_started.md)

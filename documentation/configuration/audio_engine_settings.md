@@ -1,6 +1,6 @@
 # Audio Engine Settings (Config Page)
 
-**Navigation:** [Up](configuration.md) | [Prev](gui_language_and_integrated_help.md) | [Next](midi_setup_and_inputs.md)
+**Navigation:** [Up](configuration.md) | [Previous](gui_language_and_integrated_help.md) | [Next](browser_clock_latency.md)
 
 The Config page controls patch-level Csound engine settings, parallel playback batch size and browser-clock latency settings for the current workspace.
 
@@ -121,7 +121,7 @@ Playback mode and inactivity timeout are shown above the expandable **Live buffe
 
 These values control the browser PCM queue depth and render request behavior, which are the dominant latency/stability knobs on the unified browser-clock path.
 
-The patch engine sample rate and `ksmps` still determine synthesis timing. The Software/Hardware Buffer fields are passed to Csound, but do not control browser playback buffering: the headless worker reads `spout` after each `performKsmps()` call. Changing `-b` or `-B` does not enlarge the browser queue.
+The patch engine sample rate and `ksmps` still determine synthesis timing. The Software/Hardware Buffer fields do not control browser playback buffering. Changing them does not enlarge the browser queue; use Browser-Clock Latency for that.
 
 Choose **Auto / Live / Listening** in the Browser-Clock Latency section. Auto is the default, with a configurable 10-second inactivity timeout (1–300 seconds). It detects manual piano/controller and selected external MIDI input, while ignoring sequencer automation and controller initialization. Held notes, sustain and controller gestures prevent the timeout. Queued audio is preserved on every switch, so the first note after Listening may still be delayed. The current state appears in Config and Runtime.
 
@@ -217,4 +217,4 @@ These are part of the patch model, but the current Config page focuses on the us
 - On the browser-clock path, start by adjusting browser-clock low/high water, render blocks, and parallel request limits before changing patch `-b/-B`.
 - For live MIDI sessions, prefer `ksmps <= 32`. The runtime warns when a live session starts with a larger `ksmps` because MIDI execution is still quantized to the k-period.
 
-**Navigation:** [Up](configuration.md) | [Prev](gui_language_and_integrated_help.md) | [Next](midi_setup_and_inputs.md)
+**Navigation:** [Up](configuration.md) | [Previous](gui_language_and_integrated_help.md) | [Next](browser_clock_latency.md)

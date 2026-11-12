@@ -1,5 +1,7 @@
 # Sung Melody Transcription Skill
 
+**Navigation:** [Up](appendix.md) | [Previous](composition_creator_skill.md)
+
 This plugin skill transcribes a sung or hummed monophonic melody into MIDI,
 note JSON and a playable piano WAV. Rhythmic claps can establish pulse timing;
 they are treated separately from vocal attacks. You can supply tempo, meter,
@@ -50,3 +52,5 @@ read the skill directly. Transcription and FluidSynth piano previews need no
 Orchestron backend and do not create instruments, performances or native bundles.
 Any later Orchestron import or instrument assignment is a separate workflow
 after reviewing the transcription.
+
+**Navigation:** [Up](appendix.md) | [Previous](composition_creator_skill.md)

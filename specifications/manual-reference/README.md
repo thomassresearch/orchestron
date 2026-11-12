@@ -1,0 +1,28 @@
+# Technical Background Retained from the Manual
+
+These references preserve implementation details removed from the end-user manual. They are not part of the generated PDF. Historical format descriptions are snapshots; use [current contracts](../../AGENTS.md#critical-architecture-and-compatibility-decisions) when changing behavior.
+
+- [Agent Cli](agent_cli.md)
+- [Appendix](appendix.md)
+- [Arpeggiators](arpeggiators.md)
+- [Audio Engine Settings](audio_engine_settings.md)
+- [Audio Mixer And Routing](audio_mixer_and_routing.md)
+- [Browser Clock Latency](browser_clock_latency.md)
+- [Continuous Effects](continuous_effects.md)
+- [Control Flow](control_flow.md)
+- [Goa Trance Fm Lead](goa_trance_fm_lead.md)
+- [Granular Capture](granular_capture.md)
+- [Instrument Import Export](instrument_import_export.md)
+- [Instrument Rack And Engine Transport](instrument_rack_and_engine_transport.md)
+- [Live Status And Safety Controls](live_status_and_safety_controls.md)
+- [Midi Legato](midi_legato.md)
+- [Multitrack Arranger](multitrack_arranger.md)
+- [Performance](performance.md)
+- [Performance Controllers](performance_controllers.md)
+- [Performance Import Export](performance_import_export.md)
+- [Persistence And Defaults](persistence_and_defaults.md)
+- [Score Sequencers](score_sequencers.md)
+- [Sequencer Timing](sequencer_timing.md)
+- [Steel String Waveguide](steel_string_waveguide.md)
+- [Stereo Delay](stereo_delay.md)
+- [Trance Gate](trance_gate.md)

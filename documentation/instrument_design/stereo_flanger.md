@@ -1,6 +1,6 @@
 # Stereo Flanger
 
-**Navigation:** [Standard Effects](../performance/standard_effects.md) | [Prev](stereo_delay.md) | [Next](autopanner.md) | [Mixer and routing](../performance/audio_mixer_and_routing.md) | [Performance controllers](../performance/performance_controllers.md)
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_delay.md) | [Next](autopanner.md)
 
 [Download Stereo Flanger](../../examples/instruments/Stereo_Flanger.orch.instrument.json)
 and import it with **Instrument Design → Import**. This continuous effect mixes
@@ -53,7 +53,9 @@ sweep in opposite directions. It does not cross-feed audio between channels.
 audio at one. Intermediate settings produce the familiar flanging interference;
 wet-only settings emphasize pitch modulation and feedback coloration.
 
-## Editable graph and validation
+<a id="editable-graph-and-validation"></a>
+
+## Edit the sound
 
 The graph uses two audio-rate `poscil3` sine oscillators, two `flanger` delay
 lines, and ordinary stereo input/output blocks. Stable controller IDs are
@@ -67,3 +69,5 @@ for the editable patch, reproducible previews, and regression checks.
 
 References: [Csound flanger](https://csound.com/docs/manual/flanger.html),
 [Csound poscil3](https://csound.com/docs/manual/poscil3.html).
+
+**Navigation:** [Up](../performance/standard_effects.md) | [Previous](stereo_delay.md) | [Next](autopanner.md)

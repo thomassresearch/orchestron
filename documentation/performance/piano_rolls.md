@@ -1,6 +1,6 @@
 # Piano Rolls
 
-**Navigation:** [Up](performance.md) | [Prev](arpeggiators.md) | [Next](midi_controllers.md)
+**Navigation:** [Up](performance.md) | [Previous](../configuration/midi_setup_and_inputs.md) | [Next](midi_controllers.md)
 
 Piano Rolls provide manual performance input with scale-aware keyboard highlighting.
 
@@ -136,4 +136,4 @@ The UI tracks held notes and releases them on pointer cancellation, lost capture
 - Testing an instrument patch in musical context without external MIDI hardware
 - Performing harmonically guided lines while melodic sequencers define the key center
 
-**Navigation:** [Up](performance.md) | [Prev](arpeggiators.md) | [Next](midi_controllers.md)
+**Navigation:** [Up](performance.md) | [Previous](../configuration/midi_setup_and_inputs.md) | [Next](midi_controllers.md)

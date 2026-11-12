@@ -1,6 +1,6 @@
 # GEN Table Editor (GEN Meta-Opcode)
 
-**Navigation:** [Up](instrument_design.md) | [Prev](input_formula_assistant.md) | [Next](runtime_panel_and_compilation.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](input_formula_assistant.md) | [Next](control_flow.md)
 
 The `GEN` meta-opcode is a specialized table generator node that opens a dedicated editor for building `ftgen` / `ftgenonce` lines visually.
 
@@ -105,7 +105,7 @@ For routines without a dedicated structured editor:
 - Separate tokens by commas or new lines.
 - Quote string literals manually (for example `"file.wav"`).
 - Prefix an argument with `expr:` to force raw Csound expression rendering without quotes.
-- Keep raw argument lists within the backend validation limits: 512 tokens total, 512 characters per token, and 8192 characters for the raw text field.
+- Keep raw argument lists within the accepted limits: 512 tokens total, 512 characters per token, and 8192 characters for the raw text field.
 
 Examples:
 
@@ -172,4 +172,4 @@ Use this to verify the exact Csound line before compile.
 - `Save GEN` writes the GEN node configuration into patch UI metadata (`graph.ui_layout`).
 - Closing without saving leaves the previous GEN node settings unchanged.
 
-**Navigation:** [Up](instrument_design.md) | [Prev](input_formula_assistant.md) | [Next](runtime_panel_and_compilation.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](input_formula_assistant.md) | [Next](control_flow.md)

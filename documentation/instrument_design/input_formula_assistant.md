@@ -1,6 +1,6 @@
 # Input Formula Assistant
 
-**Navigation:** [Up](instrument_design.md) | [Prev](graph_editor.md) | [Next](gen_table_editor.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](graph_editor.md) | [Next](gen_table_editor.md)
 
 The Input Formula Assistant shows the effective value of an input and lets you edit a constant or define how incoming signals are combined.
 
@@ -148,4 +148,4 @@ abs(in1)
 sr * 0.5
 ```
 
-**Navigation:** [Up](instrument_design.md) | [Prev](graph_editor.md) | [Next](gen_table_editor.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](graph_editor.md) | [Next](gen_table_editor.md)

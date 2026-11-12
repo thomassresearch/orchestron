@@ -1,82 +1,67 @@
-# Persistence and Defaults
+# Saving, Workspace Recovery and Defaults
 
-**Navigation:** [Up](configuration.md) | [Prev](browser_clock_latency.md)
+**Navigation:** [Up](configuration.md) | [Previous](browser_clock_latency.md) | [Next](../appendix/appendix.md)
 
-Orchestron persists both library data (patches/performances) and a separate app-state snapshot (workspace state).
+<a id="persistence-and-defaults"></a>
 
-Persistent JSON documents are bounded before storage so direct API clients cannot grow request memory or the SQLite database without limit. Defaults are 8 MiB for app state (`VISUALCSOUND_APP_STATE_MAX_BYTES`), 4 MiB for saved patch graphs (`VISUALCSOUND_PATCH_GRAPH_MAX_BYTES`), 1 MiB for patch UI layout metadata (`VISUALCSOUND_PATCH_UI_LAYOUT_MAX_BYTES`), 8 MiB for performance configs (`VISUALCSOUND_PERFORMANCE_CONFIG_MAX_BYTES`), and 64 KiB for any single nested JSON string (`VISUALCSOUND_PERSISTED_JSON_STRING_MAX_BYTES`).
+<a id="two-persistence-layers-important"></a>
 
-## Two Persistence Layers (Important)
+<a id="1-library-data-explicit-save"></a>
 
-### 1. Library Data (Explicit Save)
+<a id="2-app-state-snapshot-automatic"></a>
 
-These are stored when you click save actions:
+<a id="what-this-means-in-practice"></a>
 
-- Patches (Instrument Design `Save`)
-- Performances (Perform page `Save Performance`)
+<a id="default-new-patch-values"></a>
 
-### 2. App-State Snapshot (Automatic)
+<a id="saved-mixes-and-older-performances"></a>
 
-Orchestron also persists a workspace/app-state snapshot in the backend to restore your working context after reload.
+<a id="compile-status-vs-persistence"></a>
 
-Persisted app state includes (current implementation):
+<a id="runtime-defaults"></a>
 
-- active page (`Instrument Design` / `Perform` / `Config`)
-- GUI language
-- instrument tabs (including editable patch snapshots)
-- active instrument tab
-- sequencer state (tracks, controller sequencers, arpeggiators, piano rolls, MIDI controllers)
-- performance workspace metadata (`currentPerformanceId`, name, description)
-- sequencer instrument bindings (stable rack instance IDs)
-- explicit audio routes, Master selection, insert ownership and mixer strip/send values (app-state version 2)
-- active MIDI input selection reference
-- browser-clock latency settings for the current workspace/runtime path
+<a id="recommended-habits"></a>
 
-New sessions default that MIDI input reference to `internal:loopback` unless a different external input is explicitly bound.
+Save library entries to keep and share your work. Workspace recovery helps you resume editing after a reload, but it does not replace saving an instrument or performance.
 
-## What This Means In Practice
+## Two kinds of saved state
 
-- You can reload the app and continue from a similar workspace state.
-- Saved clip definitions and arrangement edits are restored. Unsaved pattern and structural drafts are session-only; resolve them before reloading.
-- Instrument graph edits may reappear because they exist in the app-state snapshot.
-- Unsaved edits are **not** the same as saved library data.
+| Action | What it keeps |
+| --- | --- |
+| Save in Instrument Design | The named instrument graph and its settings in the library |
+| Save Performance | The rack, routes, mixer, instance settings and authored musical content |
+| Automatic workspace recovery | Working context such as open instrument tabs, selected view, language and browser-clock preferences |
+| Native Export | A portable editable instrument or performance bundle |
 
-Always use explicit save actions when you want stable, shareable library entries.
+## Before leaving a session
 
-## Default New Patch Values
+1. Save instrument changes you want to keep in the library.
+2. Save or discard open pattern and structure drafts, with the intended linked/local editing scope.
+3. Save the performance.
+4. Export important work as a native bundle for a separate backup.
 
-New opens the [built-in/template chooser](../instrument_design/patch_toolbar_and_tabs.md#built-in-creation-choices). The selected starter supplies its name, graph, Activation and audio interface. Choose Empty patch for an empty graph (`nodes = []`, `connections = []`). All starters use these default engine settings:
+Recovered instrument tabs can contain unsaved graph edits. Musical and structural drafts are session-only: resolve them before reloading.
 
-- `sr = 48000`
-- `control_rate = 1500`
-- `ksmps = 32`
-- `nchnls = 2`
-- `software_buffer = 128`
-- `hardware_buffer = 512`
-- `0dbfs = 1`
+## What stays temporary
 
-## Saved mixes and older performances
+Selections, zoom, scroll and drafts survive view switches and panel collapse. New, Load and Import reset this temporary context. Auditions and arranger lane Mute/Solo are not saved music.
 
-Save Performance, Load Performance, Clone and native performance bundles retain version 11 audio routing and mixer settings, including Master, dedicated inserts, sends and pre/post selection. App-state restore also retains the current mix. These are snapshots; recording mixer automation is not included.
+## Compile and save
 
-Opening versions 1–10 converts the old Level values to audio gain in dB and resolves legacy connections into explicit routes. Missing Level means 0 dB. The migration notice explains that Level no longer scales MIDI velocity, so velocity-sensitive instruments may change timbre. Check the mix and save the migrated performance. See [Mixer persistence and compatibility](../performance/audio_mixer_and_routing.md#persistence-and-compatibility).
+Compile checks a graph without saving it. Normal Save compiles first; templates may remain incomplete and are excluded from Perform. See [Patch Toolbar and Instrument Tabs](../instrument_design/patch_toolbar_and_tabs.md).
 
-## Compile Status vs Persistence
+## New instrument defaults
 
-The compile status badge (`compiled`, `pending changes`, `errors`) indicates compile state for the current patch snapshot. It does **not** indicate whether the patch has been saved to the patch library.
+New opens the starter chooser; Empty patch supplies a blank graph. Defaults are 48 kHz audio, a target control rate of 1,500 Hz and a 32-sample synthesis block. See [Audio Engine Settings](audio_engine_settings.md) before changing them.
 
-## Runtime Defaults
+Internal MIDI works without a keyboard. Select external MIDI explicitly when needed.
 
-- runtime audio mode is fixed to `browser_clock`
-- the default session MIDI binding is `internal:loopback`
-- external host MIDI is disabled unless `VISUALCSOUND_HOST_MIDI_TOKEN` is configured and a helper connects
-- runtime session creation is bounded by `VISUALCSOUND_SESSION_MAX_ACTIVE`, `VISUALCSOUND_SESSION_MAX_ACTIVE_PER_CLIENT`, `VISUALCSOUND_SESSION_CREATE_RATE_PER_MINUTE`, and `VISUALCSOUND_SESSION_CREATE_RATE_BURST`; stopped idle sessions are deleted after `VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS`
-- session event WebSocket observers are bounded by `VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_TOTAL`, `VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_PER_SESSION`, `VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_PER_MINUTE`, and `VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_BURST`
+## Older performances and large saves
 
-## Recommended Habits
+Supported older files receive defaults for settings they did not contain. Review the mixer and Master routes after import, then save a fresh native backup. Keep the original file until you have checked playback.
 
-1. Use app-state restore for convenience.
-2. Use `Save` / `Save Performance` for intentional versions.
-3. Use `Export` bundles for backups or sharing across machines.
+If a save or import reports a size limit, retain your current draft, reduce unnecessary material or assets, and try again. Server limits protect storage; a failed save is not confirmation that your library has been updated.
 
-**Navigation:** [Up](configuration.md) | [Prev](browser_clock_latency.md)
+For technical storage and migration details, see the [persistence reference](../../specifications/manual-reference/persistence_and_defaults.md).
+
+**Navigation:** [Up](configuration.md) | [Previous](browser_clock_latency.md) | [Next](../appendix/appendix.md)

@@ -1,6 +1,6 @@
 # HSB Mono
 
-**Navigation:** [Instrument Design](instrument_design.md) · [Monophonic Legato](midi_legato.md)
+**Navigation:** [Up](../supplied/instruments.md) | [Previous](ambient_techno.md) | [Next](enough_and_logan.md)
 
 Import [HSB Mono](../../examples/instruments/HSB_Mono.orch.instrument.json), add it
 to the performance rack, and route **Stereo Output → Master**. Play MIDI notes
@@ -31,3 +31,5 @@ spectral weighting across octaves. The amplitude envelope is 6 ms / 150 ms /
 80% / 80 ms and responds to note velocity.
 
 [Authoring details and reproducible previews](../../examples/instruments/hsb_mono/README.md).
+
+**Navigation:** [Up](../supplied/instruments.md) | [Previous](ambient_techno.md) | [Next](enough_and_logan.md)

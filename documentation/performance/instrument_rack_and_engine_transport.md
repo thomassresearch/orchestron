@@ -1,6 +1,6 @@
 # Instrument Rack and Engine Transport
 
-**Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](audio_mixer_and_routing.md)
+**Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](audio_mixer_and_routing.md)
 
 The Instrument Rack is the top section of the Perform page and controls the live session, instrument assignments, and performance metadata.
 
@@ -42,7 +42,7 @@ The rack includes fields and actions for the current performance:
 These actions operate on the performance configuration (instrument rack + audio routing/mixer + sequencers + controllers + piano rolls), not on individual patch definitions.
 
 - `Export` writes an Orchestron `.orch.json` / `.orch.zip` performance bundle for backup, sharing, and re-import.
-- `Export CSD (MIDI)` writes an offline-render ZIP with a compiled `.csd`, the arranger performance as `.mid`, bundled uploaded sample/SF assets, and a `README.txt` with the render command. `Export CSD (SCORE)` embeds notes and controller sweeps directly in the Csound score, omits the `.mid`, rewrites supported MIDI opcodes for score playback, and writes a matching no-`-F` render command. Both modes seed enabled manual MIDI Controller lane values at time 0 on each assigned instrument channel and use 32-bit float WAV output (`-f`) to preserve headroom. GEN01 and `sfload` sample files must be uploaded/imported assets; raw local `samplePath` values are rejected before compilation.
+- `Export CSD (MIDI)` creates a Csound package with a MIDI file; `Export CSD (SCORE)` embeds the events in the Csound score. See [Performance Import / Export](performance_import_export.md) for choosing a format, samples, rendering and release tails.
 
 ## Instrument Assignments (Rack Slots)
 
@@ -112,4 +112,4 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 - Use distinct MIDI channels for note-triggered rack instances.
 - Use `sname` labels on source `outleta` nodes to name the available matrix channels. The label can be stored directly on the node or supplied by a direct `const_s` connection.
 
-**Navigation:** [Up](performance.md) | [Prev](performance.md) | [Next](audio_mixer_and_routing.md)
+**Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](audio_mixer_and_routing.md)

@@ -1,8 +1,12 @@
 # Browser-Clock Latency
 
-**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)
+**Navigation:** [Up](configuration.md) | [Previous](audio_engine_settings.md) | [Next](persistence_and_defaults.md)
 
-Orchestron now uses backend audio mode `browser_clock` on every supported platform. The browser becomes the playback clock and requests PCM render chunks from the backend, so the most important latency and stability controls live in the Config page's `Browser-Clock Latency` section.
+<a id="manual-midi-safety-limits"></a>
+
+<a id="session-resource-limits"></a>
+
+Orchestron plays sound through your browser on every supported platform. **Config → Browser-Clock Latency** controls the balance between responsive playing and enough buffered audio to withstand brief interruptions.
 
 ## Playback Mode
 
@@ -28,11 +32,11 @@ selected MIDI input. Disconnecting that device, rebinding MIDI input or Panic cl
 Sequencers, controller sequencers and the initial values sent automatically by manual MIDI controls
 do not trigger Live. Only the original external/manual input triggers it when routed into an arpeggiator.
 
-**Switching preserves all queued audio, pending renders and transport position.** The worker
+**Switching preserves all queued audio, pending renders and transport position.** The browser
 lets the existing queue drain when changing to Live and replenishes it when changing to Listening.
 The indicator shows **Switching to Live** while the larger queue is draining. This means the first
 unexpected note after Listening may still have the previous latency. No samples are skipped to
-make the switch appear instantaneous. The AudioContext remains running with its interactive latency hint.
+make the switch appear instantaneous.
 
 Open **Live buffering and recovery** to tune the existing advanced controls. Listening uses at least
 **750/1500 ms** steady low/high water and **1000/1800 ms** startup low/high water, with up to **512
@@ -46,40 +50,22 @@ Render requests remain capped at 512 blocks: that is about 341 ms at `ksmps=32`,
 short stalls; they cannot compensate indefinitely if rendering is consistently slower than playback.
 Use Audio Queue, Underruns and Render Ratio in the Runtime panel to distinguish these cases.
 
-## When This Section Appears
+<p align="center">
+  <img src="../../screenshots/config_browser_playback_modes.png" alt="Config playback modes with Auto and a ten-second inactivity timeout" width="1100" style="max-width: 100%; height: auto;" />
+</p>
+<p align="center"><em>Choose a playback mode in Browser-Clock Latency; expand Live buffering and recovery for advanced tuning.</em></p>
 
-The `Browser-Clock Latency` section is shown when the backend is running in `browser_clock` mode, for example:
-
-- `docker compose up --build`
-- environment variable `VISUALCSOUND_AUDIO_OUTPUT_MODE=browser_clock`
-
-This is the standard runtime path for macOS, Linux, Windows, and Docker. In practice, that means this section describes the normal live-audio path of the app, not a Docker-only special case.
+<a id="when-this-section-appears"></a>
 
 ## Why These Settings Matter
 
-On the browser-clock path, audio is not pushed to a local DAC on the backend host. Instead:
-
-- the backend renders PCM blocks on demand
-- a dedicated browser audio worker keeps the target queue of decoded PCM and requests more audio
-- the AudioWorklet consumes that queue independently of React rendering
-
-That makes the browser-clock queue settings the main tradeoff between low live-play latency and glitch resistance.
-
-The queue producer no longer runs on the React/main thread. Main-thread stalls can delay visual updates,
-but they do not stop the worker from requesting or buffering PCM. Playback starts only after the startup
-high-water target is reached. The Runtime panel reports current queued and pending-render milliseconds,
-underrun/overrun counts, and the latest backend render-time/audio-time ratio.
-
-The backend suppresses Csound performance-time logging by default in headless browser-clock sessions. This
-prevents stdout or Docker logging I/O from delaying `performKsmps()`. To diagnose Csound's own runtime messages,
-start the backend with `VISUALCSOUND_CSOUND_PERFORMANCE_LOGGING=true`; this is intended as a temporary diagnostic
-setting rather than a latency control.
+The browser keeps a queue of audio ready for playback. A larger queue absorbs brief rendering or network delays but increases the time between pressing a key and hearing a note. Playback begins when the startup queue target is reached. The Runtime panel reports queued audio, pending audio, underruns and Render Ratio so you can judge whether the settings suit your performance.
 
 Lower values usually feel more immediate, but they also leave less headroom for:
 
-- backend scheduling jitter
-- network / websocket round-trip jitter between browser and backend
-- browser tab throttling or temporary main-thread stalls
+- brief rendering delays
+- network delays between browser and server
+- temporary browser interruptions
 - heavier patches that take longer to render
 
 Higher values add safety margin, but manual playing and note feedback feel less direct.
@@ -114,14 +100,6 @@ Smaller requests can improve responsiveness, while larger or more parallel reque
 
 These are the most direct controls for making manual keyboard or MIDI playing feel snappier in browser-clock mode.
 
-### Manual MIDI Safety Limits
-
-Browser-clock manual MIDI is bounded on the backend even when events are routed through an arpeggiator. Deployments can tune the maximum accepted future timestamp with `VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_MAX_FUTURE_MS`, the accepted manual MIDI rate with `VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_RATE_PER_SECOND` and `VISUALCSOUND_BROWSER_CLOCK_MANUAL_MIDI_BURST`, and the per-session arpeggiator pending input cap with `VISUALCSOUND_ARPEGGIATOR_PENDING_INPUT_MAX_EVENTS`.
-
-### Session Resource Limits
-
-Runtime sessions allocate backend Csound worker resources, so session creation and live session-event observers are also bounded. `VISUALCSOUND_SESSION_MAX_ACTIVE` limits total active sessions, `VISUALCSOUND_SESSION_MAX_ACTIVE_PER_CLIENT` limits sessions owned by one client address, `VISUALCSOUND_SESSION_CREATE_RATE_PER_MINUTE` and `VISUALCSOUND_SESSION_CREATE_RATE_BURST` limit repeated creation attempts, and `VISUALCSOUND_SESSION_IDLE_TIMEOUT_SECONDS` deletes stopped idle sessions so capacity is returned automatically. Session event WebSocket observers are capped with `VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_TOTAL` and `VISUALCSOUND_SESSION_EVENT_WS_MAX_SUBSCRIPTIONS_PER_SESSION`, while connection attempts are rate-limited with `VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_PER_MINUTE` and `VISUALCSOUND_SESSION_EVENT_WS_CONNECT_RATE_BURST`.
-
 ## Practical Tuning Order
 
 1. Start with **Auto** (default), or choose **Listening** when live interaction is unnecessary.
@@ -138,11 +116,4 @@ They also work together with the engine settings from the patch:
 - patch engine `sr` and `ksmps` determine synthesis timing and the audio duration of a render request
 - Csound I/O buffers `-b` and `-B` do not control browser queue depth or the browser device buffer on this headless path
 
-## Screenshot
-
-<p align="center">
-  <img src="../../screenshots/config_browser_playback_modes.png" alt="Config playback modes with Auto and a ten-second inactivity timeout" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>The Config page's Browser-Clock Latency section, used when Orchestron runs headless in `browser_clock` mode and the browser owns audio playback.</em></p>
-
-**Navigation:** [Up](configuration.md) | [Prev](midi_setup_and_inputs.md) | [Next](persistence_and_defaults.md)
+**Navigation:** [Up](configuration.md) | [Previous](audio_engine_settings.md) | [Next](persistence_and_defaults.md)

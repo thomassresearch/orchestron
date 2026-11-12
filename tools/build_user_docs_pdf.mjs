@@ -6,6 +6,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { loadManual, selectEntries, validateManual, anchors, headings, slugify, pdfLink, decodeEntities, reconcilePageNumbers } from "./manual.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..");
@@ -16,7 +18,8 @@ function parseArgs(argv) {
     output: "documentation/user_documentation.pdf",
     logo: "frontend/src/assets/orchestron-icon.png",
     title: "Orchestron User Documentation",
-    keepTemp: false
+    keepTemp: false,
+    check: false
   };
 
   const args = { ...defaults };
@@ -42,6 +45,7 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (token === "--check") { args.check = true; continue; }
     if (token === "--keep-temp") {
       args.keepTemp = true;
       continue;
@@ -63,10 +67,11 @@ Usage:
   node tools/build_user_docs_pdf.mjs [options]
 
 Options:
-  --input <path>    Entry markdown file (default: documentation/user_documentation.md)
+  --input <path>    Declared page and its descendants (default: documentation/user_documentation.md)
   --output <path>   Output PDF path (default: documentation/user_documentation.pdf)
   --logo <path>     Header logo path (default: frontend/src/assets/orchestron-icon.png)
   --title <text>    Document title (default: Orchestron User Documentation)
+  --check           Validate the complete manual without rendering
   --keep-temp       Keep generated temporary HTML files
 `);
 }
@@ -115,128 +120,6 @@ function safeDecodeUriComponent(value) {
   }
 }
 
-function slugify(value) {
-  return value
-    .toLowerCase()
-    .replace(/[`~!@#$%^&*()+=[\]{}|\\:;"'<>,.?/]/g, " ")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function parseMarkdownLinkTargets(markdown) {
-  const links = [];
-  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
-  const linkRegex = /\[[^\]]+\]\(([^)]+)\)/g;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("**Navigation:**")) {
-      continue;
-    }
-    linkRegex.lastIndex = 0;
-    let match = linkRegex.exec(line);
-    while (match) {
-      let target = match[1].trim();
-      if (target.startsWith("<") && target.endsWith(">")) {
-        target = target.slice(1, -1).trim();
-      }
-      const firstSpace = target.search(/\s/);
-      if (firstSpace > -1) {
-        target = target.slice(0, firstSpace);
-      }
-      links.push(target);
-      match = linkRegex.exec(line);
-    }
-  }
-
-  return links;
-}
-
-function isLocalMarkdownLink(target) {
-  if (!target) {
-    return false;
-  }
-  if (target.startsWith("#")) {
-    return false;
-  }
-  if (/^[a-z]+:/i.test(target)) {
-    return false;
-  }
-  const hashIndex = target.indexOf("#");
-  const withoutHash = hashIndex >= 0 ? target.slice(0, hashIndex) : target;
-  return withoutHash.toLowerCase().endsWith(".md");
-}
-
-function getLinkedMarkdownFiles(file, documentationRoot) {
-  const markdown = fs.readFileSync(file, "utf8");
-  return parseMarkdownLinkTargets(markdown)
-    .filter(isLocalMarkdownLink)
-    .map((link) => path.resolve(path.dirname(file), link.split("#")[0]))
-    .filter((resolved) => {
-      const relative = path.relative(documentationRoot, resolved);
-      return fs.existsSync(resolved) && relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
-    });
-}
-
-function getStandardEffectsFiles(documentationRoot) {
-  const index = path.join(documentationRoot, "performance", "standard_effects.md");
-  return fs.existsSync(index) ? [index, ...new Set(getLinkedMarkdownFiles(index, documentationRoot))] : [];
-}
-
-function collectMarkdownFiles(entryFile, documentationRoot, standardEffectsFiles = []) {
-  const files = [];
-  const visited = new Set();
-  const deferredAppendices = new Set();
-  const appendixRoot = path.join(documentationRoot, "appendix");
-  const isAppendix = (file) => file.startsWith(`${appendixRoot}${path.sep}`);
-
-  function visit(currentFile, includeAppendices = false) {
-    const normalized = path.normalize(currentFile);
-    if (isAppendix(normalized) && !includeAppendices) {
-      deferredAppendices.add(normalized);
-      return;
-    }
-    if (visited.has(normalized)) {
-      return;
-    }
-    visited.add(normalized);
-    files.push(normalized);
-
-    for (const resolved of getLinkedMarkdownFiles(normalized, documentationRoot)) {
-      visit(resolved, includeAppendices);
-    }
-  }
-
-  visit(entryFile);
-  if (deferredAppendices.size > 0) {
-    // The appendix index defines its order, even if a chapter links to a child first.
-    const appendixIndex = path.join(appendixRoot, "appendix.md");
-    if (fs.existsSync(appendixIndex)) {
-      visit(appendixIndex, true);
-    }
-    for (const file of deferredAppendices) {
-      visit(file, true);
-    }
-  }
-  // References found only in the appendix still belong before the appendix itself.
-  const content = files.filter((file) => !isAppendix(file));
-  // Cross-links must not pull effect guides out of their final Performance subsection.
-  // Keep their published Markdown paths; the Standard Effects index owns their order.
-  if (visited.has(standardEffectsFiles[0])) {
-    const effects = new Set(standardEffectsFiles);
-    const remaining = content.filter((file) => !effects.has(file));
-    const performanceChapter = remaining.indexOf(path.join(documentationRoot, "performance", "performance.md"));
-    const nextChapter = performanceChapter < 0 ? -1 : remaining.findIndex(
-      (file, index) => index > performanceChapter && getTocLevel(file, entryFile, documentationRoot) === 1
-    );
-    remaining.splice(nextChapter < 0 ? remaining.length : nextChapter, 0,
-      ...standardEffectsFiles.filter((file) => visited.has(file)));
-    return [...remaining, ...files.filter(isAppendix)];
-  }
-  return [...content, ...files.filter(isAppendix)];
-}
-
 function parseHtmlAttributes(fragment) {
   const attributes = {};
   const pattern = /([A-Za-z_:][A-Za-z0-9_.:-]*)\s*=\s*("([^"]*)"|'([^']*)')/g;
@@ -276,7 +159,7 @@ function sanitizeMarkdown(markdown) {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith("**Navigation:**")) {
+    if (/^<!-- manual-contents:/.test(trimmed)) {
       continue;
     }
     sanitized.push(line);
@@ -384,6 +267,10 @@ function parseBlocks(markdown) {
       index += 1;
       continue;
     }
+
+    const alias = /^<a id="([^"]+)"><\/a>$/.exec(trimmed);
+    if (alias) { blocks.push({ type: 'anchor', id: alias[1] }); index += 1; continue; }
+    if (/^<!--.*-->$/.test(trimmed)) { index += 1; continue; }
 
     const headingMatch = /^#{1,6}\s+(.+)$/.exec(trimmed);
     if (headingMatch) {
@@ -495,24 +382,13 @@ function parseBlocks(markdown) {
   return blocks;
 }
 
-function resolveLinkHref(rawHref, currentFile, anchorsByFile) {
-  if (rawHref.startsWith("http://") || rawHref.startsWith("https://") || rawHref.startsWith("mailto:")) {
-    return rawHref;
-  }
-  if (rawHref.startsWith("#")) {
-    return rawHref;
-  }
-
-  const [filePart] = rawHref.split("#");
-  if (!filePart.toLowerCase().endsWith(".md")) {
-    return null;
-  }
-
-  const absoluteTarget = path.resolve(path.dirname(currentFile), filePart);
-  if (!anchorsByFile.has(absoluteTarget)) {
-    return null;
-  }
-  return `#${anchorsByFile.get(absoluteTarget)}`;
+function resolveLinkHref(rawHref, context) {
+  return pdfLink(rawHref, context.currentFile, context.anchorsByFile, context.headingsByFile,
+    (file, fragment) => {
+      const relative = path.relative(repoRoot, file).split(path.sep).join('/');
+      if (relative.startsWith('../')) return null;
+      return `https://github.com/thomassresearch/orchestron/blob/main/${relative.split('/').map(encodeURIComponent).join('/')}${fragment ? '#' + encodeURIComponent(fragment) : ''}`;
+    });
 }
 
 function resolveImageSource(rawSource, currentFile) {
@@ -552,7 +428,7 @@ function renderInline(text, context) {
     } else if (match[2]) {
       parts.push(`<strong>${escapeHtml(match[2])}</strong>`);
     } else if (match[3] && match[4]) {
-      const href = resolveLinkHref(match[4].trim(), context.currentFile, context.anchorsByFile);
+      const href = resolveLinkHref(match[4].trim(), context);
       if (href) {
         const target = href.startsWith("http://") || href.startsWith("https://") ? ' target="_blank" rel="noreferrer"' : "";
         parts.push(`<a href="${escapeAttribute(href)}"${target}>${escapeHtml(match[3])}</a>`);
@@ -573,7 +449,7 @@ function renderInline(text, context) {
 
 function renderBlocks(blocks, context) {
   const html = [];
-  const headingCounts = new Map();
+  let headingIndex = 0;
 
   for (const block of blocks) {
     if (block.type === "pagebreak") {
@@ -581,17 +457,20 @@ function renderBlocks(blocks, context) {
       continue;
     }
     if (block.type === "heading") {
-      const base = slugify(block.text) || "section";
-      const count = headingCounts.get(base) ?? 0;
-      headingCounts.set(base, count + 1);
-      const suffix = count === 0 ? "" : `-${count + 1}`;
-      const headingId = `${context.sectionAnchor}-${base}${suffix}`;
-      html.push(`<h${block.level} id="${escapeAttribute(headingId)}">${renderInline(block.text, context)}</h${block.level}>`);
+      const headingId = `${context.sectionAnchor}-${context.headingList[headingIndex++].slug}`;
+      const level = Math.min(6, block.level + context.tocLevel - 1);
+      const cssClass = block.level === 1 ? 'page-title' : `source-heading-${block.level}`;
+      html.push(`<h${level} class="${cssClass}" id="${escapeAttribute(headingId)}">${renderInline(block.text, context)}</h${level}>`);
       continue;
     }
 
+    if (block.type === 'anchor') {
+      html.push(`<a id="${escapeAttribute(context.sectionAnchor + '-' + block.id)}"></a>`);
+      continue;
+    }
     if (block.type === "paragraph") {
-      html.push(`<p>${renderInline(block.text, context)}</p>`);
+      const cssClass = block.text.startsWith('**Navigation:**') ? ' class="manual-navigation"' : '';
+      html.push(`<p${cssClass}>${renderInline(block.text, context)}</p>`);
       continue;
     }
 
@@ -629,9 +508,12 @@ function renderBlocks(blocks, context) {
         typeof block.caption === "string" && block.caption.trim().length > 0
           ? `<figcaption class="image-caption">${escapeHtml(block.caption.trim())}</figcaption>`
           : "";
+      const widthStyle = /^\d+(?:\.\d+)?(?:px|%)?$/.test(block.width || '')
+        ? ` style="width: ${escapeAttribute(/(?:px|%)$/.test(block.width) ? block.width : block.width + 'px')};"`
+        : '';
       if (resolvedSource) {
         html.push(
-          `<figure class="image-block"><img class="doc-image" src="${escapeAttribute(resolvedSource)}" alt="${escapeAttribute(altText)}" loading="lazy" />${captionHtml}</figure>`
+          `<figure class="image-block"><img class="doc-image" src="${escapeAttribute(resolvedSource)}" alt="${escapeAttribute(altText)}"${widthStyle} loading="lazy" />${captionHtml}</figure>`
         );
       } else {
         html.push(`<p>${escapeHtml(altText)}</p>`);
@@ -646,27 +528,6 @@ function renderBlocks(blocks, context) {
 function getFirstHeadingText(blocks, fallbackTitle) {
   const heading = blocks.find((block) => block.type === "heading");
   return heading ? heading.text : fallbackTitle;
-}
-
-function getTocLevel(filePath, entryFile, documentationRoot, standardEffectsFiles = []) {
-  const normalizedFile = path.normalize(filePath);
-  const normalizedEntry = path.normalize(entryFile);
-  if (normalizedFile === normalizedEntry) {
-    return 1;
-  }
-  if (standardEffectsFiles.indexOf(normalizedFile) > 0) {
-    return 3;
-  }
-
-  const relative = path.relative(documentationRoot, normalizedFile).replaceAll(path.sep, "/");
-  const segments = relative.split("/");
-  if (segments.length === 1) {
-    return 1;
-  }
-  if (segments.length === 2 && path.basename(relative) === `${segments[0]}.md`) {
-    return 1;
-  }
-  return 2;
 }
 
 function buildTocMarkup(entries, pageBreakAfter) {
@@ -799,6 +660,10 @@ function buildMainHtml({ title, tocHtml, sectionsHtml }) {
       .toc-section-break {
         page-break-after: always;
       }
+      .page-title { font-size: 26px; margin: 0 0 16px; }
+      .source-heading-2 { font-size: 22px; }
+      .source-heading-3 { font-size: 18px; }
+      .manual-navigation { font-size: 9pt; color: var(--muted); }
       .toc-heading {
         margin: 0 0 18pt;
         text-align: center;
@@ -1230,7 +1095,7 @@ function runWkhtmltopdfDocument({ coverPath, mainPath, headerPath, footerPath, o
     "--title",
     title,
     "--outline-depth",
-    "2",
+    "6",
     "--dump-outline",
     outlinePath,
     "--javascript-delay",
@@ -1260,7 +1125,17 @@ function main() {
   const entryFile = resolvePath(args.input);
   const outputFile = resolvePath(args.output);
   const logoFile = resolvePath(args.logo);
-  const docsRoot = path.resolve(path.dirname(entryFile));
+  const docsRoot = path.join(repoRoot, 'documentation');
+  const manual = loadManual(docsRoot);
+  validateManual(manual);
+  const headingCheck = spawnSync('python3', [path.join(repoRoot, '.codex/hooks/protect_documentation_headings.py'), '--check'], { encoding: 'utf8' });
+  if (headingCheck.error) throw new Error(`Cannot run documentation heading guard: ${headingCheck.error.message}`);
+  if (headingCheck.status !== 0) throw new Error(headingCheck.stderr || 'Documentation heading guard failed');
+  const selected = selectEntries(manual, entryFile);
+  if (args.check) {
+    console.log(`Manual validated: ${manual.entries.length} pages, ${manual.excluded.length} explicit exclusions.`);
+    return;
+  }
 
   assertFileExists(entryFile, "Input markdown file");
   assertFileExists(logoFile, "Logo file");
@@ -1270,8 +1145,8 @@ function main() {
     throw new Error("wkhtmltopdf is required but not available on PATH.");
   }
 
-  const standardEffectsFiles = getStandardEffectsFiles(docsRoot);
-  const markdownFiles = collectMarkdownFiles(entryFile, docsRoot, standardEffectsFiles);
+  const markdownFiles = selected.map(entry => entry.file);
+  const headingsByFile = new Map(selected.map(entry => [entry.file, anchors(entry.markdown)]));
   const anchorsByFile = new Map();
   for (const file of markdownFiles) {
     const relative = path.relative(repoRoot, file).replaceAll(path.sep, "/");
@@ -1284,16 +1159,20 @@ function main() {
     const markdown = sanitizeMarkdown(fs.readFileSync(file, "utf8"));
     const blocks = parseBlocks(markdown);
     const sectionAnchor = anchorsByFile.get(file);
-    const context = { currentFile: file, anchorsByFile, sectionAnchor };
+    const entry = selected.find(item => item.file === file);
+    const tocLevel = entryFile === manual.tree.file ? Math.max(1, entry.depth) : entry.depth - selected[0].depth + 1;
+    const context = { currentFile: file, anchorsByFile, headingsByFile, sectionAnchor,
+      headingList: headings(markdown), tocLevel };
     const rendered = renderBlocks(blocks, context);
     const title = getFirstHeadingText(blocks, path.basename(file, ".md"));
-    const sectionHtml = `<section class="doc-section" id="${escapeAttribute(sectionAnchor)}">\n${rendered}\n</section>`;
+    const sectionHtml = `<section class="doc-section">\n${rendered}\n</section>`;
     sections.push(sectionHtml);
     fileInfos.push({
       file,
       title,
-      anchor: sectionAnchor,
-      tocLevel: getTocLevel(file, entryFile, docsRoot, standardEffectsFiles),
+      anchor: `${sectionAnchor}-${context.headingList[0].slug}`,
+      tocLevel,
+      outlineHeadings: blocks.filter(block => block.type === 'heading').map(block => decodeEntities(renderInline(block.text, context).replace(/<[^>]+>/g, ''))),
       sectionHtml
     });
   }
@@ -1400,28 +1279,8 @@ function main() {
       outlinePath
     });
     const outline = fs.readFileSync(outlinePath, "utf8");
-    const items = [];
-    let depth = 0;
-    for (const [tag] of outline.matchAll(/<item\b[^>]*>|<\/item>/g)) {
-      if (tag === "</item>") { depth -= 1; continue; }
-      depth += 1;
-      // Depth 1 is a document object; depth 2 is its h1 chapter.
-      // Deeper headings can repeat chapter names in the manual's index.
-      if (depth === 2) {
-        const title = /\btitle="([^"]*)"/.exec(tag)?.[1];
-        const page = Number(/\bpage="(\d+)"/.exec(tag)?.[1]);
-        if (title !== undefined && Number.isFinite(page)) items.push({ title, page });
-      }
-      if (tag.endsWith("/>")) depth -= 1;
-    }
-    let cursor = 0;
-    const measuredEntries = tocEntries.map((entry) => {
-      const title = escapeHtml(entry.title).replaceAll("&#39;", "'");
-      const index = items.findIndex((item, i) => i >= cursor && item.title === title && item.page > 1 + tocPageCount);
-      if (index < 0) throw new Error(`PDF outline is missing chapter: ${entry.title}`);
-      cursor = index + 1;
-      return { ...entry, page: items[index].page };
-    });
+    const actualPages = reconcilePageNumbers(outline, fileInfos, 2 + tocPageCount);
+    const measuredEntries = tocEntries.map((entry, index) => ({ ...entry, page: actualPages[index] }));
     if (measuredEntries.every((entry, index) => entry.page === tocEntries[index].page)) break;
     if (attempt === 2) throw new Error("PDF table-of-contents pagination did not stabilize.");
     tocEntries = measuredEntries;

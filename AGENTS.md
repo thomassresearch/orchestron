@@ -33,6 +33,9 @@ Legacy paths and environment variables retain the VisualCSound name. Keep this g
   that is only relevant for developers.
 - The user manual in `documentation/` and its generated PDF are English-only. Do not add
   translated sections or language-specific subchapters; multilingual UI/help remains separate.
+- `documentation/manual.json` owns manual order and parentage. Classify every documentation
+  Markdown page once; align contents and Up/Previous/Next links, then run `make docs-check`.
+  Ordinary cross-links never define PDF order. See [manual maintenance](tools/README.md#user-manual).
 - README is for user capabilities, screenshots, and getting started. Preserve its title/opening
   through the user-documentation link and the full **Built With Codex** section unless the user
   requests changes. Keep implementation decisions here or in linked technical references.

@@ -1,6 +1,8 @@
-# Sequencer timing
+# Sequencer Timing
 
-[Performance](performance.md)
+**Navigation:** [Up](performance.md) | [Previous](pattern_pads_and_pad_looper.md) | [Next](sequencer_tracks_and_steps.md)
+
+Use this guide when tracks need different meters, triplet grids or playback speeds while sharing one song tempo.
 
 ## Meter, pattern length and subdivision
 
@@ -14,4 +16,6 @@ Changing subdivision keeps numbered step positions, notes, holds, velocities and
 
 **Advanced timing → Playback speed** contains the existing ratios, with multipliers: 1:1 = 1×, 3:2 = 1.5×, 2:1 = 2×. A speed other than 1× stays visible when Advanced timing is closed. The summary shows step count, subdivision and elapsed quarter-note song beats, separate from the pad's local length. Bar boundaries are stronger than beat boundaries, including incomplete final bars; no silent cells are added. Controller guides use bar.beat labels.
 
-Live edits use the usual coalesced preparation path without restarting transport. A preparation failure retains the playing configuration and the edited draft. Performances saved before format v17 and app state saved before v3 use the older quarter-note beat convention. Loading their /8 tracks doubles local beat lengths and halves subdivision, preserving step arrays, ratios, rests and valid undo history. For example, an old six-beat /8 pad becomes twelve eighth-note beats.
+Timing edits prepare while playback continues. If preparation fails, the current music keeps playing and the draft remains available. Older /8 patterns are converted to eighth-note beats when opened, preserving their duration and step positions; the displayed beat count can therefore change.
+
+**Navigation:** [Up](performance.md) | [Previous](pattern_pads_and_pad_looper.md) | [Next](sequencer_tracks_and_steps.md)

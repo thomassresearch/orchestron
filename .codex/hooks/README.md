@@ -57,7 +57,7 @@ python3 -m unittest discover -s .codex/hooks/tests -v
 `protect_documentation_headings.py` previews edits to `documentation/**/*.md`
 before a Codex tool writes them. It rejects headings beginning with English,
 French, German, Spanish, Français/Francais, Deutsch or Español/Espanol (ignoring
-case and accents), and headings whose entire title is Screenshots. Use English
+case and accents), and headings whose entire title is Screenshot or Screenshots. Use English
 topic titles and place images beside the explanation they illustrate.
 
 The validator recognizes ATX (`#`) and Setext (underlined) headings, HTML heading

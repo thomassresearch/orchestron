@@ -1,5 +1,7 @@
 # Orchestron Composition Creator Skill
 
+**Navigation:** [Up](appendix.md) | [Previous](performance_creator_skill.md) | [Next](sung_melody_transcription_skill.md)
+
 Use [Orchestron Composition Creator](https://github.com/thomassresearch/orchestron/blob/main/integrations/skills/orchestron-composition-creator/SKILL.md)
 to explore melodies by listening, choosing and developing related ideas. It uses
 music21 and an arvo compatibility copy, runs independently of the Orchestron
@@ -143,3 +145,5 @@ Performance Creator's score format and native performance bundles are unchanged.
 maps the score's channels, sets routing and mixer levels, applies the score,
 validates and saves the performance. These score files are not native Orchestron
 bundles and should not be passed to the application's Import dialog.
+
+**Navigation:** [Up](appendix.md) | [Previous](performance_creator_skill.md) | [Next](sung_melody_transcription_skill.md)

@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "root": {
+    "path": "user_documentation.md",
+    "children": [
+      {
+        "path": "getting_started.md"
+      },
+      {
+        "path": "instrument_design/instrument_design.md",
+        "children": [
+          {
+            "path": "instrument_design/patch_toolbar_and_tabs.md"
+          },
+          {
+            "path": "instrument_design/opcode_catalog_and_documentation.md"
+          },
+          {
+            "path": "instrument_design/graph_editor.md"
+          },
+          {
+            "path": "instrument_design/input_formula_assistant.md"
+          },
+          {
+            "path": "instrument_design/gen_table_editor.md"
+          },
+          {
+            "path": "instrument_design/control_flow.md"
+          },
+          {
+            "path": "instrument_design/midi_legato.md"
+          },
+          {
+            "path": "instrument_design/performance_controls.md"
+          },
+          {
+            "path": "instrument_design/runtime_panel_and_compilation.md"
+          },
+          {
+            "path": "instrument_design/instrument_import_export.md"
+          },
+          {
+            "path": "instrument_design/supported_opcodes.md"
+          }
+        ]
+      },
+      {
+        "path": "performance/performance.md",
+        "children": [
+          {
+            "path": "performance/instrument_rack_and_engine_transport.md"
+          },
+          {
+            "path": "performance/audio_mixer_and_routing.md"
+          },
+          {
+            "path": "performance/performance_controllers.md"
+          },
+          {
+            "path": "configuration/midi_setup_and_inputs.md"
+          },
+          {
+            "path": "performance/piano_rolls.md"
+          },
+          {
+            "path": "performance/midi_controllers.md"
+          },
+          {
+            "path": "performance/multitrack_arranger.md"
+          },
+          {
+            "path": "performance/pattern_pads_and_pad_looper.md"
+          },
+          {
+            "path": "performance/sequencer_timing.md"
+          },
+          {
+            "path": "performance/sequencer_tracks_and_steps.md"
+          },
+          {
+            "path": "performance/drummer_sequencers.md"
+          },
+          {
+            "path": "performance/score_sequencers.md"
+          },
+          {
+            "path": "performance/arpeggiators.md"
+          },
+          {
+            "path": "performance/controller_sequencers.md"
+          },
+          {
+            "path": "performance/instrument_automation.md"
+          },
+          {
+            "path": "performance/live_status_and_safety_controls.md"
+          },
+          {
+            "path": "performance/performance_import_export.md"
+          }
+        ]
+      },
+      {
+        "path": "supplied/supplied.md",
+        "children": [
+          {
+            "path": "supplied/instruments.md",
+            "children": [
+              {
+                "path": "instrument_design/steel_string_waveguide.md"
+              },
+              {
+                "path": "instrument_design/ambient_techno.md"
+              },
+              {
+                "path": "instrument_design/hsb_mono.md"
+              },
+              {
+                "path": "instrument_design/enough_and_logan.md"
+              },
+              {
+                "path": "instrument_design/goa_trance_fm_lead.md"
+              }
+            ]
+          },
+          {
+            "path": "performance/standard_effects.md",
+            "children": [
+              {
+                "path": "instrument_design/tube_overdrive.md"
+              },
+              {
+                "path": "instrument_design/stereo_delay.md"
+              },
+              {
+                "path": "instrument_design/stereo_flanger.md"
+              },
+              {
+                "path": "instrument_design/autopanner.md"
+              },
+              {
+                "path": "instrument_design/parametric_equalizer.md"
+              },
+              {
+                "path": "instrument_design/continuous_effects.md"
+              },
+              {
+                "path": "instrument_design/granular_capture.md"
+              },
+              {
+                "path": "instrument_design/stereo_moog_filter.md"
+              },
+              {
+                "path": "instrument_design/stereo_auto_wah_wah.md"
+              },
+              {
+                "path": "instrument_design/trance_gate.md"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "path": "configuration/configuration.md",
+        "children": [
+          {
+            "path": "configuration/gui_language_and_integrated_help.md"
+          },
+          {
+            "path": "configuration/audio_engine_settings.md"
+          },
+          {
+            "path": "configuration/browser_clock_latency.md"
+          },
+          {
+            "path": "configuration/persistence_and_defaults.md"
+          }
+        ]
+      },
+      {
+        "path": "appendix/appendix.md",
+        "children": [
+          {
+            "path": "appendix/agent_cli.md"
+          },
+          {
+            "path": "appendix/patch_creator_skill.md"
+          },
+          {
+            "path": "appendix/performance_creator_skill.md"
+          },
+          {
+            "path": "appendix/composition_creator_skill.md"
+          },
+          {
+            "path": "appendix/sung_melody_transcription_skill.md"
+          }
+        ]
+      }
+    ]
+  },
+  "excluded": [
+    {
+      "path": "docker_images.md",
+      "reason": "Developer release publishing and retention procedures, outside the user manual."
+    }
+  ]
+}

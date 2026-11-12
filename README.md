@@ -46,10 +46,9 @@ Ambient Wavetable Cloud include groups organized by synthesis function. [Control
 
 ![Compact controller groups with a horizontal Envelope](screenshots/performance_controller_groups_compact.png)
 
-[Granular Synthesis](examples/instruments/granular_synthesis/README.md) is a
+[Granular Synthesis](documentation/supplied/instruments.md#granular-synthesis) is a
 sample-free stereo instrument with 30 performance controls for pitched clouds,
-sparse particles, metallic textures and sync-like tones. Its guide includes
-five sound recipes and audio previews.
+sparse particles, metallic textures and sync-like tones. The supplied-instruments guide links to its editable native bundle.
 
 Hear seven contrasting instances in [Grain of Salt](examples/performances/grain_of_salt/README.md),
 a five-minute melodic electronic song with a recurring hook and a spacious middle section.
@@ -241,7 +240,7 @@ The [Ambient Techno instruments](documentation/instrument_design/ambient_techno.
 pair a rounded sub-bass with a moving wavetable cloud. Per-instance controls set
 the base sound; separate MIDI CCs add live timbre, motion, width and shimmer.
 
-The [Standard Effects](documentation/performance/standard_effects.md) section at the end of the Performance chapter collects the supplied effect guides.
+The [Supplied Instruments and Effects](documentation/supplied/supplied.md) chapter collects the sound and effect guides. For a first song using an empty library, follow [Getting Started](documentation/getting_started.md).
 
 [Tube Overdrive](documentation/instrument_design/tube_overdrive.md) adds warm stereo
 saturation as a continuous mixer insert, with per-instance Drive, Tone and Output
@@ -275,12 +274,12 @@ follows input loudness with resonant stereo filters. Choose linked or independen
 envelopes, smooth sweeps or musical cutoff steps, and separate loudness integration
 and transition times. Restart the rack after changing its per-instance settings.
 
-The [acoustic steel-string guitar pair](examples/instruments/steel_string_guitar/README.md)
+The [acoustic steel-string guitar pair](documentation/instrument_design/midi_legato.md#steel-string-guitar-example)
 includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
 with a waveguide string model, velocity-sensitive plucking and finger/plectrum,
 tone, and sustain controls.
 
-The new [physical steel-string guitar](examples/instruments/steel_string_waveguide/README.md)
+The [physical steel-string guitar](documentation/instrument_design/steel_string_waveguide.md)
 adds two string polarizations, twelve body resonances, pluck-position and palm-mute controls.
 Its reference-informed tuning preserves bass fundamentals and softens finger plucks,
 with dry listening previews and matched-level comparisons.

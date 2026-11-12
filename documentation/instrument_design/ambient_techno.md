@@ -1,6 +1,6 @@
 # Ambient Techno Instruments
 
-**Navigation:** [Instrument Design](instrument_design.md) | [Performance Controls](../performance/performance_controllers.md)
+**Navigation:** [Up](../supplied/instruments.md) | [Previous](steel_string_waveguide.md) | [Next](hsb_mono.md)
 
 **Ambient Rounded Sub** and **Ambient Wavetable Cloud** are dry, velocity-sensitive,
 polyphonic instruments. Import their native JSON files, assign note channels in
@@ -114,3 +114,5 @@ Start from defaults and keep all assigned CCs at zero for these recipes:
 | Dark drone | Wave Position 0.08, Tone 700 Hz, Shimmer 0, Motion Rate 0.015 Hz |
 | Shimmer | Wave Position 0.75, Shimmer 0.4, Tone 10,000 Hz, Stereo Width 0.9 |
 | Drifting cloud | Scan Depth 0.4, Motion Rate 0.12 Hz, Drift 6 cents, Detune 12 cents, Stereo Width 1 |
+
+**Navigation:** [Up](../supplied/instruments.md) | [Previous](steel_string_waveguide.md) | [Next](hsb_mono.md)

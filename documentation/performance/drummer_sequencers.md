@@ -1,6 +1,6 @@
 # Drummer Sequencers
 
-**Navigation:** [Up](performance.md) | [Prev](sequencer_tracks_and_steps.md) | [Next](pattern_pads_and_pad_looper.md)
+**Navigation:** [Up](performance.md) | [Previous](sequencer_tracks_and_steps.md) | [Next](score_sequencers.md)
 
 Drummer sequencers are drum-machine style step sequencers for fixed MIDI drum keys.
 
@@ -121,8 +121,6 @@ Pattern length uses local beats, while meter, subdivision and playback speed bel
 - Switching between groove variations using pattern pads
 - Automating drum pattern changes with the arranger while performing on piano roll/controllers
 
-**Navigation:** [Up](performance.md) | [Prev](sequencer_tracks_and_steps.md) | [Next](pattern_pads_and_pad_looper.md)
-
 ## Ratchets and Velocity Ramps
 
 Right-click a drum cell, or focus it and press **Shift+F10**, to open **Step properties**. Set **Ratchets** to 1–8: 1 is the normal single hit, and higher counts divide one local step into evenly spaced hits. An **×N** badge identifies the roll in the grid. At 120 BPM with Subdivision 4 in 4/4, four hits occur at 0, 31.25, 62.5 and 93.75 ms within a 125 ms step.
@@ -132,3 +130,5 @@ Enable **Velocity ramp** and choose **Final velocity** (0–127). The first hit 
 Timing shifts the whole roll while preserving its spacing. The next active cell in the same drum row cuts off unfinished repeats; an equal-time collision belongs to the later step. On a fresh start or a different-pad launch an early first roll starts at the boundary. On a confirmed same-pad repeat it can begin early, and a late final roll can finish across that boundary. Stopping or seeking that device, launching a different pad, entering an arrangement rest or reaching its finite end cancels unfinished rolls. A roll already in progress keeps its count, ramp and timing when those settings are edited; the next occurrence uses the prepared changes.
 
 Editing these properties does not activate an inactive cell. Disabling and re-enabling a cell preserves them; copying pads and saving/exporting preserves them, including hidden steps. Clear Steps restores one hit without a ramp. The panel edits the displayed pad and closes when changing pads, collapsing the drummer section or removing the target. Escape also closes it. Existing click toggles, horizontal timing drags, vertical velocity drags and arrow-key editing remain available.
+
+**Navigation:** [Up](performance.md) | [Previous](sequencer_tracks_and_steps.md) | [Next](score_sequencers.md)

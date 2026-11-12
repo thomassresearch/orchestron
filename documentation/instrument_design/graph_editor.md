@@ -1,6 +1,6 @@
 # Graph Editor
 
-**Navigation:** [Up](instrument_design.md) | [Prev](opcode_catalog_and_documentation.md) | [Next](input_formula_assistant.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](opcode_catalog_and_documentation.md) | [Next](input_formula_assistant.md)
 
 The graph editor is the central visual patching surface for instrument design.
 
@@ -69,7 +69,7 @@ Drag-and-drop placement is preferable for larger patches because it preserves yo
 ### Creating Connections
 
 - Connect outputs to compatible inputs.
-- The backend compiler remains the source of truth for final type/compile validation.
+- Compile the patch to check all connections together and see any remaining errors.
 
 ### Selecting Connections
 
@@ -153,7 +153,7 @@ Ordinary main-graph drags into a case transfer the selection. Ordinary case-memb
 
 The common output carries only the selected case. Collapse preserves selection, positions, viewport, shared input wiring and formulas. **Configure branches** retains **Move selected nodes** with the same transfer validation, plus case editing, Silence and reviewed mono/stereo changes. The built-in **Drumset** template demonstrates overlapping voices.
 
-See [If, Switch and Drumset](control_flow.md) for the complete workflow, scope rules and version-2 patch/API format.
+See [If, Switch and Drumset](control_flow.md) for the complete workflow and case membership rules.
 
 ## Stereo blocks and audio interfaces
 
@@ -184,4 +184,4 @@ The interface panel describes musical role, stable group IDs, display names, exa
 </p>
 <p align="center"><em>A continuous pass-through effect with explicit left/right groups and collapsed Stereo Input and Stereo Output blocks.</em></p>
 
-**Navigation:** [Up](instrument_design.md) | [Prev](opcode_catalog_and_documentation.md) | [Next](input_formula_assistant.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](opcode_catalog_and_documentation.md) | [Next](input_formula_assistant.md)

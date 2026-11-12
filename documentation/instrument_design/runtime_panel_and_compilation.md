@@ -1,6 +1,6 @@
 # Runtime Panel and Compilation Workflow
 
-**Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](performance_controls.md) | [Next](instrument_import_export.md)
 
 The Runtime panel supports live testing of the current patch and exposes compile/runtime diagnostics for the unified browser-clock runtime.
 
@@ -46,7 +46,7 @@ The event list shows recent session events (most recent first, limited window in
 Typical uses:
 
 - Confirm that start/stop events happened
-- Inspect runtime payloads and state transitions
+- Check runtime errors and session state
 - Diagnose issues during live testing
 
 ## Browser Audio
@@ -118,8 +118,8 @@ If you edit the draft after preparing, prepare again before listening. Preview i
 </p>
 <p align="center"><em>Current-performance preview targets one explicitly selected rack instance.</em></p>
 
-**Navigation:** [Up](instrument_design.md) | [Prev](gen_table_editor.md) | [Next](instrument_import_export.md)
-
 ### Audition notes for branching instruments
 
 The **Test MIDI note** field chooses which note audition sends. A Switch driven by `notnum` starts with its first MIDI-number case (36 for Drumset); other patches start at 60. Change it to 38 or 42 to test the other drums, or to an unmatched note to check Default Silence. [Branching guide](control_flow.md).
+
+**Navigation:** [Up](instrument_design.md) | [Previous](performance_controls.md) | [Next](instrument_import_export.md)
