@@ -141,6 +141,24 @@ session-facing facade supplies that callback; T07 admission gates its starts. Se
 [T05 contract](specifications/parallel-csound-rendering/contracts.md#10-t05-process-execution-contract)
 and [process tests](backend/tests/test_parallel_csound_renderer.py).
 
+Parallel workers use the retained [Rust batch loop](backend/experiments/rust_worker/README.md)
+by default. Python still owns the coordinator, scheduling, protocol and process lifecycle.
+The original Python inner loop remains in place, commented **deprecated**; set
+`VISUALCSOUND_PARALLEL_WORKER=python` before starting the backend for explicit rollback.
+The default is `rust`; other values fail parallel startup. Missing/stale native libraries
+or unsupported ABIs use the existing diagnosed startup failure/auto-to-single fallback,
+never an implicit Python parallel loop. Active failures still stop playback.
+
+Ordinary editable and wheel builds compile the dependency-free Rust library offline
+(tested with Rust/Cargo 1.90). Wheels and Docker include the binary and a checked source/binary
+stamp; Docker keeps the compiler out of the runtime image. Editable builds use
+`build/rust-worker/target`. Rebuild after Rust source changes with
+`uv sync --reinstall-package visualcsound-backend` or
+`python -m backend.experiments.rust_worker.build`.
+`VISUALCSOUND_BUILD_RUST_WORKER=off` explicitly omits it from a build; select the deprecated
+Python worker separately to use parallel playback without Rust. Single rendering remains
+the application default. See the retained [comparison results](backend/experiments/rust_worker/RESULTS.md).
+
 T08 adds public `SessionCreateRequest.renderer_mode` (`single` by default, or `auto`) and
 optional `browser_settings`. Auto analyses the current whole-instrument graph and admits a
 supported layout against capacity; no per-song catalog or exact browser settings are required.

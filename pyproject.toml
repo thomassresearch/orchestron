@@ -35,6 +35,11 @@ dev = [
 requires = ["hatchling>=1.25.0", "Cython==3.3.0", "setuptools==84.0.0"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+# Native libraries enter wheels only through the verified build hook. Source
+# distributions and explicit rollback builds must not inherit stale binaries.
+exclude = ["backend/experiments/rust_worker/_native/**"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["backend"]
 
@@ -49,7 +54,12 @@ cache-keys = [
   { file = "hatch_build.py" },
   { file = "backend/app/services/_sequencer_playback.py" },
   { file = "backend/app/services/_sequencer_playback.pxd" },
+  { file = "backend/experiments/rust_worker/Cargo.toml" },
+  { file = "backend/experiments/rust_worker/Cargo.lock" },
+  { file = "backend/experiments/rust_worker/lib.rs" },
+  { file = "backend/experiments/rust_worker/build.py" },
   { env = "VISUALCSOUND_BUILD_CYTHON" },
+  { env = "VISUALCSOUND_BUILD_RUST_WORKER" },
 ]
 
 [tool.ruff]

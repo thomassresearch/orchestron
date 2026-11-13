@@ -10738,6 +10738,7 @@ def test_public_parallel_opt_in_retains_native_and_operator_fallback(tmp_path, m
 
 def test_public_parallel_batch_size_validation_and_session_isolation(tmp_path, monkeypatch):
     from backend.app.engine.csound_worker import CsoundWorker
+    from backend.app.engine.csound_process import run_csound_process
 
     monkeypatch.setenv("VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES", "128")
     with _client(tmp_path) as client:
@@ -10753,6 +10754,8 @@ def test_public_parallel_batch_size_validation_and_session_isolation(tmp_path, m
             identity = response.json()["session_id"]
             worker = service._sessions[identity].worker
             assert worker.options.policy.coordination_frames == (128 if value is None else value)
+            # Public sessions use the normal worker entry point (Rust by default).
+            assert worker._coordinator._target is run_csound_process
             assert not worker._coordinator.process_ids
             client.delete(f"/api/sessions/{identity}")
         response = client.post("/api/sessions", json={"patch_id": patch["id"], "parallel_batch_frames": 1024})
@@ -10789,6 +10792,9 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
     from dataclasses import replace
     from backend.app.engine.csound_worker import CsoundWorker
     from backend.tests.session_parallel_support import options, create_session
+    from backend.tests.test_rust_worker_experiment import require_rust_worker
+
+    monkeypatch.delenv("VISUALCSOUND_PARALLEL_WORKER", raising=False)
 
     with _client(tmp_path) as client:
         monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
@@ -10810,6 +10816,8 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         assert type(service._sessions[default_id].worker) is CsoundWorker
         selected = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser,
             "parallel_batch_frames": coordination_frames}).json()["session_id"]
+        # This child wrapper fails if public PCM ever executes the deprecated loop.
+        service._sessions[selected].worker._coordinator._target = require_rust_worker
         response = client.post(f"/api/sessions/{selected}/start")
         assert response.status_code == 200, response.text
         assert client.get(f"/api/sessions/{selected}").json()["renderer"]["coordination_frames"] == coordination_frames
@@ -10849,6 +10857,58 @@ def test_public_graph_selection_without_catalog_preserves_default_and_rollback(t
         fallback = client.post("/api/sessions", json={**payload, "renderer_mode": "auto", "browser_settings": browser}).json()["session_id"]
         assert client.post(f"/api/sessions/{fallback}/start").status_code == 200
         assert service._sessions[fallback].worker.renderer_diagnostics["fallback_reason"] == "parallel_disabled"
+
+
+@pytest.mark.parametrize("mode", ["python", "missing", "stale", "invalid"])
+def test_public_parallel_worker_rollback_and_startup_failure(tmp_path, monkeypatch, mode):
+    from dataclasses import replace
+    from functools import partial
+    from backend.tests.session_parallel_support import options, create_session, unpinned_test_workers
+    from backend.tests.test_rust_worker_experiment import worker_with_library
+
+    unpinned_test_workers(monkeypatch)
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_WORKER", mode if mode in {"python", "invalid"} else "rust")
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        identity = create_session(client, start=False)
+        service = client.app.state.container.session_service
+        original = service._sessions[identity]
+        release_options = service._render_release.options
+        admission = options().admission
+        monkeypatch.setattr(service._render_release, "options", lambda settings, **kwargs:
+            replace(release_options(settings, **kwargs), admission=admission))
+        response = client.post("/api/sessions", json={"renderer_mode": "auto",
+            "instruments": [i.model_dump(mode="json") for i in original.instruments],
+            "audio_graph": original.audio_graph.model_dump(mode="json", by_alias=True),
+            "mixer": original.mixer.model_dump(mode="json", by_alias=True)})
+        assert response.status_code == 201, response.text
+        selected = response.json()["session_id"]
+        worker = service._sessions[selected].worker
+        if mode in {"missing", "stale"}:
+            library = tmp_path / "unusable.so"
+            if mode == "stale":
+                library.write_bytes(b"outdated")
+                library.with_suffix(".so.json").write_text("{}")
+            worker._coordinator._target = partial(worker_with_library, library=str(library))
+        response = client.post(f"/api/sessions/{selected}/start")
+        assert response.status_code == 200, response.text
+        diagnostics = client.get(f"/api/sessions/{selected}").json()["renderer"]
+        if mode == "python":
+            assert diagnostics["selected"] == "parallel", diagnostics
+            with client.websocket_connect(f"/ws/sessions/{selected}/browser-clock") as socket:
+                socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                    "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 512})
+                assert socket.receive_json()["type"] == "stream_config"
+                socket.send_json({"type": "request_render", "block_count": 16})
+                assert socket.receive_json()["type"] == "render_chunk"
+                assert len(socket.receive_bytes()) == 512 * 2 * 4
+        else:
+            assert diagnostics["selected"] == "single", diagnostics
+            reason = "must be rust or python" if mode == "invalid" else "Rust parallel worker unavailable or stale"
+            assert reason in diagnostics["fallback_reason"]
+            assert not worker._coordinator.process_ids and worker._coordinator.shared_memory_name is None
+        assert client.post(f"/api/sessions/{selected}/stop").status_code == 200
+        assert not worker._coordinator.process_ids and not admission.leases
 
 
 def test_grain_of_salt_public_parallel_selection_and_default(tmp_path, monkeypatch):

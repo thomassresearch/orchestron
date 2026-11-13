@@ -62,6 +62,11 @@ FROM backend-base AS backend-build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libasound2-dev libffi-dev libjack-jackd2-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
+# Rust is a build-time dependency only; the runtime receives just the worker library.
+COPY --from=rust:1.90-bookworm /usr/local/cargo/bin /usr/local/cargo/bin
+COPY --from=rust:1.90-bookworm /usr/local/rustup /usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo RUSTUP_HOME=/usr/local/rustup
+ENV PATH="/usr/local/cargo/bin:${PATH}"
 WORKDIR /app
 COPY pyproject.toml uv.lock README.md hatch_build.py ./
 COPY backend ./backend
@@ -74,8 +79,11 @@ COPY backend ./backend
 COPY --from=backend-build /app/.venv ./.venv
 # Local source precedes site-packages; expose the image's prebuilt extension there.
 COPY --from=backend-build /app/.venv/lib/python3.13/site-packages/backend/app/services/_sequencer_playback*.so* ./backend/app/services/
+COPY --from=backend-build /app/.venv/lib/python3.13/site-packages/backend/experiments/rust_worker/_native/ ./backend/experiments/rust_worker/_native/
 RUN VISUALCSOUND_SEQUENCER_IMPLEMENTATION=cython .venv/bin/python -c \
     "import ctcsound, numpy; from backend.app.services.sequencer_playback import implementation; assert implementation == 'cython'"
+RUN .venv/bin/python -c \
+    "from backend.experiments.rust_worker.build import default_library; from backend.experiments.rust_worker.bridge import worker_implementation; assert worker_implementation() == 'rust'; import ctypes; lib = ctypes.CDLL(str(default_library())); assert lib.worker_abi() == 1"
 
 COPY frontend ./frontend
 COPY --from=frontend-build /build/frontend/dist ./frontend/dist

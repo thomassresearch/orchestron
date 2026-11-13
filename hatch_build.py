@@ -1,4 +1,4 @@
-"""Build the optional playback extension for wheels and editable installs."""
+"""Build the Rust parallel worker and optional Cython playback extension."""
 
 from __future__ import annotations
 
@@ -8,14 +8,34 @@ import hashlib
 import json
 from pathlib import Path
 from importlib.machinery import EXTENSION_SUFFIXES
+import importlib.util
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 
 class PlaybackBuildHook(BuildHookInterface):
+    def build_rust_worker(self, build_data):
+        mode = os.environ.get("VISUALCSOUND_BUILD_RUST_WORKER", "required").strip().lower()
+        if mode not in {"required", "off"}:
+            raise ValueError("VISUALCSOUND_BUILD_RUST_WORKER must be required or off.")
+        if mode == "off":
+            return  # Explicit Python rollback build; runtime selection is independent.
+        root = Path(self.root)
+        relative = Path("backend/experiments/rust_worker")
+        spec = importlib.util.spec_from_file_location("rust_worker_build", root / relative / "build.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        library = module.build(root / "build/rust-worker/target")
+        destination = relative / "_native" / library.name
+        build_data["force_include"][str(library)] = str(destination)
+        build_data["force_include"][str(library) + ".json"] = str(destination) + ".json"
+        build_data["pure_python"] = False
+        build_data["infer_tag"] = True
+
     def initialize(self, version, build_data):
         if self.target_name != "wheel":
             return
+        self.build_rust_worker(build_data)
         mode = os.environ.get("VISUALCSOUND_BUILD_CYTHON", "auto").strip().lower()
         if mode not in {"auto", "required", "off"}:
             raise ValueError("VISUALCSOUND_BUILD_CYTHON must be auto, required or off.")

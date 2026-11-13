@@ -25,6 +25,16 @@ def runtime_fingerprint():
     for path in sorted(p for p in root.rglob("*") if p.suffix in {".py", ".pxd", ".so", ".json"}):
         digest.update(str(path.relative_to(root)).encode())
         digest.update(path.read_bytes())
+    # The retained Rust experiment now executes normal parallel batches. Its
+    # implementation and binary must invalidate evidence just like app code.
+    from backend.experiments.rust_worker.bridge import worker_implementation
+    from backend.experiments.rust_worker.build import ROOT as rust_root, default_library
+    mode = worker_implementation()
+    digest.update(f"parallel-worker:{mode}".encode())
+    if mode == "rust":
+        for path in (rust_root / "lib.rs", rust_root / "bridge.py", default_library()):
+            digest.update(path.name.encode())
+            digest.update(path.read_bytes())
     digest.update(repr((sys.version, platform.platform(), platform.machine(), implementation,
                         load_ctcsound_module().libcsound.csoundGetVersion())).encode())
     for package in ("ctcsound", "numpy", "pydantic"):

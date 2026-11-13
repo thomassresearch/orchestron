@@ -4,7 +4,7 @@
 
 Orchestron can distribute realtime synthesis across persistent Csound processes. Independent instrument groups render concurrently; a shared downstream process renders joins, shared effects, Master and final output. The parent retains musical scheduling and delivers one complete PCM response to the existing browser-clock pipeline.
 
-This chapter describes the implementation as of 2026-11-08, including whole-instrument graph selection and configurable coordination batches. The [whole-instrument contract](../specifications/parallel-csound-rendering/whole-instrument-partitioning.md) supersedes the earlier per-song qualification catalog. The [batching contract](../specifications/parallel-csound-rendering/coordination-batches.md) supersedes coordination after every individual synthesis step. Earlier T01–T08 records remain useful implementation history; their original selection and scheduling restrictions are not all current behavior.
+This chapter describes the implementation as of 2026-11-13, including whole-instrument graph selection, configurable coordination batches and the default Rust worker loop. The [whole-instrument contract](../specifications/parallel-csound-rendering/whole-instrument-partitioning.md) supersedes the earlier per-song qualification catalog. The [batching contract](../specifications/parallel-csound-rendering/coordination-batches.md) supersedes coordination after every individual synthesis step. Earlier T01–T08 records remain useful implementation history; their original selection and scheduling restrictions are not all current behavior.
 
 ## Scope and architectural choices
 
@@ -184,6 +184,16 @@ The protocol binds messages to an epoch, partition and plan. Render records addi
 
 Empty deliveries use compact `RBL2`/`DBL2` records bound to the bootstrap digest. Eventful batches use validated `RENDER_BATCH` records containing individual `RENDER` steps; a single eventful step uses `RENDER`. Lifecycle and error messages remain typed JSON. Dense batches that exceed mailbox capacity split before dispatch without draining the scheduler again or dropping events. One oversized synthesis step remains a diagnosed failure.
 
+### Rust batch loop and retained Python rollback
+
+Parallel children use the [retained Rust worker](../backend/experiments/rust_worker/README.md) by default. One ctypes call executes an entire validated coordination batch: native channel copies, each original MIDI/control boundary, Csound advancement, PCM conversion, finite checks and meter reads. Python retains Csound creation/compilation, event decoding, scheduling, shared-memory provisioning, fences, timeouts and process cleanup. Rust neither changes the protocol nor adds a render thread.
+
+`VISUALCSOUND_PARALLEL_WORKER=python` explicitly selects the original loop, retained with deprecated comments for rollback and A/B comparisons. Rust supports float64 stereo Csound. A missing/stale library or unsupported ABI follows the existing startup failure and auto-to-single cleanup path; it never silently selects Python parallel execution. The worker setting is read when child processes start.
+
+Editable/wheel builds compile Rust offline; Docker ships the prebuilt library without the compiler. Source installs need Rust/Cargo (tested with 1.90). `VISUALCSOUND_BUILD_RUST_WORKER=off` explicitly omits the library; runtime rollback must be selected separately. Source and binary stamps prevent stale Rust builds from loading, and qualification fingerprints distinguish Rust from Python.
+
+The [2026-11-13 measurements](../backend/experiments/rust_worker/RESULTS.md) recorded a 13.8–15.5% median reduction for the Lake instrument probe and 47.3–51.3% at K=1 across macOS/Linux ARM64. Two other K=32 workloads improved 4.6–9.5%. These are native service timings, with unchanged buffers and exact traces; they are not saved-arrangement or browser-underrun measurements. Both benchmark control arms explicitly select Python even after this default change.
+
 ### Keep native conversion and buffer lifetimes local
 
 Audio channel copy functions and meter readers bind once at startup. Transfers still copy through Csound's native get/set audio-channel APIs; shared memory does not make Csound's internal buffers shared between processes. Borrowed pointers remain inside the native owner and cannot survive its reset.
@@ -301,6 +311,7 @@ Diagnostics expose selected renderer, fallback reason, worker count, capacity, e
 | Immutable plans and partition algorithm | [render_plan.py](../backend/app/models/render_plan.py), [render_partition_plan.py](../backend/app/services/render_partition_plan.py) |
 | Shared lowering and partition CSD generation | [compiler_stage_lowering.py](../backend/app/services/compiler_stage_lowering.py), [compiler_partitioned.py](../backend/app/services/compiler_partitioned.py) |
 | Parent dispatch, barriers and cleanup | [parallel_csound_renderer.py](../backend/app/engine/parallel_csound_renderer.py) |
+| Native batch execution | [Rust loop and Python bridge](../backend/experiments/rust_worker/README.md) |
 | Child lifecycle and native ownership | [csound_process.py](../backend/app/engine/csound_process.py), [partition_native.py](../backend/app/engine/partition_native.py) |
 | Protocol, arena and compact records | [render_protocol.py](../backend/app/models/render_protocol.py), [render_ipc.py](../backend/app/engine/render_ipc.py), [render_block_codec.py](../backend/app/engine/render_block_codec.py) |
 | Capacity and CPU placement | [render_capacity.py](../backend/app/engine/render_capacity.py), [render_cpu_placement.py](../backend/app/engine/render_cpu_placement.py) |
@@ -322,6 +333,7 @@ uv run --extra dev pytest \
   backend/tests/test_compiler_partitioned.py \
   backend/tests/test_render_ipc.py \
   backend/tests/test_render_batching.py \
+  backend/tests/test_rust_worker_experiment.py \
   backend/tests/test_parallel_csound_renderer.py \
   backend/tests/test_session_parallel_renderer.py \
   backend/tests/test_whole_instrument_rendering.py \

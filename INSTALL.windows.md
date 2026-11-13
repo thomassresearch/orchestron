@@ -17,7 +17,7 @@ powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 - Node.js + npm from [nodejs.org](https://nodejs.org/) or your preferred Windows package manager. Node 20+ is recommended.
 - Csound from [csound.com/download.html](https://csound.com/download.html). After installation, ensure the directory containing `csound.exe` is on your `PATH`.
-- Visual Studio Build Tools or Visual Studio with `Desktop development with C++` is not required for the default browser-clock audio path. Install it only if a native dependency such as `ctcsound` or an optional legacy MIDI package needs to build from source on your machine.
+- Visual Studio Build Tools or Visual Studio with `Desktop development with C++` supplies the linker for the Rust parallel worker build.
 - Set environment variables for Csound: make sure csound.exe is in the Path, and set the path to the opcode DLL's:
   - $env:Path = $env:Path + ";C:\....\Csound-6.18.1-windows-x64-binaries\build\Release"
   - $env:OPCODE6DIR = "C:\....\Csound-6.18.1-windows-x64-binaries\build\Release" 
@@ -36,9 +36,9 @@ Project requirements:
 - Python `>= 3.13,< 3.14` is the project target (3.14 had issues on Windows because of a pre-release build)
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
-- Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
+- Rust toolchain (`cargo`) to build the parallel worker and optional external MIDI helper
 
-Optional Rust install for the helper:
+Install Rust before syncing backend dependencies:
 
 ```powershell
 winget install Rustlang.Rustup
@@ -65,8 +65,11 @@ uv sync --extra dev
 
 The activation step is optional if you prefer running commands through `uv run`.
 
-Windows currently uses the Python sequencer. The optional Cython playback build
-targets macOS and Linux; no additional Windows compiler is required.
+Windows currently uses the Python sequencer; the optional Cython playback build
+targets macOS and Linux. Source installs also build the Rust parallel worker.
+Native worker validation currently covers macOS and Linux. For an explicit build
+without Rust, set `$env:VISUALCSOUND_BUILD_RUST_WORKER = "off"` before syncing and
+`$env:VISUALCSOUND_PARALLEL_WORKER = "python"` before starting (deprecated rollback).
 See [implementation selection](BACKEND.md#compiled-sequencer-playback).
 
 ## 4. Install frontend dependencies
@@ -163,7 +166,7 @@ Expected: both responses include `status` with the value `ok`.
 ### `ctcsound not available; using mock realtime engine`
 
 - Ensure Csound is installed and `csound --version` works.
-- Install Visual Studio Build Tools with `Desktop development with C++` only if `ctcsound` or another native extension needs to compile from source on your machine.
+- Install Visual Studio Build Tools with `Desktop development with C++` if the Rust worker or another native dependency reports a missing linker.
 - Reinstall the Python bindings from the project environment:
 
 ```powershell

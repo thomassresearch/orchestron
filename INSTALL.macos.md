@@ -7,13 +7,8 @@ This guide installs and runs Orchestron on macOS with the unified browser-clock 
 Install required tools with Homebrew:
 
 ```bash
-brew install uv node csound
-```
-
-Optional for external MIDI through `host-midi-helper`:
-
-```bash
-brew install rust
+brew install uv node csound rust
+xcode-select --install
 ```
 
 Confirm versions:
@@ -30,7 +25,7 @@ Project requirements:
 - Python `>= 3.13,< 3.14`
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
-- Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
+- Rust toolchain (`cargo`, tested with Rust 1.90) and Apple command-line tools to build the parallel worker; Rust also builds the optional external MIDI helper
 
 ## 2. Get the source
 
@@ -57,9 +52,8 @@ Install backend package + dev dependencies:
 uv pip install -e '.[dev]'
 ```
 
-The install builds the Cython sequencer component when Apple's command-line
-tools are available (`xcode-select --install` installs them). An unavailable
-compiler leaves a working Python fallback. Require compilation with
+The install builds the Rust parallel worker and the Cython sequencer component.
+The sequencer alone can fall back to Python when its compilation fails. Require Cython compilation with
 `VISUALCSOUND_BUILD_CYTHON=required uv sync --extra dev`; diagnose playback with
 `VISUALCSOUND_SEQUENCER_IMPLEMENTATION=python` when starting the backend.
 See [compiled playback and benchmarks](BACKEND.md#compiled-sequencer-playback).

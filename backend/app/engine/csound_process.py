@@ -44,7 +44,7 @@ def _exit_with_parent():
         os._exit(1)
 
 
-def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready, *, predecessor_ready=(), successor_ready=(), cpu_affinity=None):
+def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready, *, predecessor_ready=(), successor_ready=(), cpu_affinity=None, _batch_factory=None):
     """Small spawn arguments; CSD/metadata live in the pre-provisioned arena.
 
     No queue feeder threads, callbacks, schedulers or Python service objects cross
@@ -59,15 +59,20 @@ def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready
     with open(os.devnull, "wb") as quiet:
         os.dup2(quiet.fileno(), 1)
         os.dup2(quiet.fileno(), 2)
+    if _batch_factory is None:
+        from backend.experiments.rust_worker.bridge import default_batch_factory
+        _batch_factory = default_batch_factory
     _serve(name, size, bootstrap, digest, command_ready, reply_ready,
-           predecessor_ready=predecessor_ready, successor_ready=successor_ready, cpu_affinity=cpu_affinity)
+           predecessor_ready=predecessor_ready, successor_ready=successor_ready, cpu_affinity=cpu_affinity,
+           _batch_factory=_batch_factory)
 
 
 def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_factory=None,
-           predecessor_ready=(), successor_ready=(), cpu_affinity=None):
+           predecessor_ready=(), successor_ready=(), cpu_affinity=None, _batch_factory=None):
     """The injected native factory is only for spawn-based fault/barrier tests."""
     arena = SharedArena(size=size, name=name)
     instance = None
+    batch_loop = None
     identity = reply = None
     sequence, sample, revision = 0, 0, 0
     phase = "protocol"
@@ -131,6 +136,13 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
             output_copies = tuple(tuple(tuple(partial(instance.cs.audioChannel, channel, values)
                                              for channel, values in block) for block in slot) for slot in outputs)
             meter_readers = tuple(partial(instance.cs.controlChannel, channel) for channel in program.meters)
+        # Normal workers use Rust; diagnostic/fault targets may inject another loop.
+        if _batch_factory is not None:
+            if native_factory is not None:
+                raise ValueError("Native batch loops require the real native owner.")
+            batch_loop = _batch_factory(instance=instance, engine=engine, inputs=inputs, outputs=outputs,
+                meter_views=meter_views, meter_names=program.meters, final_views=final_views,
+                pcm_views=pcm_views, mode_views=mode_views)
         ready = Ready(**identity, artifact_hash=config["artifact_hash"], engine=native_format)
         arena.send(reply, arena.encode(ready, reply))
         reply_ready.release()
@@ -170,35 +182,40 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
                 if predecessor.acquire(False):
                     raise ValueError("Duplicate dependency publication.")
             slot = sequence % 2
-            for block_index in range(block_count):
-                delivery = deliveries[block_index] if deliveries is not None else None
-                midi = [event.message for event in delivery.midi] if delivery else ()
-                controls = [(c.channel, c.value) for c in delivery.controls] if delivery else ()
-                for copy in input_copies[slot][block_index]:
-                    copy()
-                instance.perform(midi, controls)
-                for copy in output_copies[slot][block_index]:
-                    copy()
-                if program.owns_output:
-                    span = slice(block_index * engine.ksmps, (block_index + 1) * engine.ksmps)
-                    output = (instance.output_buffer if native_factory is None else
-                              np.asarray(instance.cs.spout()).reshape(engine.ksmps, 2))
-                    np.copyto(final_views[slot][span], output)
-                    del output  # No borrowed native view survives shutdown/reset.
-                    # Retain the native thread's float32/subnormal behavior.
-                    with np.errstate(over="ignore"):
-                        pcm_views[slot][span] = final_views[slot][span]
-                    if not np.isfinite(pcm_views[slot][span]).all():
-                        raise RuntimeError("Partition output exceeds float32 PCM range.")
-                    if float32_mode is None:
-                        float32_mode = native_float32_mode()
-                    mode_views[slot][0] = float32_mode
-                for index, read_meter in enumerate(meter_readers):
-                    value = read_meter()
-                    meter_views[slot][block_index, index] = value if native_factory is None else value[0]
-                if (any(not np.isfinite(values).all() for _, values in outputs[slot][block_index])
-                        or not np.isfinite(meter_views[slot][block_index]).all()):
-                    raise RuntimeError("Native partition produced nonfinite audio/meters.")
+            if batch_loop is not None:
+                batch_loop.render(slot, block_count, deliveries)
+            else:
+                # DEPRECATED: retained for explicit Python rollback and comparison.
+                # Native stand-in tests also use this loop. Do not remove yet.
+                for block_index in range(block_count):
+                    delivery = deliveries[block_index] if deliveries is not None else None
+                    midi = [event.message for event in delivery.midi] if delivery else ()
+                    controls = [(c.channel, c.value) for c in delivery.controls] if delivery else ()
+                    for copy in input_copies[slot][block_index]:
+                        copy()
+                    instance.perform(midi, controls)
+                    for copy in output_copies[slot][block_index]:
+                        copy()
+                    if program.owns_output:
+                        span = slice(block_index * engine.ksmps, (block_index + 1) * engine.ksmps)
+                        output = (instance.output_buffer if native_factory is None else
+                                  np.asarray(instance.cs.spout()).reshape(engine.ksmps, 2))
+                        np.copyto(final_views[slot][span], output)
+                        del output  # No borrowed native view survives shutdown/reset.
+                        # Retain the native thread's float32/subnormal behavior.
+                        with np.errstate(over="ignore"):
+                            pcm_views[slot][span] = final_views[slot][span]
+                        if not np.isfinite(pcm_views[slot][span]).all():
+                            raise RuntimeError("Partition output exceeds float32 PCM range.")
+                        if float32_mode is None:
+                            float32_mode = native_float32_mode()
+                        mode_views[slot][0] = float32_mode
+                    for index, read_meter in enumerate(meter_readers):
+                        value = read_meter()
+                        meter_views[slot][block_index, index] = value if native_factory is None else value[0]
+                    if (any(not np.isfinite(values).all() for _, values in outputs[slot][block_index])
+                            or not np.isfinite(meter_views[slot][block_index]).all()):
+                        raise RuntimeError("Native partition produced nonfinite audio/meters.")
             arena.send(reply, completion)
             for successor in successor_ready:
                 successor.release()
@@ -219,4 +236,8 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
             if instance is not None:
                 instance.close()
         finally:
-            arena.close()
+            try:
+                if batch_loop is not None:
+                    batch_loop.close()
+            finally:
+                arena.close()

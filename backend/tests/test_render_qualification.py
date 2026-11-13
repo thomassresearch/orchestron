@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from backend.app.engine.render_qualification import QualificationEvidence, select_qualification
+from backend.app.engine.render_qualification import QualificationEvidence, runtime_fingerprint, select_qualification
 
 
 def evidence():
@@ -14,6 +14,14 @@ def evidence():
         single_browser_seconds=600., parallel_browser_seconds=600., single_underruns=0, parallel_underruns=0,
         stress_single_underruns=1, stress_parallel_underruns=1, stress_single_recovery_ms=10.,
         stress_parallel_recovery_ms=10., private_memory_bytes=400_000_000, native_correctness=True, final_image=True)
+
+
+def test_runtime_evidence_is_specific_to_selected_worker(monkeypatch):
+    monkeypatch.delenv("VISUALCSOUND_PARALLEL_WORKER", raising=False)
+    rust = runtime_fingerprint()
+    assert rust == runtime_fingerprint()
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_WORKER", "python")
+    assert runtime_fingerprint() != rust
 
 
 @pytest.mark.parametrize("change,reason", [({"parallel_p95_ms": 8.01}, "insufficient_measured_benefit"),

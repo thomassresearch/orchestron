@@ -55,7 +55,12 @@ jobs:
             -o "$RUNNER_TEMP/opcodes/libstkops.dylib"
           echo "OPCODE6DIR64=$RUNNER_TEMP/opcodes:/Library/Frameworks/CsoundLib64.framework/Resources/Opcodes64" >> "$GITHUB_ENV"
           echo "RAWWAVE_PATH=$(brew --prefix stk)/share/stk/rawwaves" >> "$GITHUB_ENV"
-      - name: Build the extension
+      - name: Install Rust for the parallel worker
+        shell: bash
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup default 1.90.0
+      - name: Build the native playback components
         env:
           VISUALCSOUND_BUILD_CYTHON: required
         run: uv sync --frozen --extra dev --python 3.13
@@ -71,7 +76,7 @@ jobs:
           del engine
           PY
       - name: Lint
-        run: .venv/bin/ruff check backend/app backend/tests backend/tools hatch_build.py
+        run: .venv/bin/ruff check backend/app backend/tests backend/tools backend/experiments hatch_build.py
       - name: Verify native PCM conversion parity
         env:
           VISUALCSOUND_SEQUENCER_IMPLEMENTATION: ${{ matrix.implementation }}

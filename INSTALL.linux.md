@@ -19,7 +19,7 @@ sudo apt install -y --no-install-recommends \
 curl -LsSf https://astral.sh/uv/install.sh | sudo env UV_INSTALL_DIR=/usr/local/bin sh
 ```
 
-Optional for external MIDI through `host-midi-helper`:
+Install Rust to build the parallel worker (also used by the optional external MIDI helper):
 
 ```bash
 curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -40,7 +40,7 @@ Project requirements:
 - Node + npm (Node 20+ recommended)
 - Csound runtime (for realtime synthesis via `ctcsound`)
 - ALSA sequencer support (`/dev/snd/seq`) if you later choose to use native `mido` MIDI device discovery
-- Rust toolchain (`cargo`) only if you want to run `host-midi-helper` for external MIDI devices
+- Rust toolchain (`cargo`, tested with Rust 1.90) to build the parallel worker
 
 The backend can still start with a mock engine if `ctcsound` is not available, but realtime audio synthesis will be disabled.
 
@@ -63,9 +63,9 @@ uv sync --extra dev
 source .venv/bin/activate
 ```
 
-This builds the Cython sequencer component using the compiler from the prerequisites.
+This builds the Rust parallel worker and the Cython sequencer component using the prerequisites.
 Require compilation with `VISUALCSOUND_BUILD_CYTHON=required uv sync --extra dev`.
-The normal build supports a Python fallback; select it for diagnosis with
+The sequencer supports a Python fallback; select it for diagnosis with
 `VISUALCSOUND_SEQUENCER_IMPLEMENTATION=python` when starting the backend.
 See [compiled playback and benchmarks](BACKEND.md#compiled-sequencer-playback).
 
