@@ -803,8 +803,6 @@ export function SequencerPage(props: SequencerPageProps) {
 }
 function SequencerPageContent(props: SequencerPageProps) {
   const sampleUploads = useAppStore(state => state.sampleUploads);
-  const addSamplePlayer = useAppStore(state => state.addSamplePlayer);
-  const loading = useAppStore(state => state.loading);
   const context = useSequencerPageContext(props);
   const {
     instrumentBindings,
@@ -876,11 +874,6 @@ function SequencerPageContent(props: SequencerPageProps) {
               className={`${rackAssignmentButtonClass} border-accent/60 bg-accent/15 text-accent hover:bg-accent/25`}
             >
               {ui.addInstrument}
-            </button>
-            <button type="button" onClick={() => { onPanelCollapsedChange("rack", false); void addSamplePlayer(); }}
-              disabled={instrumentsRunning || loading}
-              className={`${rackAssignmentButtonClass} border-slate-500 text-cyan-100`}>
-              {sampleCopy(guiLanguage).starter}
             </button>
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <button

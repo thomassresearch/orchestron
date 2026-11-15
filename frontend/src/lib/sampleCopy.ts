@@ -2,7 +2,6 @@ import type { GuiLanguage } from "../types";
 
 const copy = {
   title: ["Samples", "Samples", "Samples", "Muestras"],
-  starter: ["Add Sample Player", "Sample-Player hinzufügen", "Ajouter un lecteur de samples", "Añadir reproductor de muestras"],
   noMap: ["No samples yet. Assign a WAV, MP3 or M4A to a MIDI note.", "Noch keine Samples. Weise einer MIDI-Note eine WAV-, MP3- oder M4A-Datei zu.", "Aucun sample. Assignez un WAV, MP3 ou M4A à une note MIDI.", "No hay muestras. Asigna un WAV, MP3 o M4A a una nota MIDI."],
   help: [
     "Each mapped MIDI note plays its WAV, MP3 or M4A once at the original speed and pitch. Releasing a key does not cut the sound; repeated hits overlap. Stop for that source and Panic end its voices. A note chased after a seek restarts its sample. Stop Instruments to edit. Save Performance preserves the map; native ZIPs include the originals and both CSD ZIPs include playable audio.",

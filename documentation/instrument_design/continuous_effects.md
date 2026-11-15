@@ -54,6 +54,16 @@ Left and right channels are processed separately. The effect does not detect a k
 
 <a id="files-and-validation"></a>
 
+## Vocoder
+
+[Download Vocoder](../../examples/instruments/Vocoder.orch.instrument.json), import it in Instrument Design, and add it as a Continuous rack instrument. In custom routing, connect speech to `speech_left`/`speech_right`, a harmonically rich carrier to `sound_left`/`sound_right`, and the effect's `left`/`right` outputs to Master. Remove direct source-to-Master routes to hear only the effect.
+
+Each speech channel shapes its corresponding carrier channel independently. Feed mono speech to both speech channels. The output is fully wet; no MIDI notes are needed to start the effect.
+
+**Spectral Detail** ranges from 16 to 128 (default 80), rounded to whole cepstral coefficients. Lower values smooth the spectral envelope more. **Output Gain (dB)** ranges from −24 to 0 (default −6). Both controls target K-rate inputs and belong to each rack instance.
+
+The graph uses `pvsanal`, `pvsvoc` and `pvsynth`, with a 1024-sample Hann window and 256-sample hop. Processing adds latency; the exact latency has not yet been measured for this instrument. See the [Csound pvsvoc reference](https://csound.com/docs/manual/pvsvoc.html).
+
 ## Download the effects
 
 - [Stereo Widener](../../examples/instruments/Stereo_Widener.orch.instrument.json)

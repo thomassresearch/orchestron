@@ -14,7 +14,7 @@ import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { stereoOpcodeDirection } from "../lib/stereoCatalog";
 import { createPerformanceControllerActions } from "./appStorePerformanceControllers";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
-import { createSamplePlayerPatch, hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest } from "../lib/samplePlayer";
+import { hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest } from "../lib/samplePlayer";
 import { sampleCopy } from "../lib/sampleCopy";
 import { sessionAudioSignature, sessionRendererRequest } from "./sessionSignature";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
@@ -905,26 +905,6 @@ export const useAppStore = create<AppStore>((set, get) => {
       const validated = readSampleBinding(map, parseSampleAssets(assets));
       set({ sequencerInstruments: state.sequencerInstruments.map(row => row.id === binding.id ?
         { ...row, sampleMap: validated.sampleMap, sampleAssets: validated.sampleAssets } : row) });
-    },
-
-    addSamplePlayer: async () => {
-      const state = get();
-      if (state.activeSessionState === "running" || sessionStartInFlight || state.loading) return;
-      const generation = state.performanceWorkspaceGeneration;
-      try {
-        const starter = createSamplePlayerPatch();
-        const { name } = starter;
-        const existing = state.patches.find(patch => !patch.is_template && !patch.always_on && patch.has_sample_player && patch.name === name);
-        if (!existing) {
-          set({ loading: true, error: null });
-          const patch = await api.createPatch(starter);
-          await get().refreshPatches();
-          if (get().performanceWorkspaceGeneration === generation) get().addSequencerInstrument(patch.id);
-          set({ loading: false });
-        } else get().addSequencerInstrument(existing.id);
-      } catch (error) {
-        set({ loading: false, error: error instanceof Error ? error.message : String(error) });
-      }
     },
 
     ensureSession: async () => {

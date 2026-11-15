@@ -21,12 +21,13 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
-Choose **Add Sample Player** in Perform to assign WAV, MP3 or M4A files to MIDI notes. Each rack
+Choose **Add Instrument** in Perform, then select **Sample Player** from the available patches
+to assign WAV, MP3 or M4A files to MIDI notes. Each rack
 instance has its own map, and repeated hits can overlap at the original pitch and speed.
 Save the performance to keep the assignments. Native bundles and both Csound render modes
 include the audio they need. See the [Sample Player guide](documentation/performance/sample_player.md).
 
-![Sample Player rack with mono Apple Lossless and stereo AAC M4A assignments](screenshots/performance_sample_player.png)
+![Sample Player added through the normal instrument rack](screenshots/performance_sample_player_rack.png)
 
 Perform has a fixed **Engine stats** line with CPU usage and an optional **Parallel playback**
 control. CPU readings stay aligned as percentages change. Independent instrument groups can use multiple Csound processes, with shared effects
@@ -271,7 +272,7 @@ with manual Tempo, Beats per cycle and Depth controls. It preserves separate
 channels, passes audio unchanged at zero Depth, and supports automatic live updates
 after changing settings.
 
-[Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns.
+[Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns. [Vocoder](documentation/instrument_design/continuous_effects.md#vocoder) transfers a stereo speech envelope onto a separate stereo carrier.
 
 [Stereo Moog Filter](documentation/instrument_design/stereo_moog_filter.md) provides
 resonant stereo low-pass filtering with per-instance Cutoff and Resonance settings.

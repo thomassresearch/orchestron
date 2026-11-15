@@ -1,0 +1,407 @@
+{
+  "sourcePatchId": "ab0649f7-09b8-4cc5-ab0a-5e42b164e8b7",
+  "name": "Vocoder",
+  "description": "Stereo spectral vocoder. Route speech to speech and a harmonically rich carrier to sound. Fully wet, independent stereo channels; Spectral Detail rounds to whole coefficients. Both controls update live.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "voc_detail",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Spectral Detail",
+          "min": 16,
+          "max": 128,
+          "default": 80,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 300.0,
+          "y": -250.0
+        }
+      },
+      {
+        "id": "voc_gain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output Gain (dB)",
+          "min": -24,
+          "max": 0,
+          "default": -6,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 650.0,
+          "y": -250.0
+        }
+      },
+      {
+        "id": "speech_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "speech_left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "voc_speech_left",
+        "opcode": "pvsanal",
+        "params": {
+          "ifftsize": 1024,
+          "ioverlap": 256,
+          "iwinsize": 1024,
+          "iwintype": 1,
+          "iformat": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "sound_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "sound_left"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 220.0
+        }
+      },
+      {
+        "id": "voc_sound_left",
+        "opcode": "pvsanal",
+        "params": {
+          "ifftsize": 1024,
+          "ioverlap": 256,
+          "iwinsize": 1024,
+          "iwintype": 1,
+          "iformat": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 220.0
+        }
+      },
+      {
+        "id": "voc_cross_left",
+        "opcode": "pvsvoc",
+        "params": {
+          "kdepth": 1
+        },
+        "position": {
+          "x": 650.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "voc_synth_left",
+        "opcode": "pvsynth",
+        "params": {},
+        "position": {
+          "x": 950.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "speech_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "speech_right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 600.0
+        }
+      },
+      {
+        "id": "voc_speech_right",
+        "opcode": "pvsanal",
+        "params": {
+          "ifftsize": 1024,
+          "ioverlap": 256,
+          "iwinsize": 1024,
+          "iwintype": 1,
+          "iformat": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 600.0
+        }
+      },
+      {
+        "id": "sound_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "sound_right"
+        },
+        "position": {
+          "x": 0.0,
+          "y": 820.0
+        }
+      },
+      {
+        "id": "voc_sound_right",
+        "opcode": "pvsanal",
+        "params": {
+          "ifftsize": 1024,
+          "ioverlap": 256,
+          "iwinsize": 1024,
+          "iwintype": 1,
+          "iformat": 0
+        },
+        "position": {
+          "x": 300.0,
+          "y": 820.0
+        }
+      },
+      {
+        "id": "voc_cross_right",
+        "opcode": "pvsvoc",
+        "params": {
+          "kdepth": 1
+        },
+        "position": {
+          "x": 650.0,
+          "y": 600.0
+        }
+      },
+      {
+        "id": "voc_synth_right",
+        "opcode": "pvsynth",
+        "params": {},
+        "position": {
+          "x": 950.0,
+          "y": 600.0
+        }
+      },
+      {
+        "id": "voc_out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1250.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "voc_out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1250.0,
+          "y": 600.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "speech_left",
+        "from_port_id": "asignal",
+        "to_node_id": "voc_speech_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "sound_left",
+        "from_port_id": "asignal",
+        "to_node_id": "voc_sound_left",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "voc_speech_left",
+        "from_port_id": "fsig",
+        "to_node_id": "voc_cross_left",
+        "to_port_id": "famp"
+      },
+      {
+        "from_node_id": "voc_sound_left",
+        "from_port_id": "fsig",
+        "to_node_id": "voc_cross_left",
+        "to_port_id": "fexc"
+      },
+      {
+        "from_node_id": "voc_detail",
+        "from_port_id": "iout",
+        "to_node_id": "voc_cross_left",
+        "to_port_id": "kcoefs"
+      },
+      {
+        "from_node_id": "voc_gain",
+        "from_port_id": "iout",
+        "to_node_id": "voc_cross_left",
+        "to_port_id": "kgain"
+      },
+      {
+        "from_node_id": "voc_cross_left",
+        "from_port_id": "fsig",
+        "to_node_id": "voc_synth_left",
+        "to_port_id": "fsrc"
+      },
+      {
+        "from_node_id": "speech_right",
+        "from_port_id": "asignal",
+        "to_node_id": "voc_speech_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "sound_right",
+        "from_port_id": "asignal",
+        "to_node_id": "voc_sound_right",
+        "to_port_id": "ain"
+      },
+      {
+        "from_node_id": "voc_speech_right",
+        "from_port_id": "fsig",
+        "to_node_id": "voc_cross_right",
+        "to_port_id": "famp"
+      },
+      {
+        "from_node_id": "voc_sound_right",
+        "from_port_id": "fsig",
+        "to_node_id": "voc_cross_right",
+        "to_port_id": "fexc"
+      },
+      {
+        "from_node_id": "voc_detail",
+        "from_port_id": "iout",
+        "to_node_id": "voc_cross_right",
+        "to_port_id": "kcoefs"
+      },
+      {
+        "from_node_id": "voc_gain",
+        "from_port_id": "iout",
+        "to_node_id": "voc_cross_right",
+        "to_port_id": "kgain"
+      },
+      {
+        "from_node_id": "voc_cross_right",
+        "from_port_id": "fsig",
+        "to_node_id": "voc_synth_right",
+        "to_port_id": "fsrc"
+      },
+      {
+        "from_node_id": "voc_synth_left",
+        "from_port_id": "aout",
+        "to_node_id": "voc_out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "voc_synth_right",
+        "from_port_id": "aout",
+        "to_node_id": "voc_out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "voc_cross_left::kcoefs": {
+          "expression": "floor(in1 + 0.5)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "voc_detail",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "voc_cross_left::kgain": {
+          "expression": "ampdb(in1)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "voc_gain",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "voc_cross_right::kcoefs": {
+          "expression": "floor(in1 + 0.5)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "voc_detail",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "voc_cross_right::kgain": {
+          "expression": "ampdb(in1)",
+          "inputs": [
+            {
+              "token": "in1",
+              "from_node_id": "voc_gain",
+              "from_port_id": "iout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "speech": true,
+        "sound": true,
+        "output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "speech",
+          "name": "speech",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "speech_left",
+            "speech_right"
+          ],
+          "purpose": "sidechain"
+        },
+        {
+          "id": "sound",
+          "name": "sound",
+          "direction": "input",
+          "layout": "stereo",
+          "ports": [
+            "sound_left",
+            "sound_right"
+          ],
+          "purpose": "main"
+        },
+        {
+          "id": "output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": "sound",
+      "mainOutput": "output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}
