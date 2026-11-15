@@ -1,7 +1,7 @@
 {
   "sourcePatchId": "ab0649f7-09b8-4cc5-ab0a-5e42b164e8b7",
   "name": "Vocoder",
-  "description": "Stereo spectral vocoder. Route speech to speech and a harmonically rich carrier to sound. Fully wet, independent stereo channels; Spectral Detail rounds to whole coefficients. Both controls update live.",
+  "description": "Stereo spectral vocoder with separate speech and sound inputs. Fully wet, independent stereo channels. Spectral Detail rounds to whole coefficients. Makeup Gain defaults to +3 dB; Output Gain trims the result. Controls update live. No limiter: reduce gain if peaks overload.",
   "isTemplate": false,
   "alwaysOn": true,
   "instrumentType": "continuous",
@@ -36,6 +36,21 @@
         "position": {
           "x": 650.0,
           "y": -250.0
+        }
+      },
+      {
+        "id": "voc_makeup",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Makeup Gain (dB)",
+          "min": 0,
+          "max": 24,
+          "default": 3,
+          "scale": "linear"
+        },
+        "position": {
+          "x": 1000,
+          "y": -250
         }
       },
       {
@@ -301,6 +316,18 @@
         "from_port_id": "aout",
         "to_node_id": "voc_out_right",
         "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "voc_makeup",
+        "from_port_id": "iout",
+        "to_node_id": "voc_cross_left",
+        "to_port_id": "kgain"
+      },
+      {
+        "from_node_id": "voc_makeup",
+        "from_port_id": "iout",
+        "to_node_id": "voc_cross_right",
+        "to_port_id": "kgain"
       }
     ],
     "ui_layout": {
@@ -316,11 +343,16 @@
           ]
         },
         "voc_cross_left::kgain": {
-          "expression": "ampdb(in1)",
+          "expression": "ampdb(in1 + in2)",
           "inputs": [
             {
               "token": "in1",
               "from_node_id": "voc_gain",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "voc_makeup",
               "from_port_id": "iout"
             }
           ]
@@ -336,11 +368,16 @@
           ]
         },
         "voc_cross_right::kgain": {
-          "expression": "ampdb(in1)",
+          "expression": "ampdb(in1 + in2)",
           "inputs": [
             {
               "token": "in1",
               "from_node_id": "voc_gain",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "in2",
+              "from_node_id": "voc_makeup",
               "from_port_id": "iout"
             }
           ]

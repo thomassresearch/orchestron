@@ -8619,6 +8619,8 @@ def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_sourc
      {"sw_width": 1.5, "sw_mono": 0, "sw_delay": 12, "sw_output": -6}),
     ("bit_crusher", {"bc_bits": 2, "bc_downsample": 64, "bc_drive": 24, "bc_mix": 0, "bc_output": -24},
      {"bc_bits": 8, "bc_downsample": 4, "bc_drive": 0, "bc_mix": 1, "bc_output": -6}),
+    ("vocoder", {"voc_detail": 128, "voc_gain": -24, "voc_makeup": 24},
+     {"voc_detail": 80, "voc_gain": -6, "voc_makeup": 3}),
     ("harmonizer", {"hz_interval1": -24, "hz_interval2": 24, "hz_level1": 0, "hz_level2": 1, "hz_mix": 1, "hz_output": 0},
      {"hz_interval1": 7, "hz_interval2": 12, "hz_level1": 0.7, "hz_level2": 0.5, "hz_mix": 0.5, "hz_output": -6}),
     ("parametric_equalizer",

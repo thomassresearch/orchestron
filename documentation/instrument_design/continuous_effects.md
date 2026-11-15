@@ -60,7 +60,9 @@ Left and right channels are processed separately. The effect does not detect a k
 
 Each speech channel shapes its corresponding carrier channel independently. Feed mono speech to both speech channels. The output is fully wet; no MIDI notes are needed to start the effect.
 
-**Spectral Detail** ranges from 16 to 128 (default 80), rounded to whole cepstral coefficients. Lower values smooth the spectral envelope more. **Output Gain (dB)** ranges from −24 to 0 (default −6). Both controls target K-rate inputs and belong to each rack instance.
+**Spectral Detail** ranges from 16 to 128 (default 80), rounded to whole cepstral coefficients. Lower values smooth the spectral envelope more. **Makeup Gain (dB)** ranges from 0 to 24 (default +3), raising both channels equally. **Output Gain (dB)** ranges from −24 to 0 (default −6) and trims the result. All three controls target K-rate inputs and belong to each rack instance. Makeup 0 restores the previous gain behavior.
+
+The +3 dB default was checked with near-full-scale synthetic vowel and bright-carrier inputs. This is makeup gain, not a limiter: other signals or larger boosts can overload. Watch Vocoder and Master peaks and reduce Output Gain when needed. The two gain values add in decibels; +24 dB makeup and −24 dB output cancel each other.
 
 The graph uses `pvsanal`, `pvsvoc` and `pvsynth`, with a 1024-sample Hann window and 256-sample hop. Processing adds latency; the exact latency has not yet been measured for this instrument. See the [Csound pvsvoc reference](https://csound.com/docs/manual/pvsvoc.html).
 
