@@ -14,8 +14,12 @@ from orchestron.clip_arrangement import project_clips  # noqa: E402
 FIXTURE = Path(__file__).resolve().parents[4] / "backend/tests/fixtures/sample_player/performance.json"
 
 
-def test_sample_maps_survive_unrelated_edit_and_runtime_projection():
+@pytest.mark.parametrize("format", ["mp3", "m4a"])
+def test_sample_maps_survive_unrelated_edit_and_runtime_projection(format):
     original = json.loads(FIXTURE.read_text())
+    for asset in original["sampleAssets"].values():
+        if asset["source"]["format"] == "mp3":
+            asset["source"].update(format=format, stored_name=f"sam-{asset['source']['sha256']}.{format}")
     config = copy.deepcopy(original)
     config["mixer"] = {"strips": {"kit-a": {"gainDb": -6}}}
     cli.normalize_performance_config(config, [{"id": "sample-player-test", "always_on": False}])

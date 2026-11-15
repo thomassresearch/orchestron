@@ -110,18 +110,19 @@ def _wav_format(path: Path):
 def _probe(path: Path, fmt: str, *, canceled=None, deadline=None) -> int:
     result = _run("ffprobe", [
         "-v", "error", "-max_alloc", "67108864", "-protocol_whitelist", "file",
-        "-f", fmt, "-select_streams", "a", "-show_entries", "stream=codec_type,codec_name,channels", "-of", "json", str(path),
+        "-f", "mov" if fmt == "m4a" else fmt, "-select_streams", "a", "-show_entries", "stream=codec_type,codec_name,channels", "-of", "json", str(path),
     ], canceled=canceled, deadline=deadline)
     audio = [s for s in json.loads(result).get("streams", []) if s["codec_type"] == "audio"]
-    if len(audio) != 1 or (fmt == "mp3" and audio[0].get("codec_name") != "mp3"):
-        raise ValueError("Samples must contain one WAV or MP3 audio stream.")
+    if (len(audio) != 1 or (fmt == "mp3" and audio[0].get("codec_name") != "mp3")
+            or (fmt == "m4a" and audio[0].get("codec_name") not in {"aac", "alac"})):
+        raise ValueError("Samples must contain one WAV, MP3 or M4A (AAC/Apple Lossless) audio stream.")
     channels = audio[0].get("channels")
     if channels not in (1, 2):
         raise ValueError("Samples must have one or two audio channels.")
     return channels
 
 
-def _source_format(path: Path) -> tuple[str, int]:
+def _source_format(path: Path, *, canceled=None, deadline=None) -> tuple[str, int]:
     with path.open("rb") as stream:
         prefix = stream.read(12)
     if prefix[:4] == b"RIFF" and prefix[8:12] == b"WAVE":
@@ -133,7 +134,39 @@ def _source_format(path: Path) -> tuple[str, int]:
         return "wav", channels
     if prefix[:3] == b"ID3" or len(prefix) >= 2 and prefix[0] == 255 and prefix[1] & 224 == 224:
         return "mp3", _validate_mp3_frames(path)
-    raise ValueError("Unsupported sample format. Choose a WAV or MP3 file.")
+    if prefix[4:8] == b"ftyp":
+        _validate_m4a_boxes(path, canceled=canceled)
+        return "m4a", _probe(path, "m4a", canceled=canceled, deadline=deadline)
+    raise ValueError("Unsupported sample format. Choose a WAV, MP3 or M4A file.")
+
+
+def _validate_m4a_boxes(path: Path, *, canceled=None) -> None:
+    """Reject truncated containers even when FFmpeg can recover some audio."""
+    end = path.stat().st_size
+    kinds = set()
+    with path.open("rb") as stream:
+        while stream.tell() < end:
+            _check_canceled(canceled)
+            start = stream.tell()
+            header = stream.read(8)
+            if len(header) != 8:
+                raise ValueError("Truncated M4A container.")
+            size, kind = struct.unpack(">I4s", header)
+            header_size = 8
+            if size == 1:
+                extended = stream.read(8)
+                if len(extended) != 8:
+                    raise ValueError("Truncated M4A container.")
+                size = struct.unpack(">Q", extended)[0]
+                header_size = 16
+            elif size == 0:
+                size = end - start
+            if size < header_size or start + size > end:
+                raise ValueError("Invalid or truncated M4A container.")
+            kinds.add(kind)
+            stream.seek(start + size)
+    if not {b"ftyp", b"moov", b"mdat"} <= kinds:
+        raise ValueError("M4A contains no complete audio container.")
 
 
 def _validate_mp3_frames(path: Path) -> int:
@@ -298,11 +331,11 @@ def decode_sample(source: Path, filename: str, store: GenAssetService, *, cancel
     try:
         deadline = monotonic() + DECODE_TIMEOUT
         _check_canceled(canceled)
-        fmt, source_channels = _source_format(source)
+        fmt, source_channels = _source_format(source, canceled=canceled, deadline=deadline)
         with TemporaryDirectory(prefix="orchestron-sample-") as folder:
             raw = Path(folder) / "decoded.pcm"
             canonical = Path(folder) / "playback.wav"
-            channels = _probe(source, fmt, canceled=canceled, deadline=deadline)
+            channels = source_channels if fmt == "m4a" else _probe(source, fmt, canceled=canceled, deadline=deadline)
             if channels != source_channels:
                 raise ValueError("Decoded sample channel count does not match the source.")
             align = channels * 4
@@ -311,7 +344,7 @@ def decode_sample(source: Path, filename: str, store: GenAssetService, *, cancel
                 raise GenAudioAssetTooLargeError("Sample exceeds the decoded audio size limit.")
             _run("ffmpeg", [
                 "-nostdin", "-v", "error", "-xerror", "-max_alloc", "67108864",
-                "-protocol_whitelist", "file", "-threads", "1", "-f", fmt, "-i", str(source),
+                "-protocol_whitelist", "file", "-threads", "1", "-f", "mov" if fmt == "m4a" else fmt, "-i", str(source),
                 "-map", "0:a:0", "-vn", "-sn", "-dn", "-ar", str(SAMPLE_RATE),
                 "-c:a", "pcm_f32le", "-f", "f32le", "-fs", str(limit + align), str(raw),
             ], canceled=canceled, deadline=deadline)

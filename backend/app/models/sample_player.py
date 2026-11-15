@@ -15,7 +15,7 @@ SAMPLE_BINDING_COMMENT = "; vcs_sample_binding_v1 "
 
 Digest = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 AssetId = Annotated[str, StringConstraints(pattern=r"^[0-9a-zA-Z_-]{1,128}$")]
-StoredName = Annotated[str, StringConstraints(pattern=r"^sam-[0-9a-f]{64}\.(wav|mp3)$")]
+StoredName = Annotated[str, StringConstraints(pattern=r"^sam-[0-9a-f]{64}\.(wav|mp3|m4a)$")]
 
 
 class _SampleModel(BaseModel):
@@ -36,7 +36,7 @@ class SampleFile(_SampleModel):
 
 class SampleSource(SampleFile):
     original_name: str = Field(min_length=1, max_length=255)
-    format: Literal["wav", "mp3"]
+    format: Literal["wav", "mp3", "m4a"]
 
     @model_validator(mode="after")
     def verify_source(self):

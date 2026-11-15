@@ -73,7 +73,6 @@ const rows = {
   midiChannelShort: ["MIDI Ch.", "MIDI-Kan.", "Can. MIDI", "Can. MIDI"],
   continuous: ["Continuous", "Dauerhaft", "Continue", "Continua"],
   instrument: ["Playable instrument", "Spielbares Instrument", "Instrument jouable", "Instrumento tocable"],
-  samplePlayer: ["Sample Player", "Sample-Player", "Lecteur de samples", "Reproductor de muestras"],
   drumset: ["Drumset", "Schlagzeug", "Batterie", "Batería"],
   effect: ["Audio effect", "Audioeffekt", "Effet audio", "Efecto de audio"],
   output: ["Audio Output", "Audioausgang", "Sortie audio", "Salida de audio"],

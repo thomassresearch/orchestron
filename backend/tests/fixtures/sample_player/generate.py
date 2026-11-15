@@ -26,3 +26,6 @@ if __name__ == "__main__":
     (ROOT / "corrupt.wav").write_bytes((ROOT / "mono.wav").read_bytes()[:1024])
     subprocess.run(["ffmpeg", "-nostdin", "-y", "-loglevel", "error", "-i", str(ROOT / "stereo.wav"),
                     "-c:a", "libmp3lame", "-b:a", "96k", str(ROOT / "stereo.mp3")], check=True)
+    for original, name, codec in (("stereo.wav", "stereo.m4a", "aac"), ("mono.wav", "mono-alac.m4a", "alac")):
+        subprocess.run(["ffmpeg", "-nostdin", "-y", "-loglevel", "error", "-i", str(ROOT / original),
+                        "-c:a", codec, "-movflags", "+faststart", str(ROOT / name)], check=True)

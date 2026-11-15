@@ -387,7 +387,7 @@ Important consequence: sessions are **not persisted**. Restarting the backend dr
 ### GenAssetService
 
 The Sample Player uses the same managed storage, quotas and atomic import batches.
-`POST /api/assets/samples` accepts a bounded raw WAV or MP3 body with an optional UTF-8
+`POST /api/assets/samples` accepts a bounded raw WAV, MP3 or M4A (AAC/ALAC) body with an optional UTF-8
 percent-encoded `X-File-Name`, and responds with `{asset_id, asset}`. FFprobe validates
 the stream; bounded FFmpeg workers decode mono or stereo to 48 kHz float WAV.
 Both the original bytes and canonical WAV are immutable and named by SHA-256.
@@ -630,7 +630,7 @@ Each `PortSpec` includes `id`, `name`, `signal_type`, `accepted_signal_types`, `
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/assets/gen-audio` | raw binary body | `201` `GenAudioAssetUploadResponse` | Optional `X-File-Name` header sets the original filename. `Content-Type` is preserved in the response. Returns `400` for empty uploads, oversize uploads, or invalid filenames. |
-| `POST` | `/api/assets/samples` | raw WAV/MP3 | `201` `SampleUpload` | Stores original and canonical WAV together; `400` for invalid media, `413` for size/storage limits. |
+| `POST` | `/api/assets/samples` | raw WAV/MP3/M4A | `201` `SampleUpload` | Stores original and canonical WAV together; `400` for invalid media, `413` for size/storage limits. |
 
 `GenAudioAssetUploadResponse` returns:
 

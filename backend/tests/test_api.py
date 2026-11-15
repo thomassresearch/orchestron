@@ -11000,14 +11000,15 @@ def test_sample_opcode_and_audio_upload_validation(tmp_path):
         assert not list(client.app.state.container.gen_asset_service.audio_dir.iterdir())
 
 
-def test_sample_map_persistence_native_commit_and_active_reachability(tmp_path):
+@pytest.mark.parametrize("filename", ["stereo.mp3", "stereo.m4a", "mono-alac.m4a"])
+def test_sample_map_persistence_native_commit_and_active_reachability(tmp_path, filename):
     from backend.app.api.assets import _run_asset_gc
     from backend.tests.test_sample_player import SAMPLES
 
     source_store = tmp_path / "source"
     destination_store = tmp_path / "destination"
     with _client(source_store) as client:
-        payload, upload = _sample_player_api_payload(client, "stereo.mp3")
+        payload, upload = _sample_player_api_payload(client, filename)
         exported = payload["performanceExport"]
         config = exported["performance"]["config"]
         stored = client.post("/api/performances", json=exported["performance"])
@@ -11026,7 +11027,7 @@ def test_sample_map_persistence_native_commit_and_active_reachability(tmp_path):
         bundle = response.content
         manifest = upload["asset"]
         with zipfile.ZipFile(BytesIO(bundle)) as archive:
-            assert archive.read(f"audio/{manifest['source']['stored_name']}") == (SAMPLES / "stereo.mp3").read_bytes()
+            assert archive.read(f"audio/{manifest['source']['stored_name']}") == (SAMPLES / filename).read_bytes()
             assert len(archive.namelist()) == 3
     with _client(destination_store, gen_audio_asset_gc_min_age_seconds=0) as client:
         store = client.app.state.container.gen_asset_service

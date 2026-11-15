@@ -89,10 +89,10 @@ The CLI enforces these defaults in generated graphs:
 
 ## Performance Customization
 
-For Sample Player patches, use the built-in Sample Player starter in Orchestron or an
-existing native sampler patch. Keep its single `sample_player` node in the root of
-a MIDI instrument, outside branches and separate from `midi_legato`. Use the usual stereo
-output and mixer routing. Maps are rack-instance settings edited in Perform or the
+For Sample Player patches, use **Add Sample Player** in the Orchestron Instrument Rack,
+open an existing native sampler patch, or add the opcode to a MIDI patch. Keep its single
+`sample_player` node in the root of a MIDI instrument, outside branches and separate from
+`midi_legato`. Use the usual stereo output and mixer routing. Maps are rack-instance settings edited in Perform or the
 Performance Creator CLI while the engine is stopped. They are never patch defaults.
 Standalone compilation works with an empty map; test audible output using a versioned
 mono or stereo WAV/MP3 fixture assigned in a performance. Native performance ZIPs

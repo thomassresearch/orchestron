@@ -1,0 +1,88 @@
+{
+  "sourcePatchId": "7cbbfbc1-7065-4c43-b2bd-ce1bf504b245",
+  "name": "Sample Player",
+  "description": "Instrument that plays samples of audio, configured in the instrument rack in a performance, audio samples are assigned to MIDI notenums",
+  "isTemplate": false,
+  "alwaysOn": false,
+  "instrumentType": "effects_noise",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "sample-player",
+        "opcode": "sample_player",
+        "params": {},
+        "position": {
+          "x": 80.0,
+          "y": 80.0
+        }
+      },
+      {
+        "id": "output-left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 760.0,
+          "y": 0.0
+        }
+      },
+      {
+        "id": "output-right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 760.0,
+          "y": 180.0
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "sample-player",
+        "from_port_id": "aleft",
+        "to_node_id": "output-left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "sample-player",
+        "from_port_id": "aright",
+        "to_node_id": "output-right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {},
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1.0
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainInput": null,
+      "mainOutput": "main-output",
+      "guided": true
+    },
+    "control_flow": {}
+  }
+}

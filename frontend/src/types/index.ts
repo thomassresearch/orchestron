@@ -572,7 +572,7 @@ export interface SampleFile {
 }
 
 export interface SampleAsset {
-  source: SampleFile & { original_name: string; format: "wav" | "mp3" };
+  source: SampleFile & { original_name: string; format: "wav" | "mp3" | "m4a" };
   playback: SampleFile & { sampleRate: 48000; channels: 1 | 2; frameCount: number; format: "wav-f32le" };
   decoderRevision: string;
 }

@@ -1,4 +1,27 @@
 import type { SampleAsset, SampleAssets, SampleMap, SequencerInstrumentBinding } from "../types";
+import { createUntitledPatch } from "./defaultPatch";
+
+export function createSamplePlayerPatch() {
+  const patch = createUntitledPatch();
+  const { graph } = patch;
+  graph.nodes.push({ id: "sample-player", opcode: "sample_player", params: {}, position: { x: 80, y: 80 } });
+  for (const [side, y] of [["left", 0], ["right", 180]] as const) {
+    const output = `output-${side}`;
+    graph.nodes.push({ id: output, opcode: "outleta", params: { sname: side }, position: { x: 760, y } });
+    graph.connections.push({
+      from_node_id: "sample-player", from_port_id: `a${side}`,
+      to_node_id: output, to_port_id: "asignal"
+    });
+  }
+  graph.audio_interface = {
+    role: "instrument",
+    groups: [{ id: "main-output", name: "Stereo Output", direction: "output", layout: "stereo", ports: ["left", "right"], purpose: "main" }],
+    mainInput: null,
+    mainOutput: "main-output",
+    guided: true
+  };
+  return { ...patch, name: "Sample Player", instrument_type: "percussion" as const };
+}
 
 const object = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid Sample Player data.");
@@ -18,7 +41,7 @@ export function parseSampleAssets(value: unknown): SampleAssets {
     const asset = object(item);
     const source = object(asset.source);
     const play = object(asset.playback);
-    if (!opaque.test(id) || !["wav", "mp3"].includes(String(source.format)) || !validFile(source, source.format) ||
+    if (!opaque.test(id) || !["wav", "mp3", "m4a"].includes(String(source.format)) || !validFile(source, source.format) ||
         typeof source.original_name !== "string" || !source.original_name.length || source.original_name.length > 255 ||
         /[/\\]/.test(source.original_name) || source.original_name.includes(String.fromCharCode(0)) ||
         !validFile(play, "wav") || play.format !== "wav-f32le" || play.sampleRate !== 48000 || ![1, 2].includes(play.channels as number) ||

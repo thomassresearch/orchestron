@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import shutil
 import struct
+import subprocess
 from threading import Event
 from time import perf_counter
 
@@ -38,6 +39,7 @@ def upload(media, name):
 @pytest.mark.parametrize("name,channels,frames", [
     ("mono.wav", 1, 24000), ("stereo.wav", 2, 12000),
     ("stereo.mp3", 2, 12000), ("long.wav", 1, 480000), ("tiny.wav", 1, 3),
+    ("stereo.m4a", 2, 12288), ("mono-alac.m4a", 1, 24000),
 ])
 def test_sample_ingestion_identity_and_metadata(media, name, channels, frames):
     result = upload(media, name)
@@ -46,6 +48,35 @@ def test_sample_ingestion_identity_and_metadata(media, name, channels, frames):
     assert source.read_bytes() == (SAMPLES / name).read_bytes()
     assert upload(media, name).asset_id == result.asset_id
     verify_sample_assets({result.asset_id: result.asset}, media)
+
+
+def test_m4a_detection_uses_content_and_rejects_truncated_audio(media, tmp_path):
+    renamed = tmp_path / "upload.bin"
+    original = (SAMPLES / "stereo.m4a").read_bytes()
+    renamed.write_bytes(original)
+    result = decode_sample(renamed, "recording.M4A", media)
+    assert result.asset.source.format == "m4a"
+    assert result.asset.source.original_name == "recording.M4A"
+    before = set(media.audio_dir.iterdir())
+    renamed.write_bytes(original[:-200])
+    with pytest.raises(ValueError, match="truncated M4A"):
+        decode_sample(renamed, "broken.m4a", media)
+    assert set(media.audio_dir.iterdir()) == before
+
+
+@pytest.mark.parametrize("mode", ["surround", "multiple", "unsupported"])
+def test_m4a_rejects_unsupported_streams(media, tmp_path, mode):
+    target = tmp_path / "invalid.m4a"
+    args = ["ffmpeg", "-nostdin", "-v", "error", "-i", str(SAMPLES / "stereo.wav")]
+    if mode == "surround":
+        args += ["-ac", "3"]
+    elif mode == "multiple":
+        args += ["-map", "0:a", "-map", "0:a"]
+    args += ["-c:a", "mp3" if mode == "unsupported" else "aac", "-f", "mp4", str(target)]
+    subprocess.run(args, check=True)
+    with pytest.raises(ValueError, match="audio stream|audio channels"):
+        decode_sample(target, target.name, media)
+    assert not list(media.audio_dir.iterdir())
 
 
 @pytest.mark.parametrize("name", ["surround.wav", "corrupt.wav"])

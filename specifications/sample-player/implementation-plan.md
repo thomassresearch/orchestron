@@ -136,11 +136,11 @@ Native import on a clean installation restores editable maps and original audio.
 
 ### Source seams
 
-Use the existing [adaptive rack](../../frontend/src/components/sequencer/AdaptiveInstrumentRack.tsx), [controller rack](../../frontend/src/components/sequencer/PerformanceControllerRack.tsx), store actions, client, and [audio starters](../../frontend/src/lib/audioTemplates.ts). Add a focused Samples editor component instead of embedding media logic in the rack.
+Use the existing [adaptive rack](../../frontend/src/components/sequencer/AdaptiveInstrumentRack.tsx), [controller rack](../../frontend/src/components/sequencer/PerformanceControllerRack.tsx), store actions, and client. Add a focused Samples editor component instead of embedding media logic in the rack.
 
 ### Work
 
-1. Provide an additive Sample Player starter; preserve all existing templates, including the analog drumkit build input.
+1. Create or reuse a normal Sample Player patch from **Add Sample Player** in Perform. Preserve the analog drumkit build input and other built-in templates.
 2. Add note rows, upload/replace/remove, empty states, progress/errors, file metadata, and focused preview controls. Use numeric note entry plus existing note names.
 3. Make each committed row transaction atomic. Reject note collisions, prevent stale uploads from landing in a switched/deleted instance, and keep unsaved form state out of authored snapshots.
 4. Lock structural map edits while the instrument engine runs. A late engine-start race must also be rejected by the update action/backend contract, not only by a disabled button.

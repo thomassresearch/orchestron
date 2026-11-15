@@ -9,6 +9,8 @@ to detect downmixing and swaps. Edges intentionally need a fade.
 | `mono.wav` | 44.1 kHz PCM16 mono | 24,000 frames, mono |
 | `stereo.wav` | 48 kHz PCM16 stereo | 12,000 frames, stereo |
 | `stereo.mp3` | Stereo WAV encoded with FFmpeg 8.1.1/libmp3lame at 96 kbps | 12,000 frames, stereo |
+| `stereo.m4a` | Stereo WAV encoded with FFmpeg AAC, fast-start container | 12,288 frames, stereo (AAC padding) |
+| `mono-alac.m4a` | Mono WAV encoded with FFmpeg Apple Lossless | 24,000 frames, mono |
 | `long.wav` | 12 kHz PCM16 mono | 480,000 frames, mono |
 | `tiny.wav` | 48 kHz PCM16 mono | 3 frames, mono |
 | `surround.wav`, `corrupt.wav` | Three channels / incomplete RIFF | Rejected |

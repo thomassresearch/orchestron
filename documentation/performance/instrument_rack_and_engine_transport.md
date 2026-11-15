@@ -21,7 +21,7 @@ See [Performance Controllers](performance_controllers.md) for grouping rules.
 ## Add a Sample Player
 
 **Add Sample Player** creates a playable rack instance even when the instrument library is empty.
-Open **Samples** on the card to assign WAV or MP3 files to MIDI notes. Each instance has its own
+Open **Samples** on the card to assign WAV, MP3 or M4A files to MIDI notes. Each instance has its own
 map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
 ## Compact Rack

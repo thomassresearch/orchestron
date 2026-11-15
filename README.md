@@ -21,12 +21,12 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
-Choose **Add Sample Player** in Perform to assign WAV or MP3 files to MIDI notes. Each rack
+Choose **Add Sample Player** in Perform to assign WAV, MP3 or M4A files to MIDI notes. Each rack
 instance has its own map, and repeated hits can overlap at the original pitch and speed.
 Save the performance to keep the assignments. Native bundles and both Csound render modes
 include the audio they need. See the [Sample Player guide](documentation/performance/sample_player.md).
 
-![Sample Player rack with mono WAV and stereo MP3 assignments](screenshots/performance_sample_player.png)
+![Sample Player rack with mono Apple Lossless and stereo AAC M4A assignments](screenshots/performance_sample_player.png)
 
 Perform has a fixed **Engine stats** line with CPU usage and an optional **Parallel playback**
 control. CPU readings stay aligned as percentages change. Independent instrument groups can use multiple Csound processes, with shared effects
@@ -73,7 +73,7 @@ for its side stick, clap, electric snare, six toms, crash, ride and tambourine.
 
 Build a sound from the inside out. In **Instrument Design**, connect Csound building blocks, called opcodes, into a patch: an oscillator makes a tone, an envelope shapes its attack and decay, a filter changes its colour, and modulation brings it into motion. Follow the connections to see how each part contributes to the result.
 
-Start with a playable instrument, a drumset, a Sample Player, an audio effect, an audio output patch, or an empty canvas. Turn a promising experiment into a reusable template, keep several instruments open in tabs, and return to unfinished ideas later.
+Start with a playable instrument, a drumset, an audio effect, an audio output patch, or an empty canvas. Turn a promising experiment into a reusable template, keep several instruments open in tabs, and return to unfinished ideas later.
 
 - **Synths and textures:** combine oscillators, filters, envelopes, physical models, and effects for basses, leads, bells, pads, and evolving soundscapes.
 - **Sample-based sounds:** upload audio or SoundFonts, and use the table editor to build waveforms and shape how samples are played.

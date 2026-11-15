@@ -3,14 +3,14 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import fixture from "../../../../backend/tests/fixtures/sample_player/performance.json";
 import { api } from "../../api/client";
-import { audioTemplate } from "../../lib/audioTemplates";
+import { createSamplePlayerPatch } from "../../lib/samplePlayer";
 import { toPatchListItem } from "../../lib/patchCatalog";
 import { parseSequencerConfigSnapshot } from "../../store/appStoreModel";
 import { useAppStore } from "../../store/useAppStore";
 import { SamplePlayerRack } from "./SamplePlayerRack";
 
 const initial = useAppStore.getState();
-const patch = toPatchListItem({ ...audioTemplate("samplePlayer"), id: "sample-player-test" });
+const patch = toPatchListItem({ ...createSamplePlayerPatch(), id: "sample-player-test", created_at: "", updated_at: "" });
 const fixtureBindings = () => parseSequencerConfigSnapshot(fixture, [patch], null).instruments;
 
 function rack(running = false) {
@@ -28,6 +28,23 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   useAppStore.setState(initial, true);
+});
+
+it("assigns M4A audio through the rack file picker", async () => {
+  const { container } = rack();
+  expect(screen.queryByRole("button", { name: "Duplicate instance" })).toBeNull();
+  const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+  expect(input.accept.split(",")).toContain(".m4a");
+  const [id, original] = Object.entries(useAppStore.getState().sequencerInstruments[1].sampleAssets!)[0];
+  const asset = { ...original, source: { ...original.source, format: "m4a" as const,
+    stored_name: `sam-${original.source.sha256}.m4a`, original_name: "recording.m4a" } };
+  const upload = vi.spyOn(api, "uploadSample").mockResolvedValue({ asset_id: id, asset });
+  const file = new File(["audio"], "recording.m4a", { type: "audio/mp4" });
+  fireEvent.click(screen.getByRole("button", { name: "Replace file: 36" }));
+  fireEvent.change(input, { target: { files: [file] } });
+  await waitFor(() => expect(useAppStore.getState().sampleUploads).toBe(0));
+  expect(upload).toHaveBeenCalledWith(file, expect.any(AbortSignal));
+  expect(useAppStore.getState().sequencerInstruments[0].sampleAssets?.[id]).toEqual(asset);
 });
 
 it("rejects an occupied note and retains every assignment on a failed file replacement", async () => {

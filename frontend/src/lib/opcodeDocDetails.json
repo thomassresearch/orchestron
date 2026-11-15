@@ -1,10 +1,10 @@
 {
   "sample_player": {
     "description": {
-      "english": "Use one Sample Player in the main graph of a MIDI instrument. In Perform, assign WAV or MP3 files to individual MIDI notes. Each hit plays once at its original pitch and speed. An empty map is silent.",
-      "german": "Setze einen Sample-Player in den Hauptgraphen eines MIDI-Instruments. Weise unter Perform einzelnen MIDI-Noten WAV- oder MP3-Dateien zu. Jeder Anschlag spielt das Sample einmal in Originaltonhöhe und -tempo. Eine leere Zuordnung bleibt stumm.",
-      "french": "Ajoutez un seul lecteur de samples au graphe principal d’un instrument MIDI. Dans Perform, assignez un WAV ou MP3 à chaque note choisie. Chaque frappe joue le sample à sa hauteur et vitesse d’origine. Une table vide reste silencieuse.",
-      "spanish": "Añade un reproductor de muestras al grafo principal de un instrumento MIDI. En Perform, asigna archivos WAV o MP3 a notas individuales. Cada ataque reproduce la muestra al tono y velocidad originales. Un mapa vacío no suena."
+      "english": "Use one Sample Player in the main graph of a MIDI instrument. In Perform, assign WAV, MP3 or M4A files to individual MIDI notes. Each hit plays once at its original pitch and speed. An empty map is silent.",
+      "german": "Setze einen Sample-Player in den Hauptgraphen eines MIDI-Instruments. Weise unter Perform einzelnen MIDI-Noten WAV-, MP3- oder M4A-Dateien zu. Jeder Anschlag spielt das Sample einmal in Originaltonhöhe und -tempo. Eine leere Zuordnung bleibt stumm.",
+      "french": "Ajoutez un seul lecteur de samples au graphe principal d’un instrument MIDI. Dans Perform, assignez un WAV, MP3 ou M4A à chaque note choisie. Chaque frappe joue le sample à sa hauteur et vitesse d’origine. Une table vide reste silencieuse.",
+      "spanish": "Añade un reproductor de muestras al grafo principal de un instrumento MIDI. En Perform, asigna archivos WAV, MP3 o M4A a notas individuales. Cada ataque reproduce la muestra al tono y velocidad originales. Un mapa vacío no suena."
     },
     "inputs": {},
     "outputs": {

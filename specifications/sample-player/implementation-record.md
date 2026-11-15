@@ -15,7 +15,7 @@ MIDI note ownership.
 
 ## Shipped interfaces
 
-- `POST /api/assets/samples` takes a bounded WAV/MP3 body and returns
+- `POST /api/assets/samples` takes a bounded WAV/MP3/M4A (AAC/ALAC) body and returns
   `{asset_id, asset}`. Original and playback filenames are content addressed.
   Asset IDs hash the pair of file digests; playback tables are deduplicated by
   playback digest and format metadata. FFmpeg creates a 48 kHz, little-endian

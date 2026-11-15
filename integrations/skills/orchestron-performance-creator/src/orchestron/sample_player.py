@@ -32,7 +32,7 @@ def canonicalize(config, *, enforce_version=True):
         playback = asset.get("playback") if isinstance(asset, dict) else None
         revision = asset.get("decoderRevision") if isinstance(asset, dict) else None
         if (not isinstance(source, dict) or not isinstance(playback, dict) or not isinstance(revision, str)
-                or not 1 <= len(revision) <= 128 or source.get("format") not in ("wav", "mp3")
+                or not 1 <= len(revision) <= 128 or source.get("format") not in ("wav", "mp3", "m4a")
                 or not _check_file(source, source["format"]) or not _check_file(playback, "wav")
                 or not isinstance(source.get("original_name"), str) or not 1 <= len(source["original_name"]) <= 255
                 or any(char in source["original_name"] for char in "/\\\x00")

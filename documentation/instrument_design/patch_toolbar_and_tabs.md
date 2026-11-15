@@ -56,9 +56,11 @@ The toolbar includes:
 
 ### New from Template
 
-- Opens the same chooser with the five built-in starters plus any saved templates.
+- Lists the five built-in starters along with any saved templates.
 - Creates a new unsaved normal patch with the chosen template's graph and description.
 - Built-in choices remain available when the library has no saved templates.
+
+![New from template dialog](../../screenshots/instrument_new_from_template_chooser.png)
 
 ### Clone
 

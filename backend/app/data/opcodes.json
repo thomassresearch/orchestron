@@ -4,7 +4,7 @@
     "category": "oscillator",
     "description": "Play the sample assigned to the exact MIDI note in this rack instance.",
     "documentation_url": "https://csound.com/docs/manual/loscil3.html",
-    "documentation_markdown": "### Sample Player\n\nMaps MIDI notes to one-shot stereo output. Assign WAV or MP3 files on the rack instance.",
+    "documentation_markdown": "### Sample Player\n\nMaps MIDI notes to one-shot stereo output. Assign WAV, MP3 or M4A (AAC/Apple Lossless) files on the rack instance.",
     "inputs": [],
     "outputs": [
       {

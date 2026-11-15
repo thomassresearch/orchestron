@@ -104,7 +104,7 @@ arrangement with `edit migrate --recovery /work/original.json`.
 
 CLI and data formats:
 
-- Sample Player maps belong to rack bindings, not patches. Stop the attached engine before changing them. Use `edit samples list --binding ID`, `edit samples assign --binding ID --note NOTE --file FILE` (WAV or MP3; add `--replace` for an occupied note), `edit samples remove --binding ID --note NOTE`, or `edit samples clear --binding ID`. Save the staged performance and rebuild its runtime. Keep v27 maps and their asset manifest together, including maps on unused instances. Native ZIP export includes both original and playback files; both CSD modes package playback audio. Use synthetic versioned fixtures for tests.
+- Sample Player maps belong to rack bindings, not patches. Stop the attached engine before changing them. Use `edit samples list --binding ID`, `edit samples assign --binding ID --note NOTE --file FILE` (WAV, MP3 or M4A; add `--replace` for an occupied note), `edit samples remove --binding ID --note NOTE`, or `edit samples clear --binding ID`. Save the staged performance and rebuild its runtime. Keep v27 maps and their asset manifest together, including maps on unused instances. Native ZIP export includes both original and playback files; both CSD modes package playback audio. Use synthetic versioned fixtures for tests.
 
 - For melodic step/chord syntax, read `references/chord_syntax.md`.
 - For YAML/JSON score specs, read `references/score_spec.md`.

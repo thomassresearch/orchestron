@@ -124,7 +124,7 @@ function SampleMapEditor({ binding, capable, label, language, running }: RackPro
     </EditorDetails>
     {running && <p role="status" className="text-amber-200">{copy.lock}</p>}
     {entries.length === 0 && <p className="text-slate-300">{copy.noMap}</p>}
-    <input ref={file} type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" className="hidden" onChange={event => void assign(event)} />
+    <input ref={file} type="file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4,audio/x-m4a" className="hidden" onChange={event => void assign(event)} />
     <ul ref={rows} onScroll={saveScroll} className="max-h-72 space-y-1 overflow-auto" aria-label={copy.title}>
       {entries.map(row => {
         const asset = binding.sampleAssets?.[row.assetId];
@@ -158,7 +158,7 @@ function SampleMapEditor({ binding, capable, label, language, running }: RackPro
           if (preview.playing) void preview.stop();
           else if (current && selectedSample) preview.start(current.note, selectedSample.playback.frameCount / selectedSample.playback.sampleRate);
         }}>{preview.playing ? copy.stopPreview : copy.preview}</button>
-      <button type="button" className={action} disabled={readOnly} onClick={() => useAppStore.getState().duplicateSamplePlayer(binding.id)}>{copy.duplicate}</button></>}
+      </>}
       {entries.length > 0 && <button type="button" className={action} disabled={readOnly}
         onClick={() => { if (mutate(undefined)) select(null); }}>{copy.clear}</button>}
     </div>
