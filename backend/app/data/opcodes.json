@@ -1,5 +1,33 @@
 [
   {
+    "name": "sample_player",
+    "category": "oscillator",
+    "description": "Play the sample assigned to the exact MIDI note in this rack instance.",
+    "documentation_url": "https://csound.com/docs/manual/loscil3.html",
+    "documentation_markdown": "### Sample Player\n\nMaps MIDI notes to one-shot stereo output. Assign WAV or MP3 files on the rack instance.",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "aleft",
+        "name": "Left",
+        "signal_type": "a"
+      },
+      {
+        "id": "aright",
+        "name": "Right",
+        "signal_type": "a"
+      }
+    ],
+    "template": "; Sample Player is lowered by the orchestra compiler.",
+    "tags": [
+      "sample",
+      "sampler",
+      "midi",
+      "one-shot"
+    ],
+    "icon_filename": "sample_player.svg"
+  },
+  {
     "name": "follow2",
     "category": "analysis",
     "description": "Envelope follower with independent attack and release controls.",

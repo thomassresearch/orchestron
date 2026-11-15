@@ -34,6 +34,8 @@ import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { PatchPicker } from "./PatchPicker";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
+import { SamplePlayerRack } from "./sequencer/SamplePlayerRack";
+import { sampleCopy } from "../lib/sampleCopy";
 import { AdaptiveInstrumentRack } from "./sequencer/AdaptiveInstrumentRack";
 import { PerformMixer } from "./PerformMixer";
 import { audioCopy } from "../lib/audioCopy";
@@ -800,6 +802,9 @@ export function SequencerPage(props: SequencerPageProps) {
   return <PerformanceEditorProvider key={generation} owners={owners} retainedStore={props.editorStore}><OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}><SequencerPageContent {...props} /></OpenArrangerContext.Provider></PerformanceEditorProvider>;
 }
 function SequencerPageContent(props: SequencerPageProps) {
+  const sampleUploads = useAppStore(state => state.sampleUploads);
+  const addSamplePlayer = useAppStore(state => state.addSamplePlayer);
+  const loading = useAppStore(state => state.loading);
   const context = useSequencerPageContext(props);
   const {
     instrumentBindings,
@@ -872,11 +877,16 @@ function SequencerPageContent(props: SequencerPageProps) {
             >
               {ui.addInstrument}
             </button>
+            <button type="button" onClick={() => { onPanelCollapsedChange("rack", false); void addSamplePlayer(); }}
+              disabled={instrumentsRunning || loading}
+              className={`${rackAssignmentButtonClass} border-slate-500 text-cyan-100`}>
+              {sampleCopy(guiLanguage).starter}
+            </button>
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={onStartInstruments}
-                disabled={instrumentsRunning}
+                disabled={instrumentsRunning || sampleUploads > 0}
                 className={transportStartButtonClass}
               >
                 {ui.startInstruments}
@@ -1144,6 +1154,7 @@ function SequencerPageContent(props: SequencerPageProps) {
   );
 }
 function RackBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
+  const sampleUploads = useAppStore(state => state.sampleUploads);
   const {
     rackInstrumentRows,
     onInstrumentReorder,
@@ -1295,11 +1306,15 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
           </button>
         </div>
         <PerformanceControllerRack binding={binding} patch={selectedPatch} language={guiLanguage} />
+        {(selectedPatch?.has_sample_player || binding.sampleMap?.entries.length) ?
+          <SamplePlayerRack key={binding.patchId} binding={binding} label={`${ui.patch(index + 1)} · ${name} · ${ui.channel} ${binding.midiChannel}`}
+            capable={!!selectedPatch?.has_sample_player && !isAlwaysOn} language={guiLanguage} running={instrumentsRunning} /> : null}
       </div>
     );
   };
   return <>
     <PerformanceControllerSyncStatus language={guiLanguage} />
+    {sampleUploads > 0 && <p role="status" className="text-xs text-cyan-200">{sampleCopy(guiLanguage).wait}</p>}
     <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
       <label className="flex flex-col gap-1 lg:col-span-2">
         <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.performanceName}</span>
@@ -1358,7 +1373,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
       <button
         type="button"
         onClick={onClonePerformance}
-        disabled={instrumentsRunning}
+        disabled={instrumentsRunning || sampleUploads > 0}
         className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
       >
         {ui.clonePerformance}
@@ -1367,6 +1382,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
       <button
         type="button"
         onClick={onSavePerformance}
+        disabled={sampleUploads > 0}
         className="rounded-md border border-mint/55 bg-mint/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mint transition hover:bg-mint/25"
       >
         {ui.savePerformance}
@@ -1374,6 +1390,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
       <button
         type="button"
         onClick={onExportConfig}
+        disabled={sampleUploads > 0}
         className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
       >
         {ui.export}
@@ -1381,6 +1398,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
       <button
         type="button"
         onClick={onExportCsdMidi}
+        disabled={sampleUploads > 0}
         className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
       >
         {ui.exportCsdMidi}
@@ -1388,6 +1406,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
       <button
         type="button"
         onClick={onExportCsdScore}
+        disabled={sampleUploads > 0}
         className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
       >
         {ui.exportCsdScore}

@@ -1,0 +1,89 @@
+{
+  "instruments": [
+    {
+      "id": "kit-a",
+      "midiChannel": 1,
+      "patchId": "sample-player-test",
+      "sampleMap": {
+        "entries": [
+          {
+            "assetId": "864da15df9d13d9762805a785b2cb7ea5fe449bb69a82ff556229a3e15d8735f",
+            "note": 36
+          },
+          {
+            "assetId": "01424b95673d0aafe603f97e53a69043e72ee5cc485685d49948cf00e4c43bf2",
+            "note": 127
+          }
+        ],
+        "version": 1
+      }
+    },
+    {
+      "id": "kit-b",
+      "midiChannel": 2,
+      "patchId": "sample-player-test",
+      "sampleMap": {
+        "entries": [
+          {
+            "assetId": "864da15df9d13d9762805a785b2cb7ea5fe449bb69a82ff556229a3e15d8735f",
+            "note": 0
+          },
+          {
+            "assetId": "01424b95673d0aafe603f97e53a69043e72ee5cc485685d49948cf00e4c43bf2",
+            "note": 36
+          }
+        ],
+        "version": 1
+      }
+    }
+  ],
+  "sampleAssets": {
+    "01424b95673d0aafe603f97e53a69043e72ee5cc485685d49948cf00e4c43bf2": {
+      "decoderRevision": "ffmpeg-f32-v1",
+      "playback": {
+        "channels": 2,
+        "format": "wav-f32le",
+        "frameCount": 12000,
+        "sampleRate": 48000,
+        "sha256": "baa1509fe4d882abc11bd10575b02949df452319939ed07ae65c7550fb719767",
+        "size_bytes": 96044,
+        "stored_name": "sam-baa1509fe4d882abc11bd10575b02949df452319939ed07ae65c7550fb719767.wav"
+      },
+      "source": {
+        "format": "mp3",
+        "original_name": "stereo.mp3",
+        "sha256": "bf83052bb161b047d11d6813195d24145dab2729f6ae481be5b9560aa82a2d66",
+        "size_bytes": 3789,
+        "stored_name": "sam-bf83052bb161b047d11d6813195d24145dab2729f6ae481be5b9560aa82a2d66.mp3"
+      }
+    },
+    "864da15df9d13d9762805a785b2cb7ea5fe449bb69a82ff556229a3e15d8735f": {
+      "decoderRevision": "ffmpeg-f32-v1",
+      "playback": {
+        "channels": 1,
+        "format": "wav-f32le",
+        "frameCount": 24000,
+        "sampleRate": 48000,
+        "sha256": "f85767cd151cff4af5dbb11a755ecd7f5366e1ebdf2055def1489b4163f07575",
+        "size_bytes": 96044,
+        "stored_name": "sam-f85767cd151cff4af5dbb11a755ecd7f5366e1ebdf2055def1489b4163f07575.wav"
+      },
+      "source": {
+        "format": "wav",
+        "original_name": "mono.wav",
+        "sha256": "0310a5e27038291cecd5e571d4295c4a991ed13048da25c989ea4be2749a914f",
+        "size_bytes": 44144,
+        "stored_name": "sam-0310a5e27038291cecd5e571d4295c4a991ed13048da25c989ea4be2749a914f.wav"
+      }
+    }
+  },
+  "sequencer": {
+    "clipArrangement": {
+      "end": 80640,
+      "lanes": [],
+      "revision": 0,
+      "version": 4
+    }
+  },
+  "version": 27
+}

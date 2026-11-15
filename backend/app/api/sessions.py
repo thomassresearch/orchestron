@@ -26,6 +26,7 @@ from backend.app.models.session import (
     SessionSequencerSeekRequest,
     SessionSequencerStatus,
     SessionMidiEventRequest,
+    SamplePreviewRequest,
     SessionActionResponse,
     SessionCreateRequest,
     SessionCreateResponse,
@@ -139,6 +140,15 @@ async def stop_session(session_id: str, container: AppContainer = Depends(get_co
 @router.post("/{session_id}/panic", response_model=SessionActionResponse)
 async def panic_session(session_id: str, container: AppContainer = Depends(get_container)) -> SessionActionResponse:
     return await container.session_service.panic_session(session_id)
+
+
+@router.post("/{session_id}/instruments/{assignment_id}/sample-preview", status_code=204)
+async def sample_preview(
+    session_id: str, assignment_id: str, request: SamplePreviewRequest,
+    container: AppContainer = Depends(get_container),
+) -> Response:
+    await container.session_service.sample_preview(session_id, assignment_id, request)
+    return Response(status_code=204)
 
 
 @router.post("/{session_id}/midi-event", response_model=SessionActionResponse)

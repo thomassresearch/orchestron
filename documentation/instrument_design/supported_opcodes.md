@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Previous](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This reference lists **199** user-selectable opcodes and editor constructs in the Instrument Design catalog. Use the catalog search to find an opcode and its **?** button to open integrated help.
+This reference lists **200** user-selectable opcodes and editor constructs in the Instrument Design catalog. Use the catalog search to find an opcode and its **?** button to open integrated help.
 
 <a id="how-to-use-this-appendix"></a>
 
@@ -31,7 +31,7 @@ This reference lists **199** user-selectable opcodes and editor constructs in th
 | mixer | 3 |
 | modulation | 11 |
 | noise | 3 |
-| oscillator | 22 |
+| oscillator | 23 |
 | output | 1 |
 | physical_modeling | 31 |
 | reverb | 4 |
@@ -257,6 +257,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | voice | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Formant-based vocal source synthesizer. |
 | vosim | 8 (k, k, k, k, k, k, i, i) | 1 (a) | Vocal formant synthesis using overlapping sinusoidal bursts. |
 | phasor | 2 (k, i) | 1 (a) | Audio-rate normalized phase ramp; accepts audio-rate frequency. |
+| sample_player | - | 2 (a, a) | Plays the WAV or MP3 assigned to the exact note on this rack instance. |
 
 ### output
 

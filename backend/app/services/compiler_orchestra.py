@@ -38,13 +38,13 @@ from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.adsyn_analysis import validate_adsyn_analysis
 from backend.app.services.orc_metadata import format_orc_comment_value
 from backend.app.services.compiler_legato import has_legato, midi_opcode, phrase_prefix
+from backend.app.services.compiler_sample_player import has_sample_player, sample_node_lines, voice_prefix
 
 
 CONST_S_VALUE_RE = re.compile(r"[a-z][a-z0-9_]{0,49}")
 CONST_S_DEFAULT_VALUE = "string"
 SCORE_CONTROLLER_ARRAY_NAME = "gk_vcs_score_cc"
 SCORE_CONTROLLER_INSTRUMENT_REF = "9000"
-
 
 class OrchestraEmitter:
     def __init__(self, gen_asset_service: GenAssetService | None = None) -> None:
@@ -66,6 +66,7 @@ class OrchestraEmitter:
         live_continuous_controllers: bool = False,
         legato_identity: str | None = None,
         private_table_limit: int | None = None,
+        sampler_mapped: bool = False,
     ) -> CompiledInstrumentLines:
         deferred_audio_outlet_inputs: list[str] = []
         deferred_audio_outlets: list[str] = []
@@ -82,6 +83,11 @@ class OrchestraEmitter:
         instrument_lines: list[str] = []
         global_header_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
+        sampler = has_sample_player(patch)
+        if sampler:
+            instrument_lines.extend(voice_prefix(sampler_mapped))
+            if not sampler_mapped:
+                warnings.append(f"Sample Player in '{patch.name}' has no mapped notes.")
         legato = has_legato(patch)
         legato_envelopes: list[tuple[list[str], dict[str, str]]] = []
 
@@ -220,7 +226,11 @@ class OrchestraEmitter:
                 instrument_lines.extend(f"{output_vars[(block_id, channel)]} = {env[channel]}" for channel in block.channels)
                 continue
 
-            if compiled.spec.name == "outleta" or (compiled.spec.name == "outs" and (direct_output_ports is not None or legato)):
+            if compiled.spec.name == "sample_player":
+                instrument_lines.extend(sample_node_lines(env["aleft"], env["aright"], mapped=sampler_mapped))
+                continue
+
+            if compiled.spec.name == "outleta" or (compiled.spec.name == "outs" and (direct_output_ports is not None or legato or sampler)):
                 if compiled.spec.name == "outleta":
                     outlet_names = {"asignal": env["sname"]}
                 elif direct_output_ports is not None:
@@ -245,6 +255,10 @@ class OrchestraEmitter:
                         declicked = self._allocate_var_name(rate_counters, compiled.node.id, input_port)
                         deferred_audio_declicks.append(f"{declicked} vcs_legato_declick {signal}, k_vcs_legato_phrase")
                         signal = declicked
+                    if sampler and sampler_mapped:
+                        faded = self._allocate_var_name(rate_counters, compiled.node.id, input_port)
+                        deferred_audio_declicks.append(f"{faded} = {signal} * a_vcs_sample_cancel_gain")
+                        signal = faded
                     if not outlet_names[input_port.id]:
                         direct_signals.append(signal)
                     else:
@@ -425,7 +439,10 @@ class OrchestraEmitter:
                     instrument_lines.append(f"{env['kval']} ctrl7 {channel}, {env['inum']}, {env['imin']}, {env['imax']}")
                     continue
 
-            if performance_input_mode == "score":
+            if sampler and performance_input_mode != "score" and compiled.spec.name == "midictrl":
+                instrument_lines.append(f"{env['kval']} ctrl7 {score_midi_channel}, {env['inum']}, {env['imin']}, {env['imax']}")
+                continue
+            if performance_input_mode == "score" or sampler and compiled.spec.name in {"cpsmidi", "notnum", "midi_note", "ampmidi"}:
                 rendered_score_opcode = self._render_score_midi_opcode(
                     compiled,
                     env,

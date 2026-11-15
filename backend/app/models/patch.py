@@ -511,6 +511,7 @@ class PatchResponse(PatchBase):
 
 
 class PatchListItem(BaseModel):
+    has_sample_player: bool = False
     performance_controllers: list[PerformanceControllerDefinition] = Field(default_factory=list)
     audio_interface: AudioInterface | None = None
     has_direct_output: bool = False

@@ -1,3 +1,4 @@
+import { sampleCopy } from "../lib/sampleCopy";
 import { validateArrangementEdit } from "../lib/arrangementEditing";
 import { reorderRackInstruments } from "../lib/rackOrdering";
 import { removeRackInstrument } from "../lib/insertRouting";
@@ -80,6 +81,7 @@ export type SequencerTrackStoreActions = Pick<
   AppStore,
   | "addSequencerInstrument"
   | "removeSequencerInstrument"
+  | "duplicateSamplePlayer"
   | "moveSequencerInstrument"
   | "updateSequencerInstrumentPatch"
   | "updateSequencerInstrumentChannel"
@@ -150,18 +152,21 @@ export function createSequencerTrackStoreActions(
   get: AppStoreGet,
 ): SequencerTrackStoreActions {
   return {
-    addSequencerInstrument: () => {
+    addSequencerInstrument: (requestedPatchId) => {
       if (get().activeSessionState === "running") return;
       const state = get();
       const availableInstrumentPatches = performablePatches(state.patches);
       const patchId =
-        availableInstrumentPatches[0]?.id ?? (state.currentPatch.is_template === true ? undefined : state.currentPatch.id);
+        requestedPatchId ?? availableInstrumentPatches[0]?.id ?? (state.currentPatch.is_template === true ? undefined : state.currentPatch.id);
       if (!patchId) {
         set({ error: "Save at least one instrument patch before adding it to the sequencer." });
         return;
       }
       const selectedPatch = availableInstrumentPatches.find((patch) => patch.id === patchId);
 
+      if (selectedPatch?.has_sample_player && new Set(state.sequencerInstruments.map(b => b.midiChannel).filter(Boolean)).size >= 16) {
+        set({ error: sampleCopy(state.guiLanguage).noChannel }); return;
+      }
       if (state.sequencerInstruments.length >= 64) { set({ error: "A maximum of 64 patch instances is supported." }); return; }
       const binding: SequencerInstrumentBinding = {
         id: crypto.randomUUID(),
@@ -183,6 +188,30 @@ export function createSequencerTrackStoreActions(
         try { get().ensureMaster(); }
         catch (e) { set({ error: e instanceof Error ? e.message : "Master routing failed" }); }
       }
+    },
+
+    duplicateSamplePlayer: (bindingId) => {
+      const state = get();
+      if (state.activeSessionState === "running" || state.sampleUploads || state.loading) return;
+      const source = state.sequencerInstruments.find(binding => binding.id === bindingId);
+      if (!source || !state.patches.some(patch => patch.id === source.patchId && patch.has_sample_player)) return;
+      if (new Set(state.sequencerInstruments.map(b => b.midiChannel).filter(Boolean)).size >= 16 || state.sequencerInstruments.length >= 64) {
+        set({ error: sampleCopy(state.guiLanguage).noChannel }); return;
+      }
+      const id = crypto.randomUUID();
+      const copy = { ...structuredClone(source), id, midiChannel: nextAvailableMidiChannel(state.sequencerInstruments) };
+      const sends = { ...state.mixer.sends };
+      const outgoing = state.audioGraph.routes.filter(route => route.sourceId === bindingId).map(route => {
+        const routeId = crypto.randomUUID();
+        if (sends[route.id]) sends[routeId] = { ...sends[route.id] };
+        return { ...route, sourceId: id, id: routeId };
+      });
+      const strip = state.mixer.strips[bindingId];
+      set({
+        sequencerInstruments: [...state.sequencerInstruments, copy],
+        audioGraph: { ...state.audioGraph, routes: [...state.audioGraph.routes, ...outgoing] },
+        mixer: { sends, strips: strip ? { ...state.mixer.strips, [id]: { ...strip } } : state.mixer.strips }
+      });
     },
 
     removeSequencerInstrument: (bindingId) => {
@@ -220,6 +249,8 @@ export function createSequencerTrackStoreActions(
               ? {
                   ...binding,
                   patchId,
+                  sampleMap: binding.patchId === patchId ? binding.sampleMap : undefined,
+                  sampleAssets: binding.patchId === patchId ? binding.sampleAssets : undefined,
                   performanceControllerValues: binding.patchId === patchId ? binding.performanceControllerValues : {},
                   performanceControllerMidiCCs: binding.patchId === patchId ? binding.performanceControllerMidiCCs : {},
                   performanceControllerNotice: false,
@@ -235,7 +266,9 @@ export function createSequencerTrackStoreActions(
               : binding
           ),
           availablePatches
-        )
+        ),
+        ...(state.sequencerInstruments.some(b => b.id === bindingId && b.patchId !== patchId && b.sampleMap?.entries.length) ?
+          { error: sampleCopy(state.guiLanguage).cleared } : {})
       });
       if (patch?.audio_interface?.guided && patch.audio_interface.role === "instrument" && !get().audioGraph.routes.some((r) => r.sourceId === bindingId)) {
         try { get().ensureMaster(); }

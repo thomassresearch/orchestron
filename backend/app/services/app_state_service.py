@@ -23,10 +23,12 @@ class AppStateService:
         repository: AppStateRepository,
         *,
         patch_repository=None,
+        gen_asset_service=None,
         max_state_bytes: int = DEFAULT_APP_STATE_MAX_BYTES,
         max_string_bytes: int = DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
     ):
         self._repository = repository
+        self._gen_asset_service = gen_asset_service
         self._patch_lookup = repository_lookup(patch_repository)
         self._max_state_bytes = max_state_bytes
         self._max_string_bytes = max_string_bytes
@@ -55,6 +57,15 @@ class AppStateService:
             created_at=created_at or now,
             updated_at=now,
         )
+        from backend.app.services.gen_asset_references import sample_manifest_from_payload
+        from backend.app.services.sample_asset_service import verify_sample_assets
+
+        assets = sample_manifest_from_payload(state)
+        if assets:
+            try:
+                verify_sample_assets(assets, self._gen_asset_service)
+            except ValueError as err:
+                raise HTTPException(status_code=422, detail=str(err)) from err
         persisted = self._repository.upsert(document)
         return AppStateResponse.model_construct(state=persisted.state, updated_at=persisted.updated_at)
 

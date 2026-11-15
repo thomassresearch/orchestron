@@ -30,10 +30,12 @@ class PerformanceService:
         repository: PerformanceRepository,
         *,
         patch_repository=None,
+        gen_asset_service=None,
         max_config_bytes: int = DEFAULT_PERFORMANCE_CONFIG_MAX_BYTES,
         max_string_bytes: int = DEFAULT_PERSISTED_JSON_STRING_MAX_BYTES,
     ):
         self._repository = repository
+        self._gen_asset_service = gen_asset_service
         self._patch_lookup = repository_lookup(patch_repository)
         self._max_config_bytes = max_config_bytes
         self._max_string_bytes = max_string_bytes
@@ -49,6 +51,7 @@ class PerformanceService:
             created_at=now,
             updated_at=now,
         )
+        self.verify_samples(document.config)
         self._repository.create(document)
         return PerformanceResponse.model_validate(document.model_dump())
 
@@ -77,6 +80,7 @@ class PerformanceService:
         )
 
         self._validate_config(updated.config)
+        self.verify_samples(updated.config)
         if request.expected_updated_at is not None:
             if not self._repository.update_if_current(performance_id, updated, request.expected_updated_at):
                 raise HTTPException(status_code=409, detail="Performance changed since it was opened. Reload before committing.")
@@ -104,6 +108,18 @@ class PerformanceService:
             raise HTTPException(status_code=422, detail=str(err)) from err
         except ValueError as err:
             raise HTTPException(status_code=422, detail="config must be serializable as JSON.") from err
+
+    def verify_samples(self, config: dict) -> None:
+        from backend.app.services.gen_asset_references import sample_manifest_from_payload
+        from backend.app.services.sample_asset_service import verify_sample_assets
+
+        assets = sample_manifest_from_payload(config)
+        if not assets:
+            return
+        try:
+            verify_sample_assets(assets, self._gen_asset_service)
+        except ValueError as err:
+            raise HTTPException(status_code=422, detail=str(err)) from err
 
     def normalize_config(self, config: dict) -> dict:
         self._validate_config(config)

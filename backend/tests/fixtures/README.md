@@ -24,6 +24,11 @@ native round trips, saved overrides and MIDI/SCORE exports; none load examples.
 `csound/midi_sample_probe.csd` exposes note and controller delivery as exact sample
 levels. Both exercise host MIDI without an OS MIDI device or audio output device.
 
+`sample_player/` contains original synthetic notes for mono, stereo, MP3, ten-second
+tail, tiny-file, corruption and surround cases. Its shared performance fixture carries
+two independent maps, immutable asset identities and a v4 clip model. See its
+[provenance and regeneration instructions](sample_player/README.md).
+
 `parallel_render/workloads.json` fixes the T01 native single-renderer baseline:
 tiny, two/four/eight independent sources, shared delay and a serial-heavy source,
 at K=1/32. The bounded builder in `backend/tools/_parallel_render_workload.py`

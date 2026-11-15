@@ -151,7 +151,12 @@ export interface AppStore {
   newPerformanceWorkspace: () => Promise<void>;
   saveCurrentPerformance: () => Promise<void>;
 
-  addSequencerInstrument: () => void;
+  sampleUploads: number;
+  applySampleMap: (binding: import("../types").SequencerInstrumentBinding, generation: number,
+    map: import("../types").SampleMap | undefined, assets: import("../types").SampleAssets) => void;
+  addSamplePlayer: () => Promise<void>;
+  duplicateSamplePlayer: (bindingId: string) => void;
+  addSequencerInstrument: (patchId?: string) => void;
   removeSequencerInstrument: (bindingId: string) => void;
   moveSequencerInstrument: (sourceId: string, targetId: string, position?: "before" | "after") => void;
   updateSequencerInstrumentPatch: (bindingId: string, patchId: string) => void;

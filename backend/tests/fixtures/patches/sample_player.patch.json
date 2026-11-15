@@ -1,0 +1,37 @@
+{
+  "id": "sample-player-test",
+  "name": "Sample Player test",
+  "instrument_type": "percussion",
+  "graph": {
+    "engine_config": {
+      "sr": 48000,
+      "ksmps": 32,
+      "nchnls": 2,
+      "0dbfs": 1
+    },
+    "nodes": [
+      {
+        "id": "sampler",
+        "opcode": "sample_player"
+      },
+      {
+        "id": "output",
+        "opcode": "outs"
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "sampler",
+        "from_port_id": "aleft",
+        "to_node_id": "output",
+        "to_port_id": "left"
+      },
+      {
+        "from_node_id": "sampler",
+        "from_port_id": "aright",
+        "to_node_id": "output",
+        "to_port_id": "right"
+      }
+    ]
+  }
+}

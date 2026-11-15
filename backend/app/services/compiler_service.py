@@ -22,6 +22,7 @@ from backend.app.services.performance_controller_service import controller_bindi
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines, validate_legato
 from backend.app.services.compiler_waveguide import waveguide_header
+from backend.app.services.compiler_sample_player import has_sample_player, setup_sample_tables, validate_sample_target
 from backend.app.services.compiler_granular import granular_header
 from backend.app.services.compiler_swept_gate import swept_gate_header
 
@@ -33,6 +34,7 @@ class CompilerService:
         gen_asset_service: GenAssetService | None = None,
     ) -> None:
         self._opcode_service = opcode_service
+        self.gen_asset_service = gen_asset_service
         self._orchestra_emitter = OrchestraEmitter(gen_asset_service=gen_asset_service)
 
     def analyze_realtime_graph(
@@ -82,6 +84,7 @@ class CompilerService:
         bypassed = ({identity for identity, strip in mixer.strips.items() if strip.bypass}
                     if profile == CompilationProfile.OFFLINE and audio_graph is not None and mixer else set())
         for target in targets:
+            validate_sample_target(target)
             if target.assignment_id in bypassed:
                 continue
             validate_legato(target.patch)
@@ -118,6 +121,10 @@ class CompilerService:
         note_refs = {target.assignment_id or f"instrument-{index}": collector_refs.get(index, str(index + offset))
                      for index, target in enumerate(targets, 1)}
 
+        sample_setup, sample_bindings = setup_sample_tables(
+            targets, [str(index + offset) for index in range(1, len(targets) + 1)],
+            stored_filecode=self.sample_filecode,
+        )
         orc_lines = [
             f"sr = {engine.sr}",
             f"ksmps = {engine.ksmps}",
@@ -125,6 +132,7 @@ class CompilerService:
             f"0dbfs = {engine.zero_dbfs}",
             "",
         ]
+        orc_lines.extend(sample_setup)
         if setter_count:
             orc_lines.extend(controller_setter_lines(controller_manifest))
         orc_lines.extend(waveguide_header(targets))
@@ -139,10 +147,10 @@ class CompilerService:
                                                       for index, target in legato_targets.items()], instrument_number=1 + setter_count))
         if performance_input_mode == "score":
             orc_lines.extend([*self._orchestra_emitter.score_controller_header_lines(), ""])
-        elif legato_targets or setter_count:
+        elif legato_targets or setter_count or any(has_sample_player(target.patch) for target in targets):
             orc_lines.append("massign 0, 0")
             for index, target in enumerate(targets, 1):
-                if not target.always_on and (target.midi_channel > 0 or len(targets) == 1):
+                if not target.always_on and not has_sample_player(target.patch) and (target.midi_channel > 0 or len(targets) == 1):
                     orc_lines.append(f"massign {target.midi_channel}, {note_refs[target.assignment_id or f'instrument-{index}']}")
         else:
             orc_lines.extend(
@@ -170,6 +178,7 @@ class CompilerService:
                 score_midi_channel=target.midi_channel,
                 performance_controllers=controller_manifest.get(target.assignment_id or f"instrument-{instrument_number}", {}),
                 live_continuous_controllers=target.always_on and profile == CompilationProfile.LIVE,
+                sampler_mapped=bool(target.samples),
                 legato_identity=f"{instrument_number}_{target.patch.id}" if instrument_number in legato_targets else None,
             )
             compiled_instruments.append((instrument_number, target, compiled_lines))
@@ -215,12 +224,19 @@ class CompilerService:
             hardware_buffer=engine.hardware_buffer,
         )
         manifest = {"performanceControllers": controller_manifest} if controller_manifest else {}
+        if sample_bindings:
+            manifest["sampleBindings"] = sample_bindings
         if legato_targets or setter_count:
             manifest["instrumentReferences"] = {target.assignment_id or f"instrument-{index}": str(index + offset)
                                                 for index, target in enumerate(targets, 1)}
             manifest["noteInstrumentReferences"] = note_refs
             manifest["legatoInstanceIds"] = [targets[index - 1].assignment_id or f"instrument-{index}" for index in legato_targets]
         return CompileArtifact(orc=orc, csd=csd, diagnostics=diagnostics, manifest=manifest)
+
+    def sample_filecode(self, stored_name: str) -> int:
+        if self.gen_asset_service is None:
+            raise ValueError("No managed audio storage is available.")
+        return self.gen_asset_service.ensure_gen01_numeric_filecode_alias(stored_name)
 
     @staticmethod
     def _instrument_names(targets: list[PatchInstrumentTarget]) -> list[str] | None:

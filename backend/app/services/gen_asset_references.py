@@ -9,6 +9,14 @@ def collect_referenced_gen_audio_stored_names_from_payload(raw: object) -> set[s
     if payload is None:
         return names
 
+    for asset in sample_manifest_from_payload(payload).values():
+        names.update((asset.source.stored_name, asset.playback.stored_name))
+
+    for tab in payload.get("instrumentTabs", []) if isinstance(payload.get("instrumentTabs"), list) else []:
+        patch = tab.get("patch") if isinstance(tab, dict) else None
+        if isinstance(patch, dict):
+            names.update(collect_referenced_gen_audio_stored_names_from_graph(patch.get("graph")))
+
     graph = payload.get("graph")
     if graph is not None:
         names.update(collect_referenced_gen_audio_stored_names_from_graph(graph))
@@ -26,6 +34,20 @@ def collect_referenced_gen_audio_stored_names_from_payload(raw: object) -> set[s
                 names.update(collect_referenced_gen_audio_stored_names_from_graph(graph))
 
     return names
+
+
+def sample_manifest_from_payload(raw):
+    from pydantic import TypeAdapter
+    from backend.app.models.sample_player import SampleAssets
+
+    if not isinstance(raw, dict):
+        return {}
+    performance = raw.get("performance")
+    if isinstance(performance, dict):
+        raw = performance.get("config", {})
+    if not isinstance(raw, dict) or "sampleAssets" not in raw:
+        return {}
+    return TypeAdapter(SampleAssets).validate_python(raw["sampleAssets"])
 
 
 def collect_referenced_gen_audio_stored_names_from_graph(graph: object) -> set[str]:

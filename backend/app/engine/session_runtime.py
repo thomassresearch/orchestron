@@ -11,6 +11,7 @@ from backend.app.engine.renderer_factory import create_realtime_renderer
 from backend.app.engine.live_midi_activity import LiveMidiActivity
 from backend.app.engine.engine_stats import EngineStatsSampler
 from backend.app.models.audio import AudioGraph, MixerState
+from backend.app.models.sample_player import SampleAssets
 from backend.app.models.session import CompileArtifact, SessionInstrumentAssignment, SessionState
 
 
@@ -18,6 +19,8 @@ from backend.app.models.session import CompileArtifact, SessionInstrumentAssignm
 class RuntimeSession:
     session_id: str
     instruments: list[SessionInstrumentAssignment]
+    sample_assets: SampleAssets = field(default_factory=dict)
+    sample_previews: dict[str, str] = field(default_factory=dict)
     state: SessionState = SessionState.IDLE
     midi_input: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

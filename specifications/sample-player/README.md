@@ -1,6 +1,6 @@
 # Sample Player first version
 
-Status: **planned, not implemented**. Date: 2026-11-15.
+Status: **implemented; see the verification record**. Date: 2026-11-15.
 
 Add a reusable Sample Player instrument to Orchestron. Every rack instance owns a MIDI note-to-sample map, accepts WAV and MP3 uploads, and plays samples as one-shots. Saved performances and native bundles preserve the maps and audio. Both CSD export modes include everything needed to render the selected instruments outside Orchestron.
 
@@ -11,6 +11,7 @@ Add a reusable Sample Player instrument to Orchestron. Every rack instance owns 
 | [Feature specification](specification.md) | User workflow, ownership, data contracts, audio behavior, persistence, compatibility, and export rules |
 | [Implementation plan](implementation-plan.md) | Ordered work packages, source seams, dependencies, technical proof gates, and verification commands |
 | [Acceptance scenarios](acceptance.md) | Concrete fixtures and required model, playback, persistence, UI, and export results |
+| [Implementation record](implementation-record.md) | Shipped contracts, measurements, verification results, and open qualification cases |
 
 ## Required scope
 
@@ -37,7 +38,7 @@ The behavior above is the target contract. Proposed field names, new modules, nu
 
 A preliminary local Csound 6.18 probe demonstrated independent same-note mappings, mono playback, MP3-derived stereo playback, silent unmapped notes, identical MIDI/SCORE PCM, and identical rendering after moving a ZIP package. It needed the existing numeric GEN01 filename-alias technique. That probe did not implement Orchestron integration, short-note one-shot lifetimes, source cancellation, or persistence; these remain required gates in this plan. Temporary probe files are not release evidence or test fixtures.
 
-This package records the implementation plan only. It does not change application behavior, examples, user performances, deployed services, or installed plugins. Implementation is complete only when all required acceptance scenarios pass and the implementation record documents actual results.
+The implementation is in the repository. Verification results and any remaining release qualification appear in the implementation record. No deployment or installed plugin update is part of this change.
 
 ## Governing references
 

@@ -172,6 +172,13 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                                 and math.isfinite(value) and value > 0 and value == int(value))
                     key = f"table:{int(value)}" if numbered else "tables:*"
                     table(key, node, "read")
+            if name == "sample_player":
+                block("sample_player_single_renderer", node, "Sample Player voices and tables require the single renderer.")
+                resource("sample-voices:" + identity, node, "instance", "read_write")
+                for sample in {item.sha256: item for item in target.samples.values()}.values():
+                    resource("sample-table:" + sample.sha256, node, "performance", "read",
+                             (sample.frame_count + 2) * sample.channels * 8)
+                continue
             if name == "ftgenonce" and node.id in private_tables:
                 private_allocations.append((len(accesses), private_tables[node.id]))
                 resource(f"private-table:{identity}:{node.id}", node, "instance", "read_write")

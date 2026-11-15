@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+from tempfile import TemporaryDirectory
+from threading import Event
+from pathlib import Path
+from urllib.parse import unquote
+
 from starlette.concurrency import run_in_threadpool
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
+from backend.app.models.sample_player import SampleUpload
 from backend.app.models.assets import GenAudioAssetUploadResponse
-from backend.app.services.gen_asset_references import collect_persisted_gen_audio_stored_names
+from backend.app.services.gen_asset_references import collect_persisted_gen_audio_stored_names, collect_referenced_gen_audio_stored_names_from_payload
+from backend.app.services.sample_asset_service import decode_sample
 from backend.app.services.gen_asset_service import GenAudioAssetQuotaExceededError, GenAudioAssetTooLargeError
 
 router = APIRouter(prefix="/assets", tags=["assets"])
@@ -44,6 +52,44 @@ async def upload_gen_audio_asset(
         content_type=stored.content_type,
         size_bytes=stored.size_bytes,
     )
+
+
+@router.post("/samples", response_model=SampleUpload, status_code=201)
+async def upload_sample(
+    request: Request,
+    x_file_name: str | None = Header(default=None, alias="X-File-Name"),
+    container: AppContainer = Depends(get_container),
+) -> SampleUpload:
+    store = container.gen_asset_service
+    with TemporaryDirectory(prefix="orchestron-sample-source-") as folder:
+        path = Path(folder) / "upload"
+        size = 0
+        try:
+            with path.open("wb") as source:
+                async for chunk in request.stream():
+                    size += len(chunk)
+                    if size > store.max_audio_asset_bytes:
+                        raise GenAudioAssetTooLargeError("Sample upload exceeds the audio asset size limit.")
+                    await run_in_threadpool(source.write, chunk)
+            canceled = Event()
+
+            async def disconnect():
+                while not await request.is_disconnected():
+                    await asyncio.sleep(0.1)
+                canceled.set()
+
+            watcher = asyncio.create_task(disconnect())
+            try:
+                return await run_in_threadpool(decode_sample, path, unquote(x_file_name or ""), store, canceled=canceled,
+                                               quota_retry=lambda: _run_asset_gc(container=container))
+            finally:
+                watcher.cancel()
+                canceled.set()
+                await asyncio.gather(watcher, return_exceptions=True)
+        except (GenAudioAssetTooLargeError, GenAudioAssetQuotaExceededError) as err:
+            raise HTTPException(status_code=413, detail=str(err)) from err
+        except ValueError as err:
+            raise HTTPException(status_code=400, detail=str(err)) from err
 
 
 def _reject_declared_oversized_upload(*, content_length: str | None, container: AppContainer) -> None:
@@ -88,4 +134,8 @@ def _run_asset_gc(*, container: AppContainer) -> None:
         patch_documents=container.patch_repository.list(),
         performance_documents=container.performance_repository.list(),
     )
+    recovery = container.app_state_repository.get("last")
+    if recovery:
+        referenced.update(collect_referenced_gen_audio_stored_names_from_payload(recovery.state))
+    referenced.update(container.session_service.sample_stored_names())
     container.gen_asset_service.garbage_collect_unreferenced_assets(referenced_stored_names=referenced)

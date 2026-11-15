@@ -1,6 +1,6 @@
 # Sample Player acceptance scenarios
 
-Status: **planned, not executed**. Date: 2026-11-15.
+Status: **see the [verification record](implementation-record.md) for executed and open cases**. Date: 2026-11-15.
 
 These scenarios verify the [specification](specification.md) through the [implementation tasks](implementation-plan.md). Record results in the implementation record when coding begins. Each case must test the real behavior at the appropriate layer; generated-code string assertions alone do not establish audio correctness.
 

@@ -28,6 +28,7 @@ from backend.app.services.audio_routing_service import resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError, CompilationProfile
 from backend.app.services.compiler_graph import compile_graph_context, resolve_shared_engine, validate_target_channels
 from backend.app.services.performance_controller_service import controller_bindings, controller_setter_lines
+from backend.app.services.compiler_sample_player import has_sample_player, setup_sample_tables
 from backend.app.services.orc_metadata import format_csd_comment_value, instrument_metadata_comments
 from backend.app.services.internal_master import MASTER, internal_master_target
 from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines, has_legato, panic_listener_lines
@@ -559,6 +560,14 @@ def lower_mixer_bundle(
         *([RAMP_OPCODE] if live_mixer else []),
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
+    sample_targets = [target for target in targets if target.assignment_id not in omitted]
+    sample_setup, sample_bindings = setup_sample_tables(
+        sample_targets, [manifest["instrumentReferences"][target.assignment_id] for target in sample_targets],
+        stored_filecode=service.sample_filecode,
+    )
+    header.extend(sample_setup)
+    if sample_bindings:
+        manifest["sampleBindings"] = sample_bindings
     if setter_count:
         header += controller_setter_lines({t.assignment_id: controller_bindings(t, t.assignment_id) for t in targets if t.assignment_id not in omitted})
     header += waveguide_header([target for target in targets if target.assignment_id not in omitted])
@@ -582,7 +591,7 @@ def lower_mixer_bundle(
             *[
                 MidiAssignment("patch:" + t.assignment_id, t.midi_channel, manifest.get("noteInstrumentReferences", manifest["instrumentReferences"])[t.assignment_id])
                 for t in targets
-                if not t.always_on and t.midi_channel > 0
+                if not t.always_on and t.midi_channel > 0 and not has_sample_player(t.patch)
             ],
         ]
     bodies = {}
@@ -650,6 +659,7 @@ def lower_mixer_bundle(
                 live_continuous_controllers=target.always_on and profile == CompilationProfile.LIVE,
                 legato_identity=identity if identity in legato_refs else None,
                 private_table_limit=(private_table_limits or {}).get(stage),
+                sampler_mapped=bool(target.samples),
             )
             bodies[stage] = compiled.instrument_lines
             header.append(ScopedSetup(tuple(compiled.global_header_lines), (stage,)))

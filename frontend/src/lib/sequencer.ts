@@ -899,7 +899,7 @@ function normalizePitchClass(value: number): number {
   return modulo < 0 ? modulo + 12 : modulo;
 }
 
-function midiNoteLabel(note: number, preferFlats: boolean): string {
+export function midiNoteLabel(note: number, preferFlats: boolean): string {
   const clampedNote = clampSequencerNote(note);
   const pitchClass = normalizePitchClass(clampedNote);
   const octave = Math.floor(clampedNote / 12) - 1;

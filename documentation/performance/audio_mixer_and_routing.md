@@ -1,6 +1,6 @@
 # Audio mixer and routing
 
-**Navigation:** [Up](performance.md) | [Previous](instrument_rack_and_engine_transport.md) | [Next](performance_controllers.md)
+**Navigation:** [Up](performance.md) | [Previous](sample_player.md) | [Next](performance_controllers.md)
 
 <a id="control-api"></a>
 
@@ -163,4 +163,4 @@ The current Master is a fixed output strip. Customized older Master instruments 
 
 Library migration and recovery procedures are in the [developer reference](../../specifications/manual-reference/audio_mixer_and_routing.md).
 
-**Navigation:** [Up](performance.md) | [Previous](instrument_rack_and_engine_transport.md) | [Next](performance_controllers.md)
+**Navigation:** [Up](performance.md) | [Previous](sample_player.md) | [Next](performance_controllers.md)

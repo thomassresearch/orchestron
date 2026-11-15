@@ -53,6 +53,7 @@ class SessionPerformanceRuntimeCoordinator:
     def create_midi_router(self, runtime: RuntimeSession) -> PerformanceMidiRouter:
         router = PerformanceMidiRouter(
             enqueue_timestamped_midi=runtime.worker.enqueue_timestamped_midi,
+            cancel_sample_sources=getattr(runtime.worker, "cancel_sample_sources", None) if runtime.sample_assets else None,
             current_engine_sample=lambda runtime=runtime: runtime.worker.render_sample_cursor,
             output_name="engine:internal",
             collect_status_events=True,

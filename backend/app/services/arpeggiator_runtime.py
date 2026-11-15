@@ -4,7 +4,7 @@ from backend.app.models.clip_transposition import ROOT_PITCH_CLASS as _ROOT_PITC
 
 from backend.app.models.clip_arrangement import PreparedClipSchedule
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from collections import deque
 import random
 import heapq
@@ -48,6 +48,7 @@ class MidiSourceContext:
     source_id: str | None = None
     scale_root: SequencerScaleRoot | None = None
     mode: SequencerMode | None = None
+    sample_owner: str | None = None
 
 
 @dataclass(slots=True)
@@ -86,11 +87,13 @@ class ArpeggiatorRuntimeState:
     audition_origin: Fraction = Fraction(0)
     audition_pending: tuple[str, tuple[int, ...], Fraction] | None = None
     audition_stopped: bool = False
+    sample_audition_owner: str | None = None
     held_notes: dict[int, HeldNote] = field(default_factory=dict)
     physical_notes: dict[tuple[str, int], HeldNote] = field(default_factory=dict)
     active_notes: dict[int, int] = field(default_factory=dict)
     voice_ends: dict[int, int] = field(default_factory=dict)
     voice_sources: dict[int, str] = field(default_factory=dict)
+    sample_feeders: dict[int, str] = field(default_factory=dict)
     outputs: list[tuple[int, int, int, int, int]] = field(default_factory=list)
     step_index: int = 0
     note_index: int = 0
@@ -160,8 +163,10 @@ class PerformanceMidiRouter:
                  current_engine_sample: Callable[[], int], output_name: str = "engine:internal",
                  max_pending_inputs: int = 16_384,
                  max_future_samples: int | Callable[[], int] | None = None,
-                 collect_status_events: bool = False) -> None:
+                 collect_status_events: bool = False,
+                 cancel_sample_sources=None) -> None:
         self._enqueue_timestamped_midi = enqueue_timestamped_midi
+        self._cancel_sample_sources = cancel_sample_sources
         self._current_engine_sample = current_engine_sample
         self._output_name = output_name
         self._max_pending_inputs = max(1, max_pending_inputs)
@@ -248,6 +253,7 @@ class PerformanceMidiRouter:
                     reset = (old.input_channel, old.target_channel, old.playback_mode, old.processing_mode) != (
                         config.input_channel, config.target_channel, config.playback_mode, config.processing_mode)
                     if reset or old.enabled and not config.enabled and state.source_playing is None:
+                        self.cancel_sample_sources({f"lane:{config.arpeggiator_id}"})
                         self._cancel_overrides(state, self._beat(self._current_engine_sample()), self._current_engine_sample())
                     if reset or not config.enabled and state.source_playing is None and not state.audition_sequence:
                         self._clear(state, self._current_engine_sample())
@@ -283,6 +289,7 @@ class PerformanceMidiRouter:
                 new_states[config.arpeggiator_id] = state
             for key, state in self._states.items():
                 if key not in new_states:
+                    self.cancel_sample_sources({f"lane:{key}"})
                     self._clear(state, self._current_engine_sample())
             self._states = new_states
             self._preview_commands.retain(new_states)
@@ -417,7 +424,7 @@ class PerformanceMidiRouter:
             "step_index", "note_index", "phrase_offset", "last_restart")}
 
     def _snapshot(self, state, request):
-        return {"running": self._running(state), "applied": False, "fields": self._override_fields(state),
+        return {"running": self._running(state), "applied": False, "sample_owner": state.sample_audition_owner, "fields": self._override_fields(state),
                 "gesture": request.gesture_id, "revision": request.revision}
 
     def audition(self, request: SessionAuditionRequest, *, transport_running: bool | None = None) -> None:
@@ -539,6 +546,10 @@ class PerformanceMidiRouter:
         if not snapshot["applied"]:
             state.audition_pending = snapshot["fields"]["audition_pending"]
             return
+        owner = state.sample_audition_owner
+        if owner:
+            self.cancel_sample_sources({owner}, sample)
+        state.sample_audition_owner = snapshot["sample_owner"]
         self._release(state, sample)
         for key, value in snapshot["fields"].items():
             setattr(state, key, value)
@@ -572,6 +583,12 @@ class PerformanceMidiRouter:
         if not pending or beat < pending[2]:
             return
         action, sequence, at = pending
+        if state.sample_audition_owner:
+            self.cancel_sample_sources({state.sample_audition_owner}, sample)
+        overlay = state.preview or state.workspace or {}
+        state.sample_audition_owner = (
+            f"lane:{state.config.arpeggiator_id}\x00audition:{overlay.get('gesture', sample)}" if action == "start" else None
+        )
         if action == "start" and state.preview:
             state.preview["applied"] = True
         elif action == "start" and state.workspace:
@@ -747,6 +764,12 @@ class PerformanceMidiRouter:
                 self._locate(state, beat, reset=True)
         self._status_dirty = True
 
+    def cancel_arrangement_samples(self):
+        with self._lock:
+            self.cancel_sample_sources({f"lane:{key}" for key, state in self._states.items()
+                                        if state.config.playback_mode == "arranger" and
+                                        (state.source_playing is None or state.config.pad_loop_enabled)})
+
     def stop_source_transport(self):
         with self._lock:
             self._source_song_events.clear()
@@ -868,6 +891,15 @@ class PerformanceMidiRouter:
                                                      source_context=source_context)
         return self._output_name
 
+    def cancel_sample_sources(self, sources, sample=None) -> None:
+        if self._cancel_sample_sources and sources:
+            self._cancel_sample_sources(sources, sample)
+
+    def target_channel_for_input(self, channel: int) -> int:
+        with self._lock:
+            identity = self._input_channel_to_id.get(channel)
+            return self._states[identity].config.target_channel if identity else channel
+
     def route_message(self, message: list[int], *, source: str, target_engine_sample: int | None = None,
             delivery_delay_seconds: float | None = None, source_timestamp_ns: int | None = None,
             mapped_backend_monotonic_ns: int | None = None, sync_stale: bool = False,
@@ -888,11 +920,15 @@ class PerformanceMidiRouter:
                     return False
                 self._sequence += 1
                 context = source_context or MidiSourceContext(source_id=source)
+                if self._cancel_sample_sources and not context.sample_owner:
+                    owner = f"lane:{source_context.source_id}" if source_context and source_context.source_id else source
+                    context = replace(context, sample_owner=owner)
                 heapq.heappush(self._pending_inputs, PendingInputEvent(max(0, sample), self._sequence, key, normalized, context))
                 return True
         return self._enqueue_timestamped_midi(list(normalized), source=f"lane:{source_context.source_id}" if source_context and source_context.source_id else source, target_engine_sample=target_engine_sample,
             delivery_delay_seconds=delivery_delay_seconds, source_timestamp_ns=source_timestamp_ns,
-            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale)
+            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale,
+            **({"sample_source": source_context.sample_owner} if source_context and source_context.sample_owner else {}))
 
     def _max_future_sample_horizon(self) -> int | None:
         value = self._max_future_samples
@@ -941,6 +977,8 @@ class PerformanceMidiRouter:
                 source = event.source_context.source_id if event.source_context else "input"
                 physical_key = (source or "input", note)
                 if status == 0xb0 and note in {120, 123}:
+                    if note == 120 and context and context.sample_owner:
+                        self.cancel_sample_sources({context.sample_owner}, sample)
                     self._clear(state, sample)
                     continue
                 is_on = status == 0x90 and velocity > 0
@@ -965,7 +1003,7 @@ class PerformanceMidiRouter:
                         state.held_notes[note] = held
                 if state.config.processing_mode == "bypass" and self._running(state):
                     if is_on:
-                        self._attack(state, note, velocity, sample, None)
+                        self._attack(state, note, velocity, sample, None, context=context)
                     elif is_off:
                         self._off(state, note, sample)
                     elif status == 0xb0:
@@ -1235,6 +1273,8 @@ class PerformanceMidiRouter:
                         voice = self._sequence
                         if held.source_context and held.source_context.source_id:
                             state.voice_sources[voice] = held.source_context.source_id
+                        if held.source_context and held.source_context.sample_owner:
+                            state.sample_feeders[voice] = held.source_context.sample_owner
                         heapq.heappush(state.outputs, (start, 1, note, velocity, voice))
                         heapq.heappush(state.outputs, (end, 0, note, 0, voice))
                         state.voice_ends[voice] = end
@@ -1250,20 +1290,24 @@ class PerformanceMidiRouter:
             count += 1
         return max(0, self._sample_for(self._step_beat(state, index + count)) - self._sample_for(self._step_beat(state, index)))
 
-    def _attack(self, state: ArpeggiatorRuntimeState, note: int, velocity: int, sample: int, voice: int | None) -> None:
+    def _attack(self, state: ArpeggiatorRuntimeState, note: int, velocity: int, sample: int, voice: int | None,
+                *, context: MidiSourceContext | None = None) -> None:
         self._off(state, note, sample)
         if voice is None:
             self._sequence += 1
             voice = self._sequence
+        if context and context.sample_owner:
+            state.sample_feeders[voice] = context.sample_owner
         state.active_notes[note] = voice
         state.last_velocity = velocity
-        self._emit(_note_on_message(state.config.target_channel, note, velocity), sample, state)
+        self._emit(_note_on_message(state.config.target_channel, note, velocity), sample, state, voice=voice)
 
     def _off(self, state: ArpeggiatorRuntimeState, note: int, sample: int) -> None:
         voice = state.active_notes.pop(note, None)
         if voice is not None:
             state.voice_ends.pop(voice, None)
             state.voice_sources.pop(voice, None)
+            state.sample_feeders.pop(voice, None)
             self._emit(_note_off_message(state.config.target_channel, note), sample, state)
 
     def _outputs(self, state: ArpeggiatorRuntimeState, sample: int) -> None:
@@ -1274,13 +1318,22 @@ class PerformanceMidiRouter:
                 if self.lane_output and source and lane_id(source) in self.lane_output.blocked:
                     state.voice_ends.pop(voice, None)
                     state.voice_sources.pop(voice, None)
+                    state.sample_feeders.pop(voice, None)
                     continue
                 self._attack(state, note, velocity, max(at, sample), voice)
             elif state.active_notes.get(note) == voice and state.voice_ends.get(voice) == at:
                 self._off(state, note, max(at, sample))
 
-    def _emit(self, message: list[int], sample: int, state: ArpeggiatorRuntimeState) -> None:
-        self._enqueue_timestamped_midi(message, source=f"lane:{state.config.arpeggiator_id}", target_engine_sample=max(0, sample))
+    def _emit(self, message: list[int], sample: int, state: ArpeggiatorRuntimeState, *, voice=None) -> None:
+        source = f"lane:{state.config.arpeggiator_id}"
+        owner = state.sample_audition_owner
+        feeder = state.sample_feeders.get(voice)
+        if not feeder and voice in state.voice_sources:
+            feeder = f"lane:{state.voice_sources[voice]}"
+        if feeder:
+            owner = (owner or source) + "\x01" + feeder
+        self._enqueue_timestamped_midi(message, source=source, target_engine_sample=max(0, sample),
+                                      **({"sample_source": owner} if owner and self._cancel_sample_sources else {}))
 
     def _release(self, state: ArpeggiatorRuntimeState, sample: int) -> None:
         for note in list(state.active_notes):
@@ -1288,6 +1341,7 @@ class PerformanceMidiRouter:
         state.outputs.clear()
         state.voice_ends.clear()
         state.voice_sources.clear()
+        state.sample_feeders.clear()
         state.last_notes.clear()
 
     def _clear(self, state: ArpeggiatorRuntimeState, sample: int) -> None:

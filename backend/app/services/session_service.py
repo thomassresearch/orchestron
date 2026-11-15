@@ -56,6 +56,7 @@ from backend.app.models.session import (
     SessionSequencerSeekRequest,
     SessionSequencerStatus,
     SessionMidiEventRequest,
+    SamplePreviewRequest,
     SessionActionResponse,
     SessionCreateRequest,
     SessionCreateResponse,
@@ -150,7 +151,8 @@ class SessionService:
             levels = [i.level for i in instruments]
             instruments = resolver.normalize(instruments)
             try:
-                graph, mixer = normalize_audio_inputs([resolver.compile_target(i) for i in instruments], request.audio_graph, request.mixer, levels)
+                assets = self._verify_sample_assets(instruments, request.sample_assets)
+                graph, mixer = normalize_audio_inputs([resolver.compile_target(i, assets) for i in instruments], request.audio_graph, request.mixer, levels)
                 request = request.model_copy(update={"audio_graph": graph, "mixer": mixer})
                 if graph is not None:
                     instruments = [i.model_copy(update={"effect_routes": [], "effect_source_ids": []}) for i in instruments]
@@ -177,6 +179,7 @@ class SessionService:
             runtime = RuntimeSession(
                 session_id=str(uuid4()),
                 instruments=instruments,
+                sample_assets=assets,
                 audio_graph=request.audio_graph,
                 mixer=request.mixer,
                 preview_patches=preview_patches or {},
@@ -229,7 +232,8 @@ class SessionService:
     ) -> SessionInstrumentValidationResponse:
         instruments = self._instrument_resolver.normalize(list(request.instruments))
         try:
-            graph, mixer = normalize_audio_inputs([self._instrument_resolver.compile_target(i) for i in instruments], request.audio_graph, request.mixer, [i.level for i in request.instruments])
+            assets = self._verify_sample_assets(instruments, request.sample_assets)
+            graph, mixer = normalize_audio_inputs([self._instrument_resolver.compile_target(i, assets) for i in instruments], request.audio_graph, request.mixer, [i.level for i in request.instruments])
             request = request.model_copy(update={"audio_graph": graph, "mixer": mixer})
             if graph is not None:
                 instruments = [i.model_copy(update={"effect_routes": [], "effect_source_ids": []}) for i in instruments]
@@ -261,6 +265,22 @@ class SessionService:
                 for route in resolved_routes
             ],
         )
+
+    def _verify_sample_assets(self, instruments, assets):
+        from backend.app.models.sample_player import resolve_sample_manifest
+        from backend.app.services.sample_asset_service import verify_sample_assets
+
+        try:
+            used = resolve_sample_manifest((instrument.sample_map for instrument in instruments), assets)
+            if used:
+                verify_sample_assets(used, self._compiler_service.gen_asset_service)
+            return used
+        except ValueError as error:
+            raise CompilationError([str(error)]) from error
+
+    def sample_stored_names(self) -> set[str]:
+        return {name for runtime in tuple(self._sessions.values()) for asset in runtime.sample_assets.values()
+                for name in (asset.source.stored_name, asset.playback.stored_name)}
 
     async def list_sessions(self) -> list[SessionInfo]:
         self._remember_running_loop()
@@ -494,7 +514,8 @@ class SessionService:
         generation = runtime.lifecycle_generation
         def compile_artifact():
             resolver = self._resolver_for_patches(runtime.preview_patches)
-            targets = [resolver.compile_target(assignment) for assignment in runtime.instruments]
+            assets = self._verify_sample_assets(runtime.instruments, runtime.sample_assets)
+            targets = [resolver.compile_target(assignment, assets) for assignment in runtime.instruments]
             artifact = self._compiler_service.compile_patch_bundle(
                 targets=targets,
                 midi_input=self._resolve_runtime_midi_backend_selector(runtime),
@@ -545,7 +566,7 @@ class SessionService:
         generation = runtime.lifecycle_generation
         self._check_lifecycle_generation(runtime, generation)
         if not runtime.compile_artifact or (runtime.state != SessionState.RUNNING and
-                (runtime.audio_graph is not None or runtime.compile_artifact.manifest.get("performanceControllers"))):
+                (runtime.audio_graph is not None or runtime.sample_assets or runtime.compile_artifact.manifest.get("performanceControllers"))):
             await self._compile_runtime(runtime)
 
         assert runtime.compile_artifact is not None
@@ -576,6 +597,8 @@ class SessionService:
             await self._stop_worker(runtime)
             self._check_lifecycle_generation(runtime, generation)
         runtime.state = SessionState.RUNNING
+        if not was_running:
+            runtime.sample_previews.clear()
         if runtime.audio_graph is not None and not was_running:
             runtime.worker.configure_mixer(runtime.compile_artifact.manifest,
                 mixer_control_values(runtime.compile_artifact.manifest, runtime.mixer))
@@ -1245,6 +1268,34 @@ class SessionService:
         self._midi_service.remove_host_inputs(host_id=lease.host_id)
         await self._reset_host_live_input(lease.host_id)
 
+    async def sample_preview(self, session_id: str, assignment_id: str, request: SamplePreviewRequest) -> None:
+        runtime = await self._get_session(session_id)
+        async with runtime.lifecycle_lock:
+            self._assert_session_open(runtime)
+            binding = next((row for row in runtime.instruments if row.id == assignment_id), None)
+            if binding is None:
+                raise HTTPException(status_code=404, detail="Unknown rack instrument.")
+            source = f"sample-preview:{assignment_id}:{request.gesture}"
+            previous = runtime.sample_previews.get(assignment_id)
+            if request.action == "stop":
+                if previous == source:
+                    runtime.sample_previews.pop(assignment_id, None)
+                    runtime.worker.cancel_sample_sources({source})
+                return
+            if not runtime.worker.is_running:
+                raise HTTPException(status_code=409, detail="Start the instrument engine to preview samples.")
+            if not binding.sample_map or request.note not in {entry.note for entry in binding.sample_map.entries}:
+                raise HTTPException(status_code=422, detail="This note has no assigned sample.")
+            if previous == source:
+                return
+            if not runtime.worker.enqueue_timestamped_midi(
+                [0x90 + binding.midi_channel - 1, request.note, 100], source=source
+            ):
+                raise HTTPException(status_code=409, detail="Sample preview queue is full.")
+            runtime.sample_previews[assignment_id] = source
+            if previous:
+                runtime.worker.cancel_sample_sources({previous})
+
     async def send_midi_event(self, session_id: str, request: SessionMidiEventRequest) -> SessionActionResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
@@ -1505,6 +1556,13 @@ class SessionService:
         runtime = await self._get_session(session_id)
         self._invalidate_configuration(runtime)
         sequencer = self._ensure_sequencer(runtime)
+        if runtime.sample_assets:
+            config = sequencer._config
+            if config is not None:
+                identities = [key for key, track in config.tracks.items() if not sequencer.sources.active or
+                              sequencer.sources.is_arrangement(track)]
+                runtime.worker.cancel_sample_sources({f"lane:{key}" for key in identities})
+            self._ensure_midi_router(runtime).cancel_arrangement_samples()
         status = sequencer.stop()
         self._ensure_midi_router(runtime).clear_auditions(stop=True)
         self._ensure_midi_router(runtime).stop_source_transport()
@@ -1600,7 +1658,16 @@ class SessionService:
         runtime = await self._get_session(session_id)
         def at_boundary():
             gate = runtime.worker.lane_output
+            previously_blocked = gate.blocked
             gate.apply(request.revision, {key: value.model_dump() for key, value in request.lanes.items()})
+            if runtime.sample_assets:
+                from backend.app.engine.lane_output import lane_id
+                suppressed = gate.blocked - previously_blocked
+                config = self._ensure_sequencer(runtime)._config
+                identities = set(suppressed)
+                if config:
+                    identities.update(key for key in config.tracks if lane_id(key) in suppressed)
+                runtime.worker.cancel_sample_sources({f"lane:{key}" for key in identities})
             self._ensure_midi_router(runtime).lane_output_changed()
             return self._status_with_arpeggiators(runtime, self._ensure_sequencer(runtime).status())
         try:
@@ -1642,7 +1709,10 @@ class SessionService:
                 (before.get(identity, {}).get("workspace_active") or before.get(identity, {}).get("preview_active"))
                 and before[identity].get("workspace_gesture") == request.gesture_id for identity in identities)
             if (preview_changed or workspace_changed) and before != after:
-                runtime.worker.release_lane_events(identities)
+                if runtime.sample_assets:
+                    runtime.worker.release_lane_events(identities, force_samples=False)
+                else:
+                    runtime.worker.release_lane_events(identities)
                 router.discard_future_lane_inputs(identities)
             if request.action in {"stop", "preview_end", "workspace_end"} and sequencer._audition_standalone and not sequencer.audition_status() and not router.audition_status():
                 status = sequencer.stop()
@@ -1851,7 +1921,13 @@ class SessionService:
             messages.append([0xB0 + channel, request.controller, request.value])
             detail = "control_change queued via engine:internal"
         else:
-            messages.extend([[0xB0 + channel, 123, 0], [0xB0 + channel, 120, 0]])
+            messages.append([0xB0 + channel, 123, 0])
+            # Preserve the pre-existing hard release for non-sampler synths.
+            # For a sampler All Notes Off releases only the input gesture.
+            sampler_channels = runtime.compile_artifact.manifest.get("sampleBindings", {}) if runtime.compile_artifact else {}
+            target_channel = self._ensure_midi_router(runtime).target_channel_for_input(channel + 1) if sampler_channels else channel + 1
+            if target_channel not in sampler_channels:
+                messages.append([0xB0 + channel, 120, 0])
             detail = "all_notes_off queued via engine:internal"
 
         source_timestamp_ns = (
@@ -1949,6 +2025,7 @@ class SessionService:
             except (RuntimeError, ValueError):
                 sample = dict(available=False, scope="unavailable", cpus=[])
             return EngineStats(session_id=session_id, state=runtime.state,
+                sample_voice_overflows=getattr(runtime.worker, "sample_voice_overflow_count", 0),
                 renderer=controller.renderer_diagnostics if controller is not None else None, **sample)
 
         return await asyncio.to_thread(observe)

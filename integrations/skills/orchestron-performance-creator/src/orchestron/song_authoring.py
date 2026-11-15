@@ -661,7 +661,7 @@ def migrate(config):
         s.get("stepCount", 8) * QUARTER // 8,
         *[c["start"] + c["length"] for lane_item in lanes for c in lane_item["clips"]],
     )
-    config["version"] = 23
+    config["version"] = max(config.get("version", 22), 23)
     s.pop("clipHistory", None)
     validate(config)
     return {

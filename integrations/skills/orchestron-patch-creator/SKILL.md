@@ -89,6 +89,15 @@ The CLI enforces these defaults in generated graphs:
 
 ## Performance Customization
 
+For Sample Player patches, use the built-in Sample Player starter in Orchestron or an
+existing native sampler patch. Keep its single `sample_player` node in the root of
+a MIDI instrument, outside branches and separate from `midi_legato`. Use the usual stereo
+output and mixer routing. Maps are rack-instance settings edited in Perform or the
+Performance Creator CLI while the engine is stopped. They are never patch defaults.
+Standalone compilation works with an empty map; test audible output using a versioned
+mono or stereo WAV/MP3 fixture assigned in a performance. Native performance ZIPs
+include originals; CSD render ZIPs include the canonical playback files.
+
 Use the Orchestron virtual opcode `perf_controller` for settings that vary between performances or rack instances. Its fixed fields are `min`, `max`, `default`, `scale` (`linear` or `logarithmic`), `label`, and optional `controller_group`; its only output is I-rate `iout`, and it has no input sockets. Add definitions through the patch spec's `performance_controllers` list; see [the schema and working example](references/performance_controllers.md).
 
 Keep node IDs stable when editing a patch: performance overrides refer to those IDs, not labels. Set useful patch defaults, then store instance choices in the performance rather than changing the shared patch. These knobs do not send MIDI CC. New notes read updated values; held notes retain theirs, and always-on instruments need a rack restart. Standalone compilation and isolated audition use defaults.

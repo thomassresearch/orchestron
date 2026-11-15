@@ -238,6 +238,13 @@ class SequencerSourceTransport:
         self.cursor = position
         self.origin = self.runtime._absolute_subunit - position
         if self.arrangement_running:
+            self.runtime._cancel_sample_sources({
+                f"lane:{identity}" for identity, track in self.tracks().items()
+                if self.is_arrangement(track) and identity in self.playing
+            })
+            cancel = getattr(self.runtime._midi_service, "cancel_arrangement_samples", None)
+            if cancel:
+                cancel()
             self.reposition()
             self.advance(self.runtime._absolute_subunit)
         self.router_song()

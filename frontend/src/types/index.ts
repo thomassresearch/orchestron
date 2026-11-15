@@ -565,7 +565,23 @@ export interface SessionEffectRoute {
   channel: string;
 }
 
+export interface SampleFile {
+  stored_name: string;
+  sha256: string;
+  size_bytes: number;
+}
+
+export interface SampleAsset {
+  source: SampleFile & { original_name: string; format: "wav" | "mp3" };
+  playback: SampleFile & { sampleRate: 48000; channels: 1 | 2; frameCount: number; format: "wav-f32le" };
+  decoderRevision: string;
+}
+
+export type SampleAssets = Record<string, SampleAsset>;
+export type SampleMap = { version: 1; entries: Array<{ note: number; assetId: string }> };
+
 export interface SessionInstrumentAssignment {
+  sample_map?: { version: 1; entries: Array<{ note: number; asset_id?: string; assetId?: string }> };
   performance_controller_values?: Record<string, number>;
   performance_controller_midi_ccs?: Record<string, number>;
   id?: string;
@@ -591,6 +607,8 @@ export interface PerformanceControllerDefinition {
 }
 
 export interface SequencerInstrumentBinding {
+  sampleMap?: SampleMap;
+  sampleAssets?: SampleAssets;
   performanceControllerValues?: Record<string, number>;
   performanceControllerMidiCCs?: Record<string, number>;
   performanceControllerNotice?: boolean;
@@ -603,11 +621,13 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
+  sampleAssets?: SampleAssets;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
+    sampleMap?: SampleMap;
     performanceControllerValues?: Record<string, number>;
   performanceControllerMidiCCs?: Record<string, number>;
     id?: string;
@@ -773,8 +793,9 @@ export interface BrowserClockLatencySettings {
 }
 
 export interface PersistedAppState {
+  sampleAssets?: SampleAssets;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;
@@ -1107,6 +1128,7 @@ export interface Patch {
 }
 
 export interface PatchListItem {
+  has_sample_player?: boolean;
   performance_controllers?: PerformanceControllerDefinition[];
   audio_interface?: AudioInterface | null;
   has_direct_output?: boolean;

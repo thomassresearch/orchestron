@@ -1,6 +1,6 @@
 import { withLaneOutput } from "../lib/laneOutput";
 import type { InstrumentType } from "../types";
-import type { SessionInstrumentAssignment } from "../types";
+import type { SampleAsset, SampleAssets, SessionInstrumentAssignment } from "../types";
 import type { AudioDiagnostic, AudioGraph, MixerState, MixerResponse } from "../types";
 import type {
   AppStateResponse,
@@ -43,6 +43,7 @@ export class ApiError extends Error {
     let audioDiagnostics: AudioDiagnostic[] = [];
     try {
       const detail = JSON.parse(body)?.detail;
+      if (typeof detail === "string") message = detail;
       if (Array.isArray(detail?.diagnostics) && detail.diagnostics.every((item: unknown) => typeof item === "string")) {
         message = detail.diagnostics.join("\n");
       }
@@ -201,19 +202,19 @@ export const api = {
     performanceId: string,
     payload: { name?: string; description?: string; config?: SequencerConfigSnapshot }
   ) => request<Performance>(`/performances/${performanceId}`, { method: "PUT", body: JSON.stringify(payload) }),
+  uploadSample: (file: File, signal: AbortSignal) => request<{asset_id: string; asset: SampleAsset}>("/assets/samples", {
+    method: "POST", headers: { "Content-Type": file.type || "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+    body: file, signal
+  }),
+  previewSample: (id: string, assignment: string, payload: {action: "start" | "stop"; gesture: string; note: number}) =>
+    request<void>(`/sessions/${id}/instruments/${encodeURIComponent(assignment)}/sample-preview`, { method: "POST", body: JSON.stringify(payload) }),
   createSession: (
-    instruments: Array<{
-      id?: string;
-      patch_id: string;
-      midi_channel: number;
-      performance_controller_values?: Record<string, number>;
-      effect_source_ids?: string[];
-      effect_routes?: Array<{ source_id: string; channel: string }>;
-    }>, audio_graph?: AudioGraph, mixer?: MixerState, renderer?: import("../types").SessionRendererRequest
+    instruments: SessionInstrumentAssignment[], audio_graph?: AudioGraph, mixer?: MixerState, renderer?: import("../types").SessionRendererRequest,
+    sample_assets?: SampleAssets
   ) =>
     request<SessionCreateResponse>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ instruments, audio_graph, mixer, ...renderer })
+      body: JSON.stringify({ instruments, audio_graph, mixer, ...renderer, sample_assets })
     }),
   createPreview: (payload: { patches: Patch[]; session: { instruments: SessionInstrumentAssignment[]; audio_graph: AudioGraph; mixer: MixerState } }) => request<SessionCreateResponse>("/sessions/preview", { method: "POST", body: JSON.stringify(payload) }),
   getPerformanceControllers: (id: string) => request<Record<string, import("../types").PerformanceControllerSnapshot>>(`/sessions/${id}/performance-controllers`),
@@ -222,7 +223,7 @@ export const api = {
     request<{ values: Record<string, number> }>(`/sessions/${encodeURIComponent(id)}/instruments/${encodeURIComponent(assignmentId)}/performance-controllers`, { method: "PUT", body: JSON.stringify({ values }) }),
   getMixer: (id: string) => request<MixerResponse>(`/sessions/${id}/mixer`),
   updateMixer: (id: string, mixer: MixerState, revision?: number) => request<MixerResponse>(`/sessions/${id}/mixer`, { method: "PUT", body: JSON.stringify({ ...mixer, revision }) }),
-  validateAudio: (instruments: SessionInstrumentAssignment[], audio_graph: AudioGraph, mixer: MixerState) => request<{ diagnostics: import("../types").AudioDiagnostic[] }>("/sessions/validate-instruments", { method: "POST", body: JSON.stringify({ instruments, audio_graph, mixer }) }),
+  validateAudio: (instruments: SessionInstrumentAssignment[], audio_graph: AudioGraph, mixer: MixerState, sample_assets?: SampleAssets) => request<{ diagnostics: import("../types").AudioDiagnostic[] }>("/sessions/validate-instruments", { method: "POST", body: JSON.stringify({ instruments, audio_graph, mixer, sample_assets }) }),
   getSession: (sessionId: string) => request<SessionInfo>(`/sessions/${sessionId}`),
   getEngineStats: (sessionId: string, signal?: AbortSignal) =>
     request<import("../types").EngineStats>(`/sessions/${sessionId}/engine-stats`, { signal }),

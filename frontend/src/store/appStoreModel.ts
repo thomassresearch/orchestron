@@ -17,6 +17,7 @@ import { normalizeControllerValues, normalizeControllerMidiCCs, performanceContr
 import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
 import type { AudioGraph, MixerState } from "../types";
+import { hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest, wireSampleMap, sampleMapSignature } from "../lib/samplePlayer";
 import { emptyAudioGraph, emptyMixer, cleanBindings, migrateAudio } from "../lib/audioRouting";
 import { api } from "../api/client";
 import {
@@ -2349,9 +2350,11 @@ export function normalizePersistedInstrumentTabs(raw: unknown): InstrumentTabSta
 export function normalizePersistedSequencerInstruments(
   raw: unknown,
   patches: PatchListItem[],
-  fallbackPatchId: string | null
+  fallbackPatchId: string | null,
+  rawSampleAssets?: unknown
 ): SequencerInstrumentBinding[] {
   const bindings: SequencerInstrumentBinding[] = [];
+  const assets = parseSampleAssets(rawSampleAssets);
   const patchById = new Map(patches.map((patch) => [patch.id, patch]));
 
   if (Array.isArray(raw)) {
@@ -2373,6 +2376,7 @@ export function normalizePersistedSequencerInstruments(
       bindings.push({
         id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
         patchId: candidate.patchId,
+        ...readSampleBinding(candidate.sampleMap, assets),
         ...(Object.keys(normalizeControllerMidiCCs(candidate.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(candidate.performanceControllerMidiCCs) } : {}),
         performanceControllerValues: normalizeControllerValues(candidate.performanceControllerValues),
         midiChannel,
@@ -2442,7 +2446,8 @@ export function sequencerSnapshotForPersistence(sequencer: SequencerState): Sequ
 
 export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   return {
-    version: state.sequencer.clipArrangement?.version === 4 ? 8 : state.sequencer.clipArrangement?.version === 3 ? 7 : state.sequencer.clipArrangement?.version === 2 ? 6 : state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+    ...(hasSampleMaps(state.sequencerInstruments) ? { sampleAssets: sampleManifest(state.sequencerInstruments) } : {}),
+    version: hasSampleMaps(state.sequencerInstruments) ? 9 : state.sequencer.clipArrangement?.version === 4 ? 8 : state.sequencer.clipArrangement?.version === 3 ? 7 : state.sequencer.clipArrangement?.version === 2 ? 6 : state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
     arrangerHistory: structuredClone(state.arrangerHistory),
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
@@ -2960,7 +2965,8 @@ export function buildSequencerConfigSnapshot(
     timing
   );
   return {
-    version: sequencer.clipArrangement?.version === 4 ? 26 : sequencer.clipArrangement?.version === 3 ? 25 : sequencer.clipArrangement?.version === 2 ? 24 : sequencer.clipArrangement ? 23 : 22,
+    ...(hasSampleMaps(instruments) ? { sampleAssets: sampleManifest(instruments) } : {}),
+    version: hasSampleMaps(instruments) ? 27 : sequencer.clipArrangement?.version === 4 ? 26 : sequencer.clipArrangement?.version === 3 ? 25 : sequencer.clipArrangement?.version === 2 ? 24 : sequencer.clipArrangement ? 23 : 22,
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -2968,6 +2974,7 @@ export function buildSequencerConfigSnapshot(
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
         patchId: instrument.patchId,
+        ...(instrument.sampleMap ? { sampleMap: structuredClone(instrument.sampleMap) } : {}),
         id: instrument.id,
         midiChannel: clampInt(instrument.midiChannel, 0, 16),
         ...(Object.keys(normalizeControllerMidiCCs(instrument.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(instrument.performanceControllerMidiCCs) } : {}),
@@ -3192,7 +3199,7 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 20 &&
     payload.version !== 21 &&
     payload.version !== 22 &&
-    payload.version !== 23 && payload.version !== 24 && payload.version !== 25 && payload.version !== 26
+    payload.version !== 23 && payload.version !== 24 && payload.version !== 25 && payload.version !== 26 && payload.version !== 27
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
@@ -3201,6 +3208,10 @@ export function parseSequencerConfigSnapshot(
   if (clipVersion && (payload.version < 23 || clipVersion === 2 && payload.version < 24 || clipVersion === 3 && payload.version < 25 || clipVersion === 4 && payload.version < 26)) throw new Error("This clip arrangement requires a newer performance format.");
   const sequencer = normalizeSequencerState(payload.sequencer);
   const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
+  if (payload.version !== 27 && (payload.sampleAssets !== undefined || instrumentsRaw.some(entry => entry?.sampleMap !== undefined))) {
+    throw new Error("Sample maps require performance format 27.");
+  }
+  const assets = parseSampleAssets(payload.sampleAssets);
   const patchById = new Map(availablePatches.map((patch) => [patch.id, patch]));
 
   const instruments: SequencerInstrumentBinding[] = [];
@@ -3222,6 +3233,7 @@ export function parseSequencerConfigSnapshot(
     instruments.push({
       id: typeof record.id === "string" && record.id.length > 0 ? record.id : crypto.randomUUID(),
       patchId: record.patchId,
+      ...readSampleBinding(record.sampleMap, assets),
       ...(Object.keys(normalizeControllerMidiCCs(record.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(record.performanceControllerMidiCCs) } : {}),
         performanceControllerValues: normalizeControllerValues(record.performanceControllerValues),
       midiChannel,
@@ -3277,6 +3289,7 @@ export function normalizeSessionInstrumentAssignments(
     assignments.push({
       id: binding.id,
       patch_id: binding.patchId,
+      ...(binding.sampleMap ? { sample_map: wireSampleMap(binding.sampleMap) } : {}),
       performance_controller_values: normalizeControllerValues(binding.performanceControllerValues),
       performance_controller_midi_ccs: normalizeControllerMidiCCs(binding.performanceControllerMidiCCs),
       midi_channel: midiChannel,
@@ -3321,6 +3334,7 @@ export function sameAssignments(a: SessionInstrumentAssignment[], b: SessionInst
     if ((aSorted[index].id ?? "") !== (bSorted[index].id ?? "")) {
       return false;
     }
+    if (sampleMapSignature(aSorted[index].sample_map) !== sampleMapSignature(bSorted[index].sample_map)) return false;
     const aSources = normalizeEffectSourceIds(aSorted[index].effect_source_ids).sort();
     const bSources = normalizeEffectSourceIds(bSorted[index].effect_source_ids).sort();
     if (aSources.length !== bSources.length) {

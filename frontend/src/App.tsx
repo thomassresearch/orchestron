@@ -10,6 +10,8 @@ import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels"
 import { INITIAL_PANEL_COLLAPSE_STATE, type PanelId } from "./components/CollapsiblePanel";
 import { stereoCatalogEntries } from "./lib/stereoCatalog";
 import { AuditionPanel } from "./components/AuditionPanel";
+import { wireSampleMap } from "./lib/samplePlayer";
+import { sampleCopy } from "./lib/sampleCopy";
 import { audioTemplate, type BuiltinTemplate } from "./lib/audioTemplates";
 import { audioCopy } from "./lib/audioCopy";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -711,6 +713,8 @@ export default function App() {
   const onCloneCurrentPerformance = useCallback(() => {
     void (async () => {
       try {
+        const state = useAppStore.getState();
+        if (state.sampleUploads) throw new Error(sampleCopy(state.guiLanguage).wait);
         const baseName = performanceName.trim().length > 0 ? performanceName.trim() : "Untitled Performance";
         let cloneName = `${baseName} (copy)`;
         let cloneIndex = 2;
@@ -826,7 +830,7 @@ export default function App() {
     () => patches.filter((patch) => !openInstrumentPatchIds.has(patch.id)),
     [openInstrumentPatchIds, patches]
   );
-  const templatePatches = useMemo(() => [...(["instrument", "drumset", "effect", "output", "empty"] as const).map((kind) => ({ ...audioTemplate(kind), name: audioCopy(guiLanguage)(kind) })), ...patches.filter((patch) => patch.is_template === true)], [patches, guiLanguage]);
+  const templatePatches = useMemo(() => [...(["instrument", "drumset", "samplePlayer", "effect", "output", "empty"] as const).map((kind) => ({ ...audioTemplate(kind), name: audioCopy(guiLanguage)(kind) })), ...patches.filter((patch) => patch.is_template === true)], [patches, guiLanguage]);
   const openNewFromTemplateDialog = useCallback(() => {
     if (templatePatches.length === 0) {
       setInstrumentPatchIoError("no templates available yet");
@@ -1157,14 +1161,17 @@ export default function App() {
   });
 
   const buildCurrentPerformanceExport = useCallback(async (purpose: "native" | "csd" = "native") => {
-    await useAppStore.getState().flushMixer();
-    await useAppStore.getState().flushPerformanceControllers();
+    const state = useAppStore.getState();
+    if (state.sampleUploads) throw new Error(sampleCopy(state.guiLanguage).wait);
+    await state.flushMixer();
+    await state.flushPerformanceControllers();
+    if (useAppStore.getState().sampleUploads) throw new Error(sampleCopy(state.guiLanguage).wait);
     const exportState = structuredClone(useAppStore.getState().sequencer);
     const snapshot = structuredClone(buildSequencerConfigSnapshot());
     // CSD export validates routing after the backend selects device/routing
     // instruments. Native exports still validate the complete saved rack.
     if (purpose === "native") {
-      await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel, performance_controller_values: b.performanceControllerValues, performance_controller_midi_ccs: b.performanceControllerMidiCCs })), snapshot.audioGraph!, snapshot.mixer!);
+      await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel, performance_controller_values: b.performanceControllerValues, performance_controller_midi_ccs: b.performanceControllerMidiCCs, sample_map: wireSampleMap(b.sampleMap) })), snapshot.audioGraph!, snapshot.mixer!, snapshot.sampleAssets);
     }
     const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
     const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));

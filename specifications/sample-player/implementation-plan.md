@@ -1,8 +1,8 @@
 # Sample Player implementation plan
 
-Status: **planned, not implemented**. Date: 2026-11-15.
+Status: **implemented in this workspace; see the [verification record](implementation-record.md)**. Date: 2026-11-15.
 
-Implement the complete first version defined by the [specification](specification.md). The [acceptance matrix](acceptance.md) is the release checklist. This plan covers application code, fixtures, authoring compatibility, documentation, and verification; it records no completed implementation.
+This plan covers the first version defined by the [specification](specification.md): application code, fixtures, authoring compatibility, documentation, and verification. Use the [acceptance matrix](acceptance.md) as the release checklist and the [implementation record](implementation-record.md) for results.
 
 ## 1. Delivery strategy
 

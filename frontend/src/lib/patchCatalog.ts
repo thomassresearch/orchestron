@@ -45,6 +45,7 @@ export function toPatchListItem(patch: Patch): PatchListItem {
     instrument_type: patch.instrument_type,
     audio_interface: patch.graph.audio_interface,
     performance_controllers: patch.performance_controllers ?? performanceControllersForGraph(patch.graph),
+    has_sample_player: patch.graph.nodes.some(n => n.opcode === "sample_player"),
     has_direct_output: patch.graph.nodes.some((n) => n.opcode === "outs"),
     audio_inlet_names: literalAudioPortNames(patch, "inleta"),
     audio_outlet_names: literalAudioPortNames(patch, "outleta"),

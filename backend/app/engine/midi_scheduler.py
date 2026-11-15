@@ -6,6 +6,7 @@ import threading
 from typing import Callable
 
 from backend.app.engine.lane_output import LaneOutputGate
+from backend.app.engine.sample_voices import owns_sample
 
 
 @dataclass(order=True, slots=True)
@@ -18,6 +19,9 @@ class EngineMidiEvent:
     mapped_backend_monotonic_ns: int | None = field(default=None, compare=False)
     late: bool = field(default=False, compare=False)
     sync_stale: bool = field(default=False, compare=False)
+    sample_source: str | None = field(default=None, compare=False)
+    sample_cancel: frozenset[str] | None = field(default=None, compare=False)
+    sample_panic: bool = field(default=False, compare=False)
 
 
 class EngineMidiScheduler:
@@ -30,6 +34,7 @@ class EngineMidiScheduler:
         self._sequence = 0
         self._overflow_count = 0
         self._engine_sample_rate = 0
+        self.sample_channels: frozenset[int] = frozenset()
 
     @property
     def overflow_count(self) -> int:
@@ -64,6 +69,7 @@ class EngineMidiScheduler:
         mapped_backend_monotonic_ns: int | None = None,
         late: bool = False,
         sync_stale: bool = False,
+        sample_source: str | None = None,
     ) -> tuple[bool, EngineMidiEvent | None]:
         raw = bytes(int(value) & 0xFF for value in message)
         if len(raw) != 3:
@@ -78,6 +84,7 @@ class EngineMidiScheduler:
             mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
             late=late,
             sync_stale=sync_stale,
+            sample_source=sample_source,
         )
 
         with self._lock:
@@ -109,6 +116,7 @@ class EngineMidiScheduler:
         current_engine_sample: int,
         source_timestamp_ns: int | None = None,
         mapped_backend_monotonic_ns: int | None = None,
+        sample_source: str | None = None,
     ) -> tuple[bool, EngineMidiEvent | None]:
         with self._lock:
             sample_rate = self._engine_sample_rate
@@ -122,6 +130,7 @@ class EngineMidiScheduler:
             target_engine_sample=max(0, int(current_engine_sample)) + delay_samples,
             source_timestamp_ns=source_timestamp_ns,
             mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+            sample_source=sample_source,
         )
 
     def drain_block(self, *, block_start_sample: int, block_end_sample: int) -> list[EngineMidiEvent]:
@@ -132,21 +141,57 @@ class EngineMidiScheduler:
                 if event.target_engine_sample < block_start_sample:
                     event.late = True
                     event.target_engine_sample = block_start_sample
-                if self.lane_output.allows(event.source, event.message):
+                if event.sample_cancel is not None or event.sample_panic:
+                    drained.append(event)
+                elif self.lane_output.allows(event.source, event.message):
                     drained.append(event)
                     drained.extend([event] * self.lane_output.take_deferred_releases(event.message))
             self._next_event_sample = self._events[0].target_engine_sample if self._events else None
         return drained
 
-    def release_sources(self, sources: set[str], *, sample: int) -> None:
+    def release_sources(self, sources: set[str], *, sample: int, force_samples: bool = True) -> None:
         """Discard replaced material, then release delivered voices with source ownership."""
         with self._lock:
             self._events = [event for event in self._events if event.source not in sources]
             heapq.heapify(self._events)
+            if force_samples:
+                self._cancel_samples_locked(frozenset(sources), sample)
             for source, message in self.lane_output.source_releases(sources):
                 self._sequence += 1
                 heapq.heappush(self._events, EngineMidiEvent(sample, self._sequence, source, bytes(message)))
             self._next_event_sample = self._events[0].target_engine_sample if self._events else None
+
+
+    def cancel_sample_sources(self, sources, sample: int):
+        if not self.sample_channels or not sources:
+            return
+        with self._lock:
+            self._cancel_samples_locked(frozenset(sources), sample)
+            self._next_event_sample = self._events[0].target_engine_sample
+
+    def _cancel_samples_locked(self, sources: frozenset[str], sample: int):
+        if not self.sample_channels or not sources:
+            return
+        self._events = [event for event in self._events if not (
+            event.target_engine_sample >= sample and event.message and
+            event.message[0] & 0xf0 == 0x90 and event.message[2] and
+            (event.message[0] & 15) + 1 in self.sample_channels and
+            owns_sample(sources, event.sample_source or event.source)
+        )]
+        heapq.heapify(self._events)
+        self._sequence += 1
+        heapq.heappush(self._events, EngineMidiEvent(sample, self._sequence, "", b"", sample_cancel=sources))
+
+    def panic_samples(self, sample: int):
+        with self._lock:
+            if not self.sample_channels:
+                return
+            self._events = [event for event in self._events if event.message and
+                            (event.message[0] & 15) + 1 not in self.sample_channels]
+            heapq.heapify(self._events)
+            self._sequence += 1
+            heapq.heappush(self._events, EngineMidiEvent(sample, self._sequence, "", b"", sample_panic=True))
+            self._next_event_sample = self._events[0].target_engine_sample
 
 
 class ClockDomainMapping:

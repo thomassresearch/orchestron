@@ -223,6 +223,9 @@ def _configure_libcsound_signatures(libcsound: _PrefixedSymbolLibrary) -> None:
     libcsound.csoundInputMessage.restype = ctypes.c_int
     libcsound.csoundInputMessage.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
 
+    libcsound.csoundScoreEvent.restype = ctypes.c_int
+    libcsound.csoundScoreEvent.argtypes = [ctypes.c_void_p, ctypes.c_char, ctypes.POINTER(MYFLT), ctypes.c_long]
+
     libcsound.csoundGetSr.restype = MYFLT
     libcsound.csoundGetSr.argtypes = [ctypes.c_void_p]
     libcsound.csoundGetNchnls.restype = ctypes.c_int
@@ -328,6 +331,10 @@ def _build_direct_csound_class(libcsound: _PrefixedSymbolLibrary) -> type:
         def reset(self) -> None:
             self._spout_view = None
             libcsound.csoundReset(self.cs)
+
+        def scoreEvent(self, event_type: str, fields) -> int:  # noqa: N802
+            values = (MYFLT * len(fields))(*fields)
+            return int(libcsound.csoundScoreEvent(self.cs, event_type.encode("ascii"), values, len(values)))
 
         def inputMessage(self, message: str) -> int:  # noqa: N802
             return int(libcsound.csoundInputMessage(self.cs, self._cstring(message)))

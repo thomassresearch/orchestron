@@ -1,6 +1,6 @@
 # Sample Player specification
 
-Status: **planned, not implemented**. Date: 2026-11-15.
+Status: **implemented; see the [verification record](implementation-record.md)**. Date: 2026-11-15.
 
 This specification defines the first Sample Player release. The [implementation plan](implementation-plan.md) orders the work; [acceptance scenarios](acceptance.md) define completion. Existing behavior outside these additions remains governed by [AGENTS.md](../../AGENTS.md) and [BACKEND.md](../../BACKEND.md).
 
@@ -25,7 +25,7 @@ Collapse/expand preserves selection and view state, cancels gestures, and releas
 
 ### 2.1 Library definition
 
-Introduce a dedicated graph node, provisionally `sample_player`, with stereo outputs. Supply a ready-to-use patch wired into the ordinary stereo routing system. Instance volume/pan and downstream inserts continue to use the mixer.
+Use the dedicated `sample_player` graph node with stereo outputs. The built-in starter connects it to the ordinary stereo routing system. Instance volume/pan and downstream inserts continue to use the mixer.
 
 For version one, allow exactly one root-level Sample Player node per MIDI-triggered patch. Reject use in Continuous instruments, inside If/Switch cases, or alongside `midi_legato`. This avoids ambiguous whole-patch lifetimes in the first compiler integration. Additional ordinary audio processing may follow its output, subject to the bounded lifetime contract below.
 
@@ -47,7 +47,7 @@ Deleting an instance removes its references from the current performance. Actual
 
 ## 3. Authored and runtime data
 
-### 3.1 Proposed authored representation
+### 3.1 Authored representation
 
 Extend each instrument assignment with optional `sampleMap`. Store its referenced assets in a performance-level `sampleAssets` manifest. This separates editable note mappings from deduplicated file metadata.
 
@@ -255,9 +255,9 @@ The deliverable is the existing self-contained ZIP format containing CSD and ass
 
 Reuse existing upload, storage, persisted-JSON, and bundle limits from [settings](../../backend/app/core/config.py) and [JSON limit definitions](../../backend/app/services/persisted_json_limits.py). Account for originals, decoded files, import temporaries, aliases, and retained references. Do not increase shared limits silently.
 
-Proposed new defaults for qualification, not descriptions of existing settings:
+First-version budgets:
 
-| Budget | Proposed first-version value |
+| Budget | First-version value |
 | --- | --- |
 | Map entries | At most 128 per instance |
 | Audio channels | 1 or 2 |

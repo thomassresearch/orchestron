@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dpkg-dev \
     csound \
     csound-plugins \
+    ffmpeg \
     libasound2 \
     libffi8 \
     libjack-jackd2-0 \

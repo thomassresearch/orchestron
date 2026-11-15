@@ -54,7 +54,9 @@ class ParallelCsoundRenderer(CsoundWorker):
         self._canonical_csd = canonical.csd
         self._fallback_reason = None
         self._qualification = None
-        if self.options.enabled is not None and not self.options.enabled():
+        if canonical.manifest.get("sampleBindings"):
+            self._fallback_reason = "sample_player_single_renderer"
+        elif self.options.enabled is not None and not self.options.enabled():
             self._fallback_reason = "parallel_disabled"
         elif self.options.blocked_reason:
             self._fallback_reason = self.options.blocked_reason
@@ -278,11 +280,11 @@ class ParallelCsoundRenderer(CsoundWorker):
         return super().run_at_render_boundary(guarded)
 
     def enqueue_timestamped_midi(self, message, *, source, target_engine_sample=None, delivery_delay_seconds=None,
-                                 source_timestamp_ns=None, mapped_backend_monotonic_ns=None, sync_stale=False):
+                                 source_timestamp_ns=None, mapped_backend_monotonic_ns=None, sync_stale=False, sample_source=None):
         if not self._parallel:
             return super().enqueue_timestamped_midi(message, source=source, target_engine_sample=target_engine_sample,
                 delivery_delay_seconds=delivery_delay_seconds, source_timestamp_ns=source_timestamp_ns,
-                mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale)
+                mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale, sample_source=sample_source)
         if len(message) != 3:
             return False
         sample = self.render_sample_cursor
@@ -294,9 +296,6 @@ class ParallelCsoundRenderer(CsoundWorker):
         return self._midi_scheduler.enqueue_after_delay(message, current_engine_sample=sample,
             delivery_delay_seconds=delivery_delay_seconds, source=source, source_timestamp_ns=source_timestamp_ns,
             mapped_backend_monotonic_ns=mapped_backend_monotonic_ns)[0]
-
-    def release_lane_events(self, identities):
-        self._midi_scheduler.release_sources({f"lane:{identity}" for identity in identities}, sample=self.render_sample_cursor)
 
     def panic(self):
         if not self._parallel:

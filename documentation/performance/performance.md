@@ -12,6 +12,7 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 
 <!-- manual-contents:start -->
 - [Instrument Rack and Engine Transport](instrument_rack_and_engine_transport.md)
+- [Sample Player](sample_player.md)
 - [Audio mixer and routing](audio_mixer_and_routing.md)
 - [Using Performance Controls](performance_controllers.md)
 - [MIDI Setup and Inputs](../configuration/midi_setup_and_inputs.md)
@@ -33,6 +34,7 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 ## What You Can Do Here
 
 - Assemble an instrument rack from saved patches and assign MIDI channels
+- Map WAV and MP3 files to MIDI notes on each Sample Player instance
 - Mix audio with dB faders, pan/balance, mute/solo, meters, inserts and pre/post sends
 - Route instruments and returns through Master or explicit direct paths
 - Start/stop the instrument engine session

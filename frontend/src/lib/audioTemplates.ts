@@ -2,7 +2,7 @@ import { defaultGraph } from "./defaultPatch";
 import type { Patch, NodeInstance, Connection, AudioPortGroup } from "../types";
 import drumset from "../../../examples/instruments/template/analog_drumkit.patch.json";
 
-export type BuiltinTemplate = "instrument" | "effect" | "output" | "empty" | "drumset";
+export type BuiltinTemplate = "instrument" | "effect" | "output" | "empty" | "drumset" | "samplePlayer";
 export function audioTemplate(kind: BuiltinTemplate): Patch {
   if (kind === "drumset") return { ...structuredClone(drumset), instrument_type: "percussion", always_on: false } as unknown as Patch;
   const graph = defaultGraph();
@@ -20,6 +20,8 @@ export function audioTemplate(kind: BuiltinTemplate): Patch {
       wire("velocity", "iamp", "amplitude", "a");
       wire("envelope", "kenv", "amplitude", "b");
       wire("amplitude", "kout", "oscillator", "amp");
+    } else if (kind === "samplePlayer") {
+      node("sample-player", "sample_player", {}, 80, 80);
     } else {
       node("input-left", "inleta", { sname: "left" }, 0, 0);
       node("input-right", "inleta", { sname: "right" }, 0, 180);
@@ -31,12 +33,12 @@ export function audioTemplate(kind: BuiltinTemplate): Patch {
       node("output-right", "outleta", { sname: "right" }, 760, 180);
     }
     for (const side of ["left", "right"]) {
-      wire(kind === "instrument" ? "oscillator" : `input-${side}`, kind === "instrument" ? "asig" : "asignal",
+      wire(kind === "samplePlayer" ? "sample-player" : kind === "instrument" ? "oscillator" : `input-${side}`, kind === "samplePlayer" ? `a${side}` : kind === "instrument" ? "asig" : "asignal",
         kind === "output" ? "output" : `output-${side}`, kind === "output" ? side : "asignal");
     }
     groups.push({ id: "main-output", name: kind === "output" ? "Direct Audio Output" : "Stereo Output", direction: "output", layout: "stereo", ports: kind === "output" ? ["$direct.left", "$direct.right"] : ["left", "right"], purpose: "main" });
-    graph.audio_interface = { role: kind, groups, mainInput: kind === "instrument" ? null : "main-input", mainOutput: "main-output", guided: true };
+    graph.audio_interface = { role: kind === "samplePlayer" ? "instrument" : kind, groups, mainInput: kind === "instrument" || kind === "samplePlayer" ? null : "main-input", mainOutput: "main-output", guided: true };
   }
-  const names = { instrument: "Playable instrument", effect: "Audio effect", output: "Audio Output", empty: "Empty patch" };
-  return { id: `builtin-${kind}`, name: names[kind], description: "", is_template: false, instrument_type: kind === "effect" || kind === "output" ? "continuous" : "melody", always_on: kind === "effect" || kind === "output", schema_version: 1, graph, created_at: "", updated_at: "" };
+  const names = { samplePlayer: "Sample Player", instrument: "Playable instrument", effect: "Audio effect", output: "Audio Output", empty: "Empty patch" };
+  return { id: `builtin-${kind}`, name: names[kind], description: "", is_template: false, instrument_type: kind === "effect" || kind === "output" ? "continuous" : kind === "samplePlayer" ? "percussion" : "melody", always_on: kind === "effect" || kind === "output", schema_version: 1, graph, created_at: "", updated_at: "" };
 }

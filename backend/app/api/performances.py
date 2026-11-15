@@ -21,10 +21,10 @@ router = APIRouter(prefix="/performances", tags=["performances"])
 
 @router.get("/capabilities")
 def performance_capabilities() -> dict:
-    return {"protocolVersion": 1, "performanceVersions": list(range(1, 27)),
+    return {"protocolVersion": 1, "performanceVersions": list(range(1, 28)),
             "clipVersions": [1, 2, 3, 4], "validation": "authored-and-routing",
             "conditionalWrites": "expected_updated_at", "preparation": "separate-runtime",
-            "features": ["clips", "transposition", "fixed-repetition-references", "instrument-automation"],
+            "features": ["clips", "transposition", "fixed-repetition-references", "instrument-automation", "sample-player"],
             "runtimeSnapshot": "sequencer/config", "conditionalPreparation": "expected_generation"}
 
 

@@ -1,6 +1,6 @@
 # Instrument Rack and Engine Transport
 
-**Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](audio_mixer_and_routing.md)
+**Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](sample_player.md)
 
 The Instrument Rack is the top section of the Perform page and controls the live session, instrument assignments, and performance metadata.
 
@@ -17,6 +17,12 @@ shrinking the controls. Narrow windows use a single column and a wrapping header
 See [Performance Controllers](performance_controllers.md) for grouping rules.
 
 ![Adaptive instrument widths and labeled controller groups](../../screenshots/performance_controller_groups_rack.png)
+
+## Add a Sample Player
+
+**Add Sample Player** creates a playable rack instance even when the instrument library is empty.
+Open **Samples** on the card to assign WAV or MP3 files to MIDI notes. Each instance has its own
+map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
 ## Compact Rack
 
@@ -112,4 +118,4 @@ If engine start/stop or transport actions fail, the Perform page shows an error 
 - Use distinct MIDI channels for note-triggered rack instances.
 - Use `sname` labels on source `outleta` nodes to name the available matrix channels. The label can be stored directly on the node or supplied by a direct `const_s` connection.
 
-**Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](audio_mixer_and_routing.md)
+**Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](sample_player.md)

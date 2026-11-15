@@ -60,6 +60,9 @@ Choose **Export** on the Perform page. The bundle preserves the whole rack, inst
 
 When instruments use uploaded audio samples, SoundFonts or analysis files, Orchestron creates a ZIP containing the required assets. Otherwise it can use JSON. Keep the downloaded bundle intact for importing on another machine.
 
+[Sample Player](sample_player.md) bundles keep every instance’s note map, including unused
+instances, and include both the original uploads and the audio prepared for playback.
+
 ## Import a performance
 
 1. Choose **Import** and select an Orchestron performance bundle.
@@ -84,6 +87,10 @@ For patch-name conflicts, choose overwrite, rename or skip. For the performance 
 The packages render at **48 kHz**, `ksmps=1`, with **32-bit float WAV** output and effect release tails. Keep those settings when you need the documented timing and controller accuracy. Floating-point output retains headroom; check levels before converting to an integer audio format.
 
 Both modes include instrument instance settings and seed enabled manual MIDI controller values on their selected channels. Live keyboard gestures are not recordings and are not added to the exported arrangement.
+
+Both modes package the audio for selected Sample Player instances. Leave the `assets` folder
+where it was extracted. A sample triggered just before the end of the range can play to
+completion before the effect tail ends.
 
 ## Controller accuracy
 

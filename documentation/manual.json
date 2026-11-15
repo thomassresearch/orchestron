@@ -51,6 +51,9 @@
             "path": "performance/instrument_rack_and_engine_transport.md"
           },
           {
+            "path": "performance/sample_player.md"
+          },
+          {
             "path": "performance/audio_mixer_and_routing.md"
           },
           {

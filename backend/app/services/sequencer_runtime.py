@@ -585,6 +585,8 @@ class SessionSequencerRuntime:
                 self._auditions[track.track_id]["authored"] = state["authored"]
             return
         if isinstance(track, SequencerTrackRuntime):
+            if owner := state.get("sample_owner"):
+                self._cancel_sample_sources({owner})
             self._release_track_notes_locked(track.track_id, track.midi_channel)
         else:
             track.last_value = None
@@ -623,6 +625,10 @@ class SessionSequencerRuntime:
             return False
         action = state.pop("action")
         if isinstance(track, SequencerTrackRuntime):
+            if owner := state.get("sample_owner"):
+                self._cancel_sample_sources({owner})
+            overlay = state.get("preview") or state.get("workspace") or {}
+            state["sample_owner"] = f"lane:{track.track_id}\x00audition:{overlay.get('gesture', at)}" if action == "start" else None
             self._release_track_notes_locked(track.track_id, track.midi_channel)
         else:
             track.last_value = None
@@ -1735,6 +1741,10 @@ class SessionSequencerRuntime:
             return self._status_locked()
 
         if self._running:
+            self._cancel_sample_sources({f"lane:{identity}" for identity in config.tracks})
+            cancel = getattr(self._midi_service, "cancel_arrangement_samples", None)
+            if cancel:
+                cancel()
             for track_id, track in config.tracks.items():
                 self._release_track_notes_locked(track_id, track.midi_channel)
             for notes in self._active_notes.values():
@@ -2022,6 +2032,11 @@ class SessionSequencerRuntime:
         )
         active_notes.clear()
 
+    def _cancel_sample_sources(self, sources):
+        cancel = getattr(self._midi_service, "cancel_sample_sources", None)
+        if cancel is not None and not self._audition_simulating:
+            cancel(sources, self._render_event_sample)
+
     def _release_reconfigured_track_notes_locked(
         self,
         previous_config: SequencerRuntimeConfig | None,
@@ -2031,6 +2046,11 @@ class SessionSequencerRuntime:
             return
 
         for track_id, previous_track in previous_config.tracks.items():
+            current = next_config.tracks.get(track_id)
+            if current is None or previous_track.midi_channel != current.midi_channel or (
+                previous_track.configured_enabled and not current.configured_enabled
+            ) or previous_track.pad_loop_enabled != current.pad_loop_enabled or previous_track.sync_to_track_id != current.sync_to_track_id:
+                self._cancel_sample_sources({f"lane:{track_id}"})
             active_notes = self._active_notes.get(track_id)
             if not active_notes and track_id not in self._ratchet_rolls and track_id not in self._strum_states:
                 continue
@@ -2263,13 +2283,13 @@ class SessionSequencerRuntime:
             self._active_notes = {track_id: set() for track_id in self._config.tracks}
         return self._config
 
-    @staticmethod
-    def _source_context_for_track(track: SequencerTrackRuntime) -> MidiSourceContext | None:
+    def _source_context_for_track(self, track: SequencerTrackRuntime) -> MidiSourceContext | None:
         pad = track.pads.get(track.active_pad)
         scale_root = pad.scale_root if pad and pad.scale_root is not None else track.scale_root
         mode = pad.mode if pad and pad.mode is not None else track.mode
         return MidiSourceContext(
             source_id=track.track_id,
+            sample_owner=self._auditions.get(track.track_id, {}).get("sample_owner"),
             scale_root=scale_root,  # type: ignore[arg-type]
             mode=mode,  # type: ignore[arg-type]
         )

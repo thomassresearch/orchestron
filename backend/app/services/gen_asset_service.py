@@ -63,6 +63,8 @@ class GenAssetService:
         self._max_audio_assets_count = max(1, int(max_audio_assets_count))
         self._gc_min_age_seconds = max(0.0, float(gc_min_age_seconds))
         self._quota_lock = threading.RLock()
+        self._audio_leases: dict[str, float] = {}
+        self._sample_alias_owners: dict[str, str] = {}
 
     @property
     def audio_dir(self) -> Path:
@@ -313,6 +315,10 @@ class GenAssetService:
         )
 
     def ensure_gen01_numeric_filecode_alias(self, stored_name: str) -> int:
+        with self._quota_lock:
+            return self._ensure_alias_unlocked(stored_name)
+
+    def _ensure_alias_unlocked(self, stored_name: str) -> int:
         source_path = self.resolve_audio_path(stored_name)
         base_code = self._stable_gen01_numeric_filecode(stored_name)
         for offset in range(64):
@@ -321,15 +327,23 @@ class GenAssetService:
             if alias_path.exists():
                 try:
                     if alias_path.samefile(source_path):
+                        if stored_name.startswith("sam-"):
+                            self._sample_alias_owners[alias_path.name] = stored_name
                         return filecode
                 except OSError:
                     pass
                 continue
 
             self._create_gen01_alias(alias_path, source_path)
+            if stored_name.startswith("sam-"):
+                self._sample_alias_owners[alias_path.name] = stored_name
             return filecode
 
         raise ValueError("Unable to allocate a GEN01 numeric alias for uploaded audio asset.")
+
+    def lease_audio_asset(self, stored_name: str) -> None:
+        with self._quota_lock:
+            self._audio_leases[stored_name] = time.monotonic() + self._gc_min_age_seconds
 
     def garbage_collect_unreferenced_assets(
         self,
@@ -345,12 +359,18 @@ class GenAssetService:
         cutoff = time.time() - (self._gc_min_age_seconds if min_age_seconds is None else max(0.0, min_age_seconds))
         removed = 0
         with self._quota_lock:
+            now = time.monotonic()
+            self._audio_leases = {name: deadline for name, deadline in self._audio_leases.items() if deadline > now}
+            referenced.update(self._audio_leases)
             for path in self._iter_audio_dir_entries():
                 if self._is_temp_asset_path(path):
                     if self._path_mtime(path) <= cutoff:
                         removed += self._unlink_path(path)
                     continue
                 if self._is_gen01_alias_name(path.name):
+                    if self._sample_alias_owners.get(path.name) in referenced:
+                        continue
+                    self._sample_alias_owners.pop(path.name, None)
                     removed += self._unlink_path(path)
                     continue
                 if path.name in referenced:

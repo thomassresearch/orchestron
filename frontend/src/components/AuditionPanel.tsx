@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { useInstrumentAudition } from "../hooks/useInstrumentAudition";
+import { sampleCopy } from "../lib/sampleCopy";
 import { auditionCopy } from "../lib/auditionCopy";
 import { defaultAuditionNote } from "../lib/controlFlow";
 import { AuditionControl } from "./audition/AuditionControl";
@@ -12,9 +13,10 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
   const copy = auditionCopy(language);
   const audition = useInstrumentAudition(draft, stopPerformance, copy);
   const running = audition.phase === "running";
+  const emptySampler = draft.graph.nodes.some(node => node.opcode === "sample_player");
   return <div className="min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <button type="button" aria-pressed={running} disabled={audition.phase === "stopping"} onClick={audition.toggle}
+      <button type="button" aria-pressed={running} disabled={emptySampler || audition.phase === "stopping"} onClick={audition.toggle}
         className={`rounded border px-3 py-1 text-xs focus-visible:outline-cyan-300 disabled:opacity-50 ${running ? "border-cyan-300 bg-cyan-800 text-white" : "border-cyan-500/60 bg-cyan-950 text-cyan-100"}`}>
         {audition.phase === "preparing" ? copy.preparing : audition.phase === "stopping" ? copy.stopping : running ? copy.stop : copy.start}
       </button>
@@ -29,6 +31,7 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
       <AuditionKeyboard initialNote={defaultAuditionNote(draft.graph)} disabled={!audition.snapshot.midi.length} language={language} pressNote={audition.pressNote} />
       {audition.stale && <p role="status" className="text-xs text-amber-200">{copy.stale}</p>}
     </div>}
+    {emptySampler && <p className="mt-2 text-xs text-slate-300">{sampleCopy(language).emptyAudition}</p>}
     {audition.error && <p role="alert" className="mt-2 text-xs text-rose-300">{audition.error}</p>}
   </div>;
 }

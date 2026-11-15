@@ -12,6 +12,7 @@ from backend.app.models.session import (
 )
 from backend.app.services.audio_routing_service import ResolvedAudioRoute, resolve_audio_routes
 from backend.app.services.compiler_common import CompilationError, PatchInstrumentTarget
+from backend.app.services.compiler_sample_player import validate_sample_target
 from backend.app.services.performance_controller_service import controller_definitions, validate_controller_midi_ccs
 
 
@@ -67,6 +68,7 @@ class SessionInstrumentResolver:
                         performance_controller_values=assignment.performance_controller_values,
                         performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
                         patch_id=assignment.patch_id,
+                        sample_map=assignment.sample_map,
                         midi_channel=0,
                         effect_source_ids=source_ids,
                         effect_routes=effect_routes,
@@ -95,6 +97,7 @@ class SessionInstrumentResolver:
                 SessionInstrumentAssignment(
                     id=assignment_id,
                     patch_id=assignment.patch_id,
+                    sample_map=assignment.sample_map,
                     performance_controller_values=assignment.performance_controller_values,
                     performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
                     midi_channel=midi_channel,
@@ -107,15 +110,17 @@ class SessionInstrumentResolver:
             raise HTTPException(status_code=422, detail="Session requires at least one instrument patch.")
         return normalized
 
-    def compile_target(self, assignment: SessionInstrumentAssignment) -> PatchInstrumentTarget:
+    def compile_target(self, assignment: SessionInstrumentAssignment, sample_assets=None) -> PatchInstrumentTarget:
         patch = self._runtime_patch(assignment.patch_id)
-        return PatchInstrumentTarget(
+        target = PatchInstrumentTarget(
             patch=patch,
             midi_channel=0 if patch.always_on else assignment.midi_channel,
             assignment_id=assignment.id,
             performance_controller_values=assignment.performance_controller_values,
             performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
             always_on=patch.always_on,
+            samples={entry.note: sample_assets[entry.asset_id].playback for entry in assignment.sample_map.entries}
+                    if sample_assets is not None and assignment.sample_map is not None else {},
             effect_source_ids=tuple(assignment.effect_source_ids if patch.always_on else []),
             effect_routes=tuple(
                 (route.source_id, route.channel)
@@ -123,6 +128,10 @@ class SessionInstrumentResolver:
                 if patch.always_on
             ),
         )
+
+        if sample_assets is not None:
+            validate_sample_target(target)
+        return target
 
     def resolve_audio_routes(
         self,

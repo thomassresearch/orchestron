@@ -1,5 +1,6 @@
 """Select the rack instances and assets needed by an offline performance export."""
 
+from backend.app.models.sample_player import resolve_sample_manifest
 from backend.app.models.export import PerformanceCsdExportRequest, PerformanceExportPayload
 from backend.app.services.compiler_mixer import token
 from backend.app.services.insert_bypass import routing_only_graph
@@ -104,7 +105,9 @@ def select_performance_csd_instruments(request: PerformanceCsdExportRequest) -> 
             "sends": {key: value for key, value in config.mixer.sends.items() if key not in dropped_route_ids},
         }
     )
-    selected_config = config.model_copy(update={"instruments": instruments, "audio_graph": graph, "mixer": mixer})
+    sample_assets = resolve_sample_manifest((item.sample_map for item in instruments), config.sample_assets)
+    selected_config = config.model_copy(update={"instruments": instruments, "audio_graph": graph, "mixer": mixer,
+                                                "sample_assets": sample_assets})
     patch_ids = {item.patch_id for item in instruments}
     # Bypassed inserts need only their port declarations for offline wiring.
     # Preserve a shared definition when another instance still processes audio.

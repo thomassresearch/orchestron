@@ -55,6 +55,7 @@ class CapturedMidiEvent:
     time_seconds: float
     message: bytes
     sequence: int
+    source: str = ""
 
 
 @dataclass(slots=True)
@@ -90,15 +91,16 @@ class OfflineMidiExportNoNoteEventsError(ValueError):
 
 
 class _MidiCaptureService:
-    def __init__(self, *, max_events: int) -> None:
+    def __init__(self, *, max_events: int, sample_cancels=None) -> None:
         self._max_events = max(1, int(max_events))
         self.events: list[CapturedMidiEvent] = []
         self.current_time_seconds = 0.0
         self.current_sample = 0
         self.event_budget_exceeded = False
         self._sequence = 0
+        self.sample_cancels = sample_cancels
 
-    def _append_event(self, *, time_seconds: float, message: list[int]) -> None:
+    def _append_event(self, *, time_seconds: float, message: list[int], source: str = "") -> None:
         if len(self.events) >= self._max_events:
             self.event_budget_exceeded = True
             return
@@ -109,6 +111,7 @@ class _MidiCaptureService:
                 time_seconds=max(0.0, float(time_seconds)),
                 message=bytes(int(value) & 0xFF for value in message),
                 sequence=sequence,
+                source=source,
             )
         )
 
@@ -142,14 +145,23 @@ class _MidiCaptureService:
         source_timestamp_ns: int | None = None,
         mapped_backend_monotonic_ns: int | None = None,
         sync_stale: bool = False,
+        sample_source: str | None = None,
     ) -> bool:
-        _ = (source, source_timestamp_ns, mapped_backend_monotonic_ns, sync_stale)
+        _ = (source_timestamp_ns, mapped_backend_monotonic_ns, sync_stale)
         if target_engine_sample is not None:
             event_time = max(0.0, int(target_engine_sample) / float(OFFLINE_RENDER_SR))
         else:
             event_time = self.current_time_seconds + max(0.0, float(delivery_delay_seconds or 0.0))
-        self._append_event(time_seconds=event_time, message=message)
+        self._append_event(time_seconds=event_time, message=message, source=sample_source or source)
         return not self.event_budget_exceeded
+
+    def cancel_sample_sources(self, sources, sample=None):
+        if self.sample_cancels is not None:
+            if len(self.sample_cancels) + len(self.events) >= self._max_events:
+                self.event_budget_exceeded = True
+                return
+            self.sample_cancels.append((self.current_sample if sample is None else sample, self._sequence, frozenset(sources)))
+            self._sequence += 1
 
     def send_scheduled_messages(
         self,
@@ -181,7 +193,19 @@ class PerformanceExportService:
         if exported.performance.config.audio_graph is not None:
             normalized = normalize_master_bundle(exported.model_dump(mode="json", by_alias=True))
             request = request.model_copy(update={"performance_export": type(exported).model_validate(normalized)})
+        from backend.app.services.sample_asset_service import verify_sample_assets
+        from backend.app.services.compiler_sample_player import has_sample_player
+        self.validate_sample_capabilities(request.performance_export)
         request = request.model_copy(update={"performance_export": select_performance_csd_instruments(request)})
+        sample_assets = request.performance_export.performance.config.sample_assets
+        verify_sample_assets(sample_assets, self._gen_asset_service)
+        sample_filecodes = {}
+        sample_files = []
+        for sample in sorted({asset.playback.stored_name for asset in sample_assets.values()}):
+            code = 1_000 + len(sample_filecodes)
+            sample_filecodes[sample] = code
+            sample_files.append(BundledAsset(self._gen_asset_service.resolve_audio_path(sample),
+                                             f"assets/soundin.{code}"))
         base_name = self._sanitize_file_base_name(request.performance_export.performance.name)
         bundle_root = PurePosixPath(base_name)
         midi_file_name = f"{base_name}.mid"
@@ -193,7 +217,7 @@ class PerformanceExportService:
         )
         targets = self._build_compile_targets(
             performance_export=request.performance_export,
-            patch_definitions=patch_definitions,
+            patch_definitions=patch_definitions, sample_filecodes=sample_filecodes,
         )
 
         config = request.performance_export.performance.config
@@ -219,10 +243,14 @@ class PerformanceExportService:
         spline_capture = (SplineCapture(request, controller_default_channels, OFFLINE_RENDER_SR)
                           if request.event_source == "score" and request.use_original_controller_curves
                           and request.approximate_controller_curves else None)
+        sample_bindings = compile_artifact.manifest.get("sampleBindings", {})
+        sample_cancels = []
+        sampler_export = any(has_sample_player(target.patch) for target in targets)
         captured_events = self._capture_offline_midi_events(
             request=request,
             controller_default_channels=controller_default_channels,
             **({"spline_capture": spline_capture} if spline_capture is not None else {}),
+            **({"sample_cancels": sample_cancels} if sampler_export else {}),
         )
         from backend.app.services.audio_port_names import audio_port_names
         from backend.app.services.compiler_mixer import ResolvedMixerGraph, _reachable, OUTPUT
@@ -235,10 +263,15 @@ class PerformanceExportService:
         else:
             continuous_source = any(t.always_on and not audio_port_names(t.patch.graph, opcode="inleta")
                 and any(node.opcode == "outs" for node in t.patch.graph.nodes) for t in targets)
-        if not continuous_source:
+        if not continuous_source and not sampler_export:
             self._raise_if_no_note_on_events(captured_events)
 
         warnings = list(compile_artifact.diagnostics)
+        sample_lines, render_end, dropped = self._sample_score_lines(
+            captured_events, sample_cancels, sample_bindings, playback_duration_seconds,
+        )
+        if dropped:
+            warnings.append(f"Sample Player skipped {dropped} attacks at the voice limit.")
         if request.event_source == "score":
             spline_export = None
             orchestra = compile_artifact.orc
@@ -255,10 +288,10 @@ class PerformanceExportService:
                 orchestra = spline_export.rewrite(orchestra, targets, compile_artifact.manifest)
             score_lines, score_warnings = self._build_score_lines(
                 manifest=compile_artifact.manifest,
-                allow_continuous=continuous_source,
+                allow_continuous=continuous_source or sampler_export,
                 events=captured_events,
                 targets=targets,
-                duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
+                duration_seconds=render_end,
                 timing=request.sequencer_config.timing,
                 playback_start_step=request.sequencer_config.playback_start_step,
                 orchestra=compile_artifact.orc,
@@ -266,6 +299,7 @@ class PerformanceExportService:
                     if request.approximate_controller_curves else set(),
                 curve_tolerance=request.controller_curve_tolerance,
                 spline_export=spline_export,
+                sample_lines=sample_lines,
             )
             warnings.extend(score_warnings)
             csd = self._build_offline_score_csd(
@@ -278,6 +312,7 @@ class PerformanceExportService:
                 created_at=request.performance_export.exported_at,
                 output_wave_name=output_wave_name,
                 score_lines=score_lines,
+                sample_directory=bool(sample_files),
                 score_controller_initializer_lines=self._score_controller_initializer_lines(captured_events),
             )
             readme = self._build_score_readme(
@@ -295,9 +330,11 @@ class PerformanceExportService:
                 created_at=request.performance_export.exported_at,
                 midi_file_name=midi_file_name,
                 output_wave_name=output_wave_name,
-                duration_seconds=playback_duration_seconds + OFFLINE_RENDER_RELEASE_TAIL_SECONDS,
+                duration_seconds=render_end,
                 controller_score_lines=[line for _, line in self._mapped_controller_lines(
                     captured_events, targets, compile_artifact.manifest, midi_tempo=request.sequencer_config.timing.tempo_bpm)],
+                sample_lines=[line for _, line in sample_lines],
+                sample_directory=bool(sample_files),
             )
             midi_bytes = self._encode_midi_file(
                 tempo_bpm=request.sequencer_config.timing.tempo_bpm,
@@ -311,6 +348,18 @@ class PerformanceExportService:
                 output_wave_name=output_wave_name,
             )
 
+        if sample_files:
+            readme += (
+                "\nSample Player audio is in assets/. Keep this directory beside the CSD.\n"
+                "Rendering includes any sample tails that continue after the selected range.\n"
+            )
+            if midi_bytes is not None:
+                readme += (
+                    "The MIDI file includes the captured sampler notes for exchange. This CSD\n"
+                    "uses the captured sampler events in its score to preserve one-shot tails\n"
+                    "and source stops. Re-export from Orchestron to change the sampler part.\n"
+                )
+
         archive_buffer = output if output is not None else BytesIO()
         with zipfile.ZipFile(archive_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(str(bundle_root / csd_file_name), csd.encode("utf-8"))
@@ -319,10 +368,64 @@ class PerformanceExportService:
             archive.writestr(str(bundle_root / "README.txt"), readme.encode("utf-8"))
             if warnings:
                 archive.writestr(str(bundle_root / "WARNINGS.txt"), "\n".join(warnings).encode("utf-8"))
-            for asset in bundled_assets:
+            for asset in [*bundled_assets, *sample_files]:
                 archive.write(asset.source_path, str(bundle_root / asset.archive_path))
 
         return archive_buffer.getvalue() if output is None else None
+
+    @staticmethod
+    def validate_sample_capabilities(exported):
+        definitions = {item.source_patch_id: item for item in exported.patch_definitions}
+        for item in exported.performance.config.instruments:
+            if item.sample_map is None or not item.sample_map.entries:
+                continue
+            definition = definitions.get(item.patch_id)
+            if definition is None or definition.always_on or not any(
+                node.opcode == "sample_player" for node in definition.graph.nodes
+            ):
+                raise ValueError(f"Rack instance {item.id or item.patch_id} has an incompatible sample map.")
+
+    @staticmethod
+    def _sample_score_lines(events, cancels, bindings, duration):
+        if not bindings:
+            return [], duration + OFFLINE_RENDER_RELEASE_TAIL_SECONDS, 0
+        from backend.app.engine.sample_voices import SampleVoices, sample_owner_keys
+
+        rate = OFFLINE_RENDER_SR
+        end = round(duration * rate)
+        voices = SampleVoices(bindings, rate, 1)
+        attacks = []
+        timeline = [(round(e.time_seconds * rate), e.sequence, e) for e in events
+                    if len(e.message) == 3 and (e.message[0] & 15) + 1 in bindings
+                    and (e.message[0] & 0xf0 == 0x90 and e.message[2]
+                         or e.message[0] & 0xf0 == 0xb0 and e.message[1] == 120)]
+        timeline.extend(cancels)
+        if len(events) + len(cancels) + len(timeline) > OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS:
+            raise OfflineMidiExportBudgetExceededError("Sample Player export exceeds the event limit.")
+        # Match live cancellation: queued attacks at or after a later enqueued
+        # cancel are discarded before delivery. Earlier delivered tails ramp.
+        cancel_deadlines = {}
+        delivered = []
+        for at, sequence, event in sorted(timeline, key=lambda item: item[1], reverse=True):
+            if isinstance(event, frozenset):
+                for source in event:
+                    cancel_deadlines[source] = min(at, cancel_deadlines.get(source, at))
+            elif event.message[0] & 0xf0 == 0x90 and any(
+                cancel_deadlines.get(source, at + 1) <= at for source in sample_owner_keys(event.source)
+            ):
+                continue
+            delivered.append((at, sequence, event))
+        for at, _, event in sorted(delivered, key=lambda item: item[:2]):
+            if isinstance(event, frozenset):
+                voices.cancel(at, sources=event)
+            elif event.message[0] & 0xf0 == 0xb0:
+                voices.cancel(at, sources=frozenset((event.source,)), channel=(event.message[0] & 15) + 1)
+            elif at < end and (voice := voices.attack(event.message, event.source, at)) is not None:
+                attacks.append(voice)
+        render_end = max(end, max((voice.end for voice in attacks), default=0))
+        lines = [(voice.start / rate, "i " + " ".join(str(field) if isinstance(field, int) else f"{field:.12f}"
+                  for field in voice.pfields(rate, offline=True))) for voice in attacks]
+        return lines, render_end / rate + OFFLINE_RENDER_RELEASE_TAIL_SECONDS, voices.dropped
 
     def _rewrite_patch_definitions_for_export(
         self,
@@ -347,6 +450,7 @@ class PerformanceExportService:
         *,
         performance_export: PerformanceExportPayload,
         patch_definitions: list[ExportedPatchDefinition],
+        sample_filecodes: dict[str, int] | None = None,
     ) -> list[PatchInstrumentTarget]:
         definition_by_id = {definition.source_patch_id: definition for definition in patch_definitions}
         targets: list[PatchInstrumentTarget] = []
@@ -377,6 +481,11 @@ class PerformanceExportService:
                     performance_controller_values=instrument.performance_controller_values,
                     performance_controller_midi_ccs=instrument.performance_controller_midi_ccs,
                     always_on=definition.always_on,
+                    samples={
+                        entry.note: performance_export.performance.config.sample_assets[entry.asset_id].playback
+                        for entry in instrument.sample_map.entries
+                    } if instrument.sample_map else {},
+                    sample_filecodes=sample_filecodes or {},
                     effect_source_ids=tuple(instrument.effect_source_ids if definition.always_on else []),
                     effect_routes=tuple(
                         (route.source_id, route.channel) for route in instrument.effect_routes if definition.always_on
@@ -538,6 +647,8 @@ class PerformanceExportService:
         output_wave_name: str,
         duration_seconds: float,
         controller_score_lines: list[str] | None = None,
+        sample_lines: list[str] | None = None,
+        sample_directory: bool = False,
     ) -> str:
         return "\n".join(
             [
@@ -548,7 +659,7 @@ class PerformanceExportService:
                 ),
                 "<CsoundSynthesizer>",
                 "<CsOptions>",
-                f"-d -W -f -o {output_wave_name} -F {midi_file_name}",
+                f"-d -W -f -o {output_wave_name} -F {midi_file_name}" + (" --env:SSDIR=assets" if sample_directory else ""),
                 "</CsOptions>",
                 "<CsInstruments>",
                 orc,
@@ -556,6 +667,7 @@ class PerformanceExportService:
                 "<CsScore>",
                 "f 1 0 16384 10 1",
                 *(controller_score_lines or []),
+                *(sample_lines or []),
                 f"f 0 {PerformanceExportService._format_duration(duration_seconds)}",
                 "</CsScore>",
                 "</CsoundSynthesizer>",
@@ -572,6 +684,7 @@ class PerformanceExportService:
         output_wave_name: str,
         score_lines: list[str],
         score_controller_initializer_lines: list[str] | None = None,
+        sample_directory: bool = False,
     ) -> str:
         return "\n".join(
             [
@@ -582,7 +695,7 @@ class PerformanceExportService:
                 ),
                 "<CsoundSynthesizer>",
                 "<CsOptions>",
-                f"-d -W -f -o {output_wave_name}",
+                f"-d -W -f -o {output_wave_name}" + (" --env:SSDIR=assets" if sample_directory else ""),
                 "</CsOptions>",
                 "<CsInstruments>",
                 orc,
@@ -654,8 +767,9 @@ class PerformanceExportService:
         request: PerformanceCsdExportRequest,
         controller_default_channels: tuple[int, ...],
         spline_capture: SplineCapture | None = None,
+        sample_cancels=None,
     ) -> list[CapturedMidiEvent]:
-        capture = _MidiCaptureService(max_events=OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS)
+        capture = _MidiCaptureService(max_events=OFFLINE_CSD_EXPORT_MAX_MIDI_EVENTS, sample_cancels=sample_cancels)
         self._append_initial_midi_controller_events(
             capture=capture,
             request=request,
@@ -664,6 +778,7 @@ class PerformanceExportService:
             enqueue_timestamped_midi=capture.enqueue_timestamped_midi,
             current_engine_sample=lambda: capture.current_sample,
             output_name="offline-export",
+            cancel_sample_sources=capture.cancel_sample_sources if sample_cancels is not None else None,
         )
         runtime = SessionSequencerRuntime(
             session_id="performance-export",
@@ -804,7 +919,7 @@ class PerformanceExportService:
                             sorted({time for pitch in pitches for time in note_times_by_pitch[target.midi_channel][pitch]}))
         result = []
         def event_time(event):
-            if midi_tempo is None:
+            if midi_tempo is None or (event.message[0] & 15) + 1 in manifest.get("sampleBindings", {}):
                 return event.time_seconds
             tick = round(event.time_seconds * max(1, midi_tempo) * MIDI_TICKS_PER_QUARTER / 60)
             tempo_us = max(1, round(60_000_000 / max(1, midi_tempo)))
@@ -898,6 +1013,7 @@ class PerformanceExportService:
         curve_indices: set[int] | None = None,
         curve_tolerance: int = DEFAULT_CURVE_TOLERANCE,
         spline_export: SplineExport | None = None,
+        sample_lines: list[tuple[float, str]] | None = None,
     ) -> tuple[list[str], list[str]]:
         warnings: list[str] = []
         note_events = self._score_note_events(events, targets=targets, warnings=warnings, manifest=manifest)
@@ -940,7 +1056,7 @@ class PerformanceExportService:
         # attacks. Unknown scheduling keeps the original mapped stream too.
         known_note_starts = self._known_mapped_note_starts(orchestra, targets)
         timed_lines: list[tuple[float, str]] = self._mapped_controller_lines(
-            events, targets, manifest or {}, note_events=note_events if known_note_starts else None,
+            events, targets, manifest or {}, note_events=note_events if known_note_starts and not sample_lines else None,
         )
         if spline_export is not None:
             timed_lines = [(time, line) for time, line in timed_lines
@@ -972,6 +1088,8 @@ class PerformanceExportService:
                 f"{self._format_score_number(event.duration_seconds)} "
                 f"{event.note} {event.velocity}{phrase_fields}",
             ))
+
+        timed_lines.extend(sample_lines or [])
 
         # Master bars use quarter-note transport beats, like the arranger ruler;
         # local track meters, subdivisions and speed ratios do not change them.
@@ -1049,6 +1167,8 @@ class PerformanceExportService:
                 continue
             status = message[0] & 0xF0
             channel = (message[0] & 0x0F) + 1
+            if channel in (manifest or {}).get("sampleBindings", {}):
+                continue
             data_1 = int(message[1])
             data_2 = int(message[2])
             if status == 0x90 and data_2 > 0:

@@ -411,7 +411,7 @@ def validate_source(track, source):
 def validate(config):
     m = model(config)
     if (
-        config.get("version") not in (23, 24, 25, 26)
+        config.get("version") not in (23, 24, 25, 26, 27)
         or type(m.get("version")) is not int
         or m["version"] not in (1, 2, 3, 4)
         or config["version"] < m["version"] + 22
@@ -543,7 +543,7 @@ def empty_clip_config(tempo=120):
     from .cli.orchestron_cli import empty_performance_config
 
     config = empty_performance_config(tempo=tempo)
-    config["version"] = 23
+    config["version"] = max(config.get("version", 22), 23)
     config["sequencer"]["clipArrangement"] = {"version": 1, "revision": 0, "end": QUARTER, "lanes": []}
     config["sequencer"]["pianoRolls"] = [
         {

@@ -18,6 +18,7 @@ from backend.app.engine.browser_audio_pcm import (
 )
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.engine.midi_scheduler import EngineMidiOutputAdapter, EngineMidiScheduler
+from backend.app.engine.sample_voices import SampleVoices, SLOT_CHANNELS, parse_bindings
 from backend.app.engine.lane_output import LaneOutputGate
 # Preserve these imports for existing worker callers while sharing renderer results.
 from backend.app.engine.realtime_renderer import EngineRenderResult, EngineStartResult
@@ -63,6 +64,7 @@ class CsoundWorker:
         self._host_midi_lock = threading.Lock()
         self._host_midi_callbacks: dict[str, Any] = {}
         self._midi_scheduler = EngineMidiScheduler()
+        self._sample_voices: SampleVoices | None = None
         self.performance_controllers = PerformanceControllers(self.queue_control_channels)
         self._midi_output = EngineMidiOutputAdapter(
             enqueue_message=self.queue_midi_message,
@@ -133,6 +135,10 @@ class CsoundWorker:
     def midi_overflow_count(self) -> int:
         return self._midi_scheduler.overflow_count
 
+    @property
+    def sample_voice_overflow_count(self) -> int:
+        return self._sample_voices.dropped if self._sample_voices is not None else 0
+
     def start(self, csd: str, midi_input: str, rtmidi_module: str) -> EngineStartResult:
         # Render ownership must precede the state lock everywhere: rendering
         # releases the state lock while calling into Csound.
@@ -193,8 +199,12 @@ class CsoundWorker:
     def lane_output(self) -> LaneOutputGate:
         return self._midi_scheduler.lane_output
 
-    def release_lane_events(self, identities: list[str]) -> None:
-        self._midi_scheduler.release_sources({f"lane:{identity}" for identity in identities}, sample=self._render_sample_cursor)
+    def release_lane_events(self, identities: list[str], *, force_samples: bool = True) -> None:
+        self._midi_scheduler.release_sources({f"lane:{identity}" for identity in identities},
+                                            sample=self._render_sample_cursor, force_samples=force_samples)
+
+    def cancel_sample_sources(self, sources, sample=None) -> None:
+        self._midi_scheduler.cancel_sample_sources(sources, self._render_sample_cursor if sample is None else sample)
 
     def enqueue_timestamped_midi(
         self,
@@ -206,6 +216,7 @@ class CsoundWorker:
         source_timestamp_ns: int | None = None,
         mapped_backend_monotonic_ns: int | None = None,
         sync_stale: bool = False,
+        sample_source: str | None = None,
     ) -> bool:
         if len(message) != 3:
             return False
@@ -220,6 +231,7 @@ class CsoundWorker:
                 mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
                 late=target_engine_sample < current_engine_sample,
                 sync_stale=sync_stale,
+                sample_source=sample_source,
             )
             return success
         success, _ = self._midi_scheduler.enqueue_after_delay(
@@ -229,6 +241,7 @@ class CsoundWorker:
             current_engine_sample=current_engine_sample,
             source_timestamp_ns=source_timestamp_ns,
             mapped_backend_monotonic_ns=mapped_backend_monotonic_ns,
+            sample_source=sample_source,
         )
         return success
 
@@ -236,8 +249,15 @@ class CsoundWorker:
         with self._lock:
             if self._backend == "ctcsound" and self._csound is not None:
                 try:
+                    self._midi_scheduler.panic_samples(self._render_sample_cursor)
                     # Best-effort panic: turn off currently active instrument instances.
-                    self._csound.inputMessage("turnoff2 1, 0, 1")
+                    if self._sample_voices is None:
+                        self._csound.inputMessage("turnoff2 1, 0, 1")
+                    else:
+                        for channel in range(16):
+                            for cc in (64, 120, 123):
+                                self._midi_scheduler.enqueue(bytes((0xb0 + channel, cc, 0)), source="panic",
+                                                             target_engine_sample=self._render_sample_cursor)
                     return "panic sent"
                 except Exception:
                     logger.exception("Failed to send panic message to CSound")
@@ -306,6 +326,9 @@ class CsoundWorker:
             self._host_midi_enabled = True
             self._midi_scheduler.reset()
             self._midi_scheduler.set_engine_sample_rate(source_sr)
+            bindings = parse_bindings(csd)
+            self._midi_scheduler.sample_channels = frozenset(bindings)
+            self._sample_voices = SampleVoices(bindings, source_sr, source_ksmps) if bindings else None
 
             if module != requested_module:
                 logger.warning(
@@ -538,6 +561,8 @@ class CsoundWorker:
         self._render_sample_cursor = 0
         self._host_midi_enabled = False
         self._host_midi_callbacks = {}
+        self._sample_voices = None
+        self._midi_scheduler.sample_channels = frozenset()
         self._midi_scheduler.reset()
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
@@ -589,6 +614,8 @@ class CsoundWorker:
             return
 
         self._host_midi_enabled = False
+        self._sample_voices = None
+        self._midi_scheduler.sample_channels = frozenset()
         self._midi_scheduler.reset()
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
@@ -665,6 +692,8 @@ class CsoundWorker:
         ct.libcsound.csoundSetExternalMidiWriteCallback(csound.cs, callbacks["write"])
 
     def _prepare_host_midi_block(self, *, block_start_sample: int, block_end_sample: int) -> None:
+        if self._sample_voices is not None:
+            self._sample_voices.expire(block_start_sample)
         if not self._midi_scheduler.has_due_events(block_end_sample):
             # Preserve the old per-period discard of any bytes Csound did not
             # consume, including a partial MIDI message from the previous block.
@@ -676,11 +705,39 @@ class CsoundWorker:
             block_start_sample=block_start_sample,
             block_end_sample=block_end_sample,
         )
+        if self._sample_voices is not None:
+            events = self._deliver_sample_events(events, block_start_sample)
         self.performance_controllers.deliver(events)
         with self._host_midi_lock:
             self._host_midi_buffer.clear()
             for event in events:
                 self._host_midi_buffer.extend(event.message)
+
+    def _deliver_sample_events(self, events, sample):
+        voices, csound = self._sample_voices, self._csound
+        if voices is None or csound is None:
+            return events
+        passthrough = []
+        for event in events:
+            if event.sample_panic or event.sample_cancel is not None:
+                for voice in voices.cancel(sample, sources=event.sample_cancel):
+                    csound.setControlChannel(SLOT_CHANNELS[voice.slot], 1)
+                continue
+            status, cc, _ = event.message
+            channel = (status & 15) + 1
+            if channel in voices.bindings:
+                kind = status & 0xf0
+                if kind in (0x80, 0x90):
+                    voice = voices.attack(event.message, event.sample_source or event.source, sample)
+                    if voice is not None:
+                        csound.setControlChannel(SLOT_CHANNELS[voice.slot], 0)
+                        csound.scoreEvent("i", voice.pfields(voices.rate))
+                    continue
+                if kind == 0xb0 and cc == 120:
+                    for voice in voices.cancel(sample, sources=frozenset((event.sample_source or event.source,)), channel=channel):
+                        csound.setControlChannel(SLOT_CHANNELS[voice.slot], 1)
+            passthrough.append(event)
+        return passthrough
 
     @staticmethod
     def _callback_arity(callback: Callable[..., None] | None) -> int:
@@ -978,6 +1035,8 @@ class CsoundWorker:
         self._runtime_nchnls = self._extract_orchestra_numeric_scalar(csd, "nchnls") or 2
         self._runtime_ksmps = self._extract_orchestra_numeric_scalar(csd, "ksmps") or 32
         self._render_sample_cursor = 0
+        self._sample_voices = None
+        self._midi_scheduler.sample_channels = frozenset()
         self._midi_scheduler.reset()
         self._midi_scheduler.set_engine_sample_rate(self._runtime_sr)
         return EngineStartResult(

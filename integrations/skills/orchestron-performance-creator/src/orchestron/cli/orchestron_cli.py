@@ -19,6 +19,8 @@ from typing import Any
 from urllib import error, parse, request
 from contextlib import nullcontext
 
+from orchestron import sample_player
+
 if __name__ == "__main__":
     # Keep exception classes identical when portable helpers import the entry point.
     sys.modules["orchestron.cli.orchestron_cli"] = sys.modules[__name__]
@@ -227,6 +229,19 @@ class ApiClient:
 
     def delete(self, path: str) -> Any:
         return self._request("DELETE", path)
+
+    def upload_sample(self, path: Path) -> Any:
+        try:
+            with path.open("rb") as source:
+                body = source.read(sample_player.MAX_FILE_BYTES + 1)
+        except OSError as exc:
+            raise OrchestronCliError("sample_read_failed", str(exc)) from exc
+        if not body or len(body) > sample_player.MAX_FILE_BYTES:
+            raise OrchestronCliError("sample_size", "Choose a non-empty sample no larger than 64 MiB.")
+        req = request.Request(self._url("/assets/samples"), data=body, method="POST", headers={
+            "Content-Type": "application/octet-stream", "X-File-Name": parse.quote(path.name, safe=""),
+        })
+        return self._open(req, operation="upload sample")
 
     def upload_bundle(self, path: Path) -> Any:
         url = self._url("/bundles/import/expand")
@@ -1912,18 +1927,26 @@ def arpeggiator_runtime_config(arp: dict[str, Any], clip_projection: bool = Fals
     return result
 
 
+def normalize_samples(config, *, enforce_version=True):
+    try:
+        return sample_player.canonicalize(config, enforce_version=enforce_version)
+    except ValueError as exc:
+        raise OrchestronCliError("invalid_sample_map", str(exc)) from exc
+
+
 def normalize_performance_config(
     config: dict[str, Any],
     patches: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    if config.get("version", 1) not in range(1, 27):
+    if config.get("version", 1) not in range(1, 28):
         raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
     from orchestron.timing_migration import migrate_sequencer_timing
     migrated = migrate_sequencer_timing(config)
     if migrated is not config:
         config.clear()
         config.update(migrated)
-    config["version"] = (26 if config["sequencer"]["clipArrangement"].get("version") == 4 else 25 if config["sequencer"]["clipArrangement"].get("version") == 3 else 24 if config["sequencer"]["clipArrangement"].get("version") == 2 else 23) if config.get("sequencer", {}).get("clipArrangement") is not None else CURRENT_CONFIG_VERSION
+    if not normalize_samples(config):
+        config["version"] = (26 if config["sequencer"]["clipArrangement"].get("version") == 4 else 25 if config["sequencer"]["clipArrangement"].get("version") == 3 else 24 if config["sequencer"]["clipArrangement"].get("version") == 2 else 23) if config.get("sequencer", {}).get("clipArrangement") is not None else CURRENT_CONFIG_VERSION
     graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
     graph["masterId"] = graph.get("masterId") or "$master"
     mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})
@@ -2039,6 +2062,8 @@ def legacy_audio_inlet(source: str, outlets: list[str], inlets: list[str]) -> st
 
 def session_audio_request(config: dict[str, Any]) -> dict[str, Any]:
     body = {"instruments": session_assignments_from_config(config)}
+    if "sampleAssets" in config:
+        body["sample_assets"] = config["sampleAssets"]
     if "audioGraph" in config:
         body.update(audio_graph=config["audioGraph"], mixer=config.get("mixer", {"strips": {}, "sends": {}}))
     return body
@@ -2207,6 +2232,7 @@ def clear_effect_routes_for_target(config: dict[str, Any], *, target_id: str) ->
 def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, Any]]:
     if "audioGraph" in config:
         return [{"id": i.get("id"), "patch_id": i.get("patchId"), "midi_channel": int(i.get("midiChannel", 1)),
+                 **({"sample_map": sample_player.wire_map(i["sampleMap"])} if "sampleMap" in i else {}),
                  "performance_controller_midi_ccs": performance_controller_midi_ccs(i.get("performanceControllerMidiCCs", {})),
                  "performance_controller_values": performance_controller_values(i.get("performanceControllerValues", {}))} for i in config_instruments(config)]
     assignments: list[dict[str, Any]] = []
@@ -2216,6 +2242,7 @@ def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, An
             {
                 "id": instrument.get("id"),
                 "patch_id": instrument.get("patchId"),
+                **({"sample_map": sample_player.wire_map(instrument["sampleMap"])} if "sampleMap" in instrument else {}),
                 "midi_channel": int(instrument.get("midiChannel", 1)),
                 "performance_controller_values": performance_controller_values(instrument.get("performanceControllerValues", {})),
                 "performance_controller_midi_ccs": performance_controller_midi_ccs(instrument.get("performanceControllerMidiCCs", {})),
@@ -4357,6 +4384,8 @@ def canonical_runtime_assignments(assignments: Any) -> list[dict[str, Any]]:
                 "id": assignment.get("id"),
                 "patch_id": assignment.get("patch_id", assignment.get("patchId")),
                 "midi_channel": int(assignment.get("midi_channel", assignment.get("midiChannel", 1))),
+                "sample_map": sorted((entry["note"], entry.get("asset_id", entry.get("assetId")))
+                                     for entry in (assignment.get("sample_map") or {}).get("entries", [])),
                 "effect_routes": sorted(
                     (route["sourceId"], route["channel"])
                     for route in routes
@@ -4759,6 +4788,8 @@ def update_session_config(ctx: CliContext, mutator) -> dict[str, Any]:
         raise OrchestronCliError("invalid_edit_session", "Edit session has no valid config.")
     before = copy.deepcopy(config)
     result = mutator(config)
+    if "sampleAssets" in config or any(isinstance(row, dict) and "sampleMap" in row for row in config.get("instruments", [])):
+        normalize_samples(config, enforce_version=False)
     if before.get("sequencer", {}).get("clipArrangement") is not None:
         keys = ("tracks", "scoreTracks", "drummerTracks", "controllerSequencers", "arpeggiators")
         if any(before["sequencer"].get(key) != config["sequencer"].get(key) for key in keys):
@@ -4921,6 +4952,7 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
                 "patchName": patch.get("name", instrument.get("patchName")),
                 "alwaysOn": patch_is_always_on(patch),
                 "midiChannel": instrument.get("midiChannel"),
+                **({"sampleMap": instrument["sampleMap"]} if "sampleMap" in instrument else {}),
                 "performanceControllers": patch.get("performance_controllers", []),
                 "performanceControllerValues": instrument.get("performanceControllerValues", {}),
                 "performanceControllerMidiCCs": instrument.get("performanceControllerMidiCCs", {}),
@@ -5065,6 +5097,51 @@ def command_edit_mixer(args: argparse.Namespace, ctx: CliContext) -> None:
         return {section: {identity: mixer[section][identity] for identity in selected}}
 
     result = apply(load_edit_session(ctx.session_file)["config"]) if args.mixer_command == "list" else update_session_config(ctx, apply)
+    print_payload(result, ctx)
+
+
+def command_edit_samples(args: argparse.Namespace, ctx: CliContext) -> None:
+    session = load_edit_session(ctx.session_file)
+    client = ApiClient(ctx.api_url, timeout=max(35.0, ctx.timeout))
+    if args.sample_command != "list" and session.get("attachedSessionId"):
+        response = client.get(f"/sessions/{parse.quote(session['attachedSessionId'], safe='')}")
+        if response.get("state") == "running":
+            raise OrchestronCliError("sample_engine_running", "Stop the attached engine before editing sample assignments.")
+
+    def apply(config):
+        normalize_samples(config)
+        instrument = instrument_by_binding_id(config, args.binding)
+        mapping = instrument.get("sampleMap", {"version": 1, "entries": []})
+        entries = {row["note"]: row for row in mapping["entries"]}
+        assets = config.get("sampleAssets", {})
+        if args.sample_command == "list":
+            return {"bindingId": args.binding, "entries": [{**entry, "asset": assets[entry["assetId"]]}
+                                                             for entry in mapping["entries"]]}
+        if args.sample_command == "clear":
+            instrument.pop("sampleMap", None)
+            return {"bindingId": args.binding, "cleared": True}
+        note = args.note
+        if not 0 <= note <= 127:
+            raise OrchestronCliError("invalid_sample_note", "MIDI note must be between 0 and 127.")
+        if args.sample_command == "remove":
+            if entries.pop(note, None) is None:
+                raise OrchestronCliError("sample_note_not_mapped", f"No sample is mapped to {note}.")
+        else:
+            if note in entries and not args.replace:
+                raise OrchestronCliError("sample_note_occupied", f"Note {note} already has a sample. Pass --replace to replace it.")
+            patch = client.get(f"/patches/{parse.quote(instrument['patchId'], safe='')}")
+            if patch.get("always_on") or not any(node.get("opcode") == "sample_player"
+                                                for node in patch.get("graph", {}).get("nodes", [])):
+                raise OrchestronCliError("sample_incompatible", "This rack instrument does not have a MIDI Sample Player.")
+            uploaded = client.upload_sample(Path(args.file))
+            identity = uploaded["asset_id"]
+            config.setdefault("sampleAssets", {})[identity] = uploaded["asset"]
+            entries[note] = {"note": note, "assetId": identity}
+        instrument["sampleMap"] = {"version": 1, "entries": sorted(entries.values(), key=lambda entry: entry["note"])}
+        config["version"] = sample_player.VERSION
+        return {"bindingId": args.binding, "mapping": instrument["sampleMap"]}
+
+    result = apply(session["config"]) if args.sample_command == "list" else update_session_config(ctx, apply)
     print_payload(result, ctx)
 
 
@@ -5836,6 +5913,17 @@ def build_parser() -> argparse.ArgumentParser:
     instruments_sub = instruments.add_subparsers(dest="instruments_command", required=True)
     instruments_list = instruments_sub.add_parser("list", help="List rack binding IDs, patches, channels, and audio ports.")
     instruments_list.set_defaults(func=command_edit_instruments_list)
+    samples = edit_sub.add_parser("samples", help="Inspect or change the per-instance Sample Player map.")
+    sample_sub = samples.add_subparsers(dest="sample_command", required=True)
+    for operation in ("list", "assign", "remove", "clear"):
+        command = sample_sub.add_parser(operation)
+        command.add_argument("--binding", required=True, help="Exact rack binding ID.")
+        if operation in ("assign", "remove"):
+            command.add_argument("--note", type=int, required=True, help="MIDI note 0..127.")
+        if operation == "assign":
+            command.add_argument("--file", required=True, help="Local WAV or MP3 file.")
+            command.add_argument("--replace", action="store_true", help="Replace an existing note assignment.")
+        command.set_defaults(func=command_edit_samples)
     add_inst = edit_sub.add_parser("add-instrument", help="Add an instrument assignment to the staged performance.")
     add_inst.add_argument("--patch", required=True, help="Patch ID or exact name.")
     add_inst.add_argument("--channel", type=int, help="MIDI channel 1..16. Always-on patches use channel 0.")

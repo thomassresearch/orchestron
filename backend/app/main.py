@@ -21,7 +21,7 @@ from backend.app.core.logging import configure_logging
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.app_state_service import AppStateService
 from backend.app.services.event_bus import SessionEventBus
-from backend.app.services.gen_asset_references import collect_persisted_gen_audio_stored_names
+from backend.app.services.gen_asset_references import collect_persisted_gen_audio_stored_names, collect_referenced_gen_audio_stored_names_from_payload
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.midi_service import MidiService
 from backend.app.services.opcode_service import OpcodeService
@@ -70,12 +70,14 @@ def _build_container(settings: Settings, *, renderer_options=None) -> AppContain
         max_string_bytes=settings.persisted_json_string_max_bytes,
     )
     app_state_service = AppStateService(
+        gen_asset_service=gen_asset_service,
         repository=app_state_repository,
         patch_repository=patch_repository,
         max_state_bytes=settings.app_state_max_bytes,
         max_string_bytes=settings.persisted_json_string_max_bytes,
     )
     performance_service = PerformanceService(
+        gen_asset_service=gen_asset_service,
         repository=performance_repository,
         patch_repository=patch_repository,
         max_config_bytes=settings.performance_config_max_bytes,
@@ -116,6 +118,9 @@ def _build_container(settings: Settings, *, renderer_options=None) -> AppContain
         patch_documents=patch_repository.list(),
         performance_documents=performance_repository.list(),
     )
+    recovery = app_state_repository.get("last")
+    if recovery:
+        referenced_assets.update(collect_referenced_gen_audio_stored_names_from_payload(recovery.state))
     gen_asset_service.garbage_collect_unreferenced_assets(referenced_stored_names=referenced_assets)
     return container
 

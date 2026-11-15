@@ -14,6 +14,9 @@ import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { stereoOpcodeDirection } from "../lib/stereoCatalog";
 import { createPerformanceControllerActions } from "./appStorePerformanceControllers";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
+import { audioTemplate } from "../lib/audioTemplates";
+import { hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest } from "../lib/samplePlayer";
+import { sampleCopy } from "../lib/sampleCopy";
 import { sessionAudioSignature, sessionRendererRequest } from "./sessionSignature";
 import { emptyAudioGraph, emptyMixer, migrateAudio, cleanBindings } from "../lib/audioRouting";
 import { create } from "zustand";
@@ -153,6 +156,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     loading: false,
     error: null,
     hasLoadedBootstrap: false,
+    sampleUploads: 0,
 
     activePage: "instrument",
     guiLanguage: "english",
@@ -336,7 +340,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
             const payload = migrateSequencerTiming(persistedState, true) as Partial<PersistedAppState>;
-            if (payload.version === 8 || payload.version === 7 || payload.version === 6 || payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
+            if (payload.version === 9 || payload.version === 8 || payload.version === 7 || payload.version === 6 || payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
               const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
               if (restoredTabs.length > 0) {
                 instrumentTabs = restoredTabs;
@@ -365,7 +369,8 @@ export const useAppStore = create<AppStore>((set, get) => {
               sequencerInstruments = normalizePersistedSequencerInstruments(
                 payload.sequencerInstruments,
                 availableInstrumentPatches,
-                fallbackPatchId
+                fallbackPatchId,
+                payload.sampleAssets
               );
 
               ({ audioGraph, mixer, migrationNotice } = migrateAudio(sequencerInstruments, patches, (payload.version ?? 1) >= 2 ? payload.audioGraph : undefined, payload.mixer));
@@ -399,7 +404,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           const resolvedGuiLanguage = guiLanguageChangedDuringBootstrap ? latestState.guiLanguage : guiLanguage;
 
           const baselineSnapshot: PersistedAppState = {
-            version: sequencer.clipArrangement?.version === 4 ? 8 : sequencer.clipArrangement?.version === 3 ? 7 : sequencer.clipArrangement?.version === 2 ? 6 : sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+            ...(hasSampleMaps(sequencerInstruments) ? { sampleAssets: sampleManifest(sequencerInstruments) } : {}),
+            version: hasSampleMaps(sequencerInstruments) ? 9 : sequencer.clipArrangement?.version === 4 ? 8 : sequencer.clipArrangement?.version === 3 ? 7 : sequencer.clipArrangement?.version === 2 ? 6 : sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
@@ -751,8 +757,10 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     saveCurrentPerformance: async () => {
+      if (get().sampleUploads) { set({ error: sampleCopy(get().guiLanguage).wait }); return; }
       if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts)) return;
       const state = get();
+      if (state.sampleUploads) { set({ error: sampleCopy(state.guiLanguage).wait }); return; }
       const name = state.performanceName.trim();
       if (name.length === 0) {
         set({ error: "Performance name is required." });
@@ -887,7 +895,45 @@ export const useAppStore = create<AppStore>((set, get) => {
       }
     },
 
+    applySampleMap: (original, generation, map, assets) => {
+      const state = get();
+      const binding = state.sequencerInstruments.find(row => row.id === original.id);
+      const copy = sampleCopy(state.guiLanguage);
+      if (state.performanceWorkspaceGeneration !== generation || binding !== original) throw new Error(copy.stale);
+      if (state.activeSessionState === "running" || sessionStartInFlight || sessionCreationInFlight) throw new Error(copy.lock);
+      const capable = state.patches.some(patch => patch.id === binding.patchId && patch.has_sample_player && !patch.always_on);
+      if (!capable && map?.entries.length) throw new Error(copy.incompatible);
+      const validated = readSampleBinding(map, parseSampleAssets(assets));
+      set({ sequencerInstruments: state.sequencerInstruments.map(row => row.id === binding.id ?
+        { ...row, sampleMap: validated.sampleMap, sampleAssets: validated.sampleAssets } : row) });
+    },
+
+    addSamplePlayer: async () => {
+      const state = get();
+      if (state.activeSessionState === "running" || sessionStartInFlight || state.loading) return;
+      const generation = state.performanceWorkspaceGeneration;
+      try {
+        // Reuse the same library starter when adding another instance.
+        const starter = audioTemplate("samplePlayer");
+        const name = starter.name;
+        const existing = state.patches.find(patch => !patch.is_template && !patch.always_on && patch.has_sample_player && patch.name === name);
+        if (!existing) {
+          set({ loading: true, error: null });
+          const patch = await api.createPatch({
+            name, description: starter.description, instrument_type: "percussion",
+            always_on: false, is_template: false, schema_version: 1, graph: starter.graph
+          });
+          await get().refreshPatches();
+          if (get().performanceWorkspaceGeneration === generation) get().addSequencerInstrument(patch.id);
+          set({ loading: false });
+        } else get().addSequencerInstrument(existing.id);
+      } catch (error) {
+        set({ loading: false, error: error instanceof Error ? error.message : String(error) });
+      }
+    },
+
     ensureSession: async () => {
+      if (get().sampleUploads) throw new Error(sampleCopy(get().guiLanguage).wait);
       if (sessionCreationInFlight) return sessionCreationInFlight;
       const generation = sessionRequestGeneration;
       const task = (async () => {
@@ -952,7 +998,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           return sessionId;
         }
 
-        const session = rendererRequest
+        const assets = hasSampleMaps(requestedBindings) ? sampleManifest(requestedBindings) : undefined;
+        const session = assets ? await api.createSession(requestedAssignments, get().audioGraph, get().mixer, rendererRequest, assets) : rendererRequest
           ? await api.createSession(requestedAssignments, get().audioGraph, get().mixer, rendererRequest)
           : await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
         if (!setupIsCurrent()) {
@@ -1070,6 +1117,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     startSession: async () => {
+      if (get().sampleUploads) { set({ error: sampleCopy(get().guiLanguage).wait }); return; }
       if (sessionStartInFlight) return sessionStartInFlight;
       const generation = sessionRequestGeneration;
       const task = (async () => {

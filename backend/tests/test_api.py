@@ -10960,3 +10960,182 @@ def test_grain_of_salt_public_parallel_selection_and_default(tmp_path, monkeypat
         assert client.post(f'/api/sessions/{identity}/stop').status_code == 200
         worker = service._sessions[identity].worker
         assert not worker._coordinator.process_ids and not admission.leases
+
+
+def _sample_player_api_payload(client, filename="mono.wav"):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_sample_player import SAMPLES
+    import shutil
+
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        pytest.skip("FFmpeg and FFprobe are required for sample ingestion tests.")
+    patch = load_patch_fixture("sample_player")
+    created = client.post("/api/patches", json=patch.model_dump(mode="json", by_alias=True))
+    assert created.status_code == 201, created.text
+    uploaded = client.post("/api/assets/samples", content=(SAMPLES / filename).read_bytes(),
+                           headers={"X-File-Name": filename})
+    assert uploaded.status_code == 201, uploaded.text
+    sample = uploaded.json()
+    assert client.get("/api/patches").json()[0]["has_sample_player"]
+    payload = _performance_csd_export_payload()
+    exported = payload["performanceExport"]
+    exported["patch_definitions"][0].update(sourcePatchId=created.json()["id"], name=patch.name,
+                                            graph=patch.graph.model_dump(mode="json", by_alias=True))
+    instrument = {"id": "kit-a", "patchId": created.json()["id"], "midiChannel": 1,
+                  "sampleMap": {"version": 1, "entries": [{"note": 60, "assetId": sample["asset_id"]}]}}
+    exported["performance"]["config"].update(version=27, instruments=[instrument],
+                                             sampleAssets={sample["asset_id"]: sample["asset"]})
+    return payload, sample
+
+
+def test_sample_opcode_and_audio_upload_validation(tmp_path):
+    from backend.tests.test_sample_player import SAMPLES
+
+    with _client(tmp_path) as client:
+        opcode = next(item for item in client.get("/api/opcodes").json() if item["name"] == "sample_player")
+        assert opcode["documentation_url"] == "https://csound.com/docs/manual/loscil3.html"
+        assert not opcode["inputs"] and [p["id"] for p in opcode["outputs"]] == ["aleft", "aright"]
+        for name in ("corrupt.wav", "surround.wav"):
+            assert client.post("/api/assets/samples", content=(SAMPLES / name).read_bytes()).status_code == 400
+        assert not list(client.app.state.container.gen_asset_service.audio_dir.iterdir())
+
+
+def test_sample_map_persistence_native_commit_and_active_reachability(tmp_path):
+    from backend.app.api.assets import _run_asset_gc
+    from backend.tests.test_sample_player import SAMPLES
+
+    source_store = tmp_path / "source"
+    destination_store = tmp_path / "destination"
+    with _client(source_store) as client:
+        payload, upload = _sample_player_api_payload(client, "stereo.mp3")
+        exported = payload["performanceExport"]
+        config = exported["performance"]["config"]
+        stored = client.post("/api/performances", json=exported["performance"])
+        assert stored.status_code == 201, stored.text
+        identity = stored.json()["id"]
+        recovered = {"version": 9, "sequencerInstruments": config["instruments"], "sampleAssets": config["sampleAssets"]}
+        assert client.put("/api/app-state", json={"state": recovered}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["sampleAssets"] == config["sampleAssets"]
+        assert client.get(f"/api/performances/{identity}").json()["config"]["sampleAssets"] == config["sampleAssets"]
+        invalid = json.loads(json.dumps(config))
+        invalid["instruments"][0]["sampleMap"]["entries"].append({"note": 60, "assetId": upload["asset_id"]})
+        assert client.put(f"/api/performances/{identity}", json={"config": invalid}).status_code == 422
+        response = client.post("/api/bundles/export/performance", json=exported)
+        assert response.status_code == 200, response.text
+        assert response.headers["X-Orchestron-Export-Format"] == "zip"
+        bundle = response.content
+        manifest = upload["asset"]
+        with zipfile.ZipFile(BytesIO(bundle)) as archive:
+            assert archive.read(f"audio/{manifest['source']['stored_name']}") == (SAMPLES / "stereo.mp3").read_bytes()
+            assert len(archive.namelist()) == 3
+    with _client(destination_store, gen_audio_asset_gc_min_age_seconds=0) as client:
+        store = client.app.state.container.gen_asset_service
+        for tamper in ("missing", "wrong-digest"):
+            modified = BytesIO()
+            with zipfile.ZipFile(BytesIO(bundle)) as archive, zipfile.ZipFile(modified, "w") as new_archive:
+                for member in archive.namelist():
+                    content = archive.read(member)
+                    if member == f"audio/{manifest['playback']['stored_name']}":
+                        if tamper == "missing":
+                            continue
+                        content = content[:-1] + bytes([content[-1] ^ 1])
+                    new_archive.writestr(member, content)
+            refused = client.post("/api/bundles/import/expand?preview=true", content=modified.getvalue())
+            assert refused.status_code == 400
+            assert not list(store.audio_dir.iterdir())
+        preview = client.post("/api/bundles/import/expand?preview=true", content=bundle)
+        assert preview.status_code == 200, preview.text
+        assert not list(store.audio_dir.iterdir())
+        source = config["instruments"][0]["patchId"]
+        patch_only = {"patches": [{"type": "create", "id": "patch-only", "sourcePatchId": source, "name": "Patch only"}]}
+        imported = client.post("/api/bundles/import/commit", files={"bundle": ("kit.zip", bundle)},
+                               data={"plan": json.dumps(patch_only)})
+        assert imported.status_code == 200, imported.text
+        assert not list(store.audio_dir.iterdir())
+        binding = {**config["instruments"][0], "patchId": "new-sampler"}
+        remapped = {**exported["performance"], "config": {**config, "instruments": [binding]}}
+        plan = {"patches": [{"type": "create", "id": "new-sampler", "sourcePatchId": source, "name": "Imported kit"}],
+                "performance": {"type": "create", "payload": remapped}}
+        conflict = {**plan, "patches": patch_only["patches"]}
+        refused = client.post("/api/bundles/import/commit", files={"bundle": ("kit.zip", bundle)},
+                              data={"plan": json.dumps(conflict)})
+        assert refused.status_code == 409, refused.text
+        assert not list(store.audio_dir.iterdir())
+        commit = client.post("/api/bundles/import/commit", files={"bundle": ("kit.zip", bundle)},
+                             data={"plan": json.dumps(plan)})
+        assert commit.status_code == 200, commit.text
+        assert commit.json()["performance"]["config"]["instruments"][0] == binding
+        session = client.post("/api/sessions", json={"instruments": [{"id": binding["id"], "patch_id": binding["patchId"],
+                            "sample_map": binding["sampleMap"], "midi_channel": 1}], "sample_assets": config["sampleAssets"]})
+        assert session.status_code in (200, 201), session.text
+        session_id = session.json()["session_id"]
+        assert client.delete(f"/api/performances/{commit.json()['performance']['id']}").status_code == 204
+        container = client.app.state.container
+        _run_asset_gc(container=container)
+        assert len(list(container.gen_asset_service.audio_dir.iterdir())) == 2
+        assert client.delete(f"/api/sessions/{session_id}").status_code == 204
+        _run_asset_gc(container=container)
+        assert not list(container.gen_asset_service.audio_dir.iterdir())
+
+
+@pytest.mark.parametrize("force_cancel", [False, True], ids=["short-gate", "overlap-and-cancel"])
+def test_sample_csd_modes_render_identically_after_relocation(tmp_path, monkeypatch, force_cancel):
+    import shutil
+    import subprocess
+    import numpy as np
+    from backend.app.services.sample_asset_service import _wav_format
+
+    csound = shutil.which("csound")
+    if not csound:
+        pytest.skip("Csound command is required for standalone export render tests.")
+    if force_cancel:
+        from backend.app.services.performance_export_service import CapturedMidiEvent
+
+        def capture(self, *, sample_cancels, **kwargs):
+            sample_cancels.append((2_400, 4, frozenset(("lane:drumrow:kit:first",))))
+            return [
+                CapturedMidiEvent(0, bytes((0x90, 60, 64)), 1, "lane:drumrow:kit:first"),
+                CapturedMidiEvent(0, bytes((0x90, 60, 32)), 2, "lane:independent"),
+                CapturedMidiEvent(.02, bytes((0x80, 60, 0)), 3, "lane:drumrow:kit:first"),
+            ]
+
+        monkeypatch.setattr(PerformanceExportService, "_capture_offline_midi_events", capture)
+    with _client(tmp_path / "service") as client:
+        request, upload = _sample_player_api_payload(client, "long.wav")
+        unused = client.post("/api/assets/samples", content=(Path(__file__).parent / "fixtures/sample_player/stereo.mp3").read_bytes()).json()
+        config = request["performanceExport"]["performance"]["config"]
+        config["instruments"].append({**config["instruments"][0], "id": "unused", "midiChannel": 2,
+                                      "sampleMap": {"version": 1, "entries": [{"note": 60, "assetId": unused["asset_id"]}]}})
+        config["sampleAssets"][unused["asset_id"]] = unused["asset"]
+        request["sequencerConfig"]["tracks"][0]["gate_ratio"] = 0.16
+        results = []
+        for mode in ("midiFile", "score"):
+            response = client.post("/api/bundles/export/performance-csd", json={**request, "eventSource": mode})
+            assert response.status_code == 200, response.text
+            folder = tmp_path / f"relocated-{mode}"
+            with zipfile.ZipFile(BytesIO(response.content)) as package:
+                packaged = [member for member in package.namelist() if "/assets/" in member]
+                assert len(packaged) == 1
+                path = client.app.state.container.gen_asset_service.resolve_audio_path(upload["asset"]["playback"]["stored_name"])
+                assert package.read(packaged[0]) == path.read_bytes()
+                package.extractall(folder)
+            csd = next(folder.rglob("*.csd"))
+            assert str(tmp_path) not in csd.read_text()
+            process = subprocess.run([csound, csd.name], cwd=csd.parent, capture_output=True, timeout=30)
+            assert process.returncode == 0, process.stderr.decode(errors="replace")
+            wave_file = next(csd.parent.glob("*.wav"))
+            _, channels, rate, _, _, offset, size = _wav_format(wave_file)
+            signal = np.frombuffer(wave_file.read_bytes(), dtype="<f4", offset=offset, count=size // 4).reshape(-1, channels)
+            assert rate == 48000 and len(signal) == 12 * rate
+            if force_cancel:
+                # At .1 s the forced fade has completed and only the quieter
+                # voice remains; the 220 Hz source repeats every tenth second.
+                early_peak = np.max(np.abs(signal[256:1200]))
+                after_peak = np.max(np.abs(signal[4800 + 256:4800 + 1200]))
+                assert after_peak == pytest.approx(early_peak / 3, abs=1e-5)
+                assert np.max(np.abs(signal[9 * rate:10 * rate])) > .05
+            else:
+                assert np.max(np.abs(signal[9 * rate:10 * rate])) > .1
+            assert not np.any(signal[10 * rate:])
+            results.append(signal)
+        np.testing.assert_array_equal(*results)

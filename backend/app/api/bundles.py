@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
-from tempfile import SpooledTemporaryFile
+from tempfile import SpooledTemporaryFile, TemporaryDirectory
+from pathlib import Path
+import filecmp
+import shutil
 from typing import BinaryIO
 import zipfile
 
@@ -17,14 +20,17 @@ from backend.app.services.bundle_import_service import BundleImportPlan, apply_i
 
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
-from backend.app.models.export import PerformanceCsdExportRequest
+from backend.app.models.export import PerformanceCsdExportRequest, PerformanceExportPayload
 from backend.app.services.compiler_service import CompilationError
 from backend.app.services.gen_asset_references import (
-    collect_persisted_gen_audio_stored_names,
+    sample_manifest_from_payload,
     collect_referenced_gen_audio_stored_names_from_payload,
     is_root_json_entry,
     normalize_zip_member_name,
 )
+from backend.app.api.assets import _run_asset_gc
+from backend.app.models.sample_player import sample_asset_id, validate_authored_samples
+from backend.app.services.sample_asset_service import verify_sample_asset, verify_sample_assets
 from backend.app.services.gen_asset_service import GenAudioAssetQuotaExceededError
 from backend.app.services.performance_export_service import PerformanceExportService
 from backend.app.services.master_migration import normalize_master_bundle, repository_lookup
@@ -46,6 +52,13 @@ def _normalize_import_payload(parsed: object, container: AppContainer) -> object
     if isinstance(parsed, dict):
         if parsed.get("format") == "orchestron.performance":
             parsed = normalize_master_bundle(parsed, repository_lookup(container.patch_repository))
+            performance = parsed.get("performance")
+            if not isinstance(performance, dict) or not isinstance(performance.get("config"), dict):
+                raise ValueError("Native performance bundle has no configuration.")
+            config = validate_authored_samples(performance["config"])
+            parsed = {**parsed, "performance": {**performance, "config": config}}
+        elif "sampleAssets" in parsed or parsed.get("version") == 27:
+            parsed = validate_authored_samples(parsed)
         elif isinstance(parsed.get("audioGraph"), dict):
             parsed = container.performance_service.normalize_config(parsed)
     return parsed
@@ -93,6 +106,8 @@ async def commit_import_bundle(request: Request, container: AppContainer = Depen
                     d.model_dump(mode="json") for d in import_definitions(parsed) if d.source_patch_id in selected_ids
                 ]
             }
+            if plan.performance is not None:
+                selected["sampleAssets"] = plan.performance.payload.config.get("sampleAssets", {})
             asset_names = collect_referenced_gen_audio_stored_names_from_payload(selected)
             # Hold asset ownership until SQLite commits; any validation, storage,
             # or commit failure removes only files created by this import.
@@ -129,7 +144,11 @@ def export_performance_bundle(
     container: AppContainer = Depends(get_container),
 ) -> Response:
     try:
-        payload = normalize_master_bundle(payload, repository_lookup(container.patch_repository))
+        payload = _normalize_import_payload(payload, container)
+        manifest = sample_manifest_from_payload(payload)
+        if manifest:
+            PerformanceExportService.validate_sample_capabilities(PerformanceExportPayload.model_validate(payload))
+            verify_sample_assets(manifest, container.gen_asset_service)
     except ValueError as err:
         raise HTTPException(status_code=422, detail=str(err)) from err
     return _build_export_response(
@@ -305,7 +324,10 @@ def _expand_import_payload(
     except UnicodeDecodeError as err:
         raise ValueError("Import file is neither valid UTF-8 JSON nor a ZIP archive.") from err
     try:
-        return _normalize_import_payload(json.loads(decoded), container)
+        parsed = _normalize_import_payload(json.loads(decoded), container)
+        if sample_manifest_from_payload(parsed):
+            raise ValueError("A mapped Sample Player performance requires a ZIP with its original and playback audio.")
+        return parsed
     except json.JSONDecodeError as err:
         raise ValueError(f"Import JSON could not be parsed: {err.msg}") from err
 
@@ -358,7 +380,14 @@ def _expand_zip_import_payload(
             if member is None:
                 raise ValueError(f"Import ZIP is missing referenced GEN audio asset 'audio/{stored_name}'.")
 
+        manifest = sample_manifest_from_payload(parsed)
         if preview:
+            if manifest:
+                _assert_zip_audio_members_fit_quota(
+                    container=container, member_by_normalized_name=member_by_normalized_name,
+                    referenced_names=referenced_names, collect=False,
+                )
+                _verify_sample_zip(archive, member_by_normalized_name, manifest, container)
             # Check decompression/CRC and all definitions before user confirmation.
             for stored_name in sorted(referenced_names):
                 for _chunk in _iter_zip_member_chunks(
@@ -380,6 +409,13 @@ def _expand_zip_import_payload(
                     _import_zip_audio_member(
                         container=container, archive=archive, member=member, stored_name=stored_name
                     )
+                selected_manifest = {key: asset for key, asset in manifest.items()
+                                     if asset.source.stored_name in referenced_names and
+                                     asset.playback.stored_name in referenced_names}
+                verify_sample_assets(selected_manifest, container.gen_asset_service)
+                for asset in selected_manifest.values():
+                    container.gen_asset_service.lease_audio_asset(asset.source.stored_name)
+                    container.gen_asset_service.lease_audio_asset(asset.playback.stored_name)
 
         return parsed
 
@@ -510,6 +546,7 @@ def _assert_zip_audio_members_fit_quota(
     container: AppContainer,
     member_by_normalized_name: dict[str, zipfile.ZipInfo],
     referenced_names: set[str],
+    collect: bool = True,
 ) -> None:
     new_asset_count = 0
     new_total_bytes = 0
@@ -528,6 +565,8 @@ def _assert_zip_audio_members_fit_quota(
             action="Audio import",
         )
     except GenAudioAssetQuotaExceededError:
+        if not collect:
+            raise
         _run_asset_gc(container=container)
         container.gen_asset_service.assert_new_audio_assets_can_fit(
             asset_count=new_asset_count,
@@ -536,12 +575,28 @@ def _assert_zip_audio_members_fit_quota(
         )
 
 
-def _run_asset_gc(*, container: AppContainer) -> None:
-    referenced = collect_persisted_gen_audio_stored_names(
-        patch_documents=container.patch_repository.list(),
-        performance_documents=container.performance_repository.list(),
-    )
-    container.gen_asset_service.garbage_collect_unreferenced_assets(referenced_stored_names=referenced)
+def _verify_sample_zip(archive, members, manifest, container):
+    store = container.gen_asset_service
+    with TemporaryDirectory(prefix="orchestron-samples-import-") as folder:
+        paths = {}
+        for identity, asset in manifest.items():
+            if identity != sample_asset_id(asset):
+                raise ValueError("Sample asset ID does not match its content.")
+            for ref in (asset.source, asset.playback):
+                name = ref.stored_name
+                if name in paths:
+                    continue
+                member = members[f"audio/{name}"]
+                path = Path(folder) / name
+                if member.file_size != ref.size_bytes:
+                    raise ValueError(f"Sample member size does not match the manifest: {name}.")
+                with archive.open(member) as source, path.open("wb") as output:
+                    shutil.copyfileobj(source, output, length=128 * 1024)
+                existing = store.resolve_audio_path(name)
+                if existing.exists() and not filecmp.cmp(existing, path, shallow=False):
+                    raise ValueError(f"Sample member conflicts with managed audio: {name}.")
+                paths[name] = path
+            verify_sample_asset(asset, paths.__getitem__)
 
 
 def _read_limited_file_bytes(

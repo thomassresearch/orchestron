@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from backend.app.models.sample_player import SamplePlayback
 from backend.app.models.patch import Connection, NodeInstance, PatchDocument
 from backend.app.models.opcode import OpcodeSpec
 from backend.app.models.audio import AudioDiagnostic
@@ -59,6 +60,8 @@ class PatchInstrumentTarget:
     performance_controller_midi_ccs: dict[str, int] = field(default_factory=dict)
     effect_source_ids: tuple[str, ...] = field(default_factory=tuple)
     effect_routes: tuple[tuple[str, str], ...] = field(default_factory=tuple)
+    samples: dict[int, SamplePlayback] = field(default_factory=dict)
+    sample_filecodes: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

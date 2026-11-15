@@ -79,6 +79,7 @@ def apply_import_plan(container: AppContainer, plan: BundleImportPlan, payload: 
         performances = PerformanceService(
             PerformanceRepository(transaction),
             patch_repository=patches,
+            gen_asset_service=container.gen_asset_service,
             max_config_bytes=settings.performance_config_max_bytes,
             max_string_bytes=settings.persisted_json_string_max_bytes,
         )

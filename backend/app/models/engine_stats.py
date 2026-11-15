@@ -14,6 +14,7 @@ class EngineStats(BaseModel):
     session_id: str
     state: SessionState
     renderer: RendererDiagnostics | None = None
+    sample_voice_overflows: int = Field(default=0, ge=0)
     available: bool
     # CPU counters cover the whole logical CPU, including other container/host
     # work. Single rendering migrates: report API-process usage instead of

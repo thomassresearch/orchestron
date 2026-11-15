@@ -13,12 +13,13 @@ def validate_performance(container, body: dict) -> dict:
             raise ValueError("Expected only config; preparation is a separate runtime operation.")
         config = body["config"]
         container.performance_service._validate_config(config)
-        MasterRepairRequest.model_validate(body)
+        config = MasterRepairRequest.model_validate(body).config
         config = container.performance_service.normalize_config(config)
         instruments = [
             {
                 "id": i.get("id"),
                 "patch_id": i.get("patchId"),
+                "sample_map": i.get("sampleMap"),
                 "midi_channel": i.get("midiChannel", 1),
                 "performance_controller_values": i.get("performanceControllerValues", {}),
                 "performance_controller_midi_ccs": i.get("performanceControllerMidiCCs", {}),
@@ -39,6 +40,7 @@ def validate_performance(container, body: dict) -> dict:
             request = SessionInstrumentValidationRequest.model_validate(
                 {
                     "instruments": instruments,
+                    "sample_assets": config.get("sampleAssets", {}),
                     "audio_graph": config.get("audioGraph"),
                     "mixer": config.get("mixer", {}),
                 }

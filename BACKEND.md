@@ -386,6 +386,15 @@ Important consequence: sessions are **not persisted**. Restarting the backend dr
 
 ### GenAssetService
 
+The Sample Player uses the same managed storage, quotas and atomic import batches.
+`POST /api/assets/samples` accepts a bounded raw WAV or MP3 body with an optional UTF-8
+percent-encoded `X-File-Name`, and responds with `{asset_id, asset}`. FFprobe validates
+the stream; bounded FFmpeg workers decode mono or stereo to 48 kHz float WAV.
+Both the original bytes and canonical WAV are immutable and named by SHA-256.
+Set up FFmpeg and FFprobe for local uploads; the Docker runtime includes both.
+Unreferenced uploads have a renewable grace lease. Saved performances, recovered
+app state and active sessions protect both files from collection.
+
 - Stores raw uploaded audio files for GEN and sample-loading workflows.
 - Enforces a 64 MiB size limit.
 - Sanitizes original filenames and stored names.
@@ -621,6 +630,7 @@ Each `PortSpec` includes `id`, `name`, `signal_type`, `accepted_signal_types`, `
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/assets/gen-audio` | raw binary body | `201` `GenAudioAssetUploadResponse` | Optional `X-File-Name` header sets the original filename. `Content-Type` is preserved in the response. Returns `400` for empty uploads, oversize uploads, or invalid filenames. |
+| `POST` | `/api/assets/samples` | raw WAV/MP3 | `201` `SampleUpload` | Stores original and canonical WAV together; `400` for invalid media, `413` for size/storage limits. |
 
 `GenAudioAssetUploadResponse` returns:
 
@@ -1272,7 +1282,7 @@ Manual lanes in `PerformanceCsdExportRequest.midiControllers` accept `targetChan
 
 ### Internal Master (performance config v14)
 
-`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance v26 for fixed repetition references, v25 for clip transposition, v24 for instrument automation, v23 for other clips, otherwise v22 (read v1–26). App state uses v8/v7/v6/v5/v4 respectively (reads v1–8); native envelopes are unchanged.
+`$master` is a reserved mixer endpoint with fixed `left`/`right` inputs and `$direct.left`/`$direct.right` outputs for strip/insert routing. The compiler emits its body internally. It is excluded from patch storage and the 64 user-instrument quota; mixer state allows one additional strip. Frontend and CLI write performance v27 for sample maps, v26 for fixed repetition references, v25 for clip transposition, v24 for instrument automation, v23 for other clips, otherwise v22 (read v1–27). App state uses v9/v8/v7/v6/v5/v4 respectively (reads v1–9); native envelopes are unchanged.
 
 Saved performance/app-state read and write boundaries and native import/export normalize designated legacy Masters through `master_migration`. SQLite startup invokes the same backed-up, idempotent cleanup exposed by `backend.tools.migrate_internal_master`. `POST /api/performances/repair-master` accepts `{config: ...}` and returns a converted config without saving it; it only replaces missing Masters with compatible stereo port mappings. See [migration and repair](documentation/performance/audio_mixer_and_routing.md#upgrading-existing-masters).
 
@@ -1460,6 +1470,33 @@ Bound controller tracks persist `automationTarget` with rack-instance and contro
 `controller_curve.compact_controller_events` partitions Catmull–Rom segments at derivative extrema and uses bounded searches for rounded MIDI-value changes on the existing 168-tick sampling grid. Long-curve preparation scales with points/value changes rather than elapsed quanta. Generic curves retain their original sampler. Runtime status exposes the active curve duration. Clip schedules, seeks, audition, preparation caching and MIDI/SCORE export resolve the same duration.
 
 The revision-checked performance-controller PATCH accepts optional `sequencer_config`. The service validates derived routes against proposed mappings, prepares without changing the current configuration, checks the configuration generation and controller revisions, then applies mapping, lane gates and prepared sequencers at one render boundary. A mapping for existing bound automation cannot change through an uncoordinated PATCH. Frontend split/merge reconciliation preserves complete lanes and suspended identities; differing merges require an explicit survivor. Authored drafts remain outside persistence. See the [user workflow](documentation/performance/instrument_automation.md).
+
+### Sample Player (performance v27, app state v9)
+
+Rack assignments own optional `sampleMap` v1 with sorted unique integer MIDI notes.
+The performance or recovery snapshot stores only the reachable `sampleAssets` manifest
+with both file references, sizes, digests, formats, decoded frame/channel metadata and
+decoder revision. Sessions take `sample_map` and `sample_assets` at creation and validation.
+All mapped bindings are verified off the rendering thread, including unused bindings at
+save/import. File checks cache against content metadata and the filesystem identity;
+canonical WAV is never regenerated during import.
+
+One root `sample_player` node is allowed in a MIDI patch. The compiler preloads one
+deduplicated canonical table per playback identity and selects the single renderer.
+The engine translates exact-note attacks into finite instances of the whole patch.
+Output fades at the sample edges; forced cancellation ramps the patch output over 5 ms.
+Ordinary note-off only changes MIDI ownership. A separate bounded voice registry handles
+overlap, source and audition cancellation, cleanup and Panic. Per rack instance and
+engine caps are 64 and 256 voices; excess attacks are dropped and counted in engine stats.
+Tables are limited to 256 MiB at double precision, with at most 120 seconds per sample.
+
+`POST /api/sessions/{id}/instruments/{assignment_id}/sample-preview` starts/stops a
+gesture scoped to the running instance's routed sample. It does not mutate the map.
+Native bundles include both physical files for every used asset. Offline MIDI/SCORE
+packages include only selected instances' canonical files, with relative `assets/soundin.*`
+members. Both modes schedule the same finite sampler score voices; MIDI mode also
+retains the standard captured MIDI. The render extends to the latest surviving sample
+or range end, whichever is later, then adds the effect tail.
 
 ### Clip transposition (performance v25, app state v7, clip model v3)
 

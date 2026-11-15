@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from backend.app.models.sample_player import SampleAssets, SampleMap
 from backend.app.engine.lane_output import lane_id
 from backend.app.models.clip_arrangement import ClipSchedule, MAX_AUTHORED_CLIP_PADS, MAX_RUNTIME_CLIP_PADS
 
@@ -100,6 +101,7 @@ class SessionEffectRoute(BaseModel):
 
 
 class SessionInstrumentAssignment(BaseModel):
+    sample_map: SampleMap | None = Field(default=None, exclude_if=lambda value: value is None)
     performance_controller_values: dict[str, ControllerNumber] = Field(default_factory=dict)
     performance_controller_midi_ccs: dict[str, PerformanceMidiCC] = Field(default_factory=dict)
     level: float | None = Field(default=None, ge=1, le=10, exclude=True)
@@ -113,6 +115,7 @@ class SessionInstrumentAssignment(BaseModel):
 
 
 class SessionCreateRequest(BaseModel):
+    sample_assets: SampleAssets = Field(default_factory=dict)
     renderer_mode: Literal["single", "auto"] = "single"
     parallel_batch_frames: int | None = Field(default=None, ge=32, le=1024, strict=True)
     # Requested browser policy, never qualification evidence or planner costs.
@@ -130,6 +133,7 @@ class SessionCreateRequest(BaseModel):
 
 
 class SessionInstrumentValidationRequest(BaseModel):
+    sample_assets: SampleAssets = Field(default_factory=dict)
     audio_graph: AudioGraph | None = None
     mixer: MixerState = Field(default_factory=MixerState)
     instruments: list[SessionInstrumentAssignment] = Field(min_length=1, max_length=64)
@@ -333,6 +337,12 @@ class BindMidiInputRequest(BaseModel):
 
 
 MidiEventType = Literal["note_on", "note_off", "all_notes_off", "control_change"]
+
+
+class SamplePreviewRequest(BaseModel):
+    action: Literal["start", "stop"]
+    gesture: Annotated[str, Field(min_length=1, max_length=64, pattern=r"^[0-9A-Za-z_-]+$")]
+    note: Annotated[int, Field(ge=0, le=127, strict=True)]
 
 
 class SessionMidiEventRequest(BaseModel):

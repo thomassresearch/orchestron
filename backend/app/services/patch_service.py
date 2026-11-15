@@ -84,6 +84,7 @@ class PatchService:
                 always_on=document.always_on,
                 instrument_type=document.instrument_type,
                 audio_interface=document.graph.audio_interface,
+                has_sample_player=any(node.opcode == "sample_player" for node in document.graph.nodes),
                 has_direct_output=any(node.opcode == "outs" for node in document.graph.nodes),
                 audio_inlet_names=audio_port_names(document.graph, opcode="inleta"),
                 audio_outlet_names=audio_port_names(document.graph, opcode="outleta"),
