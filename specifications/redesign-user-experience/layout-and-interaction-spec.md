@@ -71,13 +71,49 @@ the mock's fixed preview height. The shell must not create a long document page 
 | Navigation, workspace controls, transport and status | Remain accessible; do not scroll away with track or editor content. |
 | Arrangement | Takes the remaining work area above the dock; tracks scroll vertically within it. |
 | Timeline | Scrolls horizontally within its own region, with ruler and clips synchronized; keep track names reachable. |
-| Detail dock | Has a user-resizable height within usable limits; its content scrolls independently. |
+| Detail dock | Resizes through the draggable divider within usable limits; its content scrolls independently. |
 | Inspector | Uses bounded width and independent vertical scrolling. |
 | Closed pane | Occupies no space and leaves no divider or minimum-height placeholder. |
 
 Avoid competing scroll areas inside the same editor unless the content is inherently two
 dimensional, such as a score or piano roll. Keep the horizontal timeline scrollbar reachable
 without scrolling through all tracks. Resizing must not trap controls outside the visible area.
+
+### Draggable divider
+
+Replace the study's **Editor height** slider with a full-width horizontal divider between
+the arrangement and the detail dock. A small central grip indicates that it can be dragged;
+the entire divider is the hit target. Use a vertical-resize cursor, visible keyboard focus,
+and hover/active feedback. Provide a larger, non-overlapping target for touch input.
+
+- Drag upward to enlarge the editor and downward to enlarge the arrangement. Both panes
+  update continuously; their combined size stays within the workspace. This is a pane resize,
+  with no page scrolling or musical edit.
+- Capture the pointer for the gesture so dragging continues outside the thin divider. Support
+  mouse, touch and pen. Suppress text selection and touch scrolling only for the resize gesture.
+- Clamp resizing before either pane becomes unusable. The study keeps the editor at least
+  180 CSS pixels high and at most 60% of the working area, further limited to retain arrangement
+  chrome and visible track space. These numerical limits remain provisional.
+- Release to retain the chosen height. Escape, pointer cancellation, unexpected loss of capture,
+  leaving the browser window's focus, or a layout change during the gesture restores the prior
+  height and clears drag state. Resizing does not alter selection, editor content, save status,
+  playback, or the arrangement ruler's vertical position.
+- Tab reaches the divider. Up/Down move it by 10 CSS pixels; Shift+Up/Down use 1-pixel increments.
+  Home gives the editor its smallest allowed height; End gives it its largest. These keys act
+  only while the divider has focus. Panel buttons remain the explicit way to close the dock.
+- Expose horizontal separator semantics, the controlled detail pane, and its current/minimum/
+  maximum size to assistive technology. Keep the announced value synchronized with the rendered
+  height. The interaction follows the sizing and arrow-key concepts of the
+  [WAI-ARIA window splitter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/);
+  this study does not claim complete accessibility conformance.
+- Reopening the editor or keyboard restores the chosen split. A smaller browser window may
+  temporarily constrain it; enlarging the window restores the preferred size where possible.
+  View changes preserve that preference without saving it as performance data.
+- Hide the divider when the dock is closed, the editor is expanded, or the workspace uses one
+  pane. The mock's content-sized preview also hides it because that preview has no bounded split.
+
+The divider is the only editor-height control in the mock. The separate Tweak editor-height
+slider is removed as well; browser-height exploration remains available.
 
 ### When panels are closed
 
@@ -146,7 +182,7 @@ does not change their ownership, routing, saved values or update timing.
 | Press Editor | Open the selected editor, replace Keyboard if visible, or close the currently visible editor. |
 | Press Keyboard | Open Keyboard, replace the editor if visible, or close Keyboard if already visible. |
 | Press Inspector | Open or close the inspector independently of the dock. |
-| Resize the dock | Adjust the split without changing selection, musical data, zoom, playback or save state. |
+| Drag the divider or use its resize keys | Adjust the split within both panes' limits without changing selection, musical data, zoom, playback or save state. |
 | Expand editor | Temporarily give the editor the working area while preserving accessible song transport; restore the previous split on return. |
 | Close a panel | Retain its drafts and view state; close its menus, cancel active drags, and release held keyboard notes. |
 | Switch Arrange / Live / Mix | Retain performance, applicable selection and view state; do not implicitly save or discard edits. |
@@ -222,7 +258,7 @@ Use native, labeled controls and a logical focus order matching the visible layo
 keyboard access to resizing, opening/closing panes and actions otherwise reached by double-click
 or drag. Restore focus when a drawer or dialog closes. Avoid shortcuts that intercept typing
 in editable fields, and keep all essential actions available without hover. Exact new shortcut
-assignments remain to be designed.
+assignments beyond the divider's resizing keys remain to be designed.
 
 Support EN/DE/FR/ES labels and integrated help in the eventual UI. Test long labels, touch
 targets, enlarged text and browser zoom. Readability and accessible controls take priority
@@ -232,8 +268,10 @@ over preserving the desktop's density at every viewport size.
 
 1. Arrange consistently presents the timeline above the detail dock, with transport above
    the timeline and no vertical-order preference.
-2. Opening or closing the dock preserves the ruler's position; closed dock/divider elements
-   occupy no space. Closing Inspector returns its width.
+2. Opening, closing or resizing the dock preserves the ruler's position; closed dock/divider
+   elements occupy no space. Closing Inspector returns its width. The divider supports pointer
+   capture, keyboard resizing, both size limits, gesture cancellation, and restoration of the
+   chosen height, without dirtying the performance or rebuilding its editor contents.
 3. Selecting clips with the dock closed leaves it closed; explicit opening reveals the correct
    context. Editor and Keyboard replace one another and toggle closed on a second activation.
 4. Many tracks, long patterns, large racks and detailed inspectors scroll within usable regions
@@ -257,7 +295,7 @@ The saved [mock](orchestron-studio-study.html) retains historical comparison con
 simplifies editing, saving, Undo, routing, transport and audio. It illustrates placement and
 interaction intent. This document takes precedence where the mock differs.
 
-Remaining design details are exact breakpoints and pane limits, new shortcut assignments,
+Remaining design details are exact breakpoints and pane limits, other new shortcut assignments,
 whether display preferences survive reload, and the final compact runtime-status composition.
 None reopens the selected arrangement-above/editor-below order. Configuration remains outside
 scope. No application source, runtime behavior or user manual is changed by this specification.

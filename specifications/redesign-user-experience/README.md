@@ -18,6 +18,10 @@ That control is historical exploration, not a requirement to implement both layo
 written specification takes precedence. Its **Content-sized** preview option is likewise
 a study aid; the proposed application fills the available browser viewport.
 
+The mock now uses a draggable divider instead of the **Editor height** slider. Drag the grip
+between panes, or focus it and use Up/Down (Shift for fine adjustment), Home/End for the size
+limits, and Escape to cancel a drag. The lower pane retains its chosen height when reopened.
+
 ## Preview validation
 
 Run from the repository root with an existing Playwright installation and Chromium:
@@ -36,5 +40,7 @@ The browser checks performed during the study covered both historical layouts, p
 closure, keyboard toggling, desktop and narrow viewports, and a 640 × 360 effective viewport
 representing the space available at 200% zoom on a 1280 × 720 viewport. The recorded run
 passed without script errors and measured no reserved dock gap after closing panels.
+The checker also exercises divider dragging outside its handle, keyboard resizing, minimum
+and maximum heights, Escape cancellation, preserved editor content and selection, and reopening.
 These checks validate the mock's geometry and simulated interactions, not application audio,
 real browser zoom, complete accessibility, or runtime behavior.

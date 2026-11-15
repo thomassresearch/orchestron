@@ -7,7 +7,7 @@
     <aside id="o-inspector" class="o-inspector" aria-label="Inspector"></aside>
     <main class="o-work">
       <section id="o-main" class="o-main" aria-label="Performance overview"></section>
-      <div class="o-divider"><span></span><label>Editor height <input id="o-height" aria-label="Editor height" type="range" min="180" max="400" step="10" value="220"></label><span></span></div>
+      <button id="o-divider" class="o-divider" type="button" role="separator" aria-label="Detail editor" aria-orientation="horizontal" aria-controls="o-detail" aria-valuemin="180" aria-valuemax="400" aria-valuenow="220" aria-valuetext="Editor height 220 pixels" data-tooltip="Drag to resize. Up/Down: 10 px; Shift: 1 px. Home/End: limits. Escape: cancel drag."><span aria-hidden="true"></span></button>
       <section id="o-detail" class="o-detail" aria-label="Detail editor"></section>
     </main>
   </div>
@@ -51,7 +51,11 @@
 #orch-studio .o-timeline-tail>div:first-child{padding:9px 8px 9px 0}
 #orch-studio .o-timeline-tail button{font-size:11px;color:var(--o-muted);background:transparent;border-style:dashed}
 #orch-studio .o-empty-grid{background:repeating-linear-gradient(to right,transparent 0,transparent calc(25% - 1px),var(--o-line) calc(25% - 1px),var(--o-line) 25%)}
-#orch-studio .o-divider{flex:none;height:24px;padding-block:3px}
+#orch-studio button.o-divider{flex:none;width:100%;height:12px;min-height:12px;padding:0;border-inline:0;border-radius:0;gap:0;cursor:row-resize;touch-action:none;user-select:none}
+#orch-studio button.o-divider>span{width:34px;height:3px;border-radius:2px;background:var(--o-muted);pointer-events:none}
+#orch-studio button.o-divider:hover>span,#orch-studio button.o-divider:focus-visible>span,#orch-studio.o-resizing button.o-divider>span{background:var(--o-cyan)}
+#orch-studio.o-resizing,#orch-studio.o-resizing *{cursor:row-resize!important;user-select:none!important}
+@media(pointer:coarse){#orch-studio button.o-divider{height:44px;min-height:44px}}
 #orch-studio .o-detail{flex:0 1 var(--editor-height,220px);min-height:150px;max-height:60%;display:flex;flex-direction:column;overflow:hidden}
 #orch-studio .o-detail-top,#orch-studio .o-scope{flex:none}
 #orch-studio .o-detail-body{flex:1 1 0;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:3px;padding-bottom:4px}
@@ -97,6 +101,7 @@
 #orch-studio.o-compact-preview .o-detail{flex:none;min-height:0;max-height:none;overflow:visible}
 #orch-studio.o-compact-preview .o-detail-body{overflow:visible}
 #orch-studio.o-compact-preview .o-inspector{overflow:visible}
+#orch-studio.o-compact-preview .o-divider{display:none}
 @media(max-width:800px){#orch-studio .o-timeline-tail{grid-template-columns:110px minmax(0,1fr)}}
 @media(max-width:380px){#orch-studio .o-timeline-tail{grid-template-columns:92px minmax(0,1fr);padding-inline:5px}}
 </style>
@@ -121,8 +126,71 @@ const sel=(label,key,values,value,attrs='')=>'<label class="o-field">'+label+'<s
 const num=(label,key,value,min,max)=>'<label class="o-field">'+label+'<input type="number" data-field="'+key+'" value="'+value+'" min="'+min+'" max="'+max+'"></label>';
 const t=()=>tracks[state.track];const draftKey=()=>state.track+':'+state.clip;const draftDirty=()=>!!state.drafts[draftKey()];
 const pressed=v=>'aria-pressed="'+!!v+'"';
+const splitter=$('#o-divider');
+let resizeGesture=null;
+function splitLimits(){
+  const workHeight=$('.o-work').getBoundingClientRect().height;
+  const main=$('#o-main');
+  const fixedChrome=[...main.children].filter(el=>el.matches('.o-transport,.o-main-head,.o-ruler,.o-timeline-footer')).reduce((sum,el)=>sum+el.getBoundingClientRect().height,0);
+  const mainMinimum=Math.max(160,fixedChrome+44);
+  return {min:180,max:Math.max(180,Math.floor(Math.min(workHeight*.6,workHeight-mainMinimum-splitter.getBoundingClientRect().height)))};
+}
+function syncSplitter(){
+  const visible=state.detailOpen&&!state.focus&&state.view!=='design'&&!isNarrow()&&state.previewSizing!=='Content-sized'&&!root.classList.contains('o-compact-preview');
+  splitter.disabled=!visible;
+  if(!visible)return;
+  const {min,max}=splitLimits();
+  const height=Math.max(min,Math.min(max,state.height));
+  root.style.setProperty('--editor-height',height+'px');
+  splitter.setAttribute('aria-valuemin',String(min));
+  splitter.setAttribute('aria-valuemax',String(max));
+  splitter.setAttribute('aria-valuenow',String(Math.round(height)));
+  splitter.setAttribute('aria-valuetext',(state.detail==='keyboard'?'Keyboard':'Editor')+' height '+Math.round(height)+' pixels');
+}
+function resizeEditor(height){
+  const {min,max}=splitLimits();
+  state.height=Math.max(min,Math.min(max,Math.round(height)));
+  syncSplitter();
+}
+function finishResize(cancel=false){
+  if(!resizeGesture)return;
+  const gesture=resizeGesture;
+  resizeGesture=null;
+  root.classList.remove('o-resizing');
+  if(splitter.hasPointerCapture(gesture.pointerId))splitter.releasePointerCapture(gesture.pointerId);
+  if(cancel)state.height=gesture.preferredHeight;
+  syncSplitter();
+  if(!cancel)persist();
+}
+splitter.addEventListener('pointerdown',e=>{
+  if(e.button!==0||!e.isPrimary||splitter.disabled||resizeGesture)return;
+  e.preventDefault();
+  splitter.focus({preventScroll:true});
+  resizeGesture={pointerId:e.pointerId,startY:e.clientY,startHeight:$('#o-detail').getBoundingClientRect().height,preferredHeight:state.height,direction:state.view==='arrange'&&state.layout==='Timeline below'?1:-1};
+  splitter.setPointerCapture(e.pointerId);
+  root.classList.add('o-resizing');
+});
+splitter.addEventListener('pointermove',e=>{
+  if(!resizeGesture||e.pointerId!==resizeGesture.pointerId)return;
+  resizeEditor(resizeGesture.startHeight+(e.clientY-resizeGesture.startY)*resizeGesture.direction);
+});
+splitter.addEventListener('pointerup',e=>{if(e.pointerId===resizeGesture?.pointerId)finishResize();});
+splitter.addEventListener('pointercancel',e=>{if(e.pointerId===resizeGesture?.pointerId)finishResize(true);});
+splitter.addEventListener('lostpointercapture',e=>{if(e.pointerId===resizeGesture?.pointerId)finishResize(true);});
+splitter.addEventListener('keydown',e=>{
+  if(!['ArrowUp','ArrowDown','Home','End'].includes(e.key)||splitter.disabled)return;
+  e.preventDefault();
+  e.stopPropagation();
+  if(resizeGesture)finishResize(true);
+  const {min,max}=splitLimits(),height=$('#o-detail').getBoundingClientRect().height;
+  const direction=state.view==='arrange'&&state.layout==='Timeline below'?1:-1;
+  resizeEditor(e.key==='Home'?min:e.key==='End'?max:height+(e.key==='ArrowUp'?-1:1)*direction*(e.shiftKey?1:10));
+  persist();
+});
+window.addEventListener('blur',()=>finishResize(true));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)finishResize(true);});
 function persist(){window.openai?.setWidgetState?.({modelContent:{view:state.view,track:t().name,detail:state.detail,scope:state.scope,inspector:state.inspector,editorPlacement:state.layout,previewSizing:state.previewSizing},privateContent:{version:2,view:state.view,track:state.track,detail:state.detail,inspector:state.inspector,detailOpen:state.detailOpen,height:state.height,layout:state.layout,previewSizing:state.previewSizing,placement:state.placement}})?.catch(()=>{});}
-function restore(s){s=s?.privateContent;if(s?.version!==2)return;if(['Timeline above','Timeline below'].includes(s.layout))state.layout=s.layout;if(['Browser window','Content-sized'].includes(s.previewSizing))state.previewSizing=s.previewSizing;for(const key of ['view','detail','placement'])if(typeof s[key]==='string'&&({view:['arrange','live','mix'],detail:['pattern','instrument','routing','keyboard','structure'],placement:['Bottom','Right']}[key].includes(s[key])))state[key]=s[key];if(Number.isInteger(s.track)&&tracks[s.track]){state.track=s.track;state.selectedInst=tracks[s.track].instrument;}for(const key of ['inspector','detailOpen'])if(typeof s[key]==='boolean')state[key]=s[key];if(Number.isFinite(s.height))state.height=Math.max(180,Math.min(400,s.height));}
+function restore(s){s=s?.privateContent;if(s?.version!==2)return;if(['Timeline above','Timeline below'].includes(s.layout))state.layout=s.layout;if(['Browser window','Content-sized'].includes(s.previewSizing))state.previewSizing=s.previewSizing;for(const key of ['view','detail','placement'])if(typeof s[key]==='string'&&({view:['arrange','live','mix'],detail:['pattern','instrument','routing','keyboard','structure'],placement:['Bottom','Right']}[key].includes(s[key])))state[key]=s[key];if(Number.isInteger(s.track)&&tracks[s.track]){state.track=s.track;state.selectedInst=tracks[s.track].instrument;}for(const key of ['inspector','detailOpen'])if(typeof s[key]==='boolean')state[key]=s[key];if(Number.isFinite(s.height))state.height=Math.max(180,Math.min(2000,s.height));}
 function mark(message){state.dirty=true;state.drafts[draftKey()]=true;state.message=message||'Pattern draft changed · Save applies the chosen editing scope';}
 function selectTrack(i,clip=state.clip,open=true){state.track=i;state.clip=clip;state.selectedInst=t().instrument;state.step=0;state.scope=state.scopes[draftKey()]||'linked';if(open){state.detail='pattern';state.detailOpen=true;}state.message=t().name+' / '+t().clips[state.clip]+' / '+t().pattern+' selected';}
 function mini(kind){let shapes='';if(kind==='curve')shapes='<polyline points="0,19 20,15 40,18 62,3 90,8 120,2" fill="none" stroke="currentColor" stroke-width="2"/>';else if(kind==='drums')shapes=Array.from({length:12},(_,i)=>'<rect x="'+(i*10)+'" y="'+((i%3)*6)+'" width="5" height="4" fill="currentColor" opacity=".6"/>').join('');else shapes=Array.from({length:kind==='score'?6:10},(_,i)=>'<rect x="'+(i*(kind==='score'?19:12))+'" y="'+((i*7)%17)+'" width="'+(kind==='score'?17:8)+'" height="3" fill="currentColor" opacity=".7"/>').join('');return '<svg viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden="true">'+shapes+'</svg>';}
@@ -151,7 +219,7 @@ function keyboardContent(){return '<div class="o-piano-controls">'+btn(state.key
 function renderDetail(){const pattern=state.detail==='pattern',ins=state.detail==='instrument',tr=t();let content=pattern?patternContent():ins?instrumentContent():state.detail==='routing'?renderRouting():state.detail==='keyboard'?keyboardContent():'<div class="o-structure">'+btn(tr.pattern+' ↔','pattern')+'<span>→</span>'+btn(tr.pattern+' ↻','pattern')+'<span>→</span>'+btn('Rest · 4 beats','rest')+'</div><div class="o-row">'+btn('+ Pattern','content')+btn('Group','group')+btn('Ungroup','ungroup')+'<span class="o-small o-muted">Clip window stays 16 master beats.</span></div>';
 $('#o-detail').innerHTML='<div class="o-detail-top"><div class="o-detail-tabs">'+['pattern','instrument','routing'].map(d=>btn(d[0].toUpperCase()+d.slice(1),'detail','data-detail="'+d+'" '+pressed(state.detail===d))).join('')+'</div><div class="o-breadcrumb">'+(ins?'Rack / '+instruments[state.selectedInst].name:state.detail==='keyboard'?'Live / Keyboard & MIDI controllers':tr.name+' / '+(state.view==='live'?'Pad '+state.pads[state.track]:tr.clips[state.clip]+' / '+tr.pattern))+'</div>'+btn(state.focus?'Restore split':'Expand','focus')+btn('×','close-editor','aria-label="Close editor"')+'</div>'+(pattern||state.detail==='structure'?'<div class="o-scope"><select aria-label="Editing scope" data-field="scope"><option value="linked" '+(state.scope==='linked'?'selected':'')+'>Edit linked pattern</option><option value="local" '+(state.scope==='local'?'selected':'')+'>Create variation here</option></select><span class="o-muted">'+(state.scope==='linked'?'4 arranged uses':'This occurrence only')+'</span><div class="o-spacer"></div><span class="'+(draftDirty()?'o-warn':'o-muted')+'">'+(draftDirty()?'Unsaved draft':'Saved')+'</span>'+btn(state.audition?'Stop edit':'Play edit','audition',pressed(state.audition))+btn(state.scope==='local'?'Save variation here':'Save','save-draft','class="o-primary"')+'</div>':'')+'<div class="o-detail-body">'+content+(pattern&&state.scope==='local'?'<div class="o-grid-note o-warn">Variation keeps other uses linked. Song timing is preserved.</div>':'')+'</div>';}
 function renderDesign(){return '<div class="o-design"><div class="o-row o-between"><div><span class="o-label">Instrument Design</span><h3>'+instruments[Math.min(state.selectedInst,3)].name+'</h3></div>'+btn('← Return to Performance','performance')+'</div><p>Instrument graph · performance context retained</p><div class="o-graph"><div class="o-node"><strong>MIDI activation</strong><small>Pitch · velocity · gate</small></div><div class="o-node"><strong>Oscillator → Filter</strong><small>Audio synthesis</small></div><div class="o-node"><strong>Stereo Output</strong><small>Left · Right</small></div><div class="o-node o-control"><strong>Performance controls</strong><small>Filter · Envelope</small></div></div><div class="o-row" style="margin-top:30px">'+btn('Audition draft','design-audition')+'<span class="o-small o-muted">Mock graph preview · navigation study</span></div></div>';}
-function render(){const scrollBefore=['.o-track-viewport','.o-detail-body','#o-inspector'].map(q=>[q,$(q)?.scrollTop||0]);const focusBefore=document.activeElement;const focusAction=root.contains(focusBefore)?focusBefore?.dataset?.action:null;root.style.setProperty('--editor-height',state.height+'px');root.classList.toggle('o-no-inspector',!state.inspector);root.classList.toggle('o-no-detail',!state.detailOpen);root.classList.toggle('o-focus',state.focus);root.classList.remove('o-side-detail');root.classList.toggle('o-timeline-below',state.layout==='Timeline below'&&state.view==='arrange');root.classList.toggle('o-compact-preview',state.previewSizing==='Content-sized');root.classList.toggle('o-single-pane',isNarrow());root.classList.toggle('o-short',!root.classList.contains('o-compact-preview')&&root.clientHeight>0&&root.clientHeight<600);root.classList.toggle('o-fit-tracks',state.fitTracks);root.classList.toggle('o-design-mode',state.view==='design');$('#o-inspector').hidden=!state.inspector;$('#o-rack').hidden=!state.rackStrip;$('#o-height').value=state.height;$('#o-save-status').textContent=state.dirty?'Unsaved changes':'Saved';$('.o-project-name').innerHTML=esc(state.panelName)+' <span>⌄</span>';renderTransport();renderRack();renderToolbar();renderInspector();$('#o-main').innerHTML=state.view==='arrange'?renderArrange():state.view==='live'?renderLive():state.view==='design'?renderDesign():renderMixer();renderDetail();$('#o-message').textContent=state.message;$('#o-footer-state').textContent='MIDI: Internal · '+(state.engine?'Engine active · simulated meters':'Output −∞ dB');root.querySelectorAll('.o-appbar nav button').forEach(b=>b.classList.toggle('o-active',(b.dataset.action==='design')===(state.view==='design')));renderOverlay();const work=$('.o-work'),main=$('#o-main'),divider=$('.o-divider'),detail=$('#o-detail');if(state.layout==='Timeline below'&&state.view==='arrange')work.replaceChildren(detail,divider,main);else work.replaceChildren(main,divider,detail);if(state.view==='arrange'&&!state.focus&&!isNarrow())main.prepend(transportNode);else root.insertBefore(transportNode,$('.o-workspace'));scrollBefore.forEach(([q,y])=>{if($(q))$(q).scrollTop=y;});if(focusAction&&!state.modal&&focusBefore!==document.activeElement){const target=[...root.querySelectorAll('[data-action]')].find(el=>el.dataset.action===focusAction&&el.offsetParent!==null);target?.focus({preventScroll:true});}}
+function render(){finishResize(true);const scrollBefore=['.o-track-viewport','.o-detail-body','#o-inspector'].map(q=>[q,$(q)?.scrollTop||0]);const focusBefore=document.activeElement;const focusAction=root.contains(focusBefore)?focusBefore?.dataset?.action:null;root.style.setProperty('--editor-height',state.height+'px');root.classList.toggle('o-no-inspector',!state.inspector);root.classList.toggle('o-no-detail',!state.detailOpen);root.classList.toggle('o-focus',state.focus);root.classList.remove('o-side-detail');root.classList.toggle('o-timeline-below',state.layout==='Timeline below'&&state.view==='arrange');root.classList.toggle('o-compact-preview',state.previewSizing==='Content-sized');root.classList.toggle('o-single-pane',isNarrow());root.classList.toggle('o-short',!root.classList.contains('o-compact-preview')&&root.clientHeight>0&&root.clientHeight<600);root.classList.toggle('o-fit-tracks',state.fitTracks);root.classList.toggle('o-design-mode',state.view==='design');$('#o-inspector').hidden=!state.inspector;$('#o-rack').hidden=!state.rackStrip;$('#o-save-status').textContent=state.dirty?'Unsaved changes':'Saved';$('.o-project-name').innerHTML=esc(state.panelName)+' <span>⌄</span>';renderTransport();renderRack();renderToolbar();renderInspector();$('#o-main').innerHTML=state.view==='arrange'?renderArrange():state.view==='live'?renderLive():state.view==='design'?renderDesign():renderMixer();renderDetail();$('#o-message').textContent=state.message;$('#o-footer-state').textContent='MIDI: Internal · '+(state.engine?'Engine active · simulated meters':'Output −∞ dB');root.querySelectorAll('.o-appbar nav button').forEach(b=>b.classList.toggle('o-active',(b.dataset.action==='design')===(state.view==='design')));renderOverlay();const work=$('.o-work'),main=$('#o-main'),divider=$('.o-divider'),detail=$('#o-detail');if(state.layout==='Timeline below'&&state.view==='arrange')work.replaceChildren(detail,divider,main);else work.replaceChildren(main,divider,detail);if(state.view==='arrange'&&!state.focus&&!isNarrow())main.prepend(transportNode);else root.insertBefore(transportNode,$('.o-workspace'));syncSplitter();scrollBefore.forEach(([q,y])=>{if($(q))$(q).scrollTop=y;});if(focusAction&&!state.modal&&focusBefore!==document.activeElement){const target=[...root.querySelectorAll('[data-action]')].find(el=>el.dataset.action===focusAction&&el.offsetParent!==null);target?.focus({preventScroll:true});}}
 function showModal(kind){state.modal=kind;renderOverlay();queueMicrotask(()=>$('#o-overlay').querySelector('button,input,select')?.focus());}
 function renderOverlay(){const el=$('#o-overlay');el.hidden=!state.modal;if(!state.modal){el.innerHTML='';return;}let title='',body='';switch(state.modal){
 case 'project':title='Performance';body='<label class="o-field">Name<input type="text" data-field="projectName" value="'+esc(state.panelName)+'"></label><label class="o-field">Description<textarea>Acid bass, broken drums and evolving clouds.</textarea></label>'+sel('Load Performance','load',['Night Signals','Empty performance'],'Night Signals')+'<div class="o-menu-actions">'+btn('Save Performance','save-performance')+btn('Clone','clone')+btn('Import…','import')+btn('Export…','export')+btn('Library','library')+btn('Help','help')+btn('Instrument Design','design')+'</div>';break;
@@ -202,14 +270,15 @@ case 'connection-demo':state.message='Stereo connection preview added · no audi
 case 'close-modal':state.modal=null;break;case 'add-instrument':state.libraryTab='Instruments';showModal('library');return;case 'design-audition':state.message='Draft audition preview · isolated from performance playback';break;
 default:showModal(a);return;}
 render();persist();});
-root.addEventListener('input',e=>{const el=e.target,k=el.dataset.field;if(el.id==='o-height'){state.height=Number(el.value);root.style.setProperty('--editor-height',state.height+'px');persist();return;}if(k==='gain'){const i=Number(el.dataset.inst);state.gains[i]=Number(el.value);$('#o-gain-'+i).textContent=el.value+' dB';state.dirty=true;}else if(k==='send'){const i=Number(el.dataset.inst);state.sends[i]=Number(el.value);$('#o-send-'+i).textContent=el.value+' dB';state.dirty=true;}else if(k==='param'){const name=el.dataset.param;state.params[name]=Number(el.value);const output=$('#o-param-'+name);output.textContent=el.value;el.closest('.o-knob').querySelector('.o-knob-face').style.setProperty('--rot',(-120+240*(Number(el.value)-Number(el.min))/(Number(el.max)-Number(el.min)))+'deg');state.dirty=true;}else if(k==='search'){const q=el.value.toLowerCase();root.querySelectorAll('[data-search]').forEach(x=>x.hidden=!x.dataset.search.includes(q));}$('#o-save-status').textContent=state.dirty?'Unsaved changes':'Saved';});
+root.addEventListener('input',e=>{const el=e.target,k=el.dataset.field;if(k==='gain'){const i=Number(el.dataset.inst);state.gains[i]=Number(el.value);$('#o-gain-'+i).textContent=el.value+' dB';state.dirty=true;}else if(k==='send'){const i=Number(el.dataset.inst);state.sends[i]=Number(el.value);$('#o-send-'+i).textContent=el.value+' dB';state.dirty=true;}else if(k==='param'){const name=el.dataset.param;state.params[name]=Number(el.value);const output=$('#o-param-'+name);output.textContent=el.value;el.closest('.o-knob').querySelector('.o-knob-face').style.setProperty('--rot',(-120+240*(Number(el.value)-Number(el.min))/(Number(el.max)-Number(el.min)))+'deg');state.dirty=true;}else if(k==='search'){const q=el.value.toLowerCase();root.querySelectorAll('[data-search]').forEach(x=>x.hidden=!x.dataset.search.includes(q));}$('#o-save-status').textContent=state.dirty?'Unsaved changes':'Saved';});
 root.addEventListener('change',e=>{const el=e.target,k=el.dataset.field;if(!k||['search','gain','send','param','pan'].includes(k))return;switch(k){case 'layout':state.layout=el.value;state.focus=false;state.message='Layout preference changed · selection and playback retained';break;case 'tempo':state.tempo=Math.max(30,Math.min(300,Number(el.value)||120));break;case 'scope':state.scope=el.value;state.scopes[draftKey()]=el.value;state.message='Editing scope changed · no content committed';break;case 'source':state.sources[state.track]=el.value;break;case 'live-source':state.sources[Number(el.dataset.track)]=el.value;break;case 'note':state.notes[state.step]=el.value;mark();break;case 'point':state.step=Number(el.value)-1;break;case 'curveValue':state.curve[Math.min(state.step,5)]=Math.max(0,Math.min(127,Number(el.value)));mark();break;case 'autochord':state.autochord=el.checked;break;case 'projectName':state.panelName=el.value.trim()||'Untitled performance';state.dirty=true;break;case 'meter':t().meter=el.value;state.dirty=true;break;case 'speed':t().speed=el.value;state.dirty=true;break;case 'channel':t().channel=Math.max(1,Math.min(16,Number(el.value)));state.dirty=true;break;case 'zoom':state.message='Timeline zoom preview · overview keeps its place';break;case 'cc0':case 'cc1':case 'cc2':state.cc[k.slice(-1)]=el.value;state.dirty=true;break;default:mark('Setting changed in the mock draft');}render();persist();});
-root.addEventListener('keydown',e=>{if(e.key==='Escape'){if(state.modal){state.modal=null;renderOverlay();$('.o-project-name').focus();}else if(state.focus){state.focus=false;render();}else if(state.held.length){state.held=[];renderDetail();}}if(e.key==='Tab'&&state.modal){const els=[...$('#o-overlay').querySelectorAll('button:not(:disabled),input,select,textarea')].filter(x=>!x.hidden);const first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+root.addEventListener('keydown',e=>{if(e.key==='Escape'&&resizeGesture){e.preventDefault();e.stopPropagation();finishResize(true);return;}if(e.key==='Escape'){if(state.modal){state.modal=null;renderOverlay();$('.o-project-name').focus();}else if(state.focus){state.focus=false;render();}else if(state.held.length){state.held=[];renderDetail();}}if(e.key==='Tab'&&state.modal){const els=[...$('#o-overlay').querySelectorAll('button:not(:disabled),input,select,textarea')].filter(x=>!x.hidden);const first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 $('#o-overlay').addEventListener('click',e=>{if(e.target===$('#o-overlay')){state.modal=null;renderOverlay();}});
 root.addEventListener('dblclick',e=>{const b=e.target.closest('[data-action="clip"]');if(b){selectTrack(Number(b.dataset.track),Number(b.dataset.clip),true);render();persist();}});
 restore(window.openai?.widgetState);if(isNarrow())state.inspector=false;render();
 let previousNarrow=isNarrow(),previousShort=!root.classList.contains('o-compact-preview')&&root.clientHeight>0&&root.clientHeight<600;if(globalThis.ResizeObserver)new ResizeObserver(()=>{const next=isNarrow(),nextShort=!root.classList.contains('o-compact-preview')&&root.clientHeight>0&&root.clientHeight<600;if(next!==previousNarrow||nextShort!==previousShort){const enteringNarrow=next&&!previousNarrow;previousNarrow=next;previousShort=nextShort;if(enteringNarrow)state.inspector=false;render();}}).observe(root);
+if(globalThis.ResizeObserver)new ResizeObserver(()=>{finishResize(true);syncSplitter();}).observe($('.o-work'));
 window.addEventListener('openai:set_globals',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);render();}});
-if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:()=>{root.style.setProperty('--studio-height',state.studioHeight+'px');render();persist();}});tweak.addSelect(state,'previewSizing',{label:'Preview sizing',options:['Browser window','Content-sized']});tweak.addSlider(state,'studioHeight',{label:'Browser height',min:560,max:1000,step:20,unit:'px'});tweak.addToggle(state,'inspector',{label:'Show Inspector'});tweak.addSlider(state,'height',{label:'Detail pane height',min:180,max:400,step:10,unit:'px'});}
+if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:()=>{root.style.setProperty('--studio-height',state.studioHeight+'px');render();persist();}});tweak.addSelect(state,'previewSizing',{label:'Preview sizing',options:['Browser window','Content-sized']});tweak.addSlider(state,'studioHeight',{label:'Browser height',min:560,max:1000,step:20,unit:'px'});tweak.addToggle(state,'inspector',{label:'Show Inspector'});}
 })();
 </script>
