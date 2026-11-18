@@ -145,7 +145,7 @@ export interface AppStore {
   removeNode: (nodeId: string) => void;
   removeConnection: (connectionIndex: number) => void;
   saveCurrentPatch: () => Promise<void>;
-  loadPerformance: (performanceId: string) => Promise<void>;
+  loadPerformance: (performanceId: string, confirmed?: import("../lib/clipArranger/draftResolution").ConfirmedReplacement) => Promise<void>;
   setCurrentPerformanceMeta: (name: string, description: string) => void;
   clearCurrentPerformanceSelection: () => void;
   newPerformanceWorkspace: () => Promise<void>;

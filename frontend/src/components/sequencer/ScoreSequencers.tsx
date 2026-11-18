@@ -1,4 +1,4 @@
-import { ClipEditingContext } from "../clipArranger/context";
+import { ClipEditingContext, useSinglePatternEditor } from "../clipArranger/context";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { ScoreTransportContext } from "./ScoreTransportContext";
 import type { GuiLanguage, HelpDocId, ScorePadState, ScoreTrackState, SequencerState, SequencerTimingConfig } from "../../types";
@@ -29,13 +29,14 @@ export function ScoreSequencers({ sequencer, language, collapsed, onCollapse, re
   onHelpRequest?: (id: HelpDocId) => void;
 }) {
   const clipEditing = useContext(ClipEditingContext);
+  const singlePattern = useSinglePatternEditor();
   const c = scoreCopy(language);
   const selections = useAppStore(s => s.sequencerEditingPads);
-  const editing = sequencerEditingView(sequencer, selections);
+  const editing = clipEditing ? sequencer : sequencerEditingView(sequencer, selections);
   return <CollapsiblePanel unmountOnCollapse title={c.title} collapsed={collapsed} onCollapsedChange={onCollapse}
     className="mt-4 rounded-xl border border-indigo-800/60 bg-slate-950/85 p-3" titleClassName="text-indigo-200"
     help={onHelpRequest ? <HelpIconButton guiLanguage={language} onClick={() => onHelpRequest("sequencer_score_sequencer")} /> : null}
-    actions={!clipEditing && <button type="button" className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50" disabled={sequencer.scoreTracks.length >= 16} onClick={() => { addScoreTrack(c.name); onCollapse(false); }}>{c.add}</button>}>
+    actions={!singlePattern && <button type="button" className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50" disabled={sequencer.scoreTracks.length >= 16} onClick={() => { addScoreTrack(c.name); onCollapse(false); }}>{c.add}</button>}>
     {editing.scoreTracks.map(track => <ScoreCard key={track.id} track={track} language={language} readPosition={readPosition}
       soundingPad={sequencer.scoreTracks.find(t => t.id === track.id)?.activePad ?? 0} running={sequencer.isPlaying && track.enabled} />)}
   </CollapsiblePanel>;
@@ -45,6 +46,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
   track: ScoreTrackState; language: GuiLanguage; readPosition?: () => number | null; soundingPad: number; running: boolean;
 }) {
   const clipEditing = useContext(ClipEditingContext);
+  const singlePattern = useSinglePatternEditor();
   const c = scoreCopy(language), transport = useContext(ScoreTransportContext);
   const [error, setError] = useState<string | null>(null);
   const clipKey = useAppStore(s => s.clipEditingKey);
@@ -83,8 +85,8 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
     }}>
     <div className="flex flex-wrap items-center gap-3">
       <PerformanceDeviceName kind="scoreTracks" device={track} fallback={c.name} sequencer={useAppStore.getState().sequencer} guiLanguage={language} onRename={useAppStore.getState().renamePerformanceDevice} />
-      <button hidden={clipEditing} className={`${button} ${running ? "!border-amber-500" : "!border-cyan-500"}`} onClick={() => void transport?.play(track.id, !running).catch(e => setError(String(e)))}>{running ? c.stop : c.play}</button>
-      <button hidden={clipEditing} type="button" onClick={() => removeScoreTrack(track.id)}
+      <button hidden={singlePattern} className={`${button} ${running ? "!border-amber-500" : "!border-cyan-500"}`} onClick={() => void transport?.play(track.id, !running).catch(e => setError(String(e)))}>{running ? c.stop : c.play}</button>
+      <button hidden={singlePattern} type="button" onClick={() => removeScoreTrack(track.id)}
         className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50">{c.remove}</button>
     </div>
     <div className="flex flex-wrap items-center gap-3">
@@ -111,7 +113,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
       <button className={button} onClick={e => transpose(-1, e.shiftKey)} title={`${c.transpose} − / Shift: −12`}>− ♪</button><button className={button} onClick={e => transpose(1, e.shiftKey)} title={`${c.transpose} + / Shift: +12`}>+ ♪</button>
       {hidden > 0 && <><span className="text-xs text-amber-300">{c.hidden}: {hidden}</span><button className={button} onClick={() => changePad({ ...pad, notes: pad.notes.filter(n => n.startTicks < duration).map(n => ({ ...n, durationTicks: Math.min(n.durationTicks, duration - n.startTicks) })) })}>{c.trim}</button></>}
     </div>
-    <div className={clipEditing ? "hidden" : "flex flex-wrap items-center gap-2"}>{track.pads.map((p, i) => <div key={i} className="flex items-center gap-1">
+    <div className={singlePattern ? "hidden" : "flex flex-wrap items-center gap-2"}>{track.pads.map((p, i) => <div key={i} className="flex items-center gap-1">
       <button className={`${button} ${i === padIndex ? "!ring-1 ring-indigo-300" : ""} ${i === track.queuedPad ? "!border-orange-400" : running && i === soundingPad ? "!border-cyan-300" : ""} ${scoreHasContent(p, track.timing) ? "!bg-emerald-950 !text-emerald-200" : ""}`}
         draggable onDragStart={e => { const item = { type: "pad" as const, padIndex: i }; beginArrangementDrag(track.id, item); e.dataTransfer.setData(ARRANGEMENT_ITEM_MIME, JSON.stringify({ trackId: track.id, item })); e.dataTransfer.effectAllowed = "copy"; }} onDragEnd={endArrangementDrag}
         aria-pressed={i === padIndex} onClick={() => { selectScorePad(track.id, i); if (running && !track.padLoopEnabled) void transport?.queue(track.id, i === soundingPad ? null : i).catch(e => setError(String(e))); }}>#{i + 1}</button>

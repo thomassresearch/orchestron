@@ -1,3 +1,4 @@
+import { usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
 import { affectedClipIds, definitionRelationships, effectiveScope, localLoopWindows, type EditScope } from "../../lib/clipArranger/relationships";
 import { EditScopeControls, EditScopeDialog, RelationshipSummary } from "./EditScopeControls";
 import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
@@ -31,7 +32,9 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const relationships=useMemo(()=>new Map(model.lanes.map(l=>[l.id,definitionRelationships(l,timings[l.id])])),[model,timings]);
  const impact=useMemo(()=>draft?.cursor?structureDefinitionChanges(draft):null,[draft]);
  const [pendingScope,setPendingScope]=useState<{next:StructureDraft;focus:StructureFocus;model:ClipArrangement;previous:StructureDraft|null;incompatible:boolean}|null>(null);
- const [focus,setFocus]=useState<StructureFocus|null>(null),[selection,setSelection]=useState<StructureSelection|null>(null);
+ const [focus,setFocus]=usePerformanceEditorState<StructureFocus|null>("arranger","structureFocus",null);
+ const [selection,setSelection]=usePerformanceEditorState<StructureSelection|null>("arranger","structureSelection",null);
+ const [selectionRevision,setSelectionRevision]=usePerformanceEditorState("arranger","structureSelectionRevision",model.revision);
  const [picker,setPicker]=useState<ContainerTarget|null>(null),[query,setQuery]=useState('');
  const [menu,setMenu]=useState<{x:number;y:number}|null>(null),[ghost,setGhost]=useState<{x:number;y:number;count:number}|null>(null);
  const [groupName,setGroupName]=useState('');
@@ -47,10 +50,12 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const scrollFrame=useRef<number|null>(null);
  const [drop,setDrop]=useState<{focus:StructureFocus;target:ContainerTarget;screenX?:number;screenY?:number}|null>(null);
  const dialog=useRef<HTMLDialogElement>(null);
- useEffect(()=>{setFocus(null);setSelection(null);setPicker(null);setMusical(null);setPending(null);setPendingScope(null);},[generation]);
+ useEffect(()=>{setPicker(null);setMusical(null);setPending(null);setPendingScope(null);},[generation]);
  useEffect(()=>{if(musical)musicalDialog.current?.showModal?.();},[musical]);
  useEffect(()=>{if(picker||pending)dialog.current?.showModal?.();else dialog.current?.close?.();},[picker,pending]);
- useEffect(()=>{setSelection(null);cancelDrag();},[model.revision]);
+ useEffect(()=>{
+  if(model.revision!==selectionRevision){setSelection(null);setSelectionRevision(model.revision);cancelDrag();}
+ },[model.revision,selectionRevision]);
  const discard=()=>{
   const state=useAppStore.getState(),target=useStructureDraft.getState().draft?.editorTarget;
   if(target){const key=draftKey({target}),clipDrafts={...state.clipDrafts};delete clipDrafts[key];useAppStore.setState({clipDrafts,clipEditingKey:state.clipEditingKey===key?null:state.clipEditingKey});}
@@ -291,7 +296,10 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const focusedLane=focus?.laneId,focusedClip=focus?.clipId,focusedPass=focus?.pass??0;
  const roots=useMemo(()=>draft?.roots??(focusedLane&&focusedClip&&model.lanes.find(l=>l.id===focusedLane)?.clips.some(c=>c.id===focusedClip)?beginStructure(model,focusedLane,focusedClip,focusedPass).roots:[]),[draft?.roots,model,focusedLane,focusedClip,focusedPass]);
  let items:StructureNode[]=[];try{items=structureChildren(roots,focus?.parent??[]);}catch{/* A save or external undo invalidated the selection. */}
+ const previousRoots=useRef(draft?.roots);
  useEffect(()=>{
+  if(previousRoots.current===draft?.roots)return;
+  previousRoots.current=draft?.roots;
   if(!draft)return;
   const last=draft?.cursor?draft.commands[draft.cursor-1]:undefined;
   const previousDefinitions=new Set<string>();

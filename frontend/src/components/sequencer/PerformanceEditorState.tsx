@@ -8,12 +8,34 @@ import type { PatternWorkspaceDraft } from "../../lib/patternWorkspace";
 
 export type EditorOwner = "page" | "rack" | "arranger" | "mixer" | `device:${string}` | `binding:${string}` | `route:${string}`;
 type Entry = { owner: EditorOwner; value: unknown };
-type EditorState = { entries: Record<string, Entry> };
-export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ entries: {} }));
+export type PerformView = "arrange" | "live" | "mix";
+/** Geometry and disclosures belong to the view. Omitted preferences use the shell's defaults. */
+export type PerformViewLayout = {
+  inspectorOpen?: boolean;
+  drawerOpen?: boolean;
+  compactRackOpen?: boolean;
+  dock?: "editor" | "keyboard" | "instrument" | "samples" | null;
+  dockExpanded?: boolean;
+  preferredDockHeight?: number;
+};
+
+export const PerformViewContext = createContext<PerformView | null>(null);
+type EditorState = { entries: Record<string, Entry>; view: PerformView; suspendedClipKey: string | null };
+export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ entries: {}, view: "arrange", suspendedClipKey: null }));
 export type PerformanceEditorStore = ReturnType<typeof createPerformanceEditorStore>;
 export const OpenArrangerContext = createContext<(() => void) | null>(null);
 export const useOpenArranger = () => useContext(OpenArrangerContext);
 const EditorContext = createContext<ReturnType<typeof createPerformanceEditorStore> | null>(null);
+
+export function usePerformanceEditorStore() {
+  const store = useContext(EditorContext);
+  if (!store) throw new Error("A Perform workspace needs an editor provider.");
+  return store;
+}
+
+export function editorKey(owner: EditorOwner, field: string, view: PerformView | null) {
+  return JSON.stringify(view ? [owner, field, view] : [owner, field]);
+}
 
 export function editorContainerLengths(pattern: PadLoopPatternState, prefix = ""): Record<string, number> {
   return Object.fromEntries([
@@ -102,7 +124,7 @@ export function usePerformanceEditorState<T>(owner: EditorOwner, field: string, 
   // Standalone editors (including Instrument Design consumers) retain their existing local lifetime.
   const [store] = useState(() => context ?? createPerformanceEditorStore());
   const [fallback] = useState(initial);
-  const key = JSON.stringify([owner, field]);
+  const key = editorKey(owner, field, useContext(PerformViewContext));
   const value = useStore(store, (state) => key in state.entries ? state.entries[key].value as T : fallback);
   const setValue = useCallback<Dispatch<SetStateAction<T>>>((update) => {
     store.setState((state) => {
@@ -117,35 +139,54 @@ export function usePerformanceEditorState<T>(owner: EditorOwner, field: string, 
 /** Clear occurrence highlights without changing any editor's expansion or insertion position. */
 export function useClearArrangementSelection() {
   const store = useContext(EditorContext);
-  return () => store?.setState(state => ({ entries: Object.fromEntries(Object.entries(state.entries).map(([key, entry]) =>
-    JSON.parse(key)[1] === "arrangerSelection" ? [key, { ...entry, value: [] }] : [key, entry])) }));
+  const view = useContext(PerformViewContext);
+  return () => store?.setState(state => ({ entries: Object.fromEntries(Object.entries(state.entries).map(([key, entry]) => {
+    const [, field, scope] = JSON.parse(key);
+    return field === "arrangerSelection" && (scope ?? null) === view ? [key, { ...entry, value: [] }] : [key, entry];
+  })) }));
 }
 
 /** Keep a lane's existing Position field in sync with clicks handled by the range surface. */
 export function useSetArrangementPosition() {
   const store = useContext(EditorContext);
+  const view = useContext(PerformViewContext);
   return (id: string, value: number) => {
     const owner: EditorOwner = `device:${id}`;
-    const key = JSON.stringify([owner, "arrangerPosition"]);
+    const key = editorKey(owner, "arrangerPosition", view);
     store?.setState(state => ({ entries: { ...state.entries, [key]: { owner, value } } }));
   };
 }
 
 export function useRetainedScroll(ref: RefObject<HTMLElement>, owner: EditorOwner, field: string) {
   const [position, setPosition] = usePerformanceEditorState(owner, field, { left: 0, top: 0 });
-  // Restore once per mount, after layout. Browsers clamp offsets to the current content bounds.
-  const initial = useRef(position);
+  const latest = useRef(position);
+  latest.current = position;
+  const save = useCallback((node: HTMLElement) => {
+    // Hidden panes can dispatch a final scroll event with both axes at zero.
+    if (!node.clientWidth && !node.clientHeight && !node.scrollLeft && !node.scrollTop) return;
+    const left = node.scrollLeft, top = node.scrollTop;
+    setPosition(previous => previous.left === left && previous.top === top ? previous : { left, top });
+  }, [setPosition]);
   useLayoutEffect(() => {
-    if (ref.current) {
-      ref.current.scrollLeft = initial.current.left;
-      ref.current.scrollTop = initial.current.top;
-    }
-  }, [ref]);
-  return useCallback(() => {
     const node = ref.current;
-    if (node) setPosition((previous) => previous.left === node.scrollLeft && previous.top === node.scrollTop
-      ? previous : { left: node.scrollLeft, top: node.scrollTop });
-  }, [ref, setPosition]);
+    if (!node) return;
+    const { left, top } = latest.current;
+    const restore = () => { node.scrollLeft = left; node.scrollTop = top; };
+    restore();
+    let observer: ResizeObserver | undefined;
+    // A mounted display:none pane may reject both assignments until its first layout.
+    if (!node.clientWidth && !node.clientHeight && (node.scrollLeft !== left || node.scrollTop !== top) && typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => {
+        if (!node.clientWidth && !node.clientHeight) return;
+        restore();
+        observer?.disconnect();
+      });
+      observer.observe(node);
+    }
+    // Capture even when navigation wins the race with the browser's scroll event.
+    return () => { observer?.disconnect(); save(node); };
+  }, [ref, save]);
+  return useCallback(() => { if (ref.current) save(ref.current); }, [ref, save]);
 }
 
 export function RetainedScroll({ owner, field, ...props }: HTMLAttributes<HTMLDivElement> & { owner: EditorOwner; field: string }) {

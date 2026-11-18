@@ -7,13 +7,18 @@ import { clipButton, clipButtonClass } from "./buttonStyles";
 import { clipCopy } from "./copy";
 import { usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
 export function SectionTools({ model, timings, selectedLane, language, onChange }: { model: ClipArrangement; timings: LaneTiming; selectedLane?: string; language: GuiLanguage; onChange: (next: ClipArrangement, label: string) => void }) {
-  const c = clipCopy(language), [start, setStart] = useState(0), [length, setLength] = useState(4), [at, setAt] = useState(0), [all, setAll] = useState(true);
+  const c = clipCopy(language);
+  const [start, setStart] = usePerformanceEditorState("arranger", "sectionStart", 0);
+  const [length, setLength] = usePerformanceEditorState("arranger", "sectionLength", 4);
+  const [at, setAt] = usePerformanceEditorState("arranger", "sectionPasteAt", 0);
+  const [all, setAll] = usePerformanceEditorState("arranger", "sectionAllTracks", true);
+  const [open, setOpen] = usePerformanceEditorState("arranger", "sectionToolsOpen", false);
   const [clipboard, setClipboard] = usePerformanceEditorState<ClipSection | null>("arranger", "clipSection", null);
   const [pending, setPending] = useState<{ next: ClipArrangement; label: string; basis: string } | null>(null), [error, setError] = useState<string | null>(null);
   const lanes = all ? model.lanes.map(l => l.id) : selectedLane ? [selectedLane] : [];
   const run = (action: () => void) => { try { action(); setError(null); } catch (e) { setError(String(e)); } };
   const prepare = (fn: () => ClipArrangement, label: string) => run(() => setPending({ next: fn(), label, basis: JSON.stringify(model) }));
-  return <details className="mt-2 border-t border-slate-800 pt-2 text-xs text-slate-400"><summary>{c.sections}</summary>
+  return <details open={open} onToggle={e => setOpen(e.currentTarget.open)} className="mt-2 border-t border-slate-800 pt-2 text-xs text-slate-400"><summary>{c.sections}</summary>
     <div className="mt-2 flex flex-wrap items-end gap-2">
       <label>{c.start}<input className={`${clipInput} block`} type="number" min={0} step={.25} value={start} onChange={e => setStart(Number(e.target.value))} /></label>
       <label>{c.length}<input className={`${clipInput} block`} type="number" min={.25} step={.25} value={length} onChange={e => setLength(Number(e.target.value))} /></label>

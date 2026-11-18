@@ -33,7 +33,7 @@ Double-click a pattern, group or supergroup to edit it. The breadcrumb identifie
 
 ![Choosing which occurrences receive an edit](../../screenshots/clip-arranger-edit-scope.png)
 
-Performance save, autosave and exports use saved definitions. Resolve changed drafts before saving the performance, or explicitly choose the saved definitions. Drafts survive view switches, but a browser reload does not restore them.
+Performance save, autosave and exports use saved definitions. Resolve changed drafts before saving the performance, or explicitly choose the saved definitions. Drafts survive view switches until you reload the browser. **Cancel** keeps you in the current view with your edits. If loading a replacement performance fails, your drafts are still available.
 
 ## Audition a phrase
 

@@ -19,7 +19,7 @@ import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration
 import { SectionTools } from "./SectionTools";
 import { PatternPreview } from "./PatternPreview";
 import { clipCopy } from "./copy";
-import { usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
+import { usePerformanceEditorState, useRetainedScroll } from "../sequencer/PerformanceEditorState";
 import { LaneTransposeBadge, LaneTransposeDialog } from './LaneTransposition';
 import { openClipTransposition } from '../../store/clipActions';
 import { useAppStore } from '../../store/useAppStore';
@@ -53,10 +53,15 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
   useEffect(()=>setTransposing(null),[generation,expanded]);
   const [selected, select] = usePerformanceEditorState<{ laneId: string; clipId: string } | null | undefined>("arranger", "clipSelection", undefined);
   const editingLane = editingTarget?.laneId, editingClip = editingTarget?.clipId;
+  const [lastEditor, rememberEditor] = usePerformanceEditorState<string | null>("arranger", "lastClipEditor", null);
   useEffect(() => {
+    const identity = editingLane && editingClip ? JSON.stringify([editingLane, editingClip]) : null;
+    if (lastEditor === identity) return;
+    rememberEditor(identity);
     if (editingLane && editingClip) { select({ laneId: editingLane, clipId: editingClip }); setExpanded(editingLane); }
-  }, [editingLane, editingClip, select, setExpanded]);
+  }, [editingLane, editingClip, lastEditor, rememberEditor, select, setExpanded]);
   const [scroll, setScroll] = useState(0);
+  const retainScroll = useRetainedScroll(viewport, "arranger", "clipViewport");
   const [error, setError] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ laneId: string; clipId: string; mode: "move" | "left" | "right"; x: number; delta: number } | null>(null);
   const dragRef = useRef(drag); dragRef.current = drag;
@@ -104,6 +109,7 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
     // even when looping was saved off, without opening or expanding an editor.
     // null is an explicit deselection; undefined means this session has not selected yet.
     if (selected === null || selectedClip || editingClip) return;
+    if (selected) { select(null); return; }
     const candidates = model.lanes.flatMap(lane => lane.clips.map(clip => ({ lane, clip })))
       .sort((a, b) => a.clip.start - b.clip.start);
     const target = candidates.find(({ clip }) => loopStart !== undefined && loopEnd !== undefined &&
@@ -203,7 +209,7 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
       if(structure.consumeGestureClick()){e.stopPropagation();return;}
       const target = e.target as Element;
       if (!target.closest("[data-arranger-clip], [data-clip-inline-editor]")) { select(null); structure.clearSelection(); }
-    }} onPointerMove={e=>{structure.pointerMove(e);const hovered=(document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-clip-lane]') as HTMLElement|null)?.dataset.clipLane;if(structure.dragging()&&hovered)setExpanded(hovered);}} onPointerUp={structure.pointerUp} onPointerCancel={structure.cancelDrag} onLostPointerCapture={e => { if (e.target === e.currentTarget) structure.lostCapture(); }} ref={viewport} className="overflow-x-auto" onScroll={e => setScroll(e.currentTarget.scrollLeft)}>
+    }} onPointerMove={e=>{structure.pointerMove(e);const hovered=(document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-clip-lane]') as HTMLElement|null)?.dataset.clipLane;if(structure.dragging()&&hovered)setExpanded(hovered);}} onPointerUp={structure.pointerUp} onPointerCancel={structure.cancelDrag} onLostPointerCapture={e => { if (e.target === e.currentTarget) structure.lostCapture(); }} ref={viewport} className="overflow-x-auto" onScroll={e => { retainScroll(); setScroll(e.currentTarget.scrollLeft); }}>
       <div style={{ width: width + laneHeaderWidth, minWidth: "100%", paddingBottom: 16 }}>
         <div style={{ marginLeft: laneHeaderWidth }} className="relative h-6 cursor-crosshair overflow-hidden border-b border-slate-800" aria-hidden onClick={e => onSeek?.(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * 2))}>{sequencer.arrangerLoopSelection && <span className="pointer-events-none absolute inset-y-0 border-x border-amber-300 bg-amber-400/20" style={{ left: sequencer.arrangerLoopSelection.startStep * 2520 * unit, width: (sequencer.arrangerLoopSelection.endStep - sequencer.arrangerLoopSelection.startStep) * 2520 * unit }} />}{rulerBeats.map(beat => <span key={beat} className="absolute text-[10px] text-slate-500" style={{ left: beat * zoom }}>{beat % beatsPerBar === 0 ? `${Math.floor(beat / beatsPerBar) + 1}.1` : "·"}</span>)}</div>
         {displayModel.lanes.map(lane => {

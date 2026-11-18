@@ -1,3 +1,4 @@
+import { PerformWorkspace, LivePadEditor, type DeviceEditorRenderer, type ViewNavigation } from "./sequencer/PerformWorkspace";
 import { ClipTransport } from "./clipArranger/ClipTransport";
 import { useContext } from "react";
 import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
@@ -5,7 +6,7 @@ import { addScoreTrack } from "../store/scoreActions";
 import { addClipLane } from "../store/clipActions";
 import { ClipPerformance } from "./clipArranger/ClipPerformance";
 import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
-import { ClipEditingContext } from "./clipArranger/context";
+import { ClipEditingContext, useSinglePatternEditor } from "./clipArranger/context";
 import { clipCopy } from "./clipArranger/copy";
 import { migrateClipArrangement } from "../lib/clipArranger/migration";
 import { commitClipArrangement } from "../store/clipActions";
@@ -28,7 +29,7 @@ import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
 import { pianoRollFollowingTheories } from "../lib/pianoRollFollowing";
-import { OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner } from "./sequencer/PerformanceEditorState";
+import { OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
 import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel } from "./CollapsiblePanel";
@@ -799,9 +800,23 @@ export function SequencerPage(props: SequencerPageProps) {
     ...[...props.data.sequencer.tracks, ...props.data.sequencer.scoreTracks, ...props.data.sequencer.drummerTracks, ...props.data.sequencer.controllerSequencers, ...props.data.sequencer.arpeggiators, ...props.data.sequencer.pianoRolls, ...props.data.sequencer.midiControllers].map(device => `device:${device.id}` as const),
     ...props.data.instrumentBindings.map(binding => `binding:${binding.id}` as const),
     ...routes.map(route => `route:${route.id}` as const)];
-  return <PerformanceEditorProvider key={generation} owners={owners} retainedStore={props.editorStore}><OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}><SequencerPageContent {...props} /></OpenArrangerContext.Provider></PerformanceEditorProvider>;
+  return <PerformanceEditorProvider key={generation} owners={owners} retainedStore={props.editorStore}>
+    {props.workspacePreview ? <PerformWorkspace language={props.data.guiLanguage}>{(view, navigate) =>
+      <WorkspacePage view={view} navigate={navigate} {...props} />
+    }</PerformWorkspace> : <OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}>
+      <SequencerPageContent {...props} />
+    </OpenArrangerContext.Provider>}
+  </PerformanceEditorProvider>;
 }
-function SequencerPageContent(props: SequencerPageProps) {
+function WorkspacePage({ view, navigate, ...props }: SequencerPageProps & { view: PerformView; navigate: ViewNavigation }) {
+  const [panels, setPanels] = usePerformanceEditorState("page", "collapsedPanels", props.collapsedPanels);
+  return <OpenArrangerContext.Provider value={() => navigate("arrange")}>
+    <SequencerPageContent {...props} view={view} navigate={navigate} collapsedPanels={panels}
+      onPanelCollapsedChange={(panel, closed) => setPanels(previous => ({ ...previous, [panel]: closed }))} />
+  </OpenArrangerContext.Provider>;
+}
+
+function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; navigate?: ViewNavigation }) {
   const sampleUploads = useAppStore(state => state.sampleUploads);
   const context = useSequencerPageContext(props);
   const {
@@ -847,6 +862,29 @@ function SequencerPageContent(props: SequencerPageProps) {
     deletePerformanceTargetName,
     confirmDeletePerformance,
   } = context;
+  const { view } = props;
+  const showArrange = !view || view === "arrange";
+  const showLive = !view || view === "live";
+  const showMix = !view || view === "mix";
+  const renderDeviceEditor: DeviceEditorRenderer = (kind, id, state) => {
+    const selected = {
+      ...state,
+      tracks: state.tracks.filter(track => track.id === id),
+      scoreTracks: state.scoreTracks.filter(track => track.id === id),
+      drummerTracks: state.drummerTracks.filter(track => track.id === id),
+      controllerSequencers: state.controllerSequencers.filter(track => track.id === id),
+      arpeggiators: state.arpeggiators.filter(track => track.id === id)
+    };
+    const editorContext = { ...context, sequencer: selected };
+    switch (kind) {
+      case "sequencer": return <MelodicSequencersBody context={editorContext} />;
+      case "drummer": return <DrummerSequencersBody context={editorContext} />;
+      case "controller": return <ControllerSequencersBody context={editorContext} />;
+      case "arpeggiator": return <ArpeggiatorsBody context={editorContext} />;
+      case "score": return <ScoreSequencers onHelpRequest={onHelpRequest} sequencer={selected} language={guiLanguage}
+        collapsed={false} onCollapse={() => {}} readPosition={props.data.readPlaybackTransportSubunit} />;
+    }
+  };
   return (
     <>
       <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-glow">
@@ -858,7 +896,8 @@ function SequencerPageContent(props: SequencerPageProps) {
           onChange={handleConfigFileChange}
         />
 
-        <CollapsiblePanel unmountOnCollapse
+        {view && <ProjectControls context={context} />}
+        {showMix && <CollapsiblePanel unmountOnCollapse
           title={ui.instrumentRack}
           collapsed={collapsedPanels.rack}
           onCollapsedChange={(collapsed) => onPanelCollapsedChange("rack", collapsed)}
@@ -896,10 +935,10 @@ function SequencerPageContent(props: SequencerPageProps) {
           </>}
           collapsedSummary={<RackSummary context={context} />}
         >
-          <RackBody context={context} />
-        </CollapsiblePanel>
+          <RackBody context={context} showProject={!view} />
+        </CollapsiblePanel>}
 
-        <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />
+        {showMix && <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />}
 
         {transportError && (
           <div className="mt-3 rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">
@@ -928,17 +967,13 @@ function SequencerPageContent(props: SequencerPageProps) {
           </div>
         </div>
 
-        {sequencer.clipArrangement ? <ClipPerformance language={guiLanguage} onHelpRequest={onHelpRequest}
+        {showArrange && (sequencer.clipArrangement ? <ClipPerformance language={guiLanguage} onHelpRequest={onHelpRequest}
           laneControls={id => <LaneOutputButtons id={id} language={guiLanguage} />}
           position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(sequencer.arrangerLoopSelection, step)}
           onLoopChange={onSequencerArrangerLoopSelectionChange}
           transport={<ClipTransport language={guiLanguage} copy={arrangerCopy} onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward} />}
           onAddLane={source => { try { addClipLane(source, { sequencer: onAddSequencerTrack, drummer: onAddDrummerSequencerTrack, controller: onAddControllerSequencer, arpeggiator: onAddArpeggiator, score: () => addScoreTrack("Score") }[source]); } catch (e) { useAppStore.setState({ error: String(e) }); } }}
-          renderEditor={(kind, id, state) => {
-            const view = { ...state, tracks: state.tracks.filter(t => t.id === id), scoreTracks: state.scoreTracks.filter(t => t.id === id), drummerTracks: state.drummerTracks.filter(t => t.id === id), controllerSequencers: state.controllerSequencers.filter(t => t.id === id), arpeggiators: state.arpeggiators.filter(t => t.id === id) };
-            const editorContext = { ...context, sequencer: view };
-            return kind === "sequencer" ? <MelodicSequencersBody context={editorContext} /> : kind === "drummer" ? <DrummerSequencersBody context={editorContext} /> : kind === "controller" ? <ControllerSequencersBody context={editorContext} /> : kind === "arpeggiator" ? <ArpeggiatorsBody context={editorContext} /> : <ScoreSequencers onHelpRequest={onHelpRequest} sequencer={view} language={guiLanguage} collapsed={false} onCollapse={() => {}} readPosition={props.data.readPlaybackTransportSubunit} />;
-          }} /> : <>
+          renderEditor={renderDeviceEditor} /> : <>
         {isClipArrangerEnabled() && <button className="mt-3 rounded border border-cyan-700 px-3 py-2 text-xs text-cyan-200" onClick={() => {
           const result = migrateClipArrangement(useAppStore.getState().sequencer);
           if (result.model) {
@@ -952,6 +987,8 @@ function SequencerPageContent(props: SequencerPageProps) {
           }
           else useAppStore.setState({ error: `${clipCopy(guiLanguage).compatibility}: ${result.reasons.join(", ")}` });
         }}>{clipCopy(guiLanguage).convertToClips}</button>}
+        </>)}
+        {!view && !sequencer.clipArrangement && <>
         <CollapsiblePanel unmountOnCollapse
           title={ui.sequencers}
           collapsed={collapsedPanels.melodic}
@@ -1029,6 +1066,8 @@ function SequencerPageContent(props: SequencerPageProps) {
 
         </>}
 
+        {view === "live" && <LivePadEditor language={guiLanguage} sequencer={sequencer} renderEditor={renderDeviceEditor} />}
+        {showLive && <>
         <CollapsiblePanel unmountOnCollapse
           title={ui.pianoRolls}
           collapsed={collapsedPanels.piano}
@@ -1066,7 +1105,8 @@ function SequencerPageContent(props: SequencerPageProps) {
           <MidiControllersBody context={context} />
         </CollapsiblePanel>
 
-        {!sequencer.clipArrangement && sequencer.tracks.length + sequencer.scoreTracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0 ? (
+        </>}
+        {showArrange && !sequencer.clipArrangement && sequencer.tracks.length + sequencer.scoreTracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0 ? (
           <MultitrackArranger
             collapsed={collapsedPanels.arranger}
             onCollapsedChange={(collapsed) => onPanelCollapsedChange("arranger", collapsed)}
@@ -1082,7 +1122,7 @@ function SequencerPageContent(props: SequencerPageProps) {
             onTransportFastForward={onSequencerCycleForward}
             onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
             onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)}
-            onEditPad={kind => onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "score" ? "score" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false)}
+            onEditPad={(kind, id, pad) => props.navigate ? props.navigate("live", { id, pad }) : onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "score" ? "score" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false)}
             onHelpRequest={onHelpRequest}
           />
         ) : null}
@@ -1146,12 +1186,9 @@ function SequencerPageContent(props: SequencerPageProps) {
     </>
   );
 }
-function RackBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
-  const sampleUploads = useAppStore(state => state.sampleUploads);
+function ProjectControls({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
+  const sampleUploads = useAppStore(s => s.sampleUploads);
   const {
-    rackInstrumentRows,
-    onInstrumentReorder,
-    guiLanguage,
     ui,
     performanceName,
     onPerformanceNameChange,
@@ -1169,6 +1206,132 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
     onExportCsdScore,
     triggerConfigLoad,
     openDeletePerformanceDialog,
+  } = context;
+  return <>
+    <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
+      <label className="flex flex-col gap-1 lg:col-span-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.performanceName}</span>
+        <input
+          value={performanceName}
+          onChange={(event) => onPerformanceNameChange(event.target.value)}
+          placeholder={ui.performanceNamePlaceholder}
+          className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+        />
+      </label>
+
+      <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.description}</span>
+        <textarea
+          value={performanceDescription}
+          onChange={(event) => onPerformanceDescriptionChange(event.target.value)}
+          placeholder={ui.performanceDescriptionPlaceholder}
+          rows={3}
+          wrap="soft"
+          title={performanceDescription}
+          className="w-full resize-none overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.loadPerformance}</span>
+        <select
+          value={currentPerformanceId ?? ""}
+          disabled={instrumentsRunning}
+          onChange={(event) => {
+            if (event.target.value.length > 0) {
+              onLoadPerformance(event.target.value);
+            }
+          }}
+          className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
+        >
+          <option value="">{ui.current}</option>
+          {performances.map((performance) => (
+            <option key={performance.id} value={performance.id}>
+              {performance.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={onNewPerformance}
+        disabled={instrumentsRunning}
+        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+      >
+        {ui.newPerformance}
+      </button>
+      <button
+        type="button"
+        onClick={onClonePerformance}
+        disabled={instrumentsRunning || sampleUploads > 0}
+        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+      >
+        {ui.clonePerformance}
+      </button>
+
+      <button
+        type="button"
+        onClick={onSavePerformance}
+        disabled={sampleUploads > 0}
+        className="rounded-md border border-mint/55 bg-mint/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mint transition hover:bg-mint/25"
+      >
+        {ui.savePerformance}
+      </button>
+      <button
+        type="button"
+        onClick={onExportConfig}
+        disabled={sampleUploads > 0}
+        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+      >
+        {ui.export}
+      </button>
+      <button
+        type="button"
+        onClick={onExportCsdMidi}
+        disabled={sampleUploads > 0}
+        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+      >
+        {ui.exportCsdMidi}
+      </button>
+      <button
+        type="button"
+        onClick={onExportCsdScore}
+        disabled={sampleUploads > 0}
+        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+      >
+        {ui.exportCsdScore}
+      </button>
+      <button
+        type="button"
+        onClick={triggerConfigLoad}
+        disabled={instrumentsRunning}
+        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
+      >
+        {ui.import}
+      </button>
+      <button
+        type="button"
+        onClick={openDeletePerformanceDialog}
+        disabled={!currentPerformanceId}
+        className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {ui.deletePerformance}
+      </button>
+    </div>
+  </>;
+}
+
+function RackBody({ context, showProject }: { context: ReturnType<typeof useSequencerPageContext>; showProject: boolean }) {
+  const sampleUploads = useAppStore(state => state.sampleUploads);
+  const {
+    rackInstrumentRows,
+    onInstrumentReorder,
+    guiLanguage,
+    ui,
+    instrumentsRunning,
     instrumentBindings,
     patchById,
     patches,
@@ -1308,120 +1471,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
   return <>
     <PerformanceControllerSyncStatus language={guiLanguage} />
     {sampleUploads > 0 && <p role="status" className="text-xs text-cyan-200">{sampleCopy(guiLanguage).wait}</p>}
-    <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
-      <label className="flex flex-col gap-1 lg:col-span-2">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.performanceName}</span>
-        <input
-          value={performanceName}
-          onChange={(event) => onPerformanceNameChange(event.target.value)}
-          placeholder={ui.performanceNamePlaceholder}
-          className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
-        />
-      </label>
-
-      <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.description}</span>
-        <textarea
-          value={performanceDescription}
-          onChange={(event) => onPerformanceDescriptionChange(event.target.value)}
-          placeholder={ui.performanceDescriptionPlaceholder}
-          rows={3}
-          wrap="soft"
-          title={performanceDescription}
-          className="w-full resize-none overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{ui.loadPerformance}</span>
-        <select
-          value={currentPerformanceId ?? ""}
-          disabled={instrumentsRunning}
-          onChange={(event) => {
-            if (event.target.value.length > 0) {
-              onLoadPerformance(event.target.value);
-            }
-          }}
-          className="rounded-md border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring"
-        >
-          <option value="">{ui.current}</option>
-          {performances.map((performance) => (
-            <option key={performance.id} value={performance.id}>
-              {performance.name}
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
-
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        onClick={onNewPerformance}
-        disabled={instrumentsRunning}
-        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-      >
-        {ui.newPerformance}
-      </button>
-      <button
-        type="button"
-        onClick={onClonePerformance}
-        disabled={instrumentsRunning || sampleUploads > 0}
-        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-      >
-        {ui.clonePerformance}
-      </button>
-
-      <button
-        type="button"
-        onClick={onSavePerformance}
-        disabled={sampleUploads > 0}
-        className="rounded-md border border-mint/55 bg-mint/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mint transition hover:bg-mint/25"
-      >
-        {ui.savePerformance}
-      </button>
-      <button
-        type="button"
-        onClick={onExportConfig}
-        disabled={sampleUploads > 0}
-        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-      >
-        {ui.export}
-      </button>
-      <button
-        type="button"
-        onClick={onExportCsdMidi}
-        disabled={sampleUploads > 0}
-        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-      >
-        {ui.exportCsdMidi}
-      </button>
-      <button
-        type="button"
-        onClick={onExportCsdScore}
-        disabled={sampleUploads > 0}
-        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-      >
-        {ui.exportCsdScore}
-      </button>
-      <button
-        type="button"
-        onClick={triggerConfigLoad}
-        disabled={instrumentsRunning}
-        className="rounded-md border border-slate-500 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:border-slate-300 hover:text-white"
-      >
-        {ui.import}
-      </button>
-      <button
-        type="button"
-        onClick={openDeletePerformanceDialog}
-        disabled={!currentPerformanceId}
-        className="ml-auto rounded-md border border-rose-500/60 bg-rose-500/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {ui.deletePerformance}
-      </button>
-    </div>
-
+    {showProject && <ProjectControls context={context} />}
     <div className="mt-3 space-y-2">
       {instrumentBindings.length === 0 ? (
         <div className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-400">
@@ -1447,6 +1497,7 @@ function RackBody({ context }: { context: ReturnType<typeof useSequencerPageCont
 
 function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
   const clipEditing = useContext(ClipEditingContext);
+  const singlePattern = useSinglePatternEditor();
   const {
     sequencer: playbackSequencer,
     scaleTypeLabels,
@@ -1495,12 +1546,13 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
   const editingPads = useAppStore(state => state.sequencerEditingPads);
   const selectEditingPad = useAppStore(state => state.selectSequencerEditingPad);
   const authored = useAppStore(state => state.sequencer);
-  const sequencer = sequencerEditingView(playbackSequencer, editingPads);
+  const sequencer = clipEditing ? playbackSequencer : sequencerEditingView(playbackSequencer, editingPads);
   useEffect(() => {
+    if (singlePattern) return;
     for (const track of [...authored.tracks, ...authored.drummerTracks, ...authored.controllerSequencers]) {
       if (editingPads[track.id] === undefined) selectEditingPad(track.id, track.activePad);
     }
-  }, [authored, editingPads, selectEditingPad]);
+  }, [authored, editingPads, selectEditingPad, singlePattern]);
 
   const [propertiesTarget, setPropertiesTarget] = useState<{ trackId: string; padIndex: number; step: number } | null>(null);
   const propertiesTrigger = useRef<HTMLElement | null>(null);
@@ -1664,7 +1716,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </div>
               {renderDeviceName("tracks", track, ui.sequencerWithIndex(trackIndex + 1))}
               <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
-              <button hidden={clipEditing}
+              <button hidden={singlePattern}
                 type="button"
                 onClick={() => onSequencerTrackEnabledChange(track.id, !trackIsRunning)}
                 disabled={!instrumentsRunning && !trackIsRunning}
@@ -1679,7 +1731,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               >
                 {ui.clearSteps}
               </button>
-              <button hidden={clipEditing}
+              <button hidden={singlePattern}
                 type="button"
                 onClick={() => onRemoveSequencerTrack(track.id)}
                 disabled={!canRemovePerformDevice}
@@ -1779,7 +1831,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </div>
 
               <div className="min-w-0 space-y-2">
-              <PerformanceAuditionControls hidden={clipEditing} compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.tracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onSequencerTrackEnabledChange(track.id, true); }} />
+              <PerformanceAuditionControls hidden={singlePattern} compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.tracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onSequencerTrackEnabledChange(track.id, true); }} />
               <PatternWorkspace track={track} padHasContent={index => melodicPadHasSound(track.pads[index])} language={guiLanguage}
                 onSourceChange={enabled => onSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                 onPatternChange={pattern => onSequencerTrackPadLoopPatternChange(track.id, pattern)} />
@@ -1790,7 +1842,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               {ui.notesInScaleMode(scaleLabel, modeLabel)}
             </div>
 
-            <div className={clipEditing ? "hidden" : "mb-2"}>
+            <div className={singlePattern ? "hidden" : "mb-2"}>
               <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.patternPads}</div>
               <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
                 {Array.from({ length: 8 }, (_, padIndex) => {
@@ -2285,6 +2337,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
 
 function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
   const clipEditing = useContext(ClipEditingContext);
+  const singlePattern = useSinglePatternEditor();
   const {
     sequencer: playbackSequencer,
     sequencerTransportSubunit,
@@ -2324,12 +2377,13 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
   const editingPads = useAppStore(state => state.sequencerEditingPads);
   const selectEditingPad = useAppStore(state => state.selectSequencerEditingPad);
   const authored = useAppStore(state => state.sequencer);
-  const sequencer = sequencerEditingView(playbackSequencer, editingPads);
+  const sequencer = clipEditing ? playbackSequencer : sequencerEditingView(playbackSequencer, editingPads);
   useEffect(() => {
+    if (singlePattern) return;
     for (const track of [...authored.tracks, ...authored.drummerTracks, ...authored.controllerSequencers]) {
       if (editingPads[track.id] === undefined) selectEditingPad(track.id, track.activePad);
     }
-  }, [authored, editingPads, selectEditingPad]);
+  }, [authored, editingPads, selectEditingPad, singlePattern]);
 
   const [timingTarget, setTimingTarget] = useState<{ trackId: string; rowId: string; step: number; padIndex: number } | null>(null);
   useEffect(() => {
@@ -2472,7 +2526,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
             <div className="mb-2 flex flex-wrap items-center gap-2">
               {renderDeviceName("drummerTracks", track, ui.drummerSequencerWithIndex(trackIndex + 1))}
               <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
-              <button hidden={clipEditing}
+              <button hidden={singlePattern}
                 type="button"
                 onClick={() => onDrummerSequencerTrackEnabledChange(track.id, !trackIsRunning)}
                 disabled={!instrumentsRunning && !trackIsRunning}
@@ -2494,7 +2548,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
               >
                 + Key
               </button>
-              <button hidden={clipEditing}
+              <button hidden={singlePattern}
                 type="button"
                 onClick={() => onRemoveDrummerSequencerTrack(track.id)}
                 disabled={!canRemovePerformDevice}
@@ -2527,14 +2581,14 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
 
               </div>
               <div className="min-w-0 space-y-2">
-              <PerformanceAuditionControls hidden={clipEditing} compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onDrummerSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onDrummerSequencerTrackEnabledChange(track.id, true); }} />
+              <PerformanceAuditionControls hidden={singlePattern} compact id={track.id} language={guiLanguage} editingPad={track.activePad} playingPad={playbackSequencer.drummerTracks.find(t => t.id === track.id)?.activePad} queuedPad={track.queuedPad} playing={sequencer.isPlaying && track.enabled} item={{ type: "pad", padIndex: track.activePad }} manualLaunch={track.padLoopEnabled ? undefined : () => { onDrummerSequencerPadPress(track.id, track.activePad); if (!sequencer.isPlaying || !track.enabled) onDrummerSequencerTrackEnabledChange(track.id, true); }} />
               <PatternWorkspace track={track} padHasContent={index => drummerPadHasSound(track.pads[index])} language={guiLanguage}
                 onSourceChange={enabled => onDrummerSequencerTrackPadLoopEnabledChange(track.id, enabled)}
                 onPatternChange={pattern => onDrummerSequencerTrackPadLoopPatternChange(track.id, pattern)} />
               </div>
             </div>
 
-            <div className={clipEditing ? "hidden" : "mb-2"}>
+            <div className={singlePattern ? "hidden" : "mb-2"}>
               <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.patternPads}</div>
               <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
                 {Array.from({ length: 8 }, (_, padIndex) => {
@@ -2792,6 +2846,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
 
 function ControllerSequencersBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
   const clipEditing = useContext(ClipEditingContext);
+  const singlePattern = useSinglePatternEditor();
   const {
     sequencer: playbackSequencer,
     onHelpRequest,
@@ -2830,12 +2885,13 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
   const editingPads = useAppStore(state => state.sequencerEditingPads);
   const selectEditingPad = useAppStore(state => state.selectSequencerEditingPad);
   const authored = useAppStore(state => state.sequencer);
-  const sequencer = sequencerEditingView(playbackSequencer, editingPads);
+  const sequencer = clipEditing ? playbackSequencer : sequencerEditingView(playbackSequencer, editingPads);
   useEffect(() => {
+    if (singlePattern) return;
     for (const track of [...authored.tracks, ...authored.drummerTracks, ...authored.controllerSequencers]) {
       if (editingPads[track.id] === undefined) selectEditingPad(track.id, track.activePad);
     }
-  }, [authored, editingPads, selectEditingPad]);
+  }, [authored, editingPads, selectEditingPad, singlePattern]);
 
 
   return <>
@@ -2863,7 +2919,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               <span className={transportStateClass}>
                 {controllerSequencerIsRunning ? ui.running : ui.stopped}
               </span>
-              <button hidden={clipEditing}
+              <button hidden={singlePattern}
                 type="button"
                 onClick={() =>
                   onControllerSequencerEnabledChange(controllerSequencer.id, !controllerSequencerIsRunning)
@@ -2884,7 +2940,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
               </button>
               {controllerSequencer.automationTarget ? <span className="text-xs text-teal-200">MIDI {controllerSequencer.targetChannels[0]} · CC {controllerSequencer.controllerNumber} 🔒</span> : <MidiChannelSelector channels={controllerSequencer.targetChannels} ui={ui}
                 onChange={(channels) => onControllerSequencerTargetChannelsChange(controllerSequencer.id, channels)} />}
-              <button hidden={clipEditing}
+              <button hidden={singlePattern}
                 type="button"
                 onClick={() => onRemoveControllerSequencer(controllerSequencer.id)}
                 disabled={!canRemovePerformDevice}
@@ -2942,7 +2998,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
 
             </div>
             <div className="min-w-0 space-y-2">
-              <PerformanceAuditionControls hidden={clipEditing} compact id={controllerSequencer.id} language={guiLanguage} editingPad={controllerSequencer.activePad} playingPad={playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad} queuedPad={controllerSequencer.queuedPad} playing={sequencer.isPlaying && controllerSequencer.enabled} item={{ type: "pad", padIndex: controllerSequencer.activePad }} manualLaunch={controllerSequencer.padLoopEnabled ? undefined : () => { onControllerSequencerPadPress(controllerSequencer.id, controllerSequencer.activePad); if (!sequencer.isPlaying || !controllerSequencer.enabled) onControllerSequencerEnabledChange(controllerSequencer.id, true); }} />
+              <PerformanceAuditionControls hidden={singlePattern} compact id={controllerSequencer.id} language={guiLanguage} editingPad={controllerSequencer.activePad} playingPad={playbackSequencer.controllerSequencers.find(t => t.id === controllerSequencer.id)?.activePad} queuedPad={controllerSequencer.queuedPad} playing={sequencer.isPlaying && controllerSequencer.enabled} item={{ type: "pad", padIndex: controllerSequencer.activePad }} manualLaunch={controllerSequencer.padLoopEnabled ? undefined : () => { onControllerSequencerPadPress(controllerSequencer.id, controllerSequencer.activePad); if (!sequencer.isPlaying || !controllerSequencer.enabled) onControllerSequencerEnabledChange(controllerSequencer.id, true); }} />
               <PatternWorkspace track={controllerSequencer} language={guiLanguage}
                 padHasContent={index => controllerPadHasContent(controllerSequencer.pads[index], controllerSequencer.controllerMode)}
                 onSourceChange={enabled => onControllerSequencerPadLoopEnabledChange(controllerSequencer.id, enabled)}
@@ -2950,7 +3006,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
             </div>
             </div>
 
-            <div className={clipEditing ? "hidden" : "mb-2"}>
+            <div className={singlePattern ? "hidden" : "mb-2"}>
               <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">{ui.patternPads}</div>
               <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
                 {Array.from({ length: 8 }, (_, padIndex) => {

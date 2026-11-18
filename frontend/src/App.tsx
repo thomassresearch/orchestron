@@ -1,5 +1,6 @@
+import { DraftResolutionDialog } from "./components/clipArranger/DraftResolutionDialog";
 import { registerAutomationRuntime } from "./lib/clipArranger/automationRuntime";
-import { resolveClipDrafts } from "./lib/clipArranger/draftResolution";
+import { confirmReplacement, resolveClipDrafts } from "./lib/clipArranger/draftResolution";
 import { clipRuntimeView, attachClipSchedules, clipAuditionState } from "./lib/clipArranger/runtime";
 import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
 import { scoreTrackConfig } from "./lib/scoreSequencer";
@@ -111,7 +112,7 @@ const LazySequencerPage = lazy(() =>
 );
 
 
-export default function App() {
+export default function App({ workspacePreview = false }: { workspacePreview?: boolean }) {
   const loading = useAppStore((state) => state.loading);
   const error = useAppStore((state) => state.error);
 
@@ -723,13 +724,15 @@ export default function App() {
           cloneIndex += 1;
         }
 
+        const confirmed = await confirmReplacement(useAppStore.getState());
+        if (!confirmed) return;
         const cloned = await api.createPerformance({
           name: cloneName,
           description: performanceDescription,
           config: buildSequencerConfigSnapshot()
         });
         await refreshPerformances();
-        await loadPerformance(cloned.id);
+        await loadPerformance(cloned.id, confirmed);
         setSequencerError(null);
       } catch (cloneError) {
         setSequencerError(cloneError instanceof Error ? cloneError.message : "Failed to clone performance.");
@@ -751,12 +754,14 @@ export default function App() {
 
     void (async () => {
       try {
+        const confirmed = await confirmReplacement(useAppStore.getState());
+        if (!confirmed) return;
         const deletedPerformanceId = currentPerformanceId;
         await api.deletePerformance(deletedPerformanceId);
         const refreshed = await refreshPerformances();
         const nextPerformance = refreshed.find((performance) => performance.id !== deletedPerformanceId) ?? null;
         if (nextPerformance) {
-          await loadPerformance(nextPerformance.id);
+          await loadPerformance(nextPerformance.id, confirmed);
         } else {
           clearCurrentPerformanceSelection();
         }
@@ -888,7 +893,6 @@ export default function App() {
   const onImportInstrumentDefinitionFile = useCallback(
     (file: File) => {
       void (async () => {
-        if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts, true)) return;
         const parsed = await api.expandImportBundle(file, true);
         const patchDefinitions = extractImportPatchDefinitions(parsed);
 
@@ -1256,12 +1260,12 @@ export default function App() {
   const onImportSequencerConfig = useCallback(
     (file: File) => {
       void (async () => {
-        if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts, true)) return;
         const parsed = await api.expandImportBundle(file, true);
         const exported = parsePerformanceExportPayload(parsed);
 
         if (!exported) {
           const expanded = await api.expandImportBundle(file);
+          if (!await confirmReplacement(useAppStore.getState())) return;
           applySequencerConfigSnapshot(expanded);
           setSequencerError(null);
           return;
@@ -1325,10 +1329,12 @@ export default function App() {
           plan.performance = operation;
         }
 
+        const confirmed = selection.importPerformance ? await confirmReplacement(useAppStore.getState()) : undefined;
+        if (confirmed === null) return;
         const committed = await api.commitImportBundle(file, plan);
         await refreshPatches();
         await refreshPerformances();
-        if (committed.performance) await loadPerformance(committed.performance.id);
+        if (committed.performance) await loadPerformance(committed.performance.id, confirmed);
 
         setSequencerError(null);
       })().catch((error) => {
@@ -1732,6 +1738,7 @@ export default function App() {
 
   return (
     <div className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
+      <DraftResolutionDialog language={guiLanguage} />
       {activePage === "sequencer" && <EngineStatusLine />}
       <div className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
         <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
@@ -1969,6 +1976,7 @@ export default function App() {
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
             <ScoreTransportContext.Provider value={{ previewNote: previewScoreNote, play: transportDevice, queue: async (id, pad) => { const session = resolveSequencerSessionId(); if (!session) throw new Error(appCopy.errors.noActiveSessionForPadSwitching); await queueSequencerPadRuntime(session, id, pad); } }}><PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
+              workspacePreview={workspacePreview}
               editorStore={performanceEditors.store}
               collapsedPanels={collapsedPanels}
               onPanelCollapsedChange={setPanelCollapsed}

@@ -1,5 +1,5 @@
-import { ClipEditingContext } from "../clipArranger/context";
-import { useContext, useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { useSinglePatternEditor } from "../clipArranger/context";
+import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import type { GuiLanguage, PadLoopPatternItem, PadLoopPatternState } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { compileDefinition, createDefinition, definitionItem, definitionUses, type DefinitionRef } from "../../lib/arrangementEditing";
@@ -222,6 +222,6 @@ function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChan
 }
 
 export function PatternWorkspace(props: Parameters<typeof LegacyPatternWorkspace>[0]) {
-  const contextual = useContext(ClipEditingContext);
+  const contextual = useSinglePatternEditor();
   return contextual ? null : <LegacyPatternWorkspace {...props} />;
 }

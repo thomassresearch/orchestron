@@ -2,7 +2,7 @@ import { automationRouting, mappedControls, reconcileAutomation } from "../lib/c
 import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { useAutomationMerge } from "../lib/clipArranger/automationMerge";
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
-import { resolveClipDrafts } from "../lib/clipArranger/draftResolution";
+import { confirmReplacement, resolveClipDrafts } from "../lib/clipArranger/draftResolution";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { createArrangerHistoryActions, emptyArrangerHistory, historyMatches, readArrangerHistory } from "./arrangerHistory";
 import { reconcileLaneOutput } from "../lib/laneOutput";
@@ -533,8 +533,8 @@ export const useAppStore = create<AppStore>((set, get) => {
       return performances;
     },
 
-    loadPerformance: async (performanceId) => {
-      if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts, true)) return;
+    loadPerformance: async (performanceId, confirmed) => {
+      if (!await confirmReplacement(get(), confirmed)) return;
       if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       set({ loading: true, error: null });
       try {

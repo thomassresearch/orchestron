@@ -84,7 +84,7 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
     cachedState = state;
     cachedView = { ...state, sequencer: clipEditorView(
       sequencerEditingView(mergedSequencerState(state.sequencer, state.sequencerRuntime), selections),
-      state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined
+      editSelection && state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined
     ) };
     return cachedView;
   };
@@ -99,7 +99,7 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
     const authored = changedFields(state.sequencer, displayed.sequencer, edited) as unknown as SequencerState;
     let runtime = state.sequencerRuntime;
     let clipDrafts = state.clipDrafts;
-    const draft = state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined;
+    const draft = editSelection && state.clipEditingKey ? state.clipDrafts[state.clipEditingKey] : undefined;
     for (const [kind, runtimeKey] of [["tracks", "trackStateById"], ["scoreTracks", "trackStateById"], ["drummerTracks", "drummerStateById"], ["controllerSequencers", "controllerStateById"], ["arpeggiators", "arpeggiatorStatusById"]] as const) {
       if (edited[kind] === displayed.sequencer[kind]) {
         Object.assign(authored, { [kind]: state.sequencer[kind] });

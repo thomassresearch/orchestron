@@ -34,6 +34,8 @@ Use versioned test fixtures for a new empty performance, a clip song with repeat
 
 ## 2. Give each view its own working context
 
+**Implemented in the application preview on 18 November 2026.** Clip and legacy sessions passed the browser round trip. The running clip session also passed the transport and configuration checks. [Milestone 2 implementation and replay](milestone-2-view-state.md)
+
 Use the retained editor store as the single owner of new presentation state. Represent the current Perform view and a separate entry for each view. Reuse device-, binding- and route-owned entries for the values that already have those lifetimes. Keep live references to drafts by target identity. Copying draft payloads into a view snapshot would allow a later return to resurrect stale edits.
 
 | Owner | Values to retain |

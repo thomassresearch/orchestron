@@ -6,7 +6,6 @@ import { AutomationDuration, AutomationMergeDialog } from "./AutomationControls"
 import { automationCopy } from "./automationCopy";
 import { ControllerSequencerCurveEditor } from "../sequencer/ControllerSequencerCurveEditor";
 import { SEQUENCER_UI_COPY } from "../sequencer/sequencerUiCopy";
-import { DraftResolutionDialog } from "./DraftResolutionDialog";
 import { hasChangedClipDrafts } from "../../lib/clipArranger/draftResolution";
 import { occurrenceNames } from "../../lib/clipArranger/operations";
 import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration";
@@ -72,13 +71,17 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   const [auditioning, setAuditioning] = useState(false);
   const stopEdit = async () => {
     const previous = active.current; active.current = null; setAuditioning(false);
-    if (previous) await audition?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
-    useAppStore.setState({ clipAuditionDraft: null });
+    if (!previous) return;
+    const owned = useAppStore.getState().clipAuditionDraft;
+    await audition?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
+    if (!active.current && owned && useAppStore.getState().clipAuditionDraft === owned) useAppStore.setState({ clipAuditionDraft: null });
   };
   const structure=useStructureEditor(model,sequencer,timings,language,stopEdit,zoom/QUARTER_TICKS);
   useEffect(() => () => {
     const previous = active.current;
-    if (previous) void auditionRef.current?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
+    if (!previous) return;
+    active.current = null;
+    void auditionRef.current?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
     useAppStore.setState({ clipAuditionDraft: null });
   }, []);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +137,6 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   }
   const attempt = (action: () => void) => { try { action(); setError(null); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
   return <>
-    <DraftResolutionDialog language={language} />
     <AutomationMergeDialog language={language} />
     <ClipArranger onHelpRequest={onHelpRequest} stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={(target, intent) => attempt(() => openClipEditor(target, intent))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
       renderAutomation={(target, range) => {
@@ -168,7 +170,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
           useAppStore.setState({ clipAuditionDraft: played });
           active.current = { id: lane.id, gesture, key: draftKey(draft), last: draft };
           try { await audition?.(lane.id, { action: "workspace_start", gestureId: gesture, clipDraft: played }); if (active.current?.gesture === gesture) setAuditioning(true); }
-          catch (e) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); }
+          catch (e) { if (active.current?.gesture === gesture) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); } }
         })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind==="pattern" ? !scope || !dirty : !structure.canSave} onClick={() => { if(draft.definition.kind==='pattern') void stopEdit().then(()=>attempt(()=>saveClipDraftWithIntent(key ?? undefined))).catch(e=>setError(String(e))); else structure.openSave(); }}>{draft.definition.kind==="pattern" ? scope==='local'?sc.saveLocal:relationship?.shared?`${sc.saveAll} (${relationship.occurrences})`:c.save : structure.draft?.editIntent?.scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
       </header>
       {draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}

@@ -66,8 +66,7 @@ export function openClipEditor(target: OccurrenceTarget, scope?: EditScope) {
     if (scope === undefined && structure.editIntent) editIntent = structure.editIntent;
     useStructureDraft.setState({ draft: { ...structure, editIntent, editorTarget: target } });
   }
-  useAppStore.setState({ clipEditingKey: key, clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent } },
-    sequencerEditingPads: { ...state.sequencerEditingPads, [target.laneId]: 0 } });
+  useAppStore.setState({ clipEditingKey: key, clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent } } });
 }
 export function setClipEditIntent(scope: EditScope, variationName?: string, resolvingKey?: string) {
   const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey;

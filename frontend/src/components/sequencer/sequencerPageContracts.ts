@@ -220,6 +220,7 @@ export interface SequencerPageArpeggiatorActions {
 }
 
 export interface SequencerPageProps {
+  workspacePreview?: boolean;
   editorStore?: import("./PerformanceEditorState").PerformanceEditorStore;
   collapsedPanels: PanelCollapseState;
   onPanelCollapsedChange: (panel: PerformPanelId, collapsed: boolean) => void;
