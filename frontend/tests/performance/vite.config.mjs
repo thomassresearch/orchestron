@@ -17,6 +17,7 @@ export default defineConfig(environment => mergeConfig(testConfig(environment), 
   plugins: [{
     name: "profile-visual-construction", enforce: "pre",
     transform(source, id) {
+      if (id.endsWith("/src/lib/mixerRuntime.ts")) return source + "\nexport const profileMeterSubscribers = () => listeners.size;";
       if (!id.includes("/src/components/") && !id.endsWith("/src/lib/sequencer.ts")) return;
       const file = ts.createSourceFile(id, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
       const positions = [];

@@ -808,7 +808,7 @@ export function SequencerPage(props: SequencerPageProps) {
     ...props.data.instrumentBindings.map(binding => `binding:${binding.id}` as const),
     ...routes.map(route => `route:${route.id}` as const)];
   return <PerformanceEditorProvider key={generation} owners={owners} retainedStore={props.editorStore}>
-    {props.workspacePreview ? <PerformWorkspace language={props.data.guiLanguage}>{(view, navigate) =>
+    {props.performWorkspace ? <PerformWorkspace language={props.data.guiLanguage}>{(view, navigate) =>
       <WorkspacePage view={view} navigate={navigate} {...props} />
     }</PerformWorkspace> : <OpenArrangerContext.Provider value={() => props.onPanelCollapsedChange("arranger", false)}>
       <SequencerPageContent {...props} />

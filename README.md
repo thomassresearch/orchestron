@@ -33,7 +33,7 @@ include the audio they need. See the [Sample Player guide](documentation/perform
 
 ![Sample Player added through the normal instrument rack](screenshots/performance_sample_player_rack.png)
 
-Perform has a fixed **Engine stats** line with CPU usage and an optional **Parallel playback**
+Open **Diagnostics** in Perform to see engine CPU usage and the **Parallel playback**
 control. CPU readings stay aligned as percentages change. Independent instrument groups can use multiple Csound processes, with shared effects
 and resources kept in dependency order. No per-song registration is needed; single rendering
 remains the default and fallback. Enable the option while stopped. Timing, buffers and CSD
@@ -172,19 +172,19 @@ Explore the [clip arranger guide](documentation/performance/multitrack_arranger.
 
 ## Perform and shape the mix
 
-The regular Perform page is the default. In the optional workspace preview, select a chorus repeat, edit a variation below the timeline, or update a linked phrase across the song. Legacy performances open their original pads in the same editor area. The right-hand Inspector keeps instrument assignment and clip properties beside the timeline. [Try Arrange in the preview](specifications/redesign-user-experience/milestone-4-arrange.md)
+**Perform** opens in Arrange. Select a chorus repeat and edit a variation below the timeline, or update a linked phrase across the song. Legacy performances open their original pads in the same editor area. The Inspector keeps instrument assignments and clip properties beside the timeline. [Arrange a performance](documentation/performance/performance.md#arrange)
 
-In **Live**, hold a chord on the keyboard while launching pads, follow queued and playing pads on each device, and use **Edit** to change the selected pad. On a phone, the launcher stays above the keys. [Try Live in the preview](documentation/performance/performance.md#launch-pads-in-the-live-preview)
+In **Live**, hold a chord on the keyboard while launching pads, follow queued and playing pads on each device, and use **Edit** to change the selected pad. On a phone, the launcher stays above the keys. [Launch pads in Live](documentation/performance/performance.md#launch-pads-in-live)
 
-In **Mix**, scroll through the channels while watching the pinned Master and the final stereo Audio Output. Select a rack instance to edit its performance controls or audition its samples. Open **Routing** to trace a signal while the song plays. [Use the Mix preview](documentation/performance/audio_mixer_and_routing.md#mix-in-the-workspace-preview)
+In **Mix**, scroll through the channels while watching the pinned Master and the final stereo Audio Output. Select a rack instance to edit its performance controls or audition its samples. Open **Routing** to trace a signal while the song plays. [Mix a performance](documentation/performance/audio_mixer_and_routing.md#mix-a-performance)
 
 Performance descriptions show three lines with automatic wrapping. Scroll vertically through longer descriptions or hover over the field to read the full text.
 
-Load instruments into the Perform rack, assign MIDI channels, and play from the on-screen keyboards or an external MIDI source. Scale highlighting follows the currently playing melodic or score clip, including Play edit auditions, while you improvise. When no melodic source is playing, the keyboard keeps its own editable scale and mode. See [piano-roll scale following](documentation/performance/piano_rolls.md#scalemode-following-behavior-during-live-playback). Enable **Autochord** on a piano roll to play 3-, 4-, or 5-note chords by stacking every other highlighted note above the pressed key. In mixed scales it uses their common notes; keys outside the highlighted set remain single notes. Manual MIDI controls and controller sequencers can each send to your chosen MIDI channels, with all 16 selected by default (OMNI). Manual controllers use [compact cards](documentation/performance/midi_controllers.md) that sit side by side and wrap as needed, including below the clip arranger. Assignable MIDI controls let you adjust sounds as you play; instruments can also expose their own [performance controls](documentation/performance/performance_controllers.md) for settings such as envelope times or distortion. Choose Float knobs, Integer controls with step buttons and direct entry, or Bool on/off toggles for each setting.
+Load instruments into the Perform rack, assign MIDI channels, and play from the on-screen keyboards or an external MIDI source. Scale highlighting follows the currently playing melodic or score clip, including Play edit auditions, while you improvise. When no melodic source is playing, the keyboard keeps its own editable scale and mode. See [piano-roll scale following](documentation/performance/piano_rolls.md#scalemode-following-behavior-during-live-playback). Enable **Autochord** on a piano roll to play 3-, 4-, or 5-note chords by stacking every other highlighted note above the pressed key. In mixed scales it uses their common notes; keys outside the highlighted set remain single notes. Manual MIDI controls and controller sequencers can each send to your chosen MIDI channels, with all 16 selected by default (OMNI). Manual controllers use [compact cards](documentation/performance/midi_controllers.md) that sit side by side and wrap as needed, in the Live overview. Assignable MIDI controls let you adjust sounds as you play; instruments can also expose their own [performance controls](documentation/performance/performance_controllers.md) for settings such as envelope times or distortion. Choose Float knobs, Integer controls with step buttons and direct entry, or Bool on/off toggles for each setting.
 
-![Piano roll with grouped MIDI Channel and Velocity fields, aligned scale and autochord controls, and five sounding chord tones](screenshots/perform_piano_roll_autochord.jpg)
+![Live with a held chord on the keyboard and the next Manual pad queued above it](screenshots/perform-workspace-live-launcher.png)
 
-*Play a melody with harmonic guidance and reach for MIDI controls beneath the keyboard.*
+*Keep the chord sounding while the next pad waits for its pattern boundary.*
 
 Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Each instrument strip shows its rack patch number and MIDI channel above the instrument name; continuous instruments show **Continuous** instead of a channel. Add an insert to one instrument, send several instruments to a shared effect, and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. A routing matrix and diagram help you follow where the audio goes.
 

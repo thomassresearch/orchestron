@@ -3,9 +3,7 @@
 Design direction chosen on 2026-11-14. Musician and producer workflow review updated on 2026-11-18.
 
 The user selected **arrangement above, editor below** after reviewing both vertical orders.
-This document records that decision and the interaction rules developed in the workspace
-study. It is a specification for future work, not a description of functionality already
-implemented in Orchestron.
+This document records the design study and its interaction rules. Arrange, Live and Mix became the default Perform workspace on 19 November 2026. The release record identifies the behavior verified in the application. [Release checks](milestone-7-release.md)
 
 ## Scope and priorities
 
@@ -92,9 +90,9 @@ and hover/active feedback. Provide a larger, non-overlapping target for touch in
   with no page scrolling or musical edit.
 - Capture the pointer for the gesture so dragging continues outside the thin divider. Support
   mouse, touch and pen. Suppress text selection and touch scrolling only for the resize gesture.
-- Clamp resizing before either pane becomes unusable. The study keeps the editor at least
+- Clamp resizing before either pane becomes unusable. The released split keeps the editor at least
   180 CSS pixels high and at most 60% of the working area, further limited to retain arrangement
-  chrome and visible track space. These numerical limits remain provisional.
+  chrome and visible track space.
 - Release to retain the chosen height. Escape, pointer cancellation, unexpected loss of capture,
   leaving the browser window's focus, or a layout change during the gesture restores the prior
   height and clears drag state. Resizing does not alter selection, editor content, save status,
@@ -150,11 +148,9 @@ Controls and text reflow; musical canvases retain local scrolling where needed. 
 the entire desktop UI to fit. On very short windows, allow the editor's context header to
 scroll with its content if fixing it would leave no usable editing space.
 
-The mock explores a one-pane threshold around 700 CSS pixels wide or 600 pixels of workspace
-height. Those values, pane limits and exact chrome sizes are provisional. Validate them with
-real controls, translations, enlarged text and browser zoom before implementation is accepted.
+The application uses one working pane when the work area is narrower than 700 CSS pixels, the browser is shorter than 600 CSS pixels, or the remaining height cannot fit the editor and its overview. It uses the same decision for the Inspector drawer. An open dock can also expand on command.
 
-The React preview also measures the working area after the application controls take their space. It switches to one pane when the open editor would crowd out the ruler and track controls. A coarse pointer gets a 24 px divider target. [Measured preview behavior](milestone-3-workspace-shell.md)
+The shell measures the working area after the application controls take their space. It switches to one pane when the open editor would crowd out the ruler and track controls. A coarse pointer gets a 24 px divider target. [Desktop, phone and zoom measurements](milestone-3-workspace-shell.md)
 
 ## Placement of current Orchestron capabilities
 
@@ -287,7 +283,7 @@ own the detailed musical and transport behavior.
 
 ## Live, mix and instrument interaction rules
 
-In the application preview, **Edit** opens the selected physical pad. Its direct edits retain their existing live timing. The dock shows the pad’s save status and **Save Performance** persists it. Reusable pattern drafts retain **Apply**, and arpeggiator presets retain **Update preset** and **Save as preset**. A clip lane reports the playing definition by name. **Add live device** creates a separate device for manual launches alongside the clip arrangement. [Live implementation record](milestone-5-live.md)
+In Live, **Edit** opens the selected physical pad. Its direct edits retain their existing live timing. The dock shows the pad’s save status and **Save Performance** persists it. Reusable pattern drafts retain **Apply**, and arpeggiator presets retain **Update preset** and **Save as preset**. A clip lane reports the playing definition by name. **Add live device** creates a separate device for manual launches alongside the clip arrangement. [Live implementation record](milestone-5-live.md)
 
 In Live, distinguish the pad selected for editing from the playing pad and queued launch.
 Running Manual pads actions retain boundary-quantized launches; stopped or Arrangement-source
@@ -339,7 +335,7 @@ Support EN/DE/FR/ES labels and integrated help in the eventual UI. Test long lab
 targets, enlarged text and browser zoom. Readability and accessible controls take priority
 over preserving the desktop's density at every viewport size.
 
-## Acceptance criteria for future implementation
+## Application acceptance criteria
 
 1. Arrange consistently presents the timeline above the detail dock, with transport above
    the timeline and no vertical-order preference.
@@ -373,7 +369,4 @@ The saved [mock](orchestron-studio-study.html) demonstrates the fixed Arrange st
 resizable dock. The walkthrough above identifies the remaining differences to evaluate with
 musicians. Editing, saving, Undo, routing and transport are simulated.
 
-Remaining design details are exact breakpoints and pane limits, other new shortcut assignments,
-whether display preferences survive reload, and the final compact runtime-status composition.
-None reopens the selected arrangement-above/editor-below order. Configuration remains outside
-scope. No application source, runtime behavior or user manual is changed by this specification.
+A page reload clears display preferences for this release. Each view retains its selection, open panels and scroll while the workspace is open. The compact status line shows the session state, MIDI input, pending clip edits and runtime errors. Diagnostics opens the full error and engine statistics. Further shortcuts and preferences that survive reload remain product decisions. [Release record](milestone-7-release.md)

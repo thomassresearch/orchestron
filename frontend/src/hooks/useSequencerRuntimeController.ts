@@ -103,7 +103,7 @@ interface UseSequencerRuntimeControllerParams {
 
 interface UseSequencerRuntimeControllerResult {
   previewScoreNote: PreviewScoreNote;
-  transportDevice: (deviceId: string | null, playing: boolean) => Promise<void>;
+  transportDevice: (deviceId: string | null, playing: boolean, resetToStart?: boolean) => Promise<void>;
   auditionDevice: AuditionDevice;
   cancelPendingArpeggiatorEdits: () => void;
   browserAudioError: string | null;
@@ -840,7 +840,7 @@ export function useSequencerRuntimeController({
     ]
   );
 
-  const transportDevice = useCallback((deviceId: string | null, playing: boolean): Promise<void> => {
+  const transportDevice = useCallback((deviceId: string | null, playing: boolean, resetToStart?: boolean): Promise<void> => {
     const key = deviceId ?? "$arranger";
     if (!deviceId) {
       for (const [id, version] of deviceCommandVersions.current) deviceCommandVersions.current.set(id, version + 1);
@@ -879,13 +879,18 @@ export function useSequencerRuntimeController({
         if (!current()) return;
         const store = useAppStore.getState();
         const session = store.activeSessionId;
-        if (!session || store.activeSessionState !== "running") return;
+        const resetToStep = !deviceId && !playing && resetToStart ? arrangerPlaybackBounds(store.sequencer).playbackStartStep : undefined;
+        if (!session || store.activeSessionState !== "running") {
+          if (resetToStep !== undefined) setSequencerTransportAbsoluteStep(resetToStep);
+          return;
+        }
         const device = [...store.sequencer.tracks, ...store.sequencer.scoreTracks, ...store.sequencer.drummerTracks,
           ...store.sequencer.controllerSequencers, ...store.sequencer.arpeggiators].find(d => d.id === deviceId);
         if (deviceId && !device) return;
         const config = playing ? buildBackendSequencerConfig(store.sequencer, "runtime", true) : undefined;
         const request: SessionDeviceTransportRequest = {
           action: playing ? "play" : "stop", config,
+          ...(resetToStep !== undefined ? { reset_position_subunit: resetToStep * sequencerTransportSubunitsPerStep() } : {}),
           ...(device ? "playbackMode" in device ? { arpeggiator_id: device.id } :
             { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(device.id, row.id)) : [device.id] }
             : { arranger: true }),
@@ -919,7 +924,7 @@ export function useSequencerRuntimeController({
     const task = deviceCommandQueue.current.then(run);
     deviceCommandQueue.current = task;
     return task;
-  }, [applySequencerStatus, browserClockClientRef, buildBackendSequencerConfig, effectiveAudioOutputModeRef, setSequencerError]);
+  }, [applySequencerStatus, browserClockClientRef, buildBackendSequencerConfig, effectiveAudioOutputModeRef, setSequencerError, setSequencerTransportAbsoluteStep]);
 
   useEffect(() => useAppStore.subscribe((state, previous) => {
     for (const id of playingArrangerSourceChanges(state, previous)) void transportDevice(id, true);

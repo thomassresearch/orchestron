@@ -65,6 +65,22 @@ def test_arranger_stop_then_device_play_uses_cursor_and_recovers_from_preview(pr
     assert _note_on_messages(midi)
 
 
+def test_arranger_stop_resets_only_song_cursor_and_pause_holds_position():
+    engine, _, _ = runtime()
+    command(engine, track="manual", pad_index=1)
+    command(engine, track=None)
+    advance(engine, 9)
+    assert command(engine, "stop", track=None).arrangement_transport_subunit == 9 * TRANSPORT_SUBUNITS_PER_STEP
+    origin = engine.sources.manual_origins["manual"]
+    target = 3 * TRANSPORT_SUBUNITS_PER_STEP + 1
+    command(engine, "stop", track=None, reset_position_subunit=target)
+    advance(engine, 4)
+    assert engine.status().arrangement_transport_subunit == target
+    assert engine.status().running and not engine.status().arranger_active
+    assert engine.sources.manual_origins["manual"] == origin
+    assert track(engine, "manual").active_pad == 1
+
+
 def test_loop_start_and_join_share_song_position_without_restarting_manual():
     engine, _, _ = runtime(loop=True)
     command(engine, track="manual", pad_index=1)

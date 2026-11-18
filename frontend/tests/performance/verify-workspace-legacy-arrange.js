@@ -1,4 +1,4 @@
-// English workspace preview, stopped UX Baseline Legacy. Run on both clip-enabled and compatibility builds.
+// English workspace, stopped UX Baseline Legacy. Run on both clip-enabled and compatibility builds.
 async page => {
   const button = (name, parent = page) => parent.getByRole("button", { name, exact: true });
   const check = (ok, message) => { if (!ok) throw Error(message); };

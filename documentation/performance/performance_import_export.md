@@ -56,7 +56,7 @@ Save open musical and structural drafts before exporting. Temporary auditions ar
 
 ## Native performance export
 
-Choose **Export** on the Perform page. The bundle preserves the whole rack, instrument definitions, routes, Master and inserts, mixer settings, device names and channels, saved patterns, arrangement, transposition, instrument settings and MIDI mappings. Arranger Undo/Redo history is also retained when compatible.
+Choose **Project → Export** in any Perform view. The bundle preserves the whole rack, instrument definitions, routes, Master and inserts, mixer settings, device names and channels, saved patterns, arrangement, transposition, instrument settings and MIDI mappings. Arranger Undo/Redo history is also retained when compatible.
 
 When instruments use uploaded audio samples, SoundFonts or analysis files, Orchestron creates a ZIP containing the required assets. Otherwise it can use JSON. Keep the downloaded bundle intact for importing on another machine.
 
@@ -65,7 +65,7 @@ instances, and include both the original uploads and the audio prepared for play
 
 ## Import a performance
 
-1. Choose **Import** and select an Orchestron performance bundle.
+1. Choose **Project → Import** and select an Orchestron performance bundle.
 2. In the import options, choose whether to import the performance, its patch definitions, or both. Import both for a self-contained transfer.
 3. Resolve any existing names in the conflict dialog.
 4. Check the rack and routing, then play and save the imported performance.
@@ -79,7 +79,7 @@ For patch-name conflicts, choose overwrite, rename or skip. For the performance 
 ## Render with Csound
 
 1. Finish the arrangement and set a finite song end. Disable looping for the offline export.
-2. Choose **Export CSD (MIDI)** or **Export CSD (SCORE)**.
+2. Open **Project** and choose **Export CSD (MIDI)** or **Export CSD (SCORE)**.
 3. If SCORE export asks for controller accuracy, choose a maximum deviation and continue.
 4. Extract the ZIP. Open the included `README.txt` and run its Csound command from the extracted directory.
 5. Read `WARNINGS.txt` when present before relying on the rendered result.

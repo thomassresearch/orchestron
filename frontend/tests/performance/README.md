@@ -92,7 +92,7 @@ meters; `pcmPeak` is the audio check, while the unused meter `peak` stays zero.
 
 ## Automated validation
 
-The full Perform workspace preview uses the same isolated backend and Vite commands above. Open `/tests/performance/workspace.html`, choose **Perform** and import the baseline clip or legacy bundle through **Project**. The [workspace shell checks](../../../specifications/redesign-user-experience/milestone-3-workspace-shell.md) include the fixture, Playwright commands and expected geometry.
+The default Perform workspace harness uses the same isolated backend and Vite commands above. Open `/tests/performance/workspace.html`, choose **Perform** and import the baseline clip or legacy bundle through **Project**. The [workspace shell checks](../../../specifications/redesign-user-experience/milestone-3-workspace-shell.md) include the fixture, Playwright commands and expected geometry.
 
 For the native [Mix checks](../../../specifications/redesign-user-experience/milestone-6-mix.md), run `verify-workspace-mix.js` with UX Baseline Legacy and `verify-workspace-mix-instances.js` with UX Baseline Clip. Use English, a stopped engine and a fresh workspace page at 1440 × 900 for each. Run from the repository root so Playwright can read the versioned sample fixtures.
 
@@ -103,6 +103,8 @@ The [Live acceptance checks](../../../specifications/redesign-user-experience/mi
 `npm --prefix frontend run check` passed: frontend lint, **308 tests in 29 files**, and the production build. The 15 collapse regressions and two workspace-generation regressions cover hidden construction, current playback on expansion, animation/observer/listener/subscription cleanup, nested visibility, retained drafts and selections, clipboard/zoom/scroll, held-note cleanup, pending Mixer synchronization, asynchronous result isolation, successful workspace replacement, deletion and ordinary saves. Strict Mode and repeated toggles are included.
 
 README, performance/Mixer documentation and integrated EN/DE/FR/ES help were updated. `node tools/build_user_docs_pdf.mjs` rebuilt the 115-page PDF; the cover, table of contents, Mixer page and complete performance-panel explanation were rendered and visually checked.
+
+For the shipped workspace, run the [milestone 7 release checks](../../../specifications/redesign-user-experience/milestone-7-release.md#replay). Add `?workspace=1` to the collapse and clip profiling URLs to mount the bounded workspace with the same fixtures and counters. The URLs without that parameter replay the original measurements.
 
 ## Timing editor review
 

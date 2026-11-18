@@ -373,6 +373,15 @@ it.each(["workspace_start", "preview_start"] as const)("rejects prepared arpeggi
   expect(audition).not.toHaveBeenCalled();
 });
 
+it("sends the selected song start to the renderer only for Stop", async () => {
+  const { result } = setup(false);
+  act(() => useAppStore.getState().setSequencerArrangerLoopSelection({ startStep: 8, endStep: 16 }));
+  await act(() => result.current.transportDevice(null, false));
+  expect(deviceTransport.mock.lastCall?.[1]).not.toHaveProperty("reset_position_subunit");
+  await act(() => result.current.transportDevice(null, false, true));
+  expect(deviceTransport.mock.lastCall?.[1]).toMatchObject({ arranger: true, action: "stop", reset_position_subunit: 8 * sequencerTransportSubunitsPerStep() });
+});
+
 it("starts independent device transport with shared song bounds", async () => {
   const { result } = setup(false);
   await act(() => result.current.transportDevice(useAppStore.getState().sequencer.tracks[0].id, true));

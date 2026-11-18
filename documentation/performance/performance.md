@@ -2,9 +2,9 @@
 
 **Navigation:** [Up](../user_documentation.md) | [Previous](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
 
-Use **Perform** to turn saved instruments into a song or live setup. Start with at least one saved playable instrument, or follow [Getting Started](../getting_started.md). Your first task is to add that instrument to the rack and play it from a track on the same MIDI channel.
+Open **Perform** to arrange a song, play it live or mix its instruments. Use **Arrange**, **Live** and **Mix** to switch tasks. Each view remembers its selection, scroll position and open panels. The song transport, **Save Performance**, instrument engine and **Diagnostics** are available in all three.
 
-The performance description field displays three lines with automatic text wrapping and preserves manual line breaks. Longer descriptions scroll vertically within the field. Hover over the description to see its full text in a tooltip.
+In **Project**, the performance description field displays three lines with automatic text wrapping and preserves manual line breaks. Longer descriptions scroll vertically within the field. Hover over the description to see its full text in a tooltip.
 
 New performances start in the [multitrack arranger](multitrack_arranger.md) with one piano keyboard. Use **Add track** to create melodic, Score, drummer, controller or arpeggiator tracks, then add clips and patterns to build the song.
 
@@ -48,16 +48,11 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 - Import/export performance bundles (with optional patch definitions)
 - Export offline Csound render ZIPs either with `.csd` + `.mid` playback or with inline Csound score playback
 
-<p align="center">
-  <img src="../../screenshots/perform_mixer_sends_inserts_master.png" alt="Ratchet drums demo mixer with note-triggered instruments before continuous effects and pinned Master" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Live “Ratchet drums demo” mixer with World Drumkit and Flute before the continuous effect strips, followed by pinned Master. Playback is stopped. See the following chapters for rack and sequencer controls.</em></p>
-
 ## Practical Workflow
 
 1. Save at least one patch in Instrument Design.
-2. Add instruments to the performance rack and assign channels.
-3. Open Mixer, check the destination of each strip, and connect effects/returns. Guided instruments get a neutral Master automatically; existing direct routes stay direct.
+2. Open **Mix → Rack**, add instruments and assign channels.
+3. Open **Mixer**, check the destination of each strip, and connect effects/returns. Guided instruments get a neutral Master automatically; existing direct routes stay direct.
 4. Use Routing diagnostics → Check routing, then Start Instruments. Adjust existing mixer controls during playback.
 5. Choose **Add track**, add clips and patterns, then edit their musical content. Save each draft with the desired occurrence scope.
 6. Save the performance to retain the rack, routes and current mix.
@@ -65,9 +60,11 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 
 Tracks start compact. Expand a track to work with nested patterns, groups and supergroups. Double-click content to edit it and use **Play edit** to audition the draft. Lane Mute/Solo is temporary and independent of the instrument mixer; see [lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo).
 
-## Arrange in the workspace preview
+<a id="arrange-in-the-workspace-preview"></a>
 
-In the optional workspace preview, click a clip or one of its patterns to see its properties in the right-hand **Inspector**. Double-click a pattern or select it and choose **Editor** to open it below the timeline. The breadcrumb names the track, clip, pattern and loop pass you are editing. Drag the divider to give the steps more room, or close the editor to see more tracks.
+## Arrange
+
+In **Arrange**, click a clip or one of its patterns to see its properties in the right-hand **Inspector**. Double-click a pattern or select it and choose **Editor** to open it below the timeline. The breadcrumb names the track, clip, pattern and loop pass you are editing. Drag the divider to give the steps more room, or close the editor to see more tracks.
 
 For a fill on just one chorus repeat, choose **Create variation here**, edit the notes, then choose **Save variation here**. To change the phrase everywhere it plays, choose the linked scope. Its Save button shows how many uses will change. You can switch to Live to edit a physical pad and return to the same unfinished clip. **Save Performance** stores the song.
 
@@ -75,7 +72,9 @@ For a fill on just one chorus repeat, choose **Create variation here**, edit the
 
 For a legacy performance, double-click a pad occurrence to edit that physical pad. Every occurrence that refers to the pad plays the change. Use **Edit pad in Live** when you want to move to the launcher. The performance stays in its original format until you explicitly convert it.
 
-## Launch pads in the Live preview
+<a id="launch-pads-in-the-live-preview"></a>
+
+## Launch pads in Live
 
 Open **Live** and find the device you want to play. **Editing** is the physical pad you can change. **Playing** follows playback. **Queued** shows the next manual launch. A clip lane shows its playing pattern by name. Its numbered pads are available for editing.
 
@@ -86,7 +85,7 @@ Open **Live** and find the device you want to play. **Editing** is the physical 
 
 ![Live launcher with pad 1 playing, pad 2 queued and a held chord on the keyboard](../../screenshots/perform-workspace-live-launcher.png)
 
-**Mix** recalls the selected instance, open controls and channel-bank position when you return. To reach a kit or effect from Arrange or Live, open **Compact rack**, select its patch number, then choose a destination. [Mix in the workspace preview](audio_mixer_and_routing.md#mix-in-the-workspace-preview)
+**Mix** recalls the selected instance, open controls and channel-bank position when you return. To reach a kit or effect from Arrange or Live, open **Compact rack**, select its patch number, then choose a destination. [Mix a performance](audio_mixer_and_routing.md#mix-a-performance)
 
 Closing the keyboard, switching views or leaving the browser window releases held notes. Returning to Live restores the keyboard and its settings. The Live overview also contains the manual MIDI controllers and their channel selectors.
 
@@ -104,14 +103,16 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 
 ## Collapsible Panels
 
-Click a panel title or focus it and press Enter or Space to collapse or expand its contents. Header actions, status and help remain available. Panels collapse independently, start expanded and remember your choices across view switches until browser reload. Adding a device opens its group. Collapsing preserves edits and does not stop playback. The shared tempo stays outside the sequencer groups.
+Close the lower editor or keyboard to give the overview its full height. On a desktop, drag the divider or focus it and use the arrow keys. Shift changes its height one pixel at a time. Home and End reach the limits. **Expand** gives the editor the whole working area and **Restore split** brings back the overview.
 
-The Instrument Rack, Mixer, keyboard and controller panels can be collapsed to make room for the song. The arranger is visible before adding a track. Click a track header to expand its content; double-click a pattern to open its editor. These layout choices are not saved into performances or exports.
+On a narrow or short screen, **Back to overview** returns from the editor or keyboard. The **Inspector** opens over the right edge. Escape closes it and returns focus to the Inspector button.
+
+![The Inspector drawer showing clip properties on a phone](../../screenshots/perform-workspace-shell-drawer.png)
 
 Draft names and controller values, validation feedback, arpeggiator preset drafts, clip selections, open containers, arranger selections, range clipboard and undo history, zoom and scroll positions survive collapse/expand and switching away from Perform. Nested Mixer sections remember their open state when a parent collapses. New, Load and Import clear retained editor state after successfully replacing the workspace, even when reloading the same performance. Saving does not clear it. Removed devices and invalid selections are discarded; restored scroll positions are limited to the current content. This temporary editor state is not stored in performance files or browser storage and does not survive a page reload.
 
 Collapsing closes temporary menus and pickers, cancels active drag previews and releases manually held piano notes. Already-applied edits remain, and existing input save/commit rules still apply. Sequenced notes continue playing. Collapsing reduces visual work and can help on a busy display.
 
-The collapsed rack shows channel and patch name in one horizontally scrolling row. See [Compact Rack](instrument_rack_and_engine_transport.md#compact-rack) for continuous instruments, long names, and keyboard scrolling.
+**Compact rack** shows the instances available in this performance. Select an instance to open its controls or samples. [Compact rack](instrument_rack_and_engine_transport.md#compact-rack)
 
 **Navigation:** [Up](../user_documentation.md) | [Previous](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)

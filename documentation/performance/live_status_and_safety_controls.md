@@ -4,7 +4,7 @@
 
 <a id="live-status"></a>
 
-The Perform page includes several status for live operation.
+During playback, the song position and tempo stay in the shared transport. The status line stays at the bottom of Arrange, Live and Mix.
 
 ## Browser Audio Health
 
@@ -20,22 +20,11 @@ track, so the total includes melodic sequencers plus all drummer rows.
 
 ## Footer Status Bar
 
-At the bottom of the Perform page, Orchestron shows live status values such as:
-
-- `playhead` position (`current step / step count`)
-- `cycle` count
-- active `midi input` name (for example `internal:loopback` or a helper-provided device)
-
-This footer is useful during performance because it gives quick feedback without opening the Instrument Design runtime panel.
-
-<p align="center">
-  <img src="../../screenshots/perform_footer_status_safety_controls.png" alt="Performance footer status" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Footer status bar with playhead/cycle/MIDI input.</em></p>
+Read the instrument engine state and MIDI input in the footer. Unsaved clip changes and errors also appear here when applicable. Choose **Diagnostics** for the full error, engine statistics and audio configuration. Escape returns to the workspace.
 
 ## Engine Stats and Parallel Playback
 
-A narrow **Engine stats** line stays fixed at the bottom of the Perform window. It shows
+Open **Diagnostics** to see **Engine stats**. It shows
 whether the session uses **Single** or **Parallel** rendering. It also contains the optional
 **Parallel playback** checkbox.
 

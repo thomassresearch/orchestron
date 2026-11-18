@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](sample_player.md)
 
-The Instrument Rack is the top section of the Perform page and controls the live session, instrument assignments, and performance metadata.
+Open **Perform → Mix → Rack** to assign instruments and channels. **Start Instruments** and **Stop Instruments** are available from every Perform view.
 
 ## Adaptive Expanded Rack
 
@@ -29,13 +29,13 @@ map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
 ## Compact Rack
 
-When collapsed, the rack keeps Add Instrument and Start/Stop available. A single horizontally scrolling row shows MIDI channel and patch name for every instance, including duplicates; continuous instruments show Continuous instead of a channel. Long names have full-name tooltips. Note-triggered instruments appear first, followed by continuous instruments, with a thin vertical divider when both groups are present. The row follows the saved rack order; expand the rack to reorder instruments. Focus the row and use the arrow keys to scroll. Metadata, file actions and detailed controls return when expanded.
+Choose **Compact rack** above the song transport. Select an instance by its patch number and MIDI channel. Continuous instruments show their type in place of a MIDI channel. Choose **Instrument controls**, **Samples**, **Routing** or **Manage rack** to open that destination in Mix.
 
-The header contains rack status, Add Instrument, Start/Stop, and help in both views. Collapse choices survive view switches until browser reload.
+Switch back to Arrange or Live to resume your previous edit.
 
 ## Performance Metadata and Library Actions
 
-The rack includes fields and actions for the current performance:
+Open **Project** for the name, description and library actions. **Save Performance** is also available directly above the transport.
 
 - `Performance Name`
 - `Description`
@@ -74,7 +74,7 @@ The compact rack and mixer strips follow this order. Master stays pinned at the 
 
 Patches containing [`perf_controller`](performance_controllers.md) show five compact tuning knobs per standard rack-card row; extras wrap below. They remain editable while playing. New notes use updated values. Continuous controls marked **Live** update during playback. **Requires restart** identifies I-rate or mixed connections. Both CSD export modes use initialization values for continuous controls. Open the rack’s **?** help and look for **Performance Controllers** for details. Save Performance stores explicit overrides.
 
-The separate [audio mixer](audio_mixer_and_routing.md) below the rack provides audio faders, pan/balance knobs, mute/solo, pre/post sends, inserts and meters. The old numeric Level field has been removed. Mixer gain affects held notes and external MIDI audio without changing note velocity.
+The [Mixer in Mix](audio_mixer_and_routing.md) provides audio faders, pan/balance knobs, mute/solo, pre/post sends, inserts and meters. The old numeric Level field has been removed. Mixer gain affects held notes and external MIDI audio without changing note velocity.
 
 While instruments run, adding/removing assignments, changing patch/channel assignments, and changing routing topology are locked. Existing mixer controls stay live. Use **Stop to edit routing** before changing connections or insert order.
 
@@ -113,7 +113,7 @@ This is the state of the instrument engine session, not just the sequencer trans
 
 ## Error Banner
 
-If engine start/stop or transport actions fail, the Perform page shows an error banner below the rack transport section.
+If an engine or transport action fails, read the status line at the bottom of any Perform view. Open **Diagnostics** to read the full message.
 
 ## Tips
 

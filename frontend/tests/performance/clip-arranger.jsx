@@ -1,3 +1,4 @@
+import { ProfileLayout, workspaceProfile } from "./profile-layout";
 import { compilePadLoopPattern } from '../../src/lib/padLoopPattern';
 import { migrateClipArrangement, sourceKeys } from "../../src/lib/clipArranger/migration";
 import { openClipEditor } from "../../src/store/clipActions";
@@ -54,19 +55,18 @@ const actions = Object.fromEntries(["instrumentActions", "performanceActions", "
 function Page() {
   const state = useAppStore();
   const [panels, setPanels] = useState({ ...INITIAL_PANEL_COLLAPSE_STATE, piano: true, midi: true, rack: true });
-  return <main className="p-4">
-      <SequencerPage {...actions} collapsedPanels={panels}
+  return <ProfileLayout footer={<button className="mt-6 text-xs text-slate-400" onClick={() => {
+      sessionStorage.setItem('clip-repetition-verification', JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()));
+      location.reload();
+    }}>Reload saved performance</button>}>
+      <SequencerPage performWorkspace={workspaceProfile} {...actions} collapsedPanels={panels}
         onPanelCollapsedChange={(panel, collapsed) => setPanels(previous => ({ ...previous, [panel]: collapsed }))}
         data={{ guiLanguage: state.guiLanguage, patches: state.patches, performances: [], instrumentBindings: state.sequencerInstruments,
           sequencer: mergedSequencerState(state.sequencer, state.sequencerRuntime), sequencerTransportSubunit: state.sequencerRuntime.transportSubunit,
           readPlaybackTransportSubunit: () => null, currentPerformanceId: null,
           performanceName: "Nested clip arranger", performanceDescription: "Production editors / versioned fixtures",
           instrumentsRunning: false, sessionState: "stopped", midiInputName: null, transportError: null }} />
-    <button className="mt-6 text-xs text-slate-400" onClick={() => {
-      sessionStorage.setItem('clip-repetition-verification', JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()));
-      location.reload();
-    }}>Reload saved performance</button>
-  </main>;
+  </ProfileLayout>;
 }
 const root = createRoot(document.getElementById("root"));
 root.render(<Page />);

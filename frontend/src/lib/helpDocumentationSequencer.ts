@@ -39,11 +39,11 @@ export const sequencerHelpDocuments: HelpDocumentSet<SequencerHelpDocId> = {
       title: "Instrument Rack",
       markdown: `## Instrument Rack
 
-Manage performance-level instrument assignments.
+Open **Mix → Rack** to assign instruments. Open **Project** for the performance name, description and file actions.
 
 Controller Group is optional for every type (up to 128 characters). Surrounding whitespace is ignored; names are case-sensitive and scoped to each instrument. Matching names share a thin labeled border. Groups follow their first occurrence in patch-node order, and controls retain their order within each group. Blank groups remain unbordered. Groups stay expanded. Perform adapts to window resizing and browser zoom while retaining rack, group and controller order. Group borders fit their controls closely. Within 5% of the shortest group layout, it favors less empty space inside groups and horizontal rows. Spare space stays outside group borders. Focus and unfinished value edits are preserved. Group names do not change sound, values or MIDI assignments.
 
-- Set performance name and description.
+- Set the performance name and description in **Project**.
 - The description shows three automatically wrapped lines. Scroll vertically for longer text, or hover over the field to see the full description.
 - Load and save performance presets.
 - Assign saved patches to MIDI channels.
@@ -57,11 +57,11 @@ Controller Group is optional for every type (up to 128 characters). Surrounding 
       title: "Instrument Rack",
       markdown: `## Instrument Rack
 
-Verwaltet Instrument-Zuordnungen auf Performance-Ebene.
+Unter **Mix → Rack** weist du Instrumente zu. **Projekt** enthält den Namen, die Beschreibung und die Dateiaktionen.
 
 Die Reglergruppe ist für jeden Typ optional (bis zu 128 Zeichen). Leerzeichen am Anfang und Ende werden ignoriert; Groß-/Kleinschreibung wird unterschieden. Gruppen gelten pro Instrument. Gleiche Namen erhalten einen dünnen beschrifteten Rahmen. Gruppen folgen ihrem ersten Auftreten in der Knotenreihenfolge; innerhalb jeder Gruppe bleibt die Reglerreihenfolge erhalten. Leere Gruppen bleiben ohne Rahmen. Gruppen bleiben aufgeklappt. Perform passt sich an Fenstergröße und Browser-Zoom an; die Reihenfolge von Rack, Gruppen und Reglern bleibt erhalten. Gruppenrahmen umschließen die Regler eng. Bei höchstens 5% zusätzlicher Höhe gegenüber dem kürzesten Gruppenlayout werden weniger Leerraum innerhalb der Gruppen und horizontale Reihen bevorzugt. Freier Platz bleibt außerhalb der Gruppenrahmen. Fokus und noch nicht übernommene Werteingaben bleiben erhalten. Gruppennamen ändern weder Klang noch Werte oder MIDI-Zuweisungen.
 
-- Performance-Name und Beschreibung setzen.
+- Performance-Name und Beschreibung unter **Projekt** festlegen.
 - Die Beschreibung zeigt drei Zeilen mit automatischem Zeilenumbruch. Längeren Text vertikal scrollen oder mit der Maus über das Feld fahren, um die vollständige Beschreibung anzuzeigen.
 - Performance-Presets laden und speichern.
 - Gespeicherte Patches MIDI-Kanälen zuweisen.
@@ -75,11 +75,11 @@ Die Reglergruppe ist für jeden Typ optional (bis zu 128 Zeichen). Leerzeichen a
       title: "Rack instrument",
       markdown: `## Rack instrument
 
-Gestion des affectations d'instruments au niveau performance.
+Ouvrez **Mixage → Rack** pour affecter les instruments. **Projet** contient le nom, la description et les commandes de fichiers.
 
 Le groupe de contrôleurs est facultatif pour chaque type (128 caractères maximum). Les espaces aux extrémités sont ignorés ; les noms sont sensibles à la casse et propres à chaque instrument. Un même nom réunit les contrôleurs dans un cadre fin nommé. Les groupes suivent leur première occurrence dans l’ordre des nœuds ; les contrôleurs conservent leur ordre dans chaque groupe. Un groupe vide reste sans cadre. Les groupes restent ouverts. Perform s’adapte au redimensionnement de la fenêtre et au zoom du navigateur en conservant l’ordre du rack, des groupes et des contrôleurs. Les cadres restent ajustés aux contrôleurs. Avec au plus 5% de hauteur supplémentaire par rapport à la disposition de groupes la plus courte, il privilégie moins d’espace vide dans les groupes et des rangées horizontales. L’espace restant reste hors des cadres. Le focus et les valeurs en cours de saisie sont conservés. Les groupes ne modifient ni le son, ni les valeurs, ni les affectations MIDI.
 
-- Définir nom et description de performance.
+- Définir le nom et la description dans **Projet**.
 - La description affiche trois lignes avec retour automatique à la ligne. Faites défiler verticalement les textes plus longs ou survolez le champ pour voir la description complète.
 - Charger et enregistrer des presets de performance.
 - Affecter des patches sauvegardés à des canaux MIDI.
@@ -95,7 +95,7 @@ Le groupe de contrôleurs est facultatif pour chaque type (128 caractères maxim
 
 El grupo de controles es opcional para todos los tipos (máximo 128 caracteres). Se ignoran los espacios iniciales y finales; los nombres distinguen mayúsculas y pertenecen a cada instrumento. Los nombres iguales comparten un borde fino con etiqueta. Los grupos siguen su primera aparición en el orden de nodos; los controles conservan su orden dentro de cada grupo. Los grupos vacíos no tienen borde. Los grupos permanecen abiertos. Perform se adapta al tamaño de la ventana y al zoom del navegador conservando el orden del rack, los grupos y los controles. Los bordes se ajustan a los controles. Con hasta un 5% de altura adicional respecto a la disposición de grupos más baja, prioriza menos espacio vacío dentro de los grupos y filas horizontales. El espacio sobrante queda fuera de los bordes. Se conservan el foco y los valores que se están editando. Los grupos no modifican el sonido, los valores ni las asignaciones MIDI.
 
-Gestiona asignaciones de instrumentos a nivel de performance.
+Abre **Mezcla → Rack** para asignar los instrumentos. **Proyecto** contiene el nombre, la descripción y las acciones de archivo.
 
 - Define nombre y descripción de performance.
 - La descripción muestra tres líneas con ajuste automático de texto. Desplázate verticalmente para leer textos más largos o pasa el ratón sobre el campo para ver la descripción completa.

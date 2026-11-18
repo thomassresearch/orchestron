@@ -209,7 +209,7 @@ class SequencerSourceTransport:
             if play:
                 self.begin((request.position_step or 0) * TRANSPORT_SUBUNITS_PER_STEP)
             else:
-                self.cursor = self.position()
+                self.cursor = self.position() if request.reset_position_subunit is None else request.reset_position_subunit
                 self.arrangement_running = False
         elif play and (any(self.is_arrangement(track) for track in targets) or request.arpeggiator_id and
                        getattr(runtime._midi_service, "source_uses_arrangement")(request.arpeggiator_id)):

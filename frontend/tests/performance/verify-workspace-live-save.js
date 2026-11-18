@@ -1,4 +1,4 @@
-// English workspace preview, UX Baseline Clip, isolated library. Creates a new performance copy.
+// English workspace, UX Baseline Clip, isolated library. Creates a new performance copy.
 async page => {
   const button = (name, parent = page) => parent.getByRole("button", { name, exact: true });
   const check = (condition, message) => { if (!condition) throw Error(message); };

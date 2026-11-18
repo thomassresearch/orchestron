@@ -2,11 +2,11 @@
 
 **Navigation:** [Up](performance.md) | [Previous](midi_controllers.md) | [Next](pattern_pads_and_pad_looper.md)
 
-The multitrack arranger brings melodic, Score, drummer, controller and arpeggiator tracks onto one timeline. Clips set where content plays; reusable patterns, groups and supergroups hold the music.
+Open **Perform → Arrange**. The multitrack arranger brings melodic, Score, drummer, controller and arpeggiator tracks onto one timeline. Clips set where content plays; reusable patterns, groups and supergroups hold the music.
 
 **New** creates an empty arrangement and one piano keyboard. Choose **Add track** to create a track with its first clip and pattern, then assign its instrument and MIDI channel. Double-click empty track space to add another clip. Use a clip’s **+** to add a new pattern or reuse existing content.
 
-![Default new performance with the multitrack clip arranger](../../screenshots/clip-arranger-default.png)
+![Arrange with a selected clip and its editor open below the timeline](../../screenshots/perform-workspace-arrange-occurrence.png)
 
 The top-right **?** opens help specifically for this clip workflow in the selected GUI language (English, German, French or Spanish). It covers clip windows, reusable content, musical and structural drafts, editing scope, transport, sections, transposition and instrument automation. Close it with **Close**, Escape or a click outside the dialog.
 
@@ -82,7 +82,7 @@ Move **Zoom** all the way left, or focus the slider and press **Home**, to see t
 
 ![Loop enabled for the whole song with no clip selected](../../screenshots/clip-arranger-song-loop.png)
 
-The actual piano keyboard and configurable MIDI controller rows sit below the arranger/editor, each full width. They retain Start/Stop, routing, channel/OMNI, scale/autochord, velocity and CC controls. Their existing Auto/Live/Listening buffer policy still applies. An enabled device does not force low-latency buffering indefinitely. Arpeggiator Arranger/Live clock settings remain separate from clip placement.
+Choose **Keyboard** to play below the timeline. For hands-on CC control, open **Live** and use the MIDI controller rows. Each device retains its Start/Stop and channel settings. Keyboard velocity, scale and Autochord are under **Keyboard settings**. The Auto/Live/Listening buffer policy applies as you play.
 
 Transport buttons wrap onto another row when the viewport or enlarged text leaves too little space. Track headers reserve less than half the viewport, leaving the timeline reachable at enlarged text sizes. Transposition controls wrap inside their dialog. The timeline keeps its own horizontal scrolling.
 

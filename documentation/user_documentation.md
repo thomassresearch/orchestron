@@ -29,7 +29,7 @@ Follow [Getting Started](getting_started.md) to make a sound and save a short pe
 The app has three working areas:
 
 - **Instrument Design** creates, edits and saves individual instruments and effects.
-- **Perform** assembles saved instruments into a rack, mixes them and plays notes, patterns and songs.
+- **Perform** has three views. Build the song in **Arrange**, launch pads and play the keyboard in **Live**, and balance or route instruments in **Mix**. Each view remembers where you were.
 - **Config** adjusts audio-engine and browser playback settings. Language and help are available throughout the app.
 
 Read Instrument Design before Performance when learning the whole app. For ready-made sounds, go directly to Supplied Instruments and Effects. Configuration and the optional authoring tools can be consulted when needed.

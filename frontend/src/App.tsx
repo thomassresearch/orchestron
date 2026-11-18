@@ -112,7 +112,7 @@ const LazySequencerPage = lazy(() =>
 );
 
 
-export default function App({ workspacePreview = false }: { workspacePreview?: boolean }) {
+export default function App({ performWorkspace = true }: { performWorkspace?: boolean }) {
   const loading = useAppStore((state) => state.loading);
   const error = useAppStore((state) => state.error);
 
@@ -1437,7 +1437,7 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
     instrumentsRunning,
     sessionState: activeSessionState,
     midiInputName: activeMidiInputName,
-    transportError: sequencerError || (workspacePreview ? browserAudioError : null)
+    transportError: sequencerError || (performWorkspace ? browserAudioError : null)
   };
   const sequencerInstrumentActions = {
     onAddInstrument: addSequencerInstrument,
@@ -1470,10 +1470,8 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
   };
   const onStopArrangerTransport = useCallback((resetPlayhead: boolean) => {
     cancelPendingArpeggiatorEdits();
-    void transportDevice(null, false).then(() => {
-      if (resetPlayhead) resetArrangerTransportToSelectionStart();
-    });
-  }, [cancelPendingArpeggiatorEdits, transportDevice, resetArrangerTransportToSelectionStart]);
+    void transportDevice(null, false, resetPlayhead);
+  }, [cancelPendingArpeggiatorEdits, transportDevice]);
   const sequencerTransportActions = {
     onBpmChange: setSequencerBpm,
     onSequencerCycleRewind: () => {
@@ -1724,9 +1722,9 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
     onArpeggiatorPresetSave: saveArpeggiatorPreset
   };
 
-  const bounded = workspacePreview && activePage === "sequencer";
+  const bounded = performWorkspace && activePage === "sequencer";
   return (
-    <div data-perform-preview={bounded || undefined} className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
+    <div data-perform-workspace={bounded || undefined} className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
       <DraftResolutionDialog language={guiLanguage} />
       {activePage === "sequencer" && !bounded && <EngineStatusLine />}
       <div data-app-frame className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
@@ -1969,7 +1967,7 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
         {activePage === "sequencer" && (
           <Suspense fallback={<DeferredPageFallback />}>
             <ScoreTransportContext.Provider value={{ previewNote: previewScoreNote, play: transportDevice, queue: async (id, pad) => { const session = resolveSequencerSessionId(); if (!session) throw new Error(appCopy.errors.noActiveSessionForPadSwitching); await queueSequencerPadRuntime(session, id, pad); } }}><PerformanceAuditionContext.Provider value={auditionDevice}><LazySequencerPage
-              workspacePreview={workspacePreview}
+              performWorkspace={performWorkspace}
               editorStore={performanceEditors.store}
               collapsedPanels={collapsedPanels}
               onPanelCollapsedChange={setPanelCollapsed}

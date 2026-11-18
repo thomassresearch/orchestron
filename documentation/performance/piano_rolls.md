@@ -8,7 +8,7 @@ Use the pen beside the device name to rename it. See [Device Names](performance.
 
 ## Collapse the Panel
 
-Collapse the Piano Rolls header to hide the keyboards and their settings. Add and help remain available; adding a keyboard expands the group. Panels start expanded and remember your choice across view switches until browser reload. Collapsing does not stop playback or discard edits.
+Open **Keyboard** from Arrange or Live. Close the keyboard or use **Back to overview** to return to the song or launcher. Closing the keyboard releases the notes you are holding.
 
 ## Purpose
 
@@ -48,7 +48,7 @@ Each MIDI-driven rack instrument requires a unique MIDI channel. Set the piano r
 
 ## Play alongside the Live launcher
 
-In the optional Perform workspace preview, open **Live → Keyboard**. On a small screen the selected device and its eight pads stay above the keys. The device selector there changes which pads you launch. The piano roll selector and its MIDI channel choose the instrument you play. Hold a key with Space or Enter while clicking pads, or use two fingers on a touch screen. Choose **Edit** to put the pad editor in the dock.
+In Perform, open **Live → Keyboard**. On a small screen the selected device and its eight pads stay above the keys. The device selector there changes which pads you launch. The piano roll selector and its MIDI channel choose the instrument you play. Hold a key with Space or Enter while clicking pads, or use two fingers on a touch screen. Choose **Edit** to put the pad editor in the dock.
 
 <p align="center"><img src="../../screenshots/perform-workspace-live-keyboard.png" alt="Compact pad launcher above the keyboard with Autochord held and pad 2 queued" width="280" /></p>
 

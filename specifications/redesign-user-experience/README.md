@@ -1,6 +1,6 @@
 # Workspace redesign study
 
-The interactive study shows the proposed layout. The real application preview now runs Arrange, Live and Mix in a bounded workspace with a shared song transport, right-hand Inspector and resizable editor.
+Perform now opens the bounded Arrange, Live and Mix workspace for both clip and legacy songs. The silent study preserves the design exploration. [Release verification and replay](milestone-7-release.md)
 
 Arrange uses one fixed order with the **arrangement above and the editor or keyboard below**.
 The Inspector opens on the right in all three views. Arrange, Live and Mix remember their
@@ -17,6 +17,7 @@ own selections, panel layout and scroll positions for the current session.
 - [Milestone 4 Arrange workflows](milestone-4-arrange.md) covers editing one chorus repeat, saving a linked change, starting an empty track and working on legacy pads.
 - [Milestone 5 Live workflows](milestone-5-live.md) covers launching pads while holding a chord, using a second finger on a phone, editing physical pads and saving a Manual device alongside a clip song.
 - [Milestone 6 Mix workflows](milestone-6-mix.md) covers the pinned Master, final output, routing during playback and per-instance controls and sample maps.
+- [Milestone 7 release](milestone-7-release.md) covers the default entry, transport fix, compatibility, musical parity and browser measurements.
 - The [musician and producer walkthrough](layout-and-interaction-spec.md#musician-and-producer-walkthrough)
   compares six session tasks against the current application and identifies priorities for usability testing.
 - [Interactive study source](orchestron-studio-study.html) is the saved HTML fragment used in

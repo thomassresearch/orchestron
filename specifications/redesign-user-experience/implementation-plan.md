@@ -1,6 +1,6 @@
 # Perform workspace implementation plan
 
-**Proposed delivery sequence · 18 November 2026.** The goal is to let a musician arrange a song, launch pads and mix it in one browser window. Arrange keeps the timeline above the editor, Live keeps the keyboard available during launches, and Mix keeps Master and final output in sight. Each view resumes where the musician left it. The approved design and the silent study are the references for interaction and layout. [Interaction specification](layout-and-interaction-spec.md) · [Interactive study](orchestron-studio-study.html)
+**Delivery plan · 18 November 2026. The workspace became the default on 19 November 2026.** The goal is to let a musician arrange a song, launch pads and mix it in one browser window. Arrange keeps the timeline above the editor, Live keeps the keyboard available during launches, and Mix keeps Master and final output in sight. Each view resumes where the musician left it. The approved design and the silent study are the references for interaction and layout. [Interaction specification](layout-and-interaction-spec.md) · [Interactive study](orchestron-studio-study.html)
 
 ## Delivery sequence
 
@@ -100,6 +100,8 @@ Map each Live editor action to what it actually writes. Use **Save pad N** for a
 **Prove the signal path.** Run a routed source and a direct source together. Mute Master and verify that the direct signal remains audible and visible on Audio Output. Mute the direct strip and verify silence after any tails. Scroll the bank while both meters stay visible. Load two rack instances using the same patch, give the same note different samples, and confirm that selecting, previewing or editing one always addresses the intended instance.
 
 ## 7. Verify, document and release
+
+**Implemented for the ordinary Perform entry on 19 November 2026.** Both performance formats passed. The release record includes the Stop cursor correction, native and CSD round trips, browser and audio measurements and the entry-point rollback. [Release record](milestone-7-release.md)
 
 | Check | Evidence to collect before switching Perform |
 | --- | --- |

@@ -1,3 +1,4 @@
+import { ProfileLayout, workspaceProfile } from "./profile-layout";
 import React, { Profiler, useState } from "react";
 import { createRoot } from "react-dom/client";
 import fixture from "../../../backend/tests/fixtures/performances/collapsed_gui.json";
@@ -136,10 +137,10 @@ const actions = Object.fromEntries(["instrumentActions", "performanceActions", "
 function Page() {
   const state = useAppStore();
   const [panels, setPanels] = useState(INITIAL_PANEL_COLLAPSE_STATE);
-  return <main className="p-4"><button onClick={() => void start()}>Start profile audio</button>
-    <button onClick={() => void profile.stop()}>Stop profile audio</button>
+  return <ProfileLayout controls={<><button onClick={() => void start()}>Start profile audio</button>
+    <button onClick={() => void profile.stop()}>Stop profile audio</button></>}>
     <Profiler id="Perform" onRender={(_id, _phase, duration) => { commits++; reactMs += duration; }}>
-      <SequencerPage {...actions} collapsedPanels={panels}
+      <SequencerPage performWorkspace={workspaceProfile} {...actions} collapsedPanels={panels}
         onPanelCollapsedChange={(panel, collapsed) => setPanels(previous => ({ ...previous, [panel]: collapsed }))}
         data={{ guiLanguage: "english", patches: state.patches, performances: [], instrumentBindings: state.sequencerInstruments,
           sequencer: mergedSequencerState(state.sequencer, state.sequencerRuntime), sequencerTransportSubunit: state.sequencerRuntime.transportSubunit,
@@ -147,7 +148,7 @@ function Page() {
           performanceName: "46-device collapse profile", performanceDescription: "Versioned fixtures / temporary audio session",
           instrumentsRunning: true, sessionState: "running", midiInputName: null, transportError: null }} />
     </Profiler>
-  </main>;
+  </ProfileLayout>;
 }
 new MutationObserver(records => { mutationCount += records.length; }).observe(document.getElementById("root"),
   { subtree: true, childList: true, attributes: true, characterData: true });

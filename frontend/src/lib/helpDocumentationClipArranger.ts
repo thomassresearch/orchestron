@@ -4,7 +4,7 @@ import type { GuiLanguage } from "../types";
 export const clipArrangerHelp: Record<GuiLanguage, string> = {
   english: `## Arrange clips and reusable content
 
-In the Arrange preview, select a track to assign its MIDI channel or add an instrument in the right-hand Inspector. Select a nested occurrence, then press **Editor** or Enter. The breadcrumb shows the repetition you are editing. **Save variation here** changes that occurrence. **Save linked pattern** and **Save linked structure** show how many arranged uses share the edit.
+In Arrange, select a track to assign its MIDI channel or add an instrument in the right-hand Inspector. Select a nested occurrence, then press **Editor** or Enter. The breadcrumb shows the repetition you are editing. **Save variation here** changes that occurrence. **Save linked pattern** and **Save linked structure** show how many arranged uses share the edit.
 
 Choose **Add track** for a Melodic, Score, Drummer, Controller or Arpeggiator lane. Assign its instrument and MIDI channel in the rack. Click the track header to expand it. Double-click empty timeline space or use the track **+** to create an empty four-beat clip; its inline **+** adds patterns, groups, supergroups or rests.
 
@@ -27,7 +27,7 @@ Performance save and export use saved definitions. Resolve changed drafts or exp
 Use **↕** to transpose patterns, groups or supergroups without changing their notes. Shared repetition settings and local placement offsets can combine; review the scope before saving. Lane Mute/Solo is temporary, independent of Mixer Mute/Solo, and excluded from saved performances.`,
   german: `## Clips und wiederverwendbare Inhalte anordnen
 
-Wähle in der Arrangement-Vorschau eine Spur, um im rechten Inspektor den MIDI-Kanal zuzuweisen oder ein Instrument hinzuzufügen. Wähle ein verschachteltes Vorkommen und drücke **Editor** oder die Eingabetaste. Der Pfad zeigt den bearbeiteten Durchlauf. **Variante hier speichern** ändert dieses Vorkommen. Beim Speichern verknüpfter Patterns und Strukturen wird die Anzahl der betroffenen Verwendungen angezeigt.
+Wähle im Arrangement eine Spur, um im rechten Inspektor den MIDI-Kanal zuzuweisen oder ein Instrument hinzuzufügen. Wähle ein verschachteltes Vorkommen und drücke **Editor** oder die Eingabetaste. Der Pfad zeigt den bearbeiteten Durchlauf. **Variante hier speichern** ändert dieses Vorkommen. Beim Speichern verknüpfter Patterns und Strukturen wird die Anzahl der betroffenen Verwendungen angezeigt.
 
 Mit **Spur hinzufügen** eine Melodie-, Score-, Drummer-, Controller- oder Arpeggiator-Spur erstellen. Instrument und MIDI-Kanal im Rack zuweisen. Den Spurkopf anklicken, um die Spur aufzuklappen. Ein Doppelklick auf freie Zeitleistenfläche oder das **+** der Spur erstellt einen leeren Clip mit vier Schlägen; sein internes **+** fügt Patterns, Gruppen, Supergruppen oder Pausen hinzu.
 
@@ -50,7 +50,7 @@ Performance-Speichern und Export verwenden gespeicherte Definitionen. Geänderte
 Mit **↕** Patterns, Gruppen oder Supergruppen transponieren, ohne ihre Noten zu ändern. Gemeinsame Wiederholungseinstellungen und lokale Platzierungsversätze können sich addieren; vor dem Speichern den Geltungsbereich prüfen. Spur-Stumm/Solo ist temporär, unabhängig vom Mischpult und wird nicht mit der Performance gespeichert.`,
   french: `## Organiser les clips et les contenus réutilisables
 
-Dans l’aperçu Arrangement, sélectionnez une piste pour choisir son canal MIDI ou ajouter un instrument dans l’Inspecteur à droite. Sélectionnez une occurrence imbriquée puis activez **Éditeur** ou appuyez sur Entrée. Le chemin indique le passage en cours de modification. **Enregistrer la variante ici** modifie cette occurrence. Les boutons d’enregistrement du motif ou de la structure liés indiquent le nombre d’utilisations concernées.
+Dans Arrangement, sélectionnez une piste pour choisir son canal MIDI ou ajouter un instrument dans l’Inspecteur à droite. Sélectionnez une occurrence imbriquée puis activez **Éditeur** ou appuyez sur Entrée. Le chemin indique le passage en cours de modification. **Enregistrer la variante ici** modifie cette occurrence. Les boutons d’enregistrement du motif ou de la structure liés indiquent le nombre d’utilisations concernées.
 
 Choisissez **Ajouter une piste** mélodique, de partition, de batterie, de contrôleur ou d’arpégiateur. Attribuez son instrument et son canal MIDI dans le rack. Cliquez sur l’en-tête de piste pour la déplier. Double-cliquez dans une zone vide de la chronologie ou utilisez le **+** de la piste pour créer un clip vide de quatre temps ; son **+** interne ajoute motifs, groupes, supergroupes ou silences.
 
@@ -73,7 +73,7 @@ L’enregistrement de la performance et l’export utilisent les définitions en
 Utilisez **↕** pour transposer motifs, groupes ou supergroupes sans modifier leurs notes. Les réglages de répétition partagés et les décalages locaux peuvent s’additionner ; vérifiez la portée avant d’enregistrer. Muet/Solo de piste est temporaire, indépendant du mixeur et exclu des performances enregistrées.`,
   spanish: `## Organizar clips y contenido reutilizable
 
-En la vista previa de Arreglo, selecciona una pista para asignar su canal MIDI o añadir un instrumento en el Inspector de la derecha. Selecciona una aparición anidada y pulsa **Editor** o Intro. La ruta muestra la pasada que estás editando. **Guardar variante aquí** cambia esa aparición. Al guardar un patrón o estructura vinculados se muestra el número de usos afectados.
+En Arreglo, selecciona una pista para asignar su canal MIDI o añadir un instrumento en el Inspector de la derecha. Selecciona una aparición anidada y pulsa **Editor** o Intro. La ruta muestra la pasada que estás editando. **Guardar variante aquí** cambia esa aparición. Al guardar un patrón o estructura vinculados se muestra el número de usos afectados.
 
 Elige **Añadir pista** melódica, de partitura, batería, controlador o arpegiador. Asigna su instrumento y canal MIDI en el rack. Haz clic en la cabecera de pista para expandirla. Haz doble clic en un espacio vacío de la línea temporal o usa el **+** de la pista para crear un clip vacío de cuatro pulsos; su **+** interno añade patrones, grupos, supergrupos o silencios.
 

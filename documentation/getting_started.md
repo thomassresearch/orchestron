@@ -24,18 +24,16 @@ The [draft audition guide](instrument_design/runtime_panel_and_compilation.md#au
 
 ## Build a short performance
 
-1. Open **Perform**, choose **New**, and enter **First Performance** as the performance name.
-2. Choose **Add Instrument**. With only one saved instrument, First Sound is selected automatically; otherwise select it in the patch picker. Set its MIDI channel to **1**.
-3. Open **Mixer**. Check that First Sound reaches **Master**, with both strips unmuted. The built-in starter receives this route automatically.
-4. Under **Add track** in the arranger, select **Melodic**. Orchestron creates a four-beat clip and opens its first pattern editor.
+1. Open **Perform**, choose **Project → New**, then reopen **Project** and enter **First Performance** as the performance name.
+2. Close **Project** and open **Mix → Rack → Add Instrument**. With only one saved instrument, First Sound is selected automatically; otherwise select it in the patch picker. Set its MIDI channel to **1**.
+3. Choose **Mixer** in Mix. Check that First Sound reaches **Master**, with both strips unmuted. The built-in starter receives this route automatically.
+4. Return to **Arrange**. Under **Add track**, select **Melodic**. Orchestron creates a four-beat clip and opens its first pattern editor.
 5. Check that the track sends to MIDI channel **1**. Leave the default 4/4 meter, sixteenth-note subdivision and octave **4**. In the first three step positions, replace **Rest** with **C**, **D**, and **G**; leave the remaining steps as rests.
-6. Choose **Play edit** to hear the draft, then **Stop edit**, **Save**, and **Close editor**.
+6. Choose **Play edit** to hear the draft, then **Stop edit**, **Save pattern here**, and **Close**.
 7. Choose **Play** in the arranger. It starts stopped instruments automatically and plays the saved pattern inside its clip.
 8. Choose **Stop** to finish. Instruments that Play started are stopped again; an engine that was already running stays running.
 
-![First Performance after saving and reopening, with First Sound and its melodic clip](../screenshots/getting_started_performance.jpg)
-
-<p align="center"><em>The saved starter performance. Mixer is collapsed to leave room for the arranger.</em></p>
+On a small screen, choose **Back to overview** to see the timeline after editing.
 
 Read [melodic step editing](performance/sequencer_tracks_and_steps.md) for note entry and [the arranger](performance/multitrack_arranger.md) for clip editing. Pattern length and the clip's window are separate: resizing a clip does not erase notes.
 
@@ -43,8 +41,8 @@ Read [melodic step editing](performance/sequencer_tracks_and_steps.md) for note 
 
 1. Save any open pattern or structure draft. **Play edit** alone does not commit changes.
 2. Choose **Save Performance**.
-3. Choose **New**, then select **First Performance** under **Load Performance**. Confirm that First Sound and the melodic clip return, and choose arranger **Play** again.
-4. Use **Export** for a portable, editable backup of the performance and its instruments.
+3. Choose **Project → New**, then reopen **Project** and select **First Performance** under **Load Performance**. Confirm that First Sound and the melodic clip return, and choose arranger **Play** again.
+4. Use **Project → Export** for a portable, editable backup of the performance and its instruments.
 
 Reload recovery is useful, but use explicit saves for work you intend to keep. See [Saving, Workspace Recovery and Defaults](configuration/persistence_and_defaults.md).
 

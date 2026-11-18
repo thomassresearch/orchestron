@@ -88,4 +88,4 @@ window.__clipAudio = {
 const button = document.createElement('button');
 button.textContent = 'Start isolated clip audio';
 button.onclick = () => window.__clipAudio.start().catch(error => errors.push(String(error)));
-document.querySelector('main').prepend(button);
+(document.querySelector('[data-app-frame] > header') ?? document.querySelector('main')).prepend(button);

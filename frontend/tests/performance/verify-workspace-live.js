@@ -1,4 +1,4 @@
-// English preview, stopped UX Baseline Legacy, Chromium with browser-clock audio.
+// English workspace, stopped UX Baseline Legacy, Chromium with browser-clock audio.
 // The same physical keyboard and Manual device run at desktop and phone sizes.
 async page => {
   const button = (name, within = page) => within.getByRole("button", { name, exact: true });
@@ -18,6 +18,8 @@ async page => {
   try {
     await button("Live").click();
     const manual = group("Manual lead"), transport = group("Song transport");
+    // Leave a full observable launch window beyond the browser's queued audio.
+    await transport.getByRole("spinbutton", { name: "BPM" }).fill("60");
     await button("Start Instruments").click();
     await page.waitForFunction(() => window.__workspaceTest.store.getState().activeSessionState === "running");
     await button("Add Controller").click();
@@ -76,6 +78,11 @@ async page => {
       }
       check(await piano.evaluate(el => window.liveKey === el && el.getAttribute("aria-pressed") === "true"), "Changing the launch device replaced the keyboard");
       for (const pad of [2, 3]) {
+        // Queue early in the sounding pattern so even a slow touch dispatch observes both states.
+        await page.waitForFunction(() => {
+          const step = window.__workspaceTest.store.getState().sequencerRuntime.trackLocalStepById.manual;
+          return step != null && step <= 2;
+        }, null, { timeout: 10000 });
         const target = button("Pad " + pad, manual);
         if (phone) {
           const tap = await point(target, 1);

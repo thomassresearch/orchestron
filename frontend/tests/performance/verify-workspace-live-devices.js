@@ -1,4 +1,4 @@
-// English workspace preview, stopped UX Baseline Legacy. Uses new, unsaved devices.
+// English workspace, stopped UX Baseline Legacy. Uses new, unsaved devices.
 async page => {
   const button = (name, within = page) => within.getByRole("button", { name, exact: true });
   const devices = [
@@ -39,6 +39,7 @@ async page => {
   await page.goto(new URL("/", page.url()).href);
   await button("Perform").click();
   await button("Start Instruments").waitFor();
-  if (await page.getByRole("navigation", { name: "Perform views" }).count()) throw Error("Preview became the default Perform page");
+  await button("Live", page.getByRole("navigation", { name: "Perform views" })).click();
+  await page.getByRole("group", { name: "Song transport" }).waitFor();
   return { launched: devices.map(([kind]) => kind), defaultPerform: true };
 }

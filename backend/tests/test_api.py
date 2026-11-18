@@ -7971,8 +7971,11 @@ def test_device_transport_http_and_browser_clock_preserve_manual_lane(tmp_path):
         response = client.post(base + "/device-transport", json={"action": "play", "arranger": True, "config": config})
         assert response.status_code == 200, response.text
         assert response.json()["arranger_active"]
-        response = client.post(base + "/device-transport", json={"action": "stop", "arranger": True})
+        reset = 8 * TRANSPORT_SUBUNITS_PER_STEP + 1
+        response = client.post(base + "/device-transport", json={"action": "stop", "arranger": True, "reset_position_subunit": reset})
         assert response.status_code == 200, response.text
+        assert response.json()["arrangement_transport_subunit"] == reset
+        assert client.post(base + "/device-transport", json={"action": "stop", "track_ids": ["manual"], "reset_position_subunit": 0}).status_code == 422
         assert response.json()["running"] and not response.json()["arranger_active"]
         assert next(t for t in response.json()["tracks"] if t["track_id"] == "manual")["enabled"]
         with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:

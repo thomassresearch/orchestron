@@ -38,7 +38,9 @@ async page => {
   check(edit.rulerY === closed.rulerY && edit.namesX === closed.namesX && edit.dock >= 180, "Opening moved the timeline");
   await page.evaluate(() => {
     const s = window.__workspaceTest.store.getState();
-    window.__workspaceTest.beforeResize = { node: document.querySelector(".ws-dock-scroll section"), key: s.clipEditingKey, drafts: s.clipDrafts, song: s.sequencer, revision: s.sequencerEditRevision };
+    const node = document.querySelector(".ws-clip-editor-host button");
+    if (!node) throw Error("Expected a mounted clip editor control");
+    window.__workspaceTest.beforeResize = { node, key: s.clipEditingKey, drafts: s.clipDrafts, song: s.sequencer, revision: s.sequencerEditRevision };
   });
   const value = async () => Number(await divider.getAttribute("aria-valuenow"));
   await divider.focus(); await page.keyboard.press("Home"); check(await value() === 180, "Keyboard minimum");
@@ -70,7 +72,7 @@ async page => {
   check(await value() === 244, "Resize during gesture changed preference");
   const stable = await page.evaluate(() => {
     const h = window.__workspaceTest, s = h.store.getState(), b = h.beforeResize;
-    return b.node === document.querySelector(".ws-dock-scroll section") && b.key === s.clipEditingKey && b.drafts === s.clipDrafts && b.song === s.sequencer && b.revision === s.sequencerEditRevision;
+    return b.node === document.querySelector(".ws-clip-editor-host button") && b.key === s.clipEditingKey && b.drafts === s.clipDrafts && b.song === s.sequencer && b.revision === s.sequencerEditRevision;
   });
   check(stable, "Resize remounted editor or wrote musical data");
   await button("Expand", dock).click(); check(!await divider.count() && !await page.locator(".ws-overview").isVisible(), "Expanded layout");

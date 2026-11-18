@@ -21,8 +21,8 @@ Browser-clock latency settings are different:
 
 ## Parallel Playback
 
-The optional **Parallel playback** control is in the fixed Engine stats line at the bottom
-of Perform. Enable it while instruments are stopped. Single rendering remains the default
+Open **Diagnostics** at the bottom of Perform to find **Parallel playback** in Engine stats.
+Enable it while instruments are stopped. Single rendering remains the default
 and fallback. The engine analyses instrument/effect dependencies and shared resources, then
 uses available CPU and memory capacity to choose a parallel layout. No per-song catalog is required.
 The choice does not change engine timing, browser buffering or CSD exports. See

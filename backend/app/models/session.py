@@ -865,10 +865,13 @@ class SessionDeviceTransportRequest(BaseModel):
     arpeggiator_id: str | None = Field(default=None, min_length=1, max_length=256)
     pad_index: int | None = Field(default=None, ge=0, le=7)
     position_step: int | None = Field(default=None, ge=0)
+    reset_position_subunit: int | None = Field(default=None, ge=0, le=2**53 - 1)
     config: SessionSequencerConfigRequest | None = None
 
     @model_validator(mode="after")
     def valid_target(self):
+        if self.reset_position_subunit is not None and not (self.arranger and self.action == "stop"):
+            raise ValueError("Only arranger Stop can reset the song cursor.")
         if sum((self.arranger, bool(self.track_ids), bool(self.arpeggiator_id))) != 1:
             raise ValueError("Specify the arranger, tracks, or one arpeggiator.")
         if len(set(self.track_ids)) != len(self.track_ids) or any(not i or len(i) > 256 for i in self.track_ids):

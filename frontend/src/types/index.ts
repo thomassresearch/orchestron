@@ -1022,6 +1022,7 @@ export interface SessionDeviceTransportRequest {
   track_ids?: string[];
   arpeggiator_id?: string;
   pad_index?: number;
+  reset_position_subunit?: number;
   position_step?: number;
   config?: SessionSequencerConfigRequest;
 }

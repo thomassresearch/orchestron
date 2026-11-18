@@ -1,4 +1,4 @@
-// English clip-enabled workspace preview. Use an isolated database; the empty-library case creates a starter instrument.
+// English clip-enabled workspace. Use an isolated database; the empty-library case creates a starter instrument.
 async page => {
   const b = (name, area = page) => area.getByRole("button", { name, exact: true });
   await page.locator(".ws-project summary").click(); await b("New").click();
@@ -52,8 +52,8 @@ async page => {
   try {
     await ordinary.goto(new URL("/", page.url()).href);
     await b("Perform", ordinary).click();
-    await ordinary.getByText("Global Sequencer Clock", { exact: true }).waitFor();
-    if (await ordinary.locator(".ws-workspace").count()) throw Error("Preview became default");
+    await ordinary.getByRole("navigation", { name: "Perform views" }).getByRole("button", { name: "Arrange", exact: true }).waitFor();
+    await ordinary.getByRole("group", { name: "Song transport" }).waitFor();
   } finally { await ordinary.close(); }
   return "Five device editors, rack assignment, built-in starter, Play edit and ordinary Perform entry verified";
 }

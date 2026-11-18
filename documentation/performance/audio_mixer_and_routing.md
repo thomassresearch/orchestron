@@ -4,15 +4,17 @@
 
 <a id="control-api"></a>
 
-The collapsible mixer sits below the instrument rack. Select a strip to edit its outputs and sends. The pinned Master controls audio routed into it. A **Direct Audio Output** badge identifies paths that bypass Master; these still respond to their own strip's fader, balance, mute and solo.
+Choose **Perform → Mix → Mixer**. Select a strip to edit its outputs and sends. The pinned Master controls audio routed into it. A **Direct Audio Output** badge identifies paths that bypass Master; these still respond to their own strip's fader, balance, mute and solo.
 
-Collapsing Mixer suspends its visual contents and meter subscriptions while audio controls and meter collection keep running. Nested sections suspend independently and remember their expansion state when their parent closes. Reopening restores routing selections, editor feedback and strip scroll position, and meters show the latest snapshot. See [Collapsible Panels](performance.md#collapsible-panels) for state lifetime and gesture cleanup.
+Leaving Mixer releases its visible meters. When you return, the channel bank recalls its scroll position and shows current levels. Audio keeps playing while you work in another view.
 
-Use the top-right **?** for integrated help in English, German, French or Spanish, following the selected GUI language. The button remains available while Mixer is collapsed and opens help without changing the mix or expanding the panel.
+Use **?** for integrated help in English, German, French or Spanish.
 
 ![Mixer integrated help](../../screenshots/mixer-integrated-help.png)
 
-## Mix in the workspace preview
+<a id="mix-in-the-workspace-preview"></a>
+
+## Mix a performance
 
 Open **Mix → Mixer** to balance the performance. Scroll the instrument and return strips left or right. **Master** stays on the right, and the stereo **Audio Output** meter below the strips shows what reaches the speakers. If Master is muted and that meter still moves, look for a strip marked **Direct Audio Output**. Mute that strip to check its contribution.
 
@@ -27,8 +29,8 @@ Open **Routing** while listening to inspect destinations, exact channel mappings
 ## Build your first mix
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
-2. In Perform, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
-3. Expand **Mixer** below the rack. Above each instrument name, a small label shows its rack patch number and MIDI channel, for example **Patch 2 · MIDI Ch. 3**. Continuous instruments and effects show **Patch 4 · Continuous**. Patch numbers match the rack even when insert processors have no separate mixer strip. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
+2. In **Mix → Rack**, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
+3. Choose **Mixer**. Above each instrument name, a small label shows its rack patch number and MIDI channel, for example **Patch 2 · MIDI Ch. 3**. Continuous instruments and effects show **Patch 4 · Continuous**. Patch numbers match the rack even when insert processors have no separate mixer strip. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
 4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then open **Routing diagnostics → Check routing**.
 5. Click **Start Instruments** and play via a piano roll, sequencer or MIDI input. Change gain, balance, mute/solo and existing send settings while listening. Watch strip meters and the final Audio Output meter.
 6. Use **Save Performance** to retain this mix. Stop the engine before adding/removing routes, replacing assignments or reordering inserts.

@@ -1,0 +1,742 @@
+{
+  "browser": "139.0.7258.5",
+  "productionViewport": [
+    {
+      "format": "Clip",
+      "view": "Mix",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "format": "Clip",
+      "view": "Live",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "format": "Clip",
+      "view": "Arrange",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "format": "Clip",
+      "view": "Mix",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "format": "Clip",
+      "view": "Live",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "format": "Clip",
+      "view": "Arrange",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "format": "Legacy",
+      "view": "Mix",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "format": "Legacy",
+      "view": "Live",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "format": "Legacy",
+      "view": "Arrange",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "format": "Legacy",
+      "view": "Mix",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "format": "Legacy",
+      "view": "Live",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "format": "Legacy",
+      "view": "Arrange",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "navigation": {
+    "startTick": 2520,
+    "endTick": 7560,
+    "workerCommands": 0,
+    "sequencerWrites": 0
+  },
+  "clipStop": {
+    "paused": 3.04,
+    "stopped": 0
+  },
+  "legacyStop": {
+    "paused": 2.96,
+    "stopped": 0
+  },
+  "zoom": {
+    "factor": 2,
+    "initialCssViewport": [
+      1280,
+      723
+    ],
+    "finalCssViewport": [
+      640,
+      361
+    ],
+    "devicePixelRatio": 2,
+    "controlsHitTest": true
+  },
+  "localizedControls": {
+    "hits": [
+      [
+        390,
+        "german",
+        "Live"
+      ],
+      [
+        390,
+        "german",
+        "Mix"
+      ],
+      [
+        390,
+        "german",
+        "Arrangement"
+      ],
+      [
+        390,
+        "french",
+        "Live"
+      ],
+      [
+        390,
+        "french",
+        "Mixage"
+      ],
+      [
+        390,
+        "french",
+        "Arrangement"
+      ],
+      [
+        390,
+        "spanish",
+        "En vivo"
+      ],
+      [
+        390,
+        "spanish",
+        "Mezcla"
+      ],
+      [
+        390,
+        "spanish",
+        "Arreglo"
+      ],
+      [
+        390,
+        "english",
+        "Live"
+      ],
+      [
+        390,
+        "english",
+        "Mix"
+      ],
+      [
+        390,
+        "english",
+        "Arrange"
+      ],
+      [
+        640,
+        "german",
+        "Live"
+      ],
+      [
+        640,
+        "german",
+        "Mix"
+      ],
+      [
+        640,
+        "german",
+        "Arrangement"
+      ],
+      [
+        640,
+        "french",
+        "Live"
+      ],
+      [
+        640,
+        "french",
+        "Mixage"
+      ],
+      [
+        640,
+        "french",
+        "Arrangement"
+      ],
+      [
+        640,
+        "spanish",
+        "En vivo"
+      ],
+      [
+        640,
+        "spanish",
+        "Mezcla"
+      ],
+      [
+        640,
+        "spanish",
+        "Arreglo"
+      ],
+      [
+        640,
+        "english",
+        "Live"
+      ],
+      [
+        640,
+        "english",
+        "Mix"
+      ],
+      [
+        640,
+        "english",
+        "Arrange"
+      ]
+    ],
+    "engineError": "Add at least one sequencer instrument before starting the engine."
+  },
+  "preparation": {
+    "rejected": 1,
+    "recoveredTempo": 100
+  },
+  "roundTrips": [
+    {
+      "kind": "clip",
+      "version": 23,
+      "nativeRoundTrip": true,
+      "saveRetry": true
+    },
+    {
+      "kind": "legacy",
+      "version": 22,
+      "nativeRoundTrip": true,
+      "saveRetry": true
+    }
+  ],
+  "offlineRenders": {
+    "clip-midi": {
+      "frames": 288000,
+      "peak": 0.0879782885313034,
+      "pcmSHA256": "eb46e3c83b1dd307da78173a8bfec6c005781d27fa5abfd3516479ebd9b2f298"
+    },
+    "clip-score": {
+      "frames": 288000,
+      "peak": 0.0879782885313034,
+      "pcmSHA256": "eb46e3c83b1dd307da78173a8bfec6c005781d27fa5abfd3516479ebd9b2f298"
+    },
+    "legacy-midi": {
+      "frames": 288000,
+      "peak": 0.06484202295541763,
+      "pcmSHA256": "1c53f3d0cd907c6541c1db0743d1d14d2ed40537388213d8300f954fb3f3c1de"
+    },
+    "legacy-score": {
+      "frames": 288000,
+      "peak": 0.06484202295541763,
+      "pcmSHA256": "1c53f3d0cd907c6541c1db0743d1d14d2ed40537388213d8300f954fb3f3c1de"
+    }
+  },
+  "mix": {
+    "both": {
+      "routed": {
+        "direct": 0,
+        "master": 0.00483210163369735,
+        "output": 0.00483210163369735,
+        "pcm": 0.0180705264210701
+      },
+      "direct": {
+        "direct": 0.05599691313272743,
+        "master": 0.044827625057437204,
+        "output": 0.05584743756558158,
+        "pcm": 0.05387483164668083
+      }
+    },
+    "direct": {
+      "direct": 0.06512120968180116,
+      "master": 0,
+      "output": 0.06512120968180116,
+      "pcm": 0.0541241392493248
+    },
+    "silent": {
+      "direct": 0,
+      "master": 0,
+      "output": 0,
+      "pcm": 0
+    },
+    "horizontalScroll": {
+      "x": 1037,
+      "y": 218
+    },
+    "visibleSubscribers": 2,
+    "awaySubscribers": 0
+  },
+  "live": [
+    {
+      "viewport": "desktop",
+      "pitches": "pianoRolls-1/2/60 pianoRolls-1/2/63 pianoRolls-1/2/67",
+      "pads": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "viewport": "phone",
+      "pitches": "pianoRolls-1/2/60 pianoRolls-1/2/63 pianoRolls-1/2/67",
+      "pads": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "profiles": {
+    "browser": "139.0.7258.5",
+    "legacy": {
+      "dims": {
+        "viewport": [
+          1440,
+          900
+        ],
+        "document": [
+          1440,
+          900
+        ]
+      },
+      "data": {
+        "browser": "139.0.7258.5",
+        "durationSeconds": 15,
+        "results": [
+          {
+            "label": "device-editor",
+            "before": {
+              "counts": {},
+              "commits": 0,
+              "reactMs": 0,
+              "mutationCount": 0,
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 61312,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.0680782470703125
+              },
+              "errors": [],
+              "maximumAudioPeak": 0,
+              "elementCount": 2717,
+              "hiddenBodyChildren": [],
+              "runtime": {
+                "isPlaying": true,
+                "transportSubunit": 105840
+              }
+            },
+            "after": {
+              "counts": {
+                "MelodicSequencersBody": 240,
+                "buildSequencerNoteOptions": 240,
+                "MidiControllersBody": 240
+              },
+              "commits": 240,
+              "reactMs": 2267.469995498657,
+              "mutationCount": 683,
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 62336,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.069958740234375
+              },
+              "errors": [],
+              "maximumAudioPeak": 0.27437847749735844,
+              "elementCount": 2717,
+              "hiddenBodyChildren": [],
+              "runtime": {
+                "isPlaying": true,
+                "transportSubunit": 65520
+              }
+            },
+            "mainThread": {
+              "TaskDuration": 3.3651989999999996,
+              "ScriptDuration": 2.6553259999999996,
+              "LayoutDuration": 0.006584000000000003,
+              "RecalcStyleDuration": 0.049229,
+              "LayoutCount": 7,
+              "RecalcStyleCount": 492
+            },
+            "underruns": 0
+          },
+          {
+            "label": "launcher-after-switches",
+            "before": {
+              "counts": {},
+              "commits": 0,
+              "reactMs": 0,
+              "mutationCount": 0,
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 57984,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.08131994824218751
+              },
+              "errors": [],
+              "maximumAudioPeak": 0,
+              "elementCount": 1584,
+              "hiddenBodyChildren": [],
+              "runtime": {
+                "isPlaying": true,
+                "transportSubunit": 209160
+              }
+            },
+            "after": {
+              "counts": {
+                "MidiControllersBody": 240
+              },
+              "commits": 240,
+              "reactMs": 1544.5649975538254,
+              "mutationCount": 640,
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 58752,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.08410656738281251
+              },
+              "errors": [],
+              "maximumAudioPeak": 0.33486995095052774,
+              "elementCount": 1584,
+              "hiddenBodyChildren": [],
+              "runtime": {
+                "isPlaying": true,
+                "transportSubunit": 168840
+              }
+            },
+            "mainThread": {
+              "TaskDuration": 1.972861,
+              "ScriptDuration": 1.8865429999999996,
+              "LayoutDuration": 0.008872999999999992,
+              "RecalcStyleDuration": 0.0001779999999999976,
+              "LayoutCount": 8,
+              "RecalcStyleCount": 8
+            },
+            "underruns": 0
+          }
+        ]
+      },
+      "errors": []
+    },
+    "clip": {
+      "dims": {
+        "viewport": [
+          1440,
+          900
+        ],
+        "document": [
+          1440,
+          900
+        ]
+      },
+      "data": [
+        {
+          "kind": "layout",
+          "width": 1440,
+          "textScale": 1,
+          "scrollWidth": 1440,
+          "viewportWidth": 1069,
+          "headerWidth": 192
+        },
+        {
+          "kind": "layout",
+          "width": 1440,
+          "textScale": 2,
+          "scrollWidth": 1440,
+          "viewportWidth": 1069,
+          "headerWidth": 192
+        },
+        {
+          "kind": "layout",
+          "width": 520,
+          "textScale": 1,
+          "scrollWidth": 520,
+          "viewportWidth": 490,
+          "headerWidth": 192
+        },
+        {
+          "kind": "layout",
+          "width": 520,
+          "textScale": 2,
+          "scrollWidth": 520,
+          "viewportWidth": 490,
+          "headerWidth": 192
+        },
+        {
+          "kind": "layout",
+          "width": 390,
+          "textScale": 1,
+          "scrollWidth": 390,
+          "viewportWidth": 360,
+          "headerWidth": 162
+        },
+        {
+          "kind": "layout",
+          "width": 390,
+          "textScale": 2,
+          "scrollWidth": 390,
+          "viewportWidth": 360,
+          "headerWidth": 162
+        },
+        {
+          "kind": "density",
+          "beats": 16,
+          "expanded": false,
+          "settleMs": 18.7150000333786,
+          "nodes": 415
+        },
+        {
+          "kind": "density",
+          "beats": 16000,
+          "expanded": false,
+          "settleMs": 25.944999992847443,
+          "nodes": 480
+        },
+        {
+          "kind": "density",
+          "beats": 16,
+          "expanded": true,
+          "settleMs": 24.27000004053116,
+          "nodes": 437
+        },
+        {
+          "kind": "density",
+          "beats": 16000,
+          "expanded": true,
+          "settleMs": 27.694999992847443,
+          "nodes": 692
+        }
+      ],
+      "errors": []
+    },
+    "clipAudio": {
+      "dims": {
+        "viewport": [
+          1440,
+          900
+        ],
+        "document": [
+          1440,
+          900
+        ]
+      },
+      "data": {
+        "browser": "139.0.7258.5",
+        "results": [
+          {
+            "label": "compact",
+            "seconds": 30,
+            "before": {
+              "status": "live",
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 57216,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.007868654296875
+              },
+              "peak": 0,
+              "pcmPeak": 0.07466255128383636,
+              "finite": true,
+              "errors": [],
+              "transport": 57657
+            },
+            "after": {
+              "status": "live",
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 58752,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.007816649414062501
+              },
+              "peak": 0,
+              "pcmPeak": 0.07466255128383636,
+              "finite": true,
+              "errors": [],
+              "transport": 1267902
+            },
+            "underruns": 0,
+            "mainThread": {
+              "TaskDuration": 2.655089,
+              "ScriptDuration": 2.577923,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "nodes": 407
+          },
+          {
+            "label": "dense-expanded",
+            "seconds": 30,
+            "before": {
+              "status": "live",
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 61568,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.007986451171875
+              },
+              "peak": 0,
+              "pcmPeak": 0.07466255128383636,
+              "finite": true,
+              "errors": [],
+              "transport": 62602
+            },
+            "after": {
+              "status": "live",
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 63104,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.0095523662109375
+              },
+              "peak": 0,
+              "pcmPeak": 0.07466255128383636,
+              "finite": true,
+              "errors": [],
+              "transport": 1272847
+            },
+            "underruns": 0,
+            "mainThread": {
+              "TaskDuration": 3.3644,
+              "ScriptDuration": 3.268464,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "nodes": 693
+          },
+          {
+            "label": "dense-collapsed",
+            "seconds": 30,
+            "before": {
+              "status": "live",
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 65408,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.008344359375
+              },
+              "peak": 0,
+              "pcmPeak": 0.07466255128383636,
+              "finite": true,
+              "errors": [],
+              "transport": 65613
+            },
+            "after": {
+              "status": "live",
+              "diagnostics": {
+                "playbackMode": "auto",
+                "playbackState": "listening",
+                "sampleRate": 48000,
+                "queuedFrames": 67456,
+                "pendingRenderFrames": 0,
+                "underrunCount": 0,
+                "overrunCount": 0,
+                "renderTimeRatio": 0.0075831298828125
+              },
+              "peak": 0,
+              "pcmPeak": 0.07466255128383636,
+              "finite": true,
+              "errors": [],
+              "transport": 1275428
+            },
+            "underruns": 0,
+            "mainThread": {
+              "TaskDuration": 2.5989759999999995,
+              "ScriptDuration": 2.511144,
+              "LayoutDuration": 0,
+              "RecalcStyleDuration": 0
+            },
+            "nodes": 463
+          }
+        ],
+        "recovered": {
+          "status": "live",
+          "diagnostics": {
+            "playbackMode": "auto",
+            "playbackState": "listening",
+            "sampleRate": 48000,
+            "queuedFrames": 67968,
+            "pendingRenderFrames": 0,
+            "underrunCount": 0,
+            "overrunCount": 0,
+            "renderTimeRatio": 0.0097109384765625
+          },
+          "peak": 0,
+          "pcmPeak": 0.07466255128383636,
+          "finite": true,
+          "errors": [],
+          "transport": 242887
+        }
+      },
+      "errors": []
+    }
+  }
+}

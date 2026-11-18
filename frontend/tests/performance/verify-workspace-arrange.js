@@ -1,4 +1,4 @@
-// English workspace preview, stopped UX Baseline Clip. Extend an in-memory snapshot with a repeated group.
+// English workspace, stopped UX Baseline Clip. Extend an in-memory snapshot with a repeated group.
 async page => {
   const button = (name, area = page) => area.getByRole("button", { name, exact: true });
   const edit = page.getByRole("region", { name: "Editing", exact: true });
@@ -133,5 +133,12 @@ async page => {
   await edit.getByText("Curve points: 3/10", { exact: true }).waitFor();
   await button("Save pattern here", edit).click();
   check(await page.evaluate(() => window.__workspaceTest.store.getState().sequencer.clipArrangement.lanes.some(l => l.definitions.some(d => d.payload?.keypoints?.length === 3))), "Inline curve failed to commit");
-  return "Nested pass, scoped Save, conflict cancellation, Live isolation, scroll, step and inline curve verified";
+  const arranger = page.locator("[data-workspace-arranger]");
+  await button("Undo", arranger).click();
+  await page.waitForFunction(() => !window.__workspaceTest.store.getState().sequencer.clipArrangement.lanes.some(l => l.definitions.some(d => d.payload?.keypoints?.length === 3)));
+  await button("Mix").click();
+  await button("Arrange").click();
+  await button("Redo", arranger).click();
+  await page.waitForFunction(() => window.__workspaceTest.store.getState().sequencer.clipArrangement.lanes.some(l => l.definitions.some(d => d.payload?.keypoints?.length === 3)));
+  return "Nested pass, scoped Save, conflict cancellation, Live isolation, inline curve and Undo/Redo across views verified";
 }
