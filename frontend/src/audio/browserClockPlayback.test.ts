@@ -118,3 +118,11 @@ it("primes the Live target when a keyboard is armed before the stream starts", a
   expect(h.state[4]).toBe(1);
   h.send({ type: "disconnect" });
 });
+
+it("drops a late keyboard release when its session has disconnected", async () => {
+  const h = await connect();
+  h.send({ type: "disconnect" });
+  const count = h.sent.length;
+  h.send({ type: "manual_midi", midi: { type: "note_off", note: 60, channel: 2, source_id: "piano" }, eventEpochMs: 0 });
+  expect(h.sent).toHaveLength(count);
+});

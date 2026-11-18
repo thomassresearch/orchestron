@@ -56,9 +56,9 @@ async page => {
     });
     check(before.top > 0 && before.x > 0, "Timeline fixture must scroll horizontally");
     await button("Live").click();
-    await page.getByRole("combobox", { name: "Device", exact: true }).selectOption("phrase");
-    await page.getByRole("combobox", { name: "Editing pad", exact: true }).selectOption({ label: "3" });
-    await button("Pad editor").click();
+    const phrase = page.getByRole("group", { name: "Routed phrase", exact: true });
+    await button("Pad 3", phrase).click();
+    await button("Edit", phrase).click();
     await button("HOLD").first().click();
     await button("Arrange").click();
     await edit.waitFor();

@@ -131,3 +131,41 @@
 .ws-clip-editor-host { min-height: 0; display: grid; grid-template: minmax(0,1fr) / minmax(0,1fr); }
 
 .ws-bars { color: #a6e6eb; min-width: 3ch; font-variant-numeric: tabular-nums; }
+
+.ws-launcher, .ws-compact-launch { container-type: inline-size; }
+.ws-launcher { padding: 8px; background: #0b1626; }
+.ws-launcher header, .ws-live-editor-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; }
+.ws-launcher h2, .ws-live-editor-heading h3 { font-weight: 650; color: #d5eaf4; }
+.ws-launcher select, .ws-compact-launch select, .ws-keyboard-picker select { min-width: 0; max-width: 100%; color: #e0eaf0; background: #16263a; border: 1px solid #426078; border-radius: 4px; padding: 3px 6px; }
+.ws-live-row { display: grid; grid-template-columns: minmax(9rem, .85fr) minmax(14rem, 2fr) auto; align-items: center; gap: 4px 14px; margin-top: 5px; padding: 7px 10px; background: #101d30; border: 1px solid #304055; border-radius: 5px; }
+.ws-live-row[data-selected] { border-color: #56818f; }
+.ws-live-device { min-width: 0; display: grid; align-content: center; gap: 3px; }
+.ws-live-name { text-align: left; color: #e0eff4; font-weight: 600; overflow-wrap: anywhere; }
+.ws-live-device span, .ws-live-state, .ws-pad-save { font-size: .71rem; color: #a1b3c5; }
+.ws-live-pads { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 3px; }
+.ws-live-pads button, .ws-live-actions button { border-radius: 4px; border: 1px solid #4b6075; color: #d9e4eb; background: #17263a; min-height: 32px; }
+.ws-live-pads button { touch-action: manipulation; position: relative; font-variant-numeric: tabular-nums; }
+.ws-live-pads button[aria-pressed=true] { border-color: #c5d8e5; box-shadow: inset 0 -3px #d0e0ee; }
+.ws-live-pads button[data-sounding] { color: #bbf7ff; background: #12444e; border-color: #58cbd7; }
+.ws-live-pads button[data-queued] { color: #ffe6b6; background: #4b3317; border-color: #efa85a; }
+.ws-live-pads small { position: absolute; right: 2px; top: 1px; font-size: .55rem; }
+.ws-live-actions, .ws-live-state { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ws-live-actions button { min-width: 3rem; padding: 2px 8px; }
+.ws-live-actions button[aria-pressed=true] { border-color: #66c7bc; }
+.ws-live-state { grid-column: 2 / -1; column-gap: 16px; }
+.ws-live-state b { color: #c5dce5; }
+.ws-keyboard-settings { margin: 5px 0; color: #c1d4df; font-size: .75rem; }
+.ws-keyboard-settings summary { cursor: pointer; padding: 4px; }
+.ws-keyboard-picker { display: flex; gap: 5px; align-items: center; margin-bottom: 4px; }
+.ws-dock[data-compact-launch] { grid-template-rows: auto auto minmax(0,1fr); }
+.ws-compact-launch { max-height: 44dvh; overflow: auto; }
+.ws-compact-launch:empty { display: none; }
+.ws-dock[data-compact-launch]:has(.ws-compact-launch:empty) { grid-template-rows: auto minmax(0,1fr); }
+.ws-compact-launch .ws-live-row { margin: 0; border-radius: 0; }
+.ws-live-editor-heading { padding: 4px; }
+@container (max-width: 610px) {
+  .ws-live-row { grid-template-columns: minmax(0,1fr) auto; gap: 5px 8px; }
+  .ws-live-pads { grid-row: 2; grid-column: 1 / -1; }
+  .ws-live-actions { grid-row: 1; grid-column: 2; }
+  .ws-live-state { grid-column: 1 / -1; }
+}

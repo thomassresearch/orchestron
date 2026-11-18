@@ -29,8 +29,8 @@ export function connectionKey(connection: Connection): string {
   return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
 }
 
-export function pianoRollNoteKey(note: number, channel: number): string {
-  return `${channel}:${note}`;
+export function pianoRollNoteKey(rollId: string, note: number, channel: number): string {
+  return `${rollId}:${channel}:${note}`;
 }
 
 export function normalizeMidiChannel(channel: number): number {

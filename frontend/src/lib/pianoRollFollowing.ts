@@ -1,6 +1,6 @@
 import type { PerformanceAuditionStatus, SequencerRuntimeState, SequencerState } from "../types";
-import { resolveClip, type DefinitionDraft } from "./clipArranger/model";
-import { clipAuditionDefinitions } from "./clipArranger/runtime";
+import type { DefinitionDraft } from "./clipArranger/model";
+import { clipAuditionDefinitions, playingClipPattern } from "./clipArranger/runtime";
 
 /** Harmonic guidance comes from audible sources, never the selected editor or legacy clip pads. */
 export function pianoRollFollowingTheories(
@@ -28,13 +28,7 @@ export function pianoRollFollowingTheories(
         const definition = definitions.filter(d => d.kind === "pattern")[slot];
         if (definition?.source === "sequencer" || definition?.source === "score") theory = definition.payload;
       } else {
-        const playing = runtime.independentSources ? runtime.arrangementRunning : runtime.arrangerActive ?? runtime.isPlaying;
-        if (!playing) return [];
-        const position = runtime.arrangementPlaybackSubunit ?? runtime.arrangerTransportSubunit ?? runtime.transportSubunit;
-        if (position >= sequencer.clipArrangement!.end) return [];
-        const at = lane.cycleTicks ? position % lane.cycleTicks : position;
-        const clip = lane.clips.find(c => c.start <= at && at < c.start + c.length);
-        const definition = clip ? resolveClip(lane, clip, at, at + 1, track.timing)[0]?.definition : null;
+        const definition = playingClipPattern(lane, sequencer.clipArrangement!.end, runtime, track.timing);
         if (definition?.source === "sequencer" || definition?.source === "score") theory = definition.payload;
       }
     } else {

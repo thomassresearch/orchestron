@@ -9,7 +9,7 @@ export const shellCopy = {
   spanish: { project: "Proyecto", inspector: "Inspector", editor: "Editor", keyboard: "Teclado", transport: "Transporte de la canción", divider: "Ajustar tamaño del editor", expand: "Ampliar", restore: "Restaurar división", back: "Volver a la vista general", close: "Cerrar", fit: "Ajustar pistas", diagnostics: "Diagnóstico", config: "Configuración de audio", help: "Ayuda", status: "Estado de la sesión", overview: "Vista general", channel: "Canal MIDI", select: "Selecciona un elemento para ver sus propiedades." }
 };
 
-type Panel = "editor" | "inspector" | "editorCommand" | "dialogs";
+type Panel = "editor" | "inspector" | "editorCommand" | "dialogs" | "launcher";
 export const WorkspacePanels = createContext<null | {
   slots: Record<Panel, HTMLElement | null>;
   trackRouting: (id: string, kind: SourceKind) => ReactNode;

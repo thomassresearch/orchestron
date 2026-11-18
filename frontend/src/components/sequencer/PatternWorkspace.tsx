@@ -1,5 +1,5 @@
 import { useSinglePatternEditor } from "../clipArranger/context";
-import { useCallback, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { useCallback, useContext, useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import type { GuiLanguage, PadLoopPatternItem, PadLoopPatternState } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { compileDefinition, createDefinition, definitionItem, definitionUses, type DefinitionRef } from "../../lib/arrangementEditing";
@@ -11,7 +11,7 @@ import { applyWorkspaceDefinition, deleteWorkspaceDefinition, groupWorkspaceItem
 import { useAppStore } from "../../store/useAppStore";
 import { ArrangerContextMenu, type ArrangerMenuTarget } from "./ArrangerContextMenu";
 import { ArrangerSpeaker } from "./ArrangerSpeaker";
-import { RetainedScroll, useOpenArranger, usePerformanceEditorState } from "./PerformanceEditorState";
+import { EditorDetails, PerformViewContext, RetainedScroll, useOpenArranger, usePerformanceEditorState } from "./PerformanceEditorState";
 import { usePerformanceAudition } from "./PerformanceAudition";
 import { patternWorkspaceCopy } from "./patternWorkspaceCopy";
 import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
@@ -223,5 +223,12 @@ function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChan
 
 export function PatternWorkspace(props: Parameters<typeof LegacyPatternWorkspace>[0]) {
   const contextual = useSinglePatternEditor();
+  const view = useContext(PerformViewContext);
+  const clipLane = useAppStore(s => s.sequencer.clipArrangement?.lanes.some(lane => lane.id === props.track.id));
+  if (contextual && view === "live" && !clipLane) {
+    return <EditorDetails owner={`device:${props.track.id}`} field="livePatterns" summary={patternWorkspaceCopy(props.language).workspace}>
+      {() => <LegacyPatternWorkspace {...props} />}
+    </EditorDetails>;
+  }
   return contextual ? null : <LegacyPatternWorkspace {...props} />;
 }

@@ -24,7 +24,8 @@ async page => {
   await dock.getByRole("heading", { name: "Routed phrase / Pad 1" }).waitFor();
   await button("HOLD", dock).first().click();
   await button("Edit pad in Live", inspector).click();
-  await page.getByRole("combobox", { name: "Editing pad", exact: true }).selectOption({ label: "3" });
+  const livePad = button("Pad 3", page.getByRole("group", { name: "Routed phrase", exact: true }));
+  await livePad.click();
   await button("Arrange").click();
   await dock.getByRole("heading", { name: "Routed phrase / Pad 1" }).waitFor();
   check(await page.evaluate(old => {
@@ -33,7 +34,7 @@ async page => {
       s.sequencer.tracks[0].pads[0].steps[0].hold !== old.hold && s.sequencerEditingPads.phrase === 0;
   }, old), "Pad edit changed legacy order or targeted another pad");
   await button("Live").click();
-  check(await page.getByRole("combobox", { name: "Editing pad", exact: true }).inputValue() === "2", "Legacy editor overwrote Live selection");
+  check(await livePad.getAttribute("aria-pressed") === "true", "Legacy editor overwrote Live selection");
   await button("Arrange").click(); await button("Close", dock).click();
   await occurrence.dblclick({ position: { x: 6, y: 8 } });
   await dock.getByRole("heading", { name: "Routed phrase / Pad 1" }).waitFor();

@@ -333,6 +333,7 @@ export function createSequencerTrackStoreActions(
 
         set({
           performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1,
+          savedPerformanceSequencer: null,
           sequencerEditingPads: {},
           performanceAuditions: {},
           sequencer: parsed.sequencer,

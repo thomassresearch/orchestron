@@ -1,6 +1,8 @@
+import { LiveLauncher } from "./sequencer/LiveLauncher";
+import { liveCopy } from "./sequencer/liveCopy";
 import { arrangeCopy } from "./clipArranger/arrangeCopy";
 import { LegacyArrange, type LegacyPadAction } from "./sequencer/LegacyArrange";
-import { PerformWorkspace, LivePadEditor, type DeviceEditorRenderer, type ViewNavigation } from "./sequencer/PerformWorkspace";
+import { PerformWorkspace, type DeviceEditorRenderer, type ViewNavigation } from "./sequencer/PerformWorkspace";
 import { ClipTransport } from "./clipArranger/ClipTransport";
 import { useContext } from "react";
 import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
@@ -31,7 +33,7 @@ import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
 import { pianoRollFollowingTheories } from "../lib/pianoRollFollowing";
-import { ArrangeSettings, OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, useStepProperties, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
+import { ArrangeSettings, EditorDetails, OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, useStepProperties, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
 import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel } from "./CollapsiblePanel";
@@ -1100,7 +1102,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
 
         </>}
 
-        {view === "live" && <LivePadEditor language={guiLanguage} sequencer={sequencer} renderEditor={renderDeviceEditor} />}
+        {view === "live" && <LiveLauncher language={guiLanguage} sequencer={sequencer} renderEditor={renderDeviceEditor} engineRunning={instrumentsRunning} actions={context} canRemove={context.canRemovePerformDevice} add={kind => addDevice[kind]()} />}
         {showLive && <>
         {!view && pianoPanel}
 
@@ -1167,7 +1169,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
       onSeek={onSequencerArrangerLoopSelectionChange} onTempo={onBpmChange}
       transport={<ClipTransport language={guiLanguage} copy={arrangerCopy} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward}
         onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} />}
-      keyboard={<><PianoRollsBody context={context} />{(!sequencer.clipArrangement || !sequencer.pianoRolls.length) && <button onClick={onAddPianoRoll}>{ui.addPianoRoll}</button>}</>}>
+      keyboard={<><PianoRollsBody context={context} live={view === "live"} />{(!sequencer.clipArrangement || !sequencer.pianoRolls.length) && <button onClick={onAddPianoRoll}>{ui.addPianoRoll}</button>}</>}>
       {overview}
     </WorkspaceShell> : <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-glow">{overview}</section>}
 
@@ -3141,7 +3143,12 @@ function ArpeggiatorsBody({ context }: { context: ReturnType<typeof useSequencer
   />)}</div>;
 }
 
-function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
+function KeyboardSettings({ live, id, label, channel, children }: { live: boolean; id: string; label: string; channel: number; children: React.ReactNode }) {
+  return live ? <EditorDetails owner={`device:${id}`} field="liveKeyboardSettings" summary={`${label} · MIDI ${channel}`} className="ws-keyboard-settings">{() => children}</EditorDetails> : children;
+}
+
+function PianoRollsBody({ context, live = false }: { context: ReturnType<typeof useSequencerPageContext>; live?: boolean }) {
+  const [keyboardId, setKeyboardId] = usePerformanceEditorState("page", "keyboardId", "");
   const {
     sequencer,
     instrumentsRunning,
@@ -3205,9 +3212,12 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
       highlightTheories
     };
   }, [runningSequencerTheories]);
+  const keyboard = sequencer.pianoRolls.find(roll => roll.id === keyboardId) ?? sequencer.pianoRolls[0];
   return <>
+    {live && sequencer.pianoRolls.length > 1 && <label className="ws-keyboard-picker">{ui.pianoRolls} <select value={keyboard?.id ?? ""} onChange={e => setKeyboardId(e.target.value)}>{sequencer.pianoRolls.map(roll => <option key={roll.id} value={roll.id}>{roll.name}</option>)}</select></label>}
     <div className="space-y-3">
       {sequencer.pianoRolls.map((roll, rollIndex) => {
+        if (live && keyboard?.id !== roll.id) return null;
         const followSummary = instrumentsRunning && roll.enabled ? runningSequencerSummary : null;
         const followsMixedScale = followSummary !== null && followSummary.sharedScale === null;
         const followsMixedMode = followSummary !== null && followSummary.sharedMode === null;
@@ -3225,7 +3235,7 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
         const keyboardHighlightTheories =
           followSummary?.highlightTheories ?? [{ scaleRoot: roll.scaleRoot, mode: roll.mode }];
         return (
-          <article key={roll.id} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
+          <article key={roll.id} data-live-keyboard={live ? roll.id : undefined} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               {renderDeviceName("pianoRolls", roll, ui.pianoRollWithIndex(rollIndex + 1))}
               <span className={transportStateClass}>{roll.enabled ? ui.running : ui.stopped}</span>
@@ -3246,6 +3256,7 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
               </button>
             </div>
 
+            <KeyboardSettings live={live} id={roll.id} label={liveCopy(context.guiLanguage)("settings")} channel={roll.midiChannel}>
             <div className="mb-2 flex flex-wrap items-start gap-2">
               <div className="mr-2 flex items-end gap-2">
                 <label className="flex flex-col gap-1">
@@ -3343,6 +3354,7 @@ function PianoRollsBody({ context }: { context: ReturnType<typeof useSequencerPa
               {roll.autoChordEnabled && <span className="ml-2">{ui.autoChordHint}</span>}
             </div>
 
+            </KeyboardSettings>
             <div className="max-w-full">
               <PianoRollKeyboard
                 ui={ui}

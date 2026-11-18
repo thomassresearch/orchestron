@@ -1025,11 +1025,9 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
       if (sequencerRef.current.isPlaying) {
         await stopSequencerTransport(false);
       }
-      collectPerformanceChannels().forEach((channel) => {
-        sendAllNotesOff(channel);
-      });
       pianoRollNoteSessionRef.current.clear();
       if (activeSessionState === "running") {
+        await Promise.all(Array.from(collectPerformanceChannels(), sendAllNotesOff));
         await stopSession();
       }
       syncSequencerRuntime({ isPlaying: false });
@@ -1088,22 +1086,20 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
       const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
       const noteVelocity = normalizeMidiVelocity(velocity);
       const roll = sequencerRef.current.pianoRolls.find((entry) => entry.id === rollId);
-      void (async () => {
-        await sendDirectMidiEvent(
-          {
-            type: "note_on",
-            channel: normalizedChannel,
-            note: normalizedNote,
-            velocity: noteVelocity,
-            source_id: rollId,
-            source_scale_root: roll?.scaleRoot,
-            source_scale_type: roll?.scaleType,
-            source_mode: roll?.mode
-          },
-          activeSessionId
-        );
-        pianoRollNoteSessionRef.current.set(pianoRollNoteKey(normalizedNote, normalizedChannel), activeSessionId);
-      })().catch((error) => {
+      pianoRollNoteSessionRef.current.set(pianoRollNoteKey(rollId, normalizedNote, normalizedChannel), activeSessionId);
+      void sendDirectMidiEvent(
+        {
+          type: "note_on",
+          channel: normalizedChannel,
+          note: normalizedNote,
+          velocity: noteVelocity,
+          source_id: rollId,
+          source_scale_root: roll?.scaleRoot,
+          source_scale_type: roll?.scaleType,
+          source_mode: roll?.mode
+        },
+        activeSessionId
+      ).catch((error) => {
         setSequencerError(error instanceof Error ? error.message : appCopy.errors.failedToStartPianoRollNote);
       });
     },
@@ -1121,8 +1117,8 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
     (rollId: string, note: number, channel: number) => {
       const normalizedChannel = normalizeMidiChannel(channel);
       const normalizedNote = Math.max(0, Math.min(127, Math.round(note)));
-      const noteKey = pianoRollNoteKey(normalizedNote, normalizedChannel);
-      const sessionId = pianoRollNoteSessionRef.current.get(noteKey) ?? activeSessionId;
+      const noteKey = pianoRollNoteKey(rollId, normalizedNote, normalizedChannel);
+      const sessionId = pianoRollNoteSessionRef.current.get(noteKey);
       pianoRollNoteSessionRef.current.delete(noteKey);
       if (!sessionId) {
         return;
@@ -1135,20 +1131,12 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
         // Ignore transient note-off failures during release.
       });
     },
-    [activeSessionId, sendDirectMidiEvent]
+    [sendDirectMidiEvent]
   );
 
   const onPianoRollEnabledChange = useCallback(
     (rollId: string, enabled: boolean) => {
       setLiveInput(`piano:${rollId}`, enabled ? "start" : "stop");
-      if (!enabled) {
-        const roll = sequencerRef.current.pianoRolls.find((entry) => entry.id === rollId);
-        if (roll) {
-          sendAllNotesOff(roll.midiChannel);
-        }
-        pianoRollNoteSessionRef.current.clear();
-      }
-
       setPianoRollEnabled(rollId, enabled);
       setSequencerError(null);
       if (enabled && activeSessionState !== "running") {
@@ -1156,7 +1144,7 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
         void startSession();
       }
     },
-    [activeSessionState, primeBrowserClockAudio, sendAllNotesOff, setPianoRollEnabled, startSession, setLiveInput]
+    [activeSessionState, primeBrowserClockAudio, setPianoRollEnabled, startSession, setLiveInput]
   );
 
   const { onMidiControllerEnabledChange, onMidiControllerNumberChange,

@@ -443,17 +443,15 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
     [roll.id, updateActivePianoNotes]
   );
 
-  const handlePianoPointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>, note: number) => {
-      if (event.button !== 0 || !interactive) return;
-      event.preventDefault();
-      event.currentTarget.setPointerCapture(event.pointerId);
-      releasePianoPointer(event.pointerId);
+  const pressNote = useCallback(
+    (owner: number, note: number) => {
+      if (!interactive) return;
+      releasePianoPointer(owner);
       const channel = roll.midiChannel;
       const notes = roll.autoChordEnabled
         ? pianoRollChordNotes(note, roll.autoChordSize, effectiveTheories)
         : [note];
-      pianoPointerNotesRef.current[event.pointerId] = { notes, channel };
+      pianoPointerNotesRef.current[owner] = { notes, channel };
       for (const chordNote of notes) {
         const key = `${channel}:${chordNote}`;
         const held = heldPianoNotesRef.current.get(key);
@@ -469,6 +467,20 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
     [interactive, effectiveTheories, onNoteOn, roll.id, roll.midiChannel, roll.velocity,
       roll.autoChordEnabled, roll.autoChordSize, releasePianoPointer, updateActivePianoNotes]
   );
+
+  const handlePianoPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, note: number) => {
+    if (event.button !== 0 || !interactive) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pressNote(event.pointerId, note);
+  };
+  const keyOwner = (key: string) => key === " " ? -1 : key === "Enter" ? -2 : null;
+  const keyboardPress = (event: React.KeyboardEvent<HTMLButtonElement>, note: number) => {
+    const owner = keyOwner(event.key);
+    if (owner === null) return;
+    event.preventDefault();
+    if (!event.repeat) pressNote(owner, note);
+  };
 
   const handlePianoPointerUp = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -499,7 +511,23 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
     }
   }, [interactive, releaseAllPianoNotes]);
 
-  useEffect(() => releaseAllPianoNotes, [releaseAllPianoNotes]);
+  useEffect(() => {
+    const release = () => { releaseAllPianoNotes(); setActivePianoNotes({}); };
+    const hidden = () => { if (document.hidden) release(); };
+    const keyUp = (event: KeyboardEvent) => {
+      const owner = keyOwner(event.key);
+      if (owner !== null && pianoPointerNotesRef.current[owner]) { event.preventDefault(); releasePianoPointer(owner); }
+    };
+    window.addEventListener("keyup", keyUp);
+    window.addEventListener("blur", release);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("blur", release);
+      document.removeEventListener("visibilitychange", hidden);
+      releaseAllPianoNotes();
+    };
+  }, [releaseAllPianoNotes, releasePianoPointer]);
 
   return (
     <div className="relative rounded-xl border border-slate-700 bg-slate-950/70 p-2.5">
@@ -554,6 +582,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
                   disabled={!interactive}
                   aria-label={key.label}
                   aria-pressed={isActive}
+                  onKeyDown={event => keyboardPress(event, key.note)}
                   onPointerDown={(event) => handlePianoPointerDown(event, key.note)}
                   onPointerUp={handlePianoPointerUp}
                   onPointerCancel={handlePianoPointerCancel}
@@ -565,7 +594,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
                         ? "border-emerald-500/80 bg-emerald-100 text-emerald-950"
                         : "border-slate-500 bg-white text-slate-900 hover:bg-slate-50"
                   } ${interactive ? "" : "cursor-not-allowed opacity-45"}`}
-                  style={{ width: `${PIANO_WHITE_KEY_WIDTH}px`, ...highlightStyle }}
+                  style={{ width: `${PIANO_WHITE_KEY_WIDTH}px`, touchAction: "none", ...highlightStyle }}
                 >
                   <span>{key.label}</span>
                   {key.degreeText ? (
@@ -592,6 +621,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
                   disabled={!interactive}
                   aria-label={key.label}
                   aria-pressed={isActive}
+                  onKeyDown={event => keyboardPress(event, key.note)}
                   onPointerDown={(event) => handlePianoPointerDown(event, key.note)}
                   onPointerUp={handlePianoPointerUp}
                   onPointerCancel={handlePianoPointerCancel}
@@ -604,6 +634,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
                         : "border-slate-950 bg-black text-slate-100 hover:bg-slate-900"
                   } ${interactive ? "" : "cursor-not-allowed opacity-45"}`}
                   style={{
+                    touchAction: "none",
                     left: `${key.left}px`,
                     width: `${PIANO_BLACK_KEY_WIDTH}px`,
                     height: `${PIANO_BLACK_KEY_HEIGHT}px`,

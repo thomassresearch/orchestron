@@ -46,6 +46,12 @@ MIDI Channel and Velocity are grouped together, with a small gap before Scale, M
 
 Each MIDI-driven rack instrument requires a unique MIDI channel. Set the piano roll to the channel of the instrument you want to play.
 
+## Play alongside the Live launcher
+
+In the optional Perform workspace preview, open **Live → Keyboard**. On a small screen the selected device and its eight pads stay above the keys. The device selector there changes which pads you launch. The piano roll selector and its MIDI channel choose the instrument you play. Hold a key with Space or Enter while clicking pads, or use two fingers on a touch screen. Choose **Edit** to put the pad editor in the dock.
+
+<p align="center"><img src="../../screenshots/perform-workspace-live-keyboard.png" alt="Compact pad launcher above the keyboard with Autochord held and pad 2 queued" width="280" /></p>
+
 ## Autochord
 
 Enable **Autochord** to extend a highlighted key into an ascending chord. **Chord notes** counts the pressed note, so in C major pressing C4 plays:

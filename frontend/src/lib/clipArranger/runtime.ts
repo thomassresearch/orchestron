@@ -3,9 +3,9 @@ import type { OffsetPlan } from "./transposition";
 import { offsetAt } from './transposition';
 import { saveTransposeEdits } from './transposeEdits';
 import { parseDrummerRowRuntimeTrackId } from "../sequencerRuntime";
-import type { SequencerState } from "../../types";
+import type { SequencerRuntimeState, SequencerState } from "../../types";
 import { arrangementTimings, sourceKeys } from "./migration";
-import { CLIP_LIMITS, resolveContent, validateArrangement, type ClipLane, type DefinitionDraft, type PatternDefinition } from "./model";
+import { CLIP_LIMITS, resolveClip, resolveContent, validateArrangement, type ClipLane, type PatternTiming, type DefinitionDraft, type PatternDefinition } from "./model";
 
 export type RuntimeClipSchedule = { version: 1 | 2; transpose_plans?: OffsetPlan[]; end: number; cycle_ticks: number | null; clips: { id: string; start: number; length: number; offset: number; mode: "once" | "loop"; repeat_index_base?: number; content: { pad: number | null; length: number; transpose_refs?: number[] }[] }[] };
 type AuditionState = SequencerState & { clipAuditionContext?: { laneId: string; schedule: RuntimeClipSchedule } };
@@ -13,6 +13,17 @@ type AuditionState = SequencerState & { clipAuditionContext?: { laneId: string; 
 export function clipAuditionSchedule(state: SequencerState, laneId: string): RuntimeClipSchedule | undefined {
   const context = (state as AuditionState).clipAuditionContext;
   return context?.laneId === laneId ? context.schedule : undefined;
+}
+
+/** Resolve the audible song position, including rests, clip offsets and independent lane cycles. */
+export function playingClipPattern(lane: ClipLane, end: number, runtime: SequencerRuntimeState, timing?: PatternTiming) {
+  const playing = runtime.independentSources ? runtime.arrangementRunning : runtime.arrangerActive ?? runtime.isPlaying;
+  if (!playing) return null;
+  const position = runtime.arrangementPlaybackSubunit ?? runtime.arrangerTransportSubunit ?? runtime.transportSubunit;
+  if (position >= end) return null;
+  const at = lane.cycleTicks ? position % lane.cycleTicks : position;
+  const clip = lane.clips.find(c => c.start <= at && at < c.start + c.length);
+  return clip ? resolveClip(lane, clip, at, at + 1, timing)[0]?.definition ?? null : null;
 }
 
 export function runtimeSchedule(state: SequencerState, lane: ClipLane): RuntimeClipSchedule {

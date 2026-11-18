@@ -2958,6 +2958,7 @@ export function buildSequencerConfigSnapshot(
   mixer: MixerState = emptyMixer(),
   arrangerHistory: ArrangerHistory = emptyArrangerHistory()
 ): SequencerConfigSnapshot {
+  const clipLanes = new Set(sequencer.clipArrangement?.lanes.map(lane => lane.id));
   const timing = normalizeSequencerTiming(sequencer.timing);
   const transportStepCount = transportStepCountForPerformanceTracks(
     sequencer.tracks,
@@ -3009,7 +3010,7 @@ export function buildSequencerConfigSnapshot(
         mode: normalizeSequencerMode(track.mode),
         activePad: normalizePadIndex(track.activePad),
         queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
-        padLoopEnabled: !!sequencer.clipArrangement || track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
+        padLoopEnabled: clipLanes.has(track.id) || track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
         padLoopRepeat: track.padLoopRepeat !== false,
         padLoopSequence: normalizePadLoopSequence(track.padLoopSequence),
         padLoopPattern: track.padLoopPattern,
@@ -3059,7 +3060,7 @@ export function buildSequencerConfigSnapshot(
           stepCount: normalizeTransportStepCount(track.stepCount),
           activePad: normalizePadIndex(track.activePad),
           queuedPad: track.queuedPad === null ? null : normalizePadIndex(track.queuedPad),
-          padLoopEnabled: !!sequencer.clipArrangement || track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
+          padLoopEnabled: clipLanes.has(track.id) || track.padLoopEnabled === true && track.padLoopPattern.rootSequence.length > 0,
           padLoopRepeat: track.padLoopRepeat !== false,
           padLoopSequence: normalizePadLoopSequence(track.padLoopSequence),
           padLoopPattern: track.padLoopPattern,
@@ -3106,7 +3107,7 @@ export function buildSequencerConfigSnapshot(
         stepCount: normalizeTransportStepCount(controllerSequencer.stepCount),
         activePad: normalizePadIndex(controllerSequencer.activePad),
         queuedPad: controllerSequencer.queuedPad === null ? null : normalizePadIndex(controllerSequencer.queuedPad),
-        padLoopEnabled: !!sequencer.clipArrangement || controllerSequencer.padLoopEnabled === true && controllerSequencer.padLoopPattern.rootSequence.length > 0,
+        padLoopEnabled: clipLanes.has(controllerSequencer.id) || controllerSequencer.padLoopEnabled === true && controllerSequencer.padLoopPattern.rootSequence.length > 0,
         padLoopRepeat: controllerSequencer.padLoopRepeat !== false,
         padLoopSequence: normalizePadLoopSequence(controllerSequencer.padLoopSequence),
         padLoopPattern: controllerSequencer.padLoopPattern,
@@ -3152,7 +3153,7 @@ export function buildSequencerConfigSnapshot(
         holdMode: arpeggiator.holdMode, latch: false, restartMode: arpeggiator.restartMode,
         launchQuantize: arpeggiator.launchQuantize, activePad: arpeggiator.activePad,
         pads: arpeggiator.pads.map(normalizeArpeggiatorSettings), padPresetIds: [...arpeggiator.padPresetIds],
-        padLoopEnabled: !!sequencer.clipArrangement || arpeggiator.padLoopEnabled && arpeggiator.padLoopPattern.rootSequence.length > 0, padLoopRepeat: arpeggiator.padLoopRepeat,
+        padLoopEnabled: clipLanes.has(arpeggiator.id) || arpeggiator.padLoopEnabled && arpeggiator.padLoopPattern.rootSequence.length > 0, padLoopRepeat: arpeggiator.padLoopRepeat,
         padLoopPattern: arpeggiator.padLoopPattern
       })),
       arpeggiatorPresets: sequencer.arpeggiatorPresets

@@ -79,6 +79,8 @@ Use the existing workspace generation when New, Load or Import successfully repl
 
 ## 5. Move Live, keyboard and MIDI
 
+**Implemented in the optional Perform preview.** The desktop and phone launchers share the device actions. The browser checks cover a held Autochord through two launches, independent playback, MIDI CC gestures, and saving a Manual device alongside a clip arrangement. [Milestone 5 implementation and replay](milestone-5-live.md)
+
 Extract the device launcher from the existing device controls. Both the full launcher and compact launcher beside the narrow-screen keyboard must call the same device actions. Show device name, playback source, independent Play/Stop, editing pad, playing pad and any queued pad. Use audible runtime markers for playing/queued feedback. Keep the existing device-specific launch boundaries, including Score and arpeggiator behavior. Pad selection while stopped or under Arrangement targets editing. An eligible running Manual device queues the launch.
 
 Keep the keyboard mounted under its piano-roll identity while selecting a launch device or pad. The pad click updates the launcher and status. **Edit** opens the pad editor explicitly. Preserve the selected keyboard destination, octave, velocity, chord settings, MIDI channels and manual controller gestures. Releasing a key, closing the keyboard, leaving its view or losing focus sends the appropriate owned note-offs. Returning restores controls without replaying notes. [Piano keyboard](../../frontend/src/components/sequencer/PianoRollKeyboard.tsx) · [MIDI routing](../../frontend/src/hooks/useMidiControllerRouting.ts) · [Score launch behavior](../../documentation/performance/score_sequencers.md)

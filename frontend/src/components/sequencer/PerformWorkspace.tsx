@@ -1,4 +1,3 @@
-import { WorkspacePanel } from "./WorkspacePanels";
 import { useLayoutEffect, type ReactNode } from "react";
 import { useStore } from "zustand";
 import type { GuiLanguage, SequencerState } from "../../types";
@@ -10,14 +9,13 @@ import type { StructureFocus } from "../clipArranger/StructureEditor";
 import { definitionAt } from "../../lib/clipArranger/operations";
 import { localLoopWindows } from "../../lib/clipArranger/relationships";
 import { useAppStore } from "../../store/useAppStore";
-import { LivePadEditorContext } from "../clipArranger/context";
-import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorState, usePerformanceEditorStore, type PerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
+import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorStore, type PerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
 
 const copy = {
-  english: { arrange: "Arrange", live: "Live", mix: "Mix", views: "Perform views", device: "Device", choose: "Select device", pad: "Editing pad", editor: "Pad editor" },
-  german: { arrange: "Arrangement", live: "Live", mix: "Mix", views: "Performance-Ansichten", device: "Gerät", choose: "Gerät auswählen", pad: "Pad bearbeiten", editor: "Pad-Editor" },
-  french: { arrange: "Arrangement", live: "Live", mix: "Mixage", views: "Vues de performance", device: "Appareil", choose: "Choisir un appareil", pad: "Pad à modifier", editor: "Éditeur de pad" },
-  spanish: { arrange: "Arreglo", live: "En vivo", mix: "Mezcla", views: "Vistas de interpretación", device: "Dispositivo", choose: "Elegir dispositivo", pad: "Pad en edición", editor: "Editor de pad" }
+  english: { arrange: "Arrange", live: "Live", mix: "Mix", views: "Perform views" },
+  german: { arrange: "Arrangement", live: "Live", mix: "Mix", views: "Performance-Ansichten" },
+  french: { arrange: "Arrangement", live: "Live", mix: "Mixage", views: "Vues de performance" },
+  spanish: { arrange: "Arreglo", live: "En vivo", mix: "Mezcla", views: "Vistas de interpretación" }
 };
 const views: PerformView[] = ["arrange", "live", "mix"];
 
@@ -64,7 +62,8 @@ function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged =
   const device = value<string>("page", "liveDevice", "live");
   if (device && !Object.values(sourceKeys).some(key => state.sequencer[key].some(track => track.id === device))) {
     clear("page", "liveDevice", "live", "");
-    clear("page", "layout", "live", { ...value<PerformViewLayout>("page", "layout", "live"), dock: null });
+    const layout = value<PerformViewLayout>("page", "layout", "live");
+    if (layout?.dock === "editor") clear("page", "layout", "live", { ...layout, dock: null });
   }
   const legacy = value<{ id: string; kind: SourceKind }>("arranger", "legacyPad", "arrange");
   if (legacy && !state.sequencer[sourceKeys[legacy.kind]].some(t => t.id === legacy.id)) {
@@ -159,37 +158,3 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
 }
 
 export type DeviceEditorRenderer = (kind: SourceKind, id: string, sequencer: SequencerState) => ReactNode;
-
-export function LivePadEditor({ sequencer, language, renderEditor }: { sequencer: SequencerState; language: GuiLanguage; renderEditor: DeviceEditorRenderer }) {
-  const labels = copy[language];
-  const [id, select] = usePerformanceEditorState<string>("page", "liveDevice", "");
-  const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
-  const open = layout.dock === "editor";
-  const sources = (Object.keys(sourceKeys) as SourceKind[]).flatMap(kind =>
-    sequencer[sourceKeys[kind]].map(track => ({ kind, track })));
-  const selected = sources.find(source => source.track.id === id);
-  const pad = useAppStore(s => s.sequencerEditingPads[id] ?? 0);
-  const selectPad = useAppStore(s => s.selectSequencerEditingPad);
-  const chooseDevice = (id: string) => {
-    const state = useAppStore.getState();
-    const source = sources.find(item => item.track.id === id);
-    if (source && state.sequencerEditingPads[id] === undefined) {
-      const device = state.sequencer[sourceKeys[source.kind]].find(track => track.id === id);
-      if (device) selectPad(id, device.activePad);
-    }
-    if (!source && open) setLayout(previous => ({ ...previous, dock: null }));
-    select(id);
-  };
-  return <section className="mt-3 space-y-2">
-    <div className="flex flex-wrap gap-2">
-      <label>{labels.device} <select className="rounded border border-slate-600 bg-slate-950 p-1" value={selected?.track.id ?? ""} onChange={e => chooseDevice(e.target.value)}>
-        <option value="">{labels.choose}</option>
-        {sources.map(({ track }) => <option key={track.id} value={track.id}>{track.name}</option>)}
-      </select></label>
-      {selected && <><label>{labels.pad} <select className="rounded border border-slate-600 bg-slate-950 p-1" value={pad} onChange={e => selectPad(id, Number(e.target.value))}>
-        {selected.track.pads.map((_, index) => <option key={index} value={index}>{index + 1}</option>)}</select></label>
-        <button data-pad-editor-toggle type="button" className="rounded border border-slate-600 px-2" aria-expanded={open} onClick={() => setLayout(previous => ({ ...previous, dock: open ? null : "editor" }))}>{labels.editor}</button></>}
-    </div>
-    {open && selected && <WorkspacePanel name="editor"><LivePadEditorContext.Provider value={true}><div key={id}>{renderEditor(selected.kind, id, sequencer)}</div></LivePadEditorContext.Provider></WorkspacePanel>}
-  </section>;
-}

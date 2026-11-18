@@ -75,6 +75,19 @@ For a fill on just one chorus repeat, choose **Create variation here**, edit the
 
 For a legacy performance, double-click a pad occurrence to edit that physical pad. Every occurrence that refers to the pad plays the change. Use **Edit pad in Live** when you want to move to the launcher. The performance stays in its original format until you explicitly convert it.
 
+## Launch pads in the Live preview
+
+Open **Live** and find the device you want to play. **Editing** is the physical pad you can change. **Playing** follows playback. **Queued** shows the next manual launch. A clip lane shows its playing pattern by name. Its numbered pads are available for editing.
+
+1. Select a pad on a **Manual pads** device and press **Play** in its row. To jam alongside a clip song, use **Add live device** to create a separate device.
+2. Open **Keyboard** and choose the piano roll assigned to your instrument. Open **Keyboard settings** to set the MIDI channel, velocity and Autochord. Hold a focused key with Space or Enter and click another pad. On a touch screen, keep one finger on the key and tap a pad with the other.
+3. Watch the queued pad turn into the playing pad at the device’s launch boundary. The compact launcher stays above the keys on a phone. Use the song transport to bring in the arrangement. An independently started Manual device keeps playing through a song seek or stop.
+4. Choose **Edit** in the device row to open its physical pad. Direct pad edits take effect as you play. **Save Performance** stores them with the project. For reusable pattern definitions use **Apply**. Arpeggiator presets have separate **Update preset** and **Save as preset** actions.
+
+![Live launcher with pad 1 playing, pad 2 queued and a held chord on the keyboard](../../screenshots/perform-workspace-live-launcher.png)
+
+Closing the keyboard, switching views or leaving the browser window releases held notes. Returning to Live restores the keyboard and its settings. The Live overview also contains the manual MIDI controllers and their channel selectors.
+
 ## Sequencer timing
 
 Use Meter, Pattern length and Subdivision for melodic, drum and controller sequencers. A one-bar 4/4 pad with three steps per beat displays twelve steps in four labeled beat groups. Playback speed is under Advanced timing. See [Sequencer timing](sequencer_timing.md) for the full guide.

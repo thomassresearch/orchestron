@@ -36,6 +36,20 @@ it("plays and highlights all chord tones with the same channel and velocity", ()
   expect(off.mock.calls).toEqual([60, 64, 67].map(note => [roll.id, note, 2]));
   expect(screen.queryAllByRole("button", { pressed: true })).toHaveLength(0);
 });
+it("releases a focused-key chord after focus moves and shares ownership with a pointer", () => {
+  render(view());
+  fireEvent.keyDown(key("C4"), { key: " " });
+  fireEvent.keyDown(key("C4"), { key: " ", repeat: true });
+  down("E4", 3);
+  fireEvent.keyUp(window, { key: " " });
+  expect(off.mock.calls.map(call => call[1])).toEqual([60]);
+  fireEvent.blur(window);
+  up("E4", 3);
+  fireEvent.keyUp(window, { key: " " });
+  expect(on.mock.calls.map(call => call[1])).toEqual([60, 64, 67, 71]);
+  expect(off.mock.calls.map(call => call[1])).toEqual([60, 64, 67, 71]);
+});
+
 it("shares overlapping pitches until their last pointer releases", () => {
   render(view()); down("C4", 1); down("E4", 2);
   expect(on.mock.calls.map(call => call[1])).toEqual([60, 64, 67, 71]);

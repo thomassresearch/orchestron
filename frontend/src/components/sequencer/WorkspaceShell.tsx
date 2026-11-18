@@ -46,26 +46,17 @@ function SongPositionControls({ language, onSeek, onTempo }: {
     <label>BPM <input className="ws-number" type="number" min={30} max={300} value={bpm} onChange={e => onTempo(Number(e.target.value))} /></label></>;
 }
 
-function ContextProperties({ view, language }: { view: PerformView; language: GuiLanguage }) {
-  const [deviceId] = usePerformanceEditorState("page", "liveDevice", "");
+function MixProperties({ language }: { language: GuiLanguage }) {
   const [bindingId] = usePerformanceEditorState("mixer", "selected", "");
-  const sequencer = useAppStore(s => s.sequencer);
-  const pad = useAppStore(s => s.sequencerEditingPads[deviceId]);
   const binding = useAppStore(s => s.sequencerInstruments.find(b => b.id === bindingId));
   const patch = useAppStore(s => s.patches.find(p => p.id === binding?.patchId));
   const strip = useAppStore(s => s.mixer.strips[bindingId]);
   const a = audioCopy(language), c = shellCopy[language];
-  if (view === "mix" && (binding || bindingId === "$master")) return <>
+  if (binding || bindingId === "$master") return <>
     <h3>{bindingId === "$master" ? a("master") : patch?.name}</h3>
     {binding && <p>{c.channel} · {binding.midiChannel || "—"}</p>}
     <p>{a("gain")} · {strip?.gainDb === null ? "−∞" : strip?.gainDb ?? 0} dB</p>
     <p>{a("balance")} · {strip?.balance ?? 0}</p></>;
-  for (const key of Object.values(sourceKeys)) {
-    const device = sequencer[key].find(track => track.id === deviceId);
-    if (view === "mix" || !device) continue;
-    const channel = "midiChannel" in device ? device.midiChannel : "targetChannel" in device ? device.targetChannel : device.targetChannels.join(", ");
-    return <><h3>{device.name}</h3><p>{c.channel} · {channel || "—"}</p><p>Pad {(pad ?? device.activePad) + 1}</p></>;
-  }
   return <p>{c.select}</p>;
 }
 
@@ -124,6 +115,7 @@ export default function WorkspaceShell({ view, language, children, project, save
     if (single && (document.activeElement === document.body || overview?.contains(document.activeElement))) back.current?.focus();
   }, [single, view]);
   const max = maxDockHeight(size.mainHeight, overviewMinimum, grip), height = clampDock(layout.preferredDockHeight ?? 260, max);
+  const [launcherHost, setLauncherHost] = useState<HTMLDivElement | null>(null);
   const [editorHost, setEditorHost] = useState<HTMLDivElement | null>(null);
   const [commandHost, setCommandHost] = useState<HTMLSpanElement | null>(null);
   const [inspectorHost, setInspectorHost] = useState<HTMLDivElement | null>(null);
@@ -161,11 +153,11 @@ export default function WorkspaceShell({ view, language, children, project, save
     requestAnimationFrame(() => {
       const frame = work.current?.closest(".ws-shell");
       const source = dock === "keyboard" ? frame?.querySelector<HTMLButtonElement>("[data-keyboard-toggle]") :
-        view === "live" ? frame?.querySelector<HTMLButtonElement>("[data-pad-editor-toggle]") : commandHost?.querySelector("button");
+        view === "live" ? frame?.querySelector<HTMLButtonElement>("[data-selected] [data-pad-editor-toggle]") : commandHost?.querySelector("button");
       (source ?? trigger.current)?.focus();
     });
   };
-  const context = { slots: { editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
+  const context = { slots: { launcher: launcherHost, editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
     trackRouting: (id: string, kind: keyof typeof sourceKeys) => <ArrangeTrackRouting key={id} id={id} kind={kind} language={language} />,
     getRememberedTarget: () => {
       const target = remembered && survivingClipKey(remembered) ? useAppStore.getState().clipDrafts[remembered]?.target : undefined;
@@ -195,10 +187,11 @@ export default function WorkspaceShell({ view, language, children, project, save
         <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined}>
           <RetainedScroll key={view} owner="page" field="overviewScroll" className="ws-overview" hidden={single} role="region" aria-label={c.overview}>{children}</RetainedScroll>
           {dock && !single && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
-          {dock && <section id={dockId} className="ws-dock" aria-label={dock === "keyboard" ? c.keyboard : c.editor}>
+          {dock && <section id={dockId} className="ws-dock" data-compact-launch={view === "live" && single && dock === "keyboard" || undefined} aria-label={dock === "keyboard" ? c.keyboard : c.editor}>
             <header><h2>{dock === "keyboard" ? c.keyboard : c.editor}</h2>
               {!narrow && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
               <button ref={back} onClick={returnToOverview}>{single ? c.back : c.close}</button></header>
+            {view === "live" && single && dock === "keyboard" && <div className="ws-compact-launch" ref={setLauncherHost} />}
             {view === "arrange" && model && dock === "editor" ? <div className="ws-clip-editor-host" ref={setEditorHost} /> : <RetainedScroll key={view + dock} className="ws-dock-scroll" owner="page" field={dock + "Scroll"}>
               {dock === "keyboard" ? keyboard : <div ref={setEditorHost} />}
             </RetainedScroll>}
@@ -208,7 +201,7 @@ export default function WorkspaceShell({ view, language, children, project, save
       {inspector && <aside id={inspectorId} aria-label={c.inspector} className="ws-inspector" data-drawer={narrow || undefined}>
         <header><h2>{c.inspector}</h2><button ref={drawerClose} aria-label={c.close + " · " + c.inspector} onClick={closeInspector}>×</button></header>
         <RetainedScroll owner="page" field={narrow ? "drawerScroll" : "inspectorScroll"} className="ws-inspector-scroll" key={view + String(narrow)}>
-          {view === "arrange" ? <>{model && !selected && <p>{clip.select}</p>}<div ref={setInspectorHost} /></> : <ContextProperties view={view} language={language} />}
+          {view !== "mix" ? <>{view === "arrange" && model && !selected && <p>{clip.select}</p>}<div ref={setInspectorHost} /></> : <MixProperties language={language} />}
         </RetainedScroll>
       </aside>}
     </div>

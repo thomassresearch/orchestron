@@ -285,6 +285,8 @@ own the detailed musical and transport behavior.
 
 ## Live, mix and instrument interaction rules
 
+In the application preview, **Edit** opens the selected physical pad. Its direct edits retain their existing live timing. The dock shows the pad’s save status and **Save Performance** persists it. Reusable pattern drafts retain **Apply**, and arpeggiator presets retain **Update preset** and **Save as preset**. A clip lane reports the playing definition by name. **Add live device** creates a separate device for manual launches alongside the clip arrangement. [Live implementation record](milestone-5-live.md)
+
 In Live, distinguish the pad selected for editing from the playing pad and queued launch.
 Running Manual pads actions retain boundary-quantized launches; stopped or Arrangement-source
 pad clicks only select for editing. Device Play remains an explicit independent action.

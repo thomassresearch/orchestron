@@ -96,6 +96,8 @@ The full Perform workspace preview uses the same isolated backend and Vite comma
 
 The [Arrange acceptance checks](../../../specifications/redesign-user-experience/milestone-4-arrange.md#replay-the-browser-checks) exercise draft isolation during playback, inline automation, scoped saves, the first-note workflow and legacy conversion. Use the isolated database for these checks. The first-note exercise creates a playable patch there.
 
+The [Live acceptance checks](../../../specifications/redesign-user-experience/milestone-5-live.md#replay-the-browser-checks) exercise native pad boundaries, held MIDI notes, a multi-touch phone viewport, controller gestures and Save/Load for independent devices in a clip performance.
+
 `npm --prefix frontend run check` passed: frontend lint, **308 tests in 29 files**, and the production build. The 15 collapse regressions and two workspace-generation regressions cover hidden construction, current playback on expansion, animation/observer/listener/subscription cleanup, nested visibility, retained drafts and selections, clipboard/zoom/scroll, held-note cleanup, pending Mixer synchronization, asynchronous result isolation, successful workspace replacement, deletion and ordinary saves. Strict Mode and repeated toggles are included.
 
 README, performance/Mixer documentation and integrated EN/DE/FR/ES help were updated. `node tools/build_user_docs_pdf.mjs` rebuilt the 115-page PDF; the cover, table of contents, Mixer page and complete performance-panel explanation were rendered and visually checked.

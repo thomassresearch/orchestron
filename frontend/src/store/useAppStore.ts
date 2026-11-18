@@ -194,6 +194,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     selectSequencerEditingPad: (id, pad) => set(state => ({ sequencerEditingPads: { ...state.sequencerEditingPads, [id]: Math.max(0, Math.min(7, Math.round(pad))) } })),
     sequencerInstruments: [],
     performanceWorkspaceGeneration: 0,
+    savedPerformanceSequencer: null,
     currentPerformanceId: null,
     performanceName: "Untitled Performance",
     performanceDescription: "",
@@ -557,6 +558,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
           sequencerEditingPads: {},
           performanceAuditions: {},
+          savedPerformanceSequencer: parsed.sequencer,
           currentPerformanceId: performance.id,
           performanceName: performance.name,
           performanceDescription: performance.description,
@@ -621,7 +623,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     clearCurrentPerformanceSelection: () => {
-      set({ currentPerformanceId: null });
+      set({ currentPerformanceId: null, savedPerformanceSequencer: null });
     },
 
     newPerformanceWorkspace: async () => {
@@ -638,6 +640,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
         sequencerInstruments: [],
         ...initialMixerState(),
+        savedPerformanceSequencer: null,
         currentPerformanceId: null,
         performanceName: "new performance",
         performanceDescription: "new performance",
@@ -803,8 +806,13 @@ export const useAppStore = create<AppStore>((set, get) => {
           : await api.createPerformance(payload);
         const performances = await api.listPerformances();
 
+        if (get().performanceWorkspaceGeneration !== state.performanceWorkspaceGeneration) {
+          set({ performances });
+          return;
+        }
         set({
           performances,
+          savedPerformanceSequencer: state.sequencer,
           currentPerformanceId: saved.id,
           performanceName: saved.name,
           performanceDescription: saved.description,

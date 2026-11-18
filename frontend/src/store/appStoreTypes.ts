@@ -109,6 +109,8 @@ export interface AppStore {
   refreshPerformanceControllers: (sessionId: string) => Promise<void>;
   ensureMaster: () => string;
 
+  /** Last explicitly loaded or saved instrument pad contents, for session-only save feedback. */
+  savedPerformanceSequencer: SequencerState | null;
   currentPerformanceId: string | null;
   /** UI lifetime only; excludes ordinary saves, edits and transport ticks. */
   performanceWorkspaceGeneration: number;

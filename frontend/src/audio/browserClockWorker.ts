@@ -137,6 +137,8 @@ class BrowserClockWorkerRuntime {
         this.sendJson(message.request);
         return;
       case "manual_midi":
+        // A release already in the message queue can arrive after its session's socket closed.
+        if (this.socket?.readyState !== WebSocket.OPEN) return;
         if (message.activity?.activity !== false) {
           const source = message.activity?.source ?? ("source_id" in message.midi && message.midi.source_id
             ? `piano:${message.midi.source_id}` : "browser");

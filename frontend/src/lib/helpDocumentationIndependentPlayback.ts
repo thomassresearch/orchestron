@@ -7,6 +7,8 @@ With Manual pads, Play repeats the pad selected for editing from its beginning. 
 
 If Arranger Play starts stopped instruments, Arranger Stop also stops them. Instruments already running before Play remain running until manually stopped.
 
+In the workspace preview, open Live and Keyboard to hold a chord while launching pads. On a phone use a second finger on the compact launcher. Edit opens the physical pad. Save Performance stores direct pad edits.
+
 Groups and supergroups play through their speaker preview or workspace Play. Device Play follows Playback source. The arranger cursor and global Play indicator stay stopped during independently started playback. These rules include controller sequencers and Arranger-mode arpeggiators; Live arpeggiators retain their behavior. Arpeggiators still require input notes.`,
   german: `### Ein Pattern mit Begleitspuren entwickeln
 
@@ -15,6 +17,8 @@ Play am Gerät startet nur dieses Gerät und bei Bedarf die Instrument-Engine. B
 Bei Manuellen Pads wiederholt Play das zum Bearbeiten ausgewählte Pad von Anfang an. Während der Wiedergabe wählt ein Klick auf ein anderes Pad dieses zum Bearbeiten aus und merkt es für das Ende des aktuellen Patterns vor. Das vorgemerkte Pad hat eine orange Umrandung; beim Wiedergabewechsel wird sie blaugrün. Ein Klick auf das spielende Pad hebt die Vormerkung auf. Im Stopp oder mit Arrangement wählen Pad-Klicks nur zum Bearbeiten aus. Manuelle Wiedergabe behält ihre Phase bei Positionssprüngen, Loops und am Songende. Arranger-Play startet alle Arrangement-Geräte und lässt laufende manuelle Pads weiterspielen. Arranger-Stop stoppt die Begleitspuren und beendet temporäres Vorhören und Workspace-Wiedergabe; unabhängig laufende manuelle Pads bleiben aktiv. Geräte-Stop betrifft nur dieses Gerät. Ein Wechsel der Wiedergabequelle während des Abspielens betrifft ebenfalls nur dieses Gerät.
 
 Wenn Arranger-Play die gestoppten Instrumente startet, stoppt Arranger-Stop auch diese. Bereits vor Play laufende Instrumente laufen weiter, bis sie manuell gestoppt werden.
+
+In der Arbeitsbereich-Vorschau kannst du unter Live die Klaviatur öffnen und beim Starten von Pads einen Akkord halten. Tippe auf dem Smartphone mit einem zweiten Finger auf den kompakten Launcher. Bearbeiten öffnet das Geräte-Pad. Performance speichern sichert direkte Pad-Änderungen.
 
 Gruppen und Supergruppen lassen sich über ihren Lautsprecher oder Workspace-Play anhören. Geräte-Play folgt der Wiedergabequelle. Bei unabhängig gestarteter Wiedergabe bleiben Arranger-Cursor und globale Play-Anzeige gestoppt. Dies gilt auch für Controller-Sequencer und Arpeggiatoren im Arranger-Modus; Live-Arpeggiatoren behalten ihr Verhalten. Arpeggiatoren benötigen weiterhin Eingangsnoten.`,
   french: `### Développer un motif avec un accompagnement
@@ -25,6 +29,8 @@ Avec Pads manuels, Play répète depuis son début le pad sélectionné pour l'�
 
 Si Play de l’arrangeur démarre les instruments arrêtés, Stop les arrête aussi. Les instruments déjà en marche avant Play continuent jusqu’à leur arrêt manuel.
 
+Dans l’aperçu de l’espace de travail, ouvrez le clavier dans Live pour tenir un accord tout en lançant des pads. Sur téléphone, touchez le lanceur compact avec un deuxième doigt. Modifier ouvre le pad de l’appareil. Enregistrer la performance conserve les modifications directes du pad.
+
 Les groupes et supergroupes se jouent avec leur haut-parleur ou Play de l'atelier. Play de l'appareil suit sa source. Le curseur et l'indicateur Play global restent arrêtés pendant la lecture indépendante. Ces règles incluent les séquenceurs contrôleur et les arpégiateurs en mode Arrangeur ; le mode Live reste inchangé. Les arpégiateurs nécessitent toujours des notes d'entrée.`,
   spanish: `### Desarrollar un patrón con acompañamiento
 
@@ -33,6 +39,8 @@ Play en un dispositivo inicia solo ese dispositivo y, si hace falta, el motor de
 Con Pads manuales, Play repite desde el principio el pad seleccionado para editar. Durante la reproducción, hacer clic en otro pad lo selecciona para editar y lo pone en cola hasta el final del patrón actual. El pad en cola tiene un borde naranja, que pasa a azul verdoso cuando empieza a sonar. Hacer clic en el pad que suena cancela la cola. Con el dispositivo detenido o con Arreglo, los clics solo seleccionan el pad para editar. La reproducción manual conserva su fase durante saltos, bucles y finales del tema. Play del arreglador inicia todos los dispositivos Arreglo y conserva los pads manuales en marcha. Stop del arreglador detiene el acompañamiento y las escuchas/espacios de trabajo temporales, conservando la reproducción manual independiente. Stop de un dispositivo afecta solo a ese dispositivo. Cambiar la fuente durante la reproducción afecta solo a ese dispositivo.
 
 Si Play del arreglador inicia los instrumentos detenidos, Stop también los detiene. Los instrumentos que ya estaban en marcha antes de Play siguen hasta detenerlos manualmente.
+
+En la vista previa del espacio de trabajo, abre el teclado en En vivo para mantener un acorde mientras lanzas pads. En el teléfono, toca el lanzador compacto con un segundo dedo. Editar abre el pad del dispositivo. Guardar interpretación conserva los cambios directos del pad.
 
 Los grupos y supergrupos se escuchan con su altavoz o Play del espacio de trabajo. Play del dispositivo sigue su fuente. El cursor y el indicador Play global permanecen detenidos durante la reproducción independiente. Estas reglas incluyen los secuenciadores controladores y arpegiadores en modo Arreglador; Live conserva su comportamiento. Los arpegiadores siguen necesitando notas de entrada.`
 };

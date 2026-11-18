@@ -119,7 +119,7 @@ interface UseSequencerRuntimeControllerResult {
   queueSequencerPadRuntime: (sessionId: string, trackId: string, padIndex: number | null) => Promise<SessionSequencerStatus>;
   resolveSequencerSessionId: () => string | null;
   runtimeAudioOutputMode: SessionAudioOutputMode | null;
-  sendAllNotesOff: (channel: number) => void;
+  sendAllNotesOff: (channel: number) => Promise<void>;
   sendDirectMidiEvent: (payload: SessionMidiEventRequest, sessionIdOverride?: string, activity?: ManualMidiActivity) => Promise<void>;
   sequencerRef: MutableRefObject<SequencerState>;
   stopSequencerTransport: (resetPlayhead: boolean) => Promise<void>;
@@ -1256,11 +1256,10 @@ export function useSequencerRuntimeController({
   );
 
   const sendAllNotesOff = useCallback(
-    (channel: number): void => {
-      void sendDirectMidiEvent({ type: "all_notes_off", channel }).catch(() => {
+    (channel: number) =>
+      sendDirectMidiEvent({ type: "all_notes_off", channel }).catch(() => {
         // Ignore best-effort all-notes-off failures during panic.
-      });
-    },
+      }),
     [sendDirectMidiEvent]
   );
 

@@ -31,6 +31,25 @@ it("keeps fractional-beat clip loop bounds through playback compilation and relo
   expect(buildSequencerPlaybackRange(clipRuntimeView(restored), "runtime", true)).toEqual(range);
 });
 
+it("round-trips independent Manual devices beside an Arrangement lane", () => {
+  const actions = useAppStore.getState();
+  actions.addSequencerTrack();
+  actions.addDrummerSequencerTrack();
+  actions.addControllerSequencer();
+  actions.addArpeggiator();
+  addScoreTrack("Live score");
+  const state = structuredClone(useAppStore.getState().sequencer);
+  const laneId = state.clipArrangement!.lanes[0].id;
+  for (const key of Object.values(sourceKeys)) {
+    for (const device of state[key]) device.padLoopEnabled = false;
+  }
+  const restored = parseSequencerConfigSnapshot(buildSequencerConfigSnapshot(state, []), [], null).sequencer;
+  for (const key of Object.values(sourceKeys)) {
+    expect(restored[key].length).toBe(state[key].length);
+    for (const device of restored[key]) expect(device.padLoopEnabled).toBe(device.id === laneId);
+  }
+});
+
 it("keeps real melodic edits out of authored data and runtime until scoped save", () => {
   const before = structuredClone(useAppStore.getState().sequencer), lane = before.clipArrangement!.lanes[0], clip = lane.clips[0];
   openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 });
