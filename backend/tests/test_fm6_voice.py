@@ -7,14 +7,14 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from backend.app.models.fm6 import FM6_DATA, FM6_PRESETS
+from backend.app.models.fm6 import FM6_DATA, FM6_PRESETS, fm6_voice
 from backend.app.models.patch import NodeInstance
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_render_resources import analyze_render_resources
 from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.tests.csound_test_support import load_patch_fixture
-from backend.tests.guitar_audio_support import compile_guitars, note_events, render, rms
+from backend.tests.guitar_audio_support import compile_guitars, fundamental, note_events, render, rms
 
 
 def patch(custom=None):
@@ -33,7 +33,7 @@ def audition(p=None, settings=None, notes=None, seconds=1.2, mode='host', ksmps=
 
 @pytest.mark.parametrize('key,value', [('algorithm', 0), ('algorithm', 1.5), ('feedback', 101),
     ('op1_ratio', 0), ('op6_level', float('inf')), ('op3_attack', 0), ('op2_enabled', 2),
-    ('op4_sustain', 'hello'), ('op5_detune', -101), ('ipreset', 1.5), ('ipreset', 13)])
+    ('op4_sustain', 'hello'), ('op5_detune', -101), ('ipreset', 1.5), ('ipreset', len(FM6_PRESETS) + 1)])
 def test_invalid_voice_rejected_at_model_boundary(key, value):
     with pytest.raises(ValidationError, match='FM6'):
         NodeInstance(id='fm', opcode='fm6_voice', params={key: value}, position={'x': 0, 'y': 0})
@@ -41,9 +41,15 @@ def test_invalid_voice_rejected_at_model_boundary(key, value):
 
 def test_bank_is_stable_and_routing_is_acyclic():
     # Existing preset IDs AND sound definitions are a persistence contract.
-    digest = hashlib.sha256(json.dumps(FM6_PRESETS, sort_keys=True).encode()).hexdigest()
+    digest = hashlib.sha256(json.dumps(FM6_PRESETS[:12], sort_keys=True).encode()).hexdigest()
     assert digest == 'f9008de934692cc8574cecad0795bff1a62fe32ec4fb56020b2065ffa895d472'
-    assert [p['id'] for p in FM6_PRESETS] == list(range(1, 13))
+    extension_digest = hashlib.sha256(json.dumps(FM6_PRESETS[12:24], sort_keys=True).encode()).hexdigest()
+    assert extension_digest == 'a3d769adab95a2a796d6df737d7a57b24a47cde064944dee276dbc89a51ceef3'
+    effects_digest = hashlib.sha256(json.dumps(FM6_PRESETS[24:32], sort_keys=True).encode()).hexdigest()
+    assert effects_digest == '4ed5f2d5301cd75b78334ae1c886a93c25c5ae71e7e1d536c24a0ac8fa57ea65'
+    assert [p['id'] for p in FM6_PRESETS] == list(range(1, 33))
+    for preset in FM6_PRESETS:
+        assert fm6_voice(preset['voice']) == preset['voice']
     for algorithm in FM6_DATA['algorithms']:
         assert all(1 <= target < source <= 6 for source, target in algorithm['edges'])
         assert set(algorithm['outputs']) == set(range(1, 7)) - {s for s, _ in algorithm['edges']}
@@ -74,7 +80,7 @@ def test_continuous_and_legato_are_rejected():
     assert 'midi_legato' in str(error.value.diagnostics)
 
 
-@pytest.mark.parametrize('preset', range(1, 13))
+@pytest.mark.parametrize('preset', [p['id'] for p in FM6_PRESETS])
 def test_presets_sound_and_finish_release(preset):
     voice = FM6_PRESETS[preset - 1]['voice']
     seconds = .32 + max(voice[f'op{i}_release'] for i in range(1, 7)) + .15
@@ -136,6 +142,26 @@ def test_feedback_belongs_to_operator_six_and_is_voice_local():
     np.testing.assert_allclose(combined, audition(p, notes=notes) + audition(p, notes=other), atol=1e-10)
 
 
+def test_crosswind_swells_and_uses_feedback_during_the_held_note():
+    notes = [(.05, 43, 110, 2.5)]
+    wind = audition(settings={'fm6_preset': 25}, notes=notes, seconds=3.8)[:, 0]
+    without_feedback = audition(patch(FM6_PRESETS[24]['voice'] | {'ifeedback': 0}),
+                                notes=notes, seconds=3.8)[:, 0]
+    sustained = slice(72000, 96000)
+    assert rms(wind[sustained]) > 3 * rms(wind[3360:6720])
+    assert rms(wind[sustained] - without_feedback[sustained]) > .1 * rms(wind[sustained])
+
+
+def test_brake_drum_has_inharmonic_partials_after_the_strike():
+    drum = audition(settings={'fm6_preset': 28}, notes=[(.05, 57, 110, 2)], seconds=2.1)[:, 0]
+    ring = drum[12000:24000]
+    power = abs(np.fft.rfft(ring * np.hanning(len(ring)))) ** 2
+    harmonic_number = np.fft.rfftfreq(len(ring), 1 / 48000) / 220
+    between_harmonics = abs(harmonic_number - np.rint(harmonic_number)) > .1
+    assert power[between_harmonics].sum() > .2 * power.sum()
+    assert rms(ring) > 3 * rms(drum[72000:84000])
+
+
 def test_block_sizes_preserve_sample_feedback_and_release():
     p = patch(steady_voice(4) | {'feedback': 70})
     reference = audition(p, ksmps=1)
@@ -181,3 +207,24 @@ def test_velocity_brightness_envelope_scales_gain_and_tuning():
     spectrum = abs(np.fft.rfft(detuned[9600:33600, 0] * np.hanning(24000)))
     frequency = np.argmax(spectrum) * 2
     assert frequency == pytest.approx(880 * 2 ** (100 / 1200), abs=2)
+
+
+@pytest.mark.parametrize('preset', range(13, 21))
+def test_bass_bank_has_tuned_low_end_velocity_response_and_short_release(preset):
+    notes = [(.08 + i, note, 110, .65) for i, note in enumerate([28, 36, 40, 48, 52])]
+    audio = audition(settings={'fm6_preset': preset}, notes=notes, seconds=5.2)
+    assert np.isfinite(audio).all() and .005 < abs(audio).max() < .5
+    for start, note, _, _ in notes:
+        expected = 440 * 2 ** ((note - 69) / 12)
+        body = audio[round((start + .2) * 48000):round((start + .6) * 48000), 0]
+        assert rms(body) > .001
+        measured = fundamental(body, expected)
+        assert abs(1200 * np.log2(measured / expected)) < 20, (preset, note, measured)
+        # A useful bass needs actual energy at the played fundamental, not only upper partials.
+        spectrum = abs(np.fft.rfft(body * np.hanning(len(body)))) ** 2
+        frequencies = np.fft.rfftfreq(len(body), 1 / 48000)
+        assert spectrum[abs(frequencies - expected) < 5].sum() / spectrum.sum() > .05
+    soft = audition(settings={'fm6_preset': preset}, notes=[(.08, 36, 40, .65)])
+    hard = audition(settings={'fm6_preset': preset}, notes=[(.08, 36, 110, .65)])
+    assert rms(hard) > rms(soft) * 1.05
+    assert abs(audio[-2400:]).max() < 1e-9

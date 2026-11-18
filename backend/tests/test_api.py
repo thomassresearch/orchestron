@@ -11173,7 +11173,7 @@ def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path,
     patch = load_patch_fixture('almost_dx7')
     next(n for n in patch.graph.nodes if n.id == 'fm6').params.update({'algorithm': 6, 'op3_ratio': 1.414, 'feedback': 37})
     bundle = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={'id'})).model_dump(mode='json', by_alias=True)
-    values = {'fm6_preset': 12, 'fm6_brightness': 68, 'fm6_release': 2}
+    values = {'fm6_preset': 32, 'fm6_brightness': 68, 'fm6_release': 2}
     config = dict(version=22, instruments=[dict(id='fm', patchId=patch.id, midiChannel=1, performanceControllerValues=values)],
                   audioGraph=dict(masterId='$master', routes=[dict(id=side, sourceId='fm', sourcePort=side, targetId='$master', targetPort=side) for side in ('left', 'right')]))
     payload = _performance_csd_export_payload()
@@ -11191,11 +11191,12 @@ def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path,
         assert restored['graph'] == bundle['graph']
         controller = next(c for c in restored['performance_controllers'] if c['node_id'] == 'fm6_preset')
         assert controller['controller_type'] == 'integer' and controller['update_mode'] == 'init'
+        assert controller['min'] == 1 and controller['max'] == 32
         session = client.post('/api/sessions', json={'instruments': [dict(id='fm', patch_id=patch.id, midi_channel=1, performance_controller_values=values)]})
         assert session.status_code == 201, session.text
         compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
         assert compiled.status_code == 200, compiled.text
-        assert compiled.json()['manifest']['performanceControllers']['fm']['fm6_preset']['value'] == 12
+        assert compiled.json()['manifest']['performanceControllers']['fm']['fm6_preset']['value'] == 32
         assert compiled.json()['orc'].count('opcode vcs_fm6_voice,') == 1
         native = client.post('/api/bundles/export/performance', json=performance)
         assert native.status_code == 200, native.text

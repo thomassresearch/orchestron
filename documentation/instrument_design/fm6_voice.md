@@ -12,7 +12,7 @@ Each new note reads the performance controls; held notes retain their original s
 
 | Control | Range | Default | Use |
 | --- | --- | --- | --- |
-| Preset | 1–12, integer | 1 | Select a starter sound below. |
+| Preset | 1–32, integer | 1 | Select a starter sound below. |
 | Brightness | 0–200% | 100% | Scale modulation between operators. |
 | Attack | 0.25–4× | 1× | Multiply all six attack times. |
 | Release | 0.25–4× | 1× | Multiply all six release times. |
@@ -33,8 +33,59 @@ Each new note reads the performance controls; held notes retain their original s
 | 10 | Evolving Pad | 2 |
 | 11 | Metallic Lead | 4 |
 | 12 | Shimmer Keys | 6 |
+| 13 | Solid Sub Bass | 7 |
+| 14 | Rubber Synth Bass | 3 |
+| 15 | Fingered FM Bass | 7 |
+| 16 | Picked FM Bass | 1 |
+| 17 | Fretless FM Bass | 2 |
+| 18 | Octave Slap Bass | 7 |
+| 19 | Hollow Square Bass | 6 |
+| 20 | Growl Bass | 3 |
+| 21 | FM Clavinet | 1 |
+| 22 | Metallic Tom | 7 |
+| 23 | Wire Snare | 7 |
+| 24 | Space Chime | 2 |
+| 25 | Crosswind | 2 |
+| 26 | Whistling Draft | 7 |
+| 27 | Anvil Strike | 1 |
+| 28 | Brake Drum | 5 |
+| 29 | Sheet Metal Crash | 2 |
+| 30 | Scanner Blip | 3 |
+| 31 | Reactor Startup | 4 |
+| 32 | Alien Transmission | 5 |
+
+Presets **13–20** add eight bass voices. Start around **E1–E3** (MIDI 28–52).
+Solid Sub Bass emphasizes the fundamental; Rubber Synth Bass has a short, elastic
+attack; Fingered and Picked FM Bass offer rounded and sharper attacks. Fretless FM
+Bass blooms more slowly, Octave Slap Bass adds a bright octave transient, Hollow
+Square Bass emphasizes odd harmonics, and Growl Bass has a rougher sustained body.
+Velocity changes both weight and brightness. Use shorter Release for tight sequences.
+
+FM Clavinet is a short rhythmic pluck. Metallic Tom and Wire Snare are synthesized
+percussion: their pitch follows the played note, so try different octaves. Space
+Chime uses inharmonic ratios and slower modulation for a ringing effect. All remain
+dry. Existing presets **1–12** retain their original sounds and numbers.
+
+![FM6 voice editor displaying the new Growl Bass preset](../../screenshots/fm6_bass_presets.png)
 
 Preset numbers are also listed in the instrument description and opcode **?** help.
+
+For **wind**, hold a low note on **25 Crosswind** for two or three seconds. Two
+stacks swell at different speeds, with strong operator-6 feedback roughening one
+layer. **26 Whistling Draft** adds two close pitches that beat over the air sound.
+To hear what feedback contributes, compare Crosswind with **Feedback override**
+set to **0** and then **−1** (the preset value), retriggering the note each time.
+
+For **metallic hits**, **27 Anvil Strike** has a short, hard attack. **28 Brake
+Drum** rings longer, with four modulators at different non-integer ratios and a
+fifth adding feedback to the attack. **29 Sheet Metal Crash** spreads the strike
+across two stacks for a broader rattle. Try the same note softly and then hard.
+
+For **sci-fi sounds**, tap **30 Scanner Blip** for a fast burst that loses its
+upper frequencies. Hold **31 Reactor Startup** for at least two seconds to let
+successive modulators bring the low hum to a buzz. **32 Alien Transmission**
+uses two pairs of close modulator ratios for a flickering tone. All eight effects
+come from the six operators and their envelopes. Their tails are part of the dry voice.
 
 ![Almost DX7 audition with its integer preset selector and performance controls](../../screenshots/almost_dx7_audition.png)
 

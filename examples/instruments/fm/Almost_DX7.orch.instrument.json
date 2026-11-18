@@ -1,7 +1,7 @@
 {
   "sourcePatchId": "283de422-73e2-4e84-b967-1c3a0171224e",
   "name": "Almost DX7",
-  "description": "Dry six-operator FM/PM synthesizer with eight algorithms. Preset is an integer performance controller (1\u201312). 1: Tine Piano; 2: Soft Electric Piano; 3: FM Bass; 4: Slap Bass; 5: Glass Bell; 6: Wooden Mallet; 7: Synth Brass; 8: Digital Organ; 9: Bright Pluck; 10: Evolving Pad; 11: Metallic Lead; 12: Shimmer Keys. Brightness, Attack, Release, Vibrato and Output affect new notes. Per-operator ADSRs and velocity response are inside FM6. Edit FM6 to design a custom voice; select preset 0 there and disconnect the preset controller (or extend its minimum to 0). Centered Stereo Output; add effects in mixer routing. 16 simultaneous voices. Inspired by 1980s FM, without DX7 patch/SysEx compatibility.",
+  "description": "Dry six-operator FM/PM synthesizer with eight algorithms. Preset is an integer performance controller (1–32). 1: Tine Piano; 2: Soft Electric Piano; 3: FM Bass; 4: Slap Bass; 5: Glass Bell; 6: Wooden Mallet; 7: Synth Brass; 8: Digital Organ; 9: Bright Pluck; 10: Evolving Pad; 11: Metallic Lead; 12: Shimmer Keys; 13: Solid Sub Bass; 14: Rubber Synth Bass; 15: Fingered FM Bass; 16: Picked FM Bass; 17: Fretless FM Bass; 18: Octave Slap Bass; 19: Hollow Square Bass; 20: Growl Bass; 21: FM Clavinet; 22: Metallic Tom; 23: Wire Snare; 24: Space Chime; 25: Crosswind; 26: Whistling Draft; 27: Anvil Strike; 28: Brake Drum; 29: Sheet Metal Crash; 30: Scanner Blip; 31: Reactor Startup; 32: Alien Transmission. Brightness, Attack, Release, Vibrato and Output affect new notes. Per-operator ADSRs and velocity response are inside FM6. Edit FM6 to design a custom voice; select preset 0 there and disconnect the preset controller (or extend its minimum to 0). Centered Stereo Output; add effects in mixer routing. 16 simultaneous voices. Inspired by 1980s FM, without DX7 patch/SysEx compatibility.",
   "isTemplate": false,
   "alwaysOn": false,
   "instrumentType": "melody",
@@ -43,7 +43,7 @@
         "params": {
           "label": "Preset",
           "min": 1,
-          "max": 12,
+          "max": 32,
           "default": 1,
           "controller_type": "integer",
           "scale": "linear",
@@ -75,7 +75,7 @@
         "id": "fm6_attack",
         "opcode": "perf_controller",
         "params": {
-          "label": "Attack \u00d7",
+          "label": "Attack ×",
           "min": 0.25,
           "max": 4,
           "default": 1,
@@ -92,7 +92,7 @@
         "id": "fm6_release",
         "opcode": "perf_controller",
         "params": {
-          "label": "Release \u00d7",
+          "label": "Release ×",
           "min": 0.25,
           "max": 4,
           "default": 1,

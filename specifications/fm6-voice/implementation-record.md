@@ -8,13 +8,13 @@ tables, random streams or effects. Use `pan2` and normal Stereo Output routing.
 ## Persistent voice data
 
 `backend/app/data/fm6.json` is shared by Python and TypeScript. Its version-one
-bank owns algorithm routing, operator ranges, custom defaults and twelve presets.
+bank owns algorithm routing, operator ranges, custom defaults and 32 presets.
 Existing preset IDs and voice definitions are stable; append new entries rather
 than changing the sounds of saved performances. The regression test pins the
 bank digest. Intentional future bank expansion must retain existing entries.
 
 Node parameters store `algorithm`, `feedback` and `op1_…` through `op6_…` fields.
-The input `ipreset` selects custom parameters at 0 and bank entries at 1–12.
+The input `ipreset` selects custom parameters at 0 and bank entries at 1–32.
 Selecting a bank entry preserves custom parameters. Editing a bank voice copies
 its full effective definition to custom and selects 0. Graph connections/formulas
 still take priority over stored port values; the editor explains this precedence.
@@ -58,7 +58,7 @@ controls stay visible. Applied graph edits follow existing audition-restart rule
 
 Almost DX7 is a separate additive example with six stable performance controller
 IDs: `fm6_preset`, `fm6_brightness`, `fm6_attack`, `fm6_release`, `fm6_vibrato`,
-`fm6_gain`. Preset is integer 1–12; all controls have initialization update mode.
+`fm6_gain`. Preset is integer 1–32; all controls have initialization update mode.
 The graph contains MIDI pitch/normalized velocity, FM6, centered pan, Stereo Output
 and a 16-voice allocation limit. Effects belong in external mixer routing.
 Tests read the independent versioned fixture, never developer examples.
@@ -83,3 +83,25 @@ including Python PCM copying on the development Mac; it is not a deployment guar
 
 The Docker frontend target, full image and a browser-driven isolated native audition
 were also checked. User documentation is in `documentation/instrument_design/fm6_voice.md`.
+
+## Bass and percussion bank extension
+
+Presets 13–20 add Solid Sub Bass, Rubber Synth Bass, Fingered FM Bass, Picked FM
+Bass, Fretless FM Bass, Octave Slap Bass, Hollow Square Bass and Growl Bass. Presets
+21–24 add FM Clavinet, Metallic Tom, Wire Snare and Space Chime. They use the existing
+sine/feedback engine without new synthesis features. Tests retain the original
+1–12 digest and cover every preset's output/tail. Bass tests cover E1–E3, measured
+fundamental pitch and energy, velocity response and release. The supplied selector
+range extends to 24; controller IDs and defaults are unchanged.
+
+The extension was rendered at 48 kHz with velocity accents, low bass phrases and
+complete release tails, followed by minimum/default/maximum macro checks on Growl
+Bass, Wire Snare and Space Chime. Samples remained finite and below clipping, dry
+stereo channels matched, and tails reached silence. The 41.15-second bank render's
+Mel and logarithmic STFT views were inspected: bass fundamentals remain prominent,
+attacks differ in harmonic content, and the percussion/chime voices have distinct
+short and long decays. This remains numerical/visual validation, not listening.
+
+Presets 25–32 use the existing dry voice for wind, metallic percussion and sci-fi
+sounds. Regression tests check the contribution of feedback to sustained Crosswind
+and measure energy between harmonics during Brake Drum's decay.

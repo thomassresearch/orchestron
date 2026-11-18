@@ -18,7 +18,7 @@ For processors that receive audio from another instrument, see [Standard Effects
 
 ## More instrument examples
 
-[Almost DX7](../instrument_design/fm6_voice.md) is a dry six-operator FM instrument with twelve starter sounds and an integer preset selector. Its FM6 editor provides eight algorithms, per-operator ADSRs and operator-6 feedback.
+[Almost DX7](../instrument_design/fm6_voice.md) is a dry six-operator FM instrument with 32 starter sounds and an integer preset selector. Presets 13–20 add sub, rubber, fingered, picked, fretless, slap, hollow and growling basses. Presets 25–32 range from sustained wind to metallic strikes and sci-fi signals. Its FM6 editor provides eight algorithms, per-operator ADSRs and operator-6 feedback.
 
 The [Analog Drumkit](../../examples/instruments/analog_drumkit/README.md) has shared
 **BD snappiness** for notes 35/36, shared **Hi-hat tuning** for 42/46, and **Snare

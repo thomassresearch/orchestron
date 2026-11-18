@@ -17709,9 +17709,9 @@
   {
     "name": "fm6_voice",
     "category": "fm",
-    "description": "Dry six-operator FM voice with eight algorithms, independent ADSRs, operator-6 feedback and twelve starter presets. Open FM6 to edit the custom voice.",
+    "description": "Dry six-operator FM voice with eight algorithms, independent ADSRs, operator-6 feedback and 32 starter presets. Open FM6 to edit the custom voice.",
     "documentation_url": "https://csound.com/docs/manual/opcode.html",
-    "documentation_markdown": "### FM6\n\nOrchestron embedded UDO: six sine operators, eight routings, twelve starter presets and a dry mono output. Use the FM6 editor to design a voice. Preset 0 selects your custom voice. Note settings apply to new notes; draft audition requires restart after editing.",
+    "documentation_markdown": "### FM6\n\nOrchestron embedded UDO: six sine operators, eight routings, 32 starter presets and a dry mono output. Use the FM6 editor to design a voice. Preset 0 selects your custom voice. Note settings apply to new notes; draft audition requires restart after editing.",
     "inputs": [
       {
         "id": "kfreq",
@@ -17740,7 +17740,7 @@
         "accepted_signal_types": [],
         "required": false,
         "default": 0,
-        "description": "0 = custom voice; 1–12 = stable FM6 starter bank. Sampled at note start."
+        "description": "0 = custom voice; 1–32 = stable FM6 starter bank. Sampled at note start."
       },
       {
         "id": "ibrightness",

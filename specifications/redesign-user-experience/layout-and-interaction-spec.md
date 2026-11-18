@@ -1,6 +1,6 @@
 # Workspace layout decisions and interaction rules
 
-Status: design direction recorded on 2026-11-14; application implementation has not started.
+Design direction chosen on 2026-11-14. Musician and producer workflow review updated on 2026-11-18.
 
 The user selected **arrangement above, editor below** after reviewing both vertical orders.
 This document records that decision and the interaction rules developed in the workspace
@@ -45,15 +45,16 @@ Session status and access to runtime diagnostics
 
 - Keep the song transport immediately above the arrangement. It includes the existing
   play/resume, pause, stop, seek, position, tempo and song-loop controls.
-- Keep the arrangement above the lower detail dock. Do not ship the study's vertical-order
-  selector, automatically swap the panes, or place the arrangement below the editor.
+- Use one pane order in both the study and the product. The arrangement sits above the
+  divider and the editor or keyboard sits below it. Restored sessions use the same order.
 - Opening or closing the dock changes the arrangement's available height while preserving
   its top edge, ruler and transport position. Preserve track and timeline scroll positions
   where the new scroll bounds allow.
 - The lower dock contains one focused editor or the keyboard at a time. Pattern, instrument
   and routing views are contextual destinations within that dock, not vertically stacked panels.
-- The optional inspector occupies the right side and has its own scrolling. It shows concise
-  properties of the current selection; it does not duplicate the full musical editor.
+- In Arrange, Live and Mix, the optional Inspector occupies a right-hand column spanning the
+  overview and dock. Opening it keeps the left edge of the working area fixed. Closing it
+  returns the full width to the overview and dock. Its properties scroll independently.
 - Keep engine start/stop distinct from song transport. Both remain reachable when panels close.
 
 The reason for this order is spatial stability during repeated clip selection and editing.
@@ -138,8 +139,11 @@ Show either the arrangement or the selected detail view, retain song transport, 
 an explicit way back to the arrangement. Keep the same conceptual hierarchy; do not reverse
 the vertical order to accommodate a small window.
 
-Use an Inspector drawer instead of stacking the full inspector above or below the timeline.
-Closing it restores focus to its trigger. Reduce less frequent chrome into the project menu
+The Inspector opens as a drawer from the right edge of the active pane. Opening it by button
+focuses its close control. Close or Escape returns focus to the Inspector button. Each view
+remembers its drawer separately from its desktop sidebar, so narrowing the window first leaves
+the working pane visible and widening it recovers the desktop layout.
+Reduce less frequent chrome into the project menu
 without removing access to save, library, Instrument Design, help or engine controls.
 
 Controls and text reflow; musical canvases retain local scrolling where needed. Do not shrink
@@ -154,7 +158,7 @@ real controls, translations, enlarged text and browser zoom before implementatio
 
 | Existing capability | Proposed home |
 | --- | --- |
-| Performance name, description, New/Load/Clone/Delete, native and CSD import/export | Project menu; retain visible identity and save status in the shell. |
+| Performance name, description, New/Load/Clone/Delete, native bundle import/export and CSD exports | Project menu with visible performance identity and save status in the shell. |
 | Instrument library and patch selection | Library browser and contextual pickers. |
 | Rack instances, patch/channel assignments, continuous instruments | Compact rack for selection; detailed rack management in Mix and contextual instance settings. |
 | Song order, fixed clip windows, nested content, rests, sections and transposition | Arrange timeline and contextual structural editing. Only Arrange edits song order. |
@@ -163,6 +167,7 @@ real controls, translations, enlarged text and browser zoom before implementatio
 | Pads, independent device play and Arrangement/Manual pads source choice | Live view, with selection, playing and queued states visibly distinct. |
 | Piano keyboard, chord controls and manual MIDI controls | Keyboard/detail view with explicit target and independent activation. |
 | Per-instance performance controls and CC mappings | Contextual Instrument view, retaining groups, control types and update-mode labels. |
+| Sample Player note maps | Open **Samples** from the selected rack instance in the Instrument dock. Show its MIDI channel, note, file, Preview and Stop preview together. |
 | Faders, pan/balance, meters, mute/solo, sends and inserts | Mix view with the pinned Master and clear Direct Audio Output indicators. |
 | Routing matrix, diagram, exact mappings and diagnostics | Mix routing view and contextual routing access. |
 | MIDI input, engine state, audio health, runtime errors and engine statistics | Compact persistent status plus accessible diagnostic detail; runtime failures remain visible. |
@@ -171,6 +176,31 @@ real controls, translations, enlarged text and browser zoom before implementatio
 The rack and contextual instrument controls operate on the same instances. Master remains
 the fixed output endpoint, with no library patch or rack slot. Moving controls between views
 does not change their ownership, routing, saved values or update timing.
+
+## Musician and producer walkthrough
+
+The fixed split addresses the long Perform page. The following recommendations come from
+walking through common tasks in the study against the current app's controls and screenshots.
+They are proposed product requirements. The walkthrough used a silent mock.
+
+| Task | Finding and proposed behavior | Acceptance scenario |
+| --- | --- | --- |
+| Get the first instrument playing | Today's **Add track** creates a first clip and pattern. Keep that shortcut in the empty timeline, followed by an instrument/channel picker with **Add instrument** when the rack is empty. Keep the existing keyboard within reach. [Current arranger](../../documentation/performance/multitrack_arranger.md) | From New, assign a sound, open its first pattern and hear it with **Play edit**, all from Arrange. |
+| Change the fill on the last chorus | The current editor names the audition target and shows the impact of a linked save. The study labels the project action **Save performance**. The pattern action shows **Save variation here** or **Save linked pattern (N uses)** according to its scope. Put **Play edit / Stop edit** beside the breadcrumb and show the auditioning lane on the timeline. [Current draft controls](../../screenshots/clip-arranger-edit-playback.png) · [Editing scope](../../documentation/performance/pattern_pads_and_pad_looper.md) | Loop the last chorus, audition a local drum fill against the bass, save it and verify the earlier chorus still uses its original fill. Repeat with linked scope and verify the displayed use count. |
+| Navigate or automate during playback | The study shows bar and beat at the transport. The existing position field also accepts precise master-beat seeks. Retain editable position, the audible playhead, and the song-loop extent on the ruler. Keep clip **Once/Loop** in the inspector. Edit a bound CC curve directly in its lane with the owning instrument and parameter visible. [Transport](../../documentation/performance/multitrack_arranger.md#play-and-jam) · [Automation](../../documentation/performance/instrument_automation.md) | Enter a seek position during playback, then adjust a filter sweep against the chorus without losing sight of the playhead. Changing the view preserves the song end and the curve draft. |
+| Jam over a running pattern | In the study, launching or selecting a pad preserves the open keyboard, its destination and held notes. A compact launcher shares the keyboard pane on narrow screens. **Edit** opens the selected device’s pad. Show the edit target, playing pad and queued pad separately, along with the device's source and launch boundary. [Pad workflows](../../documentation/performance/pattern_pads_and_pad_looper.md) · [Independent keyboard](../../documentation/performance/piano_rolls.md) | Hold a chord and queue the next Manual pad. The keyboard stays available, the current pad sounds until the device boundary, and a second launch is reachable on a narrow screen. |
+| Balance the track and trace a sound | The current mixer shows strip destinations, a pinned Master and a separate final Audio Output meter. The study opens Mix with the detail dock closed. Source and return strips scroll together. Master stays on the right and a separate stereo **Audio Output** meter sits below the bank. Keep live **Bypass** beside its insert. [Current mixer](../../screenshots/perform_mixer_sends_inserts_master.png) · [Routing](../../documentation/performance/audio_mixer_and_routing.md) | With a wide rack, lower Master. Identify a still-audible direct strip from its destination badge and the final meter. Adjust its fader or bypass an existing insert while the song runs. |
+| Set up two sample kits | **Samples** currently belongs to each Sample Player rack instance. The mock's general instrument controls omit the map. Preserve instance identity and routed preview in the dock. Keep assignments editable when instruments are stopped and inspection and preview available while they run. [Sample Player](../../documentation/performance/sample_player.md) | Give the same MIDI note different files on two instances. Preview each through its own strip, close Samples to end its preview, and return to the selected drum clip. |
+
+In musician sessions, watch for a missed second launch or a linked save that changes a previously
+approved passage. For the mixer walkthrough, use enough channels to scroll the bank while watching
+Master and final output.
+
+After a mixer adjustment, return to the same chorus occurrence, scroll position, draft and
+dock state in Arrange. Use the right-hand Inspector to check the occurrence while the track
+headers keep their left edge. In the next usability session, run the scenarios above on a laptop and
+repeat the pad-launch task with a narrow viewport. Observe forced view changes, missed launches
+and whether the player can identify what will sound or be saved before acting.
 
 ## Selection and panel interactions
 
@@ -185,7 +215,7 @@ does not change their ownership, routing, saved values or update timing.
 | Drag the divider or use its resize keys | Adjust the split within both panes' limits without changing selection, musical data, zoom, playback or save state. |
 | Expand editor | Temporarily give the editor the working area while preserving accessible song transport; restore the previous split on return. |
 | Close a panel | Retain its drafts and view state; close its menus, cancel active drags, and release held keyboard notes. |
-| Switch Arrange / Live / Mix | Retain performance, applicable selection and view state; do not implicitly save or discard edits. |
+| Switch Arrange / Live / Mix | Restore the destination's selection, open panels and scroll positions. Selecting the active view again leaves it in place. |
 
 Selection highlights, shared-definition relationship highlights, and actual multi-selection
 must be visually and behaviorally distinct. Preserve the existing nested-content selection,
@@ -199,10 +229,39 @@ Retain existing loading behavior: tracks start compact and the editor remains cl
 the restored clip/loop selection is visible. The study's initially open dock demonstrates
 editing and does not override that behavior.
 
+### Returning to a view
+
+Arrange, Live and Mix each remember where the musician was working during the current
+performance session. The study starts Arrange on Bass with its pattern and Inspector open,
+Live with the keyboard open, and Mix on the mixer with the dock closed. These defaults apply
+only on first entry.
+
+| View | What comes back |
+| --- | --- |
+| Arrange | The selected track, clip occurrence and editor selection, including a step, drum row or automation point. Restore Fit tracks and the timeline, editor and Inspector scroll positions. |
+| Live | The selected device and its editing pad, the launcher or open dock, and the device-list and dock scroll positions. Playing and queued indicators reflect the current device state. |
+| Mix | The selected strip or rack instance, the Mixer, Rack or Routing view, any open instrument control group, the channel-bank offset on both axes and the Master strip's own scroll position. |
+
+Every view remembers its compact rack, Inspector, open editor or keyboard, expanded editor,
+preferred split height and open property sections. A closed dock stays closed on return.
+Restore scroll after laying out the destination. If the available space or content has changed,
+use the nearest reachable position. Explicit actions such as **Manage rack** open their named
+destination. The ordinary view buttons always resume where the musician left off.
+
+The song cursor, transport, running devices, queued launches, mixer settings and musical drafts
+belong to the shared performance session. Returning to a view reads their current values.
+Leaving a keyboard releases held notes. Returning to it restores the controls without sounding
+those notes again.
+
 ## Editing scope, saving and audition
 
 - Show track/clip/pattern context, unsaved status, editing scope, Play edit and Save together
-  at the top of the editor. Keep scope visible before the first content-changing action.
+  at the top of the editor. The session mock starts each track with four occurrences sharing a
+  pattern. After saving a local variation, revisiting a sibling shows **Save linked pattern
+  (3 uses)**. A sole remaining use shows **Save pattern here**. The structure editor uses
+  **Save structure here** or **Save linked structure (N uses)**. In Live, **Save pad N**
+  targets the numbered pad of the device in the breadcrumb. **Save performance** keeps
+  uncommitted editor drafts available. Keep scope visible before the first content-changing action.
 - Preserve **Edit linked pattern** and **Create variation here** for musical editing, and the
   corresponding local/all-linked structural scope. Changing scope never commits content.
 - Preserve existing Save/Discard/Cancel conflict resolution, structural draft Undo/Redo,
@@ -227,9 +286,19 @@ own the detailed musical and transport behavior.
 In Live, distinguish the pad selected for editing from the playing pad and queued launch.
 Running Manual pads actions retain boundary-quantized launches; stopped or Arrangement-source
 pad clicks only select for editing. Device Play remains an explicit independent action.
-Preserve existing queued/playing colors and pair them with labels or indicators.
+Preserve existing queued/playing colors and pair them with labels or indicators. Queueing and
+applying a launch preserve the musician’s held chord, chosen MIDI destination and device settings.
+The compact keyboard pane includes a device picker, its eight pads, Play/Stop and Edit. The
+silent study advances launches through **Advance loop boundary**. The application uses the
+device’s musical clock.
 
-In Mix, selecting a strip reveals its controls and routing without altering the sound.
+In Mix, selecting a strip sets the target for its controls and routing. Open detail explicitly.
+Use a horizontal bank for instrument and return strips, a pinned Master strip on the right
+and a separate stereo Audio Output meter below both. Show the main destination on each strip.
+Master gain and mute act on paths routed to Master. The final meter includes direct paths after
+their own strip controls. In the study, play the song and mute Master. Cloud’s **Direct Audio
+Output** path still registers on the final meter. Muting Cloud as well brings it to silence.
+The meter readings are illustrative dBFS values driven by simulated activity, gain and routing.
 Keep live mixer controls available while rack/topology edits remain locked during instrument
 playback. Explain that lock beside the unavailable action and provide the existing explicit
 stop-to-edit path. Never stop the engine merely because a routing view was opened.
@@ -279,8 +348,11 @@ over preserving the desktop's density at every viewport size.
 5. Few tracks do not leave a reserved blank dock. Fit tracks changes only display geometry.
 6. Narrow/short windows use a usable single-pane view and inspector drawer, with a clear return
    to the arrangement and continued access to transport and project actions.
-7. Panel/view changes preserve drafts, authored playback and session state, applying the existing
-   audition lifecycle and releasing held notes where required.
+7. Leave a scrolled chorus editor with a pending step edit in Arrange, select a pad with the
+   keyboard open in Live, then select a strip and scroll its bank in Mix. Revisit all three.
+   Each recovers its selection, panels and offsets. The draft is still pending and the running
+   transport and pad show their current state. Repeat on a narrow screen with the Inspector
+   drawer open in just one view.
 8. Existing scope, save, conflict resolution, Undo/Redo, routing locks, independent transport,
    instance controls and export behavior remain intact.
 9. Keyboard-only, touch, translated-label and actual browser-zoom checks find no unreachable
@@ -291,9 +363,9 @@ over preserving the desktop's density at every viewport size.
 
 ## Study limitations and remaining decisions
 
-The saved [mock](orchestron-studio-study.html) retains historical comparison controls and
-simplifies editing, saving, Undo, routing, transport and audio. It illustrates placement and
-interaction intent. This document takes precedence where the mock differs.
+The saved [mock](orchestron-studio-study.html) demonstrates the fixed Arrange stack and its
+resizable dock. The walkthrough above identifies the remaining differences to evaluate with
+musicians. Editing, saving, Undo, routing and transport are simulated.
 
 Remaining design details are exact breakpoints and pane limits, other new shortcut assignments,
 whether display preferences survive reload, and the final compact runtime-status composition.

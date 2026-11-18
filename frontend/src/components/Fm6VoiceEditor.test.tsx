@@ -11,6 +11,24 @@ const node: NodeInstance = { id: "fm", opcode: "fm6_voice", params: { ipreset: 1
 const value = (label: string) => (screen.getByLabelText(label) as HTMLInputElement).value;
 
 describe("FM6 voice editor", () => {
+  it("offers all 32 presets and copies a browsed effects voice into Custom", () => {
+    const onSave = vi.fn();
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onSave={onSave} onClose={vi.fn()} />);
+    const selector = screen.getByLabelText("Preset") as HTMLSelectElement;
+    expect(selector.options).toHaveLength(33);
+    expect(selector.options[13].text).toBe("13 · Solid Sub Bass");
+    expect(selector.options[24].text).toBe("24 · Space Chime");
+    expect(selector.options[25].text).toBe("25 · Crosswind");
+    expect(selector.options[32].text).toBe("32 · Alien Transmission");
+    for (const id of [13, 20, 24, 25, 28, 32]) {
+      fireEvent.change(selector, { target: { value: String(id) } });
+      expect(value("Algorithm")).toBe(String(FM6.presets[id - 1].voice.algorithm));
+      expect(value("Level (%)")).toBe(String(FM6.presets[id - 1].voice.op1_level));
+    }
+    fireEvent.change(screen.getByLabelText("Ratio ×"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply to draft" }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ ...FM6.presets[31].voice, ipreset: 0, op1_ratio: 2 }));
+  });
   it.each(["english", "german", "french", "spanish"] as const)("edits a preset as Custom with all six operators in %s", language => {
     const copy = fm6Copy(language), onSave = vi.fn();
     render(<Fm6VoiceEditor node={node} language={language} drivenInputs={{}} onSave={onSave} onClose={vi.fn()} />);
