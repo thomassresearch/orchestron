@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactN
 import { api, isApiError } from "../api/client";
 import { audioCopy } from "../lib/audioCopy";
 import { groupRackInstruments, type RackInstrumentBindingRow } from "../lib/rackOrdering";
-import { MASTER, masterEndpoint, audioGraphDiagnostics, previewAudioFeedback, defaultStrip, mainPorts, newRoute, outputPorts, suggestedInterface } from "../lib/audioRouting";
+import { MASTER, masterEndpoint, audioGraphDiagnostics, previewAudioFeedback, defaultStrip, mainPorts, newRoute, outputPorts, stripDestinations, suggestedInterface } from "../lib/audioRouting";
 import { canBypassInsert, insertChain, wireInsertChain } from "../lib/insertRouting";
 import { meterSnapshot, subscribeMeters } from "../lib/mixerRuntime";
 import { buildSequencerConfigSnapshot, normalizeSessionInstrumentAssignments } from "../store/appStoreModel";
@@ -26,6 +26,12 @@ type RoutingValidation = {
 const field = "min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100";
 const diagnosticKeys: Record<string, Parameters<ReturnType<typeof audioCopy>>[0]> = { missing_patch: "missing", missing_master: "missing", broken_route: "brokenRoute", feedback: "feedback", no_output_path: "noOutput", no_audio_source: "noInput", parallel_output: "parallelOutput", incomplete_stereo: "incompleteStereo", unconnected_input: "unusedInput", unconnected_output: "unusedOutput" };
 const button = "rounded border border-slate-600 px-2 py-1 text-xs hover:bg-slate-700 disabled:opacity-40";
+export async function editMixerPatch(patchId: string) {
+  await useAppStore.getState().loadPatch(patchId);
+  const state = useAppStore.getState();
+  if (state.currentPatch.id === patchId && !state.error) state.setActivePage("instrument");
+}
+
 function Meter({ id, name }: { id: string; name: string }) {
   const value = useSyncExternalStore(subscribeMeters, () => meterSnapshot(id));
   const db = (gain: number) => gain > 0 ? Math.max(-60, 20 * Math.log10(gain)) : -60;
@@ -38,6 +44,21 @@ function Meter({ id, name }: { id: string; name: string }) {
     </div>)}
   </div>;
 }
+// A scrolled-out strip has no meter listener. Remounting reads the current engine snapshot.
+function VisibleMeter({ id, name }: { id: string; name: string }) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(() => typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    if (!viewport.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting && entry.intersectionRatio > 0), { threshold: [0, .001] });
+    observer.observe(viewport.current);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={viewport} className="ws-meter" data-meter-id={id}>
+    {visible && <Meter id={id} name={name} />}
+  </div>;
+}
+
 function Gain({ value, max = 12, label, onChange, onFinal, vertical = false, language }: { value: number | null; max?: number; label: string; onChange: (value: number | null) => void; onFinal: () => void; vertical?: boolean; language: GuiLanguage }) {
   const t = audioCopy(language);
   return <label className={`flex gap-2 ${vertical ? "flex-col items-center" : "items-center"}`}>
@@ -49,7 +70,9 @@ function Gain({ value, max = 12, label, onChange, onFinal, vertical = false, lan
       onChange={(e) => { const n = e.target.value === "" ? null : Number(e.target.value); if (n === null || Number.isFinite(n)) onChange(n === null ? null : Math.max(-60, Math.min(max, n))); }} onBlur={onFinal} /><span className="text-[10px] text-slate-400">dB</span></span>
   </label>;
 }
-function MixerBody({ onStop }: { onStop: () => void }) {
+export function MixerBody({ onStop, surface, onShowRouting }: {
+  onStop: () => void; surface?: "mixer" | "routing"; onShowRouting?: () => void;
+}) {
   const graph = useAppStore((s) => s.audioGraph);
   const mixer = useAppStore((s) => s.mixer);
   const bindings = useAppStore((s) => s.sequencerInstruments);
@@ -78,9 +101,13 @@ function MixerBody({ onStop }: { onStop: () => void }) {
   const [, setRoutingOpen] = usePerformanceEditorState("mixer", "details:routing", true);
   const [, setDiagramOpen] = usePerformanceEditorState("mixer", "details:diagram", false);
   const diagramRef = useRef<HTMLDivElement>(null);
-  const [reveal, setReveal] = useState(0);
-  useEffect(() => { if (reveal) diagramRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }); }, [reveal]);
-  const showFeedback = () => { setRoutingOpen(true); setDiagramOpen(true); setOnlyFeedback(true); setReveal(value => value + 1); };
+  const [reveal, setReveal] = usePerformanceEditorState("mixer", "revealFeedback", false);
+  useEffect(() => {
+    if (!reveal || !diagramRef.current) return;
+    diagramRef.current.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    setReveal(false);
+  }, [reveal, setReveal, surface]);
+  const showFeedback = () => { onShowRouting?.(); setRoutingOpen(true); setDiagramOpen(true); setOnlyFeedback(true); setReveal(true); };
   const affected = (routes: AudioRoute[]) => routes.some(r => feedbackRoutes.has(r.id));
   const feedbackBadge = <span className="block text-[10px] font-semibold text-rose-300">{t("feedbackBadge")}</span>;
   const [error, setError] = usePerformanceEditorState<string | null>("mixer", "error", null);
@@ -112,7 +139,7 @@ function MixerBody({ onStop }: { onStop: () => void }) {
   const setStrip = useAppStore((s) => s.setMixerStrip);
   const setSend = useAppStore((s) => s.setMixerSend);
   const flush = () => { void useAppStore.getState().flushMixer().catch((e: unknown) => setError(String(e))); };
-  const open = (id: string) => { const binding = bindings.find((b) => b.id === id); if (binding) void useAppStore.getState().loadPatch(binding.patchId).then(() => useAppStore.getState().setActivePage("instrument")); };
+  const open = (id: string) => { const binding = bindings.find((b) => b.id === id); if (binding) void editMixerPatch(binding.patchId); };
   const groups = useMemo(() => {
     const result = new Map<string, AudioRoute[]>();
     for (const r of graph.routes) {
@@ -143,9 +170,10 @@ function MixerBody({ onStop }: { onStop: () => void }) {
   };
   useEffect(() => {
     if (selected && !byId.has(selected)) { select(""); setSourcePort(""); }
+    if (sourcePort && !outputPorts(byId.get(selected)).includes(sourcePort)) setSourcePort("");
     if (target && target !== "$output" && !byId.has(target)) { setTarget(""); setTargetPort(""); }
     if (processor && !patches.some(patch => patch.id === processor)) setProcessor("");
-  }, [byId, patches, selected, target, processor, select, setSourcePort, setTarget, setTargetPort, setProcessor]);
+  }, [byId, patches, selected, sourcePort, target, processor, select, setSourcePort, setTarget, setTargetPort, setProcessor]);
   const add = () => {
     const sourceGroup = routingGroup(selected, "output");
     const targetGroup = routingGroup(target, "input");
@@ -210,34 +238,56 @@ function MixerBody({ onStop }: { onStop: () => void }) {
   };
   const strip = (id: string, row?: RackInstrumentBindingRow) => {
     const state = mixer.strips[id] ?? defaultStrip(); const patch = byId.get(id); const master = id === MASTER;
+    const owner = master ? "mixer" : `binding:${id}` as const;
     const assignment = row ? `${SEQUENCER_UI_COPY[language].patch(row.index + 1)} · ${patch?.always_on ? t("continuous") : `${t("midiChannelShort")} ${row.binding.midiChannel}`}` : undefined;
-    const direct = !master && patch?.has_direct_output && !graph.routes.some((r) => r.sourceId === id && r.sourcePort.startsWith("$direct") && r.kind === "main");
+    const destinations = stripDestinations(id, patch, graph);
+    const direct = !master && destinations.includes("$output");
+    const otherDestinations = destinations.filter(target => !direct || target !== "$output").map(name);
     const chain = insertChain(graph, id);
-    return <article key={id} data-feedback-instance={feedbackInstances.has(id) ? id : undefined} className={`w-52 shrink-0 rounded-lg border p-3 ${master ? "sticky right-0 z-10 ml-auto shadow-[-8px_0_16px_#020617]" : ""} ${feedbackInstances.has(id) ? "border-rose-500 bg-rose-950/20" : master ? "border-cyan-600 bg-slate-900" : selected === id ? "border-cyan-500 bg-slate-800" : "border-slate-700 bg-slate-900"}`}>
+    return <article key={id} data-mixer-strip={id} data-selected={selected === id || undefined} data-feedback-instance={feedbackInstances.has(id) ? id : undefined} className={`w-52 shrink-0 rounded-lg border p-3 ${master && !surface ? "sticky right-0 z-10 ml-auto shadow-[-8px_0_16px_#020617]" : ""} ${feedbackInstances.has(id) ? "border-rose-500 bg-rose-950/20" : master ? "border-cyan-600 bg-slate-900" : selected === id ? "border-cyan-500 bg-slate-800" : "border-slate-700 bg-slate-900"}`}>
       {feedbackInstances.has(id) && feedbackBadge}
       <div className="min-h-[15px] text-[10px] leading-[15px] text-slate-400">{assignment}</div>
-      <button className="w-full truncate text-left text-sm font-semibold" onClick={() => select(id)}>{name(id)}</button>
-      <div className="my-1 min-h-8 text-[10px] text-slate-400">{direct ? <span className="rounded border border-amber-600 px-1 text-amber-200">{t("direct")}</span> : [...new Set(graph.routes.filter((r) => r.sourceId === id && r.kind !== "insert").map((r) => name(r.targetId)))].join(", ") || (master ? t("audioOutput") : "—")}</div>
-      <Meter id={id} name={name(id)} />
+      <button className="w-full truncate text-left text-sm font-semibold" aria-pressed={selected === id} onClick={() => select(id)}>{name(id)}</button>
+      <div className="my-1 min-h-8 text-[10px] text-slate-400">{direct && <span className="mr-1 rounded border border-amber-600 px-1 text-amber-200">{t("direct")}</span>}{otherDestinations.join(", ") || (!direct && "—")}</div>
+      {surface ? <VisibleMeter id={id} name={name(id)} /> : <Meter id={id} name={name(id)} />}
       <label className="flex flex-col text-[10px] text-slate-400">{t("balance")}<span className="self-center"><MixerKnob label={`${name(id)} ${t("balance")}`} min={-1} max={1} step={0.01} value={state.balance} onChange={(balance) => setStrip(id, { balance })} onFinal={flush} /></span>
         <input aria-label={`${name(id)} ${t("balance")} value`} className={`${field} my-1 w-20 self-center text-center`} type="number" min={-1} max={1} step={0.01} value={state.balance} onChange={(e) => setStrip(id, { balance: Math.max(-1, Math.min(1, Number(e.target.value))) })} onBlur={flush} /></label>
       <Gain value={state.gainDb} label={t("gain")} vertical language={language} onChange={(gainDb) => setStrip(id, { gainDb })} onFinal={flush} />
       <div className="my-3 flex justify-center gap-2"><button className={`${button} ${state.mute ? "bg-rose-800" : ""}`} aria-pressed={state.mute} onClick={() => { setStrip(id, { mute: !state.mute }); flush(); }}>{t("mute")}</button>{!master && <button className={`${button} ${state.solo ? "bg-amber-700" : ""}`} aria-pressed={state.solo} onClick={() => { setStrip(id, { solo: !state.solo }); flush(); }}>{t("solo")}</button>}</div>
-      <EditorDetails owner={`binding:${id}`} field="inserts" className="text-xs" summary={<>{t("inserts")} · {chain?.length ?? t("custom")}</>}>{() => <>{insertRows(id)}</>}</EditorDetails>
+      <EditorDetails owner={owner} field="inserts" initiallyOpen={surface === "mixer" && !!chain?.length} className="text-xs" summary={<>{t("inserts")} · {chain?.length ?? t("custom")}</>}>{() => <>{insertRows(id)}</>}</EditorDetails>
       {groups.filter((rs) => rs[0].sourceId === id && rs[0].kind === "send").map((routes) => <div key={routes[0].id} data-feedback-routes={affected(routes) ? routes.filter(r => feedbackRoutes.has(r.id)).map(r => r.id).join(" ") : undefined} className={`mt-2 border-t pt-2 ${affected(routes) ? "border-rose-500 bg-rose-950/30" : "border-slate-700"}`}>{affected(routes) && feedbackBadge}<span className="text-xs">{t("send")} → {name(routes[0].targetId)}</span><Gain language={language} value={mixer.sends[routes[0].id]?.gainDb ?? null} max={6} label={t("gain")} onChange={(gainDb) => setSend(routes.map((r) => r.id), { gainDb })} onFinal={flush} /><select className={`${field} mt-1 w-full`} value={mixer.sends[routes[0].id]?.tap ?? "post"} onChange={(e) => { setSend(routes.map((r) => r.id), { tap: e.target.value as "pre" | "post" }); flush(); }}><option value="pre">{t("pre")}</option><option value="post">{t("post")}</option></select></div>)}
-      <EditorDetails owner={`binding:${id}`} field="additional" className="mt-2 text-[10px]" summary={<>{t("additional")}</>}>{() => <>{patch?.audio_interface?.groups.filter((g) => g.direction === "output").map((g) => <div key={g.id}>{g.name}: {g.ports.join(" / ")}</div>)}<div>{outputPorts(patch).join(" / ")}</div></>}</EditorDetails>
+      <EditorDetails owner={owner} field="additional" className="mt-2 text-[10px]" summary={<>{t("additional")}</>}>{() => <>{patch?.audio_interface?.groups.filter((g) => g.direction === "output").map((g) => <div key={g.id}>{g.name}: {g.ports.join(" / ")}</div>)}<div>{outputPorts(patch).join(" / ")}</div></>}</EditorDetails>
       {!master && <button className={`${button} mt-2`} onClick={() => { select(id); open(id); }}>{t("edit")}</button>}
       {!master && <button disabled={running} className={`${button} mt-1`} onClick={() => void throughMaster(id)}>{t("routeMaster")}</button>}
     </article>;
   };
-  return <> {notice && <div className="my-2 rounded border border-amber-800 p-2 text-xs text-amber-100">{t("migration")} <button className={button} onClick={() => useAppStore.setState({ migrationNotice: false })}>{t("dismiss")}</button></div>}{(error || syncError) && <div role="alert" className="my-2 text-xs text-rose-300">{error || syncError}</div>}<MixerFeedbackDiagnostics diagnostics={feedback} language={language} onShow={showFeedback} /><RetainedScroll owner="mixer" field="stripsScroll" className="my-3 flex gap-2 overflow-x-auto pb-2">{stripRows.map(row => strip(row.binding.id, row))}{strip(MASTER)}</RetainedScroll><div className="max-w-md text-xs">{t("audioOutput")}<Meter id="$output" name={t("audioOutput")} /></div>{running && <button className={button} onClick={onStop}>{t("stop")}</button>}<EditorDetails owner={"mixer"} field="routing" initiallyOpen className="mt-3 border-t border-slate-800 pt-2" summary={<>{t("routing")}</>}>{() => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
+  const warnings = <>{notice && <div className="my-2 rounded border border-amber-800 p-2 text-xs text-amber-100">{t("migration")} <button className={button} onClick={() => useAppStore.setState({ migrationNotice: false })}>{t("dismiss")}</button></div>}{(error || syncError) && <div role="alert" className="my-2 text-xs text-rose-300">{error || syncError}</div>}<MixerFeedbackDiagnostics diagnostics={feedback} language={language} onShow={showFeedback} /></>;
+  const routes = () => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
     <label className="flex flex-col text-xs">{t("source")}<select className={field} value={selected} disabled={running} onChange={(e) => { select(e.target.value); setSourcePort(""); }}><option value="">—</option>{endpoints.map((b) => <option key={b.id} value={b.id}>{name(b.id)}{b.id !== MASTER ? ` · ${b.id.slice(0, 4)}` : ""}</option>)}</select></label>
     <label className="flex flex-col text-xs">{t("destination")}<select className={field} value={target} disabled={running} onChange={(e) => { setTarget(e.target.value); setTargetPort(""); }}><option value="">—</option><option value="$output">{t("audioOutput")}</option>{endpoints.filter((b) => b.id !== selected && byId.get(b.id)?.audio_inlet_names.length).map((b) => <option key={b.id} value={b.id}>{name(b.id)}{b.id !== MASTER ? ` · ${b.id.slice(0, 4)}` : ""}</option>)}</select></label>
     <label className="text-xs"><input type="checkbox" checked={stereo} disabled={running} onChange={(e) => setStereo(e.target.checked)} /> Stereo</label>
     {!stereo && <><select aria-label={t("source")} className={field} value={sourcePort} disabled={running} onChange={(e) => setSourcePort(e.target.value)}><option value="">—</option>{outputPorts(byId.get(selected)).map((p) => <option key={p}>{p}</option>)}</select><span>→</span><select aria-label={t("destination")} className={field} value={targetPort} disabled={running} onChange={(e) => setTargetPort(e.target.value)}><option value="">—</option>{(target === "$output" ? ["left", "right"] : byId.get(target)?.audio_inlet_names ?? []).map((p) => <option key={p}>{p}</option>)}</select></>}
     <select aria-label={t("route")} className={field} disabled={running} value={purpose} onChange={(e) => setPurpose(e.target.value as typeof purpose)}><option value="main">{t("main")}</option><option value="send">{t("send")}</option><option value="custom">{t("custom")}</option></select>
     <button className={button} disabled={running || !selected || !target} onClick={add}>{t("add")}</button>
-  </div>{stereo && selected && target && <p className="mb-2 font-mono text-xs text-cyan-200">{t("mapping")}: {routingGroup(selected, "output")?.ports.join(" / ") ?? "?"} → {target === "$output" ? "left / right" : routingGroup(target, "input")?.ports.join(" / ") ?? "?"}</p>}<div className="flex flex-wrap gap-2"><select aria-label={t("inserts")} className={field} value={processor} disabled={running} onChange={(e) => setProcessor(e.target.value)}><option value="">{t("inserts")}…</option>{patches.filter((p) => p.always_on && p.audio_inlet_names.length && p.audio_outlet_names.length).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select><button className={button} disabled={running || !selected || !processor} onClick={insert}>{t("add")}</button></div><EditorDetails owner={"mixer"} field="matrix" className="mt-3" summary={<>{t("matrix")}</>}>{() => <>{[...new Set([...endpoints.map((b) => b.id), ...graph.routes.map((r) => r.targetId)])].map((id) => ({ id })).map((b) => <div key={b.id} className={`my-2 rounded border p-2 text-xs ${groups.some(rs => rs[0].targetId === b.id && affected(rs)) ? "border-rose-500" : "border-slate-800"}`}><button onClick={() => { setTarget(b.id); }}>{name(b.id)}</button>{groups.filter((rs) => rs[0].targetId === b.id).map((routes) => <EditorDetails owner={`route:${routes[0].id}`} field="matrix-channels" key={routes[0].id} className={`ml-3 ${affected(routes) ? "rounded border border-rose-500 p-1 text-rose-200" : ""}`} summary={<>{affected(routes) && feedbackBadge}{name(routes[0].sourceId)} → {name(b.id)} · {routes[0].kind} · {routes.length} ch <button className={button} disabled={running} onClick={() => removeRoutes(routes)}>{t("remove")}</button></>}>{() => <>{routes.map((r) => <div key={r.id} data-feedback-route={feedbackRoutes.has(r.id) ? r.id : undefined} className={`my-1 font-mono ${feedbackRoutes.has(r.id) ? "bg-rose-950/50" : ""}`}><select aria-label={t("source")} disabled={running} className={field} value={r.sourcePort} onChange={(e) => applyGraph({ ...graph, routes: graph.routes.map((row) => row.id === r.id ? { ...row, sourcePort: e.target.value } : row) })}>{[...new Set([r.sourcePort, ...outputPorts(byId.get(r.sourceId))])].map((p) => <option key={p}>{p}</option>)}</select> → <select aria-label={t("destination")} disabled={running} className={field} value={r.targetId} onChange={(e) => applyGraph({ ...graph, routes: graph.routes.map((row) => row.id === r.id ? { ...row, targetId: e.target.value } : row) })}>{[...new Set([r.targetId, "$output", ...endpoints.map((b) => b.id)])].map((id) => <option key={id} value={id}>{name(id)}</option>)}</select> <select aria-label={t("mapping")} disabled={running} className={field} value={r.targetPort} onChange={(e) => applyGraph({ ...graph, routes: graph.routes.map((row) => row.id === r.id ? { ...row, targetPort: e.target.value } : row) })}>{[...new Set([r.targetPort, ...(b.id === "$output" ? ["left", "right"] : r.targetStage === "strip" ? outputPorts(byId.get(b.id)) : byId.get(b.id)?.audio_inlet_names ?? [])])].map((p) => <option key={p}>{p}</option>)}</select></div>)}</>}</EditorDetails>)}</div>)}</>}</EditorDetails><EditorDetails owner={"mixer"} field="diagram" className="mt-3" summary={<>{t("diagram")}</>}>{() => <><div ref={diagramRef}>{feedback.length > 0 && <label className="my-2 block text-xs"><input type="checkbox" checked={onlyFeedback} onChange={e => setOnlyFeedback(e.target.checked)} /> {t("onlyFeedback")}</label>}<div className="flex flex-wrap gap-2 py-2">{groups.filter(routes => !onlyFeedback || !feedback.length || affected(routes)).map((routes) => <div key={routes[0].id} data-feedback-routes={affected(routes) ? routes.filter(r => feedbackRoutes.has(r.id)).map(r => r.id).join(" ") : undefined} className={`rounded border p-2 text-xs ${affected(routes) ? "border-rose-500 bg-rose-950/30 text-rose-100" : "border-slate-700"}`}>{affected(routes) && feedbackBadge}<button onClick={() => select(routes[0].sourceId)}>{name(routes[0].sourceId)}</button> → <button onClick={() => { select(routes[0].targetId); setTarget(routes[0].targetId); }}>{name(routes[0].targetId)}</button><EditorDetails owner={`route:${routes[0].id}`} field="diagram-channels" summary={<>{t("mapping")}</>}>{() => <>{routes.map((r) => <div key={r.id} data-feedback-route={feedbackRoutes.has(r.id) ? r.id : undefined}>{r.sourceStage}:{r.sourcePort} → {r.targetStage}:{r.targetPort} <button disabled={running} className={button} onClick={() => removeRoutes([r])}>×</button></div>)}</>}</EditorDetails></div>)}</div></div></>}</EditorDetails></>}</EditorDetails><EditorDetails owner={"mixer"} field="diagnostics" className="mt-3 border-t border-slate-800 pt-2" summary={<>{t("diagnostics")}</>}>{() => <><p className="my-2 text-xs text-slate-400">{t("structural")}</p><button className={button} onClick={() => void check()}>{t("validate")}</button>{currentValidation?.error && <div role="alert" className="my-2 text-xs text-rose-300">{currentValidation.error}</div>}{[...audioGraphDiagnostics(bindings, patches, graph), ...diagnostics].filter(d => d.code !== "feedback").map((d, i) => <button key={i} className={`my-1 block text-left text-xs ${d.severity === "error" ? "text-rose-300" : "text-amber-200"}`} onClick={() => { select(d.instanceId ?? ""); if (d.instanceId) open(d.instanceId); }}>{t(d.code === "invalid_insert_owner" ? "invalidInsertOwner" : d.code in diagnosticKeys ? diagnosticKeys[d.code] : "diagnostics")}: {d.code in diagnosticKeys ? d.instanceId ? name(d.instanceId) : "" : d.message}</button>)}{Object.entries(mixer.strips).filter(([, s]) => s.mute || s.gainDb === null).map(([id]) => <button key={id} className="my-1 block text-xs text-amber-200" onClick={() => select(id)}>{name(id)}: {t("silent")}</button>)}</>}</EditorDetails> </>;
+  </div>{stereo && selected && target && <p className="mb-2 font-mono text-xs text-cyan-200">{t("mapping")}: {routingGroup(selected, "output")?.ports.join(" / ") ?? "?"} → {target === "$output" ? "left / right" : routingGroup(target, "input")?.ports.join(" / ") ?? "?"}</p>}<div className="flex flex-wrap gap-2"><select aria-label={t("inserts")} className={field} value={processor} disabled={running} onChange={(e) => setProcessor(e.target.value)}><option value="">{t("inserts")}…</option>{patches.filter((p) => p.always_on && p.audio_inlet_names.length && p.audio_outlet_names.length).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select><button className={button} disabled={running || !selected || !processor} onClick={insert}>{t("add")}</button></div><EditorDetails owner={"mixer"} field="matrix" className="mt-3" summary={<>{t("matrix")}</>}>{() => <>{[...new Set([...endpoints.map((b) => b.id), ...graph.routes.map((r) => r.targetId)])].map((id) => ({ id })).map((b) => <div key={b.id} className={`my-2 rounded border p-2 text-xs ${groups.some(rs => rs[0].targetId === b.id && affected(rs)) ? "border-rose-500" : "border-slate-800"}`}><button onClick={() => { setTarget(b.id); }}>{name(b.id)}</button>{groups.filter((rs) => rs[0].targetId === b.id).map((routes) => <EditorDetails owner={`route:${routes[0].id}`} field="matrix-channels" key={routes[0].id} className={`ml-3 ${affected(routes) ? "rounded border border-rose-500 p-1 text-rose-200" : ""}`} summary={<>{affected(routes) && feedbackBadge}{name(routes[0].sourceId)} → {name(b.id)} · {routes[0].kind} · {routes.length} ch <button className={button} disabled={running} onClick={() => removeRoutes(routes)}>{t("remove")}</button></>}>{() => <>{routes.map((r) => <div key={r.id} data-feedback-route={feedbackRoutes.has(r.id) ? r.id : undefined} className={`my-1 font-mono ${feedbackRoutes.has(r.id) ? "bg-rose-950/50" : ""}`}><select aria-label={t("source")} disabled={running} className={field} value={r.sourcePort} onChange={(e) => applyGraph({ ...graph, routes: graph.routes.map((row) => row.id === r.id ? { ...row, sourcePort: e.target.value } : row) })}>{[...new Set([r.sourcePort, ...outputPorts(byId.get(r.sourceId))])].map((p) => <option key={p}>{p}</option>)}</select> → <select aria-label={t("destination")} disabled={running} className={field} value={r.targetId} onChange={(e) => applyGraph({ ...graph, routes: graph.routes.map((row) => row.id === r.id ? { ...row, targetId: e.target.value } : row) })}>{[...new Set([r.targetId, "$output", ...endpoints.map((b) => b.id)])].map((id) => <option key={id} value={id}>{name(id)}</option>)}</select> <select aria-label={t("mapping")} disabled={running} className={field} value={r.targetPort} onChange={(e) => applyGraph({ ...graph, routes: graph.routes.map((row) => row.id === r.id ? { ...row, targetPort: e.target.value } : row) })}>{[...new Set([r.targetPort, ...(b.id === "$output" ? ["left", "right"] : r.targetStage === "strip" ? outputPorts(byId.get(b.id)) : byId.get(b.id)?.audio_inlet_names ?? [])])].map((p) => <option key={p}>{p}</option>)}</select></div>)}</>}</EditorDetails>)}</div>)}</>}</EditorDetails><EditorDetails owner={"mixer"} field="diagram" className="mt-3" summary={<>{t("diagram")}</>}>{() => <><div ref={diagramRef}>{feedback.length > 0 && <label className="my-2 block text-xs"><input type="checkbox" checked={onlyFeedback} onChange={e => setOnlyFeedback(e.target.checked)} /> {t("onlyFeedback")}</label>}<div className="flex flex-wrap gap-2 py-2">{groups.filter(routes => !onlyFeedback || !feedback.length || affected(routes)).map((routes) => <div key={routes[0].id} data-feedback-routes={affected(routes) ? routes.filter(r => feedbackRoutes.has(r.id)).map(r => r.id).join(" ") : undefined} className={`rounded border p-2 text-xs ${affected(routes) ? "border-rose-500 bg-rose-950/30 text-rose-100" : "border-slate-700"}`}>{affected(routes) && feedbackBadge}<button onClick={() => select(routes[0].sourceId)}>{name(routes[0].sourceId)}</button> → <button onClick={() => { select(routes[0].targetId); setTarget(routes[0].targetId); }}>{name(routes[0].targetId)}</button><EditorDetails owner={`route:${routes[0].id}`} field="diagram-channels" summary={<>{t("mapping")}</>}>{() => <>{routes.map((r) => <div key={r.id} data-feedback-route={feedbackRoutes.has(r.id) ? r.id : undefined}>{r.sourceStage}:{r.sourcePort} → {r.targetStage}:{r.targetPort} <button disabled={running} className={button} onClick={() => removeRoutes([r])}>×</button></div>)}</>}</EditorDetails></div>)}</div></div></>}</EditorDetails></>;
+  const diagnosticsPanel = <EditorDetails owner={"mixer"} field="diagnostics" className="mt-3 border-t border-slate-800 pt-2" summary={<>{t("diagnostics")}</>}>{() => <><p className="my-2 text-xs text-slate-400">{t("structural")}</p><button className={button} onClick={() => void check()}>{t("validate")}</button>{currentValidation?.error && <div role="alert" className="my-2 text-xs text-rose-300">{currentValidation.error}</div>}{[...audioGraphDiagnostics(bindings, patches, graph), ...diagnostics].filter(d => d.code !== "feedback").map((d, i) => <button key={i} className={`my-1 block text-left text-xs ${d.severity === "error" ? "text-rose-300" : "text-amber-200"}`} onClick={() => { select(d.instanceId ?? ""); if (d.instanceId) open(d.instanceId); }}>{t(d.code === "invalid_insert_owner" ? "invalidInsertOwner" : d.code in diagnosticKeys ? diagnosticKeys[d.code] : "diagnostics")}: {d.code in diagnosticKeys ? d.instanceId ? name(d.instanceId) : "" : d.message}</button>)}{Object.entries(mixer.strips).filter(([, s]) => s.mute || s.gainDb === null).map(([id]) => <button key={id} className="my-1 block text-xs text-amber-200" onClick={() => select(id)}>{name(id)}: {t("silent")}</button>)}</>}</EditorDetails>;
+  if (surface === "routing") return <div className="ws-routing-body">
+    {warnings}{running && <button className={button} onClick={onStop}>{t("stop")}</button>}
+    {routes()}{diagnosticsPanel}
+  </div>;
+  if (surface === "mixer") return <div className="ws-console">
+    <div className="ws-mix-notices">{warnings}</div>
+    <div className="ws-strip-area">
+      <RetainedScroll owner="mixer" field="stripsScroll" className="ws-strip-bank" role="region" aria-label={t("mixer")} tabIndex={0}>
+        {stripRows.map(row => strip(row.binding.id, row))}
+      </RetainedScroll>
+      <RetainedScroll owner="mixer" field="masterScroll" className="ws-master" role="region" aria-label={t("master")} tabIndex={0}>
+        {strip(MASTER)}
+      </RetainedScroll>
+    </div>
+    <div className="ws-output"><strong>{t("audioOutput")}</strong><VisibleMeter id="$output" name={t("audioOutput")} /></div>
+  </div>;
+  return <>{warnings}<RetainedScroll owner="mixer" field="stripsScroll" className="my-3 flex gap-2 overflow-x-auto pb-2">{stripRows.map(row => strip(row.binding.id, row))}{strip(MASTER)}</RetainedScroll><div className="max-w-md text-xs">{t("audioOutput")}<Meter id="$output" name={t("audioOutput")} /></div>{running && <button className={button} onClick={onStop}>{t("stop")}</button>}<EditorDetails owner="mixer" field="routing" initiallyOpen className="mt-3 border-t border-slate-800 pt-2" summary={t("routing")}>{routes}</EditorDetails>{diagnosticsPanel}</>;
 }
 
 type PerformMixerProps = { onStop: () => void; onHelpRequest?: (id: HelpDocId) => void };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { audioTemplate } from "./audioTemplates";
 import { projectAudioBlocks } from "./audioBlocks";
-import { emptyAudioGraph, defaultStrip, migrateAudio, validateAudioState, audioGraphDiagnostics, MASTER } from "./audioRouting";
+import { emptyAudioGraph, defaultStrip, migrateAudio, stripDestinations, validateAudioState, audioGraphDiagnostics, MASTER } from "./audioRouting";
 import { insertChain, wireInsertChain } from "./insertRouting";
 import { buildSequencerConfigSnapshot, parseSequencerConfigSnapshot, normalizePersistedSequencerInstruments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
@@ -9,6 +9,18 @@ import type { PatchListItem, SequencerInstrumentBinding } from "../types";
 const source: PatchListItem = { id: "source", name: "Source", description: "", always_on: false, instrument_type: "melody", is_template: false, schema_version: 1, updated_at: "", audio_inlet_names: [], audio_outlet_names: ["dryl", "dryr"] };
 const effect: PatchListItem = { ...source, id: "fx", always_on: true, audio_inlet_names: ["left", "right"], audio_outlet_names: ["left", "right"] };
 const bindings: SequencerInstrumentBinding[] = [{ id: "one", patchId: "source", midiChannel: 1, level: 5, effectSourceIds: [], effectRoutes: [] }, { id: "two", patchId: "fx", midiChannel: 0, level: 8, effectSourceIds: ["one"], effectRoutes: [] }];
+it("keeps a direct destination visible when only one output channel is redirected to Master", () => {
+  const patch = { ...source, has_direct_output: true };
+  const graph = emptyAudioGraph();
+  const route = { id: "L", sourceId: "one", targetId: MASTER, sourcePort: "$direct.left", targetPort: "left",
+    kind: "main", sourceStage: "strip", targetStage: "input" } as const;
+  graph.routes.push(route);
+  expect(stripDestinations("one", patch, graph)).toEqual([MASTER, "$output"]);
+  graph.routes.push({ ...route, id: "R", sourcePort: "$direct.right", targetPort: "right" });
+  expect(stripDestinations("one", patch, graph)).toEqual([MASTER]);
+  graph.routes.push({ ...route, id: "parallel", kind: "send", targetId: "$output" });
+  expect(stripDestinations("one", patch, graph)).toEqual([MASTER, "$output"]);
+});
 describe("performance audio persistence", () => {
   it.each([1,2,3,4,5,6,7,8,9,10])("upgrades version %i once with exact mappings and effect gain", (version) => {
     const parsed = parseSequencerConfigSnapshot({ version, instruments: bindings, sequencer: {} }, [source,effect], null);

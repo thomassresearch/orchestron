@@ -86,6 +86,8 @@ Open **Live** and find the device you want to play. **Editing** is the physical 
 
 ![Live launcher with pad 1 playing, pad 2 queued and a held chord on the keyboard](../../screenshots/perform-workspace-live-launcher.png)
 
+**Mix** recalls the selected instance, open controls and channel-bank position when you return. To reach a kit or effect from Arrange or Live, open **Compact rack**, select its patch number, then choose a destination. [Mix in the workspace preview](audio_mixer_and_routing.md#mix-in-the-workspace-preview)
+
 Closing the keyboard, switching views or leaving the browser window releases held notes. Returning to Live restores the keyboard and its settings. The Live overview also contains the manual MIDI controllers and their channel selectors.
 
 ## Sequencer timing

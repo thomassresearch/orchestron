@@ -169,3 +169,30 @@
   .ws-live-actions { grid-row: 1; grid-column: 2; }
   .ws-live-state { grid-column: 1 / -1; }
 }
+
+.ws-compact-rack { border-bottom: 1px solid #334359; background: #101c2b; }
+.ws-rack-links { display: flex; gap: 9px; flex-wrap: wrap; padding: 0 8px 5px; color: #9bdeeb; }
+.ws-mix { height: 100%; min-width: 0; display: grid; grid-template-rows: auto minmax(0,1fr); }
+.ws-mix-tools, .ws-rack-picker, .ws-mix-actions { display: flex; align-items: center; gap: 5px; }
+.ws-mix-tools { flex-wrap: wrap; padding: 5px; }
+.ws-mix-tools nav { display: flex; margin-right: auto; gap: 2px; }
+.ws-mix-tools button, .ws-mix-actions button, .ws-rack-picker button { background: #142135; border: 1px solid #3a5066; border-radius: 4px; padding: 4px 8px; color: #d8e4ef; }
+.ws-mix-tools nav button[aria-pressed=true], .ws-rack-picker button[aria-pressed=true] { color: #a1ecf5; border-color: #56b7c5; background: #14303b; }
+.ws-rack-picker { overflow: auto; padding: 4px 5px 7px; }
+.ws-rack-picker:empty { padding: 0; }
+.ws-rack-picker button { text-align: left; flex: none; max-width: 16rem; }
+.ws-rack-picker small, .ws-rack-picker span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ws-rack-picker small { color: #9db2c4; font-size: .63rem; }
+.ws-mix-actions { flex-wrap: wrap; margin: 8px 0; }
+.ws-mix-page { min-height: 0; overflow: auto; padding: 6px; }
+.ws-console { min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; }
+.ws-mix-notices { max-height: 18dvh; overflow: auto; }
+.ws-strip-area { min-height: 0; display: grid; grid-template-columns: minmax(0,1fr) clamp(105px,25%,190px); gap: 6px; }
+.ws-strip-bank, .ws-master { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; }
+.ws-strip-bank { display: flex; align-items: flex-start; gap: 6px; }
+.ws-strip-bank article { width: clamp(152px,16vw,195px); min-height: 100%; }
+.ws-master article { width: 100%; min-height: 100%; }
+.ws-mix-page [data-rack-binding-id][data-selected], .ws-strip-area article[data-selected] { border-color: #6ccbd6; }
+.ws-meter { height: 35px; display: grid; align-content: center; }
+.ws-output { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 15px; padding: 4px 10px; border-top: 1px solid #40606b; background: #12212d; color: #cbe1ea; }
+.ws-output .ws-meter { max-width: 57rem; width: 100%; }

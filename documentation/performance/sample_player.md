@@ -16,6 +16,10 @@ pitch and speed. Notes with no assignment are silent.
 The note number identifies the note (60 is C4). **Stop preview** or closing the panel ends only the preview.
 You can preview during playback or while the performance is stopped.
 
+In the workspace preview, select the kit in **Compact rack** and choose **Samples**. Check the patch number and MIDI channel above the map before changing a file. Two copies of one kit can use different files on the same note. Switching instances or closing Samples ends the current preview. Stop Instruments to edit the assignments.
+
+![Samples open below Mix for the second of two Sample Player instances, with stereo.wav assigned to MIDI note 36](../../screenshots/perform-workspace-mix-samples.png)
+
 Use **Replace file**, **Remove**, or **Clear map** to update the assignments. A failed or
 canceled upload keeps the previous file. An occupied note number keeps its original assignment.
 

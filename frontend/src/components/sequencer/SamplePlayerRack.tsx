@@ -25,7 +25,7 @@ export function SamplePlayerRack(props: RackProps) {
   </section>;
 }
 
-function SampleMapEditor({ binding, capable, label, language, running }: RackProps) {
+export function SampleMapEditor({ binding, capable, label, language, running }: RackProps) {
   const copy = sampleCopy(language);
   const owner = `binding:${binding.id}` as const;
   const [selected, select] = usePerformanceEditorState<number | null>(owner, `samples-row:${binding.patchId}`, null);

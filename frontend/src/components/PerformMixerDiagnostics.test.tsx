@@ -9,6 +9,8 @@ import { wireInsertChain } from "../lib/insertRouting";
 import { useAppStore } from "../store/useAppStore";
 import type { AudioDiagnostic, GuiLanguage } from "../types";
 import { PerformMixer } from "./PerformMixer";
+import { MixWorkspace } from "./sequencer/MixWorkspace";
+import { PerformanceEditorProvider, PerformViewContext } from "./sequencer/PerformanceEditorState";
 
 const source = toPatchListItem(audioTemplate("instrument"));
 const effect = toPatchListItem(audioTemplate("effect"));
@@ -122,6 +124,19 @@ function feedbackGraph() {
   graph.routes.push({ id: "output", sourceId: "source", sourcePort: "left", targetId: "$master", targetPort: "left", sourceStage: "strip", targetStage: "input", kind: "main" });
   return graph;
 }
+
+it("opens the filtered routing diagram from a feedback warning on the preview mixer", () => {
+  useAppStore.setState({ audioGraph: feedbackGraph() });
+  render(<PerformanceEditorProvider><PerformViewContext.Provider value="mix">
+    <MixWorkspace language="english" running={false} onStop={vi.fn()} onAdd={vi.fn()} rack={null} />
+  </PerformViewContext.Provider></PerformanceEditorProvider>);
+  fireEvent.click(screen.getByRole("button", { name: "Show offending connections" }));
+  const filter = screen.getByRole("checkbox", { name: "Only feedback connections" }) as HTMLInputElement;
+  expect(filter.checked).toBe(true);
+  expect(filter.closest("details")?.open).toBe(true);
+  expect(filter.closest("details")?.querySelectorAll("[data-feedback-routes]")).toHaveLength(2);
+  expect(screen.queryByRole("region", { name: "Master" })).toBeNull();
+});
 
 it.each([
   ["english", "Show offending connections", "Closed routing path", "Only feedback connections"],

@@ -20,6 +20,15 @@ export const newRoute = (route: Omit<AudioRoute, "id">): AudioRoute => ({ ...rou
 export function outputPorts(patch?: PatchListItem): string[] {
   return [...(patch?.audio_outlet_names ?? []), ...(patch?.has_direct_output ? ["$direct.left", "$direct.right"] : [])];
 }
+/** The engine redirects each direct channel separately, including the internal Master's outputs. */
+export function stripDestinations(id: string, patch: PatchListItem | undefined, graph: AudioGraph) {
+  const routes = graph.routes.filter(route => route.sourceId === id && route.kind !== "insert");
+  const destinations = new Set(routes.map(route => route.targetId));
+  const hasImplicitOutput = (id === MASTER || patch?.has_direct_output) && ["$direct.left", "$direct.right"].some(port =>
+    !routes.some(route => route.sourcePort === port && route.kind === "main"));
+  if (hasImplicitOutput) destinations.add("$output");
+  return [...destinations];
+}
 export function mainPorts(patch: PatchListItem | undefined, direction: "input" | "output"): string[] {
   const info = patch?.audio_interface;
   const group = info?.groups.find((g) => g.id === (direction === "input" ? info.mainInput : info.mainOutput));

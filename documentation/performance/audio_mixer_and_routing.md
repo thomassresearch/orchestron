@@ -12,6 +12,18 @@ Use the top-right **?** for integrated help in English, German, French or Spanis
 
 ![Mixer integrated help](../../screenshots/mixer-integrated-help.png)
 
+## Mix in the workspace preview
+
+Open **Mix → Mixer** to balance the performance. Scroll the instrument and return strips left or right. **Master** stays on the right, and the stereo **Audio Output** meter below the strips shows what reaches the speakers. If Master is muted and that meter still moves, look for a strip marked **Direct Audio Output**. Mute that strip to check its contribution.
+
+![Mix with a direct-output strip selected, Master on the right and stereo Audio Output along the bottom](../../screenshots/perform-workspace-mix.png)
+
+Select a strip name to see its properties in the **Inspector**. **Instrument controls** opens that instance’s settings below the mixer. **Samples** opens its sample assignments when the patch has a Sample Player. The patch number and MIDI channel distinguish two copies of the same instrument.
+
+Use **Compact rack** in Arrange or Live to select an instance and open its controls, samples or routing. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments. Return to Arrange or Live with its view button to resume your edit.
+
+Open **Routing** while listening to inspect destinations, exact channel mappings, the routing diagram and diagnostics. Gain, balance, Mute/Solo, existing send controls and eligible insert Bypass work during playback. Choose **Stop to edit routing** or **Stop to edit rack** when you need to change connections or the rack itself.
+
 ## Build your first mix
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.

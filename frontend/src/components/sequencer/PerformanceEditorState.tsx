@@ -21,8 +21,8 @@ export type PerformViewLayout = {
 
 export const PerformViewContext = createContext<PerformView | null>(null);
 export const ClipEditorTargetContext = createContext<string | null>(null);
-type EditorState = { entries: Record<string, Entry>; view: PerformView; suspendedClipKey: string | null };
-export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ entries: {}, view: "arrange", suspendedClipKey: null }));
+type EditorState = { captureScroll: Set<() => void>; entries: Record<string, Entry>; view: PerformView; suspendedClipKey: string | null };
+export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ captureScroll: new Set(), entries: {}, view: "arrange", suspendedClipKey: null }));
 export type PerformanceEditorStore = ReturnType<typeof createPerformanceEditorStore>;
 export const OpenArrangerContext = createContext<(() => void) | null>(null);
 export const useOpenArranger = () => useContext(OpenArrangerContext);
@@ -169,6 +169,7 @@ export function useSetArrangementPosition() {
 }
 
 export function useRetainedScroll(ref: RefObject<HTMLElement>, owner: EditorOwner, field: string) {
+  const store = useContext(EditorContext), view = useContext(PerformViewContext);
   const [position, setPosition] = usePerformanceEditorState(owner, field, { left: 0, top: 0 });
   const latest = useRef(position);
   latest.current = position;
@@ -194,9 +195,15 @@ export function useRetainedScroll(ref: RefObject<HTMLElement>, owner: EditorOwne
       });
       observer.observe(node);
     }
-    // Capture even when navigation wins the race with the browser's scroll event.
-    return () => { observer?.disconnect(); save(node); };
-  }, [ref, save]);
+    const capture = () => save(node);
+    const captures = view ? store?.getState().captureScroll : undefined;
+    captures?.add(capture);
+    return () => {
+      observer?.disconnect();
+      captures?.delete(capture);
+      if (!view || !store || store.getState().view === view) capture();
+    };
+  }, [ref, save, store, view]);
   return useCallback(() => { if (ref.current) save(ref.current); }, [ref, save]);
 }
 

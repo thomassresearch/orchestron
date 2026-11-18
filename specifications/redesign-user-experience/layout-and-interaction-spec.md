@@ -242,7 +242,9 @@ only on first entry.
 | --- | --- |
 | Arrange | The selected track, clip occurrence and editor selection, including a step, drum row or automation point. Restore Fit tracks and the timeline, editor and Inspector scroll positions. |
 | Live | The selected device and its editing pad, the launcher or open dock, and the device-list and dock scroll positions. Playing and queued indicators reflect the current device state. |
-| Mix | The selected strip or rack instance, the Mixer, Rack or Routing view, any open instrument control group, the channel-bank offset on both axes and the Master strip's own scroll position. |
+| Mix | The selected strip or rack instance, the Mixer, Rack or Routing view, the open Instrument controls or Samples dock, the channel-bank offset on both axes and the Master strip's own scroll position. |
+
+**Compact rack** remembers its disclosure and horizontal offset in each view. In Arrange and Live, selecting an instance keeps the current musical editor active. A named rack command opens Mix at that instance and destination. In Mix, selecting a compatible instance retargets the open detail. Selecting Master or an instance without a Sample Player closes an incompatible detail and ends its preview. **Routing** occupies the overview so the channel matrix can use the available width.
 
 Every view remembers its compact rack, Inspector, open editor or keyboard, expanded editor,
 preferred split height and open property sections. A closed dock stays closed on return.

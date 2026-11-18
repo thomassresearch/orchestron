@@ -1,3 +1,4 @@
+import { MixWorkspace } from "./sequencer/MixWorkspace";
 import { LiveLauncher } from "./sequencer/LiveLauncher";
 import { liveCopy } from "./sequencer/liveCopy";
 import { arrangeCopy } from "./clipArranger/arrangeCopy";
@@ -871,7 +872,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
   const { view } = props;
   const showArrange = !view || view === "arrange";
   const showLive = !view || view === "live";
-  const showMix = !view || view === "mix";
+
   const renderDeviceEditor: DeviceEditorRenderer = (kind, id, state) => {
     const selected = {
       ...state,
@@ -933,7 +934,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           />
   );
   const overview = <>
-        {showMix && <CollapsiblePanel unmountOnCollapse
+        {!view && <CollapsiblePanel unmountOnCollapse
           title={ui.instrumentRack}
           collapsed={collapsedPanels.rack}
           onCollapsedChange={(collapsed) => onPanelCollapsedChange("rack", collapsed)}
@@ -974,7 +975,10 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           <RackBody context={context} showProject={!view} />
         </CollapsiblePanel>}
 
-        {showMix && <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />}
+        {view === "mix" && <MixWorkspace language={guiLanguage} running={instrumentsRunning} onStop={onStopInstruments} onAdd={onAddInstrument}
+          rack={<RackBody context={context} showProject={false} topologyOnly />} />}
+
+        {!view && <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />}
 
         {!view && transportError && (
           <div className="mt-3 rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">
@@ -1159,7 +1163,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           className="hidden"
           onChange={handleConfigFileChange}
         />
-    {view ? <WorkspaceShell view={view} language={guiLanguage} name={context.performanceName || ui.performanceName}
+    {view ? <WorkspaceShell view={view} navigate={props.navigate} language={guiLanguage} name={context.performanceName || ui.performanceName}
       project={<ProjectControls context={context} hideSave />}
       save={<button className="ws-save" disabled={sampleUploads > 0} onClick={context.onSavePerformance}>{ui.savePerformance}</button>}
       engine={<button className="ws-engine" aria-pressed={instrumentsRunning} disabled={!instrumentsRunning && sampleUploads > 0}
@@ -1356,7 +1360,7 @@ function ProjectControls({ context, hideSave = false }: { context: ReturnType<ty
   </>;
 }
 
-function RackBody({ context, showProject }: { context: ReturnType<typeof useSequencerPageContext>; showProject: boolean }) {
+function RackBody({ context, showProject, topologyOnly = false }: { context: ReturnType<typeof useSequencerPageContext>; showProject: boolean; topologyOnly?: boolean }) {
   const sampleUploads = useAppStore(state => state.sampleUploads);
   const {
     rackInstrumentRows,
@@ -1374,6 +1378,7 @@ function RackBody({ context, showProject }: { context: ReturnType<typeof useSequ
     onRemoveInstrument,
     rackAssignmentButtonClass,
   } = context;
+  const [selectedBinding, selectBinding] = usePerformanceEditorState("mixer", "selected", "");
   const [draggedBindingId, setDraggedBindingId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: "before" | "after" } | null>(null);
   const clearDrag = useCallback(() => { setDraggedBindingId(null); setDropTarget(null); }, []);
@@ -1400,7 +1405,8 @@ function RackBody({ context, showProject }: { context: ReturnType<typeof useSequ
       : "rounded-lg border border-slate-600/80 bg-slate-800/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]";
 
     return (
-      <div key={binding.id} data-rack-binding-id={binding.id} className={`relative ${cardClassName}`}
+      <div key={binding.id} data-rack-binding-id={binding.id} data-selected={topologyOnly && selectedBinding === binding.id || undefined}
+        onFocusCapture={topologyOnly ? () => selectBinding(binding.id) : undefined} className={`relative ${cardClassName}`}
         onDragOver={event => {
           if (!acceptsDrop(event, binding.id)) { setDropTarget(null); return; }
           event.preventDefault();
@@ -1450,7 +1456,9 @@ function RackBody({ context, showProject }: { context: ReturnType<typeof useSequ
                 }}
                 className="inline-flex cursor-grab select-none items-center rounded border border-slate-700 bg-slate-950 px-1.5 font-mono text-[10px] text-slate-400 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40"
               >::</button>
-              <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>
+              {topologyOnly ? <button type="button" aria-pressed={selectedBinding === binding.id}
+                className="text-xs text-cyan-200" onClick={() => selectBinding(binding.id)}>{ui.patch(index + 1)}</button> :
+                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{ui.patch(index + 1)}</span>}
             </div>
             <PatchPicker
               patches={patches}
@@ -1493,8 +1501,8 @@ function RackBody({ context, showProject }: { context: ReturnType<typeof useSequ
             {ui.remove}
           </button>
         </div>
-        <PerformanceControllerRack binding={binding} patch={selectedPatch} language={guiLanguage} />
-        {(selectedPatch?.has_sample_player || binding.sampleMap?.entries.length) ?
+        {!topologyOnly && <PerformanceControllerRack binding={binding} patch={selectedPatch} language={guiLanguage} />}
+        {((!topologyOnly || !selectedPatch?.has_sample_player) && (selectedPatch?.has_sample_player || binding.sampleMap?.entries.length)) ?
           <SamplePlayerRack key={binding.patchId} binding={binding} label={`${ui.patch(index + 1)} · ${name} · ${ui.channel} ${binding.midiChannel}`}
             capable={!!selectedPatch?.has_sample_player && !isAlwaysOn} language={guiLanguage} running={instrumentsRunning} /> : null}
       </div>

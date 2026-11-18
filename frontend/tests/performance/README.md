@@ -94,6 +94,8 @@ meters; `pcmPeak` is the audio check, while the unused meter `peak` stays zero.
 
 The full Perform workspace preview uses the same isolated backend and Vite commands above. Open `/tests/performance/workspace.html`, choose **Perform** and import the baseline clip or legacy bundle through **Project**. The [workspace shell checks](../../../specifications/redesign-user-experience/milestone-3-workspace-shell.md) include the fixture, Playwright commands and expected geometry.
 
+For the native [Mix checks](../../../specifications/redesign-user-experience/milestone-6-mix.md), run `verify-workspace-mix.js` with UX Baseline Legacy and `verify-workspace-mix-instances.js` with UX Baseline Clip. Use English, a stopped engine and a fresh workspace page at 1440 × 900 for each. Run from the repository root so Playwright can read the versioned sample fixtures.
+
 The [Arrange acceptance checks](../../../specifications/redesign-user-experience/milestone-4-arrange.md#replay-the-browser-checks) exercise draft isolation during playback, inline automation, scoped saves, the first-note workflow and legacy conversion. Use the isolated database for these checks. The first-note exercise creates a playable patch there.
 
 The [Live acceptance checks](../../../specifications/redesign-user-experience/milestone-5-live.md#replay-the-browser-checks) exercise native pad boundaries, held MIDI notes, a multi-touch phone viewport, controller gestures and Save/Load for independent devices in a clip performance.

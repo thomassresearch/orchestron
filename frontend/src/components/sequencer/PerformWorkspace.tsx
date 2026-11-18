@@ -71,8 +71,13 @@ function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged =
     const layout = value<PerformViewLayout>("page", "layout", "arrange");
     if (layout?.dock === "editor") clear("page", "layout", "arrange", { ...layout, dock: null });
   }
-  const binding = value<string>("mixer", "selected", "mix");
-  if (binding && binding !== "$master" && !state.sequencerInstruments.some(row => row.id === binding)) clear("mixer", "selected", "mix", "");
+  for (const view of views) {
+    const binding = value<string>("mixer", "selected", view);
+    if (!binding || binding === "$master" || state.sequencerInstruments.some(row => row.id === binding)) continue;
+    clear("mixer", "selected", view, "");
+    const layout = value<PerformViewLayout>("page", "layout", view);
+    if (view === "mix" && layout?.dock) clear("page", "layout", view, { ...layout, dock: null, dockExpanded: false });
+  }
   const lanes = state.sequencer.clipArrangement?.lanes;
   const selected = value<{ laneId: string; clipId?: string }>("arranger", "clipSelection", "arrange");
   if (selected) {
@@ -95,6 +100,8 @@ function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged =
 function navigate(store: PerformanceEditorStore, next: PerformView) {
   const { view, suspendedClipKey } = store.getState();
   if (view === next) return;
+  // Capture the outgoing geometry before removing its rack or Inspector can clamp a scroll area.
+  store.getState().captureScroll.forEach(capture => capture());
   const active = useAppStore.getState().clipEditingKey;
   const remembered = view === "arrange" ? active : suspendedClipKey;
   const destination = next === "arrange" ? survivingClipKey(remembered) : null;
@@ -102,7 +109,9 @@ function navigate(store: PerformanceEditorStore, next: PerformView) {
   store.setState({ view: next, suspendedClipKey: next === "arrange" ? null : remembered });
 }
 
-export type ViewNavigation = (view: PerformView, padTarget?: { id: string; pad: number }) => void;
+export type MixSurface = "mixer" | "rack" | "routing";
+export type MixDestination = { surface: MixSurface; bindingId?: string; dock?: "instrument" | "samples" };
+export type ViewNavigation = (view: PerformView, target?: { id: string; pad: number } | MixDestination) => void;
 
 export function PerformWorkspace({ language, children }: { language: GuiLanguage; children: (view: PerformView, navigate: ViewNavigation) => ReactNode }) {
   const store = usePerformanceEditorStore();
@@ -133,14 +142,23 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
       }
     };
   }, [generation, store]);
-  const change: ViewNavigation = (next, padTarget) => {
+  const change: ViewNavigation = (next, target) => {
     navigate(store, next);
-    if (next === "live" && padTarget) {
-      useAppStore.getState().selectSequencerEditingPad(padTarget.id, padTarget.pad);
+    if (next === "live" && target && "pad" in target) {
+      useAppStore.getState().selectSequencerEditingPad(target.id, target.pad);
       const layoutKey = editorKey("page", "layout", "live");
       store.setState(s => ({ entries: { ...s.entries,
-        [editorKey("page", "liveDevice", "live")]: { owner: "page", value: padTarget.id },
+        [editorKey("page", "liveDevice", "live")]: { owner: "page", value: target.id },
         [layoutKey]: { owner: "page", value: { ...(s.entries[layoutKey]?.value as PerformViewLayout | undefined), dock: "editor" } }
+      } }));
+    }
+    if (next === "mix" && target && "surface" in target) {
+      const layoutKey = editorKey("page", "layout", "mix");
+      store.setState(s => ({ entries: { ...s.entries,
+        [editorKey("mixer", "surface", "mix")]: { owner: "mixer", value: target.surface },
+        ...(target.bindingId ? { [editorKey("mixer", "selected", "mix")]: { owner: "mixer", value: target.bindingId } } : {}),
+        [layoutKey]: { owner: "page", value: { ...(s.entries[layoutKey]?.value as PerformViewLayout | undefined),
+          dock: target.dock ?? null, dockExpanded: false, drawerOpen: false } }
       } }));
     }
   };
