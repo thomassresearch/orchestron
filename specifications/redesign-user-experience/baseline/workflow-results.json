@@ -1,0 +1,730 @@
+{
+  "date": "2026-11-18",
+  "revision": "fd7cdc0ff2e82f55b9f4158351ef4d7b2d87acb3",
+  "environment": {
+    "os": "macOS 15.8.3 arm64",
+    "headlessChromium": "139.0.7258.5",
+    "node": "23.10.0",
+    "python": "3.13.2",
+    "csound": "6.18 double",
+    "language": "EN",
+    "audio": "browser_clock with native Csound"
+  },
+  "fixtureSha256": {
+    "clip.orch.json": "774133e4223be1bcbd7fdb5c3b327471b2cc52012d44e0c68a14971f27ebc7ca",
+    "legacy.orch.json": "d98539b36b2c9702d1567f675d2d7e4c8203e050e48d44f9b0724178ced565c2",
+    "empty-config.json": "3996e85b91dc21d0ddba8803ac5fd04e4437c06f883314b289e8155eb33d65f7"
+  },
+  "fullApplication": {
+    "browser": "139.0.7258.5",
+    "cases": {
+      "clip": {
+        "sourceModes": [
+          {
+            "id": "phrase",
+            "arrangement": true
+          },
+          {
+            "id": "manual",
+            "arrangement": true
+          }
+        ],
+        "initial": {
+          "viewport": [
+            1440,
+            900
+          ],
+          "document": [
+            1440,
+            2844
+          ],
+          "nodes": 1194,
+          "controls": 237
+        },
+        "narrow": {
+          "viewport": [
+            390,
+            844
+          ],
+          "document": [
+            390,
+            4292
+          ],
+          "nodes": 1172,
+          "controls": 237
+        },
+        "variation": {
+          "before": [
+            "phrase:pattern:0",
+            "phrase:pattern:0"
+          ],
+          "after": [
+            "phrase:pattern:0",
+            "2ae6b0bd-7127-437d-a095-9f72fcade7c9"
+          ],
+          "siblingUnchanged": true,
+          "editorOpenAfterSave": false
+        },
+        "storage": {
+          "equal": true,
+          "version": 23,
+          "bindings": 2,
+          "description": "Round trip clip"
+        },
+        "native": {
+          "size": 2376669,
+          "expandedConfigEqual": true,
+          "normalizedConfigEqual": true
+        },
+        "midi": {
+          "size": 7366
+        },
+        "score": {
+          "size": 7119
+        }
+      },
+      "legacy": {
+        "sourceModes": [
+          {
+            "id": "phrase",
+            "arrangement": true
+          },
+          {
+            "id": "manual",
+            "arrangement": false
+          }
+        ],
+        "initial": {
+          "viewport": [
+            1440,
+            900
+          ],
+          "document": [
+            1440,
+            4606
+          ],
+          "nodes": 3426,
+          "controls": 525
+        },
+        "narrow": {
+          "viewport": [
+            390,
+            844
+          ],
+          "document": [
+            390,
+            7374
+          ],
+          "nodes": 3426,
+          "controls": 525
+        },
+        "storage": {
+          "equal": true,
+          "version": 22,
+          "bindings": 2,
+          "description": "Round trip legacy"
+        },
+        "native": {
+          "size": 717694,
+          "expandedConfigEqual": true,
+          "normalizedConfigEqual": true
+        },
+        "midi": {
+          "size": 7365
+        },
+        "score": {
+          "size": 7102
+        },
+        "conversion": "Compatibility view: manual-source:manual",
+        "launch": {
+          "editingPad": 2,
+          "queuedPad": 2,
+          "playingPad": 2
+        },
+        "meters": {
+          "both": {
+            "$master": [
+              0.0007693872844103281,
+              0.0007693872844103279
+            ],
+            "$output": [
+              0.04237103775628387,
+              0.04237103775628387
+            ],
+            "direct": [
+              0.04237103775628387,
+              0.04237103775628387
+            ],
+            "routed": [
+              0.0007693872844103281,
+              0.0007693872844103279
+            ]
+          },
+          "masterMuted": {
+            "$master": [
+              0,
+              0
+            ],
+            "$output": [
+              0.051745428712706855,
+              0.051745428712706855
+            ],
+            "direct": [
+              0.051745428712706855,
+              0.051745428712706855
+            ],
+            "routed": [
+              0,
+              0
+            ]
+          },
+          "bothMuted": {
+            "$master": [
+              0,
+              0
+            ],
+            "$output": [
+              0,
+              0
+            ],
+            "direct": [
+              0,
+              0
+            ],
+            "routed": [
+              0.0016361415620891847,
+              0.0016361415620891845
+            ]
+          }
+        }
+      }
+    },
+    "pageErrors": [],
+    "failedRequests": [],
+    "empty": {
+      "lanes": 0,
+      "key": null,
+      "keyboard": 1,
+      "bindings": 0
+    }
+  },
+  "importDialogReplay": {
+    "legacy": {
+      "name": "UX Baseline Legacy",
+      "tracks": [
+        {
+          "name": "Routed phrase",
+          "arrangement": true
+        },
+        {
+          "name": "Manual lead",
+          "arrangement": false
+        }
+      ],
+      "bindings": [
+        {
+          "id": "routed",
+          "patchResolved": true
+        },
+        {
+          "id": "direct",
+          "patchResolved": true
+        }
+      ],
+      "clipLanes": null
+    },
+    "clip": {
+      "name": "UX Baseline Clip",
+      "tracks": [
+        {
+          "name": "Routed phrase",
+          "arrangement": true
+        },
+        {
+          "name": "Manual lead",
+          "arrangement": true
+        }
+      ],
+      "bindings": [
+        {
+          "id": "routed",
+          "patchResolved": true
+        },
+        {
+          "id": "direct",
+          "patchResolved": true
+        }
+      ],
+      "clipLanes": 2
+    }
+  },
+  "pairedPlaybackProfile": {
+    "width": 1440,
+    "height": 900,
+    "windowMs": 1500,
+    "results": {
+      "Clip": {
+        "controlsTopCssPx": {
+          "save": 336,
+          "arrangerTitle": 1835,
+          "keyboardSection": 2257
+        },
+        "before": {
+          "active": true,
+          "position": 2520,
+          "elements": 1184
+        },
+        "after": {
+          "active": true,
+          "position": 63000,
+          "elements": 1184
+        },
+        "seconds": {
+          "TaskDuration": 0.32973600000000003,
+          "ScriptDuration": 0.28152299999999997,
+          "LayoutDuration": 0.005213,
+          "RecalcStyleDuration": 0.001211
+        }
+      },
+      "Legacy": {
+        "controlsTopCssPx": {
+          "save": 336,
+          "arrangerTitle": 4192,
+          "keyboardSection": 3677
+        },
+        "before": {
+          "active": true,
+          "position": 2520,
+          "elements": 3417
+        },
+        "after": {
+          "active": true,
+          "position": 63000,
+          "elements": 3417
+        },
+        "seconds": {
+          "TaskDuration": 0.7869750000000001,
+          "ScriptDuration": 0.644117,
+          "LayoutDuration": 0.006527,
+          "RecalcStyleDuration": 0.008427
+        }
+      }
+    },
+    "pageErrors": []
+  },
+  "clipTransport": {
+    "fastSequence": {
+      "play": {
+        "active": true,
+        "position": 2520,
+        "observedOutput": {
+          "peakL": 0.05599514890732455,
+          "peakR": 0.05599514890732455,
+          "rmsL": 0.03376943410110499,
+          "rmsR": 0.03376943410110499
+        }
+      },
+      "pause": {
+        "active": false,
+        "position": 68248,
+        "observedOutput": {
+          "peakL": 0.05599514890732455,
+          "peakR": 0.05599514890732455,
+          "rmsL": 0.03376943410110499,
+          "rmsR": 0.03376943410110499
+        }
+      },
+      "pauseAfter300ms": {
+        "active": true,
+        "position": 17640,
+        "observedOutput": {
+          "peakL": 0.049604849569444796,
+          "peakR": 0.049604849569444796,
+          "rmsL": 0.027360098960954364,
+          "rmsR": 0.027360098960954364
+        }
+      },
+      "resume": {
+        "active": true,
+        "position": 70352,
+        "observedOutput": {
+          "peakL": 0,
+          "peakR": 0,
+          "rmsL": 3.0648419224579915e-11,
+          "rmsR": 3.0648419224579915e-11
+        }
+      }
+    },
+    "fastSequenceExpectedZeroTimeout": "TimeoutError: page.waitForFunction: Timeout 7500ms exceeded.",
+    "settled": {
+      "samples": {
+        "play": [
+          {
+            "ms": 200,
+            "engine": "running",
+            "active": true,
+            "position": 0,
+            "outputPeakL": 0
+          },
+          {
+            "ms": 650,
+            "engine": "running",
+            "active": true,
+            "position": 7560,
+            "outputPeakL": 0.04571843124805322
+          }
+        ],
+        "pause": [
+          {
+            "ms": 100,
+            "engine": "running",
+            "active": true,
+            "position": 12600,
+            "outputPeakL": 0.0652766930094818
+          },
+          {
+            "ms": 300,
+            "engine": "running",
+            "active": true,
+            "position": 20160,
+            "outputPeakL": 0.05969677593840103
+          },
+          {
+            "ms": 900,
+            "engine": "running",
+            "active": true,
+            "position": 45360,
+            "outputPeakL": 0.008687081390647155
+          },
+          {
+            "ms": 2000,
+            "engine": "running",
+            "active": false,
+            "position": 64727,
+            "outputPeakL": 0
+          },
+          {
+            "ms": 3000,
+            "engine": "running",
+            "active": false,
+            "position": 64727,
+            "outputPeakL": 0
+          }
+        ],
+        "resume": [
+          {
+            "ms": 200,
+            "engine": "running",
+            "active": true,
+            "position": 63000,
+            "outputPeakL": 0
+          },
+          {
+            "ms": 650,
+            "engine": "running",
+            "active": true,
+            "position": 63000,
+            "outputPeakL": 0
+          }
+        ],
+        "stop": [
+          {
+            "ms": 100,
+            "engine": "running",
+            "active": false,
+            "position": 0,
+            "outputPeakL": 0
+          },
+          {
+            "ms": 300,
+            "engine": "running",
+            "active": true,
+            "position": 63793,
+            "outputPeakL": 0
+          },
+          {
+            "ms": 900,
+            "engine": "running",
+            "active": true,
+            "position": 86473,
+            "outputPeakL": 0.05330451954261046
+          },
+          {
+            "ms": 2000,
+            "engine": "running",
+            "active": false,
+            "position": 90484,
+            "outputPeakL": 0
+          },
+          {
+            "ms": 3000,
+            "engine": "running",
+            "active": false,
+            "position": 90484,
+            "outputPeakL": 0
+          }
+        ]
+      },
+      "pageErrors": []
+    },
+    "repeatWithDisplayedPosition": {
+      "samples": {
+        "play": [
+          {
+            "ms": 200,
+            "engine": "running",
+            "active": true,
+            "position": 0,
+            "display": "0",
+            "outputPeakL": 0,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 650,
+            "engine": "running",
+            "active": true,
+            "position": 7560,
+            "display": "0.38",
+            "outputPeakL": 0.051179932379931826,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          }
+        ],
+        "pause": [
+          {
+            "ms": 100,
+            "engine": "running",
+            "active": true,
+            "position": 12600,
+            "display": "0.63",
+            "outputPeakL": 0.06539654019976066,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 300,
+            "engine": "running",
+            "active": true,
+            "position": 20160,
+            "display": "1",
+            "outputPeakL": 0.0490799620401169,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 900,
+            "engine": "running",
+            "active": true,
+            "position": 45360,
+            "display": "2.25",
+            "outputPeakL": 0.00409733988091309,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 2000,
+            "engine": "running",
+            "active": false,
+            "position": 65654,
+            "display": "3.26",
+            "outputPeakL": 0,
+            "pausePressed": "true",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 3000,
+            "engine": "running",
+            "active": false,
+            "position": 65654,
+            "display": "3.26",
+            "outputPeakL": 0,
+            "pausePressed": "true",
+            "stopPressed": "false"
+          }
+        ],
+        "resume": [
+          {
+            "ms": 200,
+            "engine": "running",
+            "active": true,
+            "position": 65520,
+            "display": "3.25",
+            "outputPeakL": 0,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 650,
+            "engine": "running",
+            "active": true,
+            "position": 65520,
+            "display": "3.25",
+            "outputPeakL": 0,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          }
+        ],
+        "stop": [
+          {
+            "ms": 100,
+            "engine": "running",
+            "active": false,
+            "position": 0,
+            "display": "0",
+            "outputPeakL": 0,
+            "pausePressed": "false",
+            "stopPressed": "true"
+          },
+          {
+            "ms": 300,
+            "engine": "running",
+            "active": true,
+            "position": 67906,
+            "display": "3.37",
+            "outputPeakL": 0,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 900,
+            "engine": "running",
+            "active": true,
+            "position": 93106,
+            "display": "4.62",
+            "outputPeakL": 0.047959531881880485,
+            "pausePressed": "false",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 2000,
+            "engine": "running",
+            "active": false,
+            "position": 98394,
+            "display": "4.88",
+            "outputPeakL": 0,
+            "pausePressed": "true",
+            "stopPressed": "false"
+          },
+          {
+            "ms": 3000,
+            "engine": "running",
+            "active": false,
+            "position": 98394,
+            "display": "4.88",
+            "outputPeakL": 0,
+            "pausePressed": "true",
+            "stopPressed": "false"
+          }
+        ]
+      },
+      "pageErrors": []
+    }
+  },
+  "offlineCsd": {
+    "clip-midi": {
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 32,
+      "frames": 288000,
+      "peak": 0.09303054213523865,
+      "rms": 0.01580315191433154,
+      "pcmSha256": "cad93d23af336f5f16e9bca0ef0e16009a58b468cc1b16f3074f0b670e9bb8c2",
+      "archiveExtensions": [
+        ".csd",
+        ".mid",
+        ".txt"
+      ]
+    },
+    "clip-score": {
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 32,
+      "frames": 288000,
+      "peak": 0.09303054213523865,
+      "rms": 0.01580315191433154,
+      "pcmSha256": "cad93d23af336f5f16e9bca0ef0e16009a58b468cc1b16f3074f0b670e9bb8c2",
+      "archiveExtensions": [
+        ".csd",
+        ".txt"
+      ]
+    },
+    "legacy-midi": {
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 32,
+      "frames": 288000,
+      "peak": 0.07141713052988052,
+      "rms": 0.00487204028996609,
+      "pcmSha256": "8b8b5b38f7d86a422c67d55715247d54190773fc554b05b53e025423d6435d1c",
+      "archiveExtensions": [
+        ".csd",
+        ".mid",
+        ".txt"
+      ]
+    },
+    "legacy-score": {
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 32,
+      "frames": 288000,
+      "peak": 0.07141713052988052,
+      "rms": 0.00487204028996609,
+      "pcmSha256": "8b8b5b38f7d86a422c67d55715247d54190773fc554b05b53e025423d6435d1c",
+      "archiveExtensions": [
+        ".csd",
+        ".txt"
+      ]
+    }
+  },
+  "regressionTests": {
+    "vitest": {
+      "passed": 169,
+      "failed": 0,
+      "files": {
+        "src/hooks/useSequencerRuntimeController.test.tsx": 40,
+        "src/components/CollapsedPerformance.test.tsx": 16,
+        "src/components/InstrumentRackOrdering.test.tsx": 20,
+        "src/components/SequencerPageManualPads.test.tsx": 9,
+        "src/store/appStoreMixer.test.ts": 3,
+        "src/store/internalMaster.test.tsx": 3,
+        "src/store/performanceWorkspaceGeneration.test.ts": 2,
+        "src/components/clipArranger/ClipContentActions.test.tsx": 13,
+        "src/components/clipArranger/ClipPerformance.test.tsx": 17,
+        "src/components/clipArranger/ClipPlaybackHighlight.test.tsx": 17,
+        "src/components/clipArranger/EditingScope.test.tsx": 11,
+        "src/components/clipArranger/InstrumentAutomation.test.tsx": 3,
+        "src/components/sequencer/PianoRollKeyboard.test.tsx": 11,
+        "src/components/sequencer/SamplePlayerRack.test.tsx": 3,
+        "src/lib/clipArranger/performanceCreator.test.ts": 1
+      }
+    },
+    "pytest": {
+      "initialSelection": {
+        "errors": 0,
+        "failures": 4,
+        "skipped": 0,
+        "tests": 103
+      },
+      "nativeRendererRecheck": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 4
+      },
+      "additionalSelection": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 31
+      },
+      "uniqueCases": 134,
+      "retriedCases": [
+        "test_parallel_session_live_edits_auditions_mixer_and_native_pcm[44100-1]",
+        "test_parallel_session_live_edits_auditions_mixer_and_native_pcm[44100-32]",
+        "test_parallel_session_live_edits_auditions_mixer_and_native_pcm[48000-1]",
+        "test_parallel_session_live_edits_auditions_mixer_and_native_pcm[48000-32]"
+      ]
+    }
+  }
+}

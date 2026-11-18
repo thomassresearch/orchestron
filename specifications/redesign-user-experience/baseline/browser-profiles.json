@@ -1,0 +1,456 @@
+{
+  "browser": "139.0.7258.5",
+  "legacy": {
+    "dims": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "document": [
+        1440,
+        30374
+      ]
+    },
+    "data": {
+      "browser": "139.0.7258.5",
+      "durationSeconds": 15,
+      "results": [
+        {
+          "label": "expanded",
+          "before": {
+            "counts": {
+              "Meter": 6,
+              "RackBody": 1,
+              "MixerBody": 1,
+              "MelodicSequencersBody": 1,
+              "buildSequencerNoteOptions": 8,
+              "DrummerSequencersBody": 1,
+              "ControllerSequencersBody": 1,
+              "ArpeggiatorsBody": 1,
+              "PianoRollsBody": 1,
+              "MidiControllersBody": 1,
+              "MultitrackArrangerBody": 1
+            },
+            "commits": 3,
+            "reactMs": 54.07999977469444,
+            "mutationCount": 146,
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 66176,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.0610369892578125
+            },
+            "errors": [],
+            "maximumAudioPeak": 0,
+            "elementCount": 21635,
+            "hiddenBodyChildren": [],
+            "runtime": {
+              "isPlaying": true,
+              "transportSubunit": 78120
+            }
+          },
+          "after": {
+            "counts": {
+              "Meter": 1236,
+              "RackBody": 222,
+              "MixerBody": 222,
+              "MelodicSequencersBody": 222,
+              "buildSequencerNoteOptions": 1776,
+              "DrummerSequencersBody": 222,
+              "ControllerSequencersBody": 222,
+              "ArpeggiatorsBody": 222,
+              "PianoRollsBody": 222,
+              "MidiControllersBody": 222,
+              "MultitrackArrangerBody": 222,
+              "buildControllerCurvePath": 8
+            },
+            "commits": 513,
+            "reactMs": 12474.260005116463,
+            "mutationCount": 16728,
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 50560,
+              "pendingRenderFrames": 16384,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.060932373046875
+            },
+            "errors": [],
+            "maximumAudioPeak": 0.7154259453380647,
+            "elementCount": 21635,
+            "hiddenBodyChildren": [],
+            "runtime": {
+              "isPlaying": true,
+              "transportSubunit": 42840
+            }
+          },
+          "mainThread": {
+            "TaskDuration": 14.999103,
+            "ScriptDuration": 13.745157,
+            "LayoutDuration": 0.053606999999999995,
+            "RecalcStyleDuration": 0.198539,
+            "LayoutCount": 173,
+            "RecalcStyleCount": 248
+          },
+          "underruns": 0
+        },
+        {
+          "label": "collapsed",
+          "before": {
+            "counts": {},
+            "commits": 0,
+            "reactMs": 0,
+            "mutationCount": 0,
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 65152,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.0759035654296875
+            },
+            "errors": [],
+            "maximumAudioPeak": 0,
+            "elementCount": 125,
+            "hiddenBodyChildren": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "runtime": {
+              "isPlaying": true,
+              "transportSubunit": 274680
+            }
+          },
+          "after": {
+            "counts": {},
+            "commits": 240,
+            "reactMs": 272.5200008749962,
+            "mutationCount": 265,
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 33152,
+              "pendingRenderFrames": 32768,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.08070703125
+            },
+            "errors": [],
+            "maximumAudioPeak": 0.7154259453380647,
+            "elementCount": 125,
+            "hiddenBodyChildren": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "runtime": {
+              "isPlaying": true,
+              "transportSubunit": 234360
+            }
+          },
+          "mainThread": {
+            "TaskDuration": 0.720637,
+            "ScriptDuration": 0.48554499999999834,
+            "LayoutDuration": 0.037259000000000014,
+            "RecalcStyleDuration": 0,
+            "LayoutCount": 235,
+            "RecalcStyleCount": 0
+          },
+          "underruns": 0
+        }
+      ]
+    },
+    "errors": []
+  },
+  "clip": {
+    "dims": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "document": [
+        1440,
+        2043
+      ]
+    },
+    "data": [
+      {
+        "kind": "layout",
+        "width": 1440,
+        "textScale": 1,
+        "scrollWidth": 1440,
+        "viewportWidth": 1356,
+        "headerWidth": 192
+      },
+      {
+        "kind": "layout",
+        "width": 1440,
+        "textScale": 2,
+        "scrollWidth": 1440,
+        "viewportWidth": 1276,
+        "headerWidth": 192
+      },
+      {
+        "kind": "layout",
+        "width": 520,
+        "textScale": 1,
+        "scrollWidth": 520,
+        "viewportWidth": 436,
+        "headerWidth": 192
+      },
+      {
+        "kind": "layout",
+        "width": 520,
+        "textScale": 2,
+        "scrollWidth": 520,
+        "viewportWidth": 356,
+        "headerWidth": 160
+      },
+      {
+        "kind": "layout",
+        "width": 390,
+        "textScale": 1,
+        "scrollWidth": 390,
+        "viewportWidth": 306,
+        "headerWidth": 137
+      },
+      {
+        "kind": "layout",
+        "width": 390,
+        "textScale": 2,
+        "scrollWidth": 390,
+        "viewportWidth": 226,
+        "headerWidth": 101
+      },
+      {
+        "kind": "density",
+        "beats": 16,
+        "expanded": false,
+        "settleMs": 21.46500000357628,
+        "nodes": 488
+      },
+      {
+        "kind": "density",
+        "beats": 16000,
+        "expanded": false,
+        "settleMs": 25.439999997615814,
+        "nodes": 622
+      },
+      {
+        "kind": "density",
+        "beats": 16,
+        "expanded": true,
+        "settleMs": 16.400000005960464,
+        "nodes": 514
+      },
+      {
+        "kind": "density",
+        "beats": 16000,
+        "expanded": true,
+        "settleMs": 28.25499999523163,
+        "nodes": 807
+      }
+    ],
+    "errors": []
+  },
+  "clipAudio": {
+    "dims": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "document": [
+        1440,
+        2067
+      ]
+    },
+    "data": {
+      "browser": "139.0.7258.5",
+      "results": [
+        {
+          "label": "compact",
+          "seconds": 30,
+          "before": {
+            "status": "live",
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 57216,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.0066387919921875
+            },
+            "peak": 0,
+            "pcmPeak": 0.07466255128383636,
+            "finite": true,
+            "errors": [],
+            "transport": 52603
+          },
+          "after": {
+            "status": "live",
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 59008,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.0070250244140625
+            },
+            "peak": 0,
+            "pcmPeak": 0.07466255128383636,
+            "finite": true,
+            "errors": [],
+            "transport": 1262848
+          },
+          "underruns": 0,
+          "mainThread": {
+            "TaskDuration": 2.657475,
+            "ScriptDuration": 2.330301,
+            "LayoutDuration": 0.040173,
+            "RecalcStyleDuration": 0
+          },
+          "nodes": 489
+        },
+        {
+          "label": "dense-expanded",
+          "seconds": 30,
+          "before": {
+            "status": "live",
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 61312,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.0093526611328125
+            },
+            "peak": 0,
+            "pcmPeak": 0.07466255128383636,
+            "finite": true,
+            "errors": [],
+            "transport": 57334
+          },
+          "after": {
+            "status": "live",
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 63104,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.0089404306640625
+            },
+            "peak": 0,
+            "pcmPeak": 0.07466255128383636,
+            "finite": true,
+            "errors": [],
+            "transport": 1266934
+          },
+          "underruns": 0,
+          "mainThread": {
+            "TaskDuration": 3.9496719999999996,
+            "ScriptDuration": 3.5862490000000005,
+            "LayoutDuration": 0.034993,
+            "RecalcStyleDuration": 0
+          },
+          "nodes": 808
+        },
+        {
+          "label": "dense-collapsed",
+          "seconds": 30,
+          "before": {
+            "status": "live",
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 65408,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.006509765625
+            },
+            "peak": 0,
+            "pcmPeak": 0.07466255128383636,
+            "finite": true,
+            "errors": [],
+            "transport": 59914
+          },
+          "after": {
+            "status": "live",
+            "diagnostics": {
+              "playbackMode": "auto",
+              "playbackState": "listening",
+              "sampleRate": 48000,
+              "queuedFrames": 67200,
+              "pendingRenderFrames": 0,
+              "underrunCount": 0,
+              "overrunCount": 0,
+              "renderTimeRatio": 0.008859984375
+            },
+            "peak": 0,
+            "pcmPeak": 0.07466255128383636,
+            "finite": true,
+            "errors": [],
+            "transport": 1270160
+          },
+          "underruns": 0,
+          "mainThread": {
+            "TaskDuration": 3.484251999999999,
+            "ScriptDuration": 3.183457999999999,
+            "LayoutDuration": 0.031836,
+            "RecalcStyleDuration": 0
+          },
+          "nodes": 600
+        }
+      ],
+      "recovered": {
+        "status": "live",
+        "diagnostics": {
+          "playbackMode": "auto",
+          "playbackState": "listening",
+          "sampleRate": 48000,
+          "queuedFrames": 34944,
+          "pendingRenderFrames": 32768,
+          "underrunCount": 0,
+          "overrunCount": 0,
+          "renderTimeRatio": 0.0061828623046875
+        },
+        "peak": 0,
+        "pcmPeak": 0.07466255128383636,
+        "finite": true,
+        "errors": [],
+        "transport": 242658
+      }
+    },
+    "errors": []
+  }
+}

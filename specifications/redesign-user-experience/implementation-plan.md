@@ -18,6 +18,8 @@ Build and review each milestone as a separate change. Exercise the new compositi
 
 ## 1. Establish the baseline
 
+**Completed 18 November 2026.** The scoped edit, independent pad launch and direct-output mix can be replayed from the [baseline and fixtures](milestone-1-baseline.md). Carry two findings into the later checks. A clip snapshot forces the tested melodic Manual device back to Arrangement. With the engine started separately, clip Stop can settle away from the reset position after initially displaying zero.
+
 Trace one action from the visible control to its owner before moving it. The following boundaries determine where the work goes.
 
 | Current owner | Implementation consequence |

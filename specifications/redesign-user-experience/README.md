@@ -1,6 +1,6 @@
 # Workspace redesign study
 
-Status: design specification and mock only. No application implementation is included.
+The workspace design is specified and mocked. Milestone 1 records the current application's behavior before implementation.
 
 Arrange uses one fixed order with the **arrangement above and the editor or keyboard below**.
 The Inspector opens on the right in all three views. Arrange, Live and Mix remember their
@@ -10,6 +10,8 @@ own selections, panel layout and scroll positions for the current session.
   record of the selected direction, browser behavior, and requirements for future implementation.
 - [Implementation plan](implementation-plan.md) maps those decisions to frontend components,
   seven delivery milestones, compatibility checks and release criteria.
+- [Milestone 1 baseline](milestone-1-baseline.md) includes importable clip and legacy performances,
+  musician workflows, command owners, browser measurements and two current behavior gaps.
 - The [musician and producer walkthrough](layout-and-interaction-spec.md#musician-and-producer-walkthrough)
   compares six session tasks against the current application and identifies priorities for usability testing.
 - [Interactive study source](orchestron-studio-study.html) is the saved HTML fragment used in
