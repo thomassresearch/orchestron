@@ -1,3 +1,4 @@
+import { WorkspacePanel } from "./WorkspacePanels";
 import { useLayoutEffect, type ReactNode } from "react";
 import { useStore } from "zustand";
 import type { GuiLanguage, SequencerState } from "../../types";
@@ -28,7 +29,7 @@ function laneForPass(sequencer: SequencerState, target: Pick<OccurrenceTarget, "
   return lane;
 }
 
-function survivingClipKey(key: string | null) {
+export function survivingClipKey(key: string | null) {
   const { sequencer, clipDrafts } = useAppStore.getState();
   const draft = key ? clipDrafts[key] : undefined;
   if (!draft) return null;
@@ -134,16 +135,16 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
     }
   };
   const labels = copy[language];
-  return <>
+  return <main className="ws-workspace">
     <nav aria-label={labels.views} className="mb-2 flex gap-1">
       {views.map(item => <button key={item} type="button" aria-pressed={item === view} onClick={() => change(item)}
         className="rounded-md border border-slate-600 px-4 py-2 text-sm text-slate-200 aria-pressed:border-cyan-400 aria-pressed:text-cyan-200">{labels[item]}</button>)}
     </nav>
     <PerformViewContext.Provider value={view}>
-      <RetainedScroll key={view} owner="page" field="viewScroll" role="region" aria-label={labels[view]}
-        className="max-h-[75dvh] overflow-auto">{children(view, change)}</RetainedScroll>
+      <RetainedScroll owner="page" field="viewScroll" role="region" aria-label={labels[view]}
+        className="ws-view">{children(view, change)}</RetainedScroll>
     </PerformViewContext.Provider>
-  </>;
+  </main>;
 }
 
 export type DeviceEditorRenderer = (kind: SourceKind, id: string, sequencer: SequencerState) => ReactNode;
@@ -165,6 +166,7 @@ export function LivePadEditor({ sequencer, language, renderEditor }: { sequencer
       const device = state.sequencer[sourceKeys[source.kind]].find(track => track.id === id);
       if (device) selectPad(id, device.activePad);
     }
+    if (!source && open) setLayout(previous => ({ ...previous, dock: null }));
     select(id);
   };
   return <section className="mt-3 space-y-2">
@@ -175,8 +177,8 @@ export function LivePadEditor({ sequencer, language, renderEditor }: { sequencer
       </select></label>
       {selected && <><label>{labels.pad} <select className="rounded border border-slate-600 bg-slate-950 p-1" value={pad} onChange={e => selectPad(id, Number(e.target.value))}>
         {selected.track.pads.map((_, index) => <option key={index} value={index}>{index + 1}</option>)}</select></label>
-        <button type="button" className="rounded border border-slate-600 px-2" aria-expanded={open} onClick={() => setLayout(previous => ({ ...previous, dock: open ? null : "editor" }))}>{labels.editor}</button></>}
+        <button data-pad-editor-toggle type="button" className="rounded border border-slate-600 px-2" aria-expanded={open} onClick={() => setLayout(previous => ({ ...previous, dock: open ? null : "editor" }))}>{labels.editor}</button></>}
     </div>
-    {open && selected && <LivePadEditorContext.Provider value={true}><div key={id}>{renderEditor(selected.kind, id, sequencer)}</div></LivePadEditorContext.Provider>}
+    {open && selected && <WorkspacePanel name="editor"><LivePadEditorContext.Provider value={true}><div key={id}>{renderEditor(selected.kind, id, sequencer)}</div></LivePadEditorContext.Provider></WorkspacePanel>}
   </section>;
 }

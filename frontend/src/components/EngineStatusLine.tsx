@@ -10,7 +10,7 @@ export function cpuLoadColor(percent: number | null): string {
   return percent <= 85 ? "text-orange-400" : "text-red-400";
 }
 
-export function EngineStatusLine() {
+export function EngineStatusLine({ embedded = false }: { embedded?: boolean } = {}) {
   const language = useAppStore(s => s.guiLanguage);
   const sessionId = useAppStore(s => s.activeSessionId);
   const state = useAppStore(s => s.activeSessionState);
@@ -64,7 +64,7 @@ export function EngineStatusLine() {
     : renderer?.fallback_reason ? copy.fallback : copy.single;
   const value = (percent: number | null) => <span className={`inline-block min-w-[6ch] text-right ${cpuLoadColor(percent)}`}>{percent === null ? "—" : `${Number(percent.toFixed(1))}%`}</span>;
 
-  return <footer aria-label={copy.title} className="fixed inset-x-0 bottom-0 z-50 flex h-7 items-center gap-3 overflow-x-auto whitespace-nowrap border-t border-slate-700 bg-slate-950 px-4 font-mono text-[11px] text-slate-300 shadow-lg sm:px-6 lg:px-8">
+  return <footer aria-label={copy.title} className={`${embedded ? "relative" : "fixed inset-x-0 bottom-0 z-50"} flex h-7 items-center gap-3 overflow-x-auto whitespace-nowrap border-t border-slate-700 bg-slate-950 px-4 font-mono text-[11px] text-slate-300 shadow-lg sm:px-6 lg:px-8`}>
     <span className="shrink-0 font-semibold">{copy.title}</span>
     <span className="shrink-0">{selection}{state !== "running" ? ` · ${copy.stopped}` : ""}</span>
     <span className="flex shrink-0 gap-3 tabular-nums" title={copy.cpuHelp}>

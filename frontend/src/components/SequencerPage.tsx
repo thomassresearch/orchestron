@@ -41,7 +41,7 @@ import { AdaptiveInstrumentRack } from "./sequencer/AdaptiveInstrumentRack";
 import { PerformMixer } from "./PerformMixer";
 import { audioCopy } from "../lib/audioCopy";
 import { canReorderRackInstruments, groupRackInstruments, type RackInstrumentBindingRow } from "../lib/rackOrdering";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ChangeEvent,
   CSSProperties,
@@ -793,6 +793,8 @@ function useSequencerPageContext({
     confirmDeletePerformance,
   };
 }
+const WorkspaceShell = lazy(() => import("./sequencer/WorkspaceShell"));
+
 export function SequencerPage(props: SequencerPageProps) {
   const generation = useAppStore(state => state.performanceWorkspaceGeneration);
   const routes = useAppStore(state => state.audioGraph.routes);
@@ -885,18 +887,24 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
         collapsed={false} onCollapse={() => {}} readPosition={props.data.readPlaybackTransportSubunit} />;
     }
   };
-  return (
-    <>
-      <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-glow">
-        <input
-          ref={configFileInputRef}
-          type="file"
-          accept="application/json,.json,.orch.json,.zip,.orch.zip,application/zip,application/x-zip-compressed"
-          className="hidden"
-          onChange={handleConfigFileChange}
-        />
-
-        {view && <ProjectControls context={context} />}
+  const pianoPanel = (<CollapsiblePanel unmountOnCollapse
+          title={ui.pianoRolls}
+          collapsed={collapsedPanels.piano}
+          onCollapsedChange={(collapsed) => onPanelCollapsedChange("piano", collapsed)}
+          className="mt-4 rounded-xl border border-emerald-800/45 bg-slate-950/85 p-3"
+          titleClassName="text-emerald-200"
+          help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_piano_rolls")} /> : null}
+          actions={!sequencer.clipArrangement ? <button
+            type="button"
+            onClick={() => { onPanelCollapsedChange("piano", false); onAddPianoRoll(); }}
+            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
+          >
+            {ui.addPianoRoll}
+          </button> : null}
+        >
+          <PianoRollsBody context={context} />
+        </CollapsiblePanel>);
+  const overview = <>
         {showMix && <CollapsiblePanel unmountOnCollapse
           title={ui.instrumentRack}
           collapsed={collapsedPanels.rack}
@@ -914,7 +922,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
             >
               {ui.addInstrument}
             </button>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
+            {!view && <div className="ml-auto flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={onStartInstruments}
@@ -931,7 +939,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
               >
                 {ui.stopInstruments}
               </button>
-            </div>
+            </div>}
           </>}
           collapsedSummary={<RackSummary context={context} />}
         >
@@ -940,13 +948,13 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
 
         {showMix && <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />}
 
-        {transportError && (
+        {!view && transportError && (
           <div className="mt-3 rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">
             {transportError}
           </div>
         )}
 
-        <div className="mt-4 rounded-lg border border-sky-900/55 bg-slate-900/65 p-2.5">
+        {!view && <div className="mt-4 rounded-lg border border-sky-900/55 bg-slate-900/65 p-2.5">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{ui.globalSequencerClock}</div>
             <span className={transportStateClass}>{sequencer.isPlaying ? ui.running : ui.stopped}</span>
@@ -965,13 +973,13 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
               />
             </label>
           </div>
-        </div>
+        </div>}
 
         {showArrange && (sequencer.clipArrangement ? <ClipPerformance language={guiLanguage} onHelpRequest={onHelpRequest}
           laneControls={id => <LaneOutputButtons id={id} language={guiLanguage} />}
           position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(sequencer.arrangerLoopSelection, step)}
           onLoopChange={onSequencerArrangerLoopSelectionChange}
-          transport={<ClipTransport language={guiLanguage} copy={arrangerCopy} onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward} />}
+          transport={!view && <ClipTransport language={guiLanguage} copy={arrangerCopy} onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward} />}
           onAddLane={source => { try { addClipLane(source, { sequencer: onAddSequencerTrack, drummer: onAddDrummerSequencerTrack, controller: onAddControllerSequencer, arpeggiator: onAddArpeggiator, score: () => addScoreTrack("Score") }[source]); } catch (e) { useAppStore.setState({ error: String(e) }); } }}
           renderEditor={renderDeviceEditor} /> : <>
         {isClipArrangerEnabled() && <button className="mt-3 rounded border border-cyan-700 px-3 py-2 text-xs text-cyan-200" onClick={() => {
@@ -1068,23 +1076,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
 
         {view === "live" && <LivePadEditor language={guiLanguage} sequencer={sequencer} renderEditor={renderDeviceEditor} />}
         {showLive && <>
-        <CollapsiblePanel unmountOnCollapse
-          title={ui.pianoRolls}
-          collapsed={collapsedPanels.piano}
-          onCollapsedChange={(collapsed) => onPanelCollapsedChange("piano", collapsed)}
-          className="mt-4 rounded-xl border border-emerald-800/45 bg-slate-950/85 p-3"
-          titleClassName="text-emerald-200"
-          help={onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("sequencer_piano_rolls")} /> : null}
-          actions={!sequencer.clipArrangement ? <button
-            type="button"
-            onClick={() => { onPanelCollapsedChange("piano", false); onAddPianoRoll(); }}
-            className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25"
-          >
-            {ui.addPianoRoll}
-          </button> : null}
-        >
-          <PianoRollsBody context={context} />
-        </CollapsiblePanel>
+        {!view && pianoPanel}
 
         <CollapsiblePanel unmountOnCollapse
           title={ui.midiControllers(sequencer.midiControllers.length)}
@@ -1108,6 +1100,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
         </>}
         {showArrange && !sequencer.clipArrangement && sequencer.tracks.length + sequencer.scoreTracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0 ? (
           <MultitrackArranger
+            sharedTransport={!!view}
             collapsed={collapsedPanels.arranger}
             onCollapsedChange={(collapsed) => onPanelCollapsedChange("arranger", collapsed)}
             guiLanguage={guiLanguage}
@@ -1127,7 +1120,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           />
         ) : null}
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-300">
+        {!view && <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-300">
           <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
             {ui.playhead(sequencer.playhead, sequencer.stepCount)}
           </span>
@@ -1137,8 +1130,29 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
             {ui.midiInput(midiInputName ?? ui.none)}
           </span>
-        </div>
-      </section>
+        </div>}
+    </>;
+  return <>
+    <input
+          ref={configFileInputRef}
+          type="file"
+          accept="application/json,.json,.orch.json,.zip,.orch.zip,application/zip,application/x-zip-compressed"
+          className="hidden"
+          onChange={handleConfigFileChange}
+        />
+    {view ? <WorkspaceShell view={view} language={guiLanguage} name={context.performanceName || ui.performanceName}
+      project={<ProjectControls context={context} hideSave />}
+      save={<button className="ws-save" disabled={sampleUploads > 0} onClick={context.onSavePerformance}>{ui.savePerformance}</button>}
+      engine={<button className="ws-engine" aria-pressed={instrumentsRunning} disabled={!instrumentsRunning && sampleUploads > 0}
+        onClick={instrumentsRunning ? onStopInstruments : onStartInstruments}>{instrumentsRunning ? ui.stopInstruments : ui.startInstruments}</button>}
+      onHelp={onHelpRequest ? () => onHelpRequest(view === "mix" ? "sequencer_mixer" : view === "live" ? "sequencer_tracks" : sequencer.clipArrangement ? "sequencer_clip_arranger" : "sequencer_multitrack_arranger") : undefined}
+      session={localizedSessionState} midi={ui.midiInput(midiInputName ?? ui.none)} error={transportError}
+      onSeek={onSequencerArrangerLoopSelectionChange} onTempo={onBpmChange}
+      transport={<ClipTransport language={guiLanguage} copy={arrangerCopy} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward}
+        onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} />}
+      keyboard={<><PianoRollsBody context={context} />{(!sequencer.clipArrangement || !sequencer.pianoRolls.length) && <button onClick={onAddPianoRoll}>{ui.addPianoRoll}</button>}</>}>
+      {overview}
+    </WorkspaceShell> : <section className="rounded-2xl border border-slate-700/70 bg-slate-900/70 p-3 shadow-glow">{overview}</section>}
 
       {deletePerformanceDialogOpen ? (
         <div
@@ -1183,10 +1197,9 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           </div>
         </div>
       ) : null}
-    </>
-  );
+    </>;
 }
-function ProjectControls({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
+function ProjectControls({ context, hideSave = false }: { context: ReturnType<typeof useSequencerPageContext>; hideSave?: boolean }) {
   const sampleUploads = useAppStore(s => s.sampleUploads);
   const {
     ui,
@@ -1272,14 +1285,14 @@ function ProjectControls({ context }: { context: ReturnType<typeof useSequencerP
         {ui.clonePerformance}
       </button>
 
-      <button
+      {!hideSave && <button
         type="button"
         onClick={onSavePerformance}
         disabled={sampleUploads > 0}
         className="rounded-md border border-mint/55 bg-mint/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-mint transition hover:bg-mint/25"
       >
         {ui.savePerformance}
-      </button>
+      </button>}
       <button
         type="button"
         onClick={onExportConfig}

@@ -11,7 +11,8 @@ async page => {
   try {
     await page.waitForFunction(() => window.__workspaceTest.store.getState().activeSessionState === "running");
     await view("Arrange");
-    await button("Play", page.getByRole("region", { name: "Multitrack arranger" })).click();
+    if (!await page.getByRole("separator", { name: "Resize editor" }).count()) await button("Editor").click();
+    await button("Play", page.getByRole("group", { name: "Song transport" })).click();
     await page.waitForFunction(() => {
       const { sequencerRuntime } = window.__workspaceTest.store.getState();
       return sequencerRuntime.arrangerActive && sequencerRuntime.arrangerTransportSubunit > 0;
@@ -29,6 +30,9 @@ async page => {
     });
     page.on("request", observe);
     for (const name of ["Live", "Mix", "Mix", "Arrange"]) await view(name);
+    const divider = page.getByRole("separator", { name: "Resize editor" });
+    await divider.focus();
+    await page.keyboard.press("Shift+ArrowUp");
     await page.waitForFunction(position => {
       const runtime = window.__workspaceTest.store.getState().sequencerRuntime;
       return runtime.arrangerActive && runtime.arrangerTransportSubunit > position;

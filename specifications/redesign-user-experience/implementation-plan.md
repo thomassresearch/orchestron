@@ -56,6 +56,8 @@ Use the existing workspace generation when New, Load or Import successfully repl
 
 ## 3. Build the bounded shell and shared controls
 
+**Implemented in the application preview on 18 November 2026.** The real clip and legacy arrangers share a bounded shell and transport. Browser verification covered the desktop split, the single-pane editor, the Inspector drawer, real 200% zoom and changing panes during native playback. [Implementation record and replay](milestone-3-workspace-shell.md)
+
 1. Constrain the **Perform** branch of the application shell to the available dynamic viewport, including its navigation, toolbar and status. Give the working row and columns shrinkable minimum sizes. Assign scrolling to the timeline, active detail, Inspector and mixer bank. Check which element actually scrolls with real content mounted.
 2. Use one main column for the overview, horizontal divider and lower dock. Place the Inspector in a second column on the right spanning both panes. Closing the Inspector gives the width back. Closing Editor or Keyboard removes the entire dock and divider. A short song retains normal row heights and a usable empty timeline with **Add track**. **Fit tracks** changes display density only.
 3. Give the divider pointer capture, visible focus, separator semantics and current/min/max values. Up/Down move 10 CSS pixels, Shift changes the increment to one, and Home/End reach the limits. Escape, pointer cancellation, lost capture, blur and a layout change during a drag restore the previous preferred height. Clamp the rendered height after resize and retain the chosen height for larger windows. Keep React editor instances stable through the gesture. [Divider rules](layout-and-interaction-spec.md#draggable-divider)

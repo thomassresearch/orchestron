@@ -1449,7 +1449,7 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
     instrumentsRunning,
     sessionState: activeSessionState,
     midiInputName: activeMidiInputName,
-    transportError: sequencerError
+    transportError: sequencerError || (workspacePreview ? browserAudioError : null)
   };
   const sequencerInstrumentActions = {
     onAddInstrument: addSequencerInstrument,
@@ -1736,11 +1736,12 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
     onArpeggiatorPresetSave: saveArpeggiatorPreset
   };
 
+  const bounded = workspacePreview && activePage === "sequencer";
   return (
-    <div className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
+    <div data-perform-preview={bounded || undefined} className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
       <DraftResolutionDialog language={guiLanguage} />
-      {activePage === "sequencer" && <EngineStatusLine />}
-      <div className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
+      {activePage === "sequencer" && !bounded && <EngineStatusLine />}
+      <div data-app-frame className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
         <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
           <div className="flex flex-1 items-center gap-3">
             <img
@@ -1755,6 +1756,10 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
           </div>
           <div className="absolute right-4 top-3 flex flex-col items-end gap-1">
             <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{appCopy.guiLanguage}</span>
+            {bounded && <select className="ws-language" aria-label={appCopy.guiLanguage} value={guiLanguage}
+              onChange={event => setGuiLanguage(event.target.value as typeof guiLanguage)}>
+              {GUI_LANGUAGE_OPTIONS.map(option => <option key={option.value} value={option.value}>{GUI_LANGUAGE_SHORT_LABELS[option.value].toUpperCase()}</option>)}
+            </select>}
             <div
               role="group"
               aria-label={appCopy.guiLanguage}
@@ -1779,7 +1784,7 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
           </div>
         </header>
 
-        <div className="inline-flex rounded-xl border border-slate-700 bg-slate-950/80 p-1">
+        <div data-app-pages className="inline-flex rounded-xl border border-slate-700 bg-slate-950/80 p-1">
           <button
             type="button"
             onClick={() => setActivePage("instrument")}
@@ -1809,7 +1814,7 @@ export default function App({ workspacePreview = false }: { workspacePreview?: b
           </button>
         </div>
 
-        {error && (
+        {error && !bounded && (
           <div className="rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">
             {error}
           </div>

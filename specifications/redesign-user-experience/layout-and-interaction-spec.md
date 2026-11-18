@@ -154,6 +154,8 @@ The mock explores a one-pane threshold around 700 CSS pixels wide or 600 pixels 
 height. Those values, pane limits and exact chrome sizes are provisional. Validate them with
 real controls, translations, enlarged text and browser zoom before implementation is accepted.
 
+The React preview also measures the working area after the application controls take their space. It switches to one pane when the open editor would crowd out the ruler and track controls. A coarse pointer gets a 24 px divider target. [Measured preview behavior](milestone-3-workspace-shell.md)
+
 ## Placement of current Orchestron capabilities
 
 | Existing capability | Proposed home |

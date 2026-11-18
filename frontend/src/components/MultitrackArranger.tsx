@@ -24,6 +24,7 @@ const MAX_STEP_PIXEL_WIDTH = 24;
 type ArrangerTrackKind = "sequencer" | "score" | "drummer" | "controller" | "arpeggiator";
 export type Lane = { id: string; kind: ArrangerTrackKind; title: string; subtitle: string; pattern: PadLoopPatternState; padBeats: number[]; availablePads: number[]; source: boolean; repeat: boolean; activePad: number; enabled: boolean; unusedPad: number; beatScale: number };
 export type MultitrackArrangerProps = {
+  sharedTransport?: boolean;
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   guiLanguage: GuiLanguage;
@@ -207,7 +208,7 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
       </span>
       <ArrangerHistoryControls language={guiLanguage} collapsed={collapsed} />
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
-        <button
+        {!props.sharedTransport && <><button
           type="button"
           onClick={() => useAppStore.getState().setSequencerArrangerSongLoopEnabled(!props.sequencer.arrangerSongLoopEnabled)}
           className={transportButtonClass + (props.sequencer.arrangerSongLoopEnabled ? activeTransportClass : "")}
@@ -255,7 +256,7 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
           aria-label={copy.transportFastForward}
         >
           <CassetteIcon kind="fastForward" />
-        </button>
+        </button></>}
         <button
           type="button"
           onClick={() => {

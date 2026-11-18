@@ -1,3 +1,4 @@
+import { WorkspacePanel, WorkspacePanels } from "../sequencer/WorkspacePanels";
 import { definitionRelationships, effectiveScope, localLoopWindows, uniqueVariationName } from "../../lib/clipArranger/relationships";
 import { EditScopeControls } from "./EditScopeControls";
 import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
@@ -12,7 +13,7 @@ import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration
 import { draftKey } from "../../lib/clipArranger/editorAdapter";
 import { usePerformanceAudition } from "../sequencer/PerformanceAudition";
 import { ClipEditingContext } from "./context";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { mergedSequencerState } from "../../lib/mergedSequencerState";
 import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
 import type { ClipArrangement, SourceKind } from "../../lib/clipArranger/model";
@@ -41,6 +42,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   transport?: ReactNode; laneControls?: (id: string) => ReactNode; onAddLane?: (source: SourceKind) => void;
 }) {
   const sequencer = useAppStore(s => s.sequencer), drafts = useAppStore(s => s.clipDrafts), key = useAppStore(s => s.clipEditingKey);
+  const shell = useContext(WorkspacePanels);
   const model=sequencer.clipArrangement??emptyArrangement;
   const [zoomSetting, setZoom] = usePerformanceEditorState<number | null>("arranger", "clipZoom", 40);
   const viewport = useRef<HTMLDivElement>(null);
@@ -76,6 +78,9 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
     await audition?.(previous.id, { action: "workspace_end", gestureId: previous.gesture });
     if (!active.current && owned && useAppStore.getState().clipAuditionDraft === owned) useAppStore.setState({ clipAuditionDraft: null });
   };
+  useEffect(() => {
+    if (shell && active.current && active.current.key !== key) void stopEdit().catch(e => setError(String(e)));
+  }, [key]);
   const structure=useStructureEditor(model,sequencer,timings,language,stopEdit,zoom/QUARTER_TICKS);
   useEffect(() => () => {
     const previous = active.current;
@@ -156,7 +161,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
       }}
       inlineEditor={curve && !curve.automationTarget ? { laneId: curve.id, content: <InlineCurve track={curve} language={language} window={curveWindow} /> } : undefined}
       transport={<>{transport}<button className={clipButtonClass("edit")} disabled={!sequencer.clipHistory?.cursor} onClick={() => attempt(() => clipHistoryStep(false))}>{c.undo}</button><button className={clipButtonClass("edit")} disabled={!sequencer.clipHistory || sequencer.clipHistory.cursor >= sequencer.clipHistory.entries.length} onClick={() => attempt(() => clipHistoryStep(true))}>{c.redo}</button></>} />
-    {draft && lane ? <section className="mt-2 rounded-xl border border-cyan-800 bg-slate-950/80 p-3" aria-label={c.path}>
+    <WorkspacePanel name="editor">{draft && lane ? <section className="mt-2 rounded-xl border border-cyan-800 bg-slate-950/80 p-3" aria-label={c.path}>
       <header className="mb-3 flex flex-wrap items-center gap-2 text-xs"><span className="mr-auto text-cyan-100">{breadcrumb}</span>
         {active.current && <span role="status" className="text-cyan-200">{statuses[active.current.id]?.workspace_queued ? c.auditionQueued : c.auditioning}</span>}
         <span className="text-amber-200">{(draft.definition.kind==="pattern"?hasChangedClipDrafts(model,{current:draft}):!!structure.draft?.cursor)?c.unsaved:c.saved}</span>
@@ -171,7 +176,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
           active.current = { id: lane.id, gesture, key: draftKey(draft), last: draft };
           try { await audition?.(lane.id, { action: "workspace_start", gestureId: gesture, clipDraft: played }); if (active.current?.gesture === gesture) setAuditioning(true); }
           catch (e) { if (active.current?.gesture === gesture) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); } }
-        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind==="pattern" ? !scope || !dirty : !structure.canSave} onClick={() => { if(draft.definition.kind==='pattern') void stopEdit().then(()=>attempt(()=>saveClipDraftWithIntent(key ?? undefined))).catch(e=>setError(String(e))); else structure.openSave(); }}>{draft.definition.kind==="pattern" ? scope==='local'?sc.saveLocal:relationship?.shared?`${sc.saveAll} (${relationship.occurrences})`:c.save : structure.draft?.editIntent?.scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button><button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>
+        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind==="pattern" ? !scope || !dirty : !structure.canSave} onClick={() => { if(draft.definition.kind==='pattern') void stopEdit().then(()=>attempt(()=>saveClipDraftWithIntent(key ?? undefined))).catch(e=>setError(String(e))); else structure.openSave(); }}>{draft.definition.kind==="pattern" ? scope==='local'?sc.saveLocal:relationship?.shared?`${sc.saveAll} (${relationship.occurrences})`:c.save : structure.draft?.editIntent?.scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button>{!shell && <button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>}
       </header>
       {draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}
         variationName={draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane,draft.definition.name,sc.variationSuffix) : '')}
@@ -187,7 +192,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
       </>}
 
 
-    </section> : <p className="px-3 py-2 text-xs text-slate-500">{c.select}</p>}
+    </section> : !shell && <p className="px-3 py-2 text-xs text-slate-500">{c.select}</p>}</WorkspacePanel>
     {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
 
   </>;
