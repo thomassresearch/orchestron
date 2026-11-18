@@ -65,6 +65,16 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 
 Tracks start compact. Expand a track to work with nested patterns, groups and supergroups. Double-click content to edit it and use **Play edit** to audition the draft. Lane Mute/Solo is temporary and independent of the instrument mixer; see [lane controls](multitrack_arranger.md#temporary-lane-mute-and-solo).
 
+## Arrange in the workspace preview
+
+In the optional workspace preview, click a clip or one of its patterns to see its properties in the right-hand **Inspector**. Double-click a pattern or select it and choose **Editor** to open it below the timeline. The breadcrumb names the track, clip, pattern and loop pass you are editing. Drag the divider to give the steps more room, or close the editor to see more tracks.
+
+For a fill on just one chorus repeat, choose **Create variation here**, edit the notes, then choose **Save variation here**. To change the phrase everywhere it plays, choose the linked scope. Its Save button shows how many uses will change. You can switch to Live to edit a physical pad and return to the same unfinished clip. **Save Performance** stores the song.
+
+![Editing a fill on the second pass of Chorus, with the timeline above, the step editor below and the clip properties on the right](../../screenshots/perform-workspace-arrange-occurrence.png)
+
+For a legacy performance, double-click a pad occurrence to edit that physical pad. Every occurrence that refers to the pad plays the change. Use **Edit pad in Live** when you want to move to the launcher. The performance stays in its original format until you explicitly convert it.
+
 ## Sequencer timing
 
 Use Meter, Pattern length and Subdivision for melodic, drum and controller sequencers. A one-bar 4/4 pad with three steps per beat displays twelve steps in four labeled beat groups. Playback speed is under Advanced timing. See [Sequencer timing](sequencer_timing.md) for the full guide.

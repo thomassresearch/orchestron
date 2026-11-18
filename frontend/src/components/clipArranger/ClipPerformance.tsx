@@ -1,5 +1,7 @@
+import { transposeCopy } from "./transposeCopy";
 import { WorkspacePanel, WorkspacePanels } from "../sequencer/WorkspacePanels";
-import { definitionRelationships, effectiveScope, localLoopWindows, uniqueVariationName } from "../../lib/clipArranger/relationships";
+import { effectiveScope, localLoopWindows, uniqueVariationName } from "../../lib/clipArranger/relationships";
+import { arrangeCopy, arrangeSaveLabel } from "./arrangeCopy";
 import { EditScopeControls } from "./EditScopeControls";
 import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { TransposeInspector } from "./TransposeInspector";
@@ -24,7 +26,7 @@ import { clipHistoryStep, commitClipArrangement, openClipEditor, saveClipDraftWi
 import { ClipArranger } from "./ClipArranger";
 import { clipButton, clipButtonClass } from "./buttonStyles";
 import { useStructureEditor } from "./StructureEditor";
-import { usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
+import { ClipEditorTargetContext, EditorDetails, RetainedScroll, usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
 import { beginStructure, structureChildren } from "../../lib/clipArranger/structure";
 import { structureAuditionDraft } from "../../lib/clipArranger/structureAudition";
 import { structureCopy } from "./structureCopy";
@@ -106,7 +108,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
     return () => clearTimeout(timer);
   }, [drafts, auditioning, audition]);
   const draft = key ? drafts[key] : undefined, c = clipCopy(language), t=structureCopy(language), sc=scopeCopy(language);
-  const relationships=useMemo(()=>new Map(model.lanes.map(lane=>[lane.id,definitionRelationships(lane,timings[lane.id])])),[model,timings]);
+  const relationships=structure.relationships;
   const relationship=draft?relationships.get(draft.target.laneId)?.get(draft.definition.id):undefined;
   const scope=draft?(draft.definition.kind==='pattern'?effectiveScope(draft.editIntent,relationship):structure.draft?.editIntent?.scope??null):null;
   const dirty=!!draft&&hasChangedClipDrafts(model,{current:draft});
@@ -137,12 +139,47 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
   let breadcrumb = "";
   if (lane && draft) {
     const name = sequencer[sourceKeys[lane.source]].find(t => t.id === lane.id)?.name ?? lane.id;
-    try { breadcrumb = [name, selectedClip?.name, ...occurrenceNames(lane, draft.target)].join(" / "); }
+    try { breadcrumb = [name, selectedClip?.name, ...occurrenceNames(lane, draft.target), ...(shell && selectedClip?.mode === "loop" ? [`${arrangeCopy(language).pass} ${(selectedClip.repeatIndexBase ?? 0) + draft.target.pass + 1}`] : [])].join(" / "); }
     catch { breadcrumb = `${name} / ${draft.definition.name}`; }
   }
+  const previewSaveLabel = draft?.definition.kind === "pattern" ? arrangeSaveLabel(language, "pattern", scope, relationship) : structure.saveLabel;
   const attempt = (action: () => void) => { try { action(); setError(null); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
+  const editor = draft && lane ? <section className="mt-2 rounded-xl border border-cyan-800 bg-slate-950/80 p-3" aria-label={c.path}>
+      <header className="mb-3 flex flex-wrap items-center gap-2 text-xs"><span className="mr-auto text-cyan-100">{breadcrumb}</span>
+        {active.current && <span role="status" className="text-cyan-200">{statuses[active.current.id]?.workspace_queued ? c.auditionQueued : c.auditioning}</span>}
+        <span className="text-amber-200">{(draft.definition.kind==="pattern"?hasChangedClipDrafts(model,{current:draft}):!!structure.draft?.cursor)?c.unsaved:c.saved}</span>
+        <button className={clipButtonClass(auditioning ? "edit" : "add")} disabled={!auditioning && (!scope || (draft.definition.kind!=="pattern"&&!container))} onClick={() => { void (async () => {
+          if (auditioning) { await stopEdit(); return; }
+          const gesture = crypto.randomUUID();
+          let played=draft;
+          if(draft.definition.kind!=="pattern"&&structure.draft){
+            played=structureAuditionDraft(model,structure.draft,draft.target,timings);
+          }
+          useAppStore.setState({ clipAuditionDraft: played });
+          active.current = { id: lane.id, gesture, key: draftKey(draft), last: draft };
+          try { await audition?.(lane.id, { action: "workspace_start", gestureId: gesture, clipDraft: played }); if (active.current?.gesture === gesture) setAuditioning(true); }
+          catch (e) { if (active.current?.gesture === gesture) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); } }
+        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind==="pattern" ? !scope || !dirty : !structure.canSave} onClick={() => { if(draft.definition.kind==='pattern') void stopEdit().then(()=>attempt(()=>saveClipDraftWithIntent(key ?? undefined))).catch(e=>setError(String(e))); else structure.openSave(); }}>{shell ? previewSaveLabel : draft.definition.kind==="pattern" ? scope==='local'?sc.saveLocal:relationship?.shared?`${sc.saveAll} (${relationship.occurrences})`:c.save : structure.draft?.editIntent?.scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button>{!shell && <button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>}
+      </header>
+      {draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}
+        variationName={draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane,draft.definition.name,sc.variationSuffix) : '')}
+        onChoose={next=>setClipEditIntent(next,draft.editIntent?.variationName??uniqueVariationName(lane,draft.definition.name,sc.variationSuffix))}
+        onNameChange={name=>setClipEditIntent('local',name)} /> : structure.scopeControls}
+      {scope && <>
+      {shell ? ["sequencer", "score", "arpeggiator"].includes(lane.source) && <EditorDetails owner={`device:${lane.id}`} field="clipTranspose" className="mb-2 text-xs" summary={transposeCopy(language).title}>
+        {() => <TransposeInspector key={key} language={language} stopAudition={stopEdit} />}
+      </EditorDetails> : <TransposeInspector key={key} language={language} stopAudition={stopEdit} />}
+      <AutomationDuration language={language} />
+      {curve?.automationTarget && <button className={`${clipButtonClass("remove")} mb-2`} onClick={() => { void stopEdit().then(() => { const state = useAppStore.getState(); const remaining = { ...state.clipDrafts }; if (key) delete remaining[key]; useAppStore.setState({ clipDrafts: remaining, clipEditingKey: null }); }); }}>{automationCopy(language).discard}</button>}
+      <p className="mb-2 text-[10px] text-slate-500">{c.laneSettings}</p>
+      {draft.definition.kind === "pattern" ? <ClipEditorTargetContext.Provider key={shell ? key : undefined} value={shell ? key : null}><ClipEditingContext.Provider value>{renderEditor(draft.definition.source, lane.id, clipEditorPlaybackView(playback, draft, auditionDraft))}</ClipEditingContext.Provider></ClipEditorTargetContext.Provider>
+        : container?.children ? <ContentEditor showName={scope!=='local'} lane={lane} nodes={container.children} path={draft.target.path} name={container.definition!.name} level={draft.definition.kind} sequencer={sequencer} language={language} onCommand={command=>structure.run(command,{laneId:lane.id,clipId:draft.target.clipId,pass:draft.target.pass,parent:draft.target.path})}/> : <p>{t.containerRemoved}</p>}
+      </>}
+
+
+    </section> : !shell && <p className="px-3 py-2 text-xs text-slate-500">{c.select}</p>;
   return <>
-    <AutomationMergeDialog language={language} />
+    <WorkspacePanel name="dialogs"><AutomationMergeDialog language={language} /></WorkspacePanel>
     <ClipArranger onHelpRequest={onHelpRequest} stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={(target, intent) => attempt(() => openClipEditor(target, intent))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
       renderAutomation={(target, range) => {
         if (!curve?.automationTarget || !draft || !lane || draftKey({ target }) !== draftKey(draft) || draft.definition.kind !== "pattern") return null;
@@ -161,38 +198,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
       }}
       inlineEditor={curve && !curve.automationTarget ? { laneId: curve.id, content: <InlineCurve track={curve} language={language} window={curveWindow} /> } : undefined}
       transport={<>{transport}<button className={clipButtonClass("edit")} disabled={!sequencer.clipHistory?.cursor} onClick={() => attempt(() => clipHistoryStep(false))}>{c.undo}</button><button className={clipButtonClass("edit")} disabled={!sequencer.clipHistory || sequencer.clipHistory.cursor >= sequencer.clipHistory.entries.length} onClick={() => attempt(() => clipHistoryStep(true))}>{c.redo}</button></>} />
-    <WorkspacePanel name="editor">{draft && lane ? <section className="mt-2 rounded-xl border border-cyan-800 bg-slate-950/80 p-3" aria-label={c.path}>
-      <header className="mb-3 flex flex-wrap items-center gap-2 text-xs"><span className="mr-auto text-cyan-100">{breadcrumb}</span>
-        {active.current && <span role="status" className="text-cyan-200">{statuses[active.current.id]?.workspace_queued ? c.auditionQueued : c.auditioning}</span>}
-        <span className="text-amber-200">{(draft.definition.kind==="pattern"?hasChangedClipDrafts(model,{current:draft}):!!structure.draft?.cursor)?c.unsaved:c.saved}</span>
-        <button className={clipButtonClass(auditioning ? "edit" : "add")} disabled={!auditioning && (!scope || (draft.definition.kind!=="pattern"&&!container))} onClick={() => { void (async () => {
-          if (auditioning) { await stopEdit(); return; }
-          const gesture = crypto.randomUUID();
-          let played=draft;
-          if(draft.definition.kind!=="pattern"&&structure.draft){
-            played=structureAuditionDraft(model,structure.draft,draft.target,timings);
-          }
-          useAppStore.setState({ clipAuditionDraft: played });
-          active.current = { id: lane.id, gesture, key: draftKey(draft), last: draft };
-          try { await audition?.(lane.id, { action: "workspace_start", gestureId: gesture, clipDraft: played }); if (active.current?.gesture === gesture) setAuditioning(true); }
-          catch (e) { if (active.current?.gesture === gesture) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); } }
-        })(); }}>{auditioning ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind==="pattern" ? !scope || !dirty : !structure.canSave} onClick={() => { if(draft.definition.kind==='pattern') void stopEdit().then(()=>attempt(()=>saveClipDraftWithIntent(key ?? undefined))).catch(e=>setError(String(e))); else structure.openSave(); }}>{draft.definition.kind==="pattern" ? scope==='local'?sc.saveLocal:relationship?.shared?`${sc.saveAll} (${relationship.occurrences})`:c.save : structure.draft?.editIntent?.scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button>{!shell && <button className={clipButton} onClick={() => { void stopEdit(); useAppStore.setState({ clipEditingKey: null }); }}>{c.close}</button>}
-      </header>
-      {draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}
-        variationName={draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane,draft.definition.name,sc.variationSuffix) : '')}
-        onChoose={next=>setClipEditIntent(next,draft.editIntent?.variationName??uniqueVariationName(lane,draft.definition.name,sc.variationSuffix))}
-        onNameChange={name=>setClipEditIntent('local',name)} /> : structure.scopeControls}
-      {scope && <>
-      <TransposeInspector key={key} language={language} stopAudition={stopEdit} />
-      <AutomationDuration language={language} />
-      {curve?.automationTarget && <button className={`${clipButtonClass("remove")} mb-2`} onClick={() => { void stopEdit().then(() => { const state = useAppStore.getState(); const remaining = { ...state.clipDrafts }; if (key) delete remaining[key]; useAppStore.setState({ clipDrafts: remaining, clipEditingKey: null }); }); }}>{automationCopy(language).discard}</button>}
-      <p className="mb-2 text-[10px] text-slate-500">{c.laneSettings}</p>
-      {draft.definition.kind === "pattern" ? <ClipEditingContext.Provider value>{renderEditor(draft.definition.source, lane.id, clipEditorPlaybackView(playback, draft, auditionDraft))}</ClipEditingContext.Provider>
-        : container?.children ? <ContentEditor showName={scope!=='local'} lane={lane} nodes={container.children} path={draft.target.path} name={container.definition!.name} level={draft.definition.kind} sequencer={sequencer} language={language} onCommand={command=>structure.run(command,{laneId:lane.id,clipId:draft.target.clipId,pass:draft.target.pass,parent:draft.target.path})}/> : <p>{t.containerRemoved}</p>}
-      </>}
-
-
-    </section> : !shell && <p className="px-3 py-2 text-xs text-slate-500">{c.select}</p>}</WorkspacePanel>
+    <WorkspacePanel name="editor">{shell && draft ? <RetainedScroll key={key} owner={`device:${draft.target.laneId}`} field={`clipDock:${key}`} className="ws-dock-scroll">{editor}</RetainedScroll> : editor}</WorkspacePanel>
     {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
 
   </>;

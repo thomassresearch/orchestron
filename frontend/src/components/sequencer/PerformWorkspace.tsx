@@ -66,11 +66,22 @@ function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged =
     clear("page", "liveDevice", "live", "");
     clear("page", "layout", "live", { ...value<PerformViewLayout>("page", "layout", "live"), dock: null });
   }
+  const legacy = value<{ id: string; kind: SourceKind }>("arranger", "legacyPad", "arrange");
+  if (legacy && !state.sequencer[sourceKeys[legacy.kind]].some(t => t.id === legacy.id)) {
+    clear("arranger", "legacyPad", "arrange", null);
+    const layout = value<PerformViewLayout>("page", "layout", "arrange");
+    if (layout?.dock === "editor") clear("page", "layout", "arrange", { ...layout, dock: null });
+  }
   const binding = value<string>("mixer", "selected", "mix");
   if (binding && binding !== "$master" && !state.sequencerInstruments.some(row => row.id === binding)) clear("mixer", "selected", "mix", "");
   const lanes = state.sequencer.clipArrangement?.lanes;
-  const selected = value<{ laneId: string; clipId: string }>("arranger", "clipSelection", "arrange");
-  if (selected && !lanes?.find(l => l.id === selected.laneId)?.clips.some(c => c.id === selected.clipId)) clear("arranger", "clipSelection", "arrange", null);
+  const selected = value<{ laneId: string; clipId?: string }>("arranger", "clipSelection", "arrange");
+  if (selected) {
+    const lane = lanes?.find(l => l.id === selected.laneId);
+    if (!lane || (selected.clipId && !lane.clips.some(c => c.id === selected.clipId))) {
+      clear("arranger", "clipSelection", "arrange", lane ? { laneId: lane.id } : null);
+    }
+  }
   const expanded = value<string>("arranger", "clipExpandedLane", "arrange");
   if (expanded && !lanes?.some(l => l.id === expanded)) clear("arranger", "clipExpandedLane", "arrange", null);
   const focus = value<StructureFocus>("arranger", "structureFocus", "arrange");

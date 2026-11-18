@@ -1,3 +1,5 @@
+import { arrangeCopy } from "./clipArranger/arrangeCopy";
+import { LegacyArrange, type LegacyPadAction } from "./sequencer/LegacyArrange";
 import { PerformWorkspace, LivePadEditor, type DeviceEditorRenderer, type ViewNavigation } from "./sequencer/PerformWorkspace";
 import { ClipTransport } from "./clipArranger/ClipTransport";
 import { useContext } from "react";
@@ -29,7 +31,7 @@ import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
 import { pianoRollFollowingTheories } from "../lib/pianoRollFollowing";
-import { OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
+import { ArrangeSettings, OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, useStepProperties, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
 import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel } from "./CollapsiblePanel";
@@ -904,6 +906,30 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
         >
           <PianoRollsBody context={context} />
         </CollapsiblePanel>);
+  const addDevice = { sequencer: onAddSequencerTrack, drummer: onAddDrummerSequencerTrack, controller: onAddControllerSequencer, arpeggiator: onAddArpeggiator, score: () => addScoreTrack("Score") };
+  const hasLegacyTracks = sequencer.tracks.length + sequencer.scoreTracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0;
+  const legacyTimeline = (selectPad?: LegacyPadAction, openPad?: LegacyPadAction) => hasLegacyTracks && (
+          <MultitrackArranger
+            sharedTransport={!!view}
+            collapsed={collapsedPanels.arranger}
+            onCollapsedChange={(collapsed) => onPanelCollapsedChange("arranger", collapsed)}
+            guiLanguage={guiLanguage}
+            copy={arrangerCopy}
+            sequencer={sequencer}
+            patches={patches}
+            instrumentBindings={instrumentBindings}
+            onTransportPlay={handleStartAll}
+            onTransportStop={handleStopAll}
+            onTransportStopDoubleClick={handleStopAllAndResetTransport}
+            onTransportRewind={onSequencerCycleRewind}
+            onTransportFastForward={onSequencerCycleForward}
+            onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
+            onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)}
+            onSelectPad={selectPad}
+            onEditPad={openPad ?? ((kind) => onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "score" ? "score" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false))}
+            onHelpRequest={onHelpRequest}
+          />
+  );
   const overview = <>
         {showMix && <CollapsiblePanel unmountOnCollapse
           title={ui.instrumentRack}
@@ -980,7 +1006,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(sequencer.arrangerLoopSelection, step)}
           onLoopChange={onSequencerArrangerLoopSelectionChange}
           transport={!view && <ClipTransport language={guiLanguage} copy={arrangerCopy} onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward} />}
-          onAddLane={source => { try { addClipLane(source, { sequencer: onAddSequencerTrack, drummer: onAddDrummerSequencerTrack, controller: onAddControllerSequencer, arpeggiator: onAddArpeggiator, score: () => addScoreTrack("Score") }[source]); } catch (e) { useAppStore.setState({ error: String(e) }); } }}
+          onAddLane={source => { try { addClipLane(source, addDevice[source]); } catch (e) { useAppStore.setState({ error: String(e) }); } }}
           renderEditor={renderDeviceEditor} /> : <>
         {isClipArrangerEnabled() && <button className="mt-3 rounded border border-cyan-700 px-3 py-2 text-xs text-cyan-200" onClick={() => {
           const result = migrateClipArrangement(useAppStore.getState().sequencer);
@@ -1098,27 +1124,18 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
         </CollapsiblePanel>
 
         </>}
-        {showArrange && !sequencer.clipArrangement && sequencer.tracks.length + sequencer.scoreTracks.length + sequencer.drummerTracks.length + sequencer.controllerSequencers.length + sequencer.arpeggiators.length > 0 ? (
-          <MultitrackArranger
-            sharedTransport={!!view}
-            collapsed={collapsedPanels.arranger}
-            onCollapsedChange={(collapsed) => onPanelCollapsedChange("arranger", collapsed)}
-            guiLanguage={guiLanguage}
-            copy={arrangerCopy}
-            sequencer={sequencer}
-            patches={patches}
-            instrumentBindings={instrumentBindings}
-            onTransportPlay={handleStartAll}
-            onTransportStop={handleStopAll}
-            onTransportStopDoubleClick={handleStopAllAndResetTransport}
-            onTransportRewind={onSequencerCycleRewind}
-            onTransportFastForward={onSequencerCycleForward}
-            onArrangerLoopSelectionChange={onSequencerArrangerLoopSelectionChange}
-            onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)}
-            onEditPad={(kind, id, pad) => props.navigate ? props.navigate("live", { id, pad }) : onPanelCollapsedChange(kind === "sequencer" ? "melodic" : kind === "score" ? "score" : kind === "drummer" ? "drummer" : kind === "controller" ? "controller" : "arpeggiators", false)}
-            onHelpRequest={onHelpRequest}
-          />
-        ) : null}
+        {showArrange && !sequencer.clipArrangement && (view && props.navigate
+          ? <LegacyArrange language={guiLanguage} sequencer={sequencer} add={kind => addDevice[kind]()} navigate={props.navigate} renderEditor={renderDeviceEditor}
+              onSourceChange={(kind, id, enabled) => {
+                switch (kind) {
+                  case "sequencer": return context.onSequencerTrackPadLoopEnabledChange(id, enabled);
+                  case "drummer": return context.onDrummerSequencerTrackPadLoopEnabledChange(id, enabled);
+                  case "controller": return context.onControllerSequencerPadLoopEnabledChange(id, enabled);
+                  case "score": return useAppStore.getState().commitArrangerEdit("source", [{ id, kind, source: enabled }]);
+                  case "arpeggiator": return context.onArpeggiatorChange(id, { padLoopEnabled: enabled });
+                }
+              }}>{legacyTimeline}</LegacyArrange>
+          : legacyTimeline())}
 
         {!view && <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-300">
           <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
@@ -1567,7 +1584,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
     }
   }, [authored, editingPads, selectEditingPad, singlePattern]);
 
-  const [propertiesTarget, setPropertiesTarget] = useState<{ trackId: string; padIndex: number; step: number } | null>(null);
+  const [propertiesTarget, setPropertiesTarget] = useStepProperties<{ trackId: string; padIndex: number; step: number }>(singlePattern && sequencer.tracks[0] ? `device:${sequencer.tracks[0].id}` : "page", "melodicProperties");
   const propertiesTrigger = useRef<HTMLElement | null>(null);
   const closeProperties = () => { setPropertiesTarget(null); propertiesTrigger.current?.focus(); };
   const openProperties = (trackId: string, padIndex: number, step: number, trigger: HTMLElement) => {
@@ -1754,6 +1771,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </button>
             </div>
 
+            <ArrangeSettings id={track.id} label={arrangeCopy(guiLanguage).settings}>
             <div className="mb-2 grid gap-2 lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] lg:items-start">
               <div className="grid gap-2">
                 <div className="flex flex-wrap items-end gap-2">
@@ -1851,6 +1869,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </div>
             </div>
 
+            </ArrangeSettings>
             <div className="mb-2 text-[11px] text-slate-500">
               {ui.notesInScaleMode(scaleLabel, modeLabel)}
             </div>
@@ -1954,7 +1973,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               <MelodicStepProperties key={`${track.id}:${track.activePad}:${propertiesTarget.step}`}
                 step={track.steps[propertiesTarget.step]} index={propertiesTarget.step}
                 label={`${track.steps[propertiesTarget.step].note === null ? ui.rest : noteOptionsByNote.get(track.steps[propertiesTarget.step].note!)?.label ?? track.steps[propertiesTarget.step].note}${track.steps[propertiesTarget.step].chord !== "none" ? ` · ${track.steps[propertiesTarget.step].chord}` : ""}`}
-                timing={track.timing} language={guiLanguage} onClose={closeProperties}
+                timing={track.timing} language={guiLanguage} onClose={closeProperties} focusOnOpen={!!propertiesTrigger.current}
                 onTiming={value => onSequencerTrackStepTimingOffsetChange?.(track.id, propertiesTarget.step, value)}
                 onStrum={(direction, spread) => onSequencerTrackStepStrumChange?.(track.id, propertiesTarget.step, direction, spread)} />
             )}
@@ -2398,7 +2417,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
     }
   }, [authored, editingPads, selectEditingPad, singlePattern]);
 
-  const [timingTarget, setTimingTarget] = useState<{ trackId: string; rowId: string; step: number; padIndex: number } | null>(null);
+  const [timingTarget, setTimingTarget] = useStepProperties<{ trackId: string; rowId: string; step: number; padIndex: number }>(singlePattern && sequencer.drummerTracks[0] ? `device:${sequencer.drummerTracks[0].id}` : "page", "drumProperties");
   useEffect(() => {
     if (!timingTarget) return;
     const track = sequencer.drummerTracks.find(item => item.id === timingTarget.trackId);

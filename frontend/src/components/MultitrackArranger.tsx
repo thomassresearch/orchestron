@@ -71,6 +71,7 @@ export type MultitrackArrangerProps = {
   onTransportFastForward: () => void;
   onArrangerLoopSelectionChange: (selection: ArrangerLoopSelection | null, positionStep?: number) => void;
   onArrangementRangeChange: (updates: ArrangementRangeUpdate[], action?: ArrangerActionCode) => void;
+  onSelectPad?: (kind: ArrangerTrackKind, id: string, pad: number) => void;
   onEditPad?: (kind: ArrangerTrackKind, id: string, pad: number) => void;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 };

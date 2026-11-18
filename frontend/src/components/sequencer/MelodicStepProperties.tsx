@@ -11,8 +11,9 @@ export const melodicStepCopy = {
   spanish: { properties: "Propiedades del paso", close: "Cerrar propiedades del paso", strum: "Rasgueo", off: "Desactivado", up: "Grave → Agudo", down: "Agudo → Grave", spread: "Separación", reset: "Restablecer separación", requires: "Selecciona un acorde para activar el rasgueo.", hint: "Clic derecho o Mayús+F10: tiempo y rasgueo.", help: "La separación es el tiempo entre la primera y la última nota, como porcentaje de un paso local. Al 100%, la última nota empieza en el paso siguiente. Cada nota conserva su duración y puede solaparse con pasos posteriores." }
 } satisfies Record<GuiLanguage, Record<string, string>>;
 
-export function MelodicStepProperties({ step, index, label, timing, language, onTiming, onStrum, onClose }: {
+export function MelodicStepProperties({ step, index, label, timing, language, onTiming, onStrum, onClose, focusOnOpen = true }: {
   step: SequencerStepState; index: number; label: string; timing: SequencerTimingConfig; language: GuiLanguage;
+  focusOnOpen?: boolean;
   onTiming: (value: number) => void; onStrum: (direction: StrumDirection, spread: number) => void; onClose: () => void;
 }) {
   const copy = melodicStepCopy[language];
@@ -22,7 +23,7 @@ export function MelodicStepProperties({ step, index, label, timing, language, on
   const [draft, setDraft] = useState(String(spread));
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => setDraft(String(spread)), [spread]);
-  useEffect(() => { panel.current?.focus(); }, []);
+  useEffect(() => { if (focusOnOpen) panel.current?.focus(); }, [focusOnOpen]);
   const description = `${spread}% (${timingOffsetMilliseconds(spread, timing).toFixed(1)} ms)`;
   return <div ref={panel} tabIndex={-1} role="group" aria-label={copy.properties}
     className="rounded-md border border-cyan-700/70 bg-slate-900/70 p-3 outline-none"

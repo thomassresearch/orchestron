@@ -76,11 +76,14 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   useEffect(() => { setSelection(previous => previous.every(i => i < lane.pattern.rootSequence.length) ? previous : previous.filter(i => i < lane.pattern.rootSequence.length)); }, [lane.pattern.rootSequence.length, setSelection]);
   const editPad = (pad: number) => {
     props.onEditPad?.(lane.kind, lane.id, pad);
+    if (props.sharedTransport) return;
     useAppStore.getState().selectSequencerEditingPad(lane.id, pad);
     requestAnimationFrame(() => document.getElementById(`sequencer-${lane.id}`)?.scrollIntoView({ block: "center" }));
   };
   const selectSpan = (values: number[], start: number, event: Pick<MouseEvent, "metaKey" | "ctrlKey" | "shiftKey">) => {
     openLane(); setPosition(start);
+    const item = lane.pattern.rootSequence[values[0]];
+    if (item?.type === "pad" && !event.metaKey && !event.ctrlKey && !event.shiftKey) props.onSelectPad?.(lane.kind, lane.id, item.padIndex);
     setSelection(event.metaKey || event.ctrlKey || event.shiftKey ? values.some(i => indexes.includes(i))
       ? indexes.filter(i => !values.includes(i)) : [...indexes, ...values] : values);
   };
@@ -147,7 +150,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
       <div className="min-w-0">
         <div className="flex h-6 items-center gap-1">
           <button className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded}
-            onClick={() => { setExpanded(!expanded); cancelDrag(); closeMenu(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
+            onClick={() => { if (props.sharedTransport) select(); setExpanded(!expanded); cancelDrag(); closeMenu(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
           <LaneOutputButtons id={lane.id} language={props.guiLanguage} />
         </div>
         <div className="truncate text-[10px] text-slate-400" title={lane.subtitle}>{lane.subtitle}</div>

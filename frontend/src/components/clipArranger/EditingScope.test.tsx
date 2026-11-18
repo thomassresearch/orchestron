@@ -69,6 +69,19 @@ it('keeps note edits and scope on reopen, and does not apply a variation name to
   act(() => saveClipDraftWithIntent()); expect(model().lanes[0].definitions[0].name).toBe('Phrase');
   const d=model().lanes[0].definitions[0]; expect(d.kind==='pattern'&&d.source==='sequencer'&&d.payload.steps[0].note).toBe(73);
 });
+it('restores the same dirty draft when a second editor command constructs the occurrence in a different field order', () => {
+  const lane = model().lanes[0], clip = lane.clips[0], path = [clip.children[0].id];
+  openClipEditor({ laneId: lane.id, clipId: clip.id, pass: 1, path }, 'local');
+  const key = useAppStore.getState().clipEditingKey!;
+  useAppStore.getState().setSequencerTrackStepNote(lane.id, 0, 73);
+  const changed = useAppStore.getState().clipDrafts[key];
+  openClipEditor({ laneId: lane.id, clipId: clip.id, path, pass: 1 });
+  const reopened = useAppStore.getState();
+  expect(Object.keys(reopened.clipDrafts)).toEqual([key]);
+  expect(reopened.clipEditingKey).toBe(key);
+  expect(reopened.clipDrafts[key].definition).toBe(changed.definition);
+  expect(reopened.clipDrafts[key].editIntent?.scope).toBe('local');
+});
 it.each(['toolbar','context menu'] as const)('opens a named local variation directly from the %s', async entry => {
   show(); fireEvent.click(patterns()[1]);
   if(entry==='context menu')fireEvent.contextMenu(patterns()[1]);

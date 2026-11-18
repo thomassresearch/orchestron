@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { OccurrenceTarget } from "../../lib/clipArranger/model";
+import type { OccurrenceTarget, SourceKind } from "../../lib/clipArranger/model";
 
 export const shellCopy = {
   english: { project: "Project", inspector: "Inspector", editor: "Editor", keyboard: "Keyboard", transport: "Song transport", divider: "Resize editor", expand: "Expand", restore: "Restore split", back: "Back to overview", close: "Close", fit: "Fit tracks", diagnostics: "Diagnostics", config: "Audio configuration", help: "Help", status: "Session status", overview: "Overview", channel: "MIDI channel", select: "Select an item to inspect." },
@@ -9,9 +9,10 @@ export const shellCopy = {
   spanish: { project: "Proyecto", inspector: "Inspector", editor: "Editor", keyboard: "Teclado", transport: "Transporte de la canción", divider: "Ajustar tamaño del editor", expand: "Ampliar", restore: "Restaurar división", back: "Volver a la vista general", close: "Cerrar", fit: "Ajustar pistas", diagnostics: "Diagnóstico", config: "Configuración de audio", help: "Ayuda", status: "Estado de la sesión", overview: "Vista general", channel: "Canal MIDI", select: "Selecciona un elemento para ver sus propiedades." }
 };
 
-type Panel = "editor" | "inspector" | "editorCommand";
+type Panel = "editor" | "inspector" | "editorCommand" | "dialogs";
 export const WorkspacePanels = createContext<null | {
   slots: Record<Panel, HTMLElement | null>;
+  trackRouting: (id: string, kind: SourceKind) => ReactNode;
   getRememberedTarget: () => OccurrenceTarget | undefined;
   closeDock: () => void;
 }>(null);

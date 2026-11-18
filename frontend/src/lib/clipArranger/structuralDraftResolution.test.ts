@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { draftKey } from './editorAdapter';
 import { defaultSequencerPads } from '../../store/appStoreModel';
 import { type ClipArrangement, type PatternDefinition } from './model';
 import { beginDraft, saveDraft } from './operations';
@@ -31,6 +32,7 @@ it('retargets an unrelated dirty draft in a later generated pass after local mus
  const mapped=remapMusicalTarget(m,saved,target,{});
  expect(mapped.clipId).not.toBe('clip');expect(mapped.pass).toBe(1);
  const retained=retainMusicalDrafts(m,saved,{first,later},'first',{});
+ expect(retained.keys.get('later')).toBe(draftKey({target:mapped}));
  expect(Object.values(retained.drafts)).toEqual([{...later,target:mapped}]);
  expect(affectedDraftKeys(m,saved,{later})).toEqual(['later']);
 });

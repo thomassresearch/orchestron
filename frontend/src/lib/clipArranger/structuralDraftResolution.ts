@@ -1,5 +1,6 @@
 import { contentLength, type ClipArrangement, type DefinitionDraft, type LaneTiming, type OccurrenceTarget } from './model';
 import { beginDraft, definitionAt } from './operations';
+import { draftKey } from './editorAdapter';
 import { hasChangedClipDrafts } from './draftResolution';
 import { transposeFingerprint } from './transposeEdits';
 import { applyStructure, beginStructure, stepStructure, structureChildren, type StructureCommand, type StructureDraft, type StructureNode } from './structure';
@@ -101,8 +102,7 @@ export function retainMusicalDrafts(before: ClipArrangement, after: ClipArrangem
       const target = remapMusicalTarget(before, after, draft.target, timings);
       next = hasChangedClipDrafts(before, { draft }) ? { ...draft, target } : { ...beginDraft(after, target), editIntent: draft.editIntent };
     } catch { /* Retain conflicting drafts for explicit resolution, never silently discard them. */ }
-    const nextKey = JSON.stringify(next.target);
-    // Use the same key order as editorAdapter.draftKey (see caller).
+    const nextKey = draftKey(next);
     keys.set(key, nextKey); result[nextKey] = next;
   }
   return { drafts: result, keys };

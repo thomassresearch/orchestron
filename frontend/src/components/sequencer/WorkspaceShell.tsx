@@ -1,3 +1,5 @@
+import { arrangeCopy } from "../clipArranger/arrangeCopy";
+import { ArrangeTrackRouting } from "./ArrangeTrackRouting";
 import { absoluteTransportStep } from "../../lib/arrangerTransport";
 import { sequencerTransportSubunitsPerStep } from "../../lib/sequencer";
 import { hasChangedClipDrafts } from "../../lib/clipArranger/draftResolution";
@@ -23,7 +25,7 @@ function SongPositionControls({ language, onSeek, onTempo }: {
   language: GuiLanguage; onSeek: SequencerPageTransportActions["onSequencerArrangerLoopSelectionChange"]; onTempo: (bpm: number) => void;
 }) {
   const c = clipCopy(language), store = usePerformanceEditorStore();
-  const selected = useStore(store, s => s.entries[editorKey("arranger", "clipSelection", "arrange")]?.value as { laneId: string; clipId: string } | undefined);
+  const selected = useStore(store, s => s.entries[editorKey("arranger", "clipSelection", "arrange")]?.value as { laneId: string; clipId?: string } | undefined);
   const model = useAppStore(s => s.sequencer.clipArrangement);
   const clip = model?.lanes.find(l => l.id === selected?.laneId)?.clips.find(cl => cl.id === selected?.clipId);
   const range = useAppStore(s => s.sequencer.arrangerLoopSelection);
@@ -31,20 +33,21 @@ function SongPositionControls({ language, onSeek, onTempo }: {
   const ticksPerStep = sequencerTransportSubunitsPerStep();
   const position = useAppStore(({ sequencerRuntime: runtime }) => runtime.arrangerTransportSubunit ??
     absoluteTransportStep(runtime.playhead, runtime.cycle, runtime.stepCount) * ticksPerStep);
+  const beatsPerBar = useAppStore(s => s.sequencer.timing.meterNumerator);
+  const beat = Math.floor(position / QUARTER_TICKS);
   const bpm = useAppStore(s => s.sequencer.timing.tempoBPM);
   return <><button type="button" aria-pressed={model ? !!range : !!songLoop} title={model && clip ? c.loopClip : c.loopSong}
     onClick={() => {
       if (!model) useAppStore.getState().setSequencerArrangerSongLoopEnabled(!songLoop);
       else onSeek(range ? null : { startStep: (clip?.start ?? 0) / ticksPerStep, endStep: (clip ? clip.start + clip.length : model.end) / ticksPerStep });
     }}>{c.loop}</button>
+    <span className="ws-bars" title={arrangeCopy(language).barBeat} aria-label={arrangeCopy(language).barBeat}>{Math.floor(beat / beatsPerBar) + 1}.{beat % beatsPerBar + 1}</span>
     <label>{c.position} <PositionInput className="ws-number" beats={position / QUARTER_TICKS} onSeek={step => onSeek(range, step)} /></label>
     <label>BPM <input className="ws-number" type="number" min={30} max={300} value={bpm} onChange={e => onTempo(Number(e.target.value))} /></label></>;
 }
 
 function ContextProperties({ view, language }: { view: PerformView; language: GuiLanguage }) {
-  const [liveId] = usePerformanceEditorState("page", "liveDevice", "");
-  const [laneId] = usePerformanceEditorState<string | null>("arranger", "selectedLane", null);
-  const deviceId = view === "arrange" ? laneId ?? "" : liveId;
+  const [deviceId] = usePerformanceEditorState("page", "liveDevice", "");
   const [bindingId] = usePerformanceEditorState("mixer", "selected", "");
   const sequencer = useAppStore(s => s.sequencer);
   const pad = useAppStore(s => s.sequencerEditingPads[deviceId]);
@@ -79,14 +82,14 @@ export default function WorkspaceShell({ view, language, children, project, save
   const [remembered, remember] = usePerformanceEditorState<string | null>("page", "closedEditor", null);
   const clipKey = useAppStore(s => s.clipEditingKey);
   const model = useAppStore(s => s.sequencer.clipArrangement);
-  const [selected] = usePerformanceEditorState<{ clipId: string; laneId: string } | null>("arranger", "clipSelection", null);
+  const [selected] = usePerformanceEditorState<{ clipId?: string; laneId: string } | null>("arranger", "clipSelection", null);
   const drafts = useAppStore(s => s.clipDrafts);
   const musicalChanges = useMemo(() => hasChangedClipDrafts(model, drafts), [model, drafts]);
   const structuralChanges = useStructureDraft(s => !!s.draft?.cursor);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const appError = useAppStore(s => s.error || s.mixerSyncError);
   const issue = error || appError;
-  const dock = view === "arrange" ? clipKey ? "editor" : layout.dock === "keyboard" ? "keyboard" : null : layout.dock;
+  const dock = view === "arrange" && model ? clipKey ? "editor" : layout.dock === "keyboard" ? "keyboard" : null : layout.dock;
   const work = useRef<HTMLDivElement>(null), main = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0, mainWidth: 0, mainHeight: 0 });
@@ -162,7 +165,8 @@ export default function WorkspaceShell({ view, language, children, project, save
       (source ?? trigger.current)?.focus();
     });
   };
-  const context = { slots: { editor: editorHost, inspector: inspectorHost, editorCommand: commandHost },
+  const context = { slots: { editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
+    trackRouting: (id: string, kind: keyof typeof sourceKeys) => <ArrangeTrackRouting key={id} id={id} kind={kind} language={language} />,
     getRememberedTarget: () => {
       const target = remembered && survivingClipKey(remembered) ? useAppStore.getState().clipDrafts[remembered]?.target : undefined;
       return target?.laneId === selected?.laneId && target?.clipId === selected?.clipId ? target : undefined;
@@ -195,16 +199,16 @@ export default function WorkspaceShell({ view, language, children, project, save
             <header><h2>{dock === "keyboard" ? c.keyboard : c.editor}</h2>
               {!narrow && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
               <button ref={back} onClick={returnToOverview}>{single ? c.back : c.close}</button></header>
-            <RetainedScroll key={view + dock} className="ws-dock-scroll" owner="page" field={dock + "Scroll"}>
+            {view === "arrange" && model && dock === "editor" ? <div className="ws-clip-editor-host" ref={setEditorHost} /> : <RetainedScroll key={view + dock} className="ws-dock-scroll" owner="page" field={dock + "Scroll"}>
               {dock === "keyboard" ? keyboard : <div ref={setEditorHost} />}
-            </RetainedScroll>
+            </RetainedScroll>}
           </section>}
         </div>
       </div>
       {inspector && <aside id={inspectorId} aria-label={c.inspector} className="ws-inspector" data-drawer={narrow || undefined}>
         <header><h2>{c.inspector}</h2><button ref={drawerClose} aria-label={c.close + " · " + c.inspector} onClick={closeInspector}>×</button></header>
         <RetainedScroll owner="page" field={narrow ? "drawerScroll" : "inspectorScroll"} className="ws-inspector-scroll" key={view + String(narrow)}>
-          {view === "arrange" && model ? <>{!selected && <p>{clip.select}</p>}<div ref={setInspectorHost} /></> : <ContextProperties view={view} language={language} />}
+          {view === "arrange" ? <>{model && !selected && <p>{clip.select}</p>}<div ref={setInspectorHost} /></> : <ContextProperties view={view} language={language} />}
         </RetainedScroll>
       </aside>}
     </div>

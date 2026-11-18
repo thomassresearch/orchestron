@@ -3,6 +3,8 @@ import type { GuiLanguage } from "../types";
 export const arrangementHelp: Record<GuiLanguage, string> = {
   english: `## Song order and reusable phrases
 
+In the Arrange preview, double-click a pad occurrence to edit its numbered pad beneath the timeline. You can also select it and press **Editor**. **Edit pad in Live** in the Inspector opens the same pad in Live. Changes to the pad apply to every legacy occurrence that uses it. Conversion to clips is a separate command.
+
 Pads are named 1–8 in the arranger and #1–#8 in sequencers. Defaults are green pads, red groups, violet supergroups and dark rests. Numbers identify pad slots, not duration. Right-click a musical occurrence or palette entry to Set colour or Reset colour. A custom colour is saved for that definition in this lane and shared by its palette and occurrences; sequencer colours stay unchanged.
 
 The triangle beside a track title opens or closes its editor. Click anywhere in an occurrence to select it and open the lane; Cmd/Ctrl-click toggles selection. Empty timeline space clears highlights and sets Position without changing expansion. Closing preserves editing context; New/Load/Import resets it. Melodic and drummer sequencers provide an upper-right pattern workspace; controller and arpeggiator editors retain Patterns and phrases.
@@ -27,6 +29,8 @@ Hold a speaker for 250 ms to preview a pad or phrase from its first token. While
 
 Controller/arpeggiator Audition keeps its existing boundary-based behavior: it repeats until Stop audition or Return to arrangement, with return at the next boundary. Arranger Play clears auditions/previews, starts Arrangement lanes and preserves playing Manual pads sequencers. Stop clears auditions/previews and stops Arrangement lanes while preserving other independently started manual tracks. Live arpeggiators remain independent. Preview and audition state is never saved or exported; musical edits and custom colours save normally.`,
   german: `## Songfolge und wiederverwendbare Phrasen
+
+Doppelklicke in der Arrangement-Vorschau auf ein Pad-Vorkommen, um das nummerierte Pad unter der Zeitleiste zu bearbeiten. Du kannst es auch auswählen und **Editor** drücken. **Pad in Live bearbeiten** im Inspektor öffnet dasselbe Pad in Live. Änderungen am Pad gelten für alle Vorkommen, die es verwenden. Die Umwandlung in Clips erfolgt über einen eigenen Befehl.
 
 Pads heißen im Arranger 1–8 und in Sequencern #1–#8. Standardfarben sind Grün für Pads, Rot für Gruppen, Violett für Supergruppen und Dunkel für Pausen. Nummern bezeichnen Pad-Plätze, keine Dauer. Rechtsklick auf ein musikalisches Vorkommen oder einen Paletteneintrag bietet Farbe festlegen und Farbe zurücksetzen. Eine eigene Farbe wird für die Definition dieser Spur gespeichert und gilt für Palette und alle Vorkommen; Sequencer-Farben bleiben unverändert.
 
@@ -53,6 +57,8 @@ Lautsprechersymbol 250 ms halten: Pad oder Phrase startet beim ersten Element. B
 Controller-/Arpeggiator-Vorhören bleibt grenzbasiert: Es wiederholt bis Vorhören stoppen oder Zurück zum Arrangement; die Rückkehr erfolgt an der nächsten Grenze. Arranger-Play beendet Vorhören/Vorschauen, startet Arrangement-Spuren und lässt laufende manuelle Sequencer weiterspielen. Stop beendet Vorhören/Vorschauen und Arrangement-Spuren; andere unabhängig gestartete manuelle Spuren laufen weiter. Live-Arpeggiatoren bleiben unabhängig. Vorhörzustände werden nie gespeichert oder exportiert; musikalische Änderungen und eigene Farben werden normal gespeichert.`,
   french: `## Ordre du morceau et phrases réutilisables
 
+Dans l’aperçu Arrangement, double-cliquez sur une occurrence pour modifier son pad numéroté sous la timeline. Vous pouvez aussi la sélectionner et activer **Éditeur**. Dans l’Inspecteur, **Modifier le pad dans Live** ouvre le même pad dans Live. Les modifications du pad concernent toutes ses occurrences. La conversion en clips dispose de sa propre commande.
+
 Les pads sont nommés 1–8 dans l’arrangeur et #1–#8 dans les séquenceurs. Couleurs par défaut : pads verts, groupes rouges, supergroupes violets et silences sombres. Les numéros désignent des emplacements, pas des durées. Un clic droit sur une occurrence musicale ou une entrée de palette propose Définir la couleur et Réinitialiser la couleur. La couleur est sauvegardée pour cette définition de piste et partagée par sa palette et toutes ses occurrences ; les couleurs du séquenceur restent inchangées.
 
 Le triangle près du nom ouvre ou ferme l’éditeur. Cliquez n’importe où dans une occurrence pour la sélectionner et ouvrir la piste ; Cmd/Ctrl-clic bascule la sélection. Cliquer un espace vide efface les sélections et règle Position sans changer l’ouverture. Fermer conserve le contexte ; Nouveau/Charger/Importer le réinitialise. Les séquenceurs mélodiques et de batterie disposent d’un atelier en haut à droite ; contrôleurs et arpégiateurs gardent Motifs et phrases.
@@ -77,6 +83,8 @@ Maintenez un haut-parleur 250 ms pour écouter le pad ou la phrase depuis son d�
 
 L’écoute des contrôleurs/arpégiateurs conserve son fonctionnement aux limites : elle répète jusqu’à Arrêter l’écoute ou Retour à l’arrangement, avec retour à la prochaine limite. Play efface écoutes et aperçus, lance les pistes Arrangement et préserve les séquenceurs manuels en cours. Stop efface écoutes et aperçus et arrête les pistes Arrangement, tout en préservant les autres pistes manuelles lancées séparément. Les arpégiateurs Live restent indépendants. Les états d’écoute ne sont jamais sauvegardés ni exportés ; les modifications musicales et couleurs personnalisées le sont.`,
   spanish: `## Orden del tema y frases reutilizables
+
+En la vista previa de Arreglo, haz doble clic en una aparición para editar su pad numerado bajo la línea de tiempo. También puedes seleccionarla y pulsar **Editor**. **Editar pad en En vivo** abre el mismo pad en la vista En vivo. Los cambios en un pad se aplican a todas las apariciones que lo usan. La conversión a clips tiene su propio comando.
 
 Los pads se llaman 1–8 en el arreglador y #1–#8 en los secuenciadores. Colores predeterminados: pads verdes, grupos rojos, supergrupos violetas y silencios oscuros. Los números identifican espacios, no duraciones. El clic derecho en una aparición musical o entrada de paleta ofrece Establecer color y Restablecer color. El color se guarda para esa definición de pista y lo comparten su paleta y todas sus apariciones; los colores del secuenciador no cambian.
 

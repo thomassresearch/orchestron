@@ -19,7 +19,10 @@ export function clipEditorView(state: SequencerState, draft: DefinitionDraft | u
       ...("padPresetIds" in track ? { padPresetIds: track.padPresetIds.map((preset, index) => index === 0 ? definition.presetId ?? null : preset) } : {}) };
   }) };
 }
-export const draftKey = (draft: Pick<DefinitionDraft, "target">) => JSON.stringify(draft.target);
+export const draftKey = (draft: Pick<DefinitionDraft, "target">) => {
+  const { laneId, clipId, path, pass } = draft.target;
+  return JSON.stringify({ laneId, clipId, path, pass });
+};
 
 /** Map arpeggiator runtime definition slots onto the editor's single displayed pad. */
 export function clipEditorPlaybackView(state: SequencerState, draft: DefinitionDraft, audition: DefinitionDraft | null): SequencerState {

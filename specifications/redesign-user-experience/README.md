@@ -14,6 +14,7 @@ own selections, panel layout and scroll positions for the current session.
   musician workflows, command owners, browser measurements and two current behavior gaps.
 - [Milestone 2 preview and verification](milestone-2-view-state.md) explains how to try a same-device pad and clip edit, restore a view and check navigation during playback.
 - [Milestone 3 preview and verification](milestone-3-workspace-shell.md) shows the desktop split and phone drawer and records the layout, zoom and playback checks.
+- [Milestone 4 Arrange workflows](milestone-4-arrange.md) covers editing one chorus repeat, saving a linked change, starting an empty track and working on legacy pads.
 - The [musician and producer walkthrough](layout-and-interaction-spec.md#musician-and-producer-walkthrough)
   compares six session tasks against the current application and identifies priorities for usability testing.
 - [Interactive study source](orchestron-studio-study.html) is the saved HTML fragment used in

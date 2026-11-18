@@ -20,6 +20,7 @@ export type PerformViewLayout = {
 };
 
 export const PerformViewContext = createContext<PerformView | null>(null);
+export const ClipEditorTargetContext = createContext<string | null>(null);
 type EditorState = { entries: Record<string, Entry>; view: PerformView; suspendedClipKey: string | null };
 export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ entries: {}, view: "arrange", suspendedClipKey: null }));
 export type PerformanceEditorStore = ReturnType<typeof createPerformanceEditorStore>;
@@ -124,7 +125,9 @@ export function usePerformanceEditorState<T>(owner: EditorOwner, field: string, 
   // Standalone editors (including Instrument Design consumers) retain their existing local lifetime.
   const [store] = useState(() => context ?? createPerformanceEditorStore());
   const [fallback] = useState(initial);
-  const key = editorKey(owner, field, useContext(PerformViewContext));
+  const view = useContext(PerformViewContext);
+  const target = useContext(ClipEditorTargetContext);
+  const key = target ? JSON.stringify([owner, field, view, target]) : editorKey(owner, field, view);
   const value = useStore(store, (state) => key in state.entries ? state.entries[key].value as T : fallback);
   const setValue = useCallback<Dispatch<SetStateAction<T>>>((update) => {
     store.setState((state) => {
@@ -134,6 +137,14 @@ export function usePerformanceEditorState<T>(owner: EditorOwner, field: string, 
     });
   }, [store, key, owner, fallback]);
   return [value, setValue];
+}
+
+/** Preserve step properties per preview target while keeping the standard editor's local lifetime. */
+export function useStepProperties<T>(owner: EditorOwner, field: string) {
+  const view = useContext(PerformViewContext);
+  const local = useState<T | null>(null);
+  const retained = usePerformanceEditorState<T | null>(owner, field, null);
+  return view ? retained : local;
 }
 
 /** Clear occurrence highlights without changing any editor's expansion or insertion position. */
@@ -202,4 +213,9 @@ export function EditorDetails({ owner, field, initiallyOpen = false, summary, su
   return <details {...props} open={open} onToggle={(event) => {
     if (event.target === event.currentTarget) setOpen(event.currentTarget.open);
   }}><summary className={summaryClassName}>{summary}</summary>{open ? children() : null}</details>;
+}
+
+export function ArrangeSettings({ id, label, children }: { id: string; label: string; children: ReactNode }) {
+  const view = useContext(PerformViewContext);
+  return view === "arrange" ? <EditorDetails owner={`device:${id}`} field="melodicSettings" summary={label} className="mb-2 text-xs">{() => children}</EditorDetails> : children;
 }

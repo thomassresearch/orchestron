@@ -172,7 +172,7 @@ Explore the [clip arranger guide](documentation/performance/multitrack_arranger.
 
 ## Perform and shape the mix
 
-An optional development preview puts Arrange, Live and Mix in a bounded workspace with a shared transport, right-hand Inspector and resizable editor. The regular Perform page is the default. [Preview instructions and screenshots](specifications/redesign-user-experience/milestone-3-workspace-shell.md)
+The regular Perform page is the default. In the optional workspace preview, select a chorus repeat, edit a variation below the timeline, or update a linked phrase across the song. Legacy performances open their original pads in the same editor area. The right-hand Inspector keeps instrument assignment and clip properties beside the timeline. [Try Arrange in the preview](specifications/redesign-user-experience/milestone-4-arrange.md)
 
 Performance descriptions show three lines with automatic wrapping. Scroll vertically through longer descriptions or hover over the field to read the full text.
 
