@@ -66,3 +66,29 @@ it.each(["const_i", "const_k", "const_a", "const_s", "zfilter2"])("keeps the %s 
     expect(input.value).toBe(value);
   }
 });
+
+it("opens FM6, preserves formulas and connections, and keeps connected controls visible when collapsed", async () => {
+  const { default: catalog } = await import("../../../backend/app/data/opcodes.json");
+  const opcodes = catalog.filter(s => ["fm6_voice", "const_i"].includes(s.name)) as unknown as OpcodeSpec[];
+  const change = vi.fn(), selection = vi.fn();
+  const graph: PatchGraph = {
+    nodes: [{ id: "fm", opcode: "fm6_voice", params: { ipreset: 1 }, position: { x: 300, y: 0 } },
+      { id: "control", opcode: "const_i", params: { value: 100 }, position: { x: 0, y: 0 } }],
+    connections: [{ from_node_id: "control", from_port_id: "iout", to_node_id: "fm", to_port_id: "ibrightness" }],
+    ui_layout: { input_formulas: { "fm::ibrightness": { expression: "in1 / 2", inputs: [{ token: "in1", from_node_id: "control", from_port_id: "iout" }] } } },
+    engine_config: { sr: 48000, control_rate: 1500, ksmps: 32, nchnls: 2, software_buffer: 128, hardware_buffer: 512, "0dbfs": 1 }
+  };
+  render(<ReteNodeEditor graph={graph} opcodes={opcodes} viewportKey="fm6-test" guiLanguage="english" onGraphChange={change} onSelectionChange={selection} />);
+  const edit = await screen.findByRole("button", { name: "Edit FM6 voice" });
+  expect(await screen.findByTitle(/^Saved formula: in1 \/ 2/)).toBeTruthy();
+  expect(screen.queryByText("Vibrato rate")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "+ Performance inputs" }));
+  expect(await screen.findByText("Vibrato rate")).toBeTruthy();
+  fireEvent.click(edit);
+  await screen.findByRole("dialog", { name: "FM6 Voice Editor" });
+  fireEvent.change(screen.getByLabelText("Ratio ×"), { target: { value: "2.25" } });
+  fireEvent.click(screen.getByRole("button", { name: "Apply to draft" }));
+  expect(change.mock.lastCall?.[0].nodes[0].params).toMatchObject({ ipreset: 0, op1_ratio: 2.25 });
+  expect(change.mock.lastCall?.[0].connections).toEqual(graph.connections);
+  expect(change.mock.lastCall?.[0].ui_layout).toEqual(graph.ui_layout);
+});

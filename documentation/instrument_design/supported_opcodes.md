@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Previous](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This reference lists **200** user-selectable opcodes and editor constructs in the Instrument Design catalog. Use the catalog search to find an opcode and its **?** button to open integrated help.
+This reference lists **201** user-selectable opcodes and editor constructs in the Instrument Design catalog. Use the catalog search to find an opcode and its **?** button to open integrated help.
 
 <a id="how-to-use-this-appendix"></a>
 
@@ -25,7 +25,7 @@ This reference lists **200** user-selectable opcodes and editor constructs in th
 | dynamics | 3 |
 | envelope | 13 |
 | filter | 27 |
-| fm | 17 |
+| fm | 18 |
 | math | 3 |
 | midi | 10 |
 | mixer | 3 |
@@ -168,6 +168,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | crossfmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed frequency-modulation oscillator pair. |
 | crossfmpmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed frequency/phase-modulation oscillator pair. |
 | crosspmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed phase-modulation oscillator pair. |
+| fm6_voice | 10 (k, i, i, i, i, i, i, i, i, i) | 1 (a) | Dry six-operator voice, eight algorithms and preset editor. |
 | fmb3 | 10 (k, k, k, k, k, i, i, i, i, i) | 1 (a) | B3 organ FM model. |
 | fmbell | 12 (k, k, k, k, k, k, i, i, i, i, i, i) | 1 (a) | Bell FM model. |
 | fmmetal | 11 (k, k, k, k, k, k, i, i, i, i, i) | 1 (a) | Metallic FM model. |

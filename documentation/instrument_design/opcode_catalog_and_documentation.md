@@ -15,6 +15,8 @@ The opcode catalog is the source list of all supported building blocks you can p
 
 ## Search Behavior
 
+The **fm** category includes [`fm6_voice`](fm6_voice.md), with an **FM6** voice-editor button, eight routing diagrams and twelve starter presets.
+
 The search field filters on these opcode fields:
 
 - `name`

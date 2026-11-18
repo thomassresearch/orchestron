@@ -17705,5 +17705,124 @@
       "line"
     ],
     "icon_filename": "adsr.svg"
+  },
+  {
+    "name": "fm6_voice",
+    "category": "fm",
+    "description": "Dry six-operator FM voice with eight algorithms, independent ADSRs, operator-6 feedback and twelve starter presets. Open FM6 to edit the custom voice.",
+    "documentation_url": "https://csound.com/docs/manual/opcode.html",
+    "documentation_markdown": "### FM6\n\nOrchestron embedded UDO: six sine operators, eight routings, twelve starter presets and a dry mono output. Use the FM6 editor to design a voice. Preset 0 selects your custom voice. Note settings apply to new notes; draft audition requires restart after editing.",
+    "inputs": [
+      {
+        "id": "kfreq",
+        "name": "Frequency",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "i"
+        ],
+        "required": false,
+        "default": 440,
+        "description": "Fundamental frequency in Hz; accepts init or control rate."
+      },
+      {
+        "id": "ivelocity",
+        "name": "Velocity",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 1,
+        "description": "Note velocity, normalized 0–1."
+      },
+      {
+        "id": "ipreset",
+        "name": "Preset",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "0 = custom voice; 1–12 = stable FM6 starter bank. Sampled at note start."
+      },
+      {
+        "id": "ibrightness",
+        "name": "Brightness",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 100,
+        "description": "0–200 percent inter-operator modulation; 100 preserves the voice. No effect on Six carriers."
+      },
+      {
+        "id": "ifeedback",
+        "name": "Feedback",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": -1,
+        "description": "-1 uses the selected voice feedback; 0–100 overrides operator 6 self-feedback."
+      },
+      {
+        "id": "iattack_scale",
+        "name": "Attack scale",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 1,
+        "description": "0.25–4 times all operator attack durations."
+      },
+      {
+        "id": "irelease_scale",
+        "name": "Release scale",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 1,
+        "description": "0.25–4 times all operator release durations."
+      },
+      {
+        "id": "ivibrato_rate",
+        "name": "Vibrato rate",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 5,
+        "description": "Note-synced sine vibrato, 0.1–12 Hz."
+      },
+      {
+        "id": "ivibrato_depth",
+        "name": "Vibrato depth",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Vibrato depth, 0–100 cents; zero disables vibrato."
+      },
+      {
+        "id": "igain",
+        "name": "Output gain",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": -12,
+        "description": "Final dry gain, -36–0 dB. Fixed six-carrier headroom."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "Audio",
+        "signal_type": "a",
+        "description": "Dry mono audio; route through Stereo Output to external mixer effects."
+      }
+    ],
+    "template": "{aout} vcs_fm6_voice {kfreq}, {ivelocity}, {ipreset}, {ibrightness}, {ifeedback}, {iattack_scale}, {irelease_scale}, {ivibrato_rate}, {ivibrato_depth}, {igain}, <voice>",
+    "tags": [
+      "fm",
+      "phase modulation",
+      "six operators",
+      "80s",
+      "dx7",
+      "presets"
+    ],
+    "icon_filename": "vco.svg"
   }
 ]

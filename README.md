@@ -21,6 +21,10 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
+[Almost DX7](documentation/instrument_design/fm6_voice.md) supplies 12 dry FM sounds with an integer preset selector, Brightness, Attack, Release, Vibrato and Output controls. Its `fm6_voice` opcode has eight six-operator algorithms, operator feedback and a dedicated editor with independent envelopes.
+
+![FM6 voice editor](screenshots/fm6_voice_editor.png)
+
 Choose **Add Instrument** in Perform, then select **Sample Player** from the available patches
 to assign WAV, MP3 or M4A files to MIDI notes. Each rack
 instance has its own map, and repeated hits can overlap at the original pitch and speed.

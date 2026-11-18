@@ -1,6 +1,6 @@
 # If, Switch and Drumset
 
-**Navigation:** [Up](instrument_design.md) | [Previous](gen_table_editor.md) | [Next](midi_legato.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](fm6_voice.md) | [Next](midi_legato.md)
 
 <a id="patchapi-format"></a>
 
@@ -38,4 +38,4 @@ Continuous switching, nested blocks, numeric results, raw jumps, crossfades, MID
 
 Save the instrument to retain its branches, case sizes and formulas. Native export/import and performance exports preserve the selected synthesis behavior. For programmatic authoring, see the [control-flow technical reference](../../specifications/manual-reference/control_flow.md).
 
-**Navigation:** [Up](instrument_design.md) | [Previous](gen_table_editor.md) | [Next](midi_legato.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](fm6_voice.md) | [Next](midi_legato.md)

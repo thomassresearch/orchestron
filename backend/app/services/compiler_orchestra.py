@@ -34,6 +34,7 @@ from backend.app.services.compiler_formula import (
     resolve_input_expression,
 )
 from backend.app.services.compiler_graph import find_port
+from backend.app.services.compiler_fm6 import fm6_node_lines
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.adsyn_analysis import validate_adsyn_analysis
 from backend.app.services.orc_metadata import format_orc_comment_value
@@ -224,6 +225,10 @@ class OrchestraEmitter:
             if compiled.spec.name == CASE_RESULT:
                 block_id, block, _case = result_owners[node_id]
                 instrument_lines.extend(f"{output_vars[(block_id, channel)]} = {env[channel]}" for channel in block.channels)
+                continue
+
+            if compiled.spec.name == "fm6_voice":
+                instrument_lines.extend(fm6_node_lines(compiled.node, env))
                 continue
 
             if compiled.spec.name == "sample_player":

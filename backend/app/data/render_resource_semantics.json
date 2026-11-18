@@ -160,5 +160,6 @@
   "zdf_2pole": "9311b3a88a8ca34e1039f03cc811e37e4a7edd97e03f5a4de224a312a13b63a7",
   "zdf_2pole_mode": "7bd2d68059f4610881544fe56d69c1a2e157d9fc5b3d2aa24ba11b65f484e682",
   "zdf_ladder": "47ea3ee2cf7738c4cd8aad3e5e7d9876e1ac5cfdc586a9e7fc548ab1cee400f6",
-  "zfilter2": "22da0014f4deebf8b797b0cdd25bf1e0509c24a779153844cce4a160f7fd69ba"
+  "zfilter2": "22da0014f4deebf8b797b0cdd25bf1e0509c24a779153844cce4a160f7fd69ba",
+  "fm6_voice": "bde2db16ae64a35a5cbd6b3eb49d89fcaa920bafac707dcfdc3b50eec83d5503"
 }

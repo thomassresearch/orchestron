@@ -1,0 +1,315 @@
+{
+  "name": "Almost DX7",
+  "description": "Dry six-operator FM/PM synthesizer with eight algorithms. Preset is an integer performance controller (1–12). 1: Tine Piano; 2: Soft Electric Piano; 3: FM Bass; 4: Slap Bass; 5: Glass Bell; 6: Wooden Mallet; 7: Synth Brass; 8: Digital Organ; 9: Bright Pluck; 10: Evolving Pad; 11: Metallic Lead; 12: Shimmer Keys. Brightness, Attack, Release, Vibrato and Output affect new notes. Per-operator ADSRs and velocity response are inside FM6. Edit FM6 to design a custom voice; select preset 0 there and disconnect the preset controller (or extend its minimum to 0). Centered Stereo Output; add effects in mixer routing. 16 simultaneous voices. Inspired by 1980s FM, without DX7 patch/SysEx compatibility.",
+  "instrument_type": "melody",
+  "is_template": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "pitch_cpsmidi",
+        "opcode": "cpsmidi",
+        "params": {},
+        "position": {
+          "x": 40,
+          "y": 40
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 40,
+          "y": 190
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 290,
+          "y": 190
+        }
+      },
+      {
+        "id": "fm6_preset",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Preset",
+          "min": 1,
+          "max": 12,
+          "default": 1,
+          "controller_type": "integer",
+          "scale": "linear",
+          "controller_group": "Almost DX7"
+        },
+        "position": {
+          "x": 40,
+          "y": 380
+        }
+      },
+      {
+        "id": "fm6_brightness",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Brightness (%)",
+          "min": 0,
+          "max": 200,
+          "default": 100,
+          "controller_type": "float",
+          "scale": "linear",
+          "controller_group": "Almost DX7"
+        },
+        "position": {
+          "x": 310,
+          "y": 380
+        }
+      },
+      {
+        "id": "fm6_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Attack ×",
+          "min": 0.25,
+          "max": 4,
+          "default": 1,
+          "controller_type": "float",
+          "scale": "logarithmic",
+          "controller_group": "Almost DX7"
+        },
+        "position": {
+          "x": 40,
+          "y": 540
+        }
+      },
+      {
+        "id": "fm6_release",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Release ×",
+          "min": 0.25,
+          "max": 4,
+          "default": 1,
+          "controller_type": "float",
+          "scale": "logarithmic",
+          "controller_group": "Almost DX7"
+        },
+        "position": {
+          "x": 310,
+          "y": 540
+        }
+      },
+      {
+        "id": "fm6_vibrato",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Vibrato (cents)",
+          "min": 0,
+          "max": 100,
+          "default": 0,
+          "controller_type": "float",
+          "scale": "linear",
+          "controller_group": "Almost DX7"
+        },
+        "position": {
+          "x": 40,
+          "y": 700
+        }
+      },
+      {
+        "id": "fm6_gain",
+        "opcode": "perf_controller",
+        "params": {
+          "label": "Output (dB)",
+          "min": -36,
+          "max": 0,
+          "default": -12,
+          "controller_type": "float",
+          "scale": "linear",
+          "controller_group": "Almost DX7"
+        },
+        "position": {
+          "x": 310,
+          "y": 700
+        }
+      },
+      {
+        "id": "voice_limit",
+        "opcode": "maxalloc",
+        "params": {
+          "icount": 16
+        },
+        "position": {
+          "x": 40,
+          "y": 920
+        }
+      },
+      {
+        "id": "fm6",
+        "opcode": "fm6_voice",
+        "params": {
+          "ipreset": 1
+        },
+        "position": {
+          "x": 630,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "kpan": 0.5
+        },
+        "position": {
+          "x": 980,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1270,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1270,
+          "y": 240
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "velocity_scale_const_velocity_ampmidi_iscal",
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "id": "fm6_preset_fm6_ipreset",
+        "from_node_id": "fm6_preset",
+        "from_port_id": "iout",
+        "to_node_id": "fm6",
+        "to_port_id": "ipreset"
+      },
+      {
+        "id": "fm6_brightness_fm6_ibrightness",
+        "from_node_id": "fm6_brightness",
+        "from_port_id": "iout",
+        "to_node_id": "fm6",
+        "to_port_id": "ibrightness"
+      },
+      {
+        "id": "fm6_attack_fm6_iattack_scale",
+        "from_node_id": "fm6_attack",
+        "from_port_id": "iout",
+        "to_node_id": "fm6",
+        "to_port_id": "iattack_scale"
+      },
+      {
+        "id": "fm6_release_fm6_irelease_scale",
+        "from_node_id": "fm6_release",
+        "from_port_id": "iout",
+        "to_node_id": "fm6",
+        "to_port_id": "irelease_scale"
+      },
+      {
+        "id": "fm6_vibrato_fm6_ivibrato_depth",
+        "from_node_id": "fm6_vibrato",
+        "from_port_id": "iout",
+        "to_node_id": "fm6",
+        "to_port_id": "ivibrato_depth"
+      },
+      {
+        "id": "fm6_gain_fm6_igain",
+        "from_node_id": "fm6_gain",
+        "from_port_id": "iout",
+        "to_node_id": "fm6",
+        "to_port_id": "igain"
+      },
+      {
+        "id": "pitch_cpsmidi_fm6_kfreq",
+        "from_node_id": "pitch_cpsmidi",
+        "from_port_id": "kfreq",
+        "to_node_id": "fm6",
+        "to_port_id": "kfreq"
+      },
+      {
+        "id": "velocity_ampmidi_fm6_ivelocity",
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "fm6",
+        "to_port_id": "ivelocity"
+      },
+      {
+        "id": "fm6_output_pan2_asig",
+        "from_node_id": "fm6",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "id": "output_pan2_output_left_asignal",
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "id": "output_pan2_output_right_asignal",
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "ksmps": 16,
+      "control_rate": 3000,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainOutput": "main-output",
+      "guided": true
+    }
+  }
+}

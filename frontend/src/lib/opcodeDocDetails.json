@@ -8940,5 +8940,83 @@
         "spanish": "Envolvente lineal a frecuencia de audio."
       }
     }
+  },
+  "fm6_voice": {
+    "description": {
+      "english": "Dry six-operator sine phase-modulation synthesizer, inspired by 1980s FM. Click FM6 on the node to edit its voice. Choose eight algorithms, operator-6 self-feedback, and a separate ADSR, ratio (0.25–32), detune (±100 cents), level, enable switch and velocity sensitivity for every operator. Editing a starter copies it to Custom (0); selecting a starter preserves your custom settings. Level changes loudness on carriers and modulation depth on modulators. Brightness scales inter-operator modulation; it has no effect with six carriers. Feedback can add bright or noisy harmonics. Apply to draft, then restart audition. Frequency follows the graph; other inputs are sampled on each new note. Use polyphonic MIDI notes, not Continuous or midi_legato. Route the mono output through pan2 to Stereo Output. No reverb, chorus or other effects. This is not a DX7 emulator or SysEx reader; high ratios, brightness and feedback can alias at high pitches.\n\nAlgorithms: 1: 2→1, 4→3, 6→5; 2: 3→2→1, 6→5→4; 3: 6→5→4→3, 2→1; 4: 6→5→4→3→2→1; 5: (2+3+4+5+6)→1; 6: 6→5→(1,2,3,4); 7: 6→5→4, 3→2, 1; 8: 1+2+3+4+5+6.",
+      "german": "Trockener Sinus-Phasenmodulationssynthesizer mit sechs Operatoren, inspiriert von 80er-Jahre-FM. FM6 am Knoten öffnet den Klangeditor. Acht Algorithmen, Selbst-Feedback an Operator 6 sowie ADSR, Verhältnis (0,25–32), Verstimmung (±100 Cent), Pegel, Aktiv-Schalter und Anschlagempfindlichkeit pro Operator. Bearbeiten kopiert ein Preset in Eigener Klang (0); die Preset-Auswahl erhält eigene Einstellungen. Trägerpegel bestimmt Lautstärke, Modulatorpegel die Modulationstiefe. Helligkeit skaliert die Modulation zwischen Operatoren und wirkt bei sechs Trägern nicht. Feedback erzeugt helle oder geräuschhafte Obertöne. Übernehmen und Vorschau neu starten. Frequenz folgt dem Graph; andere Eingänge werden bei neuen Noten gelesen. Für polyphone MIDI-Noten, nicht Continuous oder midi_legato. Mono über pan2 an Stereo Output anschließen. Keine Effekte. Kein DX7-Emulator und kein SysEx-Import; hohe Verhältnisse, Helligkeit und Feedback können bei hohen Tönen Aliasing erzeugen.\n\nAlgorithmen: 1: 2→1, 4→3, 6→5; 2: 3→2→1, 6→5→4; 3: 6→5→4→3, 2→1; 4: 6→5→4→3→2→1; 5: (2+3+4+5+6)→1; 6: 6→5→(1,2,3,4); 7: 6→5→4, 3→2, 1; 8: 1+2+3+4+5+6.",
+      "french": "Synthétiseur sec à six opérateurs sinusoïdaux en modulation de phase, inspiré de la FM des années 80. Cliquez sur FM6 pour ouvrir l’éditeur. Huit algorithmes, réinjection sur l’opérateur 6 et, par opérateur, ADSR, rapport (0,25–32), désaccord (±100 cents), niveau, activation et sensibilité à la vélocité. Modifier un préréglage le copie dans Voix personnalisée (0) ; changer de préréglage conserve vos réglages personnels. Le niveau règle le volume des porteurs et la profondeur des modulateurs. Brillance agit sur la modulation entre opérateurs, donc pas sur six porteurs. La réinjection ajoute des harmoniques brillantes ou bruitées. Appliquez puis redémarrez l’écoute. La fréquence suit le graphe ; les autres entrées sont lues à chaque nouvelle note. Pour notes MIDI polyphoniques, sans Continuous ni midi_legato. Reliez la sortie mono via pan2 à Stereo Output. Aucun effet. Ce n’est ni un émulateur DX7 ni un lecteur SysEx ; les rapports, brillance et réinjection élevés peuvent produire du repliement spectral dans l’aigu.\n\nAlgorithmes: 1: 2→1, 4→3, 6→5; 2: 3→2→1, 6→5→4; 3: 6→5→4→3, 2→1; 4: 6→5→4→3→2→1; 5: (2+3+4+5+6)→1; 6: 6→5→(1,2,3,4); 7: 6→5→4, 3→2, 1; 8: 1+2+3+4+5+6.",
+      "spanish": "Sintetizador seco de seis operadores sinusoidales por modulación de fase, inspirado en la FM de los 80. Pulse FM6 para abrir el editor. Ocho algoritmos, realimentación del operador 6 y ADSR, relación (0,25–32), desafinación (±100 cents), nivel, activación y sensibilidad a velocidad por operador. Editar un preset lo copia a Voz personalizada (0); cambiar de preset conserva los ajustes propios. El nivel controla volumen en portadores y profundidad en moduladores. Brillo escala la modulación entre operadores, sin efecto con seis portadores. La realimentación añade armónicos brillantes o ruidosos. Aplique y reinicie la escucha. La frecuencia sigue el grafo; las otras entradas se leen en cada nota nueva. Para MIDI polifónico, sin Continuous ni midi_legato. Conecte la salida mono mediante pan2 a Stereo Output. Sin efectos. No emula DX7 ni lee SysEx; relaciones, brillo y realimentación altos pueden causar aliasing en notas agudas.\n\nAlgoritmos: 1: 2→1, 4→3, 6→5; 2: 3→2→1, 6→5→4; 3: 6→5→4→3, 2→1; 4: 6→5→4→3→2→1; 5: (2+3+4+5+6)→1; 6: 6→5→(1,2,3,4); 7: 6→5→4, 3→2, 1; 8: 1+2+3+4+5+6."
+    },
+    "inputs": {
+      "kfreq": {
+        "english": "Fundamental frequency in Hz. Connect cpsmidi.kfreq.",
+        "german": "Grundfrequenz in Hz. cpsmidi.kfreq anschließen.",
+        "french": "Fréquence fondamentale en Hz. Reliez cpsmidi.kfreq.",
+        "spanish": "Frecuencia fundamental en Hz. Conecte cpsmidi.kfreq."
+      },
+      "ivelocity": {
+        "english": "Normalized note velocity, 0–1, used by each operator’s velocity sensitivity. Connect ampmidi with scale 1.",
+        "german": "Normierter Anschlag 0–1 für die Anschlagempfindlichkeit jedes Operators. ampmidi mit Skalierung 1 anschließen.",
+        "french": "Vélocité normalisée 0–1 appliquée à la sensibilité de chaque opérateur. Reliez ampmidi avec échelle 1.",
+        "spanish": "Velocidad normalizada 0–1 para la sensibilidad de cada operador. Conecte ampmidi con escala 1."
+      },
+      "ipreset": {
+        "english": "Integer: 0 = Custom; 1–12 = starter bank. Connect an integer perf_controller.\n\n1 · Tine Piano; 2 · Soft Electric Piano; 3 · FM Bass; 4 · Slap Bass; 5 · Glass Bell; 6 · Wooden Mallet; 7 · Synth Brass; 8 · Digital Organ; 9 · Bright Pluck; 10 · Evolving Pad; 11 · Metallic Lead; 12 · Shimmer Keys",
+        "german": "Ganzzahl: 0 = Eigener Klang; 1–12 = Starterbank. Ganzzahligen perf_controller anschließen.\n\n1 · Tine Piano; 2 · Soft Electric Piano; 3 · FM Bass; 4 · Slap Bass; 5 · Glass Bell; 6 · Wooden Mallet; 7 · Synth Brass; 8 · Digital Organ; 9 · Bright Pluck; 10 · Evolving Pad; 11 · Metallic Lead; 12 · Shimmer Keys",
+        "french": "Entier : 0 = personnalisée ; 1–12 = banque initiale. Reliez un perf_controller entier.\n\n1 · Tine Piano; 2 · Soft Electric Piano; 3 · FM Bass; 4 · Slap Bass; 5 · Glass Bell; 6 · Wooden Mallet; 7 · Synth Brass; 8 · Digital Organ; 9 · Bright Pluck; 10 · Evolving Pad; 11 · Metallic Lead; 12 · Shimmer Keys",
+        "spanish": "Entero: 0 = personalizada; 1–12 = banco inicial. Conecte un perf_controller entero.\n\n1 · Tine Piano; 2 · Soft Electric Piano; 3 · FM Bass; 4 · Slap Bass; 5 · Glass Bell; 6 · Wooden Mallet; 7 · Synth Brass; 8 · Digital Organ; 9 · Bright Pluck; 10 · Evolving Pad; 11 · Metallic Lead; 12 · Shimmer Keys"
+      },
+      "ibrightness": {
+        "english": "0–200%, default 100. Scales modulation depth, not output volume.",
+        "german": "0–200 %, Standard 100. Skaliert Modulationstiefe, nicht Ausgangslautstärke.",
+        "french": "0–200 %, défaut 100. Règle la profondeur de modulation, pas le volume.",
+        "spanish": "0–200 %, predeterminado 100. Escala profundidad, no volumen."
+      },
+      "ifeedback": {
+        "english": "−1 follows the selected voice; 0–100% overrides operator 6 feedback.",
+        "german": "−1 folgt dem gewählten Klang; 0–100 % ersetzt das Feedback von Operator 6.",
+        "french": "−1 suit la voix ; 0–100 % impose la réinjection de l’opérateur 6.",
+        "spanish": "−1 sigue la voz; 0–100 % impone realimentación del operador 6."
+      },
+      "iattack_scale": {
+        "english": "0.25–4× multiplies all operator attack times; default 1.",
+        "german": "0,25–4× multipliziert alle Attack-Zeiten; Standard 1.",
+        "french": "0,25–4× multiplie toutes les durées d’attaque ; défaut 1.",
+        "spanish": "0,25–4× multiplica todos los ataques; predeterminado 1."
+      },
+      "irelease_scale": {
+        "english": "0.25–4× multiplies all operator release times; default 1.",
+        "german": "0,25–4× multipliziert alle Release-Zeiten; Standard 1.",
+        "french": "0,25–4× multiplie tous les relâchements ; défaut 1.",
+        "spanish": "0,25–4× multiplica todas las liberaciones; predeterminado 1."
+      },
+      "ivibrato_rate": {
+        "english": "Vibrato speed, 0.1–12 Hz; default 5.",
+        "german": "Vibrato-Geschwindigkeit, 0,1–12 Hz; Standard 5.",
+        "french": "Vitesse du vibrato, 0,1–12 Hz ; défaut 5.",
+        "spanish": "Frecuencia de vibrato, 0,1–12 Hz; predeterminado 5."
+      },
+      "ivibrato_depth": {
+        "english": "Pitch vibrato, 0–100 cents; default 0 (off).",
+        "german": "Tonhöhen-Vibrato, 0–100 Cent; Standard 0 (aus).",
+        "french": "Vibrato de hauteur, 0–100 cents ; défaut 0 (désactivé).",
+        "spanish": "Vibrato de tono, 0–100 cents; predeterminado 0 (apagado)."
+      },
+      "igain": {
+        "english": "Output gain, −36–0 dB; default −12. Carriers use a fixed 1/6 mix scale.",
+        "german": "Ausgangsverstärkung, −36–0 dB; Standard −12. Träger werden fest mit 1/6 skaliert.",
+        "french": "Gain de sortie, −36–0 dB ; défaut −12. Les porteurs sont mélangés à une échelle fixe de 1/6.",
+        "spanish": "Ganancia de salida, −36–0 dB; predeterminado −12. Los portadores usan una escala fija de 1/6."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Dry mono audio, with independent per-note phases and envelopes.",
+        "german": "Trockenes Mono-Audio mit unabhängigen Phasen und Hüllkurven pro Note.",
+        "french": "Audio mono sec, phases et enveloppes indépendantes par note.",
+        "spanish": "Audio mono seco, fases y envolventes independientes por nota."
+      }
+    }
   }
 }

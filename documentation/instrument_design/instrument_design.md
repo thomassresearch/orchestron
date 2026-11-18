@@ -16,6 +16,7 @@ Create or load an instrument, connect its graph, compile and audition it, then s
 - [Graph Editor](graph_editor.md)
 - [Input Formula Assistant](input_formula_assistant.md)
 - [GEN Table Editor (GEN Meta-Opcode)](gen_table_editor.md)
+- [FM6 Voice and Almost DX7](fm6_voice.md)
 - [If, Switch and Drumset](control_flow.md)
 - [Monophonic Legato](midi_legato.md)
 - [Defining Performance Controls](performance_controls.md)

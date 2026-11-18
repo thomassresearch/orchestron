@@ -24,6 +24,9 @@ import { controlFlowCopy } from "../lib/controlFlowCopy";
 import type { BranchLayout, BranchTarget } from "../lib/branchLayout";
 import { createReteBranchController, type ReteBranchController, type BranchRegionLabel, type BranchEditorActions } from "./reteBranchController";
 import { PerformanceControllerEditor } from "./PerformanceControllerEditor";
+import { Fm6VoiceEditor } from "./Fm6VoiceEditor";
+import { fm6Copy } from "../lib/fm6Copy";
+import { FM6, fm6Voice } from "../lib/fm6";
 import { performanceControllerCopy } from "../lib/performanceControllerCopy";
 import { GenNodeEditorModal } from "./GenNodeEditorModal";
 import { SfloadNodeEditorModal, adsynEditorCopy } from "./SfloadNodeEditorModal";
@@ -507,6 +510,8 @@ export function ReteNodeEditor({
   const performanceControllerEditorNode = graph.nodes.find((node) => node.id === performanceControllerEditorId && node.opcode === "perf_controller");
   const [genEditor, setGenEditor] = useState<GenEditorState | null>(null);
   const [sfloadEditor, setSfloadEditor] = useState<SfloadEditorState | null>(null);
+  const [fm6EditorId, setFm6EditorId] = useState<string | null>(null);
+  const fm6EditorNode = graph.nodes.find(node => node.id === fm6EditorId && node.opcode === "fm6_voice");
 
   // Graph projections recreate arrays during drags. Rebuild Rete only when port metadata changes.
   const opcodeKey = JSON.stringify(opcodes);
@@ -981,26 +986,38 @@ export function ReteNodeEditor({
               const isGenNode = opcodeName === "GEN";
               const isSfloadNode = opcodeName === "sfload" || opcodeName === "adsyn";
               const isPerformanceController = opcodeName === "perf_controller";
+              const isFm6 = opcodeName === "fm6_voice";
 
               function ColoredNode(props: any) {
+                const [expanded, setExpanded] = useState(false);
                 const patchNodeId = reteToPatchRef.current.get(String((context.payload as { id?: unknown }).id ?? ""));
+                const patchNode = graphRef.current.nodes.find(n => n.id === patchNodeId);
+                const fmCopy = fm6Copy(guiLanguage);
+                const fmVoice = isFm6 && patchNode ? fm6Voice(patchNode.params) : null;
+                const inputs = isFm6 && !expanded ? Object.fromEntries(Object.entries(props.data.inputs).filter(([key]) =>
+                  ["kfreq", "ivelocity", "ipreset"].includes(key) || graphRef.current.connections.some(c => c.to_node_id === patchNodeId && c.to_port_id === key))) : props.data.inputs;
                 return (
                   <div style={{ position: "relative" }} data-patch-node={patchNodeId} title={opcodeName.startsWith("__result_") ? flowCopy("resizeHelp") : undefined}>
                     <ReactPresets.classic.Node
                       {...props}
-                      data={{ ...props.data, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : isPerformanceController ? 240 : props.data.width }}
-                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "") + (isPerformanceController ? "width: 240px;" : "") + (opcodeName.startsWith("__result_") ? "cursor: nwse-resize; .title { cursor: nwse-resize; }" : "")}
+                      data={{ ...props.data, inputs, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : isPerformanceController || isFm6 ? 240 : props.data.width }}
+                      styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "") + (isPerformanceController || isFm6 ? "width: 240px;" : "") + (opcodeName.startsWith("__result_") ? "cursor: nwse-resize; .title { cursor: nwse-resize; }" : "")}
                     />
+                    {fmVoice && <div className="w-[240px] rounded-b-lg border border-slate-600 bg-slate-900 p-2 text-xs text-slate-100" onPointerDown={e => e.stopPropagation()}>
+                      <div>{FM6.presets.find(p => p.id === Number(patchNode?.params.ipreset))?.name ?? fmCopy.custom}</div>
+                      <div className="text-slate-300">{fmVoice.algorithm} · {fmCopy.algorithms[fmVoice.algorithm - 1]}</div>
+                      <button className="mt-1 text-cyan-200" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? "−" : "+"} {fmCopy.controls}</button>
+                    </div>}
                     {patchNodeId && <div data-node-actions className="absolute -bottom-7 left-0">{presentationRef.current.renderNodeActions?.(patchNodeId)}</div>}
-                    {isGenNode || isSfloadNode || isPerformanceController ? (
+                    {isGenNode || isSfloadNode || isPerformanceController || isFm6 ? (
                       <button
                         type="button"
                         aria-label={
-                          isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode
+                          isFm6 ? fmCopy.edit : isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode
                             ? `Configure GEN node ${patchNodeId ?? ""}`.trim()
                             : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).configureSfloadAria(patchNodeId ?? "") : `Configure sfload node ${patchNodeId ?? ""}`.trim()
                         }
-                        title={isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode ? "Configure GEN routine" : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).title : "Configure SoundFont file"}
+                        title={isFm6 ? fmCopy.edit : isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode ? "Configure GEN routine" : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).title : "Configure SoundFont file"}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -1012,6 +1029,7 @@ export function ReteNodeEditor({
                             return;
                           }
                           if (isPerformanceController) { setPerformanceControllerEditorId(patchNodeId); return; }
+                          if (isFm6) { setFm6EditorId(patchNodeId); return; }
                           if (isGenNode) {
                             openGenEditor(patchNodeId);
                             return;
@@ -1038,7 +1056,7 @@ export function ReteNodeEditor({
                           justifyContent: "center"
                         }}
                       >
-                        {isPerformanceController ? "⚙" : isGenNode ? "GEN" : opcodeName === "adsyn" ? "HET" : "SF2"}
+                        {isFm6 ? "FM6" : isPerformanceController ? "⚙" : isGenNode ? "GEN" : opcodeName === "adsyn" ? "HET" : "SF2"}
                       </button>
                     ) : null}
                     {hasDocumentation && onOpcodeHelpRequest ? (
@@ -1738,6 +1756,19 @@ export function ReteNodeEditor({
       {performanceControllerEditorNode && <PerformanceControllerEditor key={performanceControllerEditorNode.id} node={performanceControllerEditorNode} language={guiLanguage}
         onClose={() => setPerformanceControllerEditorId(null)} onSave={(params) => updateGraph((current) => ({ ...current, nodes: current.nodes.map((node) =>
           node.id === performanceControllerEditorNode.id ? { ...node, params: { ...node.params, ...params } } : node) }))} />}
+
+      {fm6EditorNode && <Fm6VoiceEditor key={fm6EditorNode.id} node={fm6EditorNode} language={guiLanguage}
+        drivenInputs={Object.fromEntries((opcodeByName.get("fm6_voice")?.inputs ?? []).flatMap(port => {
+          const state = resolveInputValue(graph, fm6EditorNode, port);
+          const sources = state.bindings.map(binding => {
+            const source = graph.nodes.find(node => node.id === binding.from_node_id);
+            return `${source?.params.label ?? source?.opcode ?? binding.from_node_id} (${binding.from_node_id}.${binding.from_port_id})`;
+          });
+          return ["connections", "formula"].includes(state.source) || (state.source === "parameter" && numericInputLiteral(state.expression) === null)
+            ? [[port.id, [describeInputValue(state, guiLanguage), ...sources].join(" · ")]] : [];
+        }))}
+        onClose={() => setFm6EditorId(null)} onSave={params => updateGraph(current => ({ ...current, nodes: current.nodes.map(node =>
+          node.id === fm6EditorNode.id ? { ...node, params } : node) }))} />}
 
       {genEditor && (
         <GenNodeEditorModal

@@ -25,6 +25,7 @@ from backend.app.services.compiler_waveguide import waveguide_header
 from backend.app.services.compiler_sample_player import has_sample_player, setup_sample_tables, validate_sample_target
 from backend.app.services.compiler_granular import granular_header
 from backend.app.services.compiler_swept_gate import swept_gate_header
+from backend.app.services.compiler_fm6 import fm6_header, validate_fm6_target
 
 
 class CompilerService:
@@ -85,6 +86,7 @@ class CompilerService:
                     if profile == CompilationProfile.OFFLINE and audio_graph is not None and mixer else set())
         for target in targets:
             validate_sample_target(target)
+            validate_fm6_target(target)
             if target.assignment_id in bypassed:
                 continue
             validate_legato(target.patch)
@@ -138,6 +140,7 @@ class CompilerService:
         orc_lines.extend(waveguide_header(targets))
         orc_lines.extend(granular_header(targets))
         orc_lines.extend(swept_gate_header(targets))
+        orc_lines.extend(fm6_header(targets))
         if legato_targets:
             orc_lines.extend([LEGATO_OPCODES, ""])
             for index, target in legato_targets.items():

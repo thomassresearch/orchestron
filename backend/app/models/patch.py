@@ -108,6 +108,13 @@ class NodeInstance(BaseModel):
     params: dict[str, PatchParam] = Field(default_factory=dict)
     position: NodePosition = Field(default_factory=NodePosition)
 
+    @model_validator(mode="after")
+    def validate_fm6(self) -> "NodeInstance":
+        if self.opcode == "fm6_voice":
+            from backend.app.models.fm6 import fm6_voice
+            fm6_voice(self.params)
+        return self
+
     @field_validator("id")
     @classmethod
     def validate_id_text(cls, value: str) -> str:

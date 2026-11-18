@@ -25,6 +25,9 @@
             "path": "instrument_design/gen_table_editor.md"
           },
           {
+            "path": "instrument_design/fm6_voice.md"
+          },
+          {
             "path": "instrument_design/control_flow.md"
           },
           {

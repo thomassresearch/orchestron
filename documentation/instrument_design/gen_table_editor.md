@@ -1,6 +1,6 @@
 # GEN Table Editor (GEN Meta-Opcode)
 
-**Navigation:** [Up](instrument_design.md) | [Previous](input_formula_assistant.md) | [Next](control_flow.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](input_formula_assistant.md) | [Next](fm6_voice.md)
 
 The `GEN` meta-opcode is a specialized table generator node that opens a dedicated editor for building `ftgen` / `ftgenonce` lines visually.
 
@@ -172,4 +172,4 @@ Use this to verify the exact Csound line before compile.
 - `Save GEN` writes the GEN node configuration into patch UI metadata (`graph.ui_layout`).
 - Closing without saving leaves the previous GEN node settings unchanged.
 
-**Navigation:** [Up](instrument_design.md) | [Previous](input_formula_assistant.md) | [Next](control_flow.md)
+**Navigation:** [Up](instrument_design.md) | [Previous](input_formula_assistant.md) | [Next](fm6_voice.md)

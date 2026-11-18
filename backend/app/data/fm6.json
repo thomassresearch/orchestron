@@ -1,0 +1,1265 @@
+{
+  "version": 1,
+  "fields": {
+    "enabled": [
+      0,
+      1,
+      1
+    ],
+    "ratio": [
+      0.25,
+      32,
+      1
+    ],
+    "detune": [
+      -100,
+      100,
+      0
+    ],
+    "level": [
+      0,
+      100,
+      60
+    ],
+    "velocity": [
+      0,
+      100,
+      35
+    ],
+    "attack": [
+      0.001,
+      10,
+      0.005
+    ],
+    "decay": [
+      0.001,
+      20,
+      0.8
+    ],
+    "sustain": [
+      0,
+      100,
+      60
+    ],
+    "release": [
+      0.001,
+      20,
+      0.3
+    ]
+  },
+  "algorithms": [
+    {
+      "id": 1,
+      "name": "Three pairs",
+      "edges": [
+        [
+          2,
+          1
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          6,
+          5
+        ]
+      ],
+      "outputs": [
+        1,
+        3,
+        5
+      ],
+      "positions": [
+        [
+          0.17,
+          1
+        ],
+        [
+          0.17,
+          0
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.5,
+          0
+        ],
+        [
+          0.83,
+          1
+        ],
+        [
+          0.83,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Two stacks",
+      "edges": [
+        [
+          3,
+          2
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          4
+        ]
+      ],
+      "outputs": [
+        1,
+        4
+      ],
+      "positions": [
+        [
+          0.27,
+          2
+        ],
+        [
+          0.27,
+          1
+        ],
+        [
+          0.27,
+          0
+        ],
+        [
+          0.73,
+          2
+        ],
+        [
+          0.73,
+          1
+        ],
+        [
+          0.73,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Four plus two",
+      "edges": [
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "outputs": [
+        1,
+        3
+      ],
+      "positions": [
+        [
+          0.27,
+          3
+        ],
+        [
+          0.27,
+          2
+        ],
+        [
+          0.73,
+          3
+        ],
+        [
+          0.73,
+          2
+        ],
+        [
+          0.73,
+          1
+        ],
+        [
+          0.73,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Deep stack",
+      "edges": [
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "outputs": [
+        1
+      ],
+      "positions": [
+        [
+          0.5,
+          5
+        ],
+        [
+          0.5,
+          4
+        ],
+        [
+          0.5,
+          3
+        ],
+        [
+          0.5,
+          2
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.5,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Parallel modulators",
+      "edges": [
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ]
+      ],
+      "outputs": [
+        1
+      ],
+      "positions": [
+        [
+          0.5,
+          1
+        ],
+        [
+          0.08,
+          0
+        ],
+        [
+          0.29,
+          0
+        ],
+        [
+          0.5,
+          0
+        ],
+        [
+          0.71,
+          0
+        ],
+        [
+          0.92,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Shared modulation",
+      "edges": [
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ]
+      ],
+      "outputs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "positions": [
+        [
+          0.1,
+          2
+        ],
+        [
+          0.37,
+          2
+        ],
+        [
+          0.63,
+          2
+        ],
+        [
+          0.9,
+          2
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.5,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Stack, pair and sine",
+      "edges": [
+        [
+          6,
+          5
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "outputs": [
+        1,
+        2,
+        4
+      ],
+      "positions": [
+        [
+          0.17,
+          2
+        ],
+        [
+          0.5,
+          2
+        ],
+        [
+          0.5,
+          1
+        ],
+        [
+          0.83,
+          2
+        ],
+        [
+          0.83,
+          1
+        ],
+        [
+          0.83,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Six carriers",
+      "edges": [],
+      "outputs": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "positions": [
+        [
+          0.07,
+          0
+        ],
+        [
+          0.24,
+          0
+        ],
+        [
+          0.41,
+          0
+        ],
+        [
+          0.59,
+          0
+        ],
+        [
+          0.76,
+          0
+        ],
+        [
+          0.93,
+          0
+        ]
+      ]
+    }
+  ],
+  "default": {
+    "algorithm": 1,
+    "feedback": 0,
+    "op1_enabled": 1,
+    "op1_ratio": 1,
+    "op1_detune": 0,
+    "op1_level": 60,
+    "op1_velocity": 35,
+    "op1_attack": 0.005,
+    "op1_decay": 0.8,
+    "op1_sustain": 60,
+    "op1_release": 0.3,
+    "op2_enabled": 1,
+    "op2_ratio": 2,
+    "op2_detune": 0,
+    "op2_level": 20,
+    "op2_velocity": 70,
+    "op2_attack": 0.005,
+    "op2_decay": 0.8,
+    "op2_sustain": 60,
+    "op2_release": 0.3,
+    "op3_enabled": 1,
+    "op3_ratio": 1,
+    "op3_detune": 0,
+    "op3_level": 60,
+    "op3_velocity": 35,
+    "op3_attack": 0.005,
+    "op3_decay": 0.8,
+    "op3_sustain": 60,
+    "op3_release": 0.3,
+    "op4_enabled": 1,
+    "op4_ratio": 2,
+    "op4_detune": 0,
+    "op4_level": 20,
+    "op4_velocity": 70,
+    "op4_attack": 0.005,
+    "op4_decay": 0.8,
+    "op4_sustain": 60,
+    "op4_release": 0.3,
+    "op5_enabled": 1,
+    "op5_ratio": 1,
+    "op5_detune": 0,
+    "op5_level": 60,
+    "op5_velocity": 35,
+    "op5_attack": 0.005,
+    "op5_decay": 0.8,
+    "op5_sustain": 60,
+    "op5_release": 0.3,
+    "op6_enabled": 1,
+    "op6_ratio": 2,
+    "op6_detune": 0,
+    "op6_level": 20,
+    "op6_velocity": 70,
+    "op6_attack": 0.005,
+    "op6_decay": 0.8,
+    "op6_sustain": 60,
+    "op6_release": 0.3
+  },
+  "presets": [
+    {
+      "id": 1,
+      "name": "Tine Piano",
+      "voice": {
+        "algorithm": 1,
+        "feedback": 0,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": 0,
+        "op1_level": 92,
+        "op1_velocity": 35,
+        "op1_attack": 0.005,
+        "op1_decay": 2.4,
+        "op1_sustain": 0,
+        "op1_release": 0.35,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 0,
+        "op2_level": 22,
+        "op2_velocity": 70,
+        "op2_attack": 0.005,
+        "op2_decay": 0.7,
+        "op2_sustain": 0,
+        "op2_release": 0.18,
+        "op3_enabled": 1,
+        "op3_ratio": 1,
+        "op3_detune": 0,
+        "op3_level": 70,
+        "op3_velocity": 35,
+        "op3_attack": 0.005,
+        "op3_decay": 2.4,
+        "op3_sustain": 0,
+        "op3_release": 0.35,
+        "op4_enabled": 1,
+        "op4_ratio": 3,
+        "op4_detune": 0,
+        "op4_level": 16,
+        "op4_velocity": 70,
+        "op4_attack": 0.005,
+        "op4_decay": 0.7,
+        "op4_sustain": 0,
+        "op4_release": 0.18,
+        "op5_enabled": 1,
+        "op5_ratio": 1,
+        "op5_detune": 0,
+        "op5_level": 28,
+        "op5_velocity": 35,
+        "op5_attack": 0.005,
+        "op5_decay": 2.4,
+        "op5_sustain": 0,
+        "op5_release": 0.35,
+        "op6_enabled": 1,
+        "op6_ratio": 14,
+        "op6_detune": 0,
+        "op6_level": 12,
+        "op6_velocity": 70,
+        "op6_attack": 0.005,
+        "op6_decay": 0.7,
+        "op6_sustain": 0,
+        "op6_release": 0.18
+      }
+    },
+    {
+      "id": 2,
+      "name": "Soft Electric Piano",
+      "voice": {
+        "algorithm": 1,
+        "feedback": 0,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": -3,
+        "op1_level": 90,
+        "op1_velocity": 35,
+        "op1_attack": 0.005,
+        "op1_decay": 3,
+        "op1_sustain": 0,
+        "op1_release": 0.45,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 0,
+        "op2_level": 10,
+        "op2_velocity": 70,
+        "op2_attack": 0.005,
+        "op2_decay": 0.45,
+        "op2_sustain": 0,
+        "op2_release": 0.45,
+        "op3_enabled": 1,
+        "op3_ratio": 1,
+        "op3_detune": 3,
+        "op3_level": 60,
+        "op3_velocity": 35,
+        "op3_attack": 0.005,
+        "op3_decay": 3,
+        "op3_sustain": 0,
+        "op3_release": 0.45,
+        "op4_enabled": 1,
+        "op4_ratio": 2,
+        "op4_detune": 0,
+        "op4_level": 9,
+        "op4_velocity": 70,
+        "op4_attack": 0.005,
+        "op4_decay": 0.45,
+        "op4_sustain": 0,
+        "op4_release": 0.45,
+        "op5_enabled": 1,
+        "op5_ratio": 1,
+        "op5_detune": 0,
+        "op5_level": 20,
+        "op5_velocity": 35,
+        "op5_attack": 0.005,
+        "op5_decay": 3,
+        "op5_sustain": 0,
+        "op5_release": 0.45,
+        "op6_enabled": 1,
+        "op6_ratio": 7,
+        "op6_detune": 0,
+        "op6_level": 6,
+        "op6_velocity": 70,
+        "op6_attack": 0.005,
+        "op6_decay": 0.45,
+        "op6_sustain": 0,
+        "op6_release": 0.45
+      }
+    },
+    {
+      "id": 3,
+      "name": "FM Bass",
+      "voice": {
+        "algorithm": 3,
+        "feedback": 8,
+        "op1_enabled": 1,
+        "op1_ratio": 0.5,
+        "op1_detune": 0,
+        "op1_level": 75,
+        "op1_velocity": 35,
+        "op1_attack": 0.005,
+        "op1_decay": 0.7,
+        "op1_sustain": 25,
+        "op1_release": 0.08,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 0,
+        "op2_level": 8,
+        "op2_velocity": 70,
+        "op2_attack": 0.005,
+        "op2_decay": 0.22,
+        "op2_sustain": 4,
+        "op2_release": 0.08,
+        "op3_enabled": 1,
+        "op3_ratio": 1,
+        "op3_detune": 0,
+        "op3_level": 100,
+        "op3_velocity": 35,
+        "op3_attack": 0.005,
+        "op3_decay": 0.7,
+        "op3_sustain": 25,
+        "op3_release": 0.08,
+        "op4_enabled": 1,
+        "op4_ratio": 1,
+        "op4_detune": 0,
+        "op4_level": 18,
+        "op4_velocity": 70,
+        "op4_attack": 0.005,
+        "op4_decay": 0.22,
+        "op4_sustain": 4,
+        "op4_release": 0.08,
+        "op5_enabled": 1,
+        "op5_ratio": 2,
+        "op5_detune": 0,
+        "op5_level": 12,
+        "op5_velocity": 70,
+        "op5_attack": 0.005,
+        "op5_decay": 0.22,
+        "op5_sustain": 4,
+        "op5_release": 0.08,
+        "op6_enabled": 1,
+        "op6_ratio": 1,
+        "op6_detune": 0,
+        "op6_level": 8,
+        "op6_velocity": 70,
+        "op6_attack": 0.005,
+        "op6_decay": 0.22,
+        "op6_sustain": 4,
+        "op6_release": 0.08
+      }
+    },
+    {
+      "id": 4,
+      "name": "Slap Bass",
+      "voice": {
+        "algorithm": 7,
+        "feedback": 18,
+        "op1_enabled": 1,
+        "op1_ratio": 0.5,
+        "op1_detune": 0,
+        "op1_level": 50,
+        "op1_velocity": 35,
+        "op1_attack": 0.005,
+        "op1_decay": 0.6,
+        "op1_sustain": 8,
+        "op1_release": 0.07,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 0,
+        "op2_level": 75,
+        "op2_velocity": 35,
+        "op2_attack": 0.005,
+        "op2_decay": 0.6,
+        "op2_sustain": 8,
+        "op2_release": 0.07,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": 0,
+        "op3_level": 22,
+        "op3_velocity": 70,
+        "op3_attack": 0.005,
+        "op3_decay": 0.09,
+        "op3_sustain": 0,
+        "op3_release": 0.07,
+        "op4_enabled": 1,
+        "op4_ratio": 1,
+        "op4_detune": 0,
+        "op4_level": 90,
+        "op4_velocity": 35,
+        "op4_attack": 0.005,
+        "op4_decay": 0.6,
+        "op4_sustain": 8,
+        "op4_release": 0.07,
+        "op5_enabled": 1,
+        "op5_ratio": 1,
+        "op5_detune": 0,
+        "op5_level": 24,
+        "op5_velocity": 70,
+        "op5_attack": 0.005,
+        "op5_decay": 0.09,
+        "op5_sustain": 0,
+        "op5_release": 0.07,
+        "op6_enabled": 1,
+        "op6_ratio": 8,
+        "op6_detune": 0,
+        "op6_level": 16,
+        "op6_velocity": 70,
+        "op6_attack": 0.005,
+        "op6_decay": 0.09,
+        "op6_sustain": 0,
+        "op6_release": 0.07
+      }
+    },
+    {
+      "id": 5,
+      "name": "Glass Bell",
+      "voice": {
+        "algorithm": 1,
+        "feedback": 0,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": 0,
+        "op1_level": 88,
+        "op1_velocity": 35,
+        "op1_attack": 0.005,
+        "op1_decay": 4.2,
+        "op1_sustain": 0,
+        "op1_release": 2.5,
+        "op2_enabled": 1,
+        "op2_ratio": 2.71,
+        "op2_detune": 0,
+        "op2_level": 26,
+        "op2_velocity": 70,
+        "op2_attack": 0.005,
+        "op2_decay": 4.2,
+        "op2_sustain": 0,
+        "op2_release": 2.5,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": 0,
+        "op3_level": 48,
+        "op3_velocity": 35,
+        "op3_attack": 0.005,
+        "op3_decay": 4.2,
+        "op3_sustain": 0,
+        "op3_release": 2.5,
+        "op4_enabled": 1,
+        "op4_ratio": 3.49,
+        "op4_detune": 0,
+        "op4_level": 20,
+        "op4_velocity": 70,
+        "op4_attack": 0.005,
+        "op4_decay": 4.2,
+        "op4_sustain": 0,
+        "op4_release": 2.5,
+        "op5_enabled": 1,
+        "op5_ratio": 3,
+        "op5_detune": 0,
+        "op5_level": 24,
+        "op5_velocity": 35,
+        "op5_attack": 0.005,
+        "op5_decay": 4.2,
+        "op5_sustain": 0,
+        "op5_release": 2.5,
+        "op6_enabled": 1,
+        "op6_ratio": 7.13,
+        "op6_detune": 0,
+        "op6_level": 14,
+        "op6_velocity": 70,
+        "op6_attack": 0.005,
+        "op6_decay": 4.2,
+        "op6_sustain": 0,
+        "op6_release": 2.5
+      }
+    },
+    {
+      "id": 6,
+      "name": "Wooden Mallet",
+      "voice": {
+        "algorithm": 3,
+        "feedback": 0,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": 0,
+        "op1_level": 100,
+        "op1_velocity": 35,
+        "op1_attack": 0.005,
+        "op1_decay": 0.65,
+        "op1_sustain": 0,
+        "op1_release": 0.18,
+        "op2_enabled": 1,
+        "op2_ratio": 3,
+        "op2_detune": 0,
+        "op2_level": 15,
+        "op2_velocity": 70,
+        "op2_attack": 0.005,
+        "op2_decay": 0.11,
+        "op2_sustain": 0,
+        "op2_release": 0.18,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": 0,
+        "op3_level": 35,
+        "op3_velocity": 35,
+        "op3_attack": 0.005,
+        "op3_decay": 0.65,
+        "op3_sustain": 0,
+        "op3_release": 0.18,
+        "op4_enabled": 1,
+        "op4_ratio": 2.76,
+        "op4_detune": 0,
+        "op4_level": 12,
+        "op4_velocity": 70,
+        "op4_attack": 0.005,
+        "op4_decay": 0.11,
+        "op4_sustain": 0,
+        "op4_release": 0.18,
+        "op5_enabled": 1,
+        "op5_ratio": 4,
+        "op5_detune": 0,
+        "op5_level": 8,
+        "op5_velocity": 70,
+        "op5_attack": 0.005,
+        "op5_decay": 0.11,
+        "op5_sustain": 0,
+        "op5_release": 0.18,
+        "op6_enabled": 1,
+        "op6_ratio": 1,
+        "op6_detune": 0,
+        "op6_level": 5,
+        "op6_velocity": 70,
+        "op6_attack": 0.005,
+        "op6_decay": 0.11,
+        "op6_sustain": 0,
+        "op6_release": 0.18
+      }
+    },
+    {
+      "id": 7,
+      "name": "Synth Brass",
+      "voice": {
+        "algorithm": 5,
+        "feedback": 6,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": 0,
+        "op1_level": 100,
+        "op1_velocity": 35,
+        "op1_attack": 0.04,
+        "op1_decay": 0.35,
+        "op1_sustain": 72,
+        "op1_release": 0.16,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 0,
+        "op2_level": 17,
+        "op2_velocity": 70,
+        "op2_attack": 0.09,
+        "op2_decay": 0.25,
+        "op2_sustain": 35,
+        "op2_release": 0.16,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": 0,
+        "op3_level": 11,
+        "op3_velocity": 70,
+        "op3_attack": 0.09,
+        "op3_decay": 0.25,
+        "op3_sustain": 35,
+        "op3_release": 0.16,
+        "op4_enabled": 1,
+        "op4_ratio": 3,
+        "op4_detune": 0,
+        "op4_level": 7,
+        "op4_velocity": 70,
+        "op4_attack": 0.09,
+        "op4_decay": 0.25,
+        "op4_sustain": 35,
+        "op4_release": 0.16,
+        "op5_enabled": 1,
+        "op5_ratio": 4,
+        "op5_detune": 0,
+        "op5_level": 4,
+        "op5_velocity": 70,
+        "op5_attack": 0.09,
+        "op5_decay": 0.25,
+        "op5_sustain": 35,
+        "op5_release": 0.16,
+        "op6_enabled": 1,
+        "op6_ratio": 5,
+        "op6_detune": 0,
+        "op6_level": 3,
+        "op6_velocity": 70,
+        "op6_attack": 0.09,
+        "op6_decay": 0.25,
+        "op6_sustain": 35,
+        "op6_release": 0.16
+      }
+    },
+    {
+      "id": 8,
+      "name": "Digital Organ",
+      "voice": {
+        "algorithm": 8,
+        "feedback": 0,
+        "op1_enabled": 1,
+        "op1_ratio": 0.5,
+        "op1_detune": 0,
+        "op1_level": 60,
+        "op1_velocity": 35,
+        "op1_attack": 0.003,
+        "op1_decay": 0.1,
+        "op1_sustain": 100,
+        "op1_release": 0.08,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 0,
+        "op2_level": 100,
+        "op2_velocity": 35,
+        "op2_attack": 0.003,
+        "op2_decay": 0.1,
+        "op2_sustain": 100,
+        "op2_release": 0.08,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": 0,
+        "op3_level": 70,
+        "op3_velocity": 35,
+        "op3_attack": 0.003,
+        "op3_decay": 0.1,
+        "op3_sustain": 100,
+        "op3_release": 0.08,
+        "op4_enabled": 1,
+        "op4_ratio": 3,
+        "op4_detune": 0,
+        "op4_level": 40,
+        "op4_velocity": 35,
+        "op4_attack": 0.003,
+        "op4_decay": 0.1,
+        "op4_sustain": 100,
+        "op4_release": 0.08,
+        "op5_enabled": 1,
+        "op5_ratio": 4,
+        "op5_detune": 0,
+        "op5_level": 30,
+        "op5_velocity": 35,
+        "op5_attack": 0.003,
+        "op5_decay": 0.1,
+        "op5_sustain": 100,
+        "op5_release": 0.08,
+        "op6_enabled": 1,
+        "op6_ratio": 6,
+        "op6_detune": 0,
+        "op6_level": 18,
+        "op6_velocity": 35,
+        "op6_attack": 0.003,
+        "op6_decay": 0.1,
+        "op6_sustain": 100,
+        "op6_release": 0.08
+      }
+    },
+    {
+      "id": 9,
+      "name": "Bright Pluck",
+      "voice": {
+        "algorithm": 1,
+        "feedback": 10,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": 0,
+        "op1_level": 90,
+        "op1_velocity": 35,
+        "op1_attack": 0.005,
+        "op1_decay": 0.9,
+        "op1_sustain": 0,
+        "op1_release": 0.2,
+        "op2_enabled": 1,
+        "op2_ratio": 2,
+        "op2_detune": 0,
+        "op2_level": 27,
+        "op2_velocity": 70,
+        "op2_attack": 0.005,
+        "op2_decay": 0.14,
+        "op2_sustain": 0,
+        "op2_release": 0.2,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": 0,
+        "op3_level": 40,
+        "op3_velocity": 35,
+        "op3_attack": 0.005,
+        "op3_decay": 0.9,
+        "op3_sustain": 0,
+        "op3_release": 0.2,
+        "op4_enabled": 1,
+        "op4_ratio": 3,
+        "op4_detune": 0,
+        "op4_level": 14,
+        "op4_velocity": 70,
+        "op4_attack": 0.005,
+        "op4_decay": 0.14,
+        "op4_sustain": 0,
+        "op4_release": 0.2,
+        "op5_enabled": 1,
+        "op5_ratio": 1,
+        "op5_detune": 0,
+        "op5_level": 30,
+        "op5_velocity": 35,
+        "op5_attack": 0.005,
+        "op5_decay": 0.9,
+        "op5_sustain": 0,
+        "op5_release": 0.2,
+        "op6_enabled": 1,
+        "op6_ratio": 5,
+        "op6_detune": 0,
+        "op6_level": 9,
+        "op6_velocity": 70,
+        "op6_attack": 0.005,
+        "op6_decay": 0.14,
+        "op6_sustain": 0,
+        "op6_release": 0.2
+      }
+    },
+    {
+      "id": 10,
+      "name": "Evolving Pad",
+      "voice": {
+        "algorithm": 2,
+        "feedback": 0,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": -6,
+        "op1_level": 85,
+        "op1_velocity": 35,
+        "op1_attack": 1.4,
+        "op1_decay": 2.5,
+        "op1_sustain": 65,
+        "op1_release": 2.5,
+        "op2_enabled": 1,
+        "op2_ratio": 2,
+        "op2_detune": 0,
+        "op2_level": 16,
+        "op2_velocity": 70,
+        "op2_attack": 1.4,
+        "op2_decay": 2.5,
+        "op2_sustain": 65,
+        "op2_release": 2.5,
+        "op3_enabled": 1,
+        "op3_ratio": 1,
+        "op3_detune": 0,
+        "op3_level": 9,
+        "op3_velocity": 70,
+        "op3_attack": 2.5,
+        "op3_decay": 3,
+        "op3_sustain": 20,
+        "op3_release": 2.5,
+        "op4_enabled": 1,
+        "op4_ratio": 1,
+        "op4_detune": 6,
+        "op4_level": 85,
+        "op4_velocity": 35,
+        "op4_attack": 1.4,
+        "op4_decay": 2.5,
+        "op4_sustain": 65,
+        "op4_release": 2.5,
+        "op5_enabled": 1,
+        "op5_ratio": 3,
+        "op5_detune": 0,
+        "op5_level": 14,
+        "op5_velocity": 70,
+        "op5_attack": 1.4,
+        "op5_decay": 2.5,
+        "op5_sustain": 65,
+        "op5_release": 2.5,
+        "op6_enabled": 1,
+        "op6_ratio": 2,
+        "op6_detune": 0,
+        "op6_level": 7,
+        "op6_velocity": 70,
+        "op6_attack": 2.5,
+        "op6_decay": 3,
+        "op6_sustain": 20,
+        "op6_release": 2.5
+      }
+    },
+    {
+      "id": 11,
+      "name": "Metallic Lead",
+      "voice": {
+        "algorithm": 4,
+        "feedback": 12,
+        "op1_enabled": 1,
+        "op1_ratio": 1,
+        "op1_detune": 0,
+        "op1_level": 100,
+        "op1_velocity": 35,
+        "op1_attack": 0.008,
+        "op1_decay": 0.3,
+        "op1_sustain": 55,
+        "op1_release": 0.14,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 0,
+        "op2_level": 23,
+        "op2_velocity": 70,
+        "op2_attack": 0.008,
+        "op2_decay": 0.3,
+        "op2_sustain": 55,
+        "op2_release": 0.14,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": 0,
+        "op3_level": 18,
+        "op3_velocity": 70,
+        "op3_attack": 0.008,
+        "op3_decay": 0.3,
+        "op3_sustain": 55,
+        "op3_release": 0.14,
+        "op4_enabled": 1,
+        "op4_ratio": 1,
+        "op4_detune": 0,
+        "op4_level": 12,
+        "op4_velocity": 70,
+        "op4_attack": 0.008,
+        "op4_decay": 0.3,
+        "op4_sustain": 55,
+        "op4_release": 0.14,
+        "op5_enabled": 1,
+        "op5_ratio": 3,
+        "op5_detune": 0,
+        "op5_level": 8,
+        "op5_velocity": 70,
+        "op5_attack": 0.008,
+        "op5_decay": 0.3,
+        "op5_sustain": 55,
+        "op5_release": 0.14,
+        "op6_enabled": 1,
+        "op6_ratio": 1,
+        "op6_detune": 0,
+        "op6_level": 6,
+        "op6_velocity": 70,
+        "op6_attack": 0.008,
+        "op6_decay": 0.3,
+        "op6_sustain": 55,
+        "op6_release": 0.14
+      }
+    },
+    {
+      "id": 12,
+      "name": "Shimmer Keys",
+      "voice": {
+        "algorithm": 6,
+        "feedback": 5,
+        "op1_enabled": 1,
+        "op1_ratio": 0.5,
+        "op1_detune": -4,
+        "op1_level": 45,
+        "op1_velocity": 35,
+        "op1_attack": 0.025,
+        "op1_decay": 1.8,
+        "op1_sustain": 25,
+        "op1_release": 0.9,
+        "op2_enabled": 1,
+        "op2_ratio": 1,
+        "op2_detune": 4,
+        "op2_level": 90,
+        "op2_velocity": 35,
+        "op2_attack": 0.025,
+        "op2_decay": 1.8,
+        "op2_sustain": 25,
+        "op2_release": 0.9,
+        "op3_enabled": 1,
+        "op3_ratio": 2,
+        "op3_detune": -3,
+        "op3_level": 55,
+        "op3_velocity": 35,
+        "op3_attack": 0.025,
+        "op3_decay": 1.8,
+        "op3_sustain": 25,
+        "op3_release": 0.9,
+        "op4_enabled": 1,
+        "op4_ratio": 3,
+        "op4_detune": 3,
+        "op4_level": 20,
+        "op4_velocity": 35,
+        "op4_attack": 0.025,
+        "op4_decay": 1.8,
+        "op4_sustain": 25,
+        "op4_release": 0.9,
+        "op5_enabled": 1,
+        "op5_ratio": 1,
+        "op5_detune": 0,
+        "op5_level": 14,
+        "op5_velocity": 70,
+        "op5_attack": 0.025,
+        "op5_decay": 0.6,
+        "op5_sustain": 10,
+        "op5_release": 0.9,
+        "op6_enabled": 1,
+        "op6_ratio": 2,
+        "op6_detune": 0,
+        "op6_level": 8,
+        "op6_velocity": 70,
+        "op6_attack": 0.025,
+        "op6_decay": 0.6,
+        "op6_sustain": 10,
+        "op6_release": 0.9
+      }
+    }
+  ]
+}

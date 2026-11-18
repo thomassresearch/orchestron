@@ -11142,3 +11142,69 @@ def test_sample_csd_modes_render_identically_after_relocation(tmp_path, monkeypa
             assert not np.any(signal[10 * rate:])
             results.append(signal)
         np.testing.assert_array_equal(*results)
+
+
+def test_fm6_opcode_catalog_and_invalid_custom_voice(tmp_path):
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    with _client(tmp_path) as client:
+        spec = next(item for item in client.get('/api/opcodes').json() if item['name'] == 'fm6_voice')
+        assert spec['category'] == 'fm'
+        assert spec['documentation_url'] == 'https://csound.com/docs/manual/opcode.html'
+        assert (Path(__file__).resolve().parents[1] / 'app/static/icons' / Path(spec['icon']).name).is_file()
+        assert [p['id'] for p in spec['outputs']] == ['aout']
+        inputs = {p['id']: p for p in spec['inputs']}
+        assert inputs['kfreq']['signal_type'] == 'k'
+        assert inputs['ipreset']['signal_type'] == 'i' and inputs['ipreset']['default'] == 0
+        assert inputs['ifeedback']['default'] == -1
+        assert len(inputs) == 10
+        assert 'six' in spec['documentation_markdown'].lower()
+        payload = load_patch_fixture('almost_dx7').model_dump(mode='json', exclude={'id', 'created_at', 'updated_at'})
+        next(n for n in payload['graph']['nodes'] if n['opcode'] == 'fm6_voice')['params']['op6_attack'] = 0
+        rejected = client.post('/api/patches', json=payload)
+        assert rejected.status_code == 422 and 'op6_attack' in rejected.text
+
+
+@pytest.mark.parametrize('event_source', ['midiFile', 'score'])
+def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path, event_source):
+    from backend.app.models.export import ExportedPatchDefinition
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture('almost_dx7')
+    next(n for n in patch.graph.nodes if n.id == 'fm6').params.update({'algorithm': 6, 'op3_ratio': 1.414, 'feedback': 37})
+    bundle = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={'id'})).model_dump(mode='json', by_alias=True)
+    values = {'fm6_preset': 12, 'fm6_brightness': 68, 'fm6_release': 2}
+    config = dict(version=22, instruments=[dict(id='fm', patchId=patch.id, midiChannel=1, performanceControllerValues=values)],
+                  audioGraph=dict(masterId='$master', routes=[dict(id=side, sourceId='fm', sourcePort=side, targetId='$master', targetPort=side) for side in ('left', 'right')]))
+    payload = _performance_csd_export_payload()
+    payload['eventSource'] = event_source
+    performance = payload['performanceExport']
+    performance['patch_definitions'] = [bundle]
+    performance['performance']['config'] = config
+    with _client(tmp_path) as client:
+        exported = client.post('/api/bundles/export/patch', json=bundle)
+        assert exported.status_code == 200, exported.text
+        plan = {'patches': [{'id': patch.id, 'sourcePatchId': patch.id, 'type': 'create', 'name': patch.name}]}
+        imported = client.post('/api/bundles/import/commit', files={'bundle': ('almost_dx7.orch.instrument.json', exported.content)}, data={'plan': json.dumps(plan)})
+        assert imported.status_code == 200, imported.text
+        restored = client.get('/api/patches/' + patch.id).json()
+        assert restored['graph'] == bundle['graph']
+        controller = next(c for c in restored['performance_controllers'] if c['node_id'] == 'fm6_preset')
+        assert controller['controller_type'] == 'integer' and controller['update_mode'] == 'init'
+        session = client.post('/api/sessions', json={'instruments': [dict(id='fm', patch_id=patch.id, midi_channel=1, performance_controller_values=values)]})
+        assert session.status_code == 201, session.text
+        compiled = client.post(f"/api/sessions/{session.json()['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        assert compiled.json()['manifest']['performanceControllers']['fm']['fm6_preset']['value'] == 12
+        assert compiled.json()['orc'].count('opcode vcs_fm6_voice,') == 1
+        native = client.post('/api/bundles/export/performance', json=performance)
+        assert native.status_code == 200, native.text
+        expanded = client.post('/api/bundles/import/expand?preview=true', content=native.content, headers={'X-File-Name': 'fm6.orch.performance.json'})
+        assert expanded.status_code == 200, expanded.text
+        assert expanded.json()['performance']['config']['instruments'][0]['performanceControllerValues'] == values
+        exported = client.post('/api/bundles/export/performance-csd', json=payload)
+        assert exported.status_code == 200, exported.text
+        with zipfile.ZipFile(BytesIO(exported.content)) as archive:
+            csd = archive.read('Offline_Export/Offline_Export.csd').decode()
+        assert 'ksmps = 1' in csd and csd.count('opcode vcs_fm6_voice,') == 1
+        assert 'aOutput = kSum * iGain' in csd
