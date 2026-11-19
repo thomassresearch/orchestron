@@ -1,7 +1,7 @@
 import { DraftResolutionDialog } from "./components/clipArranger/DraftResolutionDialog";
 import { registerAutomationRuntime } from "./lib/clipArranger/automationRuntime";
 import { confirmReplacement, resolveClipDrafts } from "./lib/clipArranger/draftResolution";
-import { clipRuntimeView, attachClipSchedules, clipAuditionState } from "./lib/clipArranger/runtime";
+import { withPadAudition, clipRuntimeView, attachClipSchedules, clipAuditionState } from "./lib/clipArranger/runtime";
 import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
 import { scoreTrackConfig } from "./lib/scoreSequencer";
 import { EngineStatusLine } from "./components/EngineStatusLine";
@@ -382,7 +382,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
       const draft = mode === "runtime" ? useAppStore.getState().clipAuditionDraft : null;
       const compilation = draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored;
       const previews = mode === "runtime" ? previewGestures.current : undefined;
-      const resolvedState = clipRuntimeView(compilation, previews);
+      const resolvedState = withPadAudition(clipRuntimeView(compilation, previews), mode === "runtime" ? useAppStore.getState().padAudition : null);
       const transportStepCount = transportStepCountFromPerformanceSequencers(
         resolvedState.timing,
         resolvedState.tracks,

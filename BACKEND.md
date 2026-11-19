@@ -1023,6 +1023,8 @@ Binding a new MIDI input:
 
 #### Sequencer endpoints
 
+Physical pattern editors audition a generated take through the existing workspace command. Legacy note, drum-row and Score tracks can prepare an additional pad at index 8 when the audition schedule references that slot exclusively. The eight authored pads retain their identities. Clip editors use a temporary definition with the selected occurrence’s transposition context.
+
 | Method | Path | Request body | Response | Notes |
 | --- | --- | --- | --- | --- |
 | `PUT` | `/api/sessions/{session_id}/sequencer/config` | `SessionSequencerConfigRequest` | `SessionSequencerStatus` | Replaces the active sequencer configuration. |

@@ -1,3 +1,4 @@
+import { MarkovGenerator } from "./sequencer/MarkovGenerator";
 import { useRackSelection } from "./sequencer/useRackSelection";
 import { MixWorkspace } from "./sequencer/MixWorkspace";
 import { LiveLauncher } from "./sequencer/LiveLauncher";
@@ -1761,6 +1762,8 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 ::
               </div>}
               {renderDeviceName("tracks", track, ui.sequencerWithIndex(trackIndex + 1))}
+              <MarkovGenerator id={track.id} name={track.name} language={guiLanguage} timing={track.timing} padIndex={track.activePad}
+                pattern={{ source: "sequencer", payload: track.pads[track.activePad] ?? track.pads[0] }} />
               <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
               <button hidden={singlePattern}
                 type="button"
@@ -2574,6 +2577,8 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
 
             <div className="mb-2 flex flex-wrap items-center gap-2">
               {renderDeviceName("drummerTracks", track, ui.drummerSequencerWithIndex(trackIndex + 1))}
+              <MarkovGenerator id={track.id} name={track.name} language={guiLanguage} timing={track.timing} padIndex={track.activePad}
+                pattern={{ source: "drummer", payload: track.pads[track.activePad] ?? track.pads[0] }} rows={track.rows} />
               <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
               <button hidden={singlePattern}
                 type="button"

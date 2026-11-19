@@ -186,6 +186,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     clipDrafts: {},
     clipEditingKey: null,
     clipAuditionDraft: null,
+    padAudition: null,
     arrangerHistory: emptyArrangerHistory(),
     arrangerHistoryNotice: false,
     arrangerHistoryRestoreRevision: 0,
@@ -1285,7 +1286,7 @@ useAppStore.subscribe((state, previous) => {
   if (state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) {
     useAutomationMerge.getState().resolve?.(null);
     useStructureDraft.setState({draft:null});
-    useAppStore.setState({ clipDrafts: {}, clipEditingKey: null, clipAuditionDraft: null });
+    useAppStore.setState({ clipDrafts: {}, clipEditingKey: null, clipAuditionDraft: null, padAudition: null });
   }
   if (state.sequencer !== previous.sequencer && state.arrangerHistory === previous.arrangerHistory &&
       state.arrangerHistory.entries.length && !historyMatches(state.sequencer, state.arrangerHistory)) {

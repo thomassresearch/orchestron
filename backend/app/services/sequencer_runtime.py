@@ -437,6 +437,11 @@ class SessionSequencerRuntime:
                 raise ValueError("Clip audition context was not prepared.")
             if any(token >= 0 and token not in track.pads for track in targets for token in request.sequence):
                 raise ValueError("Audition pad is not configured.")
+            if not request.clip_context and 8 in request.sequence:
+                for track in targets:
+                    authored = self._auditions.get(track.track_id, {}).get("authored", {})
+                    if authored.get("clip_schedule", track.clip_schedule) is None:
+                        raise ValueError("The temporary pattern slot requires its audition schedule.")
             if request.action.startswith("preview_"):
                 return self._preview(request, targets)
             if request.action.startswith("workspace_"):

@@ -11236,3 +11236,27 @@ def test_live_physical_pad_preview_has_a_separate_slot_at_clip_capacity(tmp_path
         assert response.status_code == 200 and not response.json()["auditions"]
         track["live_preview_pad"] = 512
         assert client.put(base + "/config", json=config).status_code == 422
+
+
+def test_physical_pattern_workspace_slot_is_session_only(tmp_path):
+    pad = {"pad_index": 8, "length_beats": 1, "steps": [72]}
+    schedule = {"end": 20160, "cycle_ticks": 20160, "clips": [
+        {"id": "take", "start": 0, "length": 20160, "content": [{"pad": 8, "length": 20160}]}]}
+    track = {"track_id": "lead", "pads": [{"pad_index": 0, "steps": [60]}, pad]}
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Pattern generator audition")
+        base = f"/api/sessions/{session}/sequencer"
+        assert client.put(base + "/config", json={"tracks": [track]}).status_code == 422
+        track["audition_schedule"] = schedule
+        response = client.put(base + "/config", json={"tracks": [track]})
+        assert response.status_code == 200, response.text
+        command = {"action": "workspace_start", "sequence": [8], "clip_context": True,
+                   "track_ids": ["lead"], "gesture_id": "generator", "revision": 1}
+        assert client.post(base + "/audition", json={**command, "clip_context": False}).status_code == 422
+        response = client.post(base + "/audition", json=command)
+        assert response.status_code == 200, response.text
+        assert response.json()["auditions"]["lead"]["workspace_sequence"] == [8]
+        assert client.post(base + "/audition", json={**command, "clip_context": False}).status_code == 422
+        response = client.post(base + "/audition", json={**command, "action": "workspace_end", "revision": 2})
+        assert response.status_code == 200
+        assert not response.json()["auditions"]

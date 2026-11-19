@@ -15,6 +15,8 @@ Select a Score clip and use **Remove track** to remove its track.
 
 ## Draw and edit notes
 
+**Markov Generator** creates a single melodic line in the edited pattern’s scale. Choose the pitch and rhythm phrase lengths independently, audition the take and choose **Use pattern**. Generated notes use the selected grid and retain individual note lengths. Notes beyond the pattern end and the hidden tails of notes crossing it are preserved. One **Undo** restores the previous score. See the [generator controls](sequencer_tracks_and_steps.md#markov-generator).
+
 The vertical keyboard stays on the left while the score scrolls. All 128 MIDI
 pitches remain available. Coloured rows and keyboard markers show scale degrees;
 notes outside the selected mode remain editable. Each pad remembers its own

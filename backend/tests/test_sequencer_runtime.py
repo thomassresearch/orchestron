@@ -1058,3 +1058,20 @@ def test_manual_launch_keeps_its_deadline_under_held_speaker(after_boundary):
     assert (track.active_pad, track.queued_pad) == expected
     if after_boundary:
         assert track.phase_offset_subunit == due
+
+
+def test_physical_pattern_generator_restores_original_pad():
+    runtime, request = _preview_runtime()
+    config = request.model_dump()
+    track = config["tracks"][0]
+    track["pads"].append({"pad_index": 8, "length_beats": 1, "steps": [77]})
+    track["audition_schedule"] = {"end": 20160, "cycle_ticks": 20160, "clips": [
+        {"id": "take", "start": 0, "length": 20160, "content": [{"pad": 8, "length": 20160}]}]}
+    runtime.configure(SessionSequencerConfigRequest.model_validate(config))
+    original = runtime._config.tracks["lead"].active_pad
+    command = _workspace_command(sequence=[8])
+    command.clip_context = True
+    runtime.audition(command)
+    assert runtime._config.tracks["lead"].active_pad == 8
+    runtime.audition(_workspace_command("workspace_end", 2))
+    assert runtime._config.tracks["lead"].active_pad == original

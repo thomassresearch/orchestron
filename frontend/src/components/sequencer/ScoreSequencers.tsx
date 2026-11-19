@@ -1,3 +1,4 @@
+import { MarkovGenerator } from "./MarkovGenerator";
 import { ClipEditingContext, useSinglePatternEditor } from "../clipArranger/context";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { ScoreTransportContext } from "./ScoreTransportContext";
@@ -108,6 +109,8 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
         if (beats > 8192) throw new Error("Score capacity exceeded (8192 beats).");
         changePad({ ...pad, lengthBeats: Math.max(1, beats), stepCount: Math.max(1, beats) * track.timing.stepsPerBeat });
       })}>{c.match}</button>
+      <MarkovGenerator id={track.id} name={track.name} language={language} timing={track.timing} padIndex={padIndex}
+        pattern={{source: "score", payload: pad}} onScoreApply={changePad} />
       <button className={button} onClick={() => historyStep()} disabled={!history.past.length}>{c.undo}</button><button className={button} onClick={() => historyStep(true)} disabled={!history.future.length}>{c.redo}</button>
       <button className={button} onClick={() => changePad({ ...pad, notes: [] })}>{c.clear}</button>
       <button className={button} onClick={e => transpose(-1, e.shiftKey)} title={`${c.transpose} − / Shift: −12`}>− ♪</button><button className={button} onClick={e => transpose(1, e.shiftKey)} title={`${c.transpose} + / Shift: +12`}>+ ♪</button>

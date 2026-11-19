@@ -10,6 +10,7 @@ import { clipArrangerHelp } from "./helpDocumentationClipArranger";
 import { arrangementHelp } from "./arrangementHelp";
 import { arpeggiatorHelp } from "./helpDocumentationArpeggiator";
 import { scoreHelp } from "./helpDocumentationScore";
+import { markovCopy } from "./markovCopy";
 import { collapsiblePanelHelp } from "./helpDocumentationPanels";
 import { performanceControllerHelp } from "./helpDocumentationPerformanceControllers";
 import { audioRoutingHelp } from "./helpDocumentationAudio";
@@ -959,6 +960,10 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
 
 for (const language of ["english", "german", "french", "spanish"] as const) {
   sequencerHelpDocuments.sequencer_drummer_sequencer[language].markdown += "\n\n" + drummerRatchetHelp[language];
+  const generator = markovCopy[language];
+  for (const id of ["sequencer_tracks", "sequencer_track_editor", "sequencer_score_sequencer", "sequencer_drummer_sequencer"] as const) {
+    sequencerHelpDocuments[id][language].markdown += `\n\n### ${generator.title}\n\n${generator.hint} ${generator.help}`;
+  }
   for (const id of ["sequencer_tracks", "sequencer_track_editor"] as const) {
     sequencerHelpDocuments[id][language].markdown += "\n\n" + melodicStrumHelp[language];
   }

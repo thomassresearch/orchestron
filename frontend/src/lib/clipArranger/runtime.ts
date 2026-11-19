@@ -5,11 +5,12 @@ import { saveTransposeEdits } from './transposeEdits';
 import { parseDrummerRowRuntimeTrackId } from "../sequencerRuntime";
 import type { SequencerRuntimeState, SequencerState } from "../../types";
 import { arrangementTimings, sourceKeys } from "./migration";
-import { CLIP_LIMITS, resolveClip, resolveContent, validateArrangement, type ClipLane, type PatternTiming, type DefinitionDraft, type PatternDefinition } from "./model";
+import { CLIP_LIMITS, localBeatTicks, resolveClip, resolveContent, validateArrangement, type ClipLane, type PatternTiming, type DefinitionDraft, type PatternDefinition } from "./model";
 
 export type RuntimeClipSchedule = { version: 1 | 2; transpose_plans?: OffsetPlan[]; end: number; cycle_ticks: number | null; clips: { id: string; start: number; length: number; offset: number; mode: "once" | "loop"; repeat_index_base?: number; content: { pad: number | null; length: number; transpose_refs?: number[] }[] }[] };
 export type LivePreviews = ReadonlyMap<string, { padIndex?: number }>;
-type AuditionState = SequencerState & { livePreviewSlots?: Record<string, number>; clipAuditionContext?: { laneId: string; schedule: RuntimeClipSchedule } };
+type AuditionContext = { laneId: string; schedule: RuntimeClipSchedule };
+type AuditionState = SequencerState & { livePreviewSlots?: Record<string, number>; clipAuditionContext?: AuditionContext; padAuditionContext?: AuditionContext };
 /** The standalone arpeggiator update must carry the same session-only schedule. */
 export function clipAuditionSchedule(state: SequencerState, laneId: string): RuntimeClipSchedule | undefined {
   const context = (state as AuditionState).clipAuditionContext;
@@ -68,20 +69,40 @@ export function clipRuntimeView(state: SequencerState, previews?: LivePreviews):
   return next;
 }
 
+/** Reserve a session-only slot for an unsaved physical pad, keeping all authored pads accessible. */
+export function withPadAudition(state: AuditionState, preview: import("../markovPattern").PadAudition | null): AuditionState {
+  if (!preview) return state;
+  const { deviceId, pattern } = preview;
+  const key = sourceKeys[pattern.source];
+  const device = state[key].find(track => track.id === deviceId);
+  if (!device) return state;
+  const physical = state.livePreviewSlots?.[deviceId];
+  const slot = physical ?? device.pads.length;
+  const length = pattern.payload.lengthBeats * localBeatTicks(device.timing);
+  const schedule: RuntimeClipSchedule = { version: 1, end: length, cycle_ticks: length,
+    clips: [{ id: "pad-audition", start: 0, length, offset: 0, mode: "once", content: [{ pad: slot, length }] }] };
+  return { ...state, [key]: state[key].map(track => track !== device ? track : { ...track,
+    pads: [...track.pads.slice(0, slot), pattern.payload, ...track.pads.slice(slot)] }),
+    ...(physical === undefined ? {} : { livePreviewSlots: { ...state.livePreviewSlots, [deviceId]: physical + 1 } }),
+    padAuditionContext: { laneId: deviceId, schedule } };
+}
+
 export function attachClipSchedules<T extends import("../../types").SessionSequencerConfigRequest>(state: SequencerState, config: T): T {
   const model = state.clipArrangement;
-  if (!model) return config;
-  const schedules = new Map(model.lanes.map(lane => [lane.id, runtimeSchedule(state, lane)]));
+  const padAudition = (state as AuditionState).padAuditionContext;
+  if (!model && !padAudition) return config;
+  const schedules = new Map((model?.lanes ?? []).map(lane => [lane.id, runtimeSchedule(state, lane)]));
   const scheduleFor = (id: string) => schedules.get(id) ?? schedules.get(parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? "");
   const audition = (state as AuditionState).clipAuditionContext;
   const auditionFor = (id: string) => {
     const device = parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? id;
+    const context = padAudition?.laneId === device ? padAudition : audition;
     const slot = (state as AuditionState).livePreviewSlots?.[device];
-    return { ...(audition?.laneId === device ? { audition_schedule: audition.schedule } : {}),
+    return { ...(context?.laneId === device ? { audition_schedule: context.schedule } : {}),
       ...(slot === undefined ? {} : { live_preview_pad: slot }) };
   };
   return { ...config,
-    playback_end_step: state.arrangerLoopSelection ? config.playback_end_step : Math.ceil(model.end / 2520),
+    playback_end_step: !model || state.arrangerLoopSelection ? config.playback_end_step : Math.ceil(model.end / 2520),
     tracks: config.tracks.map(track => ({ ...track, ...auditionFor(track.track_id), ...(scheduleFor(track.track_id) ? { clip_schedule: scheduleFor(track.track_id), pad_loop_sequence: [] } : {}) })),
     score_tracks: config.score_tracks?.map(track => ({ ...track, ...auditionFor(track.track_id), ...(schedules.has(track.track_id) ? { clip_schedule: schedules.get(track.track_id), pad_loop_sequence: [] } : {}) })),
     controller_tracks: config.controller_tracks.map(track => ({ ...track, ...auditionFor(track.track_id), ...(schedules.has(track.track_id) ? { clip_schedule: schedules.get(track.track_id), pad_loop_sequence: [] } : {}) })),

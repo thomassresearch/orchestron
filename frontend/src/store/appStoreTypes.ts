@@ -52,6 +52,7 @@ export interface InstrumentTabState {
 export interface AppStore {
   clipDrafts: Record<string, import("../lib/clipArranger/model").DefinitionDraft>;
   clipEditingKey: string | null;
+  padAudition: import("../lib/markovPattern").PadAudition | null;
   clipAuditionDraft: import("../lib/clipArranger/model").DefinitionDraft | null;
   arrangerHistory: import("./arrangerHistory").ArrangerHistory;
   arrangerHistoryNotice: boolean;

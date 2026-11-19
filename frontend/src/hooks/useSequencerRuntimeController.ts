@@ -6,7 +6,7 @@ import { acknowledgeLaneOutput, setLaneOutputSender } from "../lib/laneOutput";
 import { compilePadLoopPattern } from "../lib/padLoopPattern";
 import { compileDefinition } from "../lib/arrangementEditing";
 import { cancelArrangerPreviewGestures } from "../lib/arrangerPreviewGesture";
-import type { AuditionDevice, PreviewCommand } from "../components/sequencer/PerformanceAudition";
+import type { AuditionDevice, PreviewCommand, WorkspaceCommand } from "../components/sequencer/PerformanceAudition";
 import { SequencerConfigSync } from "../lib/sequencerConfigSync";
 import { consumeSequencerEnablementCommands } from "../store/sequencerEdits";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
@@ -177,7 +177,7 @@ export function useSequencerRuntimeController({
   const pendingArrangerStop = useRef(Promise.resolve());
   const arrangerStartedSession = useRef<string | null>(null);
   const clipEditorStartedSession = useRef<string | null>(null);
-  const workspaceGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string }>());
+  const workspaceGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string; command: WorkspaceCommand; resume?: WorkspaceCommand }>());
   const refreshAuditions = useRef<(sessionId: string) => Promise<void>>(async () => {});
   const workspaceGeneration = useAppStore(state => state.performanceWorkspaceGeneration);
   const previewLifecycle = useRef({ id: activeSessionId, state: activeSessionState, generation: workspaceGeneration });
@@ -1076,14 +1076,22 @@ export function useSequencerRuntimeController({
     [applySequencerStatus, browserClockClientRef, effectiveAudioOutputMode]
   );
 
-  const auditionDevice = useCallback<AuditionDevice>(async (deviceId, itemOrAction) => {
+  const auditionDevice = useCallback<AuditionDevice>(async function dispatchAudition(deviceId, itemOrAction): Promise<void> {
     if (typeof itemOrAction === "object" && "action" in itemOrAction && (itemOrAction.action === "workspace_start" || itemOrAction.action === "workspace_end")) {
       const command = itemOrAction;
       const context = auditionContext(deviceId);
       const generation = useAppStore.getState().performanceWorkspaceGeneration;
       const previous = workspaceGestures.current.get(deviceId);
       if (command.action === "workspace_end" && previous?.gesture !== command.gestureId) return;
-      const entry = { gesture: command.gestureId, generation, session: previous?.session };
+      // A generator can take over an edit that is still starting or waiting for its boundary.
+      // Retain the actual command, including its pending sequence and occurrence context.
+      if (command.action === "workspace_end" && command.resumePrevious && previous?.resume && previous.generation === generation) {
+        const resume = previous.resume;
+        const draft = resume.clipDraft && useAppStore.getState().clipAuditionDraft;
+        return dispatchAudition(deviceId, draft ? { ...resume, clipDraft: draft } : resume);
+      }
+      const resume = command.temporary ? (previous?.command.temporary ? previous.resume : previous?.command) : undefined;
+      const entry = { gesture: command.gestureId, generation, session: previous?.session, command, resume };
       if (command.action === "workspace_start") workspaceGestures.current.set(deviceId, entry);
       else workspaceGestures.current.delete(deviceId);
       const versionKey = `workspace:${deviceId}`;
@@ -1094,7 +1102,7 @@ export function useSequencerRuntimeController({
       try {
         // An arranger Stop can still be shutting down the engine when Play edit
         // is pressed. Wait before deciding whether its session can be reused.
-        if (command.action === "workspace_start" && command.clipDraft) {
+        if (command.action === "workspace_start" && (command.clipDraft || command.padPreview)) {
           await pendingArrangerStop.current;
           if (!current()) return;
         }
@@ -1103,11 +1111,11 @@ export function useSequencerRuntimeController({
         if (!device) return;
         const clipAudition = command.action === "workspace_start" && command.clipDraft ? clipAuditionState(initial.sequencer, command.clipDraft) : null;
         const sequence = clipAudition?.sequence ?? (command.action === "workspace_start" ? compilePadLoopPattern({ ...device.padLoopPattern, rootSequence: command.items ?? [] }).sequence : []);
-        if (command.action === "workspace_start" && !sequence.length) throw new Error("An audition requires a playable sequence.");
+        if (command.action === "workspace_start" && !command.padPreview && !sequence.length) throw new Error("An audition requires a playable sequence.");
         if (command.action === "workspace_start" && initial.activeSessionState !== "running") {
           void browserClockClientRef.current.prime();
           await initial.startSession();
-          if (command.clipDraft) clipEditorStartedSession.current = useAppStore.getState().activeSessionId;
+          if (command.clipDraft || command.padPreview) clipEditorStartedSession.current = useAppStore.getState().activeSessionId;
         }
         const store = useAppStore.getState();
         const session = store.activeSessionId;
@@ -1129,7 +1137,15 @@ export function useSequencerRuntimeController({
           // standalone arpeggiator update can still contain only the saved pads.
           arpeggiatorSyncCancelRef.current();
           configSyncRef.current?.baseline(session, store.sequencerEditRevision);
-          await api.configureSessionSequencer(session, buildBackendSequencerConfig(clipAudition?.state ?? store.sequencer));
+          const config = buildBackendSequencerConfig(clipAudition?.state ?? store.sequencer);
+          if (command.padPreview) {
+            const track = [...config.tracks, ...(config.score_tracks ?? [])].find(t => request.track_ids?.includes(t.track_id));
+            const slot = track?.audition_schedule?.clips[0]?.content[0]?.pad;
+            if (slot == null) throw new Error("The preview pad is no longer available.");
+            request.sequence = [slot];
+            request.clip_context = true;
+          }
+          await api.configureSessionSequencer(session, config);
           if (!current() || useAppStore.getState().activeSessionId !== session) return;
         }
         const status = effectiveAudioOutputModeRef.current === "browser_clock"

@@ -4,7 +4,7 @@ import { arrangementCopy } from "../../lib/arrangementCopy";
 import { useAppStore } from "../../store/useAppStore";
 
 export type PreviewCommand = { action: "preview_arm" | "preview_start" | "preview_end"; gestureId: string; item?: PadLoopPatternItem };
-export type WorkspaceCommand = { action: "workspace_start" | "workspace_end"; gestureId: string; items?: PadLoopPatternItem[]; clipDraft?: import("../../lib/clipArranger/model").DefinitionDraft };
+export type WorkspaceCommand = { action: "workspace_start" | "workspace_end"; gestureId: string; items?: PadLoopPatternItem[]; padPreview?: boolean; temporary?: boolean; resumePrevious?: boolean; clipDraft?: import("../../lib/clipArranger/model").DefinitionDraft };
 export type AuditionDevice = (id: string, itemOrAction: PadLoopPatternItem | "cancel" | "stop" | "return" | PreviewCommand | WorkspaceCommand) => Promise<void>;
 export const PerformanceAuditionContext = createContext<AuditionDevice | null>(null);
 export const usePerformanceAudition = () => useContext(PerformanceAuditionContext);

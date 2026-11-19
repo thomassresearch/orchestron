@@ -1,0 +1,59 @@
+export const markovCopy = {
+  english: {
+    title: "Markov Generator", pitch: "Pitch", rhythm: "Duration", hits: "Drum hits", spacing: "Hit spacing",
+    phrase: "Phrase length", steps: "steps", full: "Full", rest: "Rest", start: "Start", octave: "Octave",
+    generate: "Generate", use: "Use pattern", play: "Play", stop: "Stop", close: "Close", apply: "Apply", cancel: "Cancel",
+    from: "From", chance: "Probability", rows: "Participating rows", combo: "Add hit combination", next: "Next", prev: "Previous",
+    take: "Pattern preview", working: "Generating…", hint: "Select a state to see its outgoing transitions. Select a percentage to edit it.",
+    help: "Choose independent phrase lengths in steps. Play loops the preview through this track. Editing a probability keeps the seed. Generate draws another take. Use pattern replaces the visible music in the open editor. Save a clip draft to keep it.",
+    pitchPath: "The note or hit chain cannot repeat in this phrase. Enable another transition or change a phrase length.",
+    rhythmPath: "The duration chain cannot fill these phrase lengths and loop. Enable a shorter duration or a return transition.",
+    searchLimit: "No take was found within the search limit. Try another seed, a shorter phrase or more transitions.",
+    capacity: "This take exceeds the score note limit. Choose longer durations or a shorter pattern.",
+    scoreRange: "A note falls outside the score’s supported tick range. Shorten the pattern or change its meter.",
+    stale: "The pattern changed. Reopen the generator for the current pattern."
+  },
+  german: {
+    title: "Markov-Generator", pitch: "Tonhöhe", rhythm: "Dauer", hits: "Schlagzeugschläge", spacing: "Schlagabstand",
+    phrase: "Phrasenlänge", steps: "Schritte", full: "Ganz", rest: "Pause", start: "Start", octave: "Oktave",
+    generate: "Generieren", use: "Pattern übernehmen", play: "Abspielen", stop: "Stopp", close: "Schließen", apply: "Übernehmen", cancel: "Abbrechen",
+    from: "Von", chance: "Wahrscheinlichkeit", rows: "Beteiligte Reihen", combo: "Schlagkombination hinzufügen", next: "Weiter", prev: "Zurück",
+    take: "Pattern-Vorschau", working: "Wird generiert…", hint: "Zustand für ausgehende Übergänge wählen. Zum Bearbeiten einen Prozentwert wählen.",
+    help: "Wähle unabhängige Phrasenlängen in Schritten. Abspielen wiederholt die Vorschau auf dieser Spur. Änderungen der Wahrscheinlichkeit behalten den Zufallsstartwert bei. Generieren erzeugt eine neue Variante. Pattern übernehmen ersetzt die sichtbare Musik im Editor. Speichere den Clip-Entwurf, um ihn zu behalten.",
+    pitchPath: "Die Ton- oder Schlagfolge kann sich in dieser Phrase nicht wiederholen. Erlaube einen weiteren Übergang oder ändere eine Phrasenlänge.",
+    rhythmPath: "Die Dauerkette kann diese Phrasen nicht füllen und wiederholen. Erlaube eine kürzere Dauer oder einen Rücksprung.",
+    searchLimit: "Innerhalb der Suchgrenze wurde keine Variante gefunden. Versuche einen anderen Startwert, eine kürzere Phrase oder mehr Übergänge.",
+    capacity: "Diese Variante überschreitet die Notengrenze. Wähle längere Noten oder ein kürzeres Pattern.",
+    scoreRange: "Eine Note liegt außerhalb des unterstützten Tick-Bereichs. Verkürze das Pattern oder ändere die Taktart.",
+    stale: "Das Pattern hat sich geändert. Öffne den Generator erneut."
+  },
+  french: {
+    title: "Générateur de Markov", pitch: "Hauteur", rhythm: "Durée", hits: "Frappes", spacing: "Intervalle entre frappes",
+    phrase: "Longueur de phrase", steps: "pas", full: "Entière", rest: "Silence", start: "Départ", octave: "Octave",
+    generate: "Générer", use: "Utiliser le motif", play: "Écouter", stop: "Arrêter", close: "Fermer", apply: "Appliquer", cancel: "Annuler",
+    from: "Depuis", chance: "Probabilité", rows: "Lignes participantes", combo: "Ajouter une combinaison", next: "Suivant", prev: "Précédent",
+    take: "Aperçu du motif", working: "Génération…", hint: "Choisissez un état pour voir ses transitions. Sélectionnez un pourcentage pour le modifier.",
+    help: "Choisissez les longueurs des deux phrases en pas. Écouter joue le motif en boucle sur cette piste. Modifier une probabilité conserve la graine. Générer crée une autre version. Utiliser le motif remplace la musique visible dans l’éditeur. Enregistrez le brouillon du clip pour le conserver.",
+    pitchPath: "La chaîne de notes ou de frappes ne peut pas boucler avec cette phrase. Activez une transition ou changez la longueur.",
+    rhythmPath: "La chaîne de durées ne peut pas remplir ces phrases en boucle. Activez une durée plus courte ou une transition de retour.",
+    searchLimit: "Aucun motif trouvé dans la limite de recherche. Essayez une autre graine, une phrase plus courte ou davantage de transitions.",
+    capacity: "Cette version dépasse la limite de notes. Choisissez des durées plus longues ou un motif plus court.",
+    scoreRange: "Une note dépasse la plage temporelle de la partition. Raccourcissez le motif ou changez de mesure.",
+    stale: "Le motif a changé. Rouvrez le générateur."
+  },
+  spanish: {
+    title: "Generador de Markov", pitch: "Altura", rhythm: "Duración", hits: "Golpes", spacing: "Intervalo entre golpes",
+    phrase: "Longitud de frase", steps: "pasos", full: "Completa", rest: "Silencio", start: "Inicio", octave: "Octava",
+    generate: "Generar", use: "Usar patrón", play: "Escuchar", stop: "Parar", close: "Cerrar", apply: "Aplicar", cancel: "Cancelar",
+    from: "Desde", chance: "Probabilidad", rows: "Filas participantes", combo: "Añadir combinación", next: "Siguiente", prev: "Anterior",
+    take: "Vista previa del patrón", working: "Generando…", hint: "Selecciona un estado para ver sus transiciones. Selecciona un porcentaje para editarlo.",
+    help: "Elige longitudes independientes en pasos. Escuchar repite la vista previa en esta pista. Editar una probabilidad conserva la semilla. Generar crea otra versión. Usar patrón sustituye la música visible en el editor. Guarda el borrador del clip para conservarlo.",
+    pitchPath: "La cadena de notas o golpes no puede repetirse en esta frase. Activa otra transición o cambia una longitud.",
+    rhythmPath: "La cadena de duraciones no puede completar estas frases en bucle. Activa una duración más corta o una transición de retorno.",
+    searchLimit: "No se encontró un patrón dentro del límite de búsqueda. Prueba otra semilla, una frase más corta o más transiciones.",
+    capacity: "Esta versión supera el límite de notas. Elige duraciones más largas o un patrón más corto.",
+    scoreRange: "Una nota queda fuera del intervalo temporal de la partitura. Acorta el patrón o cambia el compás.",
+    stale: "El patrón ha cambiado. Vuelve a abrir el generador."
+  }
+};
+export type MarkovCopy = typeof markovCopy.english;

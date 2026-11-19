@@ -127,6 +127,19 @@ Step cells visually indicate:
 - Out-of-scale programmed note
 - Rest / hold combinations
 
+## Markov Generator
+
+Open **Markov Generator** in a pattern editor. **Pitch** uses the edited pattern’s scale and mode, its upper root and a rest. **Octave** chooses the register. **Duration** measures the time to the next event in local grid steps. A sustained note becomes one attack followed by HOLD steps.
+
+![Markov Generator with independent pitch and duration phrases and an open transition editor](../../screenshots/markov-generator.png)
+
+1. Choose a **Phrase length** in each graph. The menu shows fractions that divide the pattern into whole steps. On a 16-step pattern, try eight steps of pitch over four steps of rhythm. Reverse the lengths to repeat the pitch order with different timing.
+2. Choose **Start** or a note, rest or duration to see its outgoing transitions. Select a percentage, adjust the slider or number, then choose **Apply**. The other probabilities share the remainder proportionally. A zero disables that transition. **Cancel** discards the percentage edit.
+3. Press **Play** to loop the take through the track’s instrument. Change an edge and apply it to hear the same seed with the new probabilities. **Generate** draws another take. The graphs highlight the sounding states. If the phrase cannot fill the grid or return through an allowed transition, the last successful take remains available.
+4. **Use pattern** writes the displayed take into the open pattern. **Close** discards it. In a clip editor, **Save** applies the chosen local or linked editing scope. The generator settings stay in the editing session.
+
+The rhythm repeats its durations and rest positions. Every pitch phrase uses the same ordered pitches and rests, which requires equal event counts in its repeated windows. Changing the track’s playback speed changes how fast the pattern sounds.
+
 ## Early and Late Notes
 
 Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with 4/4, Subdivision 4 and speed 1×, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.

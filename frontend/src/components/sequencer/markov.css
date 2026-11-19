@@ -1,0 +1,190 @@
+.mk-launch,
+.mk-dialog button,
+.mk-dialog select,
+.mk-dialog input[type="number"] {
+  color: #deebf5;
+  background: #172437;
+  border: 1px solid #52677e;
+  border-radius: 5px;
+  font: inherit;
+  line-height: 1.35;
+  padding: 0.28rem 0.55rem;
+}
+.mk-launch {
+  font-size: 0.75rem;
+  color: #a6eddc;
+  border-color: #377d75;
+  background: #102b30;
+}
+.mk-dialog {
+  width: min(940px, 96vw);
+  max-height: 94dvh;
+  margin: auto;
+  padding: clamp(12px, 2vw, 24px);
+  color: #dce6ee;
+  background: #101a29;
+  border: 1px solid #587185;
+  border-radius: 12px;
+  box-shadow: 0 24px 90px #0009;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+  overflow-y: auto;
+}
+.mk-dialog::backdrop {
+  background: #020812b8;
+}
+.mk-heading,
+.mk-graph header,
+.mk-dialog footer,
+.mk-take h3,
+.mk-options div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mk-heading {
+  justify-content: space-between;
+}
+.mk-heading small,
+.mk-take small,
+.mk-register,
+.mk-graph label,
+.mk-options {
+  color: #b1c1d1;
+  font-size: 0.8rem;
+}
+.mk-dialog h2 {
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+.mk-dialog h3 {
+  font-size: 1rem;
+  font-weight: 650;
+}
+.mk-heading button {
+  font-size: 1.3rem;
+  padding: 0 0.55rem;
+}
+.mk-dialog button:hover:not(:disabled),
+.mk-launch:hover {
+  border-color: #80ddc9;
+}
+.mk-dialog button:disabled {
+  opacity: 0.45;
+}
+.mk-dialog :focus-visible {
+  outline: 2px solid #f2c785;
+  outline-offset: 2px;
+}
+.mk-hint {
+  color: #bdceda;
+  margin: 0.55rem 0 0.8rem;
+}
+.mk-register select {
+  margin-left: 0.3rem;
+}
+.mk-graphs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.mk-graph,
+.mk-take {
+  background: #0c1522;
+  border: 1px solid #34465b;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+.mk-graph header,
+.mk-take h3 {
+  justify-content: space-between;
+}
+.mk-graph header select {
+  margin-left: 3px;
+}
+.mk-from {
+  display: block;
+  margin-top: 0.5rem;
+}
+.mk-from select {
+  margin-left: 3px;
+}
+.mk-graph svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.mk-graph svg text {
+  text-anchor: middle;
+  font:
+    600 10px system-ui,
+    sans-serif;
+  pointer-events: none;
+}
+.mk-graph svg g[role="button"] {
+  cursor: pointer;
+}
+.mk-graph svg g[role="button"]:hover rect {
+  stroke: #fff;
+}
+.mk-edge,
+.mk-options div {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+.mk-edge {
+  border-top: 1px solid #33465a;
+  padding-top: 8px;
+  font-size: 0.78rem;
+}
+.mk-edge input[type="range"] {
+  width: 80px;
+  accent-color: #73dec2;
+}
+.mk-edge input[type="number"] {
+  width: 64px;
+}
+.mk-options button[aria-pressed="true"] {
+  background: #245148;
+}
+.mk-take {
+  margin-top: 12px;
+}
+.mk-take svg {
+  width: 100%;
+  height: 48px;
+  margin-top: 6px;
+  background: repeating-linear-gradient(90deg, #233344 0px, #233344 1px, transparent 1px, transparent 6.25%);
+}
+.mk-dialog footer {
+  margin-top: 14px;
+}
+.mk-dialog footer button {
+  padding: 0.4rem 0.9rem;
+}
+.mk-dialog footer .mk-use {
+  margin-left: auto;
+  background: #94dec9;
+  color: #0a2724;
+  border-color: #94dec9;
+  font-weight: 650;
+}
+.mk-status {
+  color: #edc788;
+  margin-top: 8px;
+}
+@media (max-width: 680px) {
+  .mk-graphs {
+    grid-template-columns: 1fr;
+  }
+  .mk-graph svg {
+    max-height: 200px;
+  }
+}

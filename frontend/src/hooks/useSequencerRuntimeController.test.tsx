@@ -292,6 +292,18 @@ it("compiles temporary workspace items without changing authored song order", as
   expect(audition).toHaveBeenLastCalledWith("session", expect.objectContaining({ action: "workspace_end", revision: 2 }));
 });
 
+it("resumes the exact workspace sequence after a temporary pattern audition", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  await act(() => result.current.auditionDevice(id, { action: "workspace_start", gestureId: "editor",
+    items: [{ type: "pad", padIndex: 3 }, { type: "pause", lengthBeats: 2 }] }));
+  await act(() => result.current.auditionDevice(id, { action: "workspace_start", gestureId: "generator",
+    temporary: true, items: [{ type: "pad", padIndex: 1 }] }));
+  await act(() => result.current.auditionDevice(id, { action: "workspace_end", gestureId: "generator", resumePrevious: true }));
+  expect(audition).toHaveBeenLastCalledWith("session", expect.objectContaining({
+    action: "workspace_start", gesture_id: "editor", sequence: [3, -2], revision: 3 }));
+});
+
 it("cancels workspace preparation without allowing a late launch", async () => {
   let prepared!: (value: SessionSequencerStatus) => void;
   vi.mocked(api.configureSessionSequencer).mockImplementationOnce(() => new Promise(resolve => { prepared = resolve; }));

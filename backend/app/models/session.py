@@ -474,7 +474,15 @@ def _validate_clip_slots(track):
     if (hasattr(track, 'controller_number') or track.track_id.startswith('drumrow:')) and any(s.transpose_plans for s in schedules):
         raise ValueError("Pitch transposition is unavailable for drum and controller sources.")
     if track.clip_schedule is None:
-        if len(track.pads) > 8 or any(index > 7 for index in indexes) or track.active_pad > 7 or (track.queued_pad or 0) > 7:
+        # Physical pattern editors audition a ninth slot without replacing a playing pad.
+        audition_slots = {
+            span.pad for clip in track.audition_schedule.clips for span in clip.content
+            if span.pad is not None
+        } if track.audition_schedule else set()
+        if not audition_slots <= indexes:
+            raise ValueError("Audition references a missing pattern payload.")
+        max_index = 8 if audition_slots == {8} and not hasattr(track, "controller_number") else 7
+        if any(i > max_index for i in indexes) or track.active_pad > 7 or (track.queued_pad or 0) > 7:
             raise ValueError("Legacy sources support eight pads.")
         return
     if not track.pad_loop_enabled or track.pad_loop_sequence or track.queued_pad is not None:
