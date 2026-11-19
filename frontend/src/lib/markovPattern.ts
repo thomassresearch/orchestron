@@ -5,7 +5,7 @@ import type {
   SequencerTimingConfig,
   SequencerStepState,
 } from "../types";
-import type { MarkovEvent } from "./markov";
+import type { MarkovEvent, Observations } from "./markov";
 import { buildSequencerStepChordMidiNotes, MODE_INTERVALS, SEQUENCER_SCALE_ROOTS } from "./sequencer";
 import { SCORE_MAX_BEATS, SCORE_MAX_PAD_NOTES, SCORE_TICKS_PER_QUARTER, scoreBeatTicks } from "./scoreSequencer";
 
@@ -20,7 +20,9 @@ export function scalePitches(pad: Pick<SequencerPadState, "scaleRoot" | "mode">,
   return [...MODE_INTERVALS[pad.mode], 12].map((interval) => (octave + 1) * 12 + root.pitchClass + interval);
 }
 
-/** Read only audible source material whose attack is inside the edited pattern. */
+export const drumHitKey = (group: string[]) => JSON.stringify([...group].sort());
+
+/** Read audible onsets in time order. Simultaneous voices belong to the same onset. */
 export function patternVocabulary(
   pattern: GeneratedPattern,
   timing: SequencerTimingConfig,
@@ -31,24 +33,44 @@ export function patternVocabulary(
   const durations = new Set<number>();
   const drumRows = new Set<string>();
   const combinations = new Map<string, string[]>();
+  const pitchEvents: Observations = [];
+  const durationEvents: Observations = [];
   let unitsPerStep = 1;
+  let soundingUntil = 0;
+  function addOnset(at: number, notes: number[], lengths: number[]) {
+    if (at > soundingUntil) pitchEvents.push(["rest"]);
+    pitchEvents.push(notes);
+    durationEvents.push(lengths);
+    for (const note of notes) pitches.add(note);
+    for (const length of lengths) {
+      durations.add(length);
+      soundingUntil = Math.max(soundingUntil, at + length);
+    }
+  }
   if (pattern.source === "sequencer") {
     const pad = pattern.payload;
     for (let i = 0; i < steps; i++) {
       const cell = pad.steps[i];
       if (cell?.note == null || !cell.velocity) continue;
-      for (const pitch of buildSequencerStepChordMidiNotes(cell.note, cell.chord, pad.scaleRoot, pad.mode))
-        pitches.add(pitch);
       let length = 1;
       while (i + length < steps && pad.steps[i + length]?.hold && pad.steps[i + length].note == null) length++;
-      durations.add(length);
+      addOnset(i, buildSequencerStepChordMidiNotes(cell.note, cell.chord, pad.scaleRoot, pad.mode), [length]);
     }
   } else if (pattern.source === "score") {
     unitsPerStep = scoreBeatTicks(timing) / timing.stepsPerBeat;
+    const onsets = new Map<number, typeof pattern.payload.notes>();
     for (const note of pattern.payload.notes) {
       if (!note.velocity || note.startTicks >= steps * unitsPerStep) continue;
-      pitches.add(note.pitch);
-      durations.add(note.durationTicks);
+      const group = onsets.get(note.startTicks);
+      if (group) group.push(note);
+      else onsets.set(note.startTicks, [note]);
+    }
+    for (const [at, notes] of [...onsets].sort(([a], [b]) => a - b)) {
+      addOnset(
+        at,
+        notes.map((n) => n.pitch).sort((a, b) => a - b),
+        notes.map((n) => n.durationTicks).sort((a, b) => a - b),
+      );
     }
   } else {
     const rows = pattern.payload.rows.filter((row) => !selectedRows || selectedRows.includes(row.rowId));
@@ -59,17 +81,32 @@ export function patternVocabulary(
         .map((row) => row.rowId);
       if (!group.length) continue;
       attacks.push(i);
+      pitchEvents.push([drumHitKey(group)]);
       for (const row of group) drumRows.add(row);
-      if (group.length > 1) combinations.set(JSON.stringify(group), group);
+      if (group.length > 1) combinations.set(drumHitKey(group), group);
     }
-    attacks.forEach((at, i) => durations.add((attacks[i + 1] ?? steps + attacks[0]) - at));
+    attacks.forEach((at, i) => {
+      const spacing = (attacks[i + 1] ?? steps + attacks[0]) - at;
+      durations.add(spacing);
+      durationEvents.push([spacing]);
+    });
   }
+  // A gap across the loop boundary is a single Rest, even if it straddles step zero.
+  if (
+    pattern.source !== "drummer" &&
+    pitchEvents.length &&
+    soundingUntil < steps * unitsPerStep &&
+    pitchEvents[0][0] !== "rest"
+  )
+    pitchEvents.push(["rest"]);
   return {
     pitches: [...pitches].sort((a, b) => a - b),
     drumRows,
     combinations: [...combinations.values()],
     durations: [...durations].sort((a, b) => a - b),
     unitsPerStep,
+    pitchEvents,
+    durationEvents,
   };
 }
 

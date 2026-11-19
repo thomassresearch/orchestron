@@ -1,5 +1,92 @@
 // Rows 0..n-1 describe states; the final row is Start.
-export type Chain = number[][];
+type Weights = number[] | Map<number, number>;
+type OnsetMixture = { parts: [Map<number, number>, number][]; total: number };
+type ChainRow = Weights | OnsetMixture;
+export type Chain = ChainRow[];
+export type Observations = (string | number)[][];
+
+function weight(row: ChainRow, i: number) {
+  if ("parts" in row) {
+    const count = row.parts.reduce((sum, [group, occurrences]) => sum + (group.get(i) ?? 0) * occurrences, 0);
+    return (100 * count) / row.total;
+  }
+  return Array.isArray(row) ? row[i] : (row.get(i) ?? 0);
+}
+
+function weights(row: ChainRow): Weights {
+  if (!("parts" in row)) return row;
+  const combined = new Map<number, number>();
+  for (const [group, occurrences] of row.parts) {
+    for (const [to, voices] of group) combined.set(to, (combined.get(to) ?? 0) + voices * occurrences);
+  }
+  for (const [to, count] of combined) combined.set(to, (100 * count) / row.total);
+  return combined;
+}
+
+export function editableRow(row: ChainRow, size: number): number[] {
+  const values = weights(row);
+  return Array.isArray(values) ? values : Array.from({ length: size }, (_, i) => values.get(i) ?? 0);
+}
+
+/** Write an edited row back into its full graph, including any temporarily hidden drum Rest. */
+export function replaceRow(chain: Chain, from: number, values: number[], hideRest = false): Chain {
+  const result = chain.slice();
+  if (!hideRest) result[from] = values;
+  else {
+    const rest = values.length;
+    const index = from === rest ? chain.length - 1 : from;
+    const original = weight(chain[index], rest);
+    const retained = original < 100 ? original : 0;
+    result[index] = [...values.map((n) => n * (1 - retained / 100)), retained];
+  }
+  return result;
+}
+
+/** Count each pair across adjacent onsets, including the loop seam. Keep large Score rows sparse. */
+export function learnChain(keys: (number | string)[], observations: Observations): Chain {
+  const index = new Map(keys.map((key, i) => [key, i]));
+  const add = (counts: Map<number, number>, key: number, n: number) => counts.set(key, (counts.get(key) ?? 0) + n);
+  function normalize(counts: Map<number, number>) {
+    const total = [...counts.values()].reduce((sum, n) => sum + n, 0);
+    return new Map([...counts].map(([i, n]) => [i, (100 * n) / total]));
+  }
+  const frequencies = new Map<number, number>();
+  const groups = observations
+    .map((onset) => {
+      const counts = new Map<number, number>();
+      for (const key of onset) {
+        const i = index.get(key);
+        if (i === undefined) continue;
+        add(counts, i, 1);
+        add(frequencies, i, 1);
+      }
+      return counts;
+    })
+    .filter((group) => group.size);
+  if (!groups.length) return initialChain(keys.length, "rhythm");
+
+  // Reference destination onsets first. All voices leading only to the same
+  // chord share its distribution, even for thousands of distinct Score lengths.
+  const successors = keys.map(() => new Map<number, number>());
+  groups.forEach((group, at) => {
+    const next = (at + 1) % groups.length;
+    for (const [from, count] of group) add(successors[from], next, count);
+  });
+  const groupSizes = groups.map((group) => [...group.values()].reduce((sum, n) => sum + n, 0));
+  const normalizedGroups = groups.map(normalize);
+  const fallback = normalize(frequencies);
+  const chain = successors.map((next) => {
+    if (next.size === 0) return fallback;
+    if (next.size === 1) return normalizedGroups[next.keys().next().value!];
+    const pairs = [...next];
+    const total = pairs.reduce((sum, [at, count]) => sum + groupSizes[at] * count, 0);
+    const row: OnsetMixture = { parts: pairs.map(([at, count]) => [groups[at], count]), total };
+    // Expand ordinary rows once for playback. Large polyphonic Score rows
+    // retain their shared onsets and expand only when displayed or sampled.
+    return keys.length <= 128 || pairs.every(([at]) => groups[at].size === 1) ? weights(row) : row;
+  });
+  return [...chain, normalizedGroups[0]];
+}
 export type MarkovRecipe = {
   pitch: Chain;
   rhythm: Chain;
@@ -38,7 +125,7 @@ export function durationLabel(units: number, perStep: number) {
 
 type ChainKind = "pitch" | "rhythm" | "hits";
 
-export function initialChain(size: number, kind: ChainKind, hasRest = true): Chain {
+export function initialChain(size: number, kind: ChainKind, hasRest = true): number[][] {
   function row(from: number) {
     const weights = Array.from({ length: size }, (_, to) => {
       if (kind === "rhythm") return 1 / (1 + to * 0.5);
@@ -57,19 +144,19 @@ export function initialChain(size: number, kind: ChainKind, hasRest = true): Cha
 export type NamedChain = { keys: string[]; chain: Chain };
 
 /** Carry relative weights across state selections, including the Start row. */
-export function remapChain(previous: NamedChain, keys: string[], kind: ChainKind): Chain {
+export function remapChain(previous: NamedChain, keys: string[], kind: ChainKind, learned?: Chain): Chain {
   if (previous.keys.length === keys.length && keys.every((key, i) => key === previous.keys[i]))
     return previous.chain;
-  const defaults = initialChain(keys.length, kind, keys[keys.length - 1] === "rest");
+  const defaults = learned ?? initialChain(keys.length, kind, keys[keys.length - 1] === "rest");
   const before = new Map(previous.keys.map((key, i) => [key, i]));
   const indexes = keys.map((key) => before.get(key));
-  const cache = new Map<number[], number[]>();
+  const cache = new Map<ChainRow, ChainRow>();
   return [...indexes, previous.keys.length].map((index, i) => {
     if (index === undefined) return defaults[i];
     const original = previous.chain[index];
     const cached = kind === "rhythm" && cache.get(original);
     if (cached) return cached;
-    const weights = indexes.map((j, col) => (j === undefined ? defaults[i][col] : original[j]));
+    const weights = indexes.map((j, col) => (j === undefined ? weight(defaults[i], col) : weight(original, j)));
     const total = weights.reduce((a, b) => a + b, 0);
     const result = total ? weights.map((w) => (100 * w) / total) : defaults[i];
     if (kind === "rhythm") cache.set(original, result);
@@ -79,7 +166,8 @@ export function remapChain(previous: NamedChain, keys: string[], kind: ChainKind
 
 export function redistribute(original: number[], edge: number, percent: number) {
   const others = original.reduce((sum, n, i) => sum + (i === edge ? 0 : n), 0);
-  if (!others) return original.map((_, i) => (i === edge ? 100 : 0));
+  if (original.length === 1) return [100];
+  if (!others) return original.map((_, i) => (i === edge ? percent : (100 - percent) / (original.length - 1)));
   return original.map((n, i) => (i === edge ? percent : ((100 - percent) * n) / others));
 }
 
@@ -109,10 +197,10 @@ function walk(
   const failed: (Set<number> | undefined)[] = [];
   while (true) {
     const depth = path.length;
-    const row = chain[path[depth - 1] ?? start];
-    const options = row
-      .map((_, i) => i)
-      .filter((i) => row[i] > 0 && !failed[depth]?.has(i) && allowed(i, depth, path));
+    const row = weights(chain[path[depth - 1] ?? start]);
+    const options = Array.from(row.keys()).filter(
+      (i) => weight(row, i) > 0 && !failed[depth]?.has(i) && allowed(i, depth, path),
+    );
     if (!options.length) {
       if (!depth) return null;
       failed.length = depth;
@@ -120,9 +208,9 @@ function walk(
       continue;
     }
     if (--budget.left < 0) throw new Error("searchLimit");
-    let threshold = rng() * options.reduce((sum, i) => sum + row[i], 0);
+    let threshold = rng() * options.reduce((sum, i) => sum + weight(row, i), 0);
     let j = 0;
-    while (j < options.length - 1 && (threshold -= row[options[j]]) >= 0) j++;
+    while (j < options.length - 1 && (threshold -= weight(row, options[j])) >= 0) j++;
     const state = options[j];
     path.push(state);
     if (advance(state, depth, path)) return path;
@@ -158,7 +246,7 @@ export function generateMarkov(steps: number, durations: number[], recipe: Marko
         // A shorter rhythm repeats its pause positions too.
         if (steps > rhythmLength && depth >= slots && (state === rest) !== (current[depth % slots] === rest))
           return false;
-        return depth + 1 !== total || pitch[state][current[0] ?? state] > 0;
+        return depth + 1 !== total || weight(pitch[state], current[0] ?? state) > 0;
       },
       (_, depth) => depth + 1 === total,
     );
@@ -177,7 +265,8 @@ export function generateMarkov(steps: number, durations: number[], recipe: Marko
         count = counts[depth] + 1;
       if (position >= block && (remaining < (slots - count) * min || remaining > (slots - count) * max))
         return false;
-      if (position + durations[state] === rhythmLength && rhythm[state][path[0] ?? state] <= 0) return false;
+      if (position + durations[state] === rhythmLength && weight(rhythm[state], path[0] ?? state) <= 0)
+        return false;
       // Every pitch window must accept the same ordered sequence of events.
       if (position < block && !remaining && !pitchPhrase(count)) return false;
       return true;

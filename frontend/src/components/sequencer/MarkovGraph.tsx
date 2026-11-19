@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { redistribute, type Chain } from "../../lib/markov";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { editableRow, redistribute, type Chain } from "../../lib/markov";
 import type { MarkovCopy } from "../../lib/markovCopy";
 
 export const graphColors = [
@@ -31,7 +31,7 @@ export function MarkovGraph({
   title: string;
   labels: string[];
   chain: Chain;
-  onChange: (next: Chain) => void;
+  onChange: (from: number, weights: number[]) => void;
   playing?: number;
   previous?: number;
   copy: MarkovCopy;
@@ -46,17 +46,40 @@ export function MarkovGraph({
   const popup = useRef<HTMLFormElement>(null);
   const editingEdge = edit?.edge;
   useEffect(() => {
-    if (editingEdge === undefined) return;
-    popup.current?.querySelector<HTMLElement>("input:not(:disabled), button")?.focus({ preventScroll: true });
-    const dismissOutside = (event: Event) => {
-      const target = event.target as Node;
-      if (!popup.current?.contains(target) && !trigger.current?.contains(target)) setEdit(null);
+    const form = popup.current;
+    if (editingEdge === undefined || !form) return;
+    const dialog = form.closest("dialog");
+    form.querySelector<HTMLElement>("input:not(:disabled), button")?.focus({ preventScroll: true });
+    let pressed: Element | null = null;
+    const dismissOutside = (target: Node) => {
+      if (!form.contains(target) && !trigger.current?.contains(target)) setEdit(null);
     };
-    document.addEventListener("pointerdown", dismissOutside, true);
-    document.addEventListener("focusin", dismissOutside, true);
+    const pointerDown = (event: PointerEvent) => {
+      const target = event.target as Element;
+      pressed = form.contains(target) ? target : null;
+      dismissOutside(target);
+    };
+    const pointerEnd = () => {
+      pressed = null;
+    };
+    const focusIn = (event: FocusEvent) => {
+      // WebKit focuses the enclosing dialog on mouse-down, even on a native
+      // range thumb. Keep its control mounted and focused for the whole drag.
+      if (pressed && event.target === dialog) {
+        pressed.closest<HTMLElement>("input:enabled, button:enabled")?.focus({ preventScroll: true });
+        return;
+      }
+      dismissOutside(event.target as Node);
+    };
+    document.addEventListener("pointerdown", pointerDown, true);
+    document.addEventListener("pointerup", pointerEnd, true);
+    document.addEventListener("pointercancel", pointerEnd, true);
+    document.addEventListener("focusin", focusIn, true);
     return () => {
-      document.removeEventListener("pointerdown", dismissOutside, true);
-      document.removeEventListener("focusin", dismissOutside, true);
+      document.removeEventListener("pointerdown", pointerDown, true);
+      document.removeEventListener("pointerup", pointerEnd, true);
+      document.removeEventListener("pointercancel", pointerEnd, true);
+      document.removeEventListener("focusin", focusIn, true);
     };
   }, [editingEdge]);
   function dismiss() {
@@ -64,8 +87,8 @@ export function MarkovGraph({
     trigger.current?.focus({ preventScroll: true });
   }
   const name = (i: number) => labels[i] ?? copy.start;
-  const row =
-    edit && edit.value !== "" ? redistribute(edit.original, edit.edge, Number(edit.value)) : chain[source];
+  const original = useMemo(() => editableRow(chain[source], labels.length), [chain, source, labels.length]);
+  const row = edit && edit.value !== "" ? redistribute(edit.original, edit.edge, Number(edit.value)) : original;
   const entries = labels.map((label, i) => ({ label, i })).slice(page * 9, page * 9 + 9);
   function point(index: number) {
     const angle = -Math.PI / 2 + (index * Math.PI * 2) / entries.length;
@@ -81,14 +104,14 @@ export function MarkovGraph({
   // move the badge and its HTML controls together.
   const destination = visiblePoint(editingEdge);
   const anchor = destination && edgeBadge(destination);
-  const locked = edit?.original.every((weight, i) => i === edit.edge || weight === 0);
+  const locked = labels.length === 1;
   const choose = (i: number) => {
     select(i);
     setEdit(null);
   };
   function apply() {
     if (!edit || edit.value === "") return;
-    onChange(chain.map((r, i) => (i === source ? row : r)));
+    onChange(source, row);
     dismiss();
   }
   const units = row.map((n) => Math.floor(n * 10));
@@ -145,7 +168,7 @@ export function MarkovGraph({
                 dismiss();
                 return;
               }
-              setEdit({ edge: i, value: String(Number(chain[source][i].toFixed(2))), original: chain[source] });
+              setEdit({ edge: i, value: String(Number(original[i].toFixed(2))), original });
             };
             return (
               <g key={i}>

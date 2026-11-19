@@ -8,14 +8,18 @@ import {
   durationLabel,
   generateMarkov,
   initialChain,
+  learnChain,
   phraseLengths,
   remapChain,
+  replaceRow,
+  type Chain,
   type NamedChain,
   type MarkovEvent,
   type MarkovRecipe,
   type MarkovError,
 } from "../../lib/markov";
 import {
+  drumHitKey,
   patternVocabulary,
   scalePitches,
   writeMarkovPattern,
@@ -37,8 +41,8 @@ type Settings = {
   groups: string[][];
   keepPitches?: boolean;
   keepDurations?: boolean;
-  keptPitch?: NamedChain;
-  keptRhythm?: NamedChain;
+  keptPitch?: NamedChain & { source: string };
+  keptRhythm?: { chain: Chain; source: string };
 };
 type Take = { events: MarkovEvent[]; pattern: GeneratedPattern; labels: string[]; filters: string; rest: number };
 type Props = {
@@ -172,7 +176,7 @@ function GeneratorDialog({
     if (!drum || !keepPitches) return allHits;
     const known = new Map<string, string[]>();
     for (const group of [...allHits, ...material.combinations]) {
-      if (group.every((row) => material.drumRows.has(row))) known.set(JSON.stringify([...group].sort()), group);
+      if (group.every((row) => material.drumRows.has(row))) known.set(drumHitKey(group), group);
     }
     return [...known.values()];
   }, [allHits, drum, keepPitches, material]);
@@ -180,40 +184,41 @@ function GeneratorDialog({
   const perStep = keepDurations ? material.unitsPerStep : 1;
   // In a groove, a Rest would skip an attack and join two allowed hit spacings.
   const hasRest = !(drum && keepDurations);
-  const pitchFiltered = keepPitches || !hasRest;
+  const pitchStates = useMemo(() => [...(drum ? hits.map(drumHitKey) : pitches), "rest"], [drum, hits, pitches]);
+  const fullPitchKeys = useMemo(() => pitchStates.map(String), [pitchStates]);
   const pitchKeys = useMemo(
-    () => [...(drum ? hits.map((g) => JSON.stringify(g)) : pitches.map(String)), ...(hasRest ? ["rest"] : [])],
-    [drum, hits, pitches, hasRest],
+    () => (hasRest ? fullPitchKeys : fullPitchKeys.slice(0, -1)),
+    [fullPitchKeys, hasRest],
   );
   const durationKeys = useMemo(() => durations.map((n) => durationLabel(n, perStep)), [durations, perStep]);
+  // Reopening an edited pad can give the same labels a different sequence of transitions.
+  const pitchSource = useMemo(
+    () => (keepPitches ? JSON.stringify(material.pitchEvents) : ""),
+    [keepPitches, material],
+  );
+  const rhythmSource = useMemo(
+    () => (keepDurations ? JSON.stringify(material.durationEvents) : ""),
+    [keepDurations, material],
+  );
+  const learnedPitch = useMemo(
+    () => (keepPitches ? learnChain(pitchStates, material.pitchEvents) : null),
+    [keepPitches, pitchStates, material],
+  );
+  const fullPitch = useMemo(() => {
+    if (!learnedPitch) return original.pitch;
+    return settings.keptPitch?.source === pitchSource
+      ? remapChain(settings.keptPitch, fullPitchKeys, drum ? "hits" : "pitch", learnedPitch)
+      : learnedPitch;
+  }, [original.pitch, settings.keptPitch, pitchSource, fullPitchKeys, drum, learnedPitch]);
   const pitch = useMemo(
-    () =>
-      pitchFiltered
-        ? remapChain(
-            settings.keptPitch ?? {
-              keys: [...(drum ? allHits.map((g) => JSON.stringify(g)) : scale.map(String)), "rest"],
-              chain: original.pitch,
-            },
-            pitchKeys,
-            drum ? "hits" : "pitch",
-          )
-        : original.pitch,
-    [pitchFiltered, settings.keptPitch, drum, allHits, scale, original.pitch, pitchKeys],
+    () => (hasRest ? fullPitch : remapChain({ keys: fullPitchKeys, chain: fullPitch }, pitchKeys, "hits")),
+    [hasRest, fullPitch, fullPitchKeys, pitchKeys],
   );
-  const rhythm = useMemo(
-    () =>
-      keepDurations
-        ? remapChain(
-            settings.keptRhythm ?? {
-              keys: defaultDurations.map(String),
-              chain: original.rhythm,
-            },
-            durationKeys,
-            "rhythm",
-          )
-        : original.rhythm,
-    [keepDurations, settings.keptRhythm, defaultDurations, original.rhythm, durationKeys],
-  );
+  const rhythm = useMemo(() => {
+    if (!keepDurations) return original.rhythm;
+    if (settings.keptRhythm?.source === rhythmSource) return settings.keptRhythm.chain;
+    return learnChain(durations, material.durationEvents);
+  }, [keepDurations, settings.keptRhythm, rhythmSource, original.rhythm, durations, material]);
   const recipe = useMemo(
     () => ({
       ...original,
@@ -360,7 +365,7 @@ function GeneratorDialog({
   // Candidate IDs, durations and row selection are frozen at generation, including during audition.
   const update = (part: Partial<MarkovRecipe>) => setSettings((s) => ({ ...s, recipe: { ...s.recipe, ...part } }));
   function changeHits(next: string[], nextGroups: string[][]) {
-    const keys = (list: string[][]) => [...list.map((g) => JSON.stringify(g)), "rest"];
+    const keys = (list: string[][]) => [...list.map(drumHitKey), "rest"];
     const chain = remapChain(
       { keys: keys(allHits), chain: original.pitch },
       keys([...next.map((r) => [r]), ...nextGroups]),
@@ -462,7 +467,7 @@ function GeneratorDialog({
             <input
               type="checkbox"
               checked={keepPitches}
-              onChange={(e) => setSettings({ ...settings, keepPitches: e.target.checked })}
+              onChange={(e) => setSettings({ ...settings, keepPitches: e.target.checked, keptPitch: undefined })}
             />{" "}
             {c.keepPitches}
           </label>
@@ -470,7 +475,9 @@ function GeneratorDialog({
             <input
               type="checkbox"
               checked={keepDurations}
-              onChange={(e) => setSettings({ ...settings, keepDurations: e.target.checked })}
+              onChange={(e) =>
+                setSettings({ ...settings, keepDurations: e.target.checked, keptRhythm: undefined })
+              }
             />{" "}
             {c.keepDurations}
           </label>
@@ -545,34 +552,35 @@ function GeneratorDialog({
       )}
       <div className="mk-graphs">
         <MarkovGraph
-          key={"pitch" + JSON.stringify(pitchKeys)}
+          key={JSON.stringify([keepPitches, pitchKeys])}
           title={pitchTitle}
           copy={c}
           labels={labels}
           chain={recipe.pitch}
           playing={active?.state}
           previous={prev?.state ?? labels.length}
-          onChange={(chain) =>
-            pitchFiltered
-              ? setSettings((s) => ({ ...s, keptPitch: { keys: pitchKeys, chain } }))
-              : update({ pitch: chain })
-          }
+          onChange={(from, values) => {
+            const chain = replaceRow(fullPitch, from, values, !hasRest);
+            if (keepPitches)
+              setSettings((s) => ({ ...s, keptPitch: { source: pitchSource, keys: fullPitchKeys, chain } }));
+            else update({ pitch: chain });
+          }}
         >
           {phrase("pitchLength", pitchTitle)}
         </MarkovGraph>
         <MarkovGraph
-          key={"rhythm" + JSON.stringify(durationKeys)}
+          key={"rhythm" + JSON.stringify([keepDurations, durationKeys])}
           title={durationTitle}
           copy={c}
           labels={durationKeys}
           chain={recipe.rhythm}
           playing={active?.durationState}
           previous={prev?.durationState ?? durations.length}
-          onChange={(chain) =>
-            keepDurations
-              ? setSettings((s) => ({ ...s, keptRhythm: { keys: durationKeys, chain } }))
-              : update({ rhythm: chain })
-          }
+          onChange={(from, values) => {
+            const chain = replaceRow(rhythm, from, values);
+            if (keepDurations) setSettings((s) => ({ ...s, keptRhythm: { source: rhythmSource, chain } }));
+            else update({ rhythm: chain });
+          }}
         >
           {phrase("rhythmLength", durationTitle)}
         </MarkovGraph>

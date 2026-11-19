@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   durationLabel,
   durationStates,
+  editableRow,
   generateMarkov,
   initialChain,
+  learnChain,
   phraseLengths,
   redistribute,
+  replaceRow,
 } from "./markov";
 import { patternVocabulary, writeMarkovPattern, scalePitches } from "./markovPattern";
 import {
@@ -62,11 +65,26 @@ describe("independent Markov phrases", () => {
     expect(durationStates(3, 9)).toContain(3);
     expect(redistribute([50, 30, 20], 0, 80)).toEqual([80, 12, 8]);
     expect(redistribute([50, 30, 20], 0, 100)).toEqual([100, 0, 0]);
-    expect(redistribute([100, 0], 0, 10)).toEqual([100, 0]);
+    expect(redistribute([100, 0, 0], 0, 10)).toEqual([10, 45, 45]);
+    expect(redistribute([0, 100], 0, 10)).toEqual([10, 90]);
+    expect(redistribute([100], 0, 10)).toEqual([100]);
   });
   it("handles long scores iteratively", () => {
     const r = { ...recipe(32768, 32768), rhythm: [[100], [100]] };
     expect(generateMarkov(32768, [8], r)).toHaveLength(4096);
+  });
+  it("preserves other pitch edits and the hidden Rest when editing a drum row with exact spacing", () => {
+    const full = [
+      [80, 0, 20],
+      [0, 100, 0],
+      [30, 40, 30],
+      [0, 75, 25],
+    ];
+    const edited = replaceRow(full, 2, [20, 80], true); // Start in the two-hit graph
+    expect(edited[3]).toEqual([15, 60, 25]);
+    expect(edited[0]).toBe(full[0]);
+    expect(edited[2]).toBe(full[2]);
+    expect(replaceRow(full, 0, [25, 75], true)[0]).toEqual([20, 60, 20]);
   });
   it("checks Score capacity before expanding a short native-tick phrase across a long score", () => {
     const r = { ...recipe(1, 1), pitch: [[100], [100]], rhythm: [[100], [100]], maxNotes: 10000, restState: -1 };
@@ -77,6 +95,34 @@ describe("independent Markov phrases", () => {
 const timing = defaultSequencerTiming();
 
 describe("source pattern filters", () => {
+  it("learns conditional frequencies including Start, zero edges and the loop seam", () => {
+    const keys = ["C", "D", "E", "rest"];
+    const chain = learnChain(keys, [["C"], ["D"], ["C"], ["D"], ["C"], ["E"], ["D"]]);
+    const rows = chain.map((row) => editableRow(row, keys.length));
+    expect(rows[0][1]).toBeCloseTo(200 / 3);
+    expect(rows[0][2]).toBeCloseTo(100 / 3);
+    expect(rows[1]).toEqual([100, 0, 0, 0]);
+    expect(rows[2]).toEqual([0, 100, 0, 0]);
+    expect(rows[3][0]).toBeCloseTo(300 / 7);
+    expect(rows[4]).toEqual([100, 0, 0, 0]);
+    const solo = learnChain([7], [[7]]);
+    expect(solo.map((row) => editableRow(row, 1))).toEqual([[100], [100]]);
+  });
+
+  it("shares sparse rows for a score with thousands of simultaneous distinct note lengths", () => {
+    const keys = Array.from({ length: 10000 }, (_, i) => i + 1);
+    const chain = learnChain(keys, [keys.slice(0, 5000), keys.slice(5000)]);
+    expect(chain[0]).toBe(chain[4999]);
+    expect(chain[5000]).toBe(chain[10000]);
+    expect(editableRow(chain[5000], keys.length)[0]).toBeCloseTo(100 / 5000);
+    const voices = keys.slice(0, 2500);
+    const mixed = learnChain(keys, [voices, keys.slice(2500, 5000), voices, keys.slice(5000)]);
+    const row = editableRow(mixed[0], keys.length);
+    expect(row[0]).toBe(0);
+    expect(row[2500]).toBeCloseTo(100 / 7500, 8);
+    expect(row[9999]).toBeCloseTo(100 / 7500, 8);
+  });
+
   it("reads exact chord pitches and attack lengths including HOLDs only inside the melodic pad", () => {
     const pad = defaultSequencerTrack(1, 1, timing).pads[0];
     const cell = { note: null, hold: false, chord: "none" as const, velocity: 100 };
@@ -91,6 +137,8 @@ describe("source pattern filters", () => {
     const source = patternVocabulary({ source: "sequencer", payload: pad }, timing);
     expect(source.pitches).toEqual([49, 72, 76, 79]);
     expect(source.durations).toEqual([1, 3]);
+    expect(source.pitchEvents).toEqual([[72, 76, 79], [49]]);
+    expect(source.durationEvents).toEqual([[3], [1]]);
   });
 
   it("reads native Score ticks and preserves sub-step lengths exactly", () => {
@@ -104,6 +152,36 @@ describe("source pattern filters", () => {
     const material = patternVocabulary({ source: "score", payload: pad }, timing);
     expect(material.pitches).toEqual([48, 91]);
     expect(material.durations.map((n) => durationLabel(n, material.unitsPerStep))).toEqual(["1/3", "2/3"]);
+  });
+
+  it("groups unordered simultaneous Score notes and counts a wrapping silence once", () => {
+    const pad = defaultScoreTrack(1, timing).pads[0];
+    pad.lengthBeats = 1;
+    pad.notes = [
+      { id: "b", pitch: 67, startTicks: 1000, durationTicks: 500, velocity: 90 },
+      { id: "c", pitch: 62, startTicks: 2000, durationTicks: 750, velocity: 90 },
+      { id: "a", pitch: 60, startTicks: 1000, durationTicks: 1000, velocity: 90 },
+      { id: "silent", pitch: 77, startTicks: 5000, durationTicks: 200, velocity: 0 },
+    ];
+    const m = patternVocabulary({ source: "score", payload: pad }, timing);
+    expect(m.pitchEvents).toEqual([["rest"], [60, 67], [62]]);
+    expect(m.durationEvents).toEqual([[500, 1000], [750]]);
+    const keys = [...m.pitches, "rest"];
+    const rows = learnChain(keys, m.pitchEvents).map((r) => editableRow(r, keys.length));
+    expect(rows).toEqual([
+      [0, 100, 0, 0],
+      [0, 0, 0, 100],
+      [0, 100, 0, 0],
+      [50, 0, 50, 0],
+      [0, 0, 0, 100],
+    ]);
+    const rhythm = learnChain(m.durations, m.durationEvents).map((r) => editableRow(r, 3));
+    expect(rhythm).toEqual([
+      [0, 100, 0],
+      [50, 0, 50],
+      [0, 100, 0],
+      [50, 0, 50],
+    ]);
   });
 
   it("measures drum hit spacings around the loop and uses only the participating rows", () => {
@@ -127,6 +205,11 @@ describe("source pattern filters", () => {
     expect([...source.drumRows]).toEqual([kick.rowId, hat.rowId]);
     expect(source.combinations).toEqual([[kick.rowId, hat.rowId]]);
     expect(source.durations).toEqual([3, 5]);
+    expect(source.durationEvents).toEqual([[3], [5]]);
+    expect(source.pitchEvents).toEqual([
+      [JSON.stringify([kick.rowId, hat.rowId].sort())],
+      [JSON.stringify([hat.rowId])],
+    ]);
   });
 });
 const notes = [

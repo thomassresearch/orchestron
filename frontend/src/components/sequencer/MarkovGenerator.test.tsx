@@ -19,16 +19,16 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-function open(clip: boolean, notes = false) {
+function open(clip: boolean, notes: [number, number][] = []) {
   const sequencer = structuredClone(useAppStore.getState().sequencer),
     track = sequencer.tracks[0];
   const padIndex = clip ? 0 : 3;
-  if (notes) {
-    const cells = track.pads[padIndex].steps;
-    cells[0] = { ...cells[0], note: 49 };
-    cells[1] = { ...cells[1], hold: true };
-    cells[2] = { ...cells[2], note: 85 };
-    cells[3] = { ...cells[3], hold: true };
+  const cells = track.pads[padIndex].steps;
+  let start = 0;
+  for (const [note, length] of notes) {
+    cells[start] = { ...cells[start], note };
+    for (let i = 1; i < length; i++) cells[start + i] = { ...cells[start + i], hold: true };
+    start += length;
   }
   track.padLoopEnabled = true;
   track.padLoopPattern.rootSequence = [{ type: "pad", padIndex: 0 }];
@@ -40,7 +40,7 @@ function open(clip: boolean, notes = false) {
     openClipEditor({ laneId: lane.id, clipId: lane.clips[0].id, path: [item.id], pass: 0 }, "local");
   }
   const audition = vi.fn<AuditionDevice>().mockResolvedValue(undefined);
-  render(
+  const generator = (pad = track.pads[padIndex]) => (
     <PerformanceAuditionContext.Provider value={audition}>
       <ClipEditingContext.Provider value={clip}>
         <MarkovGenerator
@@ -49,13 +49,20 @@ function open(clip: boolean, notes = false) {
           language="english"
           padIndex={padIndex}
           timing={track.timing}
-          pattern={{ source: "sequencer", payload: track.pads[padIndex] }}
+          pattern={{ source: "sequencer", payload: pad }}
         />
       </ClipEditingContext.Provider>
-    </PerformanceAuditionContext.Provider>,
+    </PerformanceAuditionContext.Provider>
   );
+  const view = render(generator());
   fireEvent.click(screen.getByRole("button", { name: "Markov Generator" }));
-  return { audition, sequencer, dialog: within(screen.getByRole("dialog")), padIndex };
+  return {
+    audition,
+    sequencer,
+    dialog: within(screen.getByRole("dialog")),
+    padIndex,
+    changePad: (pad: (typeof track.pads)[number]) => view.rerender(generator(pad)),
+  };
 }
 
 it.each([false, true])(
@@ -108,7 +115,10 @@ it("offers the two independent filters only on a non-empty pattern and cannot us
   let view = open(false);
   expect(view.dialog.queryByRole("checkbox", { name: "Keep pitches" })).toBeNull();
   cleanup();
-  view = open(false, true);
+  view = open(
+    false,
+    Array.from({ length: 8 }, (_, i) => [i % 2 ? 85 : 49, 2]),
+  );
   const { dialog, padIndex } = view;
   const pitches = dialog.getByRole("checkbox", { name: "Keep pitches" });
   const durations = dialog.getByRole("checkbox", { name: "Keep durations" });
@@ -147,6 +157,77 @@ it("offers the two independent filters only on a non-empty pattern and cannot us
   });
 });
 
+it("seeds each enabled graph independently and keeps edge edits until that switch is enabled again", () => {
+  const { dialog } = open(false, [
+    [60, 2],
+    [62, 4],
+    [60, 2],
+    [62, 4],
+    [60, 2],
+    [64, 2],
+  ]);
+  const pitch = dialog.getByRole("checkbox", { name: "Keep pitches" });
+  const rhythm = dialog.getByRole("checkbox", { name: "Keep durations" });
+  const from = (graph: string, state: string) => {
+    const select = dialog.getByRole("combobox", { name: graph + " · From" }) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: [...select.options].find((o) => o.text === state)!.value } });
+  };
+  const edge = (name: string) => dialog.getByRole("button", { name });
+  const edit = (name: string, value: string) => {
+    fireEvent.click(edge(name));
+    const slider = dialog.getByRole("slider") as HTMLInputElement;
+    expect(slider.disabled).toBe(false);
+    fireEvent.change(slider, { target: { value } });
+    fireEvent.click(edge("Apply"));
+  };
+  fireEvent.click(pitch);
+  expect(edge("Start → C4 · 100%")).toBeTruthy();
+  from("Pitch", "C4");
+  edit("C4 → D4 · 66.7%", "80");
+  fireEvent.click(rhythm);
+  expect(edge("C4 → D4 · 80%")).toBeTruthy();
+  from("Duration", "2");
+  expect(edge("2 → 4 · 50%")).toBeTruthy();
+  from("Duration", "4");
+  edit("4 → 2 · 100%", "70");
+  fireEvent.click(edge("Generate"));
+  expect(edge("4 → 2 · 70%")).toBeTruthy();
+  fireEvent.click(pitch);
+  fireEvent.click(pitch);
+  from("Pitch", "C4");
+  expect(edge("C4 → D4 · 66.7%")).toBeTruthy();
+  expect(edge("4 → 2 · 70%")).toBeTruthy();
+  fireEvent.click(rhythm);
+  fireEvent.click(rhythm);
+  from("Duration", "4");
+  expect(edge("4 → 2 · 100%")).toBeTruthy();
+  edit("4 → 4 · 0%", "25");
+  expect(edge("4 → 2 · 75%")).toBeTruthy();
+});
+
+it("retains an edited graph on reopen and relearns when the source changes with identical labels", () => {
+  const { dialog, changePad, sequencer, padIndex } = open(false, [
+    [60, 4],
+    [62, 4],
+    [60, 4],
+    [64, 4],
+  ]);
+  fireEvent.click(dialog.getByRole("checkbox", { name: "Keep pitches" }));
+  fireEvent.click(dialog.getByRole("button", { name: "Start → C4 · 100%" }));
+  fireEvent.change(dialog.getByRole("slider"), { target: { value: "85" } });
+  fireEvent.click(dialog.getByRole("button", { name: "Apply" }));
+  const click = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+  click("Close");
+  click("Markov Generator");
+  expect(screen.getByRole("button", { name: "Start → C4 · 85%" })).toBeTruthy();
+  click("Close");
+  const pad = structuredClone(sequencer.tracks[0].pads[padIndex]);
+  [pad.steps[0], pad.steps[4]] = [pad.steps[4], pad.steps[0]];
+  changePad(pad);
+  click("Markov Generator");
+  expect(screen.getByRole("button", { name: "Start → D4 · 100%" })).toBeTruthy();
+});
+
 it("opens a focused slider on its edge and returns focus when the edit ends", () => {
   const { dialog } = open(false);
   const edge = dialog.getByRole("button", { name: /^Start → C4 ·/ });
@@ -167,5 +248,29 @@ it("opens a focused slider on its edge and returns focus when the edit ends", ()
   expect(edge.getAttribute("aria-label")).toMatch(/42%$/);
   fireEvent.click(edge);
   fireEvent.pointerDown(dialog.getByRole("button", { name: "Generate" }));
+  expect(dialog.queryByRole("slider")).toBeNull();
+});
+
+it("keeps the native range drag active when the browser focuses the outer dialog on pointer-down", () => {
+  const { dialog } = open(false);
+  const outer = screen.getByRole("dialog", { name: "Markov Generator" });
+  outer.tabIndex = -1;
+  const edge = dialog.getByRole("button", { name: /^Start → C4 ·/ });
+  fireEvent.click(edge);
+  const slider = dialog.getByRole("slider");
+  fireEvent.pointerDown(slider);
+  outer.focus(); // WebKit's native default action when pressing the range thumb.
+  expect(document.activeElement).toBe(slider);
+  fireEvent.input(slider, { target: { value: "35" } });
+  fireEvent.input(slider, { target: { value: "72" } });
+  fireEvent.pointerUp(slider);
+  expect(dialog.getByRole("slider")).toBe(slider);
+  fireEvent.click(dialog.getByRole("button", { name: "Apply" }));
+  expect(edge.getAttribute("aria-label")).toMatch(/72%$/);
+  fireEvent.click(edge);
+  const reopened = dialog.getByRole("slider");
+  fireEvent.pointerDown(reopened);
+  fireEvent.pointerCancel(reopened);
+  fireEvent.focusIn(outer);
   expect(dialog.queryByRole("slider")).toBeNull();
 });
