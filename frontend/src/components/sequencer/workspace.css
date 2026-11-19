@@ -76,7 +76,7 @@
 [data-workspace-arranger] > [data-arranger-viewport] > div > div:first-child { position: sticky; top: 0; z-index: 25; background-color: #121d2d; }
 .ws-panes[data-compact-controllers] [data-arranger-viewport] { order: -1; min-height: 100%; }
 .ws-panes[data-compact-controllers] .ws-dock > header { padding-block: 2px; }
-[data-workspace-arranger][data-fit-tracks] [data-clip-lane][data-expanded=false] { min-height: clamp(48px,calc((100cqh - 28px)/var(--tracks)),90px); }
+[data-workspace-arranger][data-fit-tracks] [data-clip-lane][data-expanded=false] { min-height: clamp(48px,calc((100cqh - 68px)/var(--tracks)),90px); }
 [data-workspace-arranger][data-fit-tracks] [data-clip-lane][data-expanded=false] [data-arranger-clip] { height: calc(100% - 8px) !important; }
 @media (pointer:coarse) {
   .ws-panes[data-split] { grid-template-rows: minmax(0,1fr) 24px var(--drag-height,var(--dock-height)); }
@@ -105,9 +105,11 @@
 
 .ws-track-properties { display: grid; gap: 8px; padding: 5px 0 12px; }
 .ws-track-properties h3 { font-size: .95rem; }
-.ws-track-routing { display: grid; gap: 6px; }
-.ws-track-routing > label { display: grid; gap: 2px; color: #aebed0; }
-.ws-track-routing select { width: 100%; padding: 4px; border-radius: 4px; border: 1px solid #405269; background: #101c2c; color: #e0e8ef; }
+.ws-channel-trigger, .ws-channel-label { display: inline-block; position: relative; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .69rem/1.35 monospace; vertical-align: middle; }
+.ws-channel-trigger { flex-shrink: 0; max-width: 75%; padding: 2px 5px; color: #b3eff5; background: #162f3c; border: 1px solid #488391; border-radius: 4px; cursor: pointer; }
+.ws-channel-trigger:focus-within { outline: 2px solid #8bd7e1; outline-offset: 1px; }
+.ws-channel-trigger select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.ws-channel-label { color: #a6c2cd; }
 
 .ws-clip-editor-host { min-height: 0; display: grid; grid-template: minmax(0,1fr) / minmax(0,1fr); }
 
@@ -378,3 +380,13 @@
   .ws-pad-slot > button { gap: 1px; }
   .ws-pad-slot > button svg { width: 11px; }
 }
+
+.ws-rack-add { flex: none; margin-left: auto; width: 2rem; min-height: 1.75rem; border: 1px solid #448c74; border-radius: 4px; color: #b8f5d8; background: #14382f; font-weight: 700; }
+
+.ws-channel-options > div > div { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+.ws-channel-options label { flex-direction: row; width: auto; overflow-wrap: anywhere; }
+.ws-channel-options label > span { flex-shrink: 0; }
+
+/* Give the timeline the space left by the upfront pattern-scope choice. */
+.ws-panes[data-scope-only] { grid-template-rows: minmax(0,1fr) fit-content(50%); }
+.ws-panes[data-scope-only] .ws-dock { border-top: 1px solid #334359; }

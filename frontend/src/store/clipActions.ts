@@ -76,6 +76,27 @@ export function setClipEditIntent(scope: EditScope, variationName?: string, reso
   const name = variationName ?? draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix) : undefined);
   useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent: { ...draft.editIntent, scope, explicit: true, variationName: name } } } });
 }
+/** A typed variation name is a real edit. Merely choosing local scope is not. */
+export function renameClipPattern(name: string) {
+  const state = useAppStore.getState(), key = state.clipEditingKey;
+  const draft = key && state.clipDrafts[key];
+  if (!key || !draft || draft.definition.kind !== "pattern" || !draft.editIntent?.scope) return;
+  if (draft.editIntent.scope === "local") {
+    const lane = state.sequencer.clipArrangement?.lanes.find(l => l.id === draft.target.laneId);
+    if (!lane) return;
+    const suggested = uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix);
+    const editIntent = { ...draft.editIntent, variationName: name, variationNameEdited: !!name.trim() && name.trim() !== suggested };
+    useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent } } });
+  } else updateClipDraft({ ...draft.definition, name });
+}
+
+export function discardClipDraft(key: string) {
+  useAppStore.setState(state => {
+    const clipDrafts = { ...state.clipDrafts };
+    delete clipDrafts[key];
+    return { clipDrafts, clipEditingKey: state.clipEditingKey === key ? null : state.clipEditingKey };
+  });
+}
 /** UI saves consume intent; domain callers retain their explicit scope API. */
 export function saveClipDraftWithIntent(resolvingKey?: string) {
   const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey, model = state.sequencer.clipArrangement;
@@ -148,7 +169,7 @@ export function addClipLane(source: import("../lib/clipArranger/model").SourceKi
     commitClipArrangement({ ...before.sequencer.clipArrangement, revision: before.sequencer.clipArrangement.revision + 1, end: Math.max(before.sequencer.clipArrangement.end, lane.clips[0].length), lanes: [...before.sequencer.clipArrangement.lanes, lane] }, "Add track");
     // Source topology cannot be replayed by clip-only history snapshots.
     useAppStore.setState(s => ({ sequencer: { ...s.sequencer, clipHistory: emptyClipHistory() } }));
-    openClipEditor({ laneId: lane.id, clipId: lane.clips[0].id, path: [lane.clips[0].children[0].id], pass: 0 });
+    return { laneId: lane.id, clipId: lane.clips[0].id, path: [lane.clips[0].children[0].id], pass: 0 };
   } catch (error) { useAppStore.setState({ sequencer: before.sequencer }); throw error; }
 }
 

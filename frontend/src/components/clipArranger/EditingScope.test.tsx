@@ -5,7 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useStructureDraft } from '../../lib/clipArranger/structureStore';
 import { migrateClipArrangement } from '../../lib/clipArranger/migration';
 import { QUARTER_TICKS as Q } from '../../lib/clipArranger/model';
-import { clipHistoryStep, openClipEditor, saveClipDraftWithIntent, setClipEditIntent } from '../../store/clipActions';
+import { clipHistoryStep, openClipEditor, renameClipPattern, saveClipDraftWithIntent, setClipEditIntent } from '../../store/clipActions';
 import { ClipPerformance } from './ClipPerformance';
 
 beforeEach(() => {
@@ -41,6 +41,7 @@ it.each(['doubleClick','keyboard'] as const)('asks before editing shared content
   show(); const before = model();
   if (method === 'doubleClick') fireEvent.doubleClick(patterns()[1]); else fireEvent.keyDown(patterns()[1], { key: 'Enter' });
   expect(editor().queryByRole('button', { name: 'Change note' })).toBeNull();
+  expect(editor().getByText('Loop details').closest('details')?.open).toBe(false);
   expect(editor().getByText(/isolated into before/)).toBeTruthy();
   fireEvent.click(editor().getByRole('button', { name: 'Create variation here' }));
   expect(editor().getByRole('button', { name: 'Change note' })).toBeTruthy();
@@ -59,11 +60,12 @@ it.each(['local','all'] as const)('saves the established %s scope without anothe
   expect(JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot())).not.toContain('editIntent');
   act(() => clipHistoryStep(false)); expect(model().lanes).toEqual(before.lanes);
 });
-it('keeps note edits and scope on reopen, and does not apply a variation name to shared content', () => {
+it('keeps note edits and scope when continuing from Close, and does not apply a variation name to shared content', () => {
   show(); fireEvent.doubleClick(patterns()[1]); fireEvent.click(editor().getByRole('button', { name: 'Create variation here' }));
   fireEvent.change(editor().getByRole('textbox', { name: 'Variation name' }), { target: { value: 'Fill' } });
   fireEvent.click(editor().getByRole('button', { name: 'Change note' }));
-  fireEvent.click(editor().getByRole('button', { name: 'Close editor' })); fireEvent.doubleClick(patterns()[1]);
+  fireEvent.click(editor().getByRole('button', { name: 'Close editor' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
   expect((editor().getByRole('textbox', { name: 'Variation name' }) as HTMLInputElement).value).toBe('Fill');
   fireEvent.click(editor().getByRole('button', { name: 'Change scope' })); fireEvent.click(editor().getByRole('button', { name: 'Edit linked pattern (5)' }));
   act(() => saveClipDraftWithIntent()); expect(model().lanes[0].definitions[0].name).toBe('Phrase');
@@ -129,4 +131,35 @@ it('holds an incompatible later command until the whole draft is explicitly swit
   expect(useStructureDraft.getState().draft?.cursor).toBe(2);expect(useStructureDraft.getState().draft?.editIntent?.scope).toBe('local');
   fireEvent.click(screen.getAllByRole('button',{name:'Undo'})[1]);
   expect(useStructureDraft.getState().draft?.editIntent?.scope).toBe('local');
+});
+
+it("saves a linked name-only edit and restores its previous name through Undo", () => {
+  const lane = model().lanes[0], clip = lane.clips[0];
+  const target = { laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 };
+  openClipEditor(target, "all");
+  renameClipPattern("Chorus");
+  saveClipDraftWithIntent();
+  expect(model().lanes[0].definitions.find(d => d.id === lane.definitions[0].id)?.name).toBe("Chorus");
+  expect(model().lanes[0].clips).toEqual(lane.clips);
+  clipHistoryStep(false);
+  expect(model().lanes[0].definitions).toEqual(lane.definitions);
+});
+
+it("cancels only the active occurrence's draft", async () => {
+  const lane = model().lanes[0], clip = lane.clips[0];
+  const target = { laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 };
+  const original = model();
+  openClipEditor(target, "all");
+  renameClipPattern("Unfinished linked name");
+  const otherKey = useAppStore.getState().clipEditingKey!;
+  openClipEditor({ ...target, pass: 1 }, "local");
+  renameClipPattern("Unfinished variation");
+  useAppStore.getState().setSequencerTrackStepNote(lane.id, 0, 79);
+  render(<ClipPerformance language="english" renderEditor={() => null} />);
+  await act(async () => fireEvent.click(editor().getByRole("button", { name: "Cancel edits" })));
+  const state = useAppStore.getState();
+  expect(state.clipEditingKey).toBeNull();
+  expect(Object.keys(state.clipDrafts)).toEqual([otherKey]);
+  expect(state.clipDrafts[otherKey].definition.name).toBe("Unfinished linked name");
+  expect(model()).toBe(original);
 });

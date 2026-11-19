@@ -13,7 +13,7 @@ import { useAppStore } from "../store/useAppStore";
 import type { SequencerState, SessionSequencerConfigRequest, SessionSequencerStatus } from "../types";
 import { useBrowserClockAudioController } from "./useBrowserClockAudioController";
 import { useSequencerRuntimeController } from "./useSequencerRuntimeController";
-import { addClipLane } from "../store/clipActions";
+import { addClipLane, openClipEditor } from "../store/clipActions";
 
 vi.mock("./useBrowserClockAudioController");
 const noop = () => {};
@@ -583,7 +583,7 @@ it("waits for an in-flight song Stop before starting clip audition instruments",
   useAppStore.setState(s => ({ activeSessionId: null, activeSessionState: "idle", sequencer: { ...s.sequencer,
     clipArrangement: { version: 1, revision: 0, end: 322560, lanes: [] },
     pianoRolls: s.sequencer.pianoRolls.map(p => ({ ...p, enabled: false })), midiControllers: [] } }));
-  addClipLane("sequencer", useAppStore.getState().addSequencerTrack);
+  openClipEditor(addClipLane("sequencer", useAppStore.getState().addSequencerTrack)!);
   const draft = useAppStore.getState().clipDrafts[useAppStore.getState().clipEditingKey!];
   const { start, stop } = mockInstrumentLifecycle();
   let finishStop!: () => void;
@@ -610,7 +610,7 @@ it("waits for an in-flight song Stop before starting clip audition instruments",
 it("keeps a disabled arpeggiator's clip audition clock running until Stop edit", async () => {
   useAppStore.setState(s => ({ sequencer: { ...s.sequencer, tracks: [], drummerTracks: [], scoreTracks: [], controllerSequencers: [], arpeggiators: [],
     clipArrangement: { version: 1, revision: 0, end: 322560, lanes: [] } } }));
-  addClipLane("arpeggiator", useAppStore.getState().addArpeggiator);
+  openClipEditor(addClipLane("arpeggiator", useAppStore.getState().addArpeggiator)!);
   const draft = useAppStore.getState().clipDrafts[useAppStore.getState().clipEditingKey!], id = draft.target.laneId;
   useAppStore.setState(s => ({ clipAuditionDraft: draft,
     sequencer: { ...s.sequencer, arpeggiators: s.sequencer.arpeggiators.map(a => ({ ...a, enabled: false })) } }));

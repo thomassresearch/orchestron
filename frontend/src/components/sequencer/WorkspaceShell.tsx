@@ -1,6 +1,5 @@
 import { useRackSelection } from "./useRackSelection";
 import { arrangeCopy } from "../clipArranger/arrangeCopy";
-import { ArrangeTrackRouting } from "./ArrangeTrackRouting";
 import { InstrumentControls } from "./InstrumentControls";
 import { useArrangeControlRoutes } from "./useArrangeControlRoutes";
 import { absoluteTransportStep } from "../../lib/arrangerTransport";
@@ -14,7 +13,6 @@ import { useAppStore } from "../../store/useAppStore";
 import { clipCopy } from "../clipArranger/copy";
 import { QUARTER_TICKS } from "../../lib/clipArranger/model";
 import { PositionInput } from "../clipArranger/PositionInput";
-import { sourceKeys } from "../../lib/clipArranger/migration";
 import { mixCopy } from "./mixCopy";
 import { EngineStatusLine } from "../EngineStatusLine";
 import { clampDock, DockDivider, maxDockHeight, MIN_DOCK, DIVIDER_HEIGHT } from "./DockDivider";
@@ -127,7 +125,10 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const compactControls = !!controlsIds && size.mainHeight < MIN_DOCK + overviewMinimum + grip;
   const dockMinimum = compactControls ? 88 : MIN_DOCK;
   const trackMinimum = compactControls ? 84 : overviewMinimum;
-  const single = !!dock && (controlsIds ? size.mainHeight < dockMinimum + trackMinimum + grip : narrow || !!layout.dockExpanded);
+  const currentDraft = clipKey ? drafts[clipKey] : undefined;
+  const scopeOnly = view === "arrange" && !controlsIds && currentDraft?.definition.kind === "pattern" &&
+    currentDraft.editIntent?.scope === null && !layout.dockExpanded && size.mainHeight >= 260;
+  const single = !!dock && !scopeOnly && (controlsIds ? size.mainHeight < dockMinimum + trackMinimum + grip : narrow || !!layout.dockExpanded);
   const showOverview = !controlsIds && single && view === "arrange" && !!clipKey && overviewClipKey === clipKey;
   const compactArrangeEditor = view === "arrange" && single && !showOverview && window.innerHeight <= 460;
   const compactLauncher = view === "live" && keyboardOpen && narrow;
@@ -182,15 +183,20 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     const outside = (e: PointerEvent) => {
       if (errorDetails.current?.open && !errorDetails.current.contains(e.target as Node)) errorDetails.current.open = false;
       if (projectMenu.current?.open && !projectMenu.current.contains(e.target as Node)) projectMenu.current.open = false;
-      if (floatingRack && rackOpen && !rackMenu.current?.contains(e.target as Node) && !rackTrigger.current?.contains(e.target as Node)) setRackMenuView(null);
+      if (floatingRack && rackOpen && !(e.target as Element).closest("[data-compact-rack-menu]") && !rackMenu.current?.contains(e.target as Node) && !rackTrigger.current?.contains(e.target as Node)) setRackMenuView(null);
     };
     document.addEventListener("keydown", key); document.addEventListener("pointerdown", outside);
     return () => { document.removeEventListener("keydown", key); document.removeEventListener("pointerdown", outside); };
   }, [narrow, inspector, setLayout, floatingRack, rackOpen]);
+  const patternClose = useRef<((finish: () => void) => void) | null>(null);
   const closeDock = () => {
     if (controlsIds) { setControlsTarget(null); return; }
-    if (clipKey && view === "arrange") { remember(clipKey); useAppStore.setState({ clipEditingKey: null }); }
-    change({ dock: null, dockExpanded: false });
+    const finish = () => {
+      if (clipKey && view === "arrange") { remember(clipKey); useAppStore.setState({ clipEditingKey: null }); }
+      change({ dock: null, dockExpanded: false });
+    };
+    if (clipKey && view === "arrange" && patternClose.current) patternClose.current(finish);
+    else finish();
   };
   const returnToOverview = () => {
     if (controlsIds) { setControlsTarget(null); setOverviewClipKey(null); }
@@ -208,7 +214,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   };
   const backLabel = controlsIds && editorDock ? copy("backToEditor") : single ? c.back : c.close;
   const context = { slots: { mixControls, launcher: launcherHost, editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
-    trackRouting: (id: string, kind: keyof typeof sourceKeys) => <ArrangeTrackRouting key={id} id={id} kind={kind} language={language} />,
+    patternClose,
     laneControllers: (id: string) => {
       const route = routes.get(id);
       if (!route) return null;
@@ -256,11 +262,11 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
         <div className="ws-transport-row"><div className="ws-transport" role="group" aria-label={c.transport}>{transport}<SongPositionControls language={language} onSeek={onSeek} onTempo={onTempo} /></div>
           {compactArrangeEditor && <button className="ws-back" ref={back} onClick={returnToOverview}>{backLabel}</button>}
         </div>
-        <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined} data-compact-controllers={compactControls && !single || undefined}>
+        <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined} data-scope-only={scopeOnly || undefined} data-compact-controllers={compactControls && !single || undefined}>
           <RetainedScroll key={view} owner="page" field="overviewScroll" className="ws-overview" data-compact-launch={compactLauncher || undefined} hidden={single && !showOverview} role="region" aria-label={c.overview}>
             {compactLauncher && !single && <div className="ws-compact-launch" ref={setLauncherHost} />}{children}
           </RetainedScroll>
-          {dock && !single && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} min={dockMinimum} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
+          {dock && !single && !scopeOnly && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} min={dockMinimum} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
           {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} data-inline-back={compactArrangeEditor || undefined} aria-label={dockLabel}>
             {!compactArrangeEditor && <header><h2>{dockLabel}</h2>
               {!narrow && !controlsIds && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}

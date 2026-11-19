@@ -4,9 +4,11 @@
 
 Open **Perform → Arrange**. The multitrack arranger brings melodic, Score, drummer, controller and arpeggiator tracks onto one timeline. Clips set where content plays; reusable patterns, groups and supergroups hold the music.
 
-**New** creates an empty arrangement and one piano keyboard. Choose **Add track** to create a track with its first clip and pattern, then assign its instrument and MIDI channel. Double-click empty track space to add another clip. Use a clip’s **+** to add a new pattern or reuse existing content.
+**New** creates an empty arrangement and one piano keyboard. Choose **+ Add track** below the last lane. The new track has a first clip and pattern, and its channel dropdown has keyboard focus. Choose a channel to use the instruments already on it, or **Add Instrument…** to find a playable sound by category or search. Choosing a sound adds it to the rack and assigns the track to its channel. Double-click the clip when you are ready to edit. Double-click empty track space to add another clip. Use a clip’s **+** to add a new pattern or reuse existing content.
 
-Each lane header shows the assigned rack instrument beneath the track name. The MIDI channel and lane buttons stay visible while you scroll the timeline. For a long name or a list of instruments, hover over the name or select the lane and open the **Inspector** to read it in full. An unassigned channel shows **No rack instrument**. Controller lanes list their target channels, with **MIDI 1–16** for all channels. An arpeggiator shows its input and output in order, for example **MIDI 3 → 7**.
+Each lane header shows the assigned rack instrument beside its channel, such as **CH01 ▾**. The MIDI channel and lane buttons stay visible while you scroll the timeline. For a long name or a list of instruments, hover over the name or select the lane and open the **Inspector** to read it in full. An unassigned channel shows **No rack instrument**. Controller lanes list their target channels, with **CH01–16** for all channels. An arpeggiator shows its input and output in order, for example **CH03 → CH07**.
+
+![Track channel dropdowns, named patterns and the Add track control below the lanes](../../screenshots/arranger-track-channels.png)
 
 Click **Controllers** beside a lane’s **Mute** and **Solo** to adjust its instrument and insert effects in the lower panel. The button is available when at least one destination instrument publishes a usable performance control. An automation lane opens its bound instrument. Choose **Back to editor** to resume your open clip or pad, or **Close** if you opened controls from the timeline. On a very short screen the panel can occupy the working area.
 
@@ -54,6 +56,10 @@ Double-click a nested box, or focus its name and press Enter, to open its sequen
 
 Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.
 
+Select a pattern and edit **Pattern name** in the Inspector. **Group name** names a new group of selected items. The saved pattern name appears inside each occurrence, including on compact tracks. Use **Loop details** for the beat ranges affected by a local edit.
+
+![Editing scope for a repeating bass pattern](../../screenshots/arranger-pattern-scope.png)
+
 Choose **Edit linked pattern** to change every occurrence or **Create variation here** to change only this one. The [pattern editing guide](pattern_pads_and_pad_looper.md#edit-and-save) owns the scope, save and draft rules. A variation within a loop can split its window into before, edited and after parts while preserving the song's timing.
 
 ![Local variation with persistent scope and save action](../../screenshots/clip-arranger-local-variation.png)
@@ -64,7 +70,7 @@ To harmonize with an unsaved variation, start **Play edit**, then open **Keyboar
 
 ![The second Chorus pass auditioning a local variation with its editor and keyboard open](../../screenshots/perform-arrange-play-edit-keyboard.png)
 
-**Play** (triangle) and **Play edit** start instruments when needed. The tape controls provide rewind/forward by one beat, Play/resume, Pause, and Stop. Pause holds the song cursor; Stop returns to the selected loop start or song start. With the song stopped, Play edit auditions its target. With the song playing, the editor audition temporarily replaces its source lane while other lanes continue. Song start/stop/seek preserves the editor audition; Stop edit returns to the arrangement's current position or silence when the song is stopped. Audition state appears in the compact lane header. The open editor follows the audible pattern position with its existing step highlights, score playhead, controller cursor or arpeggiator status; standalone audition leaves the song cursor still. Closing the editor or leaving Perform ends the audition and retains its draft.
+**Play** (triangle) and **Play edit** start instruments when needed. The tape controls provide rewind/forward by one beat, Play/resume, Pause, and Stop. Pause holds the song cursor; Stop returns to the selected loop start or song start. With the song stopped, Play edit auditions its target. With the song playing, the editor audition temporarily replaces its source lane while other lanes continue. Song start/stop/seek preserves the editor audition; Stop edit returns to the arrangement's current position or silence when the song is stopped. Audition state appears in the compact lane header. The open editor follows the audible pattern position with its existing step highlights, score playhead, controller cursor or arpeggiator status; standalone audition leaves the song cursor still. Closing the editor ends its audition. For a changed pattern, choose Save, **Discard edits**, or **Keep editing**. **Cancel edits** discards this pattern’s draft and closes it immediately. Leaving Perform ends the audition and keeps the draft for your return.
 
 Arpeggiator **Play edit** waits for incoming notes or a chord on its input channel. Once notes arrive, its existing rhythm-step highlight and generated-note previews follow the audition. The source’s saved enable switch does not need to be on. Both save scopes preserve playback and its indicators when the saved performance is reloaded.
 

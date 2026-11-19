@@ -7,7 +7,7 @@ A pattern holds the musical content for one track. A clip places that content on
 ## Create and reuse patterns
 
 1. Choose **Add track** in the [multitrack arranger](multitrack_arranger.md).
-2. Edit the first pattern that opens with the new track.
+2. Choose the channel in the new track header and double-click its first pattern to edit.
 3. For another clip, double-click empty track space or use the track's **+**.
 4. Open the clip's **+** or **Add content** and choose **New pattern**, then double-click the pattern to edit it.
 
@@ -31,7 +31,9 @@ Double-click a pattern, group or supergroup to edit it. The breadcrumb identifie
 
 **Edit linked pattern/group/supergroup** and **Create variation here** choose scope before editing shared content. Independent content opens directly. The scope remains visible and can be changed while retaining edits; Save applies it without another question. The first structural action that changes shared definitions also waits for a scope choice. Cancel keeps the draft and selection. Save/Discard/Cancel resolves conflicting drafts before another operation proceeds.
 
-![Choosing which occurrences receive an edit](../../screenshots/clip-arranger-edit-scope.png)
+![Choosing linked or local scope for a repeated pattern](../../screenshots/arranger-pattern-scope.png)
+
+**Cancel edits** discards the open pattern draft. If you close a changed pattern, choose its Save action, **Discard edits**, or **Keep editing**. After saving or discarding the last draft, choose **Save Performance**.
 
 Performance save, autosave and exports use saved definitions. Resolve changed drafts before saving the performance, or explicitly choose the saved definitions. Drafts survive view switches until you reload the browser. **Cancel** keeps you in the current view with your edits. If loading a replacement performance fails, your drafts are still available.
 

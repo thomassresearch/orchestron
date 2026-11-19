@@ -80,7 +80,9 @@ it("keeps real melodic edits out of authored data and runtime until scoped save"
 it("creates each source type with one placed pattern and captures real curve edits", () => {
   const state = useAppStore.getState();
   for (const [kind, create] of [["score", () => addScoreTrack("Score")], ["drummer", state.addDrummerSequencerTrack], ["arpeggiator", state.addArpeggiator], ["controller", state.addControllerSequencer]] as const) {
-    addClipLane(kind, create);
+    const target = addClipLane(kind, create)!;
+    expect(useAppStore.getState().clipEditingKey).toBeNull();
+    if (kind === "controller") openClipEditor(target);
     expect(useAppStore.getState().sequencer.clipArrangement!.lanes.slice(-1)[0]).toMatchObject({ source: kind, definitions: [expect.objectContaining({ kind: "pattern" })], clips: [expect.objectContaining({ mode: "loop" })] });
   }
   const before = useAppStore.getState(), draft = before.clipDrafts[before.clipEditingKey!];
@@ -108,7 +110,7 @@ it.each((["sequencer", "score", "controller", "arpeggiator"] as SourceKind[]).fl
   const actions = useAppStore.getState();
   const create = { sequencer: actions.addSequencerTrack, score: () => addScoreTrack("Score"),
     drummer: actions.addDrummerSequencerTrack, controller: actions.addControllerSequencer, arpeggiator: actions.addArpeggiator };
-  addClipLane(kind, create[kind]);
+  openClipEditor(addClipLane(kind, create[kind])!);
   const initial = useAppStore.getState(), key = initial.clipEditingKey!, target = initial.clipDrafts[key].target;
   const lane = initial.sequencer.clipArrangement!.lanes.find(l => l.id === target.laneId)!;
   const id = lane.id, source = sourceKeys[kind];
@@ -156,7 +158,7 @@ it.each((["sequencer", "score", "controller", "arpeggiator"] as SourceKind[]).fl
 
 
 it.each(["local", "all"] as const)("keeps kick/snare rows independent through clip editing, audition and %s save", scope => {
-  addClipLane("drummer", useAppStore.getState().addDrummerSequencerTrack);
+  openClipEditor(addClipLane("drummer", useAppStore.getState().addDrummerSequencerTrack)!);
   const current = useAppStore.getState(), key = current.clipEditingKey!;
   const originalTrack = structuredClone(current.sequencer.drummerTracks[0]);
   const id = originalTrack.id, [kick, snare, ...others] = originalTrack.rows;

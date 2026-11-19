@@ -3,7 +3,7 @@
 **Navigation:** [Up](performance.md) | [Previous](drummer_sequencers.md) | [Next](arpeggiators.md)
 
 Score Sequencers hold long, polyphonic passages with an independent start, duration
-and velocity for every note. Choose **Add track → Score** in the arranger. Its first clip and pattern open automatically; double-click an existing pattern to reopen its Score editor. Match its MIDI channel to a
+and velocity for every note. Choose **Add track → Score** in the arranger. Choose the instrument with the channel dropdown in the new track header, then double-click its first pattern to open the Score editor. Match its MIDI channel to a
 rack instrument. A new pattern starts at four local bars.
 
 The **?** button at the top right opens the standard help modal in English,

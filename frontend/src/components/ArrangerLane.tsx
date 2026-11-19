@@ -1,3 +1,4 @@
+import { ArrangeTrackRouting } from "./sequencer/ArrangeTrackRouting";
 import type { ArrangerActionCode } from "../store/arrangerHistory";
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { sequencerTransportSubunitsPerBeat } from "../lib/sequencer";
@@ -176,7 +177,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
           <button ref={laneButton} onBlur={() => setMissingPhrase(false)} className="max-w-full truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded} aria-description={lane.instrument}
             onClick={() => { if (props.sharedTransport) select(); setExpanded(!expanded); cancelDrag(); closeMenu(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
           <div className="max-w-full truncate text-[11px] leading-tight text-slate-300" title={lane.instrument}>{lane.instrument}</div>
-          <div className="text-[10px] text-slate-400">{lane.subtitle}</div>
+          {props.sharedTransport ? <ArrangeTrackRouting id={lane.id} kind={lane.kind} language={props.guiLanguage} /> : <div className="text-[10px] text-slate-400">{lane.subtitle}</div>}
           <LaneOutputButtons id={lane.id} language={props.guiLanguage} />
         </div>
       </div>

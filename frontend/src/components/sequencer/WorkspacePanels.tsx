@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { OccurrenceTarget, SourceKind } from "../../lib/clipArranger/model";
+import type { OccurrenceTarget } from "../../lib/clipArranger/model";
 
 export const shellCopy = {
   english: { project: "Project", inspector: "Inspector", editor: "Editor", keyboard: "Keyboard", transport: "Song transport", divider: "Resize editor", expand: "Expand", restore: "Restore split", back: "Back to overview", close: "Close", fit: "Fit tracks", help: "Help", status: "Session status", errorDetails: "Error details", overview: "Overview", channel: "MIDI channel", select: "Select an item to inspect." },
@@ -12,7 +12,7 @@ export const shellCopy = {
 type Panel = "editor" | "inspector" | "editorCommand" | "dialogs" | "launcher" | "mixControls";
 export const WorkspacePanels = createContext<null | {
   slots: Record<Panel, HTMLElement | null>;
-  trackRouting: (id: string, kind: SourceKind) => ReactNode;
+  patternClose: React.MutableRefObject<((finish: () => void) => void) | null>;
   laneControllers: (id: string) => ReactNode;
   getRememberedTarget: () => OccurrenceTarget | undefined;
   editorHidden: boolean;

@@ -32,6 +32,8 @@ map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
 Open **Compact rack** above the transport in Arrange, Live or Mix. Click one instrument. Hold **Shift** and click others to add or remove them. With the keyboard, focus an entry and press **Shift+Enter** or **Shift+Space**. The patch number and MIDI channel distinguish instances of the same instrument.
 
+With the instruments stopped, click the **+** at the right of the compact rack to browse instruments by category or search. To remove a rack instance, right-click it or focus it and press **Shift+F10**, then choose **Remove instrument**. If a track uses it, the warning lists the tracks to reassign first.
+
 Choose **Instrument controls** beside the rack entries to open the selection and its insert effects. Arrange shows the controls below the timeline. Live opens them in Mix. To adjust one lane’s sound, click **Controllers** beside its **Mute** and **Solo**. Choose **Back to editor** to return to your open clip or pad.
 
 ![Arrange showing Controllers beside Mute and Solo, the selected clip on the timeline, and its instrument and Stereo Chorus insert in the lower panel](../../screenshots/perform-arrange-instrument-controls.png)

@@ -68,16 +68,21 @@ export function wireInsertChain(graph: AudioGraph, bindings: SequencerInstrument
   return { ...graph, routes, insertOwners };
 }
 
+export function rackRemovalIds(insertOwners: AudioGraph["insertOwners"], id: string): Set<string> {
+  const removed = new Set([id]);
+  for (const owner of removed) {
+    for (const [processor, parent] of Object.entries(insertOwners)) {
+      if (parent === owner && processor !== MASTER) removed.add(processor);
+    }
+  }
+  return removed;
+}
+
 /** Explicit rack deletion removes dedicated inserts too, without rewriting custom paths. */
 export function removeRackInstrument(
   graph: AudioGraph, mixer: MixerState, bindings: SequencerInstrumentBinding[], patches: PatchListItem[], id: string
 ) {
-  const removed = new Set([id]);
-  for (const owner of removed) {
-    for (const [processor, parent] of Object.entries(graph.insertOwners)) {
-      if (parent === owner && processor !== MASTER) removed.add(processor);
-    }
-  }
+  const removed = rackRemovalIds(graph.insertOwners, id);
   let audioGraph = graph;
   const owner = graph.insertOwners[id];
   if (owner && !removed.has(owner)) {

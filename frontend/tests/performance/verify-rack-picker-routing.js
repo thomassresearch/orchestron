@@ -30,7 +30,7 @@ async page => {
       check(await name.evaluate(el => el.scrollWidth > el.clientWidth && getComputedStyle(el).textOverflow === "ellipsis"),
         "Long instrument name was not contained in the header");
       check((await geometry()).join() === before.join(), "The instrument name moved or narrowed the timeline");
-      await phrase.getByText(/MIDI 1/).waitFor();
+      await phrase.getByText("CH01 ▾", { exact: true }).waitFor();
       for (const action of ["Mute", "Solo", "Controllers"]) {
         const control = button(action, phrase);
         await control.scrollIntoViewIfNeeded();
@@ -50,7 +50,7 @@ async page => {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.evaluate(() => window.__workspaceTest.store.getState().setSequencerTrackMidiChannel("phrase", 7));
-    await laneHeader("phrase").getByText(/MIDI 7/).waitFor();
+    await laneHeader("phrase").getByText("CH07 ▾", { exact: true }).waitFor();
     await phrase.getByText("No rack instrument", { exact: true }).waitFor();
     const cc = await page.evaluate(async () => {
       const s = window.__workspaceTest.store.getState();
@@ -62,7 +62,7 @@ async page => {
       s.setControllerSequencerTargetChannels(track.id, [1, 2, 5, 9]);
       return track.id;
     });
-    await laneHeader(cc).getByText(/MIDI 1, 2, 5, 9/).waitFor();
+    await laneHeader(cc).getByText("CH01, CH02, CH05, CH09 ▾", { exact: true }).waitFor();
     await laneHeader(cc).getByText("UX Baseline Routed, UX Baseline Direct", { exact: true }).waitFor();
     const arp = await page.evaluate(async () => {
       const store = window.__workspaceTest.store, state = store.getState();
@@ -74,7 +74,7 @@ async page => {
       state.updateArpeggiator(track.id, { playbackMode: "arranger", targetChannel: 1 });
       return { id: track.id, input: track.inputChannel };
     });
-    await laneHeader(arp.id).getByText(new RegExp("MIDI " + arp.input + " → 1")).waitFor();
+    await laneHeader(arp.id).getByText(`CH${String(arp.input).padStart(2, "0")} → CH01 ▾`, { exact: true }).waitFor();
     await laneHeader(arp.id).getByText(instrument, { exact: true }).waitFor();
     await button("Mix").click();
     const tools = page.locator(".ws-mix-tools"), nav = tools.getByRole("navigation");

@@ -61,7 +61,7 @@ it.each(["local", "all"] as const)("edits points inside the clip, saves %s scope
   act(() => openClipEditor({ ...target, path: [currentClip.children[0].id] }, "all"));
   fireEvent.change(screen.getByRole("spinbutton", { name: "Curve duration · master beats" }), { target: { value: "128" } });
   const committed = useAppStore.getState().sequencer;
-  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Discard curve edits" })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel edits" })));
   expect(useAppStore.getState().sequencer).toBe(committed);
   expect(useAppStore.getState().clipEditingKey).toBeNull();
   expect(Object.keys(useAppStore.getState().clipDrafts)).toHaveLength(0);

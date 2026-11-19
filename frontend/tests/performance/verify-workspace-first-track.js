@@ -6,8 +6,13 @@ async page => {
   const inspector = page.getByRole("complementary", { name: "Inspector" });
   const edit = page.getByRole("region", { name: "Editing", exact: true });
   await add.selectOption("sequencer");
-  const choose = inspector.getByRole("combobox", { name: "Add Instrument", exact: true });
-  await choose.selectOption({ label: "UX Baseline Direct" });
+  const channel = page.locator("[data-track-channel]").last();
+  if (await edit.count() || !await channel.evaluate(el => el === document.activeElement)) throw Error("Expected focus on the new track channel");
+  if (await inspector.getByRole("combobox", { name: /MIDI channel|Add Instrument/i }).count()) throw Error("Found routing in the Inspector");
+  await channel.selectOption("add");
+  const browser = page.getByRole("dialog", { name: "Add Instrument" });
+  await browser.getByRole("searchbox").fill("UX Baseline Direct");
+  await b("UX Baseline Direct", browser).click();
   await page.waitForFunction(() => window.__workspaceTest.store.getState().sequencerInstruments.length === 1);
   const assigned = await page.evaluate(() => {
     const s = window.__workspaceTest.store.getState();
@@ -18,10 +23,11 @@ async page => {
     await add.selectOption(kind);
     await page.waitForFunction(kind => {
       const s = window.__workspaceTest.store.getState();
-      return s.clipDrafts[s.clipEditingKey]?.definition.source === kind;
+      return !s.clipEditingKey && s.sequencer.clipArrangement.lanes.at(-1)?.source === kind;
     }, kind);
-    if (!await edit.isVisible()) throw Error("Missing dock for " + kind);
   }
+  await b("Editor").click();
+  await edit.waitFor();
   const arpId = await page.evaluate(() => {
     const s = window.__workspaceTest.store.getState(), arp = s.sequencer.arpeggiators[0], roll = s.sequencer.pianoRolls[0];
     s.setPianoRollMidiChannel(roll.id, arp.inputChannel); s.setPianoRollEnabled(roll.id, true);
@@ -56,7 +62,9 @@ async page => {
   // Simulate the initial library of a new installation without removing anything from the backend.
   await page.evaluate(() => window.__workspaceTest.store.setState({ patches: [] }));
   await add.selectOption("sequencer");
-  await b("Create playable instrument", inspector).click();
+  await channel.selectOption("add");
+  await b("Create playable instrument", page.getByRole("dialog")).click();
+  await b("Editor").click();
   await page.waitForFunction(() => {
     const s = window.__workspaceTest.store.getState();
     return s.sequencerInstruments.length === 1 && s.audioGraph.routes.length === 2;

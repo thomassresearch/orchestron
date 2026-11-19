@@ -31,11 +31,11 @@ it.each(([{source:'sequencer'},{source:'score'},{source:'drummer'},{source:'cont
  useAppStore.setState({sequencer:state});
  const before=useAppStore.getState().sequencer;const lane=before.clipArrangement!.lanes.find(l=>l.source===source)!;
  render(<ClipPerformance language="english" renderEditor={()=>null}/>);
- fireEvent.click(within(document.querySelector(`[data-clip-lane="${lane.id}"]`) as HTMLElement).getByRole('button',{expanded:false}));
+ fireEvent.click(within(document.querySelector(`[data-clip-lane="${lane.id}"]`) as HTMLElement).getByRole('button',{expanded:false,name:/▸/}));
  const buttons=screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
  expect(buttons).toHaveLength(2);
  fireEvent.click(buttons[0]);fireEvent.click(buttons[1],{shiftKey:true});
- fireEvent.change(screen.getByRole('textbox',{name:'Name'}),{target:{value:'Phrase'}});
+ fireEvent.change(screen.getByRole('textbox',{name:'Group name'}),{target:{value:'Phrase'}});
  fireEvent.click(screen.getByRole('button',{name:'Group'}));
  expect(useAppStore.getState().sequencer).toBe(before);
  expect(useStructureDraft.getState().draft?.roots[0].definition?.name).toBe('Phrase');
@@ -62,7 +62,7 @@ it.each([0,1,2].flatMap(depth=>(depth?['local','all']:['local']).map(scope=>({de
  act(()=>useAppStore.getState().applySequencerConfigSnapshot(JSON.parse(JSON.stringify(useAppStore.getState().buildSequencerConfigSnapshot()))));
  const original=useAppStore.getState().sequencer;
  render(<ClipPerformance language="english" renderEditor={()=>null}/>);
- fireEvent.click(within(document.querySelector(`[data-clip-lane="${lane.id}"]`) as HTMLElement).getByRole('button',{expanded:false}));
+ fireEvent.click(within(document.querySelector(`[data-clip-lane="${lane.id}"]`) as HTMLElement).getByRole('button',{expanded:false,name:/▸/}));
  const buttons=screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
  fireEvent.click(buttons[0]);fireEvent.click(screen.getByRole('button',{name:'Remove selected'}));
  expect(useAppStore.getState().sequencer).toBe(original);
@@ -180,7 +180,7 @@ it.each(['forward','backward','keyboard'] as const)('groups across repetitions u
  expect(buttons.map(b=>!!(b.closest('[data-structure-node]') as HTMLElement).style.outline.startsWith('2px'))).toEqual([false,true,true,false]);
  expect(screen.getByRole('button',{name:'Remove selected'}).hasAttribute('disabled')).toBe(true);
  expect(useAppStore.getState().sequencer).toBe(state);expect(useStructureDraft.getState().draft).toBeNull();
- fireEvent.change(screen.getByRole('textbox',{name:'Name'}),{target:{value:'Middle'}});
+ fireEvent.change(screen.getByRole('textbox',{name:'Group name'}),{target:{value:'Middle'}});
  fireEvent.click(screen.getByRole('button',{name:'Group'}));
  expect(useStructureDraft.getState().draft?.roots).toHaveLength(3);
  expect(screen.getByRole('button',{name:'▣ Middle'})).toBeTruthy();

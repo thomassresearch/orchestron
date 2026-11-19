@@ -10,7 +10,7 @@ See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and edit
 
 ## Open and close the editor
 
-Double-click a pattern in the arranger to open its editor. **Close editor** returns to the timeline and retains its draft. Closing the editor ends **Play edit** auditioning; the song's transport remains independent.
+Double-click a pattern in the arranger to open its editor. **Cancel edits** discards this pattern draft. Closing a changed pattern lets you save, discard, or keep editing. Closing ends **Play edit** auditioning.
 
 ## What A Controller Sequencer Does
 

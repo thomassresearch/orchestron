@@ -2,15 +2,16 @@ import { useId } from "react";
 import { MIDI_CHANNELS } from "../../lib/midiControllerChannels";
 import type { SequencerUiCopy } from "./sequencerUiCopy";
 
-export function MidiChannelSelector({ channels, onChange, rows = 1, ui }: {
+export function MidiChannelSelector({ channels, onChange, rows = 1, ui, optionLabel }: {
   channels: number[];
   onChange: (channels: number[]) => void;
   rows?: 1 | 2;
+  optionLabel?: (channel: number) => string;
   ui: SequencerUiCopy;
 }) {
   const hintId = useId();
   return (
-    <fieldset className="min-w-0" aria-describedby={hintId}>
+    <fieldset className={optionLabel ? "ws-channel-options" : "min-w-0"} aria-describedby={hintId}>
       <legend className="mb-1 text-[10px] font-semibold text-slate-400">{ui.midiChannels}</legend>
       <span id={hintId} className="sr-only">{ui.midiChannelsHint}</span>
       <div className="max-w-full overflow-x-auto pb-1">
@@ -34,7 +35,7 @@ export function MidiChannelSelector({ channels, onChange, rows = 1, ui }: {
                     </svg>
                   ) : null}
                 </span>
-                {channel}
+                {optionLabel?.(channel) ?? channel}
               </label>
             );
           })}

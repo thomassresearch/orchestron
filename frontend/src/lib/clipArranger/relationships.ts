@@ -2,7 +2,7 @@ import { contentLength, definitionMap, patternDuration, type ClipLane, type Cont
 
 export type EditScope = 'local' | 'all';
 /** Editor intent is session-only, never part of a saved definition or runtime configuration. */
-export type EditIntent = { scope: EditScope | null; explicit: boolean; variationName?: string };
+export type EditIntent = { scope: EditScope | null; explicit: boolean; variationName?: string; variationNameEdited?: boolean };
 export type DefinitionRelationship = { occurrences: number; clipIds: string[]; references: number; retained: boolean; shared: boolean };
 
 /** Count intersecting passes arithmetically, including cropped first/last passes. */

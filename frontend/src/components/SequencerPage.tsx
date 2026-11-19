@@ -1018,7 +1018,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(sequencer.arrangerLoopSelection, step)}
           onLoopChange={onSequencerArrangerLoopSelectionChange}
           transport={!view && <ClipTransport language={guiLanguage} copy={arrangerCopy} onPlay={handleStartAll} onPause={handleStopAll} onStop={handleStopAllAndResetTransport} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward} />}
-          onAddLane={source => { try { addClipLane(source, addDevice[source]); } catch (e) { useAppStore.setState({ error: String(e) }); } }}
+          onAddLane={source => { try { return addClipLane(source, addDevice[source]); } catch (e) { useAppStore.setState({ error: String(e) }); } }}
           renderEditor={renderDeviceEditor} /> : <>
         {isClipArrangerEnabled() && <button className="mt-3 rounded border border-cyan-700 px-3 py-2 text-xs text-cyan-200" onClick={() => {
           const result = migrateClipArrangement(useAppStore.getState().sequencer);
