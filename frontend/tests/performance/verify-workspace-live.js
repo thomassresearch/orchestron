@@ -49,6 +49,7 @@ async page => {
     await button("Add Controller").click();
     const controller = page.getByRole("article").filter({ has: page.getByRole("button", { name: /controller knob value/i }) });
     const channel = controller.getByRole("checkbox", { name: "MIDI channel 4", exact: true });
+    await controller.getByText(/MIDI .* · .*UX Baseline Routed/).waitFor();
     await channel.check();
     if (await button("Start", controller).count()) await button("Start", controller).click();
     const knob = controller.getByRole("button", { name: /controller knob value/i });
@@ -66,6 +67,7 @@ async page => {
     await button("Pad 1", manual).click();
     await button("Keyboard").click();
     const keyboard = page.getByRole("region", { name: "Keyboard", exact: true });
+    await keyboard.getByText("MIDI 1 · UX Baseline Routed", { exact: true }).waitFor();
     const details = keyboard.locator("details").filter({ has: page.locator("summary", { hasText: "Keyboard settings" }) });
     await details.locator("summary").click();
     await details.getByRole("checkbox", { name: /autochord/i }).check();

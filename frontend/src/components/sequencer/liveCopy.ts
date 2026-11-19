@@ -26,6 +26,7 @@ const labels = {
   earlierPads: ["Show earlier pads", "Vorherige Pads anzeigen", "Afficher les pads précédents", "Mostrar pads anteriores"],
   laterPads: ["Show later pads", "Weitere Pads anzeigen", "Afficher les pads suivants", "Mostrar pads siguientes"],
   device: ["Device", "Gerät", "Appareil", "Dispositivo"],
+  noInstrument: ["No rack instrument", "Kein Rack-Instrument", "Aucun instrument du rack", "Sin instrumento del rack"],
   add: ["Add live device", "Live-Gerät hinzufügen", "Ajouter un appareil live", "Añadir dispositivo en vivo"],
   remove: ["Remove device", "Gerät entfernen", "Retirer l’appareil", "Quitar dispositivo"],
   edit: ["Edit", "Bearbeiten", "Modifier", "Editar"],

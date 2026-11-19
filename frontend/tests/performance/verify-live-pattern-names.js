@@ -21,11 +21,38 @@ async page => {
   const row = page.locator('[data-live-device="phrase"]:visible');
   const bank = row.locator(".ws-live-pads");
   const mode = row.getByRole("combobox", { name: "Pad mode" });
+  const header = row.locator(".ws-live-device");
+  const expectRoute = async (header, midi, instrument) => {
+    await header.getByText(midi, { exact: true }).waitFor();
+    await header.getByText(instrument, { exact: true }).waitFor();
+  };
+  await expectRoute(header, "MIDI 1", "UX Baseline Routed");
+  const routePhrase = channel => page.evaluate(ch => window.__workspaceTest.store.getState().setSequencerTrackMidiChannel("phrase", ch), channel);
+  await routePhrase(2);
+  await expectRoute(header, "MIDI 2", "UX Baseline Direct");
+  await routePhrase(15);
+  await expectRoute(header, "MIDI 15", "No rack instrument");
+  await routePhrase(1);
   if (!isClip) {
     await button("Pad 1", bank).click();
     check(await bank.locator(".ws-pad-name").count() === 0, "Unnamed legacy pads acquired names");
     check(await bank.evaluate(el => el.scrollWidth === el.clientWidth), "The legacy bank no longer fits");
-    return "Eight compact numbered pads";
+    const { arpId, ccId, input } = await page.evaluate(() => {
+      const store = window.__workspaceTest.store, state = store.getState();
+      state.addArpeggiator();
+      const arp = store.getState().sequencer.arpeggiators.at(-1);
+      state.updateArpeggiator(arp.id, { targetChannel: 2 });
+      state.addControllerSequencer();
+      const cc = store.getState().sequencer.controllerSequencers.at(-1);
+      state.setControllerSequencerTargetChannels(cc.id, [1, 2]);
+      return { arpId: arp.id, ccId: cc.id, input: arp.inputChannel };
+    });
+    const deviceHeader = id => page.locator(`[data-live-device="${id}"]:visible .ws-live-device`);
+    await expectRoute(deviceHeader(ccId), "MIDI 1, 2", "UX Baseline Routed, UX Baseline Direct");
+    await expectRoute(deviceHeader(arpId), `MIDI ${input} → 2`, "UX Baseline Direct");
+    await routePhrase(input);
+    await expectRoute(header, `MIDI ${input}`, "UX Baseline Direct");
+    return "Eight compact numbered pads, multi-channel controller and arpeggiated instrument destinations";
   }
   await button("Pad 1 · Introduction 1", bank).waitFor();
   const extra = row.getByRole("list", { name: "Arrangement patterns" });
@@ -33,6 +60,11 @@ async page => {
     "A standalone definition was assigned to a physical slot");
   await page.setViewportSize({ width: 1000, height: 650 });
   await button("Pad 2 · Verse 1", bank).click();
+  // Use the voice's musical name in the manual and check a library rename updates the header.
+  await page.evaluate(() => window.__workspaceTest.store.setState(s => ({
+    patches: s.patches.map(p => p.name === "UX Baseline Routed" ? { ...p, name: "Tenor Saxophone" } : p)
+  })));
+  await expectRoute(header, "MIDI 1", "Tenor Saxophone");
   await row.screenshot({ path: "screenshots/perform-live-pattern-names.png" });
   const earlier = button("Show earlier pads", row), later = button("Show later pads", row);
   check(await earlier.isDisabled(), "Earlier pads should be disabled at the start");
@@ -67,6 +99,14 @@ async page => {
     await page.setViewportSize({ width: 390, height: 844 });
     await button("Keyboard").click();
     await page.locator(".ws-compact-launch .ws-live-pads:visible").waitFor();
+    const picker = page.getByRole("combobox", { name: "Device", exact: true });
+    check(await picker.getByRole("option", { name: "MIDI 1 · Routed phrase" }).count() === 1 &&
+      await picker.getByRole("option", { name: "MIDI 2 · Manual lead" }).count() === 1, "Compact device choices lost their channels");
+    await picker.selectOption("manual");
+    await page.locator(".ws-compact-launch .ws-live-device").getByText("UX Baseline Direct", { exact: true }).waitFor();
+    await picker.selectOption("phrase");
+    await header.getByText("Tenor Saxophone", { exact: true }).waitFor();
+    const headerLeft = (await header.boundingBox()).x;
     await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 2 });
     await bank.evaluate(el => { el.scrollLeft = 0; });
     const box = await bank.boundingBox(), x = box.x + box.width * .75, y = box.y + box.height / 2;
@@ -77,6 +117,7 @@ async page => {
     for (let i = 1; i <= 6; i++) await touch("touchMove", x - i * box.width / 12);
     await touch("touchEnd");
     check(await left() > 0, "Swiping did not scroll the compact bank");
+    check(Math.abs((await header.boundingBox()).x - headerLeft) <= 1, "The device header scrolled away with the pads");
     await last.focus();
     check(await button("Pad 2 · Verse 1", bank).getAttribute("aria-pressed") === "true",
       "Scrolling or focusing selected a different pad");

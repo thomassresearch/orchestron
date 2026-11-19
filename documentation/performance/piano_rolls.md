@@ -48,7 +48,7 @@ Each MIDI-driven rack instrument requires a unique MIDI channel. Set the piano r
 
 ## Play alongside the Live launcher
 
-In Perform, open **Live → Keyboard**. On a small screen the selected device and its eight pads stay above the keys. The device selector there changes which pads you launch. The piano roll selector and its MIDI channel choose the instrument you play. Hold a key with Space or Enter while clicking pads, or use two fingers on a touch screen. Choose **Edit** to put the pad editor in the dock.
+In Perform, open **Live → Keyboard**. On a small screen the selected device and its eight pads stay above the keys. The device selector there changes which pads you launch. Beside the piano roll’s name, read the MIDI channel and rack instrument the keys will play. Change the channel in **Keyboard settings**. Hold a key with Space or Enter while clicking pads, or use two fingers on a touch screen. Choose **Edit** to put the pad editor in the dock.
 
 <p align="center"><img src="../../screenshots/perform-workspace-live-keyboard.png" alt="Compact pad launcher above the keyboard with Autochord held and pad 2 queued" width="280" /></p>
 

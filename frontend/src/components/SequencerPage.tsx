@@ -1,6 +1,7 @@
 import { useRackSelection } from "./sequencer/useRackSelection";
 import { MixWorkspace } from "./sequencer/MixWorkspace";
 import { LiveLauncher } from "./sequencer/LiveLauncher";
+import { createMidiInstrumentLookup, laneMidiLabel, type MidiDevice } from "../lib/midiControllerChannels";
 import { liveCopy } from "./sequencer/liveCopy";
 import { arrangeCopy } from "./clipArranger/arrangeCopy";
 import { LegacyArrange, type LegacyPadAction } from "./sequencer/LegacyArrange";
@@ -504,6 +505,9 @@ function useSequencerPageContext({
     return sessionState;
   }, [sessionState, ui.running, ui.stopped]);
   const patchById = useMemo(() => new Map(patches.map((patch) => [patch.id, patch])), [patches]);
+  const lookupInstrument = useMemo(() => createMidiInstrumentLookup(instrumentBindings, patchById, sequencer.arpeggiators),
+    [instrumentBindings, patchById, sequencer.arpeggiators]);
+  const instrumentName = (device: MidiDevice) => lookupInstrument(device) || liveCopy(guiLanguage)("noInstrument");
   const rackInstrumentRows = useMemo(() => groupRackInstruments(instrumentBindings, patchById), [instrumentBindings, patchById]);
   const totalPerformDevices =
     sequencer.tracks.length + sequencer.scoreTracks.length +
@@ -633,6 +637,7 @@ function useSequencerPageContext({
     "w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 outline-none ring-accent/40 transition focus:ring disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-500";
   return {
     rackInstrumentRows,
+    instrumentName,
     onInstrumentReorder,
     guiLanguage,
     ui,
@@ -1107,7 +1112,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
 
         </>}
 
-        {view === "live" && <LiveLauncher language={guiLanguage} sequencer={sequencer} renderEditor={renderDeviceEditor} engineRunning={instrumentsRunning} actions={context} canRemove={context.canRemovePerformDevice} add={kind => addDevice[kind]()} />}
+        {view === "live" && <LiveLauncher language={guiLanguage} sequencer={sequencer} instrumentName={context.instrumentName} renderEditor={renderDeviceEditor} engineRunning={instrumentsRunning} actions={context} canRemove={context.canRemovePerformDevice} add={kind => addDevice[kind]()} />}
         {showLive && <>
         {!view && pianoPanel}
 
@@ -1127,7 +1132,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
             {ui.addController}
           </button>}
         >
-          <MidiControllersBody context={context} />
+          <MidiControllersBody context={context} live={view === "live"} />
         </CollapsiblePanel>
 
         </>}
@@ -3154,8 +3159,8 @@ function ArpeggiatorsBody({ context }: { context: ReturnType<typeof useSequencer
   />)}</div>;
 }
 
-function KeyboardSettings({ compact, id, label, channel, children }: { compact: boolean; id: string; label: string; channel: number; children: React.ReactNode }) {
-  return compact ? <EditorDetails owner={`device:${id}`} field="keyboardSettings" summary={`${label} · MIDI ${channel}`} className="ws-keyboard-settings">
+function KeyboardSettings({ compact, id, label, children }: { compact: boolean; id: string; label: string; children: React.ReactNode }) {
+  return compact ? <EditorDetails owner={`device:${id}`} field="keyboardSettings" summary={label} className="ws-keyboard-settings">
     {() => <div className="ws-keyboard-fields">{children}</div>}
   </EditorDetails> : children;
 }
@@ -3247,11 +3252,13 @@ function PianoRollsBody({ context, compact = false }: { context: ReturnType<type
         const effectiveModeLabel = followsMixedMode ? ui.mixed : modeLabels[effectiveMode];
         const keyboardHighlightTheories =
           followSummary?.highlightTheories ?? [{ scaleRoot: roll.scaleRoot, mode: roll.mode }];
+        const destination = compact ? `${laneMidiLabel(roll)} · ${context.instrumentName(roll)}` : "";
+        const name = renderDeviceName("pianoRolls", roll, ui.pianoRollWithIndex(rollIndex + 1));
         return (
           <article key={roll.id} data-live-keyboard={compact ? roll.id : undefined} className="rounded-xl border border-slate-700 bg-slate-900/65 p-2.5">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              {compact && sequencer.pianoRolls.length > 1 && <label className="ws-keyboard-picker">{ui.pianoRolls} <select value={roll.id} onChange={e => setKeyboardId(e.target.value)}>{sequencer.pianoRolls.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
-              {renderDeviceName("pianoRolls", roll, ui.pianoRollWithIndex(rollIndex + 1))}
+              {compact && sequencer.pianoRolls.length > 1 && <label className="ws-keyboard-picker">{ui.pianoRolls} <select value={roll.id} onChange={e => setKeyboardId(e.target.value)}>{sequencer.pianoRolls.map(item => <option key={item.id} value={item.id}>{laneMidiLabel(item)} · {item.name}</option>)}</select></label>}
+              {compact ? <div className="ws-keyboard-identity">{name}<span className="ws-keyboard-destination" title={destination}>{destination}</span></div> : name}
               <span className={transportStateClass}>{roll.enabled ? ui.running : ui.stopped}</span>
               <button
                 type="button"
@@ -3271,7 +3278,7 @@ function PianoRollsBody({ context, compact = false }: { context: ReturnType<type
               {compact && !sequencer.clipArrangement && <button onClick={context.onAddPianoRoll}>{ui.addPianoRoll}</button>}
             </div>
 
-            <KeyboardSettings compact={compact} id={roll.id} label={liveCopy(context.guiLanguage)("settings")} channel={roll.midiChannel}>
+            <KeyboardSettings compact={compact} id={roll.id} label={liveCopy(context.guiLanguage)("settings")}>
             <div className="mb-2 flex flex-wrap items-start gap-2">
               <div className="mr-2 flex items-end gap-2">
                 <label className="flex flex-col gap-1">
@@ -3388,7 +3395,7 @@ function PianoRollsBody({ context, compact = false }: { context: ReturnType<type
   </>;
 }
 
-function MidiControllersBody({ context }: { context: ReturnType<typeof useSequencerPageContext> }) {
+function MidiControllersBody({ context, live }: { context: ReturnType<typeof useSequencerPageContext>; live: boolean }) {
   const {
     sequencer,
     ui,
@@ -3419,6 +3426,7 @@ function MidiControllersBody({ context }: { context: ReturnType<typeof useSequen
             <div className="mb-2 flex items-start justify-between gap-2">
               <div className="flex min-w-0 flex-col items-start gap-2">
                 {renderDeviceName("midiControllers", controller, ui.controllerWithIndex(controllerIndex + 1))}
+                {live && <span className="max-w-full break-words text-xs text-slate-300">{laneMidiLabel(controller)} · {context.instrumentName(controller)}</span>}
                 <span className={transportStateClass}>{controller.enabled ? ui.running : ui.stopped}</span>
               </div>
               <div className="ml-auto min-w-0 shrink-0">

@@ -1,6 +1,6 @@
 import { beforeEach, expect, it } from "vitest";
 import fixture from "../../../backend/tests/fixtures/performances/device_names.json";
-import { MIDI_CHANNELS, normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
+import { createMidiInstrumentLookup, MIDI_CHANNELS, normalizeControllerTargetChannels } from "../lib/midiControllerChannels";
 import { buildPerformanceExportPayload, parsePerformanceExportPayload } from "../lib/bundleImportExport";
 import { buildPersistedAppStateSnapshot, normalizeSequencerState } from "./appStoreModel";
 import { useAppStore } from "./useAppStore";
@@ -19,6 +19,25 @@ it("normalizes legacy and invalid channel selections without sharing defaults", 
   expect(state.sequencer.midiControllers[0].targetChannels).toEqual(MIDI_CHANNELS);
   expect(state.sequencer.controllerSequencers[0].targetChannels).toEqual(MIDI_CHANNELS);
   expect(state.sequencer.midiControllers[0].targetChannels).not.toBe(state.sequencer.controllerSequencers[0].targetChannels);
+});
+
+it("labels MIDI destinations by rack assignment and keeps bound automation on its own instrument", () => {
+  const patches = new Map([
+    ["bass", { name: "Sub Bass", always_on: false }],
+    ["keys", { name: "Piano", always_on: false }],
+    ["delay", { name: "Delay", always_on: true }]
+  ]);
+  const names = createMidiInstrumentLookup([
+    { id: "a", patchId: "bass", midiChannel: 1 }, { id: "b", patchId: "keys", midiChannel: 2 },
+    { id: "c", patchId: "delay", midiChannel: 0 }
+  ], patches, [{ inputChannel: 8, targetChannel: 1 }]);
+  expect(names({ midiChannel: 8 })).toBe("Sub Bass");
+  expect(names({ inputChannel: 8, targetChannel: 1 })).toBe("Sub Bass");
+  expect(names({ targetChannels: [] })).toBe("Sub Bass, Piano");
+  expect(names({ targetChannels: [1, 8] })).toBe("Sub Bass");
+  expect(names({ targetChannels: [3] })).toBe("");
+  expect(names({ targetChannels: [1], automationTarget: { instrumentId: "b", controllerNodeIds: [] } })).toBe("Piano");
+  expect(names({ targetChannels: [1], automationTarget: { instrumentId: "removed", controllerNodeIds: [] } })).toBe("");
 });
 
 it("preserves channels through snapshots, native JSON and autosave restoration", () => {

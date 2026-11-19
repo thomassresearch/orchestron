@@ -3,6 +3,7 @@ import { playingClipPattern, clipAuditionDefinitions } from "../../lib/clipArran
 import { sourceKeys } from "../../lib/clipArranger/migration";
 import type { SourceKind } from "../../lib/clipArranger/model";
 import { arrangementCopy } from "../../lib/arrangementCopy";
+import { laneMidiLabel } from "../../lib/midiControllerChannels";
 import { copyScorePad, removeScoreTrack } from "../../store/scoreActions";
 import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage, SequencerState } from "../../types";
@@ -40,9 +41,10 @@ function PadSaveStatus({ kind, id, pad, language }: { kind: SourceKind; id: stri
   return <span className="ws-pad-save">{liveCopy(language)(status)}</span>;
 }
 
-export function LiveLauncher({ sequencer, language, engineRunning, actions, add, canRemove, renderEditor }: {
+export function LiveLauncher({ sequencer, language, engineRunning, actions, add, canRemove, renderEditor, instrumentName }: {
   sequencer: SequencerState; language: GuiLanguage; engineRunning: boolean; actions: Actions; canRemove: boolean;
   add: (kind: SourceKind) => void; renderEditor: DeviceEditorRenderer;
+  instrumentName: (device: Device) => string;
 }) {
   const [id, select] = usePerformanceEditorState("page", "liveDevice", "");
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
@@ -136,10 +138,19 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
     };
     const boundary = arp ? arp.launchQuantize === "bar" ? a.nextBar : a.nextCycle : "launchQuantization" in track ? track.launchQuantization === "bar" ? sc.bar : sc.end : c("boundary");
     const melodicIndex = kind === "sequencer" ? sequencer.tracks.findIndex(t => t.id === track.id) : -1;
+    const midi = laneMidiLabel(track);
+    const instrument = instrumentName(track);
     return <div key={track.id} className="ws-live-row" data-live-device={track.id} data-drop-position={!compact && reorder.marker?.id === track.id ? reorder.marker.position : undefined} data-selected={selected?.track.id === track.id || undefined} role="group" aria-label={track.name}>
       <div className="ws-live-device">
-        {compact ? <select aria-label={c("device")} value={track.id} onChange={e => select(e.target.value)}>{devices.map(d => <option key={d.track.id} value={d.track.id}>{d.track.name}</option>)}</select>
-          : <button className="ws-live-name" aria-pressed={selected?.track.id === track.id} onClick={() => select(track.id)}>{track.name}</button>}
+        <div className="ws-live-heading">
+          {compact ? <select aria-label={c("device")} aria-description={instrument} title={`${track.name} · ${midi}`} value={track.id} onChange={e => select(e.target.value)}>
+            {devices.map(d => <option key={d.track.id} value={d.track.id}>{laneMidiLabel(d.track)} · {d.track.name}</option>)}
+          </select> : <>
+            <button className="ws-live-name" aria-description={`${midi} · ${instrument}`} aria-pressed={selected?.track.id === track.id} onClick={() => select(track.id)}>{track.name}</button>
+            <span className="ws-live-midi">{midi}</span>
+          </>}
+        </div>
+        <span className="ws-live-instrument" title={instrument}>{instrument}</span>
         <span>{liveArp ? a.live : manual ? source.manual : source.arrangement}{manual && <> · {boundary}</>}</span>
         {melodicIndex >= 0 && sequencer.tracks.length > 1 && <div className="ws-device-order">
           {!compact && <span draggable onDragStart={e => reorder.start(e, track.id)} title={c("reorder")} aria-label={c("reorder")} role="img">⠿</span>}
@@ -196,7 +207,8 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
     {selected && <>
       <WorkspacePanel name="launcher">{row(selected, true)}</WorkspacePanel>
       <WorkspacePanel name="inspector"><h3>{selected.track.name}</h3>
-        <p>{types[selected.kind === "sequencer" ? "melodic" : selected.kind]} · MIDI {"targetChannels" in selected.track ? selected.track.targetChannels.join(", ") : "targetChannel" in selected.track ? selected.track.targetChannel : selected.track.midiChannel}</p>
+        <p>{types[selected.kind === "sequencer" ? "melodic" : selected.kind]} · {laneMidiLabel(selected.track)}</p>
+        <p className="break-words">{instrumentName(selected.track)}</p>
         {selectedLane ? <p>{source.source} · {source.arrangement}</p>
           : "playbackMode" in selected.track && selected.track.playbackMode === "live" ? <p>{source.source} · {a.live}</p>
           : <PlaybackSourceToggle language={language} arrangement={selected.track.padLoopEnabled} hasArrangement={!!selected.track.padLoopPattern.rootSequence.length} onChange={value => changeSource(selected.kind, selected.track.id, value)} />}

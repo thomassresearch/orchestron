@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](performance.md) | [Previous](piano_rolls.md) | [Next](multitrack_arranger.md)
 
-Open **Live** for manual MIDI controllers. The MIDI Controllers panel provides manual CC control lanes with interactive knobs.
+Open **Live** for manual MIDI controllers. Each card shows its target MIDI channels and the rack instruments assigned to them. Use its channel checkboxes to change the destinations for the knob.
 
 Controllers use compact cards in both arranger layouts: one column on narrow screens, two on small screens, three on wide screens, and four on extra-wide screens. Additional controllers wrap onto the next row.
 

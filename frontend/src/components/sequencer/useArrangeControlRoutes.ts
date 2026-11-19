@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { sourceKeys } from "../../lib/clipArranger/migration";
+import { deviceRackChannels } from "../../lib/midiControllerChannels";
 import { useAppStore } from "../../store/useAppStore";
 
 /** The sound a lane addresses is independent of its current clip, audition and mute state. */
@@ -17,8 +18,7 @@ export function useArrangeControlRoutes(active: boolean) {
       for (const track of sequencer[key]) {
         if (clipLanes ? !clipLanes.has(track.id) : "playbackMode" in track && track.playbackMode === "live") continue;
         const target = "automationTarget" in track ? track.automationTarget : undefined;
-        const channels = "targetChannels" in track ? track.targetChannels : ["targetChannel" in track ? track.targetChannel : track.midiChannel];
-        const outputs = channels.map(ch => arpOutputs.get(ch) ?? ch);
+        const outputs = deviceRackChannels(track, arpOutputs);
         const instruments = bindings.filter(b => target ? b.id === target.instrumentId
           : outputs.includes(b.midiChannel) && !library.get(b.patchId)?.always_on);
         routes.set(track.id, { name: track.name, ids: instruments.map(b => b.id),
