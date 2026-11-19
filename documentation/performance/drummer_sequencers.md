@@ -96,6 +96,10 @@ While dragging vertically on a hit, the UI also shows a live numeric `velocity: 
 
 Open **Markov Generator**. The first graph chooses drum keys or a rest. **Hit spacing** sets the number of grid steps until the next event. Under **Participating rows**, uncheck any row you want to keep. To layer simultaneous hits, select the keys together and choose **Add hit combination**. The combination becomes a graph state. **Play** auditions the groove with the other rows in place. **Use pattern** replaces the visible hits of participating rows. See the [phrase lengths and probability controls](sequencer_tracks_and_steps.md#markov-generator).
 
+On an existing groove, **Keep pitches** limits generation to drum keys already used in the participating rows and offers their existing combinations. **Keep durations** uses the spacing between consecutive hit positions, including the interval from the last hit back to the first. The two switches work independently.
+
+Adding a Drummer track in Arrange opens its first clip. After **Use pattern**, choose **Save pattern here** in that editor, then **Save Performance**. If the pending-drafts dialog is already open, choose **Cancel** to go back and save the pattern. **Use saved definitions** saves the previous groove and keeps the generated edit in the current session.
+
 ## Early and Late Notes
 
 Timing moves an individual attack by **−50% to +50% of one local step**, in 1% increments. Zero means **On grid**. The millisecond readout follows the current tempo, grid and beat ratio: at 120 BPM with 4/4, Subdivision 4 and speed 1×, −20% is 25 ms early. Timing belongs to each pad and does not change its length, meter or playback speed.

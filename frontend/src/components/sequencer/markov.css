@@ -17,7 +17,11 @@
   background: #102b30;
 }
 .mk-dialog {
-  width: min(940px, 96vw);
+  width: min(1222px, 96vw);
+  height: min(892px, 94dvh);
+  min-width: min(320px, 96vw);
+  min-height: min(280px, 94dvh);
+  max-width: 96vw;
   max-height: 94dvh;
   margin: auto;
   padding: clamp(12px, 2vw, 24px);
@@ -29,7 +33,9 @@
   font:
     14px/1.4 system-ui,
     sans-serif;
-  overflow-y: auto;
+  overflow: auto;
+  resize: both;
+  container-type: inline-size;
 }
 .mk-dialog::backdrop {
   background: #020812b8;
@@ -82,6 +88,15 @@
   color: #bdceda;
   margin: 0.55rem 0 0.8rem;
 }
+.mk-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 0.7rem;
+}
+.mk-filters input {
+  accent-color: #73dec2;
+}
 .mk-register select {
   margin-left: 0.3rem;
 }
@@ -113,6 +128,10 @@
 .mk-from select {
   margin-left: 3px;
 }
+.mk-plot {
+  position: relative;
+  margin-inline: auto;
+}
 .mk-graph svg {
   width: 100%;
   height: auto;
@@ -131,7 +150,6 @@
 .mk-graph svg g[role="button"]:hover rect {
   stroke: #fff;
 }
-.mk-edge,
 .mk-options div {
   display: flex;
   gap: 6px;
@@ -140,12 +158,33 @@
   margin-top: 0.6rem;
 }
 .mk-edge {
-  border-top: 1px solid #33465a;
-  padding-top: 8px;
+  --mk-popup-width: min(13rem, 100%);
+  --mk-badge-gap: 0.8rem;
+  position: absolute;
+  z-index: 2;
+  width: var(--mk-popup-width);
+  padding: 0.55rem 0.7rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  background: #172437;
+  border: 1px solid #76919f;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #020812b3;
   font-size: 0.78rem;
 }
+.mk-edge strong,
+.mk-edge-actions {
+  grid-column: 1 / -1;
+}
+.mk-edge-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
 .mk-edge input[type="range"] {
-  width: 80px;
+  width: 100%;
   accent-color: #73dec2;
 }
 .mk-edge input[type="number"] {
@@ -180,11 +219,11 @@
   color: #edc788;
   margin-top: 8px;
 }
-@media (max-width: 680px) {
+@container (max-width: 640px) {
   .mk-graphs {
     grid-template-columns: 1fr;
   }
-  .mk-graph svg {
-    max-height: 200px;
+  .mk-plot {
+    max-width: 333.33px;
   }
 }

@@ -6,9 +6,11 @@ export type MarkovRecipe = {
   pitchLength: number;
   rhythmLength: number;
   seed: number;
+  restState?: number;
+  maxNotes?: number;
 };
 export type MarkovEvent = { start: number; length: number; state: number; durationState: number };
-export type MarkovError = "pitchPath" | "rhythmPath" | "searchLimit" | "capacity" | "scoreRange";
+export type MarkovError = "pitchPath" | "rhythmPath" | "searchLimit" | "capacity" | "scoreRange" | "emptyRows";
 
 export function phraseLengths(steps: number) {
   const lengths: number[] = [];
@@ -24,16 +26,54 @@ export function durationStates(subdivision: number, steps: number) {
   return [...new Set([1, 2, 4, 8, subdivision, subdivision * 2])].filter((n) => n <= steps).sort((a, b) => a - b);
 }
 
-export function initialChain(size: number, kind: "pitch" | "rhythm" | "hits"): Chain {
-  return Array.from({ length: size + 1 }, (_, from) => {
+function gcd(a: number, b: number) {
+  while (b) [a, b] = [b, a % b];
+  return a;
+}
+
+export function durationLabel(units: number, perStep: number) {
+  const divisor = gcd(units, perStep);
+  return perStep === divisor ? String(units / divisor) : `${units / divisor}/${perStep / divisor}`;
+}
+
+type ChainKind = "pitch" | "rhythm" | "hits";
+
+export function initialChain(size: number, kind: ChainKind, hasRest = true): Chain {
+  function row(from: number) {
     const weights = Array.from({ length: size }, (_, to) => {
       if (kind === "rhythm") return 1 / (1 + to * 0.5);
-      if (to === size - 1) return 0.12;
+      if (hasRest && to === size - 1) return 0.12;
       if (kind === "hits" || from >= size - 1) return 1;
       return 1 / (1 + Math.abs(from - to));
     });
     const sum = weights.reduce((a, b) => a + b, 0);
     return weights.map((n) => (n * 100) / sum);
+  }
+  // Score notes can have thousands of distinct lengths. Identical default rows
+  // share storage until the user edits a row.
+  return kind === "rhythm" ? Array(size + 1).fill(row(0)) : Array.from({ length: size + 1 }, (_, i) => row(i));
+}
+
+export type NamedChain = { keys: string[]; chain: Chain };
+
+/** Carry relative weights across state selections, including the Start row. */
+export function remapChain(previous: NamedChain, keys: string[], kind: ChainKind): Chain {
+  if (previous.keys.length === keys.length && keys.every((key, i) => key === previous.keys[i]))
+    return previous.chain;
+  const defaults = initialChain(keys.length, kind, keys[keys.length - 1] === "rest");
+  const before = new Map(previous.keys.map((key, i) => [key, i]));
+  const indexes = keys.map((key) => before.get(key));
+  const cache = new Map<number[], number[]>();
+  return [...indexes, previous.keys.length].map((index, i) => {
+    if (index === undefined) return defaults[i];
+    const original = previous.chain[index];
+    const cached = kind === "rhythm" && cache.get(original);
+    if (cached) return cached;
+    const weights = indexes.map((j, col) => (j === undefined ? defaults[i][col] : original[j]));
+    const total = weights.reduce((a, b) => a + b, 0);
+    const result = total ? weights.map((w) => (100 * w) / total) : defaults[i];
+    if (kind === "rhythm") cache.set(original, result);
+    return result;
   });
 }
 
@@ -63,22 +103,27 @@ function walk(
 ): number[] | null {
   const start = chain.length - 1;
   const path: number[] = [];
-  const forks: number[][] = [];
+  // Keep failed choices only when backtracking. A Score may offer thousands of
+  // tick lengths at each event; retaining every untried choice at every depth
+  // would make a perfectly valid long take consume quadratic memory.
+  const failed: (Set<number> | undefined)[] = [];
   while (true) {
     const depth = path.length;
     const row = chain[path[depth - 1] ?? start];
-    const options = (forks[depth] ??= row.map((_, i) => i).filter((i) => row[i] > 0 && allowed(i, depth, path)));
+    const options = row
+      .map((_, i) => i)
+      .filter((i) => row[i] > 0 && !failed[depth]?.has(i) && allowed(i, depth, path));
     if (!options.length) {
-      forks.pop();
       if (!depth) return null;
-      path.pop();
+      failed.length = depth;
+      (failed[depth - 1] ??= new Set()).add(path.pop()!);
       continue;
     }
     if (--budget.left < 0) throw new Error("searchLimit");
     let threshold = rng() * options.reduce((sum, i) => sum + row[i], 0);
     let j = 0;
     while (j < options.length - 1 && (threshold -= row[options[j]]) >= 0) j++;
-    const [state] = options.splice(j, 1);
+    const state = options[j];
     path.push(state);
     if (advance(state, depth, path)) return path;
   }
@@ -88,9 +133,10 @@ export function generateMarkov(steps: number, durations: number[], recipe: Marko
   const { pitchLength, rhythmLength, pitch, rhythm } = recipe;
   if (pitchLength < 1 || rhythmLength < 1 || steps % pitchLength || steps % rhythmLength)
     throw new Error("rhythmPath");
-  let block = pitchLength,
-    divisor = rhythmLength;
-  while (divisor) [block, divisor] = [divisor, block % divisor];
+  const block = gcd(pitchLength, rhythmLength);
+  // A rhythm must tile each common phrase boundary exactly.
+  const quantum = durations.reduce(gcd, 0);
+  if (!quantum || block % quantum) throw new Error("rhythmPath");
   const rng = random(recipe.seed),
     budget = { left: 250000 };
   const min = durations[0],
@@ -100,7 +146,7 @@ export function generateMarkov(steps: number, durations: number[], recipe: Marko
   const firstBlockCounts: number[] = [0];
   const pitchPaths = new Map<number, number[] | null>();
   let pitches: number[] | null = null;
-  const rest = pitch.length - 2;
+  const rest = recipe.restState ?? pitch.length - 2;
   function pitchPhrase(slots: number) {
     if (pitchPaths.has(slots)) return pitchPaths.get(slots) ?? null;
     const total = slots * (pitchLength / block);
@@ -149,11 +195,18 @@ export function generateMarkov(steps: number, durations: number[], recipe: Marko
   );
   if (!rhythmPath || !pitches)
     throw new Error(pitchPaths.size && ![...pitchPaths.values()].some(Boolean) ? "pitchPath" : "rhythmPath");
+  const phrase: number[] = pitches;
+  const eventsInTake = rhythmPath.length * (steps / rhythmLength);
+  const notesPerPhrase = phrase.reduce((n, state) => n + Number(state !== rest), 0);
+  if (recipe.maxNotes !== undefined && notesPerPhrase * (eventsInTake / phrase.length) > recipe.maxNotes)
+    throw new Error("capacity");
+  // Native-tick Score phrases can repeat far more often than a grid-step phrase.
+  // Bound the expanded preview even when it consists entirely of rests.
+  if (eventsInTake > 250000) throw new Error("searchLimit");
   const events: MarkovEvent[] = [];
   for (let start = 0, i = 0; start < steps; i++) {
     const durationState = rhythmPath[i % rhythmPath.length],
       length = durations[durationState];
-    const phrase: number[] = pitches;
     events.push({ start, length, state: phrase[i % phrase.length], durationState });
     start += length;
   }

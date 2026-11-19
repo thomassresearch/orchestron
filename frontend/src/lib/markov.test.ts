@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { durationStates, generateMarkov, initialChain, phraseLengths, redistribute } from "./markov";
-import { writeMarkovPattern, scalePitches } from "./markovPattern";
+import {
+  durationLabel,
+  durationStates,
+  generateMarkov,
+  initialChain,
+  phraseLengths,
+  redistribute,
+} from "./markov";
+import { patternVocabulary, writeMarkovPattern, scalePitches } from "./markovPattern";
 import {
   defaultSequencerTrack,
   defaultDrummerSequencerTrack,
@@ -61,8 +68,67 @@ describe("independent Markov phrases", () => {
     const r = { ...recipe(32768, 32768), rhythm: [[100], [100]] };
     expect(generateMarkov(32768, [8], r)).toHaveLength(4096);
   });
+  it("checks Score capacity before expanding a short native-tick phrase across a long score", () => {
+    const r = { ...recipe(1, 1), pitch: [[100], [100]], rhythm: [[100], [100]], maxNotes: 10000, restState: -1 };
+    expect(() => generateMarkov(160000000, [1], r)).toThrow("capacity");
+    expect(() => generateMarkov(160000000, [1], { ...r, restState: 0 })).toThrow("searchLimit");
+  });
 });
 const timing = defaultSequencerTiming();
+
+describe("source pattern filters", () => {
+  it("reads exact chord pitches and attack lengths including HOLDs only inside the melodic pad", () => {
+    const pad = defaultSequencerTrack(1, 1, timing).pads[0];
+    const cell = { note: null, hold: false, chord: "none" as const, velocity: 100 };
+    pad.lengthBeats = 1;
+    pad.steps = [
+      { ...cell, note: 72, chord: "maj" },
+      { ...cell, hold: true },
+      { ...cell, hold: true },
+      { ...cell, note: 49, hold: true },
+      { ...cell, note: 100 },
+    ];
+    const source = patternVocabulary({ source: "sequencer", payload: pad }, timing);
+    expect(source.pitches).toEqual([49, 72, 76, 79]);
+    expect(source.durations).toEqual([1, 3]);
+  });
+
+  it("reads native Score ticks and preserves sub-step lengths exactly", () => {
+    const pad = defaultScoreTrack(1, timing).pads[0];
+    pad.lengthBeats = 1;
+    pad.notes = [
+      { id: "a", pitch: 91, startTicks: 0, durationTicks: 1680, velocity: 91 },
+      { id: "b", pitch: 48, startTicks: 1000, durationTicks: 3360, velocity: 82 },
+      { id: "hidden", pitch: 40, startTicks: 20160, durationTicks: 9, velocity: 75 },
+    ];
+    const material = patternVocabulary({ source: "score", payload: pad }, timing);
+    expect(material.pitches).toEqual([48, 91]);
+    expect(material.durations.map((n) => durationLabel(n, material.unitsPerStep))).toEqual(["1/3", "2/3"]);
+  });
+
+  it("measures drum hit spacings around the loop and uses only the participating rows", () => {
+    const pad = defaultDrummerSequencerTrack(1, 1, timing).pads[0];
+    pad.lengthBeats = 2;
+    pad.rows.forEach((r) =>
+      r.steps.forEach((step) => {
+        step.active = false;
+      }),
+    );
+    const [kick, hat, other] = pad.rows;
+    for (const [row, i] of [
+      [kick, 2],
+      [hat, 2],
+      [hat, 5],
+      [other, 1],
+      [kick, 9],
+    ] as const)
+      row.steps[i].active = true;
+    const source = patternVocabulary({ source: "drummer", payload: pad }, timing, [kick.rowId, hat.rowId]);
+    expect([...source.drumRows]).toEqual([kick.rowId, hat.rowId]);
+    expect(source.combinations).toEqual([[kick.rowId, hat.rowId]]);
+    expect(source.durations).toEqual([3, 5]);
+  });
+});
 const notes = [
   { start: 0, length: 2, state: 0, durationState: 1 },
   { start: 2, length: 2, state: 1, durationState: 1 },

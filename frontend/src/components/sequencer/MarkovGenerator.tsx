@@ -5,25 +5,42 @@ import { MarkovGraph, graphColors } from "./MarkovGraph";
 import { useMarkovAudition } from "./useMarkovAudition";
 import {
   durationStates,
+  durationLabel,
   generateMarkov,
   initialChain,
   phraseLengths,
+  remapChain,
+  type NamedChain,
   type MarkovEvent,
   type MarkovRecipe,
   type MarkovError,
 } from "../../lib/markov";
-import { scalePitches, writeMarkovPattern, type GeneratedPattern } from "../../lib/markovPattern";
+import {
+  patternVocabulary,
+  scalePitches,
+  writeMarkovPattern,
+  type GeneratedPattern,
+} from "../../lib/markovPattern";
 import { markovCopy } from "../../lib/markovCopy";
 import { midiNoteLabel } from "../../lib/sequencer";
 import { localBeatTicks } from "../../lib/clipArranger/model";
-import { SCORE_MAX_TOTAL_NOTES } from "../../lib/scoreSequencer";
+import { SCORE_MAX_PAD_NOTES, SCORE_MAX_TOTAL_NOTES } from "../../lib/scoreSequencer";
 import { useAppStore } from "../../store/useAppStore";
 import { sequencerEditAccess } from "../../store/sequencerEdits";
 import type { GuiLanguage, DrummerSequencerRowState, ScorePadState, SequencerTimingConfig } from "../../types";
 import "./markov.css";
 
-type Settings = { recipe: MarkovRecipe; octave: number; selected: string[]; groups: string[][] };
-type Take = { events: MarkovEvent[]; pattern: GeneratedPattern; labels: string[] };
+type Settings = {
+  recipe: MarkovRecipe;
+  octave: number;
+  selected: string[];
+  groups: string[][];
+  keepPitches?: boolean;
+  keepDurations?: boolean;
+  keptPitch?: NamedChain;
+  keptRhythm?: NamedChain;
+};
+type Take = { events: MarkovEvent[]; pattern: GeneratedPattern; labels: string[]; filters: string; rest: number };
 type Props = {
   id: string;
   name: string;
@@ -114,7 +131,7 @@ function GeneratorDialog({
   const c = markovCopy[language],
     drum = pattern.source === "drummer",
     steps = pattern.payload.lengthBeats * timing.stepsPerBeat;
-  const durations = useMemo(() => durationStates(timing.stepsPerBeat, steps), [timing.stepsPerBeat, steps]);
+  const defaultDurations = useMemo(() => durationStates(timing.stepsPerBeat, steps), [timing.stepsPerBeat, steps]);
   const lengths = useMemo(() => phraseLengths(steps), [steps]);
   const [base] = useState(pattern);
   const [settings, setSettings] = useState<Settings>(
@@ -122,7 +139,7 @@ function GeneratorDialog({
       saved ?? {
         recipe: {
           pitch: initialChain(drum ? rows.length + 1 : 9, drum ? "hits" : "pitch"),
-          rhythm: initialChain(durations.length, "rhythm"),
+          rhythm: initialChain(defaultDurations.length, "rhythm"),
           pitchLength: steps,
           rhythmLength: steps,
           seed: seed(),
@@ -132,13 +149,84 @@ function GeneratorDialog({
         groups: [],
       },
   );
-  const { recipe, selected, groups, octave } = settings;
+  const { recipe: original, selected, groups, octave } = settings;
   const [combination, setCombination] = useState<string[]>([]);
-  const pitches = useMemo(
+  const source = useMemo(
+    () => patternVocabulary(base, timing),
+    [base, timing.meterDenominator, timing.stepsPerBeat],
+  );
+  const nonempty = source.durations.length > 0;
+  const keepPitches = nonempty && !!settings.keepPitches;
+  const keepDurations = nonempty && !!settings.keepDurations;
+  const material = useMemo(
+    () => (drum && selected.length !== rows.length ? patternVocabulary(base, timing, selected) : source),
+    [base, source, drum, selected, rows.length],
+  );
+  const scale = useMemo(
     () => (base.source === "drummer" ? [] : scalePitches(base.payload, octave)),
     [base, octave],
   );
-  const hits = useMemo(() => [...selected.map((row) => [row]), ...groups], [selected, groups]);
+  const pitches = keepPitches ? material.pitches : scale;
+  const allHits = useMemo(() => [...selected.map((row) => [row]), ...groups], [selected, groups]);
+  const hits = useMemo(() => {
+    if (!drum || !keepPitches) return allHits;
+    const known = new Map<string, string[]>();
+    for (const group of [...allHits, ...material.combinations]) {
+      if (group.every((row) => material.drumRows.has(row))) known.set(JSON.stringify([...group].sort()), group);
+    }
+    return [...known.values()];
+  }, [allHits, drum, keepPitches, material]);
+  const durations = keepDurations ? material.durations : defaultDurations;
+  const perStep = keepDurations ? material.unitsPerStep : 1;
+  // In a groove, a Rest would skip an attack and join two allowed hit spacings.
+  const hasRest = !(drum && keepDurations);
+  const pitchFiltered = keepPitches || !hasRest;
+  const pitchKeys = useMemo(
+    () => [...(drum ? hits.map((g) => JSON.stringify(g)) : pitches.map(String)), ...(hasRest ? ["rest"] : [])],
+    [drum, hits, pitches, hasRest],
+  );
+  const durationKeys = useMemo(() => durations.map((n) => durationLabel(n, perStep)), [durations, perStep]);
+  const pitch = useMemo(
+    () =>
+      pitchFiltered
+        ? remapChain(
+            settings.keptPitch ?? {
+              keys: [...(drum ? allHits.map((g) => JSON.stringify(g)) : scale.map(String)), "rest"],
+              chain: original.pitch,
+            },
+            pitchKeys,
+            drum ? "hits" : "pitch",
+          )
+        : original.pitch,
+    [pitchFiltered, settings.keptPitch, drum, allHits, scale, original.pitch, pitchKeys],
+  );
+  const rhythm = useMemo(
+    () =>
+      keepDurations
+        ? remapChain(
+            settings.keptRhythm ?? {
+              keys: defaultDurations.map(String),
+              chain: original.rhythm,
+            },
+            durationKeys,
+            "rhythm",
+          )
+        : original.rhythm,
+    [keepDurations, settings.keptRhythm, defaultDurations, original.rhythm, durationKeys],
+  );
+  const recipe = useMemo(
+    () => ({
+      ...original,
+      pitch,
+      rhythm,
+      restState: hasRest ? pitchKeys.length - 1 : -1,
+      pitchLength: original.pitchLength * perStep,
+      rhythmLength: original.rhythmLength * perStep,
+      maxNotes: base.source === "score" ? SCORE_MAX_PAD_NOTES : undefined,
+    }),
+    [original, pitch, rhythm, hasRest, pitchKeys.length, perStep, base.source],
+  );
+  const filters = JSON.stringify([keepPitches, keepDurations, drum && (keepPitches || keepDurations) && selected]);
   const rowName = (row: string) => String(rows.find((r) => r.id === row)?.key ?? "–");
   const labels = [
     ...(drum
@@ -146,9 +234,10 @@ function GeneratorDialog({
       : pitches.map(
           (p) => midiNoteLabel(p, base.source !== "drummer" && base.payload.scaleRoot.includes("b")).split(" ")[0],
         )),
-    c.rest,
+    ...(hasRest ? [c.rest] : []),
   ];
-  const [take, setTake] = useState<Take | null>(null);
+  const [lastTake, setTake] = useState<Take | null>(null);
+  const take = lastTake?.filters === filters ? lastTake : null;
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(true);
   const audio = useMarkovAudition(id, clipKey, padIndex, setError);
@@ -179,7 +268,7 @@ function GeneratorDialog({
     const rt = s.sequencerRuntime;
     const origin = (drum ? rt.drummerStateById[id] : rt.trackStateById[id])?.runtimePadStartSubunit;
     const local = drum ? rt.drummerTrackLocalStepById[id] : rt.trackLocalStepById[id];
-    return origin != null ? Math.floor((rt.transportSubunit - origin) / stepTicks) % steps : (local ?? -1);
+    return origin != null ? ((rt.transportSubunit - origin) / stepTicks) % steps : (local ?? -1);
   });
   const stale =
     base.payload !== pattern.payload && JSON.stringify(base.payload) !== JSON.stringify(pattern.payload);
@@ -190,12 +279,19 @@ function GeneratorDialog({
     function fail(reason: string) {
       if (!cancelled) {
         setBusy(false);
-        setError(c[reason as MarkovError] ?? reason);
+        setError(
+          reason === "rhythmPath" && keepDurations ? c.keptRhythmPath : (c[reason as MarkovError] ?? reason),
+        );
+        if (!take && audioRef.current.playing) void audioRef.current.stop();
       }
     }
-    function finish(events: MarkovEvent[]) {
+    function finish(generated: MarkovEvent[]) {
       if (cancelled) return;
       try {
+        const events =
+          perStep === 1
+            ? generated
+            : generated.map((e) => ({ ...e, start: e.start / perStep, length: e.length / perStep }));
         const candidate = writeMarkovPattern(base, timing, events, pitches, hits);
         const state = useAppStore.getState();
         if (candidate.source === "score" && clipKey) {
@@ -215,16 +311,20 @@ function GeneratorDialog({
               ) ?? 0;
           if (total + candidate.payload.notes.length > SCORE_MAX_TOTAL_NOTES) throw new Error("capacity");
         }
-        setTake({ events, pattern: candidate, labels });
+        setTake({ events, pattern: candidate, labels, filters, rest: recipe.restState });
         setBusy(false);
         if (audioRef.current.playing) void audioRef.current.send(candidate);
       } catch (e) {
         fail((e as Error).message);
       }
     }
-    if (steps <= 128) {
+    if ((keepPitches && !hits.length && drum) || (keepDurations && !durations.length)) {
+      fail("emptyRows");
+      return;
+    }
+    if (steps * perStep <= 128) {
       try {
-        finish(generateMarkov(steps, durations, recipe));
+        finish(generateMarkov(steps * perStep, durations, recipe));
       } catch (e) {
         fail((e as Error).message);
       }
@@ -237,7 +337,7 @@ function GeneratorDialog({
       worker.terminate();
     };
     worker.onerror = (e) => fail(e.message);
-    worker.postMessage([steps, durations, recipe]);
+    worker.postMessage([steps * perStep, durations, recipe]);
     return () => {
       cancelled = true;
       worker.terminate();
@@ -250,6 +350,8 @@ function GeneratorDialog({
     recipe,
     pitches,
     hits,
+    filters,
+    perStep,
     c,
     clipKey,
     timing.meterDenominator,
@@ -258,16 +360,12 @@ function GeneratorDialog({
   // Candidate IDs, durations and row selection are frozen at generation, including during audition.
   const update = (part: Partial<MarkovRecipe>) => setSettings((s) => ({ ...s, recipe: { ...s.recipe, ...part } }));
   function changeHits(next: string[], nextGroups: string[][]) {
-    const keys = (list: string[][]) => [...list.map((g) => JSON.stringify(g)), "rest", "start"];
-    const old = keys(hits),
-      ids = keys([...next.map((r) => [r]), ...nextGroups]);
-    const chain = initialChain(ids.length - 1, "hits").map((defaults, i) => {
-      const prior = recipe.pitch[old.indexOf(ids[i])];
-      if (!prior) return defaults;
-      const weights = defaults.map((w, j) => (old.includes(ids[j]) ? prior[old.indexOf(ids[j])] : w));
-      const sum = weights.reduce((a, b) => a + b, 0);
-      return sum ? weights.map((w) => (w * 100) / sum) : defaults;
-    });
+    const keys = (list: string[][]) => [...list.map((g) => JSON.stringify(g)), "rest"];
+    const chain = remapChain(
+      { keys: keys(allHits), chain: original.pitch },
+      keys([...next.map((r) => [r]), ...nextGroups]),
+      "hits",
+    );
     setSettings((s) => ({ ...s, selected: next, groups: nextGroups, recipe: { ...s.recipe, pitch: chain } }));
   }
   function dismiss() {
@@ -289,7 +387,7 @@ function GeneratorDialog({
       {c.phrase}{" "}
       <select
         aria-label={title + " · " + c.phrase}
-        value={recipe[field]}
+        value={original[field]}
         onChange={(e) => update({ [field]: +e.target.value })}
       >
         {lengths.map((n) => (
@@ -319,8 +417,8 @@ function GeneratorDialog({
       const column = Math.floor((900 * event.start) / steps);
       if (column === lastColumn) return [];
       lastColumn = column;
-      const rest = event.state === take.labels.length - 1;
-      const y = rest ? 42 : 34 - (30 * event.state) / Math.max(1, take.labels.length - 2);
+      const rest = event.state === take.rest;
+      const y = rest ? 42 : 34 - (30 * event.state) / Math.max(1, take.labels.length - (take.rest < 0 ? 1 : 2));
       return [
         <rect
           key={event.start}
@@ -332,12 +430,12 @@ function GeneratorDialog({
           fill={graphColors[event.state % graphColors.length]}
         >
           <title>
-            {take.labels[event.state]} · {event.length} {c.steps}
+            {take.labels[event.state]} · {durationLabel(Math.round(event.length * perStep), perStep)} {c.steps}
           </title>
         </rect>,
       ];
     });
-  }, [take, steps, c.steps]);
+  }, [take, steps, c.steps, perStep]);
   return (
     <dialog
       ref={dialog}
@@ -358,6 +456,26 @@ function GeneratorDialog({
         </button>
       </header>
       <p className="mk-hint">{c.hint}</p>
+      {nonempty && (
+        <div className="mk-filters">
+          <label>
+            <input
+              type="checkbox"
+              checked={keepPitches}
+              onChange={(e) => setSettings({ ...settings, keepPitches: e.target.checked })}
+            />{" "}
+            {c.keepPitches}
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={keepDurations}
+              onChange={(e) => setSettings({ ...settings, keepDurations: e.target.checked })}
+            />{" "}
+            {c.keepDurations}
+          </label>
+        </div>
+      )}
       {drum ? (
         <details className="mk-options">
           <summary>
@@ -412,7 +530,11 @@ function GeneratorDialog({
       ) : (
         <label className="mk-register">
           {c.octave}{" "}
-          <select value={octave} onChange={(e) => setSettings((s) => ({ ...s, octave: +e.target.value }))}>
+          <select
+            disabled={keepPitches}
+            value={octave}
+            onChange={(e) => setSettings((s) => ({ ...s, octave: +e.target.value }))}
+          >
             {[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8]
               .filter((n) => base.source !== "drummer" && scalePitches(base.payload, n).every((p) => p <= 127))
               .map((n) => (
@@ -423,25 +545,34 @@ function GeneratorDialog({
       )}
       <div className="mk-graphs">
         <MarkovGraph
-          key={JSON.stringify(hits)}
+          key={"pitch" + JSON.stringify(pitchKeys)}
           title={pitchTitle}
           copy={c}
           labels={labels}
           chain={recipe.pitch}
           playing={active?.state}
           previous={prev?.state ?? labels.length}
-          onChange={(pitch) => update({ pitch })}
+          onChange={(chain) =>
+            pitchFiltered
+              ? setSettings((s) => ({ ...s, keptPitch: { keys: pitchKeys, chain } }))
+              : update({ pitch: chain })
+          }
         >
           {phrase("pitchLength", pitchTitle)}
         </MarkovGraph>
         <MarkovGraph
+          key={"rhythm" + JSON.stringify(durationKeys)}
           title={durationTitle}
           copy={c}
-          labels={durations.map(String)}
+          labels={durationKeys}
           chain={recipe.rhythm}
           playing={active?.durationState}
           previous={prev?.durationState ?? durations.length}
-          onChange={(rhythm) => update({ rhythm })}
+          onChange={(chain) =>
+            keepDurations
+              ? setSettings((s) => ({ ...s, keptRhythm: { keys: durationKeys, chain } }))
+              : update({ rhythm: chain })
+          }
         >
           {phrase("rhythmLength", durationTitle)}
         </MarkovGraph>
@@ -474,7 +605,7 @@ function GeneratorDialog({
       )}
       <footer>
         <button
-          disabled={!take || !audio.available || stale}
+          disabled={!audio.playing && (!take || !audio.available || stale || busy)}
           aria-pressed={audio.playing}
           onClick={() => {
             if (audio.playing) void audio.stop();

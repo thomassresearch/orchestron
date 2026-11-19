@@ -9,7 +9,7 @@ Orchestron is a visual instrument workshop built on the power of Csound — not 
 
 Read the complete user documentation in [user_documentation.md](documentation/user_documentation.md).
 
-Use **Markov Generator** in Melodic, Score and Drummer editors to shape pitch or drum hits and rhythm with two probability graphs. Audition a take on the track, then choose **Use pattern** to edit its notes. [Markov Generator guide](documentation/performance/sequencer_tracks_and_steps.md#markov-generator)
+Use **Markov Generator** in Melodic, Score and Drummer editors to shape pitch or drum hits and rhythm. On an existing pattern, **Keep pitches** and **Keep durations** independently limit the generator to the notes and lengths already present. Resize the window for a closer look, click an edge percentage to adjust its weight, then audition and choose **Use pattern**. [Markov Generator guide](documentation/performance/sequencer_tracks_and_steps.md#markov-generator)
 
 Sequencers offer meter, per-pad pattern length and named subdivisions, including triplets. Beat groups show how twelve steps fit into one 4/4 bar; advanced playback speed stays independent. [Timing guide (EN/DE/FR/ES)](documentation/performance/sequencer_timing.md).
 
