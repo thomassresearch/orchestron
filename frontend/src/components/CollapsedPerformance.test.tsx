@@ -1,3 +1,4 @@
+import { sessionAudioSignature } from "../store/sessionSignature";
 import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 // @vitest-environment jsdom
 import { Profiler, StrictMode, useState } from "react";
@@ -270,7 +271,7 @@ it("keeps pending audio-control synchronization alive when Mixer collapses", asy
   vi.useFakeTimers();
   try {
     const state = useAppStore.getState();
-    useAppStore.setState({ activeSessionId: "collapse-audio-test", activeSessionAudioSignature: JSON.stringify({ graph: state.audioGraph, patches: state.patches.map(patch => [patch.id, patch.updated_at]) }) });
+    useAppStore.setState({ activeSessionId: "collapse-audio-test", activeSessionAudioSignature: sessionAudioSignature(state) });
     vi.spyOn(api, "getMixer").mockResolvedValue({ mixer: state.mixer, revision: 1 });
     const update = vi.spyOn(api, "updateMixer").mockResolvedValue({ mixer: state.mixer, revision: 2 });
     fireEvent.change(screen.getAllByRole("spinbutton", { name: "Gain dB" })[0], { target: { value: "-9" } });

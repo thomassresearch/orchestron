@@ -38,7 +38,7 @@ Optional compact rack
 │ Editor context, scope and Save   │                    │
 │ Selected editor OR keyboard     │                    │
 └──────────────────────────────────┴────────────────────┘
-Session status and access to runtime diagnostics
+Session status, renderer, CPU, buffer fill and parallel playback
 ```
 
 - Keep the song transport immediately above the arrangement. It includes the existing
@@ -168,7 +168,7 @@ The shell measures the working area after the application controls take their sp
 | Sample Player note maps | Open **Samples** from the selected rack instance in the Instrument dock. Show its MIDI channel, note, file, Preview and Stop preview together. |
 | Faders, pan/balance, meters, mute/solo, sends and inserts | Mix view with the pinned Master and clear Direct Audio Output indicators. |
 | Routing matrix, diagram, exact mappings and diagnostics | Mix routing view and contextual routing access. |
-| MIDI input, engine state, audio health, runtime errors and engine statistics | Compact persistent status plus accessible diagnostic detail; runtime failures remain visible. |
+| MIDI input, engine state, audio health, runtime errors and engine statistics | Show the renderer, CPU readings, buffer meter, parallel playback checkbox and full error in the persistent status bar. |
 | Instrument graph, opcode browser and isolated draft audition | Instrument Design, with a clear return to the performance context. |
 
 The rack and contextual instrument controls operate on the same instances. Master remains
@@ -238,7 +238,7 @@ only on first entry.
 | --- | --- |
 | Arrange | The selected track, clip occurrence and editor selection, including a step, drum row or automation point. Restore Fit tracks and the timeline, editor and Inspector scroll positions. |
 | Live | The selected device and its editing pad, the launcher or open dock, and the device-list and dock scroll positions. Playing and queued indicators reflect the current device state. |
-| Mix | The selected strip or rack instance, the Mixer, Rack or Routing view, the open Instrument controls or Samples dock, the channel-bank offset on both axes and the Master strip's own scroll position. |
+| Mix | The selected instruments and focused instance, the Mixer, Rack or Routing view, the open Instrument controls or Samples dock, the channel-bank offset on both axes and the Master strip's own scroll position. |
 
 **Compact rack** remembers its disclosure and horizontal offset in each view. In Arrange and Live, selecting an instance keeps the current musical editor active. A named rack command opens Mix at that instance and destination. In Mix, selecting a compatible instance retargets the open detail. Selecting Master or an instance without a Sample Player closes an incompatible detail and ends its preview. **Routing** occupies the overview so the channel matrix can use the available width.
 
@@ -294,7 +294,12 @@ The compact keyboard pane includes a device picker, its eight pads, Play/Stop an
 silent study advances launches through **Advance loop boundary**. The application uses the
 device’s musical clock.
 
-In Mix, selecting a strip sets the target for its controls and routing. Open detail explicitly.
+Instrument Design, Perform and Config share a compact header with the Orchestron logo, localized description, GUI language and page selector.
+
+In Mix, a plain click selects one instance. Shift-click or Shift+Enter/Space on strip names, compact rack entries or full rack patch numbers adds or removes individual instances. The most recently selected instance is the target for the Inspector, Samples and Routing. Selecting Master clears the instrument selection. Open detail explicitly.
+
+Instrument controls displays each selected instrument and its dedicated inserts in signal order where the routing forms a chain, including nested or bypassed processors. Show each instance once, with its own values and mappings. Use the expanded rack’s adaptive packing rules for the available width. Mix → Rack shows the full assignment and control cards, including sample maps. Compact rack remains the quick instance picker.
+
 Use a horizontal bank for instrument and return strips, a pinned Master strip on the right
 and a separate stereo Audio Output meter below both. Show the main destination on each strip.
 Master gain and mute act on paths routed to Master. The final meter includes direct paths after
@@ -369,4 +374,4 @@ The saved [mock](orchestron-studio-study.html) demonstrates the fixed Arrange st
 resizable dock. The walkthrough above identifies the remaining differences to evaluate with
 musicians. Editing, saving, Undo, routing and transport are simulated.
 
-A page reload clears display preferences for this release. Each view retains its selection, open panels and scroll while the workspace is open. The compact status line shows the session state, MIDI input, pending clip edits and runtime errors. Diagnostics opens the full error and engine statistics. Further shortcuts and preferences that survive reload remain product decisions. [Release record](milestone-7-release.md)
+A page reload clears display preferences for this release. Each view retains its selection, open panels and scroll while the workspace is open. The status bar shows session state, MIDI input, pending clip edits, full runtime errors and engine CPU readings. Parallel playback defaults to enabled on reload and can be changed while stopped. Meter queued PCM frames against the worker’s current high-water target. Display queued and target milliseconds and the underrun count, mark low-water risk in red, and show an idle meter while stopped. [Release record](milestone-7-release.md)

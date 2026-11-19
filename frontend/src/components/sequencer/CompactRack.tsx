@@ -1,8 +1,9 @@
+import { useRackSelection } from "./useRackSelection";
 import { groupRackInstruments } from "../../lib/rackOrdering";
 import { audioCopy } from "../../lib/audioCopy";
 import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage } from "../../types";
-import { RetainedScroll, usePerformanceEditorState } from "./PerformanceEditorState";
+import { RetainedScroll } from "./PerformanceEditorState";
 import type { ViewNavigation, MixDestination } from "./PerformWorkspace";
 import { SEQUENCER_UI_COPY } from "./sequencerUiCopy";
 import { mixCopy } from "./mixCopy";
@@ -10,7 +11,7 @@ import { mixCopy } from "./mixCopy";
 export function CompactRack({ language, onNavigate }: { language: GuiLanguage; onNavigate?: ViewNavigation }) {
   const bindings = useAppStore(s => s.sequencerInstruments);
   const patches = useAppStore(s => s.patches);
-  const [selected, select] = usePerformanceEditorState("mixer", "selected", "");
+  const { primary: selected, picker } = useRackSelection();
   const binding = bindings.find(row => row.id === selected);
   const byId = new Map(patches.map(p => [p.id, p]));
   const patch = binding && byId.get(binding.patchId);
@@ -22,7 +23,7 @@ export function CompactRack({ language, onNavigate }: { language: GuiLanguage; o
     <RetainedScroll role="group" aria-label={ui.instrumentRack} owner="rack" field="compactScroll" className="ws-rack-picker">
       {[...groups.standard, ...groups.alwaysOn].map(({ binding: row, index }) => {
         const item = byId.get(row.patchId);
-        return <button key={row.id} type="button" data-rack-instance={row.id} aria-pressed={row.id === selected} onClick={() => select(row.id)}>
+        return <button key={row.id} type="button" data-rack-instance={row.id} {...picker(row.id, !onNavigate)}>
           <small>{ui.patch(index + 1)} · {row.midiChannel ? `${audio("midiChannelShort")} ${row.midiChannel}` : audio("continuous")}</small>
           <span>{item?.name ?? row.patchId}</span>
         </button>;

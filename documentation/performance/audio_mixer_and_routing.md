@@ -20,7 +20,9 @@ Open **Mix → Mixer** to balance the performance. Scroll the instrument and ret
 
 ![Mix with a direct-output strip selected, Master on the right and stereo Audio Output along the bottom](../../screenshots/perform-workspace-mix.png)
 
-Select a strip name to see its properties in the **Inspector**. **Instrument controls** opens that instance’s settings below the mixer. **Samples** opens its sample assignments when the patch has a Sample Player. The patch number and MIDI channel distinguish two copies of the same instrument.
+Select a strip name and open **Instrument controls** to adjust the instrument and its insert effects together. Shift-click another strip name or compact rack entry to add it to the selection. Shift-click it again to remove it. A plain click selects a single instrument. The Inspector and **Samples** follow the most recently selected instance. Its patch number and MIDI channel distinguish two copies of the same sound.
+
+![Selected instruments with their insert controls in the expanded dock](../../screenshots/perform-mix-instrument-controls.png)
 
 Use **Compact rack** in Arrange or Live to select an instance and open its controls, samples or routing. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments. Return to Arrange or Live with its view button to resume your edit.
 

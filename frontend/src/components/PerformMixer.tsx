@@ -1,3 +1,4 @@
+import { useRackSelection } from "./sequencer/useRackSelection";
 import { EditorDetails, EditorScope, RetainedScroll, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { MixerFeedbackDiagnostics } from "./MixerFeedbackDiagnostics";
 import { HelpIconButton } from "./HelpIconButton";
@@ -82,7 +83,7 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
   const notice = useAppStore((s) => s.migrationNotice);
   const syncError = useAppStore((s) => s.mixerSyncError);
   const t = audioCopy(language);
-  const [selected, select] = usePerformanceEditorState<string>("mixer", "selected", "");
+  const { ids, primary: selected, select, picker } = useRackSelection();
   const [target, setTarget] = usePerformanceEditorState("mixer", "target", "");
   const [sourcePort, setSourcePort] = usePerformanceEditorState("mixer", "sourcePort", "");
   const [targetPort, setTargetPort] = usePerformanceEditorState("mixer", "targetPort", "");
@@ -244,10 +245,10 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
     const direct = !master && destinations.includes("$output");
     const otherDestinations = destinations.filter(target => !direct || target !== "$output").map(name);
     const chain = insertChain(graph, id);
-    return <article key={id} data-mixer-strip={id} data-selected={selected === id || undefined} data-feedback-instance={feedbackInstances.has(id) ? id : undefined} className={`w-52 shrink-0 rounded-lg border p-3 ${master && !surface ? "sticky right-0 z-10 ml-auto shadow-[-8px_0_16px_#020617]" : ""} ${feedbackInstances.has(id) ? "border-rose-500 bg-rose-950/20" : master ? "border-cyan-600 bg-slate-900" : selected === id ? "border-cyan-500 bg-slate-800" : "border-slate-700 bg-slate-900"}`}>
+    return <article key={id} data-mixer-strip={id} data-selected={ids.includes(id) || undefined} data-feedback-instance={feedbackInstances.has(id) ? id : undefined} className={`w-52 shrink-0 rounded-lg border p-3 ${master && !surface ? "sticky right-0 z-10 ml-auto shadow-[-8px_0_16px_#020617]" : ""} ${feedbackInstances.has(id) ? "border-rose-500 bg-rose-950/20" : master ? "border-cyan-600 bg-slate-900" : ids.includes(id) ? "border-cyan-500 bg-slate-800" : "border-slate-700 bg-slate-900"}`}>
       {feedbackInstances.has(id) && feedbackBadge}
       <div className="min-h-[15px] text-[10px] leading-[15px] text-slate-400">{assignment}</div>
-      <button className="w-full truncate text-left text-sm font-semibold" aria-pressed={selected === id} onClick={() => select(id)}>{name(id)}</button>
+      <button className="w-full truncate text-left text-sm font-semibold" {...picker(id, surface === "mixer")}>{name(id)}</button>
       <div className="my-1 min-h-8 text-[10px] text-slate-400">{direct && <span className="mr-1 rounded border border-amber-600 px-1 text-amber-200">{t("direct")}</span>}{otherDestinations.join(", ") || (!direct && "—")}</div>
       {surface ? <VisibleMeter id={id} name={name(id)} /> : <Meter id={id} name={name(id)} />}
       <label className="flex flex-col text-[10px] text-slate-400">{t("balance")}<span className="self-center"><MixerKnob label={`${name(id)} ${t("balance")}`} min={-1} max={1} step={0.01} value={state.balance} onChange={(balance) => setStrip(id, { balance })} onFinal={flush} /></span>

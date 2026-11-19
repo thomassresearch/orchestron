@@ -1,3 +1,4 @@
+import { sessionAudioSignature } from "./sessionSignature";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand";
 import { api, ApiError } from "../api/client";
@@ -14,7 +15,7 @@ function setup() {
   const graph = emptyAudioGraph();
   const patch = { ...toPatchListItem(audioTemplate("empty")), performance_controllers: [{ node_id: "setting", min: 0, max: 1, default: 0.5, label: "Setting", scale: "linear" as const }] };
   const store = createStore<AppStore>(() => ({ ...useAppStore.getInitialState(), audioGraph: graph, patches: [patch], activeSessionId: "session", activeSessionState: "running",
-    activeSessionAudioSignature: JSON.stringify({ graph, patches: [[patch.id, patch.updated_at]] }),
+    activeSessionAudioSignature: sessionAudioSignature({ ...useAppStore.getInitialState(), audioGraph: graph, patches: [patch] }),
     sequencerInstruments: [{ id: "one", patchId: patch.id, midiChannel: 1, level: 10, effectRoutes: [], effectSourceIds: [] }],
     activeSessionInstruments: [{ id: "one", patch_id: patch.id, midi_channel: 1 }] }));
   const actions = createPerformanceControllerActions(store.setState, store.getState);

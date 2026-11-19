@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sessionAudioSignature } from "../store/sessionSignature";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import type { BrowserClockMainToWorkerMessage, BrowserClockWorkerToMainMessage } from "../audio/browserClockWorkerProtocol";
@@ -109,7 +110,7 @@ it.each([false, true])("restarts the same session through HTTP mixer sync after 
   const instruments = normalizeSessionInstrumentAssignments(bindings);
   useAppStore.setState({
     patches: [], sequencerInstruments: bindings, activeSessionId: sessionId, activeSessionState: "running",
-    activeSessionInstruments: instruments, activeSessionAudioSignature: JSON.stringify({ graph: audioGraph, patches: [] })
+    activeSessionInstruments: instruments, activeSessionAudioSignature: sessionAudioSignature({ ...useAppStore.getState(), audioGraph, patches: [] })
   });
   const { client } = audioClient();
   await client.connect(sessionId);

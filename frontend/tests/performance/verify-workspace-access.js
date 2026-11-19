@@ -7,7 +7,7 @@ async page => {
   for (const size of sizes) {
     await page.setViewportSize(size);
     for (const language of languages) {
-      const picker = page.locator(".ws-language");
+      const picker = page.locator(".app-language-select");
       if (await picker.isVisible()) await picker.selectOption(language);
       else await button({ german: "DE", french: "FR", spanish: "ES", english: "EN" }[language]).click();
       await page.waitForFunction(language => window.__workspaceTest.store.getState().guiLanguage === language, language);
@@ -16,7 +16,7 @@ async page => {
         const view = views.nth(index);
         await view.press("Enter");
         if (await view.getAttribute("aria-pressed") !== "true") throw Error("Keyboard navigation failed");
-        const hidden = await page.locator(".ws-commandbar button:visible, .ws-project summary, .ws-workspace > nav button, .ws-status button, .ws-transport button").evaluateAll(nodes => nodes.filter(el => {
+        const hidden = await page.locator(".ws-commandbar button:visible, .ws-project summary, .ws-workspace > nav button, .ws-status input, [data-app-pages] button, .ws-transport button").evaluateAll(nodes => nodes.filter(el => {
           const r = el.getBoundingClientRect();
           const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
           return !el.contains(hit) || r.x < 0 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1;
@@ -45,8 +45,6 @@ async page => {
   await alert.waitFor();
   const error = await alert.innerText();
   await button("Mix").click();
-  await button("Diagnostics").click();
-  if (!error || !(await page.getByRole("dialog", { name: "Diagnostics" }).innerText()).includes(error)) throw Error("Engine failure missing in Diagnostics");
-  await page.keyboard.press("Escape");
+  if (!error || !(await alert.innerText()).includes(error)) throw Error("Engine failure missing from the status bar");
   return { hits, engineError: error };
 }

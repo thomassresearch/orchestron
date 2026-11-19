@@ -26,9 +26,7 @@ async page => {
       const s = window.__workspaceTest.store.getState();
       return s.sequencerRuntime.arrangerActive && s.sequencerRuntime.arrangerTransportSubunit !== frame && s.sequencer.timing.tempoBPM === 99;
     }, frame);
-    await button("Diagnostics").click();
-    if (!(await page.getByRole("dialog", { name: "Diagnostics" }).innerText()).includes("Preparation rejected")) throw Error("Diagnostics lost the failed preparation");
-    await page.keyboard.press("Escape");
+    await alert.filter({ hasText: "Preparation rejected" }).waitFor();
     if (rejected !== 1) throw Error("Navigation retried the rejected edit");
     await page.unroute(endpoint);
     const applied = page.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith("/sequencer/config") && r.ok());

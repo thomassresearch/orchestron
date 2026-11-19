@@ -156,8 +156,9 @@ stamp; Docker keeps the compiler out of the runtime image. Editable builds use
 `uv sync --reinstall-package visualcsound-backend` or
 `python -m backend.experiments.rust_worker.build`.
 `VISUALCSOUND_BUILD_RUST_WORKER=off` explicitly omits it from a build; select the deprecated
-Python worker separately to use parallel playback without Rust. Single rendering remains
-the application default. See the retained [comparison results](backend/experiments/rust_worker/RESULTS.md).
+Python worker separately to use parallel playback without Rust. The Perform UI requests automatic
+renderer selection by default. API clients that omit the mode receive single rendering.
+See the retained [comparison results](backend/experiments/rust_worker/RESULTS.md).
 
 T08 adds public `SessionCreateRequest.renderer_mode` (`single` by default, or `auto`) and
 optional `browser_settings`. Auto analyses the current whole-instrument graph and admits a

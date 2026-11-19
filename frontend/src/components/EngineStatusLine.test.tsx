@@ -40,12 +40,12 @@ it("covers the previously unspecified range without a color gap", () => {
   expect(cpuLoadColor(null)).toBe("text-slate-400");
 });
 
-it("offers an unchecked stopped-session opt-in and does not start or change audio", () => {
+it("defaults to parallel playback and allows a stopped-session opt-out and does not start or change audio", () => {
   const start = vi.spyOn(api, "startSession");
   render(<EngineStatusLine />);
-  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByRole("checkbox"));
-  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(true);
+  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(false);
   expect(start).not.toHaveBeenCalled();
   expect(useAppStore.getState().activeSessionId).toBeNull();
 });
@@ -90,4 +90,24 @@ it("does not turn unavailable readings into zero load", async () => {
   await act(async () => {});
   expect(screen.getByText("CPU-Auslastung nicht verfügbar")).toBeTruthy();
   expect(screen.queryByText("0%")).toBeNull();
+});
+
+it("meters queued PCM against the current refill target and clears stale readings on stop", async () => {
+  vi.spyOn(api, "getEngineStats").mockResolvedValue(observation);
+  useAppStore.setState({ activeSessionId: "one", activeSessionState: "running" });
+  const diagnostics = { sampleRate: 48000, highWaterFrames: 4800, lowWaterFrames: 1200, queuedFrames: 240,
+    pendingRenderFrames: 9600, underrunCount: 2, overrunCount: 0, renderTimeRatio: null,
+    playbackMode: "live" as const, playbackState: "live" as const };
+  const view = render(<EngineStatusLine embedded diagnostics={diagnostics} />);
+  await act(async () => {});
+  const meter = screen.getByRole("meter", { name: "Playback buffer" });
+  expect(meter.getAttribute("aria-valuenow")).toBe("5");
+  expect(meter.getAttribute("data-level")).toBe("low");
+  expect(screen.getByText("5 / 100 ms")).toBeTruthy();
+  expect(screen.getByText("Underruns 2")).toBeTruthy();
+  view.rerender(<EngineStatusLine embedded diagnostics={{ ...diagnostics, queuedFrames: 6000 }} />);
+  expect(meter.getAttribute("aria-valuenow")).toBe("100");
+  expect(meter.getAttribute("data-level")).toBe("high");
+  await act(async () => { useAppStore.setState({ activeSessionState: "compiled" }); });
+  expect(screen.queryByRole("meter")).toBeNull();
 });

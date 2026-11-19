@@ -8,7 +8,7 @@ This chapter describes the implementation as of 2026-11-13, including whole-inst
 
 ## Scope and architectural choices
 
-Single rendering remains the default. A public session request can explicitly select `renderer_mode="auto"`, allowing parallel rendering when the current graph and available resources support it. Auto retains single rendering as the compatibility fallback. Parallel rendering applies to realtime playback; public compilation and offline CSD exports remain canonical and single.
+Perform requests `renderer_mode="auto"` by default. It selects parallel rendering when the graph and available resources support it, with single rendering as the compatibility fallback. Turning off Parallel playback while stopped requests single rendering on the next start. API clients that omit the mode also receive single rendering. Public compilation and offline CSD exports use the canonical single renderer.
 
 | Choice | Reason and consequence |
 | --- | --- |
@@ -249,7 +249,7 @@ The batch preference has a separate lifetime from renderer selection:
 
 | Setting | Contract |
 | --- | --- |
-| `renderer_mode` | Public `single` default or explicit `auto`; the UI opt-in is session-local. |
+| `renderer_mode` | The public API defaults to `single`. The UI requests `auto` by default and keeps its checkbox choice in browser memory. |
 | `parallel_batch_frames` | Optional strictly validated integer, 32–1024, on session creation. Omitted/null uses the server default. |
 | `VISUALCSOUND_PARALLEL_RENDER_BATCH_FRAMES` | Server default, currently 256, with the same public range. |
 | `parallelRenderBatchFrames` | Workspace preference in app state. Apply is locked while starting/running; a changed value recreates a stopped parallel session on next Start. |

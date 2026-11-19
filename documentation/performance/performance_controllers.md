@@ -12,7 +12,7 @@ To add or wire a control, follow [Defining Performance Controls](../instrument_d
 
 ## Tune a Rack Instrument
 
-Choose the instance in **Compact rack** and select **Instrument controls**. Related controls may appear in labeled groups such as Filter or Envelope. The layout adjusts to browser width and zoom without losing unfinished edits. To change group names or wiring, use [Defining Performance Controls](../instrument_design/performance_controls.md).
+Choose the instance in **Compact rack** and select **Instrument controls**. In Mix, Shift-click instruments to add or remove them. Their control cards include each dedicated insert, including nested inserts. **Mix → Rack** also shows each instance’s controls beside its assignment. Related controls may appear in labeled groups such as Filter or Envelope. The layout adjusts to browser width and zoom without losing unfinished edits. To change group names or wiring, use [Defining Performance Controls](../instrument_design/performance_controls.md).
 
 ![Compact controller groups with a horizontal four-control Envelope](../../screenshots/performance_controller_groups_compact.png)
 

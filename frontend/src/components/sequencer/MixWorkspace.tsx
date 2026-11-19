@@ -1,4 +1,7 @@
-import { useLayoutEffect, type ReactNode } from "react";
+import { useRackSelection } from "./useRackSelection";
+import { AdaptiveInstrumentRack } from "./AdaptiveInstrumentRack";
+import { instrumentsWithInserts } from "../../lib/insertRouting";
+import { useLayoutEffect, useMemo, type ReactNode } from "react";
 import { audioCopy } from "../../lib/audioCopy";
 import { MASTER, defaultStrip, stripDestinations } from "../../lib/audioRouting";
 import { useAppStore } from "../../store/useAppStore";
@@ -17,7 +20,7 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
 }) {
   const audio = audioCopy(language), copy = mixCopy(language), ui = SEQUENCER_UI_COPY[language];
   const [surface, setSurface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
-  const [selected] = usePerformanceEditorState("mixer", "selected", "");
+  const { ids, primary: selected, select } = useRackSelection();
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
   const bindings = useAppStore(s => s.sequencerInstruments);
   const patches = useAppStore(s => s.patches);
@@ -32,6 +35,12 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
   const name = patch?.name ?? binding?.patchId ?? audio("missing");
   const instanceLabel = `${ui.patch(number)} · ${name} · ${channel}`;
   const dock = layout.dock;
+  const patchesById = useMemo(() => new Map(patches.map(p => [p.id, p])), [patches]);
+  const controlRows = useMemo(() => {
+    if (dock !== "instrument") return [];
+    const rows = new Map(bindings.map((row, index) => [row.id, { binding: row, index }]));
+    return instrumentsWithInserts(graph, ids).flatMap(id => rows.get(id) ?? []);
+  }, [bindings, graph, ids, dock]);
   const insertOwner = graph.insertOwners[selected];
   const endpointName = (id: string) => {
     if (id === MASTER) return audio("master");
@@ -64,6 +73,7 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
         {running && <button type="button" onClick={onStop}>{copy("stopRack")}</button>}
       </> : <button type="button" onClick={() => switchSurface("rack")}>{copy("manage")}</button>}
       {details}
+      {bindings.length > 1 && surface !== "routing" && <small className="text-slate-400">{copy("multi")}</small>}
     </div>
     {surface === "mixer" ? <MixerBody onStop={onStop} surface="mixer" onShowRouting={() => switchSurface("routing")} /> :
       <RetainedScroll key={surface} owner="mixer" field={surface + "Scroll"} className="ws-mix-page">
@@ -82,17 +92,32 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
           {binding && <button disabled={!patch} onClick={() => patch && void editMixerPatch(patch.id)}>{audio("edit")}</button>}</div>
       </> : <p>{shellCopy[language].select}</p>}
     </WorkspacePanel>
-    {binding && (dock === "instrument" || (dock === "samples" && capable)) && <WorkspacePanel name="editor">
-      <div key={JSON.stringify([binding.id, binding.patchId, dock])} data-mix-detail-instance={binding.id}>
-        {dock === "samples" ? <SampleMapEditor binding={binding} label={instanceLabel} capable={capable} running={running} language={language} /> : <>
-          <h3>{instanceLabel}</h3>
-          <PerformanceControllerSyncStatus language={language} />
-          <PerformanceControllerRack binding={binding} patch={patch} language={language} />
-          {!patch?.performance_controllers?.length && <p>{copy("noControls")}</p>}
-          <div className="ws-mix-actions">{capable && <button onClick={() => open("samples")}>{copy("samples")}</button>}
-            <button onClick={() => patch && void editMixerPatch(patch.id)} disabled={!patch}>{audio("edit")}</button></div>
-        </>}
+    {binding && dock === "samples" && capable && <WorkspacePanel name="editor">
+      <div key={binding.id + binding.patchId} data-mix-detail-instance={binding.id}>
+        <SampleMapEditor binding={binding} label={instanceLabel} capable={capable} running={running} language={language} />
       </div>
+    </WorkspacePanel>}
+    {binding && dock === "instrument" && <WorkspacePanel name="editor">
+      <PerformanceControllerSyncStatus language={language} />
+      <AdaptiveInstrumentRack rows={controlRows} patches={patchesById} language={language} renderCard={({ binding: row, index }) => {
+        const item = patchesById.get(row.patchId);
+        const owner = graph.insertOwners[row.id];
+        const ownerIndex = owner ? bindings.findIndex(b => b.id === owner) : -1;
+        const midi = item?.always_on ? audio("continuous") : `${audio("midiChannelShort")} ${row.midiChannel}`;
+        return <section data-mix-detail-instance={row.id} className="rounded-lg border border-slate-700 bg-slate-900 p-2">
+          <header data-rack-card-header>
+            <small className="text-slate-400">{ui.patch(index + 1)} · {midi}</small>
+            <h3 className="font-semibold text-cyan-100">{item?.name ?? row.patchId}</h3>
+            {owner && <small>{audio("inserts")} · {ownerIndex >= 0 && `${ui.patch(ownerIndex + 1)} · `}{endpointName(owner)}</small>}
+          </header>
+          <PerformanceControllerRack key={row.patchId} binding={row} patch={item} language={language} />
+          {!item?.performance_controllers?.length && <p>{copy("noControls")}</p>}
+          <div className="ws-mix-actions">
+            {item?.has_sample_player && !item.always_on && <button onClick={() => { select(row.id); open("samples"); }}>{copy("samples")}</button>}
+            <button onClick={() => item && void editMixerPatch(item.id)} disabled={!item}>{audio("edit")}</button>
+          </div>
+        </section>;
+      }} />
     </WorkspacePanel>}
   </div>;
 }

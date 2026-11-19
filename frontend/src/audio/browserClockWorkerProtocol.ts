@@ -72,6 +72,8 @@ export type BrowserClockWorkerDiagnostics = {
   playbackState: BrowserPlaybackState;
   sampleRate: number;
   queuedFrames: number;
+  lowWaterFrames: number;
+  highWaterFrames: number;
   pendingRenderFrames: number;
   underrunCount: number;
   overrunCount: number;

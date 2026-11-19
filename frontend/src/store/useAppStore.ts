@@ -165,7 +165,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       if (get().activeSessionState === "running" || get().loading) return;
       set({ parallelRenderBatchFrames: normalizeParallelBatchFrames(frames) });
     },
-    parallelPlaybackEnabled: false,
+    parallelPlaybackEnabled: true,
     setParallelPlaybackEnabled: (enabled) => {
       if (get().activeSessionState === "running" || get().loading) return;
       set({ parallelPlaybackEnabled: enabled });

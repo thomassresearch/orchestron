@@ -20,6 +20,29 @@ export function insertChain(graph: AudioGraph, owner: string): string[] | null {
   if (!graph.routes.some((r) => r.sourceId === source && r.targetId === owner && r.targetStage === "strip")) return null;
   return chain;
 }
+/** Include nested and custom-wired inserts once, in signal order where the chain is linear. */
+export function instrumentsWithInserts(graph: AudioGraph, selected: string[]): string[] {
+  const result = new Set<string>();
+  function visit(id: string) {
+    if (result.has(id)) return;
+    result.add(id);
+    const children = insertChain(graph, id) ?? Object.keys(graph.insertOwners).filter(child => graph.insertOwners[child] === id);
+    children.forEach(visit);
+  }
+  // An insert can be selected in the compact rack before its owning instrument.
+  const selectedIds = new Set(selected);
+  for (const id of selected) {
+    let root = id;
+    const ancestors = new Set([id]);
+    for (let owner = graph.insertOwners[id]; owner && !ancestors.has(owner); owner = graph.insertOwners[owner]) {
+      ancestors.add(owner);
+      if (selectedIds.has(owner)) root = owner;
+    }
+    visit(root);
+  }
+  return [...result];
+}
+
 export function wireInsertChain(graph: AudioGraph, bindings: SequencerInstrumentBinding[], patches: PatchListItem[], owner: string, chain: string[]): AudioGraph {
   const owned = Object.keys(graph.insertOwners).filter((id) => graph.insertOwners[id] === owner);
   const involved = new Set([...owned, ...chain]);

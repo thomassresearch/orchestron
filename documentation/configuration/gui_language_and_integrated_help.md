@@ -6,7 +6,7 @@ Orchestron includes multilingual UI labels and integrated documentation so you c
 
 ## GUI Language Selector
 
-The language selector is in the top-right area of the main app header.
+Instrument Design, Perform and Config share the same header. Choose a language beside the page buttons. On a narrow screen, open the language menu to make your choice.
 
 Supported languages:
 
@@ -15,12 +15,7 @@ Supported languages:
 - French
 - Spanish
 
-The selector is presented as quick language links (short labels) for fast switching.
-
-<p align="center">
-  <img src="../../screenshots/header_gui_language_selector_links.png" alt="GUI language selector in app header" width="560" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Top-right header language selector links.</em></p>
+![Orchestron header with the language selector and the three workspaces](../../screenshots/workspace-header.png)
 
 ## What Changes When You Switch Language
 

@@ -99,3 +99,41 @@
   outline: 2px solid #22d3ee;
   outline-offset: -2px;
 }
+
+.app-header {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; min-width: 0; padding: 3px 8px;
+  border: 1px solid #334155; border-radius: 6px; background: #101a2a;
+}
+.app-brand { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; }
+.app-brand img { width: 38px; height: 36px; object-fit: contain; }
+.app-brand h1 { font-family: theme("fontFamily.display"); font-size: 1.1rem; font-weight: 600; }
+.app-brand p { color: #a8b9cc; font-size: .76rem; }
+.app-languages, .app-header nav { display: flex; align-items: center; border: 1px solid #344458; border-radius: 5px; background: #0a1220; }
+.app-header button { padding: 4px 8px; font-size: .73rem; font-weight: 600; text-transform: uppercase; color: #afbdcc; border-radius: 4px; }
+.app-languages button { padding: 3px 5px; }
+.app-header button:hover { background: #1e2d40; }
+.app-header button[aria-current], .app-header button[aria-pressed=true] { background: #173544; color: #98e8f2; }
+.app-language-select { display: none; color: #d8e6f0; background: #101c2c; border: 1px solid #344458; border-radius: 4px; }
+@media (max-width: 900px) {
+  .app-brand { display: grid; grid-template-columns: auto 1fr; gap: 0 6px; line-height: 1.2; }
+  .app-brand img { grid-row: span 2; }
+  .app-brand p { max-width: 32ch; font-size: .68rem; }
+}
+@media (max-width: 650px) {
+  .app-header { gap: 4px 7px; padding: 3px 5px; }
+  .app-languages { display: none; }
+  .app-language-select { display: block; font-size: .72rem; }
+  .app-header nav { flex-wrap: wrap; }
+  .app-header button { padding: 4px 6px; font-size: .68rem; }
+  .app-brand img { width: 28px; height: 28px; }
+}
+.engine-status { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; font-size: .72rem; }
+.engine-status-embedded { flex: 1 1 auto; min-width: 0; }
+.engine-cpus { display: flex; gap: 8px; overflow-x: auto; max-width: min(32rem, 100%); white-space: nowrap; }
+.engine-buffer { display: inline-flex; flex-wrap: wrap; gap: 1px 5px; align-items: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.buffer-leds { display: flex; gap: 1px; padding: 1px; border: 1px solid #485768; background: #080f19; border-radius: 2px; }
+.buffer-leds i { width: 3px; height: 7px; background: #263341; }
+.buffer-leds [data-lit] { background: var(--led-color); }
+.buffer-leds[data-level=low] { --led-color: #fb656b; border-color: #fb656b; }
+.buffer-leds[data-level=mid] { --led-color: #f7bb56; }
+.buffer-leds[data-level=high] { --led-color: #55dc97; }

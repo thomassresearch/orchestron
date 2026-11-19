@@ -16,7 +16,9 @@ thin labeled border. Groups remain expanded; cards and groups wrap without
 shrinking the controls. Narrow windows use a single column and a wrapping header.
 See [Performance Controllers](performance_controllers.md) for grouping rules.
 
-![Adaptive instrument widths and labeled controller groups](../../screenshots/performance_controller_groups_rack.png)
+**Mix → Rack** shows knobs, controller groups, MIDI CC assignments and sample maps on each instrument card. Click its patch number to select it. Shift-click another patch number to add or remove an instrument.
+
+![Full Mix rack with instrument assignments and controls](../../screenshots/perform-mix-full-rack.png)
 
 ## Add a Sample Player
 
@@ -113,7 +115,7 @@ This is the state of the instrument engine session, not just the sequencer trans
 
 ## Error Banner
 
-If an engine or transport action fails, read the status line at the bottom of any Perform view. Open **Diagnostics** to read the full message.
+If an engine or transport action fails, read the full error in the status bar at the bottom of any Perform view.
 
 ## Tips
 

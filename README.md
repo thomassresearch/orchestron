@@ -33,17 +33,15 @@ include the audio they need. See the [Sample Player guide](documentation/perform
 
 ![Sample Player added through the normal instrument rack](screenshots/performance_sample_player_rack.png)
 
-Open **Diagnostics** in Perform to see engine CPU usage and the **Parallel playback**
-control. CPU readings stay aligned as percentages change. Independent instrument groups can use multiple Csound processes, with shared effects
-and resources kept in dependency order. No per-song registration is needed; single rendering
-remains the default and fallback. Enable the option while stopped. Timing, buffers and CSD
-exports stay unchanged. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
+In **Mix → Rack**, each instrument has a full card with its performance controls. Shift-click instruments in the compact rack or mixer, then open **Instrument controls** to adjust their knobs and insert effects side by side.
+
+The Perform status bar shows engine CPU usage and how much audio is ready to play. Its segmented buffer meter turns red as the queue runs low and green as it fills. **Parallel playback** starts enabled. The engine uses multiple Csound processes when the instruments and available resources allow it, with single rendering as the fallback. Clear the checkbox while stopped to request single rendering. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
 Set the parallel batch size in **Config → Parallel Playback**: **32–1024 samples**, default **256**.
 Apply while stopped; the saved preference takes effect on the next parallel start. Instruments
 retain their synthesis and controller timing. Rack controller edits and live mixer changes
 also work with parallel playback enabled. See [parallel playback settings](documentation/configuration/audio_engine_settings.md#parallel-playback).
 
-![Engine statistics in Perform](screenshots/performance_engine_stats.png)
+![Engine statistics and playback buffer in Perform](screenshots/perform-playback-status.png)
 
 [Enough and Logan](documentation/instrument_design/enough_and_logan.md) bring two
 editable dry synth voices from altamax: an evolving five-oscillator FM network

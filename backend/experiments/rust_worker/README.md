@@ -1,7 +1,7 @@
 # Retained Rust parallel worker
 
 The narrow worker-loop experiment is retained and is now the **default inner loop for
-parallel playback**. Single rendering remains the application default; Python still owns
+parallel playback**. Perform requests automatic renderer selection by default. Python owns
 the coordinator and worker process lifecycle. The original Python batch loop is retained
 and commented **deprecated**. The benchmark and [original measurements](RESULTS.md) remain
 available for repeatable comparisons.

@@ -21,9 +21,8 @@ Browser-clock latency settings are different:
 
 ## Parallel Playback
 
-Open **Diagnostics** at the bottom of Perform to find **Parallel playback** in Engine stats.
-Enable it while instruments are stopped. Single rendering remains the default
-and fallback. The engine analyses instrument/effect dependencies and shared resources, then
+**Parallel playback** starts enabled in the Perform status bar. To request single rendering,
+clear the checkbox while instruments are stopped. The engine analyses instrument/effect dependencies and shared resources, then
 uses available CPU and memory capacity to choose a parallel layout. No per-song catalog is required.
 The choice does not change engine timing, browser buffering or CSD exports. See
 [Engine Stats and Parallel Playback](../performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
@@ -38,7 +37,7 @@ In **Config → Parallel Playback**, enter a **Batch size (samples)** from **32 
 and click **Apply Batch Size**. The default is **256**. Stop playback before applying;
 the choice takes effect on the next start with **Parallel playback** enabled in Perform.
 It is saved in app state across reloads, separately from the parallel playback checkbox,
-which still resets to off. It is not stored in instruments, performances or CSD exports.
+which returns to its enabled default after reload. It is not stored in instruments, performances or CSD exports.
 
 The engine rounds down to whole synthesis blocks, with at least one block per batch.
 For example, with a 32-sample synthesis block, entering 255 uses 224 samples. Try 128 for

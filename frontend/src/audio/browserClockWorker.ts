@@ -714,6 +714,8 @@ class BrowserClockWorkerRuntime {
       playbackState: this.drainingToLive ? "switching_to_live" : mode,
       sampleRate: this.sampleRate,
       queuedFrames: this.availableFrames(),
+      lowWaterFrames: targets.low,
+      highWaterFrames: targets.high,
       pendingRenderFrames: this.pendingRenderFrames,
       underrunCount: this.underrunCount(),
       overrunCount: this.stateBuffer

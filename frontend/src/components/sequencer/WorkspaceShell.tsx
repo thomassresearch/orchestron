@@ -1,3 +1,4 @@
+import { useRackSelection } from "./useRackSelection";
 import { arrangeCopy } from "../clipArranger/arrangeCopy";
 import { ArrangeTrackRouting } from "./ArrangeTrackRouting";
 import { absoluteTransportStep } from "../../lib/arrangerTransport";
@@ -51,14 +52,15 @@ type Props = {
   view: PerformView; navigate?: ViewNavigation; language: GuiLanguage; children: ReactNode; project: ReactNode; save: ReactNode; engine: ReactNode;
   transport: ReactNode; keyboard: ReactNode; name: string; midi: string; session: string;
   onSeek: SequencerPageTransportActions["onSequencerArrangerLoopSelectionChange"]; onTempo: (bpm: number) => void;
+  diagnostics?: import("../../audio/browserClockWorkerProtocol").BrowserClockWorkerDiagnostics | null;
   error: string | null; onHelp?: () => void;
 };
 
-export default function WorkspaceShell({ view, navigate, language, children, project, save, engine, transport, keyboard, name, midi, session, error, onHelp, onSeek, onTempo }: Props) {
+export default function WorkspaceShell({ diagnostics, view, navigate, language, children, project, save, engine, transport, keyboard, name, midi, session, error, onHelp, onSeek, onTempo }: Props) {
   const c = shellCopy[language], clip = clipCopy(language);
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
   const rackOpen = layout.compactRackOpen ?? view === "mix";
-  const [mixSelection] = usePerformanceEditorState("mixer", "selected", "");
+  const { primary: mixSelection, ids } = useRackSelection();
   const [remembered, remember] = usePerformanceEditorState<string | null>("page", "closedEditor", null);
   const clipKey = useAppStore(s => s.clipEditingKey);
   const model = useAppStore(s => s.sequencer.clipArrangement);
@@ -66,11 +68,10 @@ export default function WorkspaceShell({ view, navigate, language, children, pro
   const drafts = useAppStore(s => s.clipDrafts);
   const musicalChanges = useMemo(() => hasChangedClipDrafts(model, drafts), [model, drafts]);
   const structuralChanges = useStructureDraft(s => !!s.draft?.cursor);
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const appError = useAppStore(s => s.error || s.mixerSyncError);
   const issue = error || appError;
   const dock = view === "arrange" && model ? clipKey ? "editor" : layout.dock === "keyboard" ? "keyboard" : null : layout.dock;
-  const detailOwner = view === "mix" && mixSelection ? `binding:${mixSelection}` as const : "page";
+  const detailOwner = view === "mix" && mixSelection && (dock === "samples" || ids.length === 1) ? `binding:${mixSelection}` as const : "page";
   const dockLabel = dock === "samples" || dock === "instrument" ? mixCopy(language)(dock) : dock === "keyboard" ? c.keyboard : c.editor;
   const work = useRef<HTMLDivElement>(null), main = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
@@ -112,7 +113,7 @@ export default function WorkspaceShell({ view, navigate, language, children, pro
   const [inspectorHost, setInspectorHost] = useState<HTMLDivElement | null>(null);
   const trigger = useRef<HTMLButtonElement>(null), drawerClose = useRef<HTMLButtonElement>(null);
   const focusDrawer = useRef(false);
-  const dockId = useId(), inspectorId = useId(), diagnostics = useRef<HTMLDialogElement>(null);
+  const dockId = useId(), inspectorId = useId();
   const projectMenu = useRef<HTMLDetailsElement>(null);
   const change = (patch: PerformViewLayout) => setLayout(previous => ({ ...previous, ...patch }));
   const closeInspector = () => { change(narrow ? { drawerOpen: false } : { inspectorOpen: false }); trigger.current?.focus(); };
@@ -202,13 +203,8 @@ export default function WorkspaceShell({ view, navigate, language, children, pro
     </div>
     <footer className="ws-status" aria-label={c.status}><span className="ws-session">{session}</span><span>{midi}</span>
       {(musicalChanges || structuralChanges) && <span className="text-amber-200">{clip.unsaved}</span>}
-      {issue && <span role="alert" className="ws-error" title={issue}>{issue}</span>}
-      <button onClick={() => { setDiagnosticsOpen(true); diagnostics.current?.showModal(); }}>{c.diagnostics}</button>
+      <EngineStatusLine embedded diagnostics={diagnostics} />
+      {issue && <span role="alert" className="ws-error" tabIndex={0}>{issue}</span>}
     </footer>
-    <dialog ref={diagnostics} onClose={() => setDiagnosticsOpen(false)} aria-label={c.diagnostics} className="ws-dialog"><h2>{c.diagnostics}</h2>
-      {issue && <p className="ws-error">{issue}</p>}
-      {diagnosticsOpen && <EngineStatusLine embedded />}<p>{midi}</p>
-      <button onClick={() => useAppStore.getState().setActivePage("config")}>{c.config}</button> <button autoFocus onClick={() => diagnostics.current?.close()}>{c.close}</button>
-    </dialog>
   </section></WorkspacePanels.Provider>;
 }

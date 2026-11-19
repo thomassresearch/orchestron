@@ -72,9 +72,12 @@ function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged =
     if (layout?.dock === "editor") clear("page", "layout", "arrange", { ...layout, dock: null });
   }
   for (const view of views) {
-    const binding = value<string>("mixer", "selected", view);
-    if (!binding || binding === "$master" || state.sequencerInstruments.some(row => row.id === binding)) continue;
-    clear("mixer", "selected", view, "");
+    const selection = value<string[]>("mixer", "selection", view);
+    if (!selection?.length) continue;
+    const remaining = selection.filter(id => id === "$master" || state.sequencerInstruments.some(row => row.id === id));
+    if (remaining.length === selection.length) continue;
+    clear("mixer", "selection", view, remaining);
+    if (remaining.length) continue;
     const layout = value<PerformViewLayout>("page", "layout", view);
     if (view === "mix" && layout?.dock) clear("page", "layout", view, { ...layout, dock: null, dockExpanded: false });
   }
@@ -156,7 +159,7 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
       const layoutKey = editorKey("page", "layout", "mix");
       store.setState(s => ({ entries: { ...s.entries,
         [editorKey("mixer", "surface", "mix")]: { owner: "mixer", value: target.surface },
-        ...(target.bindingId ? { [editorKey("mixer", "selected", "mix")]: { owner: "mixer", value: target.bindingId } } : {}),
+        ...(target.bindingId ? { [editorKey("mixer", "selection", "mix")]: { owner: "mixer", value: [target.bindingId] } } : {}),
         [layoutKey]: { owner: "page", value: { ...(s.entries[layoutKey]?.value as PerformViewLayout | undefined),
           dock: target.dock ?? null, dockExpanded: false, drawerOpen: false } }
       } }));

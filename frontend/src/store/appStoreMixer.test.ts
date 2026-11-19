@@ -1,3 +1,4 @@
+import { sessionAudioSignature } from "./sessionSignature";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "zustand";
 import { api } from "../api/client";
@@ -11,7 +12,7 @@ describe("mixer control batching", () => {
   it("coalesces drag targets, immediately flushes the final target and preserves local state on errors", async () => {
     vi.useFakeTimers();
     const graph = emptyAudioGraph();
-    const store = createStore<AppStore>(() => ({...useAppStore.getInitialState(), audioGraph:graph,mixer:emptyMixer(),patches:[],activeSessionId:"mix-session",activeSessionState:"running",activeSessionAudioSignature:JSON.stringify({graph,patches:[]})}));
+    const store = createStore<AppStore>(() => ({...useAppStore.getInitialState(), audioGraph:graph,mixer:emptyMixer(),patches:[],activeSessionId:"mix-session",activeSessionState:"running",activeSessionAudioSignature:sessionAudioSignature({ ...useAppStore.getInitialState(), audioGraph: graph, patches: [] })}));
     const actions = createMixerActions(store.setState,store.getState);
     vi.spyOn(api,"getMixer").mockResolvedValue({mixer:emptyMixer(),revision:3});
     const update = vi.spyOn(api,"updateMixer").mockImplementation(async (_id,mixer,revision) => ({mixer,revision:(revision ?? 0)+1}));
@@ -44,7 +45,7 @@ describe("mixer control batching", () => {
   it("does not burst queued drag updates when an acknowledgment arrives", async () => {
     vi.useFakeTimers();
     const graph = emptyAudioGraph();
-    const store = createStore<AppStore>(() => ({...useAppStore.getInitialState(),audioGraph:graph,mixer:emptyMixer(),patches:[],activeSessionId:"slow-session",activeSessionAudioSignature:JSON.stringify({graph,patches:[]})}));
+    const store = createStore<AppStore>(() => ({...useAppStore.getInitialState(),audioGraph:graph,mixer:emptyMixer(),patches:[],activeSessionId:"slow-session",activeSessionAudioSignature:sessionAudioSignature({ ...useAppStore.getInitialState(), audioGraph: graph, patches: [] })}));
     const actions = createMixerActions(store.setState,store.getState);
     vi.spyOn(api,"getMixer").mockResolvedValue({mixer:emptyMixer(),revision:0});
     let acknowledge!: () => void;

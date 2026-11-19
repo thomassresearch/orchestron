@@ -1424,6 +1424,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     patchCompileBadge === "errors" ? "text-[11px] font-medium text-rose-300" : "text-[11px] font-medium text-orange-300";
   const performableInstrumentPatches = useMemo(() => patches.filter((patch) => patch.is_template !== true), [patches]);
   const sequencerPageData = {
+    browserAudioDiagnostics: browserAudioStatus === "live" ? browserAudioDiagnostics : null,
     guiLanguage,
     patches: performableInstrumentPatches,
     performances,
@@ -1726,79 +1727,31 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   return (
     <div data-perform-workspace={bounded || undefined} className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
       <DraftResolutionDialog language={guiLanguage} />
-      {activePage === "sequencer" && !bounded && <EngineStatusLine />}
+      {activePage === "sequencer" && !bounded && <EngineStatusLine diagnostics={sequencerPageData.browserAudioDiagnostics} />}
       <div data-app-frame className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
-        <header className="relative flex items-center gap-3 rounded-2xl border-x border-y border-slate-700/70 bg-slate-900/65 px-4 py-0 pr-44">
-          <div className="flex flex-1 items-center gap-3">
-            <img
-              src={orchestronIcon}
-              alt={appCopy.appIconAlt}
-              className="h-40 w-40 shrink-0 object-contain -my-8"
-            />
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-left">
-              <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-100">{appCopy.appTitle}</h1>
-              <p className="text-sm text-slate-400">{appCopy.appDescription}</p>
-            </div>
+        <header className="app-header">
+          <div className="app-brand">
+            <img src={orchestronIcon} alt={appCopy.appIconAlt} />
+            <h1>{appCopy.appTitle}</h1>
+            <p>{appCopy.appDescription}</p>
           </div>
-          <div className="absolute right-4 top-3 flex flex-col items-end gap-1">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{appCopy.guiLanguage}</span>
-            {bounded && <select className="ws-language" aria-label={appCopy.guiLanguage} value={guiLanguage}
-              onChange={event => setGuiLanguage(event.target.value as typeof guiLanguage)}>
-              {GUI_LANGUAGE_OPTIONS.map(option => <option key={option.value} value={option.value}>{GUI_LANGUAGE_SHORT_LABELS[option.value].toUpperCase()}</option>)}
-            </select>}
-            <div
-              role="group"
-              aria-label={appCopy.guiLanguage}
-              className="flex items-center gap-2 rounded-lg border border-slate-700/80 bg-slate-950/70 px-2 py-1"
-            >
-              {GUI_LANGUAGE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setGuiLanguage(option.value)}
-                  aria-pressed={option.value === guiLanguage}
-                  className={`font-body text-xs uppercase tracking-[0.14em] transition focus:outline-none focus-visible:text-slate-100 ${
-                    option.value === guiLanguage
-                      ? "font-bold text-slate-100"
-                      : "font-medium text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  {GUI_LANGUAGE_SHORT_LABELS[option.value]}
-                </button>
-              ))}
-            </div>
+          <div className="app-languages" role="group" aria-label={appCopy.guiLanguage}>
+            {GUI_LANGUAGE_OPTIONS.map(({ value }) => <button key={value} type="button"
+              aria-pressed={value === guiLanguage} onClick={() => setGuiLanguage(value)}>
+              {GUI_LANGUAGE_SHORT_LABELS[value]}
+            </button>)}
           </div>
+          <select className="app-language-select" aria-label={appCopy.guiLanguage} value={guiLanguage}
+            onChange={event => setGuiLanguage(event.target.value as typeof guiLanguage)}>
+            {GUI_LANGUAGE_OPTIONS.map(({ value }) => <option key={value} value={value}>{GUI_LANGUAGE_SHORT_LABELS[value].toUpperCase()}</option>)}
+          </select>
+          <nav data-app-pages aria-label={appCopy.appTitle}>
+            {(["instrument", "sequencer", "config"] as const).map(page => <button key={page} type="button"
+              aria-current={page === activePage ? "page" : undefined} onClick={() => setActivePage(page)}>
+              {{ instrument: appCopy.instrumentDesign, sequencer: appCopy.perform, config: appCopy.config }[page]}
+            </button>)}
+          </nav>
         </header>
-
-        <div data-app-pages className="inline-flex rounded-xl border border-slate-700 bg-slate-950/80 p-1">
-          <button
-            type="button"
-            onClick={() => setActivePage("instrument")}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-              activePage === "instrument" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            {appCopy.instrumentDesign}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActivePage("sequencer")}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-              activePage === "sequencer" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            {appCopy.perform}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActivePage("config")}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-              activePage === "config" ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            {appCopy.config}
-          </button>
-        </div>
 
         {error && !bounded && (
           <div className="rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">

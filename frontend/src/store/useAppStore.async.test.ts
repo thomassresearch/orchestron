@@ -1,3 +1,4 @@
+import { sessionAudioSignature } from "./sessionSignature";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "../api/client";
 import { useAppStore } from "./useAppStore";
@@ -148,13 +149,13 @@ it("creates a fresh session for a loaded performance even when its rack IDs matc
   const state = useAppStore.getState();
   useAppStore.setState({ sequencerInstruments: instruments, activeSessionId: "previous", activeSessionState: "compiled",
     activeSessionInstruments: assignments, performanceWorkspaceGeneration: 1,
-    activeSessionAudioSignature: JSON.stringify({ graph: state.audioGraph, patches: state.patches.map(p => [p.id, p.updated_at]) }) });
+    activeSessionAudioSignature: sessionAudioSignature(state) });
   vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "previous", state: "compiled", detail: "stopped" });
   const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
   const create = vi.spyOn(api, "createSession").mockResolvedValue({ session_id: "fresh", instruments: assignments, state: "idle", patch_id: "patch" });
   expect(await useAppStore.getState().ensureSession()).toBe("fresh");
   expect(remove).toHaveBeenCalledWith("previous");
-  expect(create).toHaveBeenCalledWith(assignments, state.audioGraph, state.mixer);
+  expect(create).toHaveBeenCalledWith(assignments, state.audioGraph, state.mixer, { renderer_mode: "auto", browser_settings: state.browserClockLatencySettings, parallel_batch_frames: 256 });
   expect(useAppStore.getState().activeSessionWorkspaceGeneration).toBe(1);
 });
 
@@ -180,8 +181,9 @@ it("retains clip app-state v5 when bootstrap saves a legacy mixer migration", as
   useAppStore.setState({ hasLoadedBootstrap: false });
 });
 
-it("keeps parallel opt-in out of saved state and recreates a stopped session when it changes", async () => {
+it("keeps the renderer choice out of saved state and recreates a stopped session when it changes", async () => {
   useAppStore.setState({ sequencerInstruments: [{ id: "instrument", patchId: "patch", midiChannel: 1, level: 8, effectSourceIds: [], effectRoutes: [] }] });
+  useAppStore.getState().setParallelPlaybackEnabled(false);
   const create = vi.spyOn(api, "createSession").mockResolvedValueOnce({ session_id: "single", state: "idle", patch_id: "patch", instruments: [] })
     .mockResolvedValueOnce({ session_id: "auto", state: "idle", patch_id: "patch", instruments: [] });
   vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "single", state: "compiled", detail: "stopped" });
@@ -204,7 +206,7 @@ it("discards an in-flight session created for a superseded renderer preference",
   vi.spyOn(api, "createSession").mockReturnValue(pending.promise);
   const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
   const creating = useAppStore.getState().ensureSession();
-  useAppStore.getState().setParallelPlaybackEnabled(true);
+  useAppStore.getState().setParallelPlaybackEnabled(false);
   pending.resolve({ session_id: "old", state: "idle", patch_id: "patch", instruments: [] });
   await expect(creating).rejects.toThrow("setup changed");
   expect(remove).toHaveBeenCalledWith("old");
@@ -243,7 +245,7 @@ it.each([undefined, 32, 255, 1024, 31, 1025, 128.5, "512"])("restores batch pref
   await useAppStore.getState().loadBootstrap();
   const expected = [32, 255, 1024].includes(value as number) ? value : 256;
   expect(useAppStore.getState().parallelRenderBatchFrames).toBe(expected);
-  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(false);
+  expect(useAppStore.getState().parallelPlaybackEnabled).toBe(true);
   expect(useAppStore.getState().error).toBeNull();
   useAppStore.setState({ hasLoadedBootstrap: false });
 });

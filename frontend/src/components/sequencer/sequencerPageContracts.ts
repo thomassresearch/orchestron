@@ -18,6 +18,7 @@ import type {
 } from "../../types";
 
 export interface SequencerPageData {
+  browserAudioDiagnostics?: import("../../audio/browserClockWorkerProtocol").BrowserClockWorkerDiagnostics | null;
   guiLanguage: GuiLanguage;
   patches: PatchListItem[];
   performances: PerformanceListItem[];

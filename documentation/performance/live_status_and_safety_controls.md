@@ -20,15 +20,17 @@ track, so the total includes melodic sequencers plus all drummer rows.
 
 ## Footer Status Bar
 
-Read the instrument engine state and MIDI input in the footer. Unsaved clip changes and errors also appear here when applicable. Choose **Diagnostics** for the full error, engine statistics and audio configuration. Escape returns to the workspace.
+The status bar stays visible in Arrange, Live and Mix. It shows the instrument engine state, MIDI input, unsaved clip edits and the full text of playback errors.
+
+**Playback buffer** shows how many milliseconds of audio are ready for the speakers alongside the current refill target. Red LEDs warn of underrun risk, amber shows a partial reserve and green shows a healthy reserve. **Underruns** counts occasions when playback ran out of audio. The target follows the current playback mode and recovery settings. A dash means there is no active reading.
+
+![Playback buffer, refill target, underrun count and renderer settings during playback](../../screenshots/perform-playback-status.png)
 
 ## Engine Stats and Parallel Playback
 
-Open **Diagnostics** to see **Engine stats**. It shows
-whether the session uses **Single** or **Parallel** rendering. It also contains the optional
-**Parallel playback** checkbox.
+**Engine stats** in the status bar shows the renderer and its CPU readings. **Parallel playback** starts enabled. To use a single renderer, stop the instruments, clear the checkbox and start them again.
 
-To opt in, stop the instruments, enable **Parallel playback**, then start them again. The engine
+With parallel playback enabled, the engine
 analyses the connections between whole instruments, inserts, sends and shared effects. It
 keeps dependent work and shared mutable resources together and distributes independent groups
 across available CPUs. Instruments are never split internally. No catalog or per-song
@@ -41,10 +43,8 @@ users together. Unsupported resource behavior, insufficient independent work or 
 CPU/memory capacity selects **Single fallback**. Splitting a graph does not guarantee a speedup:
 small instruments and shared effects can still dominate the work.
 
-The choice is off by default, resets when the page reloads, and is not saved in a performance
-or an export. It cannot be changed while instruments are running. Turning it off while stopped
-returns the next session to single rendering. Audio timing, buffer sizes and CSD exports are
-unchanged. Sequencer controllers retain their MIDI channels and reach every relevant instrument
+Reloading the page restores the enabled default. The choice lasts for the browser session.
+Sequencer controllers retain their MIDI channels and reach every relevant instrument
 across the parallel processes.
 
 On Linux, parallel rendering shows the total load on the logical CPUs assigned to its workers,
@@ -59,15 +59,11 @@ as the load changes between one, two and three digits.
 - **Orange:** above 50% through 85%, including the 50–60% interval.
 - **Red:** above 85%.
 
-Readings update about once a second while Perform is visible. Switching views or hiding the tab
-suspends observation; audio keeps playing. Load percentages do not replace the audio underrun
-and queue indicators. Live-input latency is a separate diagnostic and may still vary.
+CPU readings update about once a second while Perform is visible. The readings follow you between Arrange, Live and Mix. Hiding the browser tab suspends observation while audio keeps playing.
 
 If a parallel worker fails during playback, the engine stops and reports the error. It does not
 silently replace the running synths or replay audio. Stop and explicitly restart; automatic
 fallback can use single rendering on that restart.
-
-![Fixed engine statistics and parallel playback option](../../screenshots/performance_engine_stats_alignment.png)
 
 ## Track State Labels (Queued Changes)
 

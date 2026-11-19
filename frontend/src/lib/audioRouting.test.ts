@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { audioTemplate } from "./audioTemplates";
 import { projectAudioBlocks } from "./audioBlocks";
 import { emptyAudioGraph, defaultStrip, migrateAudio, stripDestinations, validateAudioState, audioGraphDiagnostics, MASTER } from "./audioRouting";
-import { insertChain, wireInsertChain } from "./insertRouting";
+import { insertChain, instrumentsWithInserts, wireInsertChain } from "./insertRouting";
 import { buildSequencerConfigSnapshot, parseSequencerConfigSnapshot, normalizePersistedSequencerInstruments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
 import type { PatchListItem, SequencerInstrumentBinding } from "../types";
@@ -82,6 +82,14 @@ describe("stereo blocks and inserts", () => {
     expect(graph.routes.some((r) => r.sourceId === "three" && r.targetId === "one" && r.targetStage === "strip")).toBe(true);
     graph.routes.push({...graph.routes[0],id:"branch",kind:"custom"});
     expect(insertChain(graph,"one")).toBeNull();
+  });
+  it("packs all selected instances with nested inserts once, including custom-wired processors", () => {
+    const rack = [...bindings, { ...bindings[1], id: "three" }, { ...bindings[1], id: "nested" }];
+    const chain = wireInsertChain(emptyAudioGraph(), rack, [source, effect], "one", ["three", "two"]);
+    const graph = wireInsertChain(chain, rack, [source, effect], "three", ["nested"]);
+    expect(instrumentsWithInserts(graph, ["nested", "one", "two", "other"])).toEqual(["one", "three", "nested", "two", "other"]);
+    graph.routes.push({ ...graph.routes[0], id: "custom", kind: "custom" });
+    expect(new Set(instrumentsWithInserts(graph, ["one"]))).toEqual(new Set(["one", "three", "nested", "two"]));
   });
 });
 
