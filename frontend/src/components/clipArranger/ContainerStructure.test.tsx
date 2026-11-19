@@ -37,15 +37,16 @@ const structureSave=async(scope:'local'|'all')=>{
 };
 
 it('retains a container draft and its scope on reopen, then clears intent on discard',()=>{
- render(<ClipPerformance language="english" renderEditor={()=>null}/>);open(target());
+ const repetition={...target(),pass:1};
+ render(<ClipPerformance language="english" renderEditor={()=>null}/>);open(repetition);
  fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));
  fireEvent.change(editor().getByRole('textbox',{name:'Variation name'}),{target:{value:'Local phrase'}});
  const draft=useStructureDraft.getState().draft;
  fireEvent.click(editor().getByRole('button',{name:'Close editor'}));
- act(()=>openClipEditor(target()));expect(useStructureDraft.getState().draft?.roots).toEqual(draft?.roots);
+ act(()=>openClipEditor(repetition));expect(useStructureDraft.getState().draft?.roots).toEqual(draft?.roots);
  expect(useStructureDraft.getState().draft?.editIntent).toEqual(draft?.editIntent);
  fireEvent.click(screen.getByRole('button',{name:'Discard'}));expect(screen.queryByRole('region',{name:'Editing'})).toBeNull();
- act(()=>openClipEditor(target()));expect(useStructureDraft.getState().draft?.editIntent?.scope).toBeNull();
+ act(()=>openClipEditor(repetition));expect(useStructureDraft.getState().draft?.editIntent?.scope).toBeNull();
  expect(editor().queryByRole('button',{name:'Rest +1'})).toBeNull();
 });
 

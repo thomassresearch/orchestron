@@ -31,6 +31,18 @@ it("keeps fractional-beat clip loop bounds through playback compilation and relo
   expect(buildSequencerPlaybackRange(clipRuntimeView(restored), "runtime", true)).toEqual(range);
 });
 
+it("preserves a one-tick pattern loop inside a transport step across save and reload", () => {
+  const selection = { startStep: 9911 / 2520, endStep: 9912 / 2520 };
+  useAppStore.getState().setSequencerArrangerLoopSelection(selection);
+  const snapshot = buildSequencerConfigSnapshot(useAppStore.getState().sequencer, []);
+  const restored = parseSequencerConfigSnapshot(snapshot, [], null).sequencer;
+  expect(restored.arrangerLoopSelection).toEqual(selection);
+  expect(buildSequencerPlaybackRange(restored, "runtime", true)).toEqual({
+    playback_start_step: 3, playback_end_step: 4, playback_loop: true, playback_loop_subunits: [9911, 9912]
+  });
+  expect(buildSequencerPlaybackRange(restored, "export", true).playback_loop_subunits).toBeUndefined();
+});
+
 it("round-trips independent Manual devices beside an Arrangement lane", () => {
   const actions = useAppStore.getState();
   actions.addSequencerTrack();

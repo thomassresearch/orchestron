@@ -1044,6 +1044,7 @@ Physical pattern editors audition a generated take through the existing workspac
 | `step_count` | Visible transport step count. |
 | `playback_start_step` | Start of the playback window. |
 | `playback_end_step` | End of the playback window, must be greater than `playback_start_step`. |
+| `playback_loop_subunits` | Optional exact start and exclusive end in transport ticks for a loop between step boundaries. The start rounds down to `playback_start_step` and the end rounds up to `playback_end_step`. |
 | `playback_loop` | Whether transport loops at the playback boundary. |
 | `tracks` | Note sequencer tracks. |
 | `controller_tracks` | Controller automation tracks. |

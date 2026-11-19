@@ -7,6 +7,7 @@ import { CLIP_LIMITS, ClipError, resolveContent, contentLength, definitionMap, n
 /** Nodes represent occurrences, including repeated uses of the same definition. */
 export type StructureNode = { id: string; repeatIndex?: number; originalPass?: number; definition?: Definition; restTicks?: number; children?: StructureNode[]; transpose?: OffsetPlan; placement?: OffsetPlan; originalPath?: string[]; variationOf?: string };
 export type ContainerTarget = { path: string[]; index: number; ticks?: number };
+export type StructureFocus = { laneId: string; clipId: string; pass: number; parent: string[] };
 export type StructureSelection = { parent: string[]; ids: string[]; anchor: string; anchorPass?: number; tip?: {pass:number;id:string}; range?: {first:number;last:number} };
 export type RepetitionRange = { first: {pass:number;id:string}; last: {pass:number;id:string} };
 export type StructureCommand =

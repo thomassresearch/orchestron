@@ -517,6 +517,20 @@ def test_session_uses_configured_csound_performance_logging(tmp_path, monkeypatc
         assert worker._csound_performance_logging is logging_enabled
 
 
+def test_sequencer_accepts_exact_loop_bounds_within_the_requested_steps(tmp_path: Path) -> None:
+    config = json.loads((Path(__file__).parent / "fixtures/sequencers/arranger_seek.json").read_text())
+    config.update(playback_start_step=3, playback_end_step=4, playback_loop=True, playback_loop_subunits=[9911, 9912])
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=_minimal_patch_payload()).json()
+        session = client.post("/api/sessions", json={"patch_id": patch["id"]}).json()
+        path = f"/api/sessions/{session['session_id']}/sequencer"
+        response = client.post(path + "/seek", json={"config": config, "position_step": 3})
+        assert response.status_code == 200, response.text
+        assert response.json()["transport_subunit"] == 9911
+        for invalid in ([9912, 9911], [0, 9912], [9911, 10081]):
+            assert client.put(path + "/config", json={**config, "playback_loop_subunits": invalid}).status_code == 422
+
+
 def test_sequencer_configuration_snapshot_and_conditional_prepare(tmp_path: Path) -> None:
     fixture = json.loads((Path(__file__).parent / "fixtures/performance_creator/all_sources.json").read_text())
     with _client(tmp_path) as client:

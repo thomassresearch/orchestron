@@ -10,7 +10,7 @@ import {
   compileArrangerTransportSequence
 } from "./lib/arrangerTransport";
 import type { AppCopy } from "./lib/appUiCopy";
-import { sequencerTransportStepsPerBeat } from "./lib/sequencer";
+import { sequencerTransportStepsPerBeat, sequencerTransportSubunitsPerStep } from "./lib/sequencer";
 import { drummerRowRuntimeTrackId } from "./lib/sequencerRuntime";
 import type {
   ArpeggiatorPadState,
@@ -160,7 +160,7 @@ export function buildSequencerPlaybackRange(
   state: SequencerState,
   mode: "runtime" | "export",
   arrangerActive: boolean
-): Pick<SessionSequencerConfigRequest, "playback_start_step" | "playback_end_step" | "playback_loop"> {
+): Pick<SessionSequencerConfigRequest, "playback_start_step" | "playback_end_step" | "playback_loop" | "playback_loop_subunits"> {
   const bounds = arrangerPlaybackBounds(state);
   if (mode === "export") {
     return { playback_start_step: 0, playback_end_step: bounds.arrangementEndStep, playback_loop: false };
@@ -172,9 +172,14 @@ export function buildSequencerPlaybackRange(
     state.controllerSequencers.some(trackShouldRunContinuously) ||
     state.arpeggiators.some(arp => arp.playbackMode === "arranger" && arp.padLoopEnabled && arp.padLoopRepeat)
   );
+  const start = bounds.playbackStartStep, end = bounds.playbackEndStep;
+  const ticks = sequencerTransportSubunitsPerStep();
   return {
-    playback_start_step: bounds.playbackStartStep,
-    playback_end_step: unbounded ? UNBOUNDED_PLAYBACK_END_STEP : bounds.playbackEndStep,
+    playback_start_step: Math.floor(start),
+    playback_end_step: unbounded ? UNBOUNDED_PLAYBACK_END_STEP : Math.ceil(end),
+    ...(!Number.isInteger(start) || !Number.isInteger(end) ? {
+      playback_loop_subunits: [Math.round(start * ticks), Math.round(end * ticks)] as [number, number]
+    } : {}),
     playback_loop: bounds.playbackLoop
   };
 }

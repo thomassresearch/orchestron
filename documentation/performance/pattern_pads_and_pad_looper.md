@@ -29,7 +29,7 @@ Groups and supergroups are reusable definitions. **Ungroup** opens one level and
 
 Double-click a pattern, group or supergroup to edit it. The breadcrumb identifies the selected occurrence. Musical edits and structural edits have separate drafts.
 
-**Edit linked pattern/group/supergroup** and **Create variation here** choose scope before editing shared content. Independent content opens directly. The scope remains visible and can be changed while retaining edits; Save applies it without another question. The first structural action that changes shared definitions also waits for a scope choice. Cancel keeps the draft and selection. Save/Discard/Cancel resolves conflicting drafts before another operation proceeds.
+Double-click the original loop pass to edit the linked pattern, group or supergroup directly. On a later pass, choose **Edit linked** to update every use or **Create variation here** to change only that occurrence. Separate placements of a shared definition also offer this choice. **Change scope** keeps the current draft, and Save applies the selected scope. The first structural action that changes shared definitions also waits for a scope choice. Cancel keeps the draft and selection. Save/Discard/Cancel resolves conflicting drafts before another operation proceeds.
 
 ![Choosing linked or local scope for a repeated pattern](../../screenshots/arranger-pattern-scope.png)
 

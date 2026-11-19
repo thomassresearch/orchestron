@@ -33,20 +33,21 @@ export function structureDropLayout(model: ClipArrangement, draft: StructureDraf
   };
 }
 
-/** Empty-space insertion uses exact content coordinates, not the nearest edge. */
-export function structureEmptyInsertionAt(layout:StructureDropLayout, x:number, y:number):ContainerTarget|null {
-  if(x<layout.start||x>=layout.end||y<0)return null;
-  const visit=(items:HitItem[],path:string[],offset:number,row:number):ContainerTarget|null=>{
-    const ticks=Math.max(0,Math.round(offset/5040)*5040);
-    for(let index=0;index<items.length;index++){
-      const item=items[index];
-      if(offset>=item.start+item.length)continue;
-      if(item.children&&row>=CHILD_ROW_TOP)return visit(item.children,[...path,item.id],offset-item.start,row-CHILD_ROW_TOP);
-      return item.rest?{path,index,ticks}:null;
+/** A click addresses the content at its row, or an exact insertion point in silence. */
+export function structureContentAt(layout: StructureDropLayout, x: number, y: number): { path: string[] } | ContainerTarget | null {
+  if (x < layout.start || x >= layout.end) return null;
+  const visit = (items: HitItem[], path: string[], offset: number, row: number): { path: string[] } | ContainerTarget => {
+    const ticks = Math.max(0, Math.round(offset / 5040) * 5040);
+    for (const [index, item] of items.entries()) {
+      if (offset >= item.start + item.length) continue;
+      if (item.rest) return { path, index, ticks };
+      const itemPath = [...path, item.id];
+      if (item.children && row >= CHILD_ROW_TOP) return visit(item.children, itemPath, offset - item.start, row - CHILD_ROW_TOP);
+      return { path: itemPath };
     }
-    return {path,index:items.length,ticks};
+    return { path, index: items.length, ticks };
   };
-  return visit(layout.items,[],x-layout.origin,y);
+  return visit(layout.items, [], x - layout.origin, y);
 }
 
 /** x is in lane ticks; y is relative to the root content row in pixels. */

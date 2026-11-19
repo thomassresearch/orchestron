@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from backend.app.models.sequencer_constants import TRANSPORT_SUBUNITS_PER_STEP
 from backend.app.models.sample_player import SampleAssets, SampleMap
 from backend.app.engine.lane_output import lane_id
 from backend.app.models.clip_arrangement import ClipSchedule, MAX_AUTHORED_CLIP_PADS, MAX_RUNTIME_CLIP_PADS
@@ -821,6 +822,7 @@ class SessionSequencerConfigRequest(BaseModel):
     step_count: int = Field(default=16, ge=1)
     playback_start_step: int = Field(default=0, ge=0)
     playback_end_step: int = Field(default=16, ge=1)
+    playback_loop_subunits: tuple[int, int] | None = None
     playback_loop: bool = False
     tracks: list[SessionSequencerTrackConfig] = Field(default_factory=list, max_length=128)
     score_tracks: list[SessionScoreSequencerTrackConfig] = Field(default_factory=list, max_length=16)
@@ -829,6 +831,12 @@ class SessionSequencerConfigRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_track_ids(self) -> "SessionSequencerConfigRequest":
+        if self.playback_loop_subunits is not None:
+            start, end = self.playback_loop_subunits
+            unit = TRANSPORT_SUBUNITS_PER_STEP
+            if (not self.playback_loop or start >= end or start // unit != self.playback_start_step
+                    or (end + unit - 1) // unit != self.playback_end_step):
+                raise ValueError("Exact loop bounds must fit their enclosing playback steps.")
         if self.playback_end_step <= self.playback_start_step:
             raise ValueError("playback_end_step must be greater than playback_start_step.")
         if not self.tracks and not self.score_tracks and not self.controller_tracks and not self.arpeggiators:

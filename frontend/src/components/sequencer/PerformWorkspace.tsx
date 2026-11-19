@@ -1,3 +1,4 @@
+import type { StructureFocus } from "../../lib/clipArranger/structure";
 import { useLayoutEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { useStore } from "zustand";
 import type { GuiLanguage, SequencerState } from "../../types";
@@ -5,7 +6,6 @@ import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration
 import type { OccurrenceTarget, SourceKind } from "../../lib/clipArranger/model";
 import { structureChildren } from "../../lib/clipArranger/structure";
 import { useStructureDraft } from "../../lib/clipArranger/structureStore";
-import type { StructureFocus } from "../clipArranger/StructureEditor";
 import { definitionAt } from "../../lib/clipArranger/operations";
 import { localLoopWindows } from "../../lib/clipArranger/relationships";
 import { useAppStore } from "../../store/useAppStore";

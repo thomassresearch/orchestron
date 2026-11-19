@@ -147,6 +147,26 @@ it("keeps empty-space deselection through transport changes and loops the whole 
   });
 });
 
+it("loops only the visible part of nested pattern occurrences and their reverse Shift range", () => {
+  const model = useAppStore.getState().sequencer.clipArrangement!, lane = model.lanes[0], clip = lane.clips[0];
+  const q = QUARTER_TICKS;
+  clip.start = q; clip.offset = q / 3; clip.length = 6 * q; model.end = clip.start + clip.length;
+  lane.cycleTicks = null;
+  render(<ClipPerformance language="english" renderEditor={() => null}
+    onLoopChange={value => useAppStore.getState().setSequencerArrangerLoopSelection(value)} />);
+  fireEvent.click(screen.getByRole("button", { expanded: false, name: /▸/ }));
+  const patterns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-structure-key][title^="pattern:"]'));
+  const loop = screen.getByRole("button", { name: "Loop" });
+  fireEvent.click(patterns[1]);
+  expect(loop.title).toBe("Loop selected patterns");
+  fireEvent.click(loop);
+  expect(useAppStore.getState().sequencer.arrangerLoopSelection).toEqual({ startStep: (5*q-clip.offset)/2520, endStep: 56 });
+  fireEvent.click(loop);
+  fireEvent.click(patterns[0], { shiftKey: true });
+  fireEvent.click(loop);
+  expect(useAppStore.getState().sequencer.arrangerLoopSelection).toEqual({ startStep: 8, endStep: 56 });
+});
+
 it("deselects nested content on ruler clicks without discarding its open editor", () => {
   const lane = useAppStore.getState().sequencer.clipArrangement!.lanes[0], clip = lane.clips[0];
   openClipEditor({ laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 }, "all");

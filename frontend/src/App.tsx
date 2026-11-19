@@ -1020,7 +1020,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     const targetAbsoluteStep = selection?.startStep ?? 0;
     if (useAppStore.getState().sequencerRuntime.independentSources) {
       useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
-        arrangerTransportSubunit: targetAbsoluteStep * sequencerTransportSubunitsPerStep() } }));
+        arrangerTransportSubunit: Math.round(targetAbsoluteStep * sequencerTransportSubunitsPerStep()) } }));
     } else setSequencerTransportAbsoluteStep(targetAbsoluteStep);
   }, [setSequencerTransportAbsoluteStep]);
 

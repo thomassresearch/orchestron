@@ -12,9 +12,9 @@ Drag a clip header to move its window and its edges to trim it. Start, length an
 
 ### Edit and save
 
-Use **Pattern name** in the Inspector to name a pattern. The name appears on the timeline. **Cancel edits** discards this pattern draft. Closing a changed pattern offers Save, **Discard edits**, or **Keep editing**. Open **Loop details** to see the affected beat ranges.
+Right-click a pattern and choose **Rename pattern**, edit **Pattern name** and save. You can also use the Inspector. To rename a single shared occurrence, choose **Create variation here** and edit **Variation name**. The name appears on the timeline. **Cancel edits** discards this pattern draft. Closing a changed pattern offers Save, **Discard edits**, or **Keep editing**. Open **Loop details** to see the affected beat ranges.
 
-Double-click a pattern, group or supergroup, or focus its name and press Enter. For shared content, choose **Edit linked pattern/group/supergroup** or **Create variation here** before editing. Independent content opens directly. The editor keeps the scope visible; **Change scope** preserves your edits. **Play edit** auditions the draft. Save uses the chosen scope without asking again. A local loop variation splits the clip into before, edited and after windows.
+Double-click a pattern, group or supergroup, or focus its name and press Enter. The original loop pass opens its linked definition directly. On a later pass, choose **Edit linked** to update every use or **Create variation here** to edit only this occurrence. The editor keeps the scope visible; **Change scope** preserves your edits. **Play edit** auditions the draft. Save uses the chosen scope without asking again. A local loop variation splits the clip into before, edited and after windows.
 
 Loop repetitions use a lighter fill and ↻; ↔ marks shared content. Selecting one occurrence highlights its linked uses without selecting them for moving or deleting. Counts include arranged repetitions and off-screen clips; unused references and repeating lane cycles are shown separately. The selection toolbar and context menu offer the same editing actions.
 
@@ -37,9 +37,9 @@ Den Clip-Kopf ziehen, um sein Fenster zu verschieben; die Ränder ziehen, um es 
 
 ### Bearbeiten und speichern
 
-Der **Patternname** im Inspektor erscheint im Clip. **Bearbeitung abbrechen** verwirft diesen Entwurf. Beim Schließen kannst du speichern, verwerfen oder weiter bearbeiten. **Schleifendetails** zeigt die betroffenen Schläge.
+Klicke mit der rechten Maustaste auf ein Pattern, wähle **Pattern umbenennen**, ändere den **Patternnamen** und speichere. Der Name lässt sich auch im Inspektor bearbeiten. Um nur eine verknüpfte Verwendung umzubenennen, erstelle dort eine Variation und ändere ihren Namen. **Bearbeitung abbrechen** verwirft diesen Entwurf. Beim Schließen kannst du speichern, verwerfen oder weiter bearbeiten. **Schleifendetails** zeigt die betroffenen Schläge.
 
-Ein Pattern, eine Gruppe oder Supergruppe doppelklicken oder den Namen fokussieren und Enter drücken. Bei verknüpftem Inhalt vorab **Verknüpftes Pattern/Gruppe/Supergruppe bearbeiten** oder **Hier eine Variante erstellen** wählen. Unabhängiger Inhalt öffnet sich direkt. Der Umfang bleibt sichtbar; **Umfang ändern** erhält die Bearbeitung. **Entwurf abspielen** hört vor. Speichern verwendet den gewählten Umfang ohne erneute Abfrage. Eine lokale Schleifenvariante teilt den Clip in Fenster davor, bearbeitet und danach.
+Ein Pattern, eine Gruppe oder Supergruppe doppelklicken oder den Namen fokussieren und Enter drücken. Im ersten Schleifendurchlauf öffnet sich die verknüpfte Definition direkt. Bei einer Wiederholung ändert **Verknüpftes Pattern bearbeiten** alle Vorkommen. **Hier eine Variante erstellen** ändert nur dieses Vorkommen. Das gilt auch für Gruppen und Supergruppen. Der Umfang bleibt sichtbar; **Umfang ändern** erhält die Bearbeitung. **Entwurf abspielen** hört vor. Speichern verwendet den gewählten Umfang ohne erneute Abfrage. Eine lokale Schleifenvariante teilt den Clip in Fenster davor, bearbeitet und danach.
 
 Wiederholungen erscheinen heller mit ↻; ↔ kennzeichnet verknüpften Inhalt. Ein ausgewähltes Vorkommen hebt seine Verknüpfungen hervor, ohne sie zum Verschieben oder Löschen auszuwählen. Zähler enthalten angeordnete Wiederholungen und nicht sichtbare Clips; ungenutzte Verweise und Spurzyklen werden separat angezeigt. Auswahlleiste und Kontextmenü bieten dieselben Bearbeitungsaktionen.
 
@@ -62,9 +62,9 @@ Glissez l’en-tête d’un clip pour déplacer sa fenêtre et ses bords pour la
 
 ### Modifier et enregistrer
 
-Le **Nom du motif** dans l’inspecteur apparaît dans le clip. **Annuler les modifications** abandonne ce brouillon. À la fermeture, choisissez d’enregistrer, d’abandonner ou de continuer à modifier. **Détails de la boucle** affiche les temps concernés.
+Faites un clic droit sur un motif, choisissez **Renommer le motif**, modifiez le **Nom du motif** et enregistrez. Le nom est aussi modifiable dans l’inspecteur. Pour renommer une seule occurrence liée, choisissez **Créer une variante ici** et modifiez son nom. **Annuler les modifications** abandonne ce brouillon. À la fermeture, choisissez d’enregistrer, d’abandonner ou de continuer à modifier. **Détails de la boucle** affiche les temps concernés.
 
-Double-cliquez sur un motif, groupe ou supergroupe, ou focalisez son nom et appuyez sur Entrée. Pour le contenu partagé, choisissez **Modifier le motif/groupe/supergroupe lié** ou **Créer une variante ici** avant de modifier. Le contenu indépendant s’ouvre directement. La portée reste visible ; **Changer la portée** conserve vos modifications. **Écouter le brouillon** permet de l’auditionner. L’enregistrement utilise la portée choisie sans nouvelle question. Une variante locale de boucle sépare le clip en fenêtres avant, modifiée et après.
+Double-cliquez sur un motif, groupe ou supergroupe, ou focalisez son nom et appuyez sur Entrée. Le premier passage de la boucle ouvre directement la définition liée. Sur une répétition, choisissez **Modifier le motif lié** pour modifier toutes les occurrences ou **Créer une variante ici** pour modifier uniquement celle-ci. Ce choix vaut aussi pour les groupes et supergroupes. La portée reste visible ; **Changer la portée** conserve vos modifications. **Écouter le brouillon** permet de l’auditionner. L’enregistrement utilise la portée choisie sans nouvelle question. Une variante locale de boucle sépare le clip en fenêtres avant, modifiée et après.
 
 Les répétitions ont un fond plus clair et ↻ ; ↔ indique le contenu partagé. Sélectionner une occurrence met ses utilisations liées en évidence sans les sélectionner pour un déplacement ou une suppression. Les compteurs incluent les répétitions placées et les clips hors écran ; les références inutilisées et cycles de piste sont indiqués séparément. La barre de sélection et le menu contextuel proposent les mêmes actions.
 
@@ -87,9 +87,9 @@ Arrastra la cabecera de un clip para mover su ventana y sus bordes para recortar
 
 ### Editar y guardar
 
-El **Nombre del patrón** del Inspector aparece en el clip. **Cancelar cambios** descarta este borrador. Al cerrar, puedes guardar, descartar los cambios o seguir editando. **Detalles del bucle** muestra los pulsos afectados.
+Haz clic derecho en un patrón, elige **Renombrar patrón**, edita el **Nombre del patrón** y guarda. También puedes cambiarlo en el Inspector. Para renombrar una sola aparición vinculada, elige **Crear variación aquí** y cambia su nombre. **Cancelar cambios** descarta este borrador. Al cerrar, puedes guardar, descartar los cambios o seguir editando. **Detalles del bucle** muestra los pulsos afectados.
 
-Haz doble clic en un patrón, grupo o supergrupo, o enfoca su nombre y pulsa Enter. Para contenido compartido, elige **Editar patrón/grupo/supergrupo vinculado** o **Crear variación aquí** antes de editar. El contenido independiente se abre directamente. El alcance permanece visible; **Cambiar alcance** conserva tus cambios. **Reproducir edición** permite escuchar el borrador. Guardar utiliza el alcance elegido sin volver a preguntar. Una variación local de bucle separa el clip en ventanas anterior, editada y posterior.
+Haz doble clic en un patrón, grupo o supergrupo, o enfoca su nombre y pulsa Enter. La primera pasada del bucle abre directamente la definición vinculada. En una repetición, elige **Editar patrón vinculado** para cambiar todas las apariciones o **Crear variación aquí** para cambiar solo esa aparición. Lo mismo se aplica a los grupos y supergrupos. El alcance permanece visible; **Cambiar alcance** conserva tus cambios. **Reproducir edición** permite escuchar el borrador. Guardar utiliza el alcance elegido sin volver a preguntar. Una variación local de bucle separa el clip en ventanas anterior, editada y posterior.
 
 Las repeticiones usan un fondo más claro y ↻; ↔ indica contenido compartido. Seleccionar una aparición resalta sus usos vinculados sin seleccionarlos para moverlos o eliminarlos. Los contadores incluyen repeticiones colocadas y clips fuera de pantalla; las referencias sin usar y los ciclos de pista aparecen por separado. La barra de selección y el menú contextual ofrecen las mismas acciones.
 

@@ -1,3 +1,5 @@
+import { clipLoopTarget, type ClipSelection } from "../../lib/clipArranger/loopTarget";
+import type { StructureFocus, StructureSelection } from "../../lib/clipArranger/structure";
 import { useRackSelection } from "./useRackSelection";
 import { arrangeCopy } from "../clipArranger/arrangeCopy";
 import { InstrumentControls } from "./InstrumentControls";
@@ -27,10 +29,12 @@ function SongPositionControls({ language, onSeek, onTempo }: {
   language: GuiLanguage; onSeek: SequencerPageTransportActions["onSequencerArrangerLoopSelectionChange"]; onTempo: (bpm: number) => void;
 }) {
   const c = clipCopy(language), store = usePerformanceEditorStore();
-  const selected = useStore(store, s => s.entries[editorKey("arranger", "clipSelection", "arrange")]?.value as { laneId: string; clipId?: string } | undefined);
-  const model = useAppStore(s => s.sequencer.clipArrangement);
-  const clip = model?.lanes.find(l => l.id === selected?.laneId)?.clips.find(cl => cl.id === selected?.clipId);
-  const range = useAppStore(s => s.sequencer.arrangerLoopSelection);
+  const selected = useStore(store, s => s.entries[editorKey("arranger", "clipSelection", "arrange")]?.value as ClipSelection | undefined);
+  const focus = useStore(store, s => s.entries[editorKey("arranger", "structureFocus", "arrange")]?.value as StructureFocus | undefined);
+  const selection = useStore(store, s => s.entries[editorKey("arranger", "structureSelection", "arrange")]?.value as StructureSelection | undefined);
+  const sequencer = useAppStore(s => s.sequencer);
+  const target = useMemo(() => clipLoopTarget(sequencer, selected, focus, selection), [sequencer, selected, focus, selection]);
+  const range = sequencer.arrangerLoopSelection;
   const songLoop = useAppStore(s => s.sequencer.arrangerSongLoopEnabled);
   const ticksPerStep = sequencerTransportSubunitsPerStep();
   const position = useAppStore(({ sequencerRuntime: runtime }) => runtime.arrangerTransportSubunit ??
@@ -38,10 +42,10 @@ function SongPositionControls({ language, onSeek, onTempo }: {
   const beatsPerBar = useAppStore(s => s.sequencer.timing.meterNumerator);
   const beat = Math.floor(position / QUARTER_TICKS);
   const bpm = useAppStore(s => s.sequencer.timing.tempoBPM);
-  return <><button type="button" aria-pressed={model ? !!range : !!songLoop} title={model && clip ? c.loopClip : c.loopSong}
+  return <><button type="button" aria-pressed={target ? !!range : !!songLoop} title={target ? c[target.label] : c.loopSong}
     onClick={() => {
-      if (!model) useAppStore.getState().setSequencerArrangerSongLoopEnabled(!songLoop);
-      else onSeek(range ? null : { startStep: (clip?.start ?? 0) / ticksPerStep, endStep: (clip ? clip.start + clip.length : model.end) / ticksPerStep });
+      if (!target) useAppStore.getState().setSequencerArrangerSongLoopEnabled(!songLoop);
+      else onSeek(range ? null : target.range);
     }}>{c.loop}</button>
     <span className="ws-bars" title={arrangeCopy(language).barBeat} aria-label={arrangeCopy(language).barBeat}>{Math.floor(beat / beatsPerBar) + 1}.{beat % beatsPerBar + 1}</span>
     <label>{c.position} <PositionInput className="ws-number" beats={position / QUARTER_TICKS} onSeek={step => onSeek(range, step)} /></label>

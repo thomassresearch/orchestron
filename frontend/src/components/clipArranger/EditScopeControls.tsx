@@ -11,18 +11,18 @@ export function RelationshipSummary({ relationship, language }: { relationship?:
   return relationship ? <span>{relationship.shared ? t.linked : t.independent} · {relationship.occurrences} {t.occurrences} · {relationship.clipIds.length} {t.clips}{relationship.retained && <span title={t.retained} aria-label={t.retained}> · ◇</span>}</span> : null;
 }
 
-export function EditScopeControls({ scope, language, onChoose, relationship, kind = 'pattern', localOnly = false, repeat = false, splitWindows, variationName, onNameChange, children }: {
+export function EditScopeControls({ scope, language, onChoose, relationship, kind = 'pattern', localOnly = false, repeat = false, splitWindows, variationName, patternName, nameInputRef, onNameChange, children }: {
   scope: EditScope | null; language: GuiLanguage; onChoose: (scope: EditScope) => void;
   relationship?: DefinitionRelationship; kind?: 'pattern' | 'group' | 'supergroup' | 'structure'; localOnly?: boolean; repeat?: boolean;
   splitWindows?: [number, number][];
-  variationName?: string; onNameChange?: (name: string) => void; children?: ReactNode;
+  variationName?: string; patternName?: string; nameInputRef?: React.RefObject<HTMLInputElement>; onNameChange?: (name: string) => void; children?: ReactNode;
 }) {
   const c = clipCopy(language), t = scopeCopy(language), [changing, setChanging] = useState(false);
   const choose = (next: EditScope) => { onChoose(next); setChanging(false); };
   return <div data-edit-scope={kind} className={kind === "pattern" ? "mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" : "mb-3 space-y-2 text-xs"} aria-label={t.choose}>
     <div className="flex flex-wrap items-center gap-2"><strong className="font-medium">{scope === 'local' ? t.editingLocal : scope === 'all' ? relationship && !relationship.shared ? t.independent : t.editingAll : t.choose}</strong>
       {(scope || kind !== "pattern") && <RelationshipSummary relationship={relationship} language={language} />}
-      {scope && !localOnly && (!relationship || relationship.shared) && <button className={clipButton} onClick={() => setChanging(!changing)} aria-expanded={changing}>{t.change}</button>}
+      {scope && !localOnly && (repeat || !relationship || relationship.shared) && <button className={clipButton} onClick={() => setChanging(!changing)} aria-expanded={changing}>{t.change}</button>}
     </div>
     {(!scope || changing) && <div className="flex flex-wrap gap-2">
       <button className={clipButtonClass('edit')} disabled={localOnly} aria-pressed={scope === 'all'} onClick={() => choose('all')}>{kind === 'structure' ? t.allDefinitions : t[kind]}{relationship ? ` (${relationship.occurrences})` : ''}</button>
@@ -30,7 +30,7 @@ export function EditScopeControls({ scope, language, onChoose, relationship, kin
     </div>}
     {!scope && kind !== "pattern" && <p>{t.chooseHint}</p>}
     {localOnly && <p>{t.localOnly}</p>}
-    {scope === 'local' && onNameChange && <label className="flex flex-wrap items-center gap-2">{c.variation}<input aria-label={c.variation} maxLength={128} value={variationName ?? ''} onChange={e => onNameChange(e.target.value)} className="min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1" /></label>}
+    {scope && (scope === 'local' || patternName !== undefined) && onNameChange && <label className="flex flex-wrap items-center gap-2">{scope === "local" ? c.variation : arrangeCopy(language).patternName}<input ref={nameInputRef} maxLength={128} value={scope === "local" ? variationName ?? "" : patternName} onChange={e => onNameChange(e.target.value)} className="min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1" /></label>}
     {repeat && scope !== 'all' && <details className="text-amber-200"><summary className="cursor-pointer">{arrangeCopy(language).loopDetails}</summary><p>{!scope && `${c.local}: `}{c.repeatImpact}{splitWindows && <> {c.beats}: {splitWindows.map(([from,to])=>`${from/20160}–${to/20160}`).join(' / ')}.</>}</p></details>}
     {children}
   </div>;

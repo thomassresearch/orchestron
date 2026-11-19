@@ -909,7 +909,7 @@ export function useSequencerRuntimeController({
         const config = playing ? buildBackendSequencerConfig(store.sequencer, "runtime", true) : undefined;
         const request: SessionDeviceTransportRequest = {
           action: playing ? "play" : "stop", config,
-          ...(resetToStep !== undefined ? { reset_position_subunit: resetToStep * sequencerTransportSubunitsPerStep() } : {}),
+          ...(resetToStep !== undefined ? { reset_position_subunit: Math.round(resetToStep * sequencerTransportSubunitsPerStep()) } : {}),
           ...(device ? "playbackMode" in device ? { arpeggiator_id: device.id } :
             { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(device.id, row.id)) : [device.id] }
             : { arranger: true }),
@@ -960,7 +960,7 @@ export function useSequencerRuntimeController({
       const moveCursor = () => {
         if (store.sequencerRuntime.independentSources) {
           useAppStore.setState(state => ({ sequencerRuntime: { ...state.sequencerRuntime,
-            arrangerTransportSubunit: targetStep * sequencerTransportSubunitsPerStep() } }));
+            arrangerTransportSubunit: Math.round(targetStep * sequencerTransportSubunitsPerStep()) } }));
         } else setSequencerTransportAbsoluteStep(targetStep);
       };
       if (!currentState.isPlaying) {
@@ -982,7 +982,9 @@ export function useSequencerRuntimeController({
       try {
         // Both audio modes use the same backend render-driven transport.
         const config = buildBackendSequencerConfig(store.sequencer);
-        const response = api.seekSessionSequencer(sessionId, { config, position_step: targetStep });
+        // The seek API takes whole steps and clamps to the exact configured loop boundaries.
+        const position = targetStep === selection?.endStep ? Math.ceil(targetStep) : Math.floor(targetStep);
+        const response = api.seekSessionSequencer(sessionId, { config, position_step: position });
         consumeSequencerEnablementCommands(useAppStore.setState, useAppStore.getState, config);
         const status = await response;
         if (version !== transportRequestVersionRef.current || useAppStore.getState().activeSessionId !== sessionId) return;

@@ -448,6 +448,22 @@ def test_render_driven_pad_boundary_batches_switches_without_status_snapshots() 
             assert switch['local_step'] == local_steps[switch['track_id']] == 0
 
 
+def test_render_wraps_at_exact_pattern_bounds_between_transport_steps() -> None:
+    request = json.loads((Path(__file__).parent / "fixtures/sequencers/arranger_seek.json").read_text())
+    start, end = 9911, 19330
+    request.update(playback_start_step=3, playback_end_step=8, playback_loop=True, playback_loop_subunits=[start, end])
+    runtime = SessionSequencerRuntime(session_id="pattern-loop", midi_service=_FakeMidiService(), midi_input_selector="test",
+        controller_default_channels=(1,), clock_mode="render_driven", publish_event=lambda *_: None)
+    runtime.configure(SessionSequencerConfigRequest.model_validate(request))
+    assert runtime.start(position_step=3).transport_subunit == start
+    positions = []
+    for _ in range(500):
+        runtime.advance_render_block(sample_rate=48000, ksmps=64)
+        positions.append(runtime.status().transport_subunit)
+    assert all(start <= position < end for position in positions)
+    assert any(after < before for before, after in zip(positions, positions[1:]))
+
+
 @pytest.mark.parametrize("playing", [False, True])
 def test_seek_applies_new_loop_bounds_and_position_together(playing: bool) -> None:
     from backend.app.services.sequencer_runtime_config import compile_sequencer_runtime_config

@@ -37,6 +37,25 @@ it('separates relationship highlighting from selection and shows repetition indi
   expect(document.querySelectorAll('[data-linked-highlight=true]')).toHaveLength(0);
   expect(screen.getByRole('button', { name: 'Create variation here' }).hasAttribute('disabled')).toBe(true);
 });
+it('opens the original loop pass directly and saves its edit to the linked definition', async () => {
+  show();
+  fireEvent.doubleClick(patterns()[0]);
+  fireEvent.click(editor().getByRole('button', { name: 'Change note' }));
+  await act(async () => fireEvent.click(editor().getByRole('button', { name: 'Save to linked occurrences (5)' })));
+  const lane = model().lanes[0], phrase = lane.definitions[0];
+  expect(phrase.kind === 'pattern' && phrase.source === 'sequencer' && phrase.payload.steps[0].note).toBe(73);
+  expect(lane.clips.map(c => c.id)).toEqual(['loop', 'other']);
+  expect(lane.definitions.filter(d => d.name.startsWith('Phrase'))).toEqual([phrase]);
+});
+it('asks again when starting a fresh edit of a previously opened loop repetition', () => {
+  show();
+  fireEvent.doubleClick(patterns()[1]);
+  fireEvent.click(editor().getByRole('button', { name: 'Create variation here' }));
+  fireEvent.click(editor().getByRole('button', { name: 'Close editor' }));
+  fireEvent.doubleClick(patterns()[1]);
+  expect(editor().getByRole('button', { name: 'Create variation here' })).toBeTruthy();
+  expect(editor().queryByRole('button', { name: 'Change note' })).toBeNull();
+});
 it.each(['doubleClick','keyboard'] as const)('asks before editing shared content through %s', method => {
   show(); const before = model();
   if (method === 'doubleClick') fireEvent.doubleClick(patterns()[1]); else fireEvent.keyDown(patterns()[1], { key: 'Enter' });
@@ -118,7 +137,7 @@ it('holds an incompatible later command until the whole draft is explicitly swit
   const l=model().lanes[0],p=l.definitions[0];l.definitions.push({id:'g',name:'Group',kind:'group',revision:0,children:[{id:'child',definitionId:p.id}]});
   l.clips.forEach((c,i)=>{c.children=[{id:`group${i}`,definitionId:'g'}];});show();
   fireEvent.doubleClick(screen.getAllByTitle('group: Group')[0]);
-  fireEvent.click(editor().getByRole('button',{name:'Edit linked group (5)'}));
+  expect(editor().getByText('Editing shared content')).toBeTruthy();
   fireEvent.blur(editor().getByRole('textbox',{name:'Name'}),{target:{value:'Renamed'}});
   fireEvent.click(editor().getByRole('button',{name:'Close editor'}));
   fireEvent.click(screen.getAllByTitle('group: Renamed')[0]);const previous=useStructureDraft.getState().draft;
@@ -143,6 +162,24 @@ it("saves a linked name-only edit and restores its previous name through Undo", 
   expect(model().lanes[0].clips).toEqual(lane.clips);
   clipHistoryStep(false);
   expect(model().lanes[0].definitions).toEqual(lane.definitions);
+});
+
+it("renames a later occurrence from its menu using the chosen local scope", async () => {
+  show();
+  const lane = model().lanes[0], trackName = useAppStore.getState().sequencer.tracks[0].name;
+  fireEvent.contextMenu(patterns()[2]);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Rename pattern" }));
+  fireEvent.click(editor().getByRole("button", { name: "Create variation here" }));
+  const input = editor().getByRole("textbox", { name: "Variation name" });
+  expect(document.activeElement).toBe(input);
+  fireEvent.change(input, { target: { value: "Bridge" } });
+  await act(async () => fireEvent.click(editor().getByRole("button", { name: "Save variation here" })));
+  const saved = model().lanes[0];
+  expect(saved.clips.find(c => c.start === 8 * Q)?.children[0]).toMatchObject({
+    definitionId: saved.definitions.find(d => d.name === "Bridge")?.id
+  });
+  expect(saved.definitions.find(d => d.id === lane.definitions[0].id)?.name).toBe("Phrase");
+  expect(useAppStore.getState().sequencer.tracks[0].name).toBe(trackName);
 });
 
 it("cancels only the active occurrence's draft", async () => {

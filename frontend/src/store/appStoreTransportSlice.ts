@@ -1,14 +1,13 @@
 import { mergedSequencerState, playbackValues } from "../lib/mergedSequencerState";
 import type { StoreApi } from "zustand";
 
-import { normalizeArrangerLoopSelection } from "../lib/arrangerTransport";
+import { arrangerStepQuantum, normalizeArrangerLoopSelection } from "../lib/arrangerTransport";
 import {
   clampSequencerMeterDenominator,
   clampSequencerMeterNumerator,
   clampSequencerStepsPerBeat,
   clampSequencerTempoBpm,
-  sequencerTransportSubunitsPerStep,
-  sequencerTransportStepsPerBeat
+  sequencerTransportSubunitsPerStep
 } from "../lib/sequencer";
 import {
   sequencerRuntimeAtAbsoluteStep,
@@ -115,7 +114,7 @@ export function createTransportStoreActions(
           arrangerLoopSelection: normalizeArrangerLoopSelection(
             selection,
             Number.MAX_SAFE_INTEGER,
-            sequencer.clipArrangement ? 1 : sequencerTransportStepsPerBeat(sequencer.timing)
+            arrangerStepQuantum(sequencer)
           )
         }
       });

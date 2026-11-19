@@ -84,7 +84,13 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
   useEffect(() => {
     if (shell && active.current && active.current.key !== key) void stopEdit().catch(e => setError(String(e)));
   }, [key]);
-  const structure=useStructureEditor(model,sequencer,timings,language,stopEdit,zoom/QUARTER_TICKS);
+  const [renameKey, setRenameKey] = useState<string | null>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const structure=useStructureEditor(model,sequencer,timings,language,stopEdit,zoom/QUARTER_TICKS,target => {
+    openClipEditor(target);
+    shell?.revealEditor();
+    setRenameKey(draftKey({target}));
+  });
   useEffect(() => () => {
     const previous = active.current;
     if (!previous) return;
@@ -112,6 +118,15 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
   const relationships=structure.relationships;
   const relationship=draft?relationships.get(draft.target.laneId)?.get(draft.definition.id):undefined;
   const scope=draft?(draft.definition.kind==='pattern'?effectiveScope(draft.editIntent,relationship):structure.draft?.editIntent?.scope??null):null;
+  useLayoutEffect(() => {
+    if (!renameKey) return;
+    if (renameKey !== key) { setRenameKey(null); return; }
+    if (scope && nameInput.current) {
+      nameInput.current.focus();
+      nameInput.current.select();
+      setRenameKey(null);
+    }
+  });
   const dirty=!!draft&&hasChangedClipDrafts(model,{current:draft});
   const [closing, setClosing] = useState<{ key: string; finish: () => void } | null>(null);
   const [closingError, setClosingError] = useState("");
@@ -195,7 +210,7 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
       {draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}
         variationName={draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane,draft.definition.name,sc.variationSuffix) : '')}
         onChoose={next=>setClipEditIntent(next,draft.editIntent?.variationName??uniqueVariationName(lane,draft.definition.name,sc.variationSuffix))}
-        onNameChange={renameClipPattern} /> : structure.scopeControls}
+        patternName={draft.definition.name} nameInputRef={nameInput} onNameChange={renameClipPattern} /> : structure.scopeControls}
       {scope && <>
       {shell ? ["sequencer", "score", "arpeggiator"].includes(lane.source) && <EditorDetails owner={`device:${lane.id}`} field="clipTranspose" className="mb-2 text-xs" summary={transposeCopy(language).title}>
         {() => <TransposeInspector key={key} language={language} stopAudition={stopEdit} />}

@@ -11,7 +11,7 @@ export function ClipTransport({ language, copy, onPlay, onPause, onStop, onRewin
 }) {
   const playing = useAppStore(s => s.sequencerRuntime.arrangerActive === true);
   const position = useAppStore(s => s.sequencerRuntime.arrangerTransportSubunit ?? 0);
-  const start = useAppStore(s => (s.sequencer.arrangerLoopSelection?.startStep ?? 0) * 2520);
+  const start = useAppStore(s => Math.round((s.sequencer.arrangerLoopSelection?.startStep ?? 0) * 2520));
   const actions = [
     { kind: "rewind", label: copy.transportRewind, run: onRewind },
     { kind: "play", label: copy.transportPlay, run: onPlay, active: playing },

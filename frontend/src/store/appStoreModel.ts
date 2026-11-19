@@ -21,7 +21,7 @@ import { hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest, wi
 import { emptyAudioGraph, emptyMixer, cleanBindings, migrateAudio } from "../lib/audioRouting";
 import { api } from "../api/client";
 import {
-  normalizeArrangerLoopSelection,
+  CLIP_STEP_QUANTUM, normalizeArrangerLoopSelection,
   transportPositionFromAbsoluteStep
 } from "../lib/arrangerTransport";
 import {
@@ -1009,8 +1009,7 @@ export function normalizeRawArrangerLoopSelection(raw: unknown): ArrangerLoopSel
     return null;
   }
   return {
-    startStep: Math.max(0, Math.round(startStep)),
-    endStep: Math.max(0, Math.round(endStep))
+    startStep, endStep
   };
 }
 
@@ -2166,7 +2165,7 @@ export function normalizeSequencerState(raw: unknown): SequencerState {
   const arrangerLoopSelection = normalizeArrangerLoopSelection(
     rawArrangerLoopSelection,
     Number.MAX_SAFE_INTEGER,
-    sequencer.clipArrangement ? 1 : sequencerTransportStepsPerBeat(timing)
+    sequencer.clipArrangement ? CLIP_STEP_QUANTUM : sequencerTransportStepsPerBeat(timing)
   );
 
   const result: SequencerState = {
@@ -2993,7 +2992,7 @@ export function buildSequencerConfigSnapshot(
       arrangerLoopSelection: normalizeArrangerLoopSelection(
         sequencer.arrangerLoopSelection,
         Number.MAX_SAFE_INTEGER,
-        sequencer.clipArrangement ? 1 : sequencerTransportStepsPerBeat(timing)
+        sequencer.clipArrangement ? CLIP_STEP_QUANTUM : sequencerTransportStepsPerBeat(timing)
       ),
       scoreTracks: persistedScoreTracks(sequencer),
       tracks: sequencer.tracks.slice(0, MAX_SEQUENCERS_PER_TYPE).map((track, index) => ({

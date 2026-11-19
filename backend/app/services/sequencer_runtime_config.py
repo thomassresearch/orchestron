@@ -415,8 +415,11 @@ def compile_sequencer_runtime_config(
             pad_loop_sequence=_normalize_pad_loop_sequence(track_request.pad_loop_sequence),
         )
 
+    playback_start_subunit = request.playback_start_step * TRANSPORT_SUBUNITS_PER_STEP
     playback_end_subunit = request.playback_end_step * TRANSPORT_SUBUNITS_PER_STEP
-    if "playback_end_step" not in request.model_fields_set:
+    if request.playback_loop_subunits is not None:
+        playback_start_subunit, playback_end_subunit = request.playback_loop_subunits
+    elif "playback_end_step" not in request.model_fields_set:
         playback_end_subunit = max(
             subunit_quantum,
             max(
@@ -443,7 +446,7 @@ def compile_sequencer_runtime_config(
         prepared_arpeggiators=arpeggiators,
         timing=timing,
         step_count=step_quantum,
-        playback_start_subunit=request.playback_start_step * TRANSPORT_SUBUNITS_PER_STEP,
+        playback_start_subunit=playback_start_subunit,
         playback_end_subunit=playback_end_subunit,
         playback_loop=request.playback_loop,
         tracks=tracks,

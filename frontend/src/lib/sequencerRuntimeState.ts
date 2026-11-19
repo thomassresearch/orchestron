@@ -58,14 +58,15 @@ export function sequencerRuntimeAtAbsoluteStep(
   absoluteStep: number
 ): SequencerRuntimeState {
   const stepCount = normalizeRuntimeStepCount(runtime.stepCount);
-  const normalizedStep = Math.max(0, Math.round(absoluteStep));
+  const subunit = Math.max(0, Math.round(absoluteStep * sequencerTransportSubunitsPerStep()));
+  const normalizedStep = Math.floor(subunit / sequencerTransportSubunitsPerStep());
   const { playhead, cycle } = transportPositionFromAbsoluteStep(normalizedStep, stepCount);
   return {
     ...runtime,
     playhead,
     cycle,
-    arrangerTransportSubunit: normalizedStep * sequencerTransportSubunitsPerStep(),
-    transportSubunit: normalizedStep * sequencerTransportSubunitsPerStep()
+    arrangerTransportSubunit: subunit,
+    transportSubunit: subunit
   };
 }
 

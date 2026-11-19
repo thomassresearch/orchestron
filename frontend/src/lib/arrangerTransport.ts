@@ -1,5 +1,5 @@
 import { compilePadLoopPattern, decodePadLoopPauseToken } from "./padLoopPattern";
-import { sequencerTransportStepCount, sequencerTransportStepsPerBeat } from "./sequencer";
+import { sequencerTransportStepCount, sequencerTransportStepsPerBeat, sequencerTransportSubunitsPerStep } from "./sequencer";
 import type {
   ArrangerLoopSelection,
   ControllerSequencerState,
@@ -9,6 +9,7 @@ import type {
   SequencerTrackState
 } from "../types";
 
+export const CLIP_STEP_QUANTUM = 1 / sequencerTransportSubunitsPerStep();
 export const ARRANGER_STEP_QUANTUM: number = sequencerTransportStepsPerBeat();
 
 function normalizeArrangerStepQuantum(stepQuantum: number): number {
@@ -21,7 +22,7 @@ function normalizeArrangerStepQuantum(stepQuantum: number): number {
 export function arrangerStepQuantum(
   sequencer: (Pick<SequencerState, "timing"> & Partial<Pick<SequencerState, "clipArrangement">>) | SequencerState["timing"]
 ): number {
-  if ("clipArrangement" in sequencer && sequencer.clipArrangement) return 1;
+  if ("clipArrangement" in sequencer && sequencer.clipArrangement) return CLIP_STEP_QUANTUM;
   return normalizeArrangerStepQuantum(sequencerTransportStepsPerBeat("timing" in sequencer ? sequencer.timing : sequencer));
 }
 
@@ -158,6 +159,15 @@ export function normalizeArrangerLoopSelection(
   if (!selection) {
     return null;
   }
+  if (stepQuantum === CLIP_STEP_QUANTUM) {
+    // Compare and clamp in integer ticks so even a one-tick pattern survives a round trip.
+    const unit = sequencerTransportSubunitsPerStep();
+    const ticks = (step: number) => Number.isFinite(step) ? Math.min(Number.MAX_SAFE_INTEGER, Math.round(step * unit)) : 0;
+    const limit = Math.max(1, ticks(arrangementEndStep));
+    const start = Math.max(0, Math.min(ticks(selection.startStep), limit - 1));
+    const end = Math.max(start + 1, Math.min(ticks(selection.endStep), limit));
+    return { startStep: start / unit, endStep: end / unit };
+  }
   const normalizedStepQuantum = normalizeArrangerStepQuantum(stepQuantum);
   const boundedEnd = Math.max(normalizedStepQuantum, quantizeStep(arrangementEndStep, normalizedStepQuantum));
   const rawStart = quantizeStep(selection.startStep, normalizedStepQuantum);
@@ -203,5 +213,7 @@ export function clampArrangerSeekStep(
   const normalizedStepQuantum = normalizeArrangerStepQuantum(stepQuantum);
   const rangeStart = selection?.startStep ?? 0;
   const rangeEnd = selection?.endStep ?? Math.max(normalizedStepQuantum, quantizeStep(arrangementEndStep, normalizedStepQuantum));
+  if (nextStep <= rangeStart) return rangeStart;
+  if (nextStep >= rangeEnd) return rangeEnd;
   return Math.max(rangeStart, Math.min(Math.round(nextStep), rangeEnd));
 }

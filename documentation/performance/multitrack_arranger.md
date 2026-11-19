@@ -20,7 +20,7 @@ The top-right **?** opens help specifically for this clip workflow in the select
 
 ## Arrange fixed windows
 
-Unselected tracks stay compact. Click a track header to expand its clips into nested pattern, group and supergroup boxes. Drag a clip header to move it, or its borders to trim it; the inspector also accepts numeric start, length and source offset in master beats. Double-click empty lane space to create an empty four-master-beat Once clip immediately, snapped to quarter beats. The track **+** appends the same empty clip. Its inline **+** opens the content picker; inserted content replaces silence, preserving any remaining rest. Longer content can grow the window when space permits. Moves and deletion leave other clips in place. Overlap on the same lane is rejected.
+Click a clip header to select its window. Click the track name to expand or collapse its nested pattern, group and supergroup boxes. Drag a clip header to move it, or its borders to trim it; the inspector also accepts numeric start, length and source offset in master beats. Double-click empty lane space to create an empty four-master-beat Once clip immediately, snapped to quarter beats. The track **+** appends the same empty clip. Its inline **+** opens the content picker; inserted content replaces silence, preserving any remaining rest. Longer content can grow the window when space permits. Moves and deletion leave other clips in place. Overlap on the same lane is rejected.
 
 The clip window and content duration are independent. **Once** plays the content from its source offset and leaves silence after its end. **Loop** repeats content within the window. Trimming preserves the original notes and content; **Fit clip to content** explicitly changes the window. A local edit of one generated repeat splits its original window into before, edited and after parts.
 
@@ -49,18 +49,17 @@ Select an instrument clip and use **Generate automation** to create one bound co
 For a Score track, add a clip, use its inline **+** / **Add content → New pattern**,
 then double-click the nested pattern to open the **Score sequencer**. Hold its
 piano keys to audition pitches or double-click them to append quarter notes.
-Choose **Edit linked pattern** or **Create variation here** before editing shared content. Save applies that choice directly.
 See the [Score pattern walkthrough](score_sequencers.md#create-a-score-pattern-in-the-clip-arranger).
 
-Double-click a nested box, or focus its name and press Enter, to open its sequencer or arpeggiator. The breadcrumb identifies the pattern you are editing; draft status, **Play edit** and **Save** sit above the musical controls. You can edit notes/chords/holds/strums, sparse score notes, drum velocities/ratchets, both controller datasets, and arpeggiator parameters/presets. Lane-wide timing, routing and instrument settings affect the whole track.
+Double-click a pattern name or its note preview to open the editor. You can also focus the name and press Enter. The breadcrumb identifies the pattern you are editing; draft status, **Play edit** and **Save** sit above the musical controls. You can edit notes/chords/holds/strums, sparse score notes, drum velocities/ratchets, both controller datasets, and arpeggiator parameters/presets. Lane-wide timing, routing and instrument settings affect the whole track.
 
 Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.
 
-Select a pattern and edit **Pattern name** in the Inspector. **Group name** names a new group of selected items. The saved pattern name appears inside each occurrence, including on compact tracks. Use **Loop details** for the beat ranges affected by a local edit.
+Right-click a pattern name or its preview and choose **Rename pattern**. Type the new **Pattern name** in the editor and save. You can also edit the name in the Inspector. For a shared pattern, the linked save updates every use. Choose **Create variation here** and edit **Variation name** to rename just this occurrence. **Group name** names a new group of selected items. The saved pattern name appears inside each occurrence, including on compact tracks. Use **Loop details** for the beat ranges affected by a local edit.
 
-![Editing scope for a repeating bass pattern](../../screenshots/arranger-pattern-scope.png)
+![Editing scope for the second pass of a looping bass pattern](../../screenshots/arranger-pattern-scope.png)
 
-Choose **Edit linked pattern** to change every occurrence or **Create variation here** to change only this one. The [pattern editing guide](pattern_pads_and_pad_looper.md#edit-and-save) owns the scope, save and draft rules. A variation within a loop can split its window into before, edited and after parts while preserving the song's timing.
+Double-click the original pass of a loop to edit its linked definition directly. Saving updates all linked uses. Double-click a later pass to choose **Edit linked pattern** for every use or **Create variation here** for that pass alone. The clip header opens the top-level item at the clicked beat. The [pattern editing guide](pattern_pads_and_pad_looper.md#edit-and-save) owns the scope, save and draft rules. A variation within a loop can split its window into before, edited and after parts while preserving the song's timing.
 
 ![Local variation with persistent scope and save action](../../screenshots/clip-arranger-local-variation.png)
 
@@ -78,7 +77,11 @@ Arpeggiator **Play edit** waits for incoming notes or a chord on its input chann
 
 ![Drummer editor highlighting the current step during Play edit](../../screenshots/clip-arranger-edit-playback.png)
 
-**Loop** repeats the selected clip’s time window across all tracks. With no clip selected, it repeats the whole song from the start through **Song end**, including trailing silence. Click empty timeline space or the ruler outside a clip to deselect it; clicking a clip selects it again. Click **Loop** again to turn it off. This is separate from **Loop** in the clip inspector, which repeats its content only within the fixed clip window. The playhead and Position field follow song position through loops and remain stationary during standalone audition. Newly created clips are selected automatically.
+Click a pattern, or click the first pattern and Shift-click the last, then turn on **Loop** in the playback controls. All tracks repeat that time range, including rests between the patterns. The amber ruler shows the loop boundaries. You can select patterns inside a group or span adjacent repetitions at the top level of a clip. A trimmed clip loops only the visible part of a pattern.
+
+![The amber loop range spans the two selected patterns across a clip repetition](../../screenshots/arranger-selected-pattern-loop.png)
+
+Select just the clip header before turning on **Loop** to repeat its full window. With no clip selected, it repeats the whole song from the start through **Song end**, including trailing silence. Click empty timeline space or the ruler outside a clip to deselect it; clicking a clip selects it again. Click **Loop** again to turn it off. This is separate from **Loop** in the clip inspector, which repeats its content only within the fixed clip window. The playhead and Position field follow song position through loops and remain stationary during standalone audition. Newly created clips are selected automatically.
 
 Loading selects a clip even when looping is off: a matching saved loop takes priority, then a clip at the cursor, then the earliest clip. Tracks stay compact and the editor stays closed. Explicitly clearing the selection stays cleared through Play, Stop and Rewind. You can toggle the loop without reopening its editor. See the [restored loop selection](../../screenshots/clip-arranger-restored-loop.png).
 
@@ -132,7 +135,7 @@ Right-click a pattern, group or supergroup and choose **Duplicate** to append a 
 
 For a looped clip, Duplicate appends **once after the final repetition**, converting the original repetitions to explicit content in one Once clip. Complete cropped source content is retained; the duplicate follows the full retained final item. Existing repetition-specific transposition and definition links are preserved. This structural save affects only the selected clip, and one Undo restores the loop. Resolve any pending structure before duplicating a loop, then reselect the content if prompted. Capacity rejection retains the selection; a collision leaves the draft available for correction.
 
-![Pattern context menu with Duplicate and no Ungroup](../../screenshots/clip-arranger-duplicate.png)
+![Pattern context menu with Rename pattern and Duplicate](../../screenshots/clip-arranger-duplicate.png)
 
 Drag a box or contiguous selection to a quarter-beat position. Moves within a clip/pass leave rests at the source and consume silence at the destination; other content stays in place. Overlapping drops are rejected. Between clips on the same track, dragging copies linked content. Between tracks of the same device type, it copies independent definitions using destination timing. Drum keys must have unambiguous destination rows; controller modes must match. Compact clips accept root drops, and hovering expands the destination track. The destination text shows the position. Self-nesting and moves across loop passes are rejected. Left/Right on a focused content header nudges it by a quarter beat. The toolbar move arrows and **Move into container** retain their explicit reorder behavior. Escape or cancelling a pointer gesture leaves the structure unchanged.
 
@@ -148,7 +151,7 @@ Longer content grows the affected windows if space permits. Loop windows preserv
 
 ## Container inspector and musical draft conflicts
 
-Double-click a group or supergroup to open its child inspector. Adopt linked content, add a new pattern or rest, reorder, group, ungroup, rename or remove children there. These controls edit the **same structural draft** as the expanded timeline. Choose the scope before editing shared containers. The editor shows the affected definitions and clip boundaries, including collision rejection and empty-container removal. Save structure uses the established choice. Draft Undo/Redo and Discard apply to both surfaces.
+Double-click a group or supergroup to open its child inspector. Adopt linked content, add a new pattern or rest, reorder, group, ungroup, rename or remove children there. These controls edit the **same structural draft** as the expanded timeline. The original loop pass opens the linked group or supergroup directly. On a repetition, choose whether to edit the linked container or create a variation. The editor shows the affected definitions and clip boundaries, including collision rejection and empty-container removal. Save structure uses the established choice. Draft Undo/Redo and Discard apply to both surfaces.
 
 ![Container inspector sharing the structural draft](../../screenshots/clip-arranger-container-structure.png)
 

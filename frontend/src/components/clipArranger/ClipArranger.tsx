@@ -1,3 +1,4 @@
+import { clipLoopTarget } from "../../lib/clipArranger/loopTarget";
 import { ArrangeTrackRouting, focusTrackChannel } from "../sequencer/ArrangeTrackRouting";
 import { AddArrangeTrack } from "./AddArrangeTrack";
 import { WorkspacePanels, WorkspacePanel, shellCopy } from "../sequencer/WorkspacePanels";
@@ -9,7 +10,7 @@ import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { clipButton, clipButtonClass, clipButtonTone } from "./buttonStyles";
 import { HelpIconButton } from "../HelpIconButton";
 import { PositionInput } from "./PositionInput";
-import { structureDropLayout, structureEmptyInsertionAt, STRUCTURE_TREE_TOP } from '../../lib/clipArranger/structureHitTest';
+import { structureDropLayout, structureContentAt, STRUCTURE_TREE_TOP } from '../../lib/clipArranger/structureHitTest';
 import { structureCopy } from './structureCopy';
 import { addOffsets, offsetAt } from "../../lib/clipArranger/transposition";
 import { logicalRepeatIndex, transposePlans } from "../../lib/clipArranger/transposeModel";
@@ -123,7 +124,10 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
     setScroll(node.scrollLeft);
     requestAnimationFrame(() => find()?.focus());
   };
-  const pick = (lane: ClipLane, clip: Clip) => { structure.setFocus({ laneId: lane.id, clipId: clip.id, pass: 0, parent: [] }); select({ laneId: lane.id, clipId: clip.id }); setExpanded(lane.id); };
+  const pick = (lane: ClipLane, clip: Clip) => {
+    structure.setFocus({ laneId: lane.id, clipId: clip.id, pass: 0, parent: [] });
+    select({ laneId: lane.id, clipId: clip.id });
+  };
   const createEmpty = (lane:ClipLane,start:number) => structure.guard((saved) => {
     const clip:Clip={id:newClipId(),name:c.window,start,length:4*Q,offset:0,mode:'once',children:[{id:newClipId(),restTicks:4*Q}]};
     try { onChange(addClip(saved??model,lane.id,clip,timings),c.add); select({laneId:lane.id,clipId:clip.id});structure.setFocus({laneId:lane.id,clipId:clip.id,pass:0,parent:[]});setError(null); } catch(e){setError(String(e));}
@@ -140,24 +144,20 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
     const candidates = model.lanes.flatMap(lane => lane.clips.map(clip => ({ lane, clip })))
       .sort((a, b) => a.clip.start - b.clip.start);
     const target = candidates.find(({ clip }) => loopStart !== undefined && loopEnd !== undefined &&
-      clip.start === loopStart * 2520 && clip.start + clip.length === loopEnd * 2520)
+      clip.start === Math.round(loopStart * 2520) && clip.start + clip.length === Math.round(loopEnd * 2520))
       ?? candidates.find(({ clip }) => clip.start <= position && position < clip.start + clip.length)
       ?? candidates[0];
     if (target) select({ laneId: target.lane.id, clipId: target.clip.id });
   }, [selected, selectedLane, editingClip, loopStart, loopEnd, model.lanes, position, select]);
   const lastClipEnd = Math.max(Q / 4, ...model.lanes.flatMap(lane => lane.clips.map(clip => clip.start + clip.length)));
   const setSongEnd = (end: number) => attempt(() => ({ ...model, revision: model.revision + 1, end }), c.songEnd);
-  const open = (lane: ClipLane, clip: Clip, path: string[], pass: number) => {
-    if (!shell) {
-      pick(lane, clip);
-      structure.guardEdit({ laneId: lane.id, clipId: clip.id, path, pass }, onEdit);
-      return;
-    }
+  const open = (lane: ClipLane, clip: Clip, path: string[], pass: number, selectItem = true) => {
     structure.guardEdit({ laneId: lane.id, clipId: clip.id, path, pass }, target => {
-      shell.revealEditor();
+      shell?.revealEditor();
       select({ laneId: target.laneId, clipId: target.clipId });
       setExpanded(target.laneId);
-      structure.select({ laneId: target.laneId, clipId: target.clipId, pass: target.pass, parent: target.path.slice(0, -1) }, target.path[target.path.length - 1], false);
+      if (selectItem) structure.select({ laneId: target.laneId, clipId: target.clipId, pass: target.pass, parent: target.path.slice(0, -1) }, target.path[target.path.length - 1], false);
+      else structure.clearSelection();
       onEdit(target);
     });
   };
@@ -177,13 +177,18 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
       select({ laneId: lane.id, clipId: clip.id }); setExpanded(lane.id);
     });
   };
-  const selectHeader = (lane: ClipLane, clip: Clip) => {
-    const target = shell && firstVisibleTarget(lane, clip, timings[lane.id]);
-    if (target && editingTarget?.clipId !== clip.id && compatible(lane, target)) open(lane, clip, target.path, target.pass);
-    else { if (shell) structure.clearSelection(); pick(lane, clip); }
+  const contentMenu = (lane: ClipLane, clip: Clip, pass: number, path: string[], x: number, y: number) => {
+    const focus = { laneId: lane.id, clipId: clip.id, pass, parent: path.slice(0, -1) };
+    structure.contextMenu(focus, path[path.length - 1], x, y, () => select({ laneId: lane.id, clipId: clip.id }));
+  };
+  const selectHeader = (lane: ClipLane, clip: Clip, target?: OccurrenceTarget) => {
+    if (target && editingTarget?.clipId !== clip.id && compatible(lane, target)) open(lane, clip, target.path, target.pass, false);
+    else { structure.clearSelection(); pick(lane, clip); }
   };
   const selectedOccurrence = structure.selectedTarget?.laneId === selectedLane?.id && structure.selectedTarget?.clipId === selectedClip?.id ? structure.selectedTarget : undefined;
   const hasContentSelection = structure.selection && structure.focus?.laneId === selectedLane?.id && structure.focus?.clipId === selectedClip?.id;
+  const loopTarget = useMemo(() => shell ? null : clipLoopTarget(sequencer, selected, structure.focus, structure.selection),
+    [shell, sequencer, selected, structure.focus, structure.selection]);
   const selectedTiming = selectedLane && timings[selectedLane.id];
   const firstTarget = useMemo(() => shell && selectedLane && selectedClip ? firstVisibleTarget(selectedLane, selectedClip, selectedTiming) : undefined, [!!shell, selectedLane, selectedClip, selectedTiming]);
   const editorTarget = shell && (hasContentSelection ? selectedOccurrence : shell.getRememberedTarget() ?? firstTarget);
@@ -221,6 +226,10 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
       if (origin + left + duration * unit < scroll - laneHeaderWidth || origin + left > scroll + renderAhead) return null;
       const def = "definitionId" in item ? defs.get(item.definitionId)! : null;
       const itemPath = [...path, item.id];
+      const editDefinition = def ? (event: React.MouseEvent) => {
+        event.stopPropagation();
+        open(lane, clip, itemPath, pass);
+      } : undefined;
       const color = !def ? "border-slate-600 bg-slate-900 text-slate-400" : def.kind === "pattern" ? "border-emerald-700 bg-emerald-950/70 text-emerald-200" : def.kind === "group" ? "border-rose-700 bg-rose-950/40 text-rose-200" : "border-violet-600 bg-violet-950/40 text-violet-200";
       const target = { laneId: lane.id, clipId: clip.id, pass, parent: path };
       const boundCurve = sequencer.controllerSequencers.some(t => t.id === lane.id && t.automationTarget && t.controllerMode === "curve");
@@ -232,18 +241,23 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
       const selectedItem = structure.isSelected(target,item.id);
       const related = !!def && structure.selectedTarget?.laneId === lane.id && structure.selectedDefinition?.id === def.id && !selectedItem;
       const relationship = def ? structure.relationships.get(lane.id)?.get(def.id) : undefined;
-      const repeated = clip.mode === 'loop' && pass > 0;
+      const repeated = clip.mode === 'loop' && (clip.repeatIndexBase ?? 0) + pass > 0;
       const sc = scopeCopy(language);
       const repeatColor = !repeated || !def ? '' : def.kind === 'pattern' ? '!bg-emerald-900/40' : def.kind === 'group' ? '!bg-rose-900/25' : '!bg-violet-900/25';
       const offset = def ? addOffsets(transposePlans(lane,clip,itemPath).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass))) : undefined;
-      return <div data-structure-node={JSON.stringify({ focus: target, index: itemIndex })} key={item.id} data-linked-highlight={related || undefined} data-loop-repetition={repeated || undefined} className={`absolute top-0 overflow-hidden rounded border ${color} ${repeatColor}`} style={{ outline: selectedItem ? "2px solid #67e8f9" : related ? "1px dashed #94a3b8" : undefined, left, width: duration * unit, height: (boundCurve ? 108 : 46) + (def && def.kind !== "pattern" ? (2 - depth) * 22 : 0) }}>
-        <div className="flex h-5 min-w-0 items-center gap-0.5 overflow-hidden" style={{marginLeft:headerLeft,width:Math.max(0,headerRight-headerLeft-2)}}>
+      return <div data-structure-node={JSON.stringify({ focus: target, index: itemIndex })} key={item.id} onContextMenu={event => {
+        event.preventDefault(); event.stopPropagation(); contentMenu(lane, clip, pass, itemPath, event.clientX, event.clientY);
+      }} data-linked-highlight={related || undefined} data-loop-repetition={repeated || undefined} className={`absolute top-0 overflow-hidden rounded border ${color} ${repeatColor}`} style={{ outline: selectedItem ? "2px solid #67e8f9" : related ? "1px dashed #94a3b8" : undefined, left, width: duration * unit, height: (boundCurve ? 108 : 46) + (def && def.kind !== "pattern" ? (2 - depth) * 22 : 0) }}>
+        <div onDoubleClick={editDefinition} className="flex h-5 min-w-0 items-center gap-0.5 overflow-hidden" style={{marginLeft:headerLeft,width:Math.max(0,headerRight-headerLeft-2)}}>
         {structure.boundary(target, itemIndex)}
         {relationship?.shared && <span className="shrink-0 text-[10px]" title={sc.linked} aria-label={sc.linked}>↔</span>}
         {repeated && <span className="shrink-0 text-[10px]" title={sc.repeat} aria-label={sc.repeat}>↻</span>}
-        <button data-structure-key={JSON.stringify([lane.id, clip.id, pass, ...path, item.id])} onPointerDown={e => structure.pointerDown(e, target, item.id)} onContextMenu={e => { e.preventDefault(); structure.contextMenu(target, item.id, e.clientX, e.clientY); }} className="block h-5 min-w-0 flex-1 truncate px-1 text-left text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" title={def ? `${def.kind}: ${def.name}` : c.rest}
-          onClick={e => { e.stopPropagation(); selectContent(lane, clip, pass, path, item.id, e.shiftKey); }} onDoubleClick={e => { e.stopPropagation(); if (def) open(lane, clip, itemPath, pass); }}
-          onKeyDown={e => { if (!e.shiftKey && ["ArrowLeft","ArrowRight"].includes(e.key)) {e.preventDefault();e.stopPropagation();structure.nudge(target,item.id,(e.key==="ArrowLeft"?-1:1)*Q/4);} if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); e.stopPropagation(); structure.remove(target, item.id); } if (e.shiftKey && ["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); const next = structure.extendSelection(target,item.id,e.key === "ArrowLeft" ? -1 : 1); if(next)focusStructureOccurrence(lane,clip,next.focus.pass,[...next.focus.parent,next.id]); } if (e.key === "Enter" && def) { e.stopPropagation(); open(lane, clip, itemPath, pass); } }}>{def ? `${def.kind === "pattern" ? "♪" : def.kind === "group" ? "▣" : "▤"} ${def.name}` : c.rest}</button>
+        <button data-structure-key={JSON.stringify([lane.id, clip.id, pass, ...path, item.id])} onPointerDown={e => structure.pointerDown(e, target, item.id)} className="block h-5 min-w-0 flex-1 truncate px-1 text-left text-[10px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" title={def ? `${def.kind}: ${def.name}` : c.rest}
+          onClick={e => { e.stopPropagation(); selectContent(lane, clip, pass, path, item.id, e.shiftKey); }}
+          onKeyDown={e => { if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+            e.preventDefault(); const rect = e.currentTarget.getBoundingClientRect();
+            contentMenu(lane, clip, pass, itemPath, rect.left, rect.bottom); return;
+          } if (!e.shiftKey && ["ArrowLeft","ArrowRight"].includes(e.key)) {e.preventDefault();e.stopPropagation();structure.nudge(target,item.id,(e.key==="ArrowLeft"?-1:1)*Q/4);} if (["Delete", "Backspace"].includes(e.key)) { e.preventDefault(); e.stopPropagation(); structure.remove(target, item.id); } if (e.shiftKey && ["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); const next = structure.extendSelection(target,item.id,e.key === "ArrowLeft" ? -1 : 1); if(next)focusStructureOccurrence(lane,clip,next.focus.pass,[...next.focus.parent,next.id]); } if (e.key === "Enter" && def) { e.stopPropagation(); open(lane, clip, itemPath, pass); } }}>{def ? `${def.kind === "pattern" ? "♪" : def.kind === "group" ? "▣" : "▤"} ${def.name}` : c.rest}</button>
         {def && ['sequencer','score','arpeggiator'].includes(lane.source) && headerRight>headerLeft && <LaneTransposeBadge target={{laneId:lane.id,clipId:clip.id,path:itemPath,pass}} name={def.name} index={logicalRepeatIndex(lane,clip,itemPath,pass)} offset={offset!} width={Math.max(0,headerRight-headerLeft-(itemIndex===items.length-1?46:23))} language={language} onOpen={openTranspose}/>}
         {itemIndex===items.length-1 && structure.boundary(target, items.length)}</div>
         {def?.kind==='pattern' && (['left','right'] as const).map(edge=><div key={edge} role="separator" aria-label={`${c.length}: ${def.name} ${edge==='left'?t.leftEdge:t.rightEdge}`} aria-orientation="vertical" tabIndex={0} className={`absolute bottom-0 top-5 z-20 w-2 cursor-ew-resize ${edge==='left'?'left-0':'right-0'} hover:bg-cyan-300/50 focus:bg-cyan-300/50`} onPointerDown={e=>structure.resizeDown(e,target,item.id,edge)} onKeyDown={e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();e.stopPropagation();structure.resize(target,item.id,edge,(e.key==='ArrowLeft'?-1:1)*localBeatTicks(timings[lane.id]));}}}/>)}
@@ -251,7 +265,7 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
         {def?.kind === "pattern" ? boundCurve && visibleRight > visibleLeft ? <div style={{ marginLeft: visibleLeft, width: visibleRight - visibleLeft }} onPointerDown={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
           {renderAutomation?.({ laneId: lane.id, clipId: clip.id, path: itemPath, pass }, [visibleLeft / (duration * unit), visibleRight / (duration * unit)]) ??
             <button className="block w-full" aria-label={`${c.edit}: ${def.name}`} onClick={() => open(lane, clip, itemPath, pass)}><PatternPreview definition={def} timing={timings[lane.id]} height={72} visibleRange={[visibleLeft / (duration * unit), visibleRight / (duration * unit)]} /></button>}
-        </div> : <PatternPreview definition={def} offset={offset} timing={timings[lane.id]} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
+        </div> : <div onClick={e => { e.stopPropagation(); selectContent(lane, clip, pass, path, item.id, e.shiftKey); }} onDoubleClick={editDefinition}><PatternPreview definition={def} offset={offset} timing={timings[lane.id]} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} /></div>
           : def ? <div className="relative mt-px">{tree(lane, clip, def.children, itemPath, pass, depth + 1, origin + left)}</div> : null}
       </div>;
     });
@@ -285,7 +299,7 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
     {onHelpRequest && <HelpIconButton guiLanguage={language} onClick={() => onHelpRequest("sequencer_clip_arranger")} />}
     <div className={`mb-3 flex flex-wrap items-center gap-2 ${onHelpRequest ? "pr-8" : ""}`}><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}
       {!shell && onSeek && <label className="text-xs text-slate-400">{c.position} <PositionInput key={generation} className={clipInput} beats={position / Q} onSeek={onSeek} /></label>}
-      {!shell && onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} title={selectedClip ? c.loopClip : c.loopSong} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : selectedClip ? { startStep: selectedClip.start / 2520, endStep: (selectedClip.start + selectedClip.length) / 2520 } : { startStep: 0, endStep: model.end / 2520 })}>{c.loop}</button>}
+      {loopTarget && onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} title={c[loopTarget.label]} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : loopTarget.range)}>{c.loop}</button>}
       <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="0" max="100" value={sliderValue} onChange={e => {
         const value = Number(e.target.value);
         if (value === 0 && viewport.current) {
@@ -343,29 +357,57 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
                 const moving = drag?.clipId === clip.id ? drag : null;
                 const left = clip.start + (moving && moving.mode !== "right" ? moving.delta : 0);
                 const length = geometry.length + (moving ? moving.mode === "right" ? moving.delta : moving.mode === "left" ? -moving.delta : 0 : 0);
+                const contentAt = (clientX: number, timeline: Element, row: number) => {
+                  const tick = (clientX - timeline.getBoundingClientRect().left) / unit;
+                  if (tick < clip.start || tick >= clip.start + length) return;
+                  // A structural preview can stretch its edited pass and shift the following ones.
+                  const passAtTick = clip.mode === "loop" ? Math.floor((tick - clip.start + clip.offset) / duration) : 0;
+                  const from = editingStructure ? firstPass : passAtTick;
+                  const to = editingStructure ? lastPass : passAtTick + 1;
+                  for (let pass = from; pass < to; pass++) {
+                    const origin = clip.start + geometry.left(pass);
+                    const end = clip.mode === "once" ? clip.start + length : origin + (editingStructure?.pass === pass ? draftDuration : duration);
+                    if (tick < origin || tick >= end) continue;
+                    const current = editingStructure?.pass === pass ? editingStructure : beginStructure(model, lane.id, clip.id, pass);
+                    const layout = structureDropLayout(model, current, timings);
+                    const hit = structureContentAt(layout, tick - origin + layout.origin, row);
+                    if (hit) return { pass, hit };
+                  }
+                };
+                const headerTarget = (event: React.MouseEvent<HTMLButtonElement>) => {
+                  const timeline = event.currentTarget.closest("[data-clip-timeline]")!;
+                  const at = contentAt(event.clientX, timeline, 0);
+                  if (at && !("index" in at.hit)) return { laneId: lane.id, clipId: clip.id, pass: at.pass, path: at.hit.path };
+                  return firstVisibleTarget(lane, clip, timings[lane.id]);
+                };
                 return <div key={clip.id} data-arranger-clip={clip.id} onPointerDownCapture={() => !shell && select({ laneId: lane.id, clipId: clip.id })} onClickCapture={e => { if (!shell || !(e.target as Element).closest("button, [role=separator]")) select({ laneId: lane.id, clipId: clip.id }); }} className={`absolute top-1 overflow-hidden rounded border ${selected?.clipId === clip.id ? "border-cyan-300 ring-1 ring-cyan-900" : "border-slate-500"} bg-slate-900/90`} style={{ left: left * unit, width: Math.max(2, length * unit), height: detailed ? expandedHeight - 14 : 40 }}>
-                  <button className="relative z-10 block h-4 w-full cursor-grab truncate bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 touch-none" title={`${title} · ${c.boundary}`} onClick={() => selectHeader(lane, clip)}
-                    onDoubleClick={() => {
-                      if (shell) { const target = firstVisibleTarget(lane, clip, timings[lane.id]); if (target) open(lane, clip, target.path, target.pass); }
-                      else { const first = clip.children.find(i => "definitionId" in i); if (first) open(lane, clip, [first.id], firstPass); }
+                  <button className="relative z-10 block h-4 w-full cursor-grab truncate bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 touch-none" title={`${title} · ${c.boundary}`} onContextMenu={event => {
+                      const timeline = event.currentTarget.closest("[data-clip-timeline]")!;
+                      const at = contentAt(event.clientX, timeline, 0);
+                      if (!at || "index" in at.hit) return;
+                      event.preventDefault();
+                      contentMenu(lane, clip, at.pass, at.hit.path, event.clientX, event.clientY);
+                    }} onClick={event => selectHeader(lane, clip, editingTarget ? headerTarget(event) : undefined)}
+                    onDoubleClick={event => {
+                      const target = headerTarget(event);
+                      if (target) open(lane, clip, target.path, target.pass);
                     }} onPointerDown={e => startDrag(e, lane, clip, "move")} {...dragHandlers}>{title} {clip.mode === "loop" ? "↻" : ""}</button>
-                  <div data-clip-content className="relative" style={{ height: detailed ? expandedHeight - 42 : 24 }} onDoubleClick={e=>{
+                  <div data-clip-content className="relative" style={{ height: "calc(100% - 1rem)" }} onDoubleClick={e => {
                     e.stopPropagation();
-                    if((e.target as Element).closest('button, input, select, [role="separator"]'))return;
-                    const timeline=e.currentTarget.closest('[data-clip-timeline]')!,row=e.currentTarget.closest('[data-clip-lane]')!;
-                    const tick=(e.clientX-timeline.getBoundingClientRect().left)/unit;
-                    for(let pass=firstPass;pass<lastPass;pass++){
-                      const current=editingStructure&&pass===editingStructure.pass?editingStructure:beginStructure(model,lane.id,clip.id,pass);
-                      const layout=structureDropLayout(model,current,timings);
-                      // Other repetitions follow the edited pass's preview geometry.
-                      const origin=clip.start+geometry.left(pass),delta=origin-layout.origin;
-                      const target=structureEmptyInsertionAt({...layout,origin,start:layout.start+delta,end:layout.end+delta},tick,detailed?e.clientY-row.getBoundingClientRect().top-STRUCTURE_TREE_TOP:0);
-                      if(target){structure.add({laneId:lane.id,clipId:clip.id,pass,parent:target.path},target.index,target.ticks);break;}
-                    }
+                    if ((e.target as Element).closest('button, input, select, [role="separator"]')) return;
+                    const timeline = e.currentTarget.closest("[data-clip-timeline]")!;
+                    const row = detailed ? e.clientY - e.currentTarget.closest("[data-clip-lane]")!.getBoundingClientRect().top - STRUCTURE_TREE_TOP : Infinity;
+                    const at = contentAt(e.clientX, timeline, row);
+                    if (!at) return;
+                    if ("index" in at.hit) structure.add({ laneId: lane.id, clipId: clip.id, pass: at.pass, parent: at.hit.path }, at.hit.index, at.hit.ticks);
+                    else open(lane, clip, at.hit.path, at.pass);
                   }}>
                     {clip.children.every(i=>'restTicks' in i) && <button aria-label={structureCopy(language).add} className={`absolute z-20 rounded border text-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${clipButtonTone.add} ${detailed?'bottom-1':'top-0'} left-1/2 -translate-x-1/2 px-4`} onPointerDown={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();structure.add({laneId:lane.id,clipId:clip.id,pass:0,parent:[]},0,0);}}>+</button>}{(detailed||clip.children.some(i=>'definitionId' in i)) && Array.from({ length: Math.max(0, lastPass - firstPass) }, (_, index) => firstPass + index).map(pass => <div key={pass} className={`absolute top-0 ${pass > 0 ? "border-l border-dashed border-slate-400" : ""}`} style={{ left: geometry.left(pass) * unit, width: (editingStructure && pass === editingStructure.pass ? draftDuration : duration) * unit }}>
                       {detailed ? <><span className="block h-4 px-1 text-[9px] text-slate-500">{c.content} · {(clip.repeatIndexBase ?? 0) + pass + 1}</span><div className="relative">{tree(lane, { ...(editingStructure && pass !== editingStructure.pass ? originalClip : clip), length }, editingStructure && pass !== editingStructure.pass ? originalClip.children : clip.children, [], pass, 0, (clip.start + geometry.left(pass)) * unit)}</div></>
-                        : <CompactContent pass={pass} lane={lane} clip={clip} sequencer={sequencer} unit={unit} from={scroll - (clip.start + pass * duration - clip.offset) * unit} to={scroll + viewportWidth - laneHeaderWidth - (clip.start + pass * duration - clip.offset) * unit} language={language} onTranspose={openTranspose} onOpen={path => open(lane, clip, path, pass)} />}
+                        : <CompactContent pass={pass} lane={lane} clip={clip} sequencer={sequencer} unit={unit} from={scroll - (clip.start + pass * duration - clip.offset) * unit} to={scroll + viewportWidth - laneHeaderWidth - (clip.start + pass * duration - clip.offset) * unit} language={language} onTranspose={openTranspose} onOpen={path => open(lane, clip, path, pass)}
+                          onMenu={(path, x, y) => contentMenu(lane, clip, pass, path, x, y)}
+                          onSelect={(path, shift) => structure.select({ laneId: lane.id, clipId: clip.id, pass, parent: path.slice(0,-1) }, path[path.length-1], shift, () => select({ laneId: lane.id, clipId: clip.id }))}
+                          isSelected={path => structure.isSelected({ laneId: lane.id, clipId: clip.id, pass, parent: path.slice(0,-1) }, path[path.length-1])} />}
                     </div>)}
                   </div>
                   {(["left", "right"] as const).map(edge => <div key={edge} role="separator" aria-label={`${c.length}: ${edge==='left'?t.leftEdge:t.rightEdge}`} aria-orientation="vertical" tabIndex={0}
@@ -414,7 +456,7 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
   </section>;
 }
 
-function CompactContent({ lane, clip, sequencer, unit, from, to, pass, language, onTranspose, onOpen }: { onOpen: (path: string[]) => void; lane: ClipLane; clip: Clip; sequencer: SequencerState; unit: number; from: number; to: number; pass: number; language:GuiLanguage; onTranspose:(target:OccurrenceTarget,trigger:HTMLButtonElement)=>void }) {
+function CompactContent({ lane, clip, sequencer, unit, from, to, pass, language, onTranspose, onOpen, onMenu, onSelect, isSelected }: { onMenu: (path: string[], x: number, y: number) => void; onSelect: (path: string[], shift: boolean) => void; isSelected: (path: string[]) => boolean; onOpen: (path: string[]) => void; lane: ClipLane; clip: Clip; sequencer: SequencerState; unit: number; from: number; to: number; pass: number; language:GuiLanguage; onTranspose:(target:OccurrenceTarget,trigger:HTMLButtonElement)=>void }) {
   const timing = arrangementTimings(sequencer)[lane.id], defs = definitionMap(lane);
   const windowStart=(clip.offset-(clip.mode==="loop"?pass*contentLength(lane,clip.children,timing):0))*unit;
   let cursor = 0;
@@ -426,7 +468,10 @@ function CompactContent({ lane, clip, sequencer, unit, from, to, pass, language,
     if (left + duration * unit < from || left > to) return [];
     const offset=addOffsets(transposePlans(lane,clip,[...path,item.id]).map(p=>offsetAt(p,(clip.repeatIndexBase??0)+pass)));
     const visibleLeft=Math.max(0,from-left,windowStart-left), visibleWidth=Math.max(0,Math.min(duration*unit,to-left,windowStart+clip.length*unit-left)-visibleLeft);
-    return [<div key={`${item.id}:${left}`} className="absolute top-0 overflow-hidden" style={{ left, width: duration * unit }}
+    const itemPath = [...path, item.id];
+    return [<div key={`${item.id}:${left}`} className={`absolute top-0 overflow-hidden ${isSelected(itemPath) ? "ring-2 ring-inset ring-cyan-300" : ""}`}
+      onClick={event => { event.stopPropagation(); onSelect(itemPath, event.shiftKey); }}
+      onContextMenu={event => { event.preventDefault(); event.stopPropagation(); onMenu(itemPath, event.clientX, event.clientY); }} style={{ left, width: duration * unit }}
       onDoubleClick={event => { event.stopPropagation(); onOpen([...path, item.id]); }}><PatternPreview definition={def} offset={offset} timing={timing} controllerMode={sequencer.controllerSequencers.find(t => t.id === lane.id)?.controllerMode} />
       {visibleWidth > 0 && (clip.children.length > 1 || clip.length > duration || clipDisplayName(lane, clip) !== def.name) && <span className="pointer-events-none absolute bottom-0 truncate rounded bg-slate-950/80 px-1 text-[10px] leading-tight text-slate-100" style={{ left: visibleLeft, maxWidth: visibleWidth }} title={def.name}>{def.name}</span>}
       {['sequencer','score','arpeggiator'].includes(lane.source) && visibleWidth>0 && <div className="pointer-events-none absolute top-0 flex justify-end" style={{left:visibleLeft,width:visibleWidth}}><LaneTransposeBadge compact target={{laneId:lane.id,clipId:clip.id,path:[...path,item.id],pass}} name={def.name} index={logicalRepeatIndex(lane,clip,[...path,item.id],pass)} offset={offset} width={visibleWidth} language={language} onOpen={onTranspose}/></div>}

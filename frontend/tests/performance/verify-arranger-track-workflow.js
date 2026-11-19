@@ -76,7 +76,7 @@ async page => {
   const length = inspector.getByRole("spinbutton", { name: /Length/ });
   await length.fill("12");
   await length.press("Tab");
-  await last.locator("button").first().dblclick();
+  await last.getByRole("img", { name: "Walking bassline" }).nth(1).dblclick();
   await button("Create variation here", editor).waitFor();
   check(!await editor.locator("details").filter({hasText:"Loop details"}).evaluate(el=>el.open), "Loop details should initially be compact");
   const dockHeight = await page.locator(".ws-dock").evaluate(el => el.getBoundingClientRect().height);

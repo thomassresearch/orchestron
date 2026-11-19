@@ -251,7 +251,7 @@ it('extends and contracts across unmounted repetitions without changing authored
  const state=structuredClone(useAppStore.getState().sequencer),model=state.clipArrangement!,lane=model.lanes[0],clip=lane.clips[0];
  clip.children=clip.children.slice(0,1);clip.mode='loop';clip.length=20160*4*80;model.end=clip.length;
  useAppStore.setState({sequencer:state});
- const {result}=renderHook(()=>useStructureEditor(model,state,{},'english',undefined,40/20160));
+ const {result}=renderHook(()=>useStructureEditor(model,state,{},'english',undefined,40/20160,vi.fn()));
  const at=(pass:number)=>({laneId:lane.id,clipId:clip.id,pass,parent:[]});
  act(()=>result.current.select(at(0),clip.children[0].id,false));
  for(let pass=0;pass<60;pass++)act(()=>{result.current.extendSelection(at(pass),clip.children[0].id,1);});

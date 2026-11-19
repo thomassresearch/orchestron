@@ -62,8 +62,10 @@ export function definitionRelationships(lane: ClipLane, timing?: PatternTiming):
   return result;
 }
 
-export function initialEditIntent(relationship: DefinitionRelationship | undefined, scope?: EditScope): EditIntent {
-  return { scope: scope ?? (relationship?.shared ? null : 'all'), explicit: scope !== undefined };
+export function initialEditIntent(relationship: DefinitionRelationship | undefined, loopPass?: number): EditIntent {
+  if (loopPass === 0 && relationship?.shared) return { scope: 'all', explicit: true };
+  const chooseScope = relationship?.shared || (loopPass ?? 0) > 0;
+  return { scope: chooseScope ? null : 'all', explicit: false };
 }
 export function affectedClipIds(relationships: Map<string, DefinitionRelationship> | undefined, definitions: readonly { id: string }[]): string[] {
   return [...new Set(definitions.flatMap(d => relationships?.get(d.id)?.clipIds ?? []))];

@@ -55,15 +55,21 @@ export function openClipEditor(target: OccurrenceTarget, scope?: EditScope) {
   const key = draftKey({ target });
   const draft = state.clipDrafts[key] ?? beginDraft(model, target);
   const lane = model.lanes.find(l => l.id === target.laneId)!;
+  const clip = lane.clips.find(c => c.id === target.clipId)!;
+  const loopPass = clip.mode === "loop" ? (clip.repeatIndexBase ?? 0) + target.pass : undefined;
   const relationship = definitionRelationships(lane, arrangementTimings(state.sequencer)[lane.id]).get(draft.definition.id);
-  let editIntent = scope !== undefined ? { ...draft.editIntent, scope, explicit: true } : draft.editIntent ?? initialEditIntent(relationship);
+  const freshLoopEdit = loopPass !== undefined && state.clipEditingKey !== key &&
+    (!state.clipDrafts[key] || !hasChangedClipDrafts(model, { [key]: draft }));
+  let editIntent = draft.editIntent;
+  if (scope !== undefined) editIntent = { ...editIntent, scope, explicit: true };
+  else if (!editIntent?.explicit || freshLoopEdit) editIntent = { ...editIntent, ...initialEditIntent(relationship, loopPass) };
   editIntent = { ...editIntent, variationName: editIntent.variationName ?? uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix) };
   if (draft.definition.kind !== 'pattern') {
     const existing = useStructureDraft.getState().draft;
     const matches = existing?.laneId === target.laneId && existing.clipId === target.clipId && existing.pass === target.pass;
     if (existing?.cursor && !matches) throw Error('Resolve the current structure before editing another container.');
     const structure = matches ? existing : beginStructure(model, target.laneId, target.clipId, target.pass);
-    if (scope === undefined && structure.editIntent) editIntent = structure.editIntent;
+    if (scope === undefined && structure.editIntent && (!freshLoopEdit || structure.cursor)) editIntent = structure.editIntent;
     useStructureDraft.setState({ draft: { ...structure, editIntent, editorTarget: target } });
   }
   useAppStore.setState({ clipEditingKey: key, clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent } } });

@@ -949,6 +949,7 @@ export interface SessionSequencerConfigRequest {
   step_count: number;
   playback_start_step?: number;
   playback_end_step?: number;
+  playback_loop_subunits?: [number, number];
   playback_loop?: boolean;
   tracks: SessionSequencerTrackConfig[];
   score_tracks?: SessionScoreTrackConfig[];

@@ -22,7 +22,7 @@ async page => {
   const nested = chorus.getByTitle("pattern: #1", { exact: true });
   const zoom = page.getByRole("slider", { name: "Zoom" });
   await zoom.fill("88");
-  await chorus.getByTitle(/Chorus · Drag clip/).click();
+  await page.locator('[data-clip-lane="phrase"] button[aria-expanded=false]').first().click();
   const groups = chorus.getByTitle("group: Phrase group", { exact: true });
   await groups.first().click();
   await groups.nth(1).click({ modifiers: ["Shift"] });
