@@ -1,6 +1,10 @@
 import type { GuiLanguage } from "../../types";
 
 const labels = {
+  reorder: ["Drag to reorder melodic devices", "Zum Umordnen der Melodie-Sequencer ziehen", "Faire glisser pour réordonner les séquenceurs mélodiques", "Arrastrar para reordenar los secuenciadores melódicos"],
+  moveUp: ["Move up", "Nach oben", "Monter d’un rang", "Mover hacia arriba"],
+  moveDown: ["Move down", "Nach unten", "Descendre d’un rang", "Mover hacia abajo"],
+  missingPhrase: ["This phrase is no longer in the lane.", "Diese Phrase ist nicht mehr in der Spur.", "Cette phrase ne figure plus dans la piste.", "Esta frase ya no está en la pista."],
   launch: ["Launch pads", "Pads starten", "Lancer les pads", "Lanzar pads"],
   preview: ["Preview pads", "Pads vorhören", "Écouter les pads", "Escuchar pads"],
   actions: ["Pad actions", "Pad-Aktionen", "Actions des pads", "Acciones de pad"],

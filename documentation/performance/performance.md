@@ -91,6 +91,10 @@ A filled green dot marks a pad with playable content in its current length. A ho
 
 ![Pad actions on a melodic track with its legacy phrase open below](../../screenshots/perform-workspace-live-pad-actions.png)
 
+**Set the playing order.** Drag the dotted grip by a melodic device’s name onto the upper or lower half of another melodic row. A cyan line shows where it will land. Hold near the top or bottom of the launcher to scroll through a longer set, or press Escape to cancel. **Move up** and **Move down** also work by touch or keyboard. During playback, the editing pad, MIDI channel and queued launch stay with their device. **Save Performance** keeps the order for the next session.
+
+![Sub bass moved to the first melodic row with its draft still open below](../../screenshots/perform-live-device-order.png)
+
 ![Live launcher with pad 1 playing, pad 2 queued and a held chord on the keyboard](../../screenshots/perform-workspace-live-launcher.png)
 
 **Mix** recalls the selected instance, open controls and channel-bank position when you return. To reach a kit or effect from Arrange or Live, open **Compact rack**, select its patch number, then choose a destination. [Mix a performance](audio_mixer_and_routing.md#mix-a-performance)

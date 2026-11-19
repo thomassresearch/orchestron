@@ -9,7 +9,13 @@ import type { StructureFocus } from "../clipArranger/StructureEditor";
 import { definitionAt } from "../../lib/clipArranger/operations";
 import { localLoopWindows } from "../../lib/clipArranger/relationships";
 import { useAppStore } from "../../store/useAppStore";
-import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorStore, type PerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
+import type { PanelCollapseState } from "../CollapsiblePanel";
+import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorStore, type LegacyPhraseDestination, type PerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
+
+function hasLegacyLane(sequencer: SequencerState, id: string) {
+  return !sequencer.clipArrangement && Object.values(sourceKeys).some(key => sequencer[key].some(track =>
+    track.id === id && (!("playbackMode" in track) || track.playbackMode === "arranger")));
+}
 
 const copy = {
   english: { arrange: "Arrange", live: "Live", mix: "Mix", views: "Perform views" },
@@ -53,6 +59,8 @@ function survivingStructureFocus(sequencer: SequencerState, focus: StructureFocu
 
 function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged = true) {
   const state = useAppStore.getState(), { entries } = store.getState();
+  const reveal = store.getState().legacyReveal;
+  if (reveal && !hasLegacyLane(state.sequencer, reveal.laneId)) store.setState({ legacyReveal: null });
   const changes: typeof entries = {};
   const value = <T,>(owner: "page" | "arranger" | "mixer", field: string, view: PerformView) =>
     entries[editorKey(owner, field, view)]?.value as T | undefined;
@@ -109,12 +117,12 @@ function navigate(store: PerformanceEditorStore, next: PerformView) {
   const remembered = view === "arrange" ? active : suspendedClipKey;
   const destination = next === "arrange" ? survivingClipKey(remembered) : null;
   if (active !== destination) useAppStore.setState({ clipEditingKey: destination });
-  store.setState({ view: next, suspendedClipKey: next === "arrange" ? null : remembered });
+  store.setState({ view: next, suspendedClipKey: next === "arrange" ? null : remembered, legacyReveal: null });
 }
 
 export type MixSurface = "mixer" | "rack" | "routing";
 export type MixDestination = { surface: MixSurface; bindingId?: string; dock?: "instrument" | "samples" };
-export type ViewNavigation = (view: PerformView, target?: { id: string; pad: number } | MixDestination) => void;
+export type ViewNavigation = (view: PerformView, target?: { id: string; pad: number } | MixDestination | LegacyPhraseDestination) => void;
 
 // Touch browsers can omit click for a second finger while a piano key owns the first.
 function useKeyboardCompanionTap(keyboardOpen: boolean) {
@@ -173,6 +181,7 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
     });
     return () => {
       unsubscribe();
+      if (store.getState().legacyReveal) store.setState({ legacyReveal: null });
       const state = useAppStore.getState();
       if (state.performanceWorkspaceGeneration === generation && store.getState().view === "arrange" && state.clipEditingKey) {
         store.setState({ suspendedClipKey: state.clipEditingKey });
@@ -181,6 +190,22 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
     };
   }, [generation, store]);
   const change: ViewNavigation = (next, target) => {
+    if (next === "arrange" && target && "item" in target) {
+      const current = useAppStore.getState();
+      if (current.performanceWorkspaceGeneration !== target.generation || !hasLegacyLane(current.sequencer, target.laneId)) return;
+      navigate(store, next);
+      const layout = editorKey("page", "layout", next), panels = editorKey("page", "collapsedPanels", next);
+      const owner = `device:${target.laneId}` as const;
+      store.setState(s => ({ legacyReveal: target, entries: { ...s.entries,
+        [layout]: { owner: "page", value: { ...(s.entries[layout]?.value as PerformViewLayout), dock: null, dockExpanded: false, drawerOpen: false } },
+        [panels]: { owner: "page", value: { ...(s.entries[panels]?.value as Partial<PanelCollapseState>), arranger: false } },
+        [editorKey("arranger", "selectedLane", next)]: { owner: "arranger", value: target.laneId },
+        [editorKey(owner, "arrangerExpanded", next)]: { owner, value: true },
+        [editorKey(owner, "arrangerSelection", next)]: { owner, value: [] },
+        [editorKey(owner, "arrangerFocusDefinition", next)]: { owner, value: target.item }
+      } }));
+      return;
+    }
     navigate(store, next);
     if (next === "live" && target && "pad" in target) {
       useAppStore.getState().selectSequencerEditingPad(target.id, target.pad);

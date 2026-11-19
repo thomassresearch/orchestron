@@ -174,6 +174,8 @@ Explore the [clip arranger guide](documentation/performance/multitrack_arranger.
 
 Open **Keyboard** in any Perform view. In **Arrange**, play along with an unsaved clip variation while **Play edit** runs. In **Live**, hold a chord while launching pads, then switch to **Mix** and adjust an insert while the chord sounds. On a phone, the launcher stays above the keys. Filled dots identify pads with playable content. Hold a pad’s speaker to audition it, or choose **Pad actions** to copy and transpose a fill while the queued pad keeps its place. [Launch pads in Live](documentation/performance/performance.md#launch-pads-in-live)
 
+Set up a gig by dragging melodic devices into playing order in **Live**, or use the row arrows. **Save Performance** keeps that order. While editing a legacy phrase, choose **Open in arranger** to find its exact pad, group or supergroup in the track palette. Return to **Live** to continue the draft. [Build a legacy phrase](documentation/performance/pattern_pads_and_pad_looper.md#build-a-legacy-phrase-from-pads)
+
 In **Mix**, scroll through the channels while watching the pinned Master and the final stereo Audio Output. Select a rack instance to edit its performance controls or audition its samples. Open **Routing** to trace a signal while the song plays. [Mix a performance](documentation/performance/audio_mixer_and_routing.md#mix-a-performance)
 
 Performance descriptions show three lines with automatic wrapping. Scroll vertically through longer descriptions or hover over the field to read the full text.

@@ -122,6 +122,12 @@
 .ws-launcher select, .ws-compact-launch select, .ws-keyboard-picker select { min-width: 0; max-width: 100%; color: #e0eaf0; background: #16263a; border: 1px solid #426078; border-radius: 4px; padding: 3px 6px; }
 .ws-live-row { display: grid; grid-template-columns: minmax(9rem, .85fr) minmax(14rem, 2fr) auto; align-items: center; gap: 4px 14px; margin-top: 5px; padding: 7px 10px; background: #101d30; border: 1px solid #304055; border-radius: 5px; }
 .ws-live-row[data-selected] { border-color: #56818f; }
+.ws-live-row[data-drop-position=before] { box-shadow: 0 -3px #7cdef4; }
+.ws-live-row[data-drop-position=after] { box-shadow: 0 3px #7cdef4; }
+.ws-device-order { display: flex; align-items: center; gap: 4px; }
+.ws-device-order button, .ws-device-order [draggable] { display: grid; place-items: center; min-width: 28px; min-height: 24px; line-height: 1; }
+.ws-device-order button { border: 1px solid #405269; border-radius: 4px; background: #182537; }
+.ws-device-order [draggable] { cursor: grab; user-select: none; font-size: 1.05rem; }
 .ws-live-device { min-width: 0; display: grid; align-content: center; gap: 3px; }
 .ws-live-name { text-align: left; color: #e0eff4; font-weight: 600; overflow-wrap: anywhere; }
 .ws-live-device span, .ws-live-state, .ws-pad-save { font-size: .71rem; color: #a1b3c5; }

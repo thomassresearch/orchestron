@@ -1,7 +1,9 @@
 import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
 import { useContext, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useAppStore } from "../../store/useAppStore";
-import type { GuiLanguage, SequencerState } from "../../types";
+import type { GuiLanguage, PadLoopPatternItem, SequencerState } from "../../types";
+import { arrangementCopy } from "../../lib/arrangementCopy";
+import { canInsertItemIntoPadLoopContainer } from "../../lib/padLoopPattern";
 import { sourceKeys } from "../../lib/clipArranger/migration";
 import type { SourceKind } from "../../lib/clipArranger/model";
 import { AddArrangeTrack } from "../clipArranger/AddArrangeTrack";
@@ -27,9 +29,13 @@ export function LegacyArrange({ sequencer, language, add, navigate, renderEditor
   const shell = useContext(WorkspacePanels);
   const source = (Object.keys(sourceKeys) as SourceKind[]).find(kind => sequencer[sourceKeys[kind]].some(t => t.id === laneId));
   const device = source && sequencer[sourceKeys[source]].find(t => t.id === laneId);
-  const [indexes] = usePerformanceEditorState<number[]>(laneId ? `device:${laneId}` : "arranger", "arrangerSelection", []);
-  const item = indexes.length === 1 ? device?.padLoopPattern.rootSequence[indexes[0]] : null;
-  const pad = item?.type === "pad" ? item.padIndex : !indexes.length && device ? (device.id === target?.id ? target.pad : device.activePad) : null;
+  const owner = laneId ? `device:${laneId}` as const : "arranger";
+  const [indexes] = usePerformanceEditorState<number[]>(owner, "arrangerSelection", []);
+  const [paletteItem] = usePerformanceEditorState<PadLoopPatternItem | null>(owner, "arrangerFocusDefinition", null);
+  const item = paletteItem && device && canInsertItemIntoPadLoopContainer(device.padLoopPattern, { kind: "root" }, paletteItem)
+    ? paletteItem : indexes.length === 1 ? device?.padLoopPattern.rootSequence[indexes[0]] : null;
+  const pad = item?.type === "pad" ? item.padIndex : !item && !indexes.length && device ? (device.id === target?.id ? target.pad : device.activePad) : null;
+  const labels = arrangementCopy(language);
   const chosen = device && source && pad !== null ? { kind: source, id: device.id, pad } : null;
   const edited = target && layout.dock === "editor" && sequencer[sourceKeys[target.kind]].some(t => t.id === target.id) ? target : null;
   const handoff = useRef(false);
@@ -65,6 +71,8 @@ export function LegacyArrange({ sequencer, language, add, navigate, renderEditor
       {shell?.trackRouting(device.id, source)}
       {!("playbackMode" in device && device.playbackMode === "live") && <PlaybackSourceToggle language={language} arrangement={device.padLoopEnabled}
         hasArrangement={device.padLoopPattern.rootSequence.length > 0} onChange={enabled => onSourceChange(source, device.id, enabled)} />}
+      {item?.type === "group" && <p>{labels.group} {item.groupId}</p>}
+      {item?.type === "super" && <p>{labels.super} {item.superGroupId}</p>}
       {chosen && <><p>Pad {chosen.pad + 1}</p><button className={clipButtonClass("edit")} onClick={() => {
         handoff.current = edited?.id === chosen.id;
         navigate("live", chosen);

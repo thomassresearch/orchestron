@@ -286,6 +286,10 @@ own the detailed musical and transport behavior.
 
 ## Live, mix and instrument interaction rules
 
+Each melodic launcher row offers a grip and **Move up** / **Move down** when at least two melodic devices exist. Drop the grip on the upper or lower half of another melodic row to move before or after it. Moving near an edge scrolls the launcher overview. Row moves retain keyboard focus on the moved device and preserve the selected editor, playback and MIDI routing. The compact launcher offers the same move buttons.
+
+In a legacy performance, **Open in arranger** reveals the edited group, supergroup or physical pad in the matching lane palette. The explicit handoff opens the overview even if Arrange last showed a full-height editor or a collapsed arranger. A missing phrase focuses its surviving lane and explains the change. Device deletion and project replacement invalidate the request. Ordinary view switches continue to restore each view’s own layout and scroll.
+
 In Live, **Edit** opens the selected physical pad. Its direct edits retain their existing live timing. The dock shows the pad’s save status and **Save Performance** persists it. Reusable pattern drafts retain **Apply**, and arpeggiator presets retain **Update preset** and **Save as preset**. A clip lane reports the playing definition by name. **Add live device** creates a separate device for manual launches alongside the clip arrangement. [Live implementation record](milestone-5-live.md)
 
 In Live, distinguish the pad selected for editing from the playing pad and queued launch.

@@ -11,6 +11,7 @@ import { LivePadEditorContext } from "../clipArranger/context";
 import { arpeggiatorCopy } from "./arpeggiatorCopy";
 import { scoreCopy } from "./scoreCopy";
 import { LivePadBank } from "./LivePadBank";
+import { useLiveDeviceReorder } from "./useLiveDeviceReorder";
 import { copyArpeggiatorPad } from "../../lib/livePads";
 import { liveCopy } from "./liveCopy";
 import { WorkspacePanel } from "./WorkspacePanels";
@@ -20,7 +21,7 @@ import type { DeviceEditorRenderer } from "./PerformWorkspace";
 import { ScoreTransportContext } from "./ScoreTransportContext";
 import type { SequencerPageArpeggiatorActions, SequencerPageControllerSequencerActions, SequencerPageDrummerTrackActions, SequencerPageMelodicTrackActions } from "./sequencerPageContracts";
 
-type Actions = Pick<SequencerPageMelodicTrackActions, "onRemoveSequencerTrack" | "onSequencerPadPress" | "onSequencerPadCopy" | "onSequencerPadTransposeShort" | "onSequencerPadTransposeLong" | "onSequencerTrackEnabledChange" | "onSequencerTrackPadLoopEnabledChange">
+type Actions = Pick<SequencerPageMelodicTrackActions, "onSequencerTrackReorder" | "onRemoveSequencerTrack" | "onSequencerPadPress" | "onSequencerPadCopy" | "onSequencerPadTransposeShort" | "onSequencerPadTransposeLong" | "onSequencerTrackEnabledChange" | "onSequencerTrackPadLoopEnabledChange">
   & Pick<SequencerPageDrummerTrackActions, "onRemoveDrummerSequencerTrack" | "onDrummerSequencerPadPress" | "onDrummerSequencerPadCopy" | "onDrummerSequencerTrackEnabledChange" | "onDrummerSequencerTrackPadLoopEnabledChange">
   & Pick<SequencerPageControllerSequencerActions, "onRemoveControllerSequencer" | "onControllerSequencerPadPress" | "onControllerSequencerPadCopy" | "onControllerSequencerEnabledChange" | "onControllerSequencerPadLoopEnabledChange">
   & Pick<SequencerPageArpeggiatorActions, "onRemoveArpeggiator" | "onArpeggiatorCommand" | "onArpeggiatorEnabledChange" | "onArpeggiatorChange">;
@@ -55,6 +56,10 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
   const c = liveCopy(language), a = arpeggiatorCopy(language), sc = scoreCopy(language), source = arrangementCopy(language), types = clipCopy(language);
   const devices = kinds.flatMap(kind => sequencer[sourceKeys[kind]].map(track => ({ kind, track })));
   const selected = devices.find(d => d.track.id === id) ?? devices[0];
+  const reorder = useLiveDeviceReorder((from, to, position) => {
+    if (!id && selected) select(selected.track.id);
+    actions.onSequencerTrackReorder(from, to, position);
+  });
   const fail = (error: unknown) => useAppStore.setState({ error: String(error) });
   const editing = ({ kind, track }: { kind: SourceKind; track: Device }) => pads[track.id] ?? authored[sourceKeys[kind]].find(t => t.id === track.id)?.activePad ?? 0;
 
@@ -127,11 +132,21 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
       }
     };
     const boundary = arp ? arp.launchQuantize === "bar" ? a.nextBar : a.nextCycle : "launchQuantization" in track ? track.launchQuantization === "bar" ? sc.bar : sc.end : c("boundary");
-    return <div key={track.id} className="ws-live-row" data-live-device={track.id} data-selected={selected?.track.id === track.id || undefined} role="group" aria-label={track.name}>
+    const melodicIndex = kind === "sequencer" ? sequencer.tracks.findIndex(t => t.id === track.id) : -1;
+    return <div key={track.id} className="ws-live-row" data-live-device={track.id} data-drop-position={!compact && reorder.marker?.id === track.id ? reorder.marker.position : undefined} data-selected={selected?.track.id === track.id || undefined} role="group" aria-label={track.name}>
       <div className="ws-live-device">
         {compact ? <select aria-label={c("device")} value={track.id} onChange={e => select(e.target.value)}>{devices.map(d => <option key={d.track.id} value={d.track.id}>{d.track.name}</option>)}</select>
           : <button className="ws-live-name" aria-pressed={selected?.track.id === track.id} onClick={() => select(track.id)}>{track.name}</button>}
         <span>{liveArp ? a.live : manual ? source.manual : source.arrangement}{manual && <> · {boundary}</>}</span>
+        {melodicIndex >= 0 && sequencer.tracks.length > 1 && <div className="ws-device-order">
+          {!compact && <span draggable onDragStart={e => reorder.start(e, track.id)} title={c("reorder")} aria-label={c("reorder")} role="img">⠿</span>}
+          {([-1, 1] as const).map(direction => {
+            const neighbor = sequencer.tracks[melodicIndex + direction];
+            const label = c(direction < 0 ? "moveUp" : "moveDown");
+            return <button key={direction} type="button" disabled={!neighbor} title={label} aria-label={label}
+              onClick={e => reorder.moveRow(track.id, neighbor.id, direction < 0 ? "before" : "after", e.currentTarget.closest<HTMLElement>("[data-live-device]")!, e.currentTarget)}>{direction < 0 ? "↑" : "↓"}</button>;
+          })}
+        </div>}
       </div>
       <LivePadBank device={authored[sourceKeys[kind]].find(t => t.id === track.id) ?? track} language={language}
         editing={current} sounding={lane ? null : sounding} queued={queued} onLaunch={choosePad}
@@ -170,7 +185,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
   };
   const selectedLane = sequencer.clipArrangement?.lanes.find(lane => lane.id === selected?.track.id);
   return <>
-    <section className="ws-launcher" aria-label={c("launcher")}>
+    <section className="ws-launcher" aria-label={c("launcher")} {...reorder.launcherEvents}>
       <header><h2>{c("launcher")}</h2><label>{c("add")} <select value="" onChange={e => addDevice(e.target.value as SourceKind)}><option value="">＋</option>{kinds.map(k => <option key={k} value={k}>{types[k === "sequencer" ? "melodic" : k]}</option>)}</select></label></header>
       {devices.map(d => row(d, false))}
     </section>

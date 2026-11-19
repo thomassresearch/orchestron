@@ -10,12 +10,15 @@ import { PAD_LOOP_PAUSE_BEAT_OPTIONS, canCreatePadLoopGroupFromSelection, itemDi
 import { definitionColorKey, definitionColorStyle, setDefinitionColor } from "../lib/definitionColors";
 import { PATTERN_ITEM_COLORS } from "../lib/patternItemPresentation";
 import { useAppStore } from "../store/useAppStore";
-import { useClearArrangementSelection, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
+import { useClearArrangementSelection, usePerformanceEditorState, usePerformanceEditorStore } from "./sequencer/PerformanceEditorState";
 import { LaneOutputButtons } from "./sequencer/LaneOutputButtons";
 import { ArrangerSpeaker } from "./sequencer/ArrangerSpeaker";
 import { ArrangerContextMenu, type ArrangerMenuTarget } from "./sequencer/ArrangerContextMenu";
 import { deleteWorkspaceDefinition, type PatternWorkspaceDraft } from "../lib/patternWorkspace";
 import { patternWorkspaceCopy } from "./sequencer/patternWorkspaceCopy";
+import { useStore } from "zustand";
+import { focusInOverview } from "./sequencer/focusInOverview";
+import { liveCopy } from "./sequencer/liveCopy";
 
 const button = "rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:border-accent disabled:opacity-40";
 const menuButton = "block w-full rounded px-2 py-1.5 text-left hover:bg-slate-700 focus:bg-slate-700 disabled:opacity-40";
@@ -50,10 +53,16 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   const drag = useRef<Drag | null>(null);
   const draggedClick = useRef(false);
   const palette = useRef<HTMLDivElement>(null);
+  const laneButton = useRef<HTMLButtonElement>(null);
+  const store = usePerformanceEditorStore();
+  const reveal = useStore(store, s => s.legacyReveal?.laneId === lane.id ? s.legacyReveal : null);
+  const [missingPhrase, setMissingPhrase] = useState(false);
   const clearSelection = useClearArrangementSelection();
   const spans = arrangementSpans(lane.pattern, lane.padBeats);
   const indexes = selection.filter(i => i < lane.pattern.rootSequence.length);
-  const refs: PadLoopPatternItem[] = [...lane.availablePads.map((padIndex): PadLoopPatternItem => ({ type: "pad", padIndex })),
+  const pads = props.sharedTransport && focusedDefinition?.type === "pad" && lane.padBeats[focusedDefinition.padIndex] !== undefined && !lane.availablePads.includes(focusedDefinition.padIndex)
+    ? [...lane.availablePads, focusedDefinition.padIndex].sort((a, b) => a - b) : lane.availablePads;
+  const refs: PadLoopPatternItem[] = [...pads.map((padIndex): PadLoopPatternItem => ({ type: "pad", padIndex })),
     ...lane.pattern.groups.map(g => definitionItem({ kind: "group", id: g.id })),
     ...lane.pattern.superGroups.map(g => definitionItem({ kind: "super", id: g.id })),
     ...PAD_LOOP_PAUSE_BEAT_OPTIONS.map(lengthBeats => ({ type: "pause" as const, lengthBeats }))];
@@ -69,10 +78,24 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   useEffect(() => () => { drag.current = null; endArrangementDrag(); }, []);
   useEffect(() => { drag.current = null; setPreview(null); setMenu(null); endArrangementDrag(); }, [restoreRevision]);
   useEffect(() => {
-    if (!expanded || !focusedDefinition) return;
+    if (props.sharedTransport || !expanded || !focusedDefinition) return;
     const key = definitionColorKey(focusedDefinition);
     palette.current?.querySelectorAll<HTMLElement>("[data-definition]").forEach(node => { if (node.dataset.definition === key) node.focus(); });
-  }, [expanded, focusedDefinition]);
+  }, [expanded, focusedDefinition, props.sharedTransport]);
+  useEffect(() => {
+    if (!expanded || !reveal) return;
+    const frame = requestAnimationFrame(() => {
+      if (store.getState().legacyReveal !== reveal || useAppStore.getState().performanceWorkspaceGeneration !== reveal.generation) return;
+      const key = definitionColorKey(reveal.item);
+      const definition = Array.from(palette.current?.querySelectorAll<HTMLElement>("[data-definition]") ?? []).find(node => node.dataset.definition === key);
+      const target = definition ?? laneButton.current;
+      setMissingPhrase(!definition);
+      if (!definition) setFocusedDefinition(null);
+      if (target) focusInOverview(target);
+      store.setState({ legacyReveal: null });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [expanded, reveal, store, setFocusedDefinition]);
   useEffect(() => { setSelection(previous => previous.every(i => i < lane.pattern.rootSequence.length) ? previous : previous.filter(i => i < lane.pattern.rootSequence.length)); }, [lane.pattern.rootSequence.length, setSelection]);
   const editPad = (pad: number) => {
     props.onEditPad?.(lane.kind, lane.id, pad);
@@ -81,6 +104,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
     requestAnimationFrame(() => document.getElementById(`sequencer-${lane.id}`)?.scrollIntoView({ block: "center" }));
   };
   const selectSpan = (values: number[], start: number, event: Pick<MouseEvent, "metaKey" | "ctrlKey" | "shiftKey">) => {
+    setFocusedDefinition(null);
     openLane(); setPosition(start);
     const item = lane.pattern.rootSequence[values[0]];
     if (item?.type === "pad" && !event.metaKey && !event.ctrlKey && !event.shiftKey) props.onSelectPad?.(lane.kind, lane.id, item.padIndex);
@@ -149,7 +173,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
     <div className="grid grid-cols-[204px_minmax(0,1fr)] gap-2">
       <div className="min-w-0">
         <div className="flex h-6 items-center gap-1">
-          <button className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded}
+          <button ref={laneButton} onBlur={() => setMissingPhrase(false)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded}
             onClick={() => { if (props.sharedTransport) select(); setExpanded(!expanded); cancelDrag(); closeMenu(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
           <LaneOutputButtons id={lane.id} language={props.guiLanguage} />
         </div>
@@ -196,16 +220,18 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
         </div>
       </div>
     </div>
+    {missingPhrase && <p role="status" className="text-xs text-amber-200">{liveCopy(props.guiLanguage)("missingPhrase")}</p>}
     {expanded && <div ref={palette} className="mt-2 flex flex-wrap items-center gap-1" aria-label={c.library}>
       <label className="mr-1 whitespace-nowrap text-xs text-slate-300">{c.position} <input type="number" className={`${button} w-20`} min={0} value={Number((position * lane.beatScale).toFixed(6))} step={lane.beatScale} onChange={event => setPosition(Math.max(0, Math.round(Number(event.target.value) / lane.beatScale)))} /></label>
       {refs.map(item => {
-        const playable = compileDefinition(lane.pattern, item).length > 0;
+        const playable = (item.type !== "pad" || lane.availablePads.includes(item.padIndex)) && compileDefinition(lane.pattern, item).length > 0;
         const name = item.type === "group" ? `${c.group} ${item.groupId}` : item.type === "super" ? `${c.super} ${item.superGroupId}` : label(item);
         return <div key={item.type === "pause" ? `pause:${item.lengthBeats}` : definitionColorKey(item)} className={`flex items-center rounded border px-1 text-xs ${PATTERN_ITEM_COLORS[item.type]} ${!playable ? "opacity-50" : ""}`} style={definitionColorStyle(lane.pattern, item)}
           draggable={playable} onDragEnd={endArrangementDrag} onDragStart={event => { beginArrangementDrag(lane.id, item); event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData(ARRANGEMENT_ITEM_MIME, JSON.stringify({ trackId: lane.id, item })); }}
           onContextMenu={event => showMenu(event, item, [], true)}>
-          <button type="button" className="px-1 py-1 focus-visible:outline focus-visible:outline-cyan-300" data-definition={definitionColorKey(item)} title={c.dragHint}
-            onClick={() => setFocusedDefinition(item)} onDoubleClick={() => { if (item.type === "pad") editPad(item.padIndex); }}
+          <button type="button" className="px-1 py-1 focus:outline focus:outline-2 focus:outline-cyan-300 aria-[current=true]:underline" data-definition={definitionColorKey(item)} title={c.dragHint}
+            aria-current={selected && item.type !== "pause" && focusedDefinition && definitionColorKey(item) === definitionColorKey(focusedDefinition) ? "true" : undefined}
+            onClick={() => { if (props.sharedTransport) { select(); setSelection([]); } setFocusedDefinition(item); }} onDoubleClick={() => { if (item.type === "pad") editPad(item.padIndex); }}
             onKeyDown={event => { if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") showMenu(event, item, [], true); }}>{name}</button>
           {item.type !== "pause" && <ArrangerSpeaker id={lane.id} item={item} label={name} language={props.guiLanguage} disabled={!playable} />}
         </div>;

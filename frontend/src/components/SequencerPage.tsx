@@ -38,7 +38,7 @@ import { pianoRollFollowingTheories } from "../lib/pianoRollFollowing";
 import { ArrangeSettings, EditorDetails, OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, useStepProperties, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
 import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
-import { CollapsiblePanel } from "./CollapsiblePanel";
+import { CollapsiblePanel, type PanelCollapseState } from "./CollapsiblePanel";
 import { PatchPicker } from "./PatchPicker";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
 import { SamplePlayerRack } from "./sequencer/SamplePlayerRack";
@@ -817,9 +817,9 @@ export function SequencerPage(props: SequencerPageProps) {
   </PerformanceEditorProvider>;
 }
 function WorkspacePage({ view, navigate, ...props }: SequencerPageProps & { view: PerformView; navigate: ViewNavigation }) {
-  const [panels, setPanels] = usePerformanceEditorState("page", "collapsedPanels", props.collapsedPanels);
-  return <OpenArrangerContext.Provider value={() => navigate("arrange")}>
-    <SequencerPageContent {...props} view={view} navigate={navigate} collapsedPanels={panels}
+  const [panels, setPanels] = usePerformanceEditorState<Partial<PanelCollapseState>>("page", "collapsedPanels", {});
+  return <OpenArrangerContext.Provider value={destination => navigate("arrange", destination)}>
+    <SequencerPageContent {...props} view={view} navigate={navigate} collapsedPanels={{ ...props.collapsedPanels, ...panels }}
       onPanelCollapsedChange={(panel, closed) => setPanels(previous => ({ ...previous, [panel]: closed }))} />
   </OpenArrangerContext.Provider>;
 }
@@ -1714,13 +1714,14 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
             key={track.id}
             id={`sequencer-${track.id}`}
             onDragOver={(event) => {
-              if (!dragEventHasMimeType(event, SEQUENCER_TRACK_DRAG_MIME)) {
+              if (singlePattern || !dragEventHasMimeType(event, SEQUENCER_TRACK_DRAG_MIME)) {
                 return;
               }
               event.preventDefault();
               event.dataTransfer.dropEffect = "move";
             }}
             onDrop={(event) => {
+              if (singlePattern) return;
               const payload = parseSequencerTrackDragPayload(event);
               if (!payload || payload.trackId === track.id) {
                 return;
@@ -1740,7 +1741,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               />
             ) : null}
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <div
+              {!singlePattern && <div
                 draggable
                 onDragStart={(event) => {
                   event.stopPropagation();
@@ -1754,7 +1755,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 title="Drag to reorder sequencers"
               >
                 ::
-              </div>
+              </div>}
               {renderDeviceName("tracks", track, ui.sequencerWithIndex(trackIndex + 1))}
               <span className={transportStateClass}>{trackStateLabel(track, sequencer.isPlaying, ui)}</span>
               <button hidden={singlePattern}
@@ -1811,7 +1812,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                       className={controlFieldClass}
                     >
                       <option value="">{ui.none}</option>
-                      {sequencer.tracks.map((candidateTrack, candidateIndex) => {
+                      {authored.tracks.map((candidateTrack, candidateIndex) => {
                         if (candidateTrack.id === track.id) {
                           return null;
                         }

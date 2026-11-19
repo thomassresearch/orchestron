@@ -1,6 +1,8 @@
 export const independentPlaybackHelp = {
   english: `### Develop a pattern with backing parts
 
+In Live, drag a melodic row by its dotted grip or use Move up and Move down. Save Performance keeps the playing order. From a legacy pattern workspace, Open in arranger focuses the exact group or supergroup in its own lane. From Free workspace it focuses the editing pad. Return to Live to continue an unapplied draft.
+
 Device Play starts only that device and starts the instrument engine when needed. With Playback source set to Arrangement, the first device starts at the selected loop's beginning, or at the stopped arranger cursor without a loop. A cursor at song end restarts from the beginning. Further Arrangement devices join the current song position. Rests and each lane's end setting still apply.
 
 With Manual pads, Play repeats the pad selected for editing from its beginning. While it runs, clicking another pad selects it for editing and queues it for the end of the current pattern. The queued pad has an orange outline; it turns blue-green when playback switches. Clicking the playing pad cancels the queue. While stopped or using Arrangement, pad clicks only select for editing. Manual playback keeps its phase through song seeks, loops and endings. Arranger Play starts all Arrangement devices while preserving playing Manual pads; Arranger Stop stops the backing parts and clears temporary previews/workspaces while preserving independent manual playback. Device Stop affects only that device. Switching Playback source while playing changes only that device.
@@ -11,6 +13,8 @@ Open Live and Keyboard to hold a chord while launching pads. On a phone use a se
 
 Groups and supergroups play through their speaker preview or workspace Play. Device Play follows Playback source. The arranger cursor and global Play indicator stay stopped during independently started playback. These rules include controller sequencers and Arranger-mode arpeggiators; Live arpeggiators retain their behavior. Arpeggiators still require input notes.`,
   german: `### Ein Pattern mit Begleitspuren entwickeln
+
+Ziehe in Live eine Melodiespur am gepunkteten Griff oder nutze Nach oben und Nach unten. Performance speichern sichert die Reihenfolge. Im Arranger öffnen führt von der Pattern-Arbeitsfläche einer älteren Performance direkt zur bearbeiteten Gruppe oder Supergruppe in ihrer Spur. Aus der freien Arbeitsfläche öffnet sich das bearbeitete Pad. In Live kannst du den Entwurf weiterbearbeiten.
 
 Play am Gerät startet nur dieses Gerät und bei Bedarf die Instrument-Engine. Bei Wiedergabequelle Arrangement beginnt das erste Gerät am Anfang des gewählten Loop-Bereichs, ohne Loop am gestoppten Arranger-Cursor. Am Songende beginnt es wieder von vorn. Weitere Arrangement-Geräte steigen an der aktuellen Songposition ein. Pausen und das eingestellte Verhalten am Spurende bleiben wirksam.
 
@@ -23,6 +27,8 @@ Unter Live kannst du die Klaviatur öffnen und beim Starten von Pads einen Akkor
 Gruppen und Supergruppen lassen sich über ihren Lautsprecher oder Workspace-Play anhören. Geräte-Play folgt der Wiedergabequelle. Bei unabhängig gestarteter Wiedergabe bleiben Arranger-Cursor und globale Play-Anzeige gestoppt. Dies gilt auch für Controller-Sequencer und Arpeggiatoren im Arranger-Modus; Live-Arpeggiatoren behalten ihr Verhalten. Arpeggiatoren benötigen weiterhin Eingangsnoten.`,
   french: `### Développer un motif avec un accompagnement
 
+Dans Live, déplacez une ligne mélodique par sa poignée pointillée ou utilisez Monter d’un rang et Descendre d’un rang. Enregistrez la performance pour conserver cet ordre. Dans l’atelier de motifs d’une ancienne performance, Ouvrir dans l’arrangeur sélectionne le groupe ou supergroupe dans sa propre piste. Depuis l’atelier libre, cette commande sélectionne le pad en cours d’édition. Revenez dans Live pour retrouver le brouillon.
+
 Play sur un appareil démarre seulement cet appareil et, si nécessaire, le moteur audio. Avec la source Arrangement, le premier appareil part du début de la boucle sélectionnée ou, sans boucle, du curseur arrêté de l'arrangeur. À la fin du morceau, il repart du début. Les autres appareils Arrangement rejoignent la position actuelle du morceau. Les silences et le réglage de fin de chaque piste restent respectés.
 
 Avec Pads manuels, Play répète depuis son début le pad sélectionné pour l'édition. Pendant la lecture, cliquer sur un autre pad le sélectionne pour l'édition et le met en attente jusqu'à la fin du motif actuel. Son contour est orange, puis bleu-vert quand sa lecture commence. Cliquer sur le pad en cours annule la mise en attente. À l'arrêt ou avec Arrangement, les clics sélectionnent seulement le pad à éditer. La lecture manuelle conserve sa phase lors des déplacements, boucles et fins du morceau. Play de l'arrangeur démarre tous les appareils Arrangement en préservant les pads manuels en cours. Stop de l'arrangeur arrête l'accompagnement et les aperçus/ateliers temporaires, tout en préservant la lecture manuelle indépendante. Stop sur un appareil n'affecte que celui-ci. Changer la source pendant la lecture ne change que cet appareil.
@@ -33,6 +39,8 @@ Ouvrez le clavier dans Live pour tenir un accord tout en lançant des pads. Sur 
 
 Les groupes et supergroupes se jouent avec leur haut-parleur ou Play de l'atelier. Play de l'appareil suit sa source. Le curseur et l'indicateur Play global restent arrêtés pendant la lecture indépendante. Ces règles incluent les séquenceurs contrôleur et les arpégiateurs en mode Arrangeur ; le mode Live reste inchangé. Les arpégiateurs nécessitent toujours des notes d'entrée.`,
   spanish: `### Desarrollar un patrón con acompañamiento
+
+En En vivo, arrastra una fila melódica por el asa de puntos o usa Mover hacia arriba y Mover hacia abajo. Guarda la interpretación para conservar el orden. En el espacio de patrones de una interpretación antigua, Abrir en el arreglador lleva al grupo o supergrupo en su propia pista. Desde el espacio libre, lleva al pad que estás editando. Vuelve a En vivo para continuar con el borrador.
 
 Play en un dispositivo inicia solo ese dispositivo y, si hace falta, el motor de audio. Con la fuente Arreglo, el primero empieza al inicio del intervalo de bucle seleccionado o, sin bucle, en el cursor detenido del arreglador. Al final del tema vuelve al principio. Los demás dispositivos Arreglo se incorporan a la posición actual del tema. Se respetan los silencios y el ajuste de final de cada pista.
 

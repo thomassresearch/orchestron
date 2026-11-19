@@ -21,10 +21,11 @@ export type PerformViewLayout = {
 
 export const PerformViewContext = createContext<PerformView | null>(null);
 export const ClipEditorTargetContext = createContext<string | null>(null);
-type EditorState = { captureScroll: Set<() => void>; entries: Record<string, Entry>; view: PerformView; keyboardOpen: boolean; suspendedClipKey: string | null };
-export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ captureScroll: new Set(), entries: {}, view: "arrange", keyboardOpen: false, suspendedClipKey: null }));
+export type LegacyPhraseDestination = { generation: number; laneId: string; item: Exclude<PadLoopPatternItem, { type: "pause" }> };
+type EditorState = { captureScroll: Set<() => void>; entries: Record<string, Entry>; view: PerformView; keyboardOpen: boolean; suspendedClipKey: string | null; legacyReveal: LegacyPhraseDestination | null };
+export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ captureScroll: new Set(), entries: {}, view: "arrange", keyboardOpen: false, suspendedClipKey: null, legacyReveal: null }));
 export type PerformanceEditorStore = ReturnType<typeof createPerformanceEditorStore>;
-export const OpenArrangerContext = createContext<(() => void) | null>(null);
+export const OpenArrangerContext = createContext<((destination: LegacyPhraseDestination) => void) | null>(null);
 export const useOpenArranger = () => useContext(OpenArrangerContext);
 const EditorContext = createContext<ReturnType<typeof createPerformanceEditorStore> | null>(null);
 
@@ -153,6 +154,7 @@ export function useClearArrangementSelection() {
   const view = useContext(PerformViewContext);
   return () => store?.setState(state => ({ entries: Object.fromEntries(Object.entries(state.entries).map(([key, entry]) => {
     const [, field, scope] = JSON.parse(key);
+    if (view === "arrange" && scope === view && field === "arrangerFocusDefinition") return [key, { ...entry, value: null }];
     return field === "arrangerSelection" && (scope ?? null) === view ? [key, { ...entry, value: [] }] : [key, entry];
   })) }));
 }

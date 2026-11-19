@@ -2,7 +2,7 @@
 
 This plan covers the seven musician and producer findings against the released Perform workspace at `d44d4ea`. The target is a session in which a player can hear a variation, prepare the next pad, and adjust its sound while the arrangement keeps its place. Arrange stays above its editor, the Inspector stays on the right, and the browser document stays within the viewport.
 
-Stage 1 makes an explicitly opened keyboard a shared playing surface within Perform. Editor selection, detail panels, Inspector state and scroll positions belong to each view. Stage 2 restores preparation in the Live pad bank. Stages 3 and 4 remain planned. [Current interaction rules](layout-and-interaction-spec.md#selection-and-panel-interactions) · [Original command inventory](baseline/command-map.md) · [Release measurements](milestone-7-release.md)
+Stage 1 makes an explicitly opened keyboard a shared playing surface within Perform. Editor selection, detail panels, Inspector state and scroll positions belong to each view. Stage 2 restores preparation in the Live pad bank. Stage 3 restores melodic device ordering and targeted legacy phrase navigation. Stage 4 remains planned. [Current interaction rules](layout-and-interaction-spec.md#selection-and-panel-interactions) · [Original command inventory](baseline/command-map.md) · [Release measurements](milestone-7-release.md)
 
 ## Delivery order
 
@@ -69,6 +69,8 @@ Expose the same physical pad as a source for the legacy pattern workspace. Dropp
 **Pass when** a player copies pad 1 to pad 2, transposes pad 2 both ways, inserts the sequence 1–2–1 in a legacy phrase, groups it and applies it. The source pad and song order match their pre-edit values. Save and reload the result. Repeat same-device copy for every supported type, including an occupied destination and a Score with hidden notes. During Manual playback, check that editing uses the existing live preparation path and produces no extra launch. Keep a dirty Arrange draft open on the same device and verify its contents and scope after returning.
 
 ## Stage 3. Restore set preparation and targeted navigation
+
+Implemented on 19 November 2026. The legacy browser replay reordered a six-device set, scrolled past a launcher edge and delivered a queued pad after moving its device. Save/load and native export/import preserved the resulting order. Phrase checks covered matching names on different lanes, an unused group with unapplied edits, a repeated group, a supergroup, an empty editing pad and a deleted definition. The clip replay moved a Manual device during song playback and checked that clip lanes kept their order. Arrange, Live and Mix stayed within the viewport at five sizes from 640 × 360 to 1440 × 900, including a 390-pixel-wide phone. [Legacy replay](../../frontend/tests/performance/verify-live-set-preparation.js) · [Clip replay](../../frontend/tests/performance/verify-workspace-live-save.js) · [Native round trip](../../frontend/tests/performance/verify-workspace-roundtrip.js) · [Viewport checks](../../frontend/tests/performance/verify-workspace-shell.js)
 
 ### 4. Live — reorder the melodic devices
 

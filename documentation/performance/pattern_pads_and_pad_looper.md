@@ -45,6 +45,10 @@ In **Live**, choose **Edit** on a legacy device and open **Pattern workspace**. 
 
 Choose **Select all**, then **Group** to save the phrase as a reusable definition. Open the named group to revise its sequence, then choose **Apply** to update every use. **Save Performance** keeps the pads and saved definitions. Place phrases in the song from **Arrange**.
 
+Choose **Open in arranger** to reveal the group or supergroup you are editing in its own lane’s palette. This works before you place the phrase and after you use it several times. In **Free workspace**, the same command reveals the physical pad being edited. The song cursor stays in place. Return to **Live** to pick up the draft, including unapplied changes.
+
+![Arrange focused on Group B in the Sub bass palette after opening it from Live](../../screenshots/perform-arrange-legacy-phrase.png)
+
 ## Transpose reusable content
 
 Use the arranger's transposition controls to change pitch without rewriting notes. Shared repetition settings and local placement offsets can combine. Review the affected occurrences before saving. See [Transpose clips without changing notes](multitrack_arranger.md#transpose-clips-without-changing-notes).

@@ -99,6 +99,27 @@ it("drops a remembered editor when its repeat disappears, even if undo later res
   expect(Object.keys(state().clipDrafts)).toHaveLength(1);
 });
 
+it("discards a legacy handoff after replacement or lane removal, including IDs reused by a clip song", () => {
+  const track = state().sequencer.tracks[0], store = createPerformanceEditorStore();
+  const target = { generation: state().performanceWorkspaceGeneration, laneId: track.id, item: { type: "group" as const, groupId: "B" } };
+  render(<PerformanceEditorProvider retainedStore={store}><PerformWorkspace language="english">{(_, navigate) =>
+    <button onClick={() => navigate("arrange", target)}>Reveal phrase</button>}</PerformWorkspace></PerformanceEditorProvider>);
+  click("Live"); click("Reveal phrase");
+  expect(store.getState().legacyReveal).toBe(target);
+  const original = state().sequencer;
+  act(() => useAppStore.setState({ sequencer: { ...original, tracks: [] } }));
+  expect(store.getState().legacyReveal).toBeNull();
+  click("Live"); click("Reveal phrase");
+  expect(store.getState().view).toBe("live");
+  act(() => useAppStore.setState({ sequencer: original, performanceWorkspaceGeneration: target.generation + 1 }));
+  click("Reveal phrase");
+  expect(store.getState().view).toBe("live");
+  act(() => { fixture(); useAppStore.setState({ performanceWorkspaceGeneration: target.generation }); });
+  click("Reveal phrase");
+  expect(store.getState().view).toBe("live");
+  expect(store.getState().legacyReveal).toBeNull();
+});
+
 it("keeps structural drafts and the initiating view after cancellation or a failed replacement", async () => {
   const { id, target } = fixture();
   const model = state().sequencer.clipArrangement!;

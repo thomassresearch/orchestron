@@ -16,6 +16,8 @@ async page => {
   await button("HOLD").first().click();
   await page.getByText("Unsaved pad changes", { exact: true }).waitFor();
   check(await page.locator(".ws-dock summary", { hasText: "Pattern workspace" }).count() === 1, "Missing reusable definition workspace");
+  await page.locator(".ws-dock summary", { hasText: "Pattern workspace" }).click();
+  check(await button("Open in arranger").count() === 0, "Independent device offered an unavailable legacy palette");
   const hold = await page.evaluate(id => window.__workspaceTest.store.getState().sequencer.tracks.find(t => t.id === id).pads[3].steps[0].hold, id);
   await button("Save Performance").click();
   await page.getByText("Pad saved in performance", { exact: true }).waitFor();
@@ -35,6 +37,21 @@ async page => {
   await button("Pad 4", restored).click();
   await button("Play", restored).click();
   await restored.locator('[data-sounding][aria-label="Pad 4"]').waitFor();
+  const transport = page.getByRole("group", { name: "Song transport" });
+  await button("Play", transport).click();
+  await page.waitForFunction(() => window.__workspaceTest.store.getState().sequencerRuntime.arrangerActive);
+  const before = await page.evaluate(id => {
+    const s = window.__workspaceTest.store.getState();
+    return { revision: s.sequencerEditRevision, tick: s.sequencerRuntime.arrangerTransportSubunit, index: s.sequencer.tracks.findIndex(t => t.id === id) };
+  }, id);
+  await button("Move up", restored).click();
+  await page.waitForFunction(({ revision, tick, index, lanes, id }) => {
+    const s = window.__workspaceTest.store.getState(), runtime = s.sequencerRuntime;
+    return runtime.arrangerActive && runtime.arrangerTransportSubunit !== tick && s.sequencerEditRevision === revision &&
+      s.sequencer.tracks[index - 1].id === id && JSON.stringify(s.sequencer.clipArrangement.lanes) === lanes;
+  }, { ...before, lanes, id });
+  await restored.locator('[data-sounding][aria-label="Pad 4"]').waitFor();
+  await button("Stop", transport).click();
   await button("Stop", restored).click();
   await button("Stop Instruments").click();
   await page.waitForFunction(() => window.__workspaceTest.store.getState().activeSessionState !== "running");

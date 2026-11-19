@@ -18,7 +18,7 @@ export function definitionUses(pattern: PadLoopPatternState, ref: DefinitionRef)
   ];
 }
 
-export function definitionItem(ref: DefinitionRef): PadLoopPatternItem {
+export function definitionItem(ref: DefinitionRef): Extract<PadLoopPatternItem, { type: "group" | "super" }> {
   return ref.kind === "group" ? { type: "group", groupId: ref.id } : { type: "super", superGroupId: ref.id };
 }
 

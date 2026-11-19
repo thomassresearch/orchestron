@@ -37,6 +37,17 @@ function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChan
   const [, expandLane] = usePerformanceEditorState(owner, "arrangerExpanded", false);
   const [, focusDefinition] = usePerformanceEditorState<PadLoopPatternItem | null>(owner, "arrangerFocusDefinition", null);
   const openArranger = useOpenArranger();
+  const view = useContext(PerformViewContext);
+  const generation = useAppStore(s => s.performanceWorkspaceGeneration);
+  const legacySong = useAppStore(s => !s.sequencer.clipArrangement);
+  const revealPhrase = () => {
+    const item = active ? definitionItem(active) : { type: "pad" as const, padIndex: track.activePad };
+    if (!view) {
+      selectLane(track.id); expandLane(true); focusDefinition(item);
+      requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" }));
+    }
+    openArranger?.({ generation, laneId: track.id, item });
+  };
   const audition = usePerformanceAudition();
   const status = useAppStore(state => state.performanceAuditions[track.id]);
   const [gesture, setGesture] = useState<string | null>(null);
@@ -161,7 +172,7 @@ function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChan
       <span className="font-semibold text-slate-200">{c.workspace}</span>
       {!hideArrangement && <><PlaybackSourceToggle language={language} arrangement={track.padLoopEnabled}
         hasArrangement={pattern.rootSequence.length > 0} onChange={onSourceChange} />
-      <button className={button} onClick={() => { selectLane(track.id); expandLane(true); focusDefinition(active ? definitionItem(active) : { type: "pad", padIndex: track.activePad }); openArranger?.(); requestAnimationFrame(() => document.getElementById("multitrack-arranger")?.scrollIntoView({ block: "center" })); }}>{a.open}</button></>}
+      {legacySong && <button className={button} onClick={revealPhrase}>{a.open}</button>}</>}
     </div>
     <RetainedScroll owner={owner} field="workspacePalette" className="flex max-h-20 flex-wrap items-center gap-1 overflow-y-auto" aria-label={c.saved}>
       <button className={button} aria-pressed={!active} onClick={() => open(null)}>{c.free}</button>
