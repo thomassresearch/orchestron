@@ -1,0 +1,53 @@
+# Perform workflow release checks, stages 1–4
+
+**19 November 2026 · Release sign-off held.** All seven workflows were exercised on revision `b6dd6a3`. Perform stayed within the browser viewport in Arrange, Live and Mix. Two acceptance cases remain open. The first Manual pad launch can be lost immediately after a cold preview, and a long error leaves too little of the Arrange editor visible on a short screen. [Acceptance plan](perform-workflow-follow-up-plan.md) · [Measurements](perform-workflow-release-results.json)
+
+## Seven musician workflows
+
+| # | Workflow | Result |
+| --- | --- | --- |
+| 1 | Play over an unsaved Arrange variation | **Musical behavior passed.** The local variation on the second chorus pass kept its audition, scope and edits through opening the keys, playing, resizing and closing the keys. Stop ended the original gesture once. An arpeggiator draft generated notes while C4 was held. A same-device Live pad edit preserved the clip draft on return. The short-screen exception below affects editor access in both song formats. [Clip replay](../../frontend/tests/performance/verify-workspace-arrange.js) · [Arpeggiator replay](../../frontend/tests/performance/verify-workspace-first-track.js) |
+| 2 | Identify and preview a pad without launching it | **One launch transition failed.** Empty and populated marks, short-press cancellation and held previews worked. A clip-lane preview used the edited physical pad. During established Manual playback, pad 2 kept its queued launch under a held pad 3 preview, and releasing the speaker preserved the editing pad and a second finger’s held key. Immediately after a cold preview, the first pad 2 click could select it for editing and leave pad 1 playing. [Live replay](../../frontend/tests/performance/verify-live-pad-preparation.js) |
+| 3 | Copy, transpose and build a phrase | **Passed.** The legacy song required confirmation before replacing pad 2. Both melodic transpose modes worked. The 1–2–1 group and edited pads survived saving, loading and native import. Drummer, controller, Score and arpeggiator pads copied independently, including hidden Score notes. In the clip song, copying pad 1 to 5 and transposing the copy from MIDI 60 to 62 preserved the source at 60 across native import and reload. [Pad actions](../../frontend/tests/performance/verify-live-pad-preparation.js) |
+| 4 | Reorder melodic devices in Live | **Passed on both formats.** A six-device legacy set retained its final order through a native round trip. Dragging past a launcher edge, cancelling a drag and moving a playing device with a pad queued preserved device identity, MIDI channel and sync target. Reordering the two clip-song devices also survived reload, with their Arrange lanes in the original order. [Legacy reorder](../../frontend/tests/performance/verify-live-set-preparation.js) · [Clip playback](../../frontend/tests/performance/verify-workspace-live-save.js) |
+| 5 | Open the exact legacy phrase in Arrange | **Passed.** The handoff reached the bass lane’s unused group, repeated group, supergroup and physical pad despite a previous selection on another lane. A deleted definition focused the surviving lane. Returning to Live retained the draft. The handoff issued zero transport, sequencer configuration or save writes. A clip-song device without a legacy destination correctly omitted the command. [Phrase handoff](../../frontend/tests/performance/verify-live-set-preparation.js) |
+| 6 | Hold a chord from Live into Mix and adjust an insert | **Passed on both formats.** Desktop keyboard and emulated two-finger touch carried C4, E♭4 and G4 through pad launches, Mute, Solo, insert Bypass and a filter cutoff change. The engine received the new cutoff. Each pitch received one release on its original channel. Two separate keyboard destinations also retained channels 1 and 2 across navigation and resizing. The clip-song chord replay used a saved disposable copy with one Manual device alongside its clip lane. [Held-chord replay](../../frontend/tests/performance/verify-workspace-live.js) |
+| 7 | Reach the mix controls during a sample preview or instrument edit | **Passed on both formats.** Gain, Mute, Solo and named insert Bypass were reachable with split or expanded detail, an offscreen strip and the keyboard open. Mute brought both the final meter and sampled browser PCM to zero. Unmute restored audio within the same preview gesture, with Instruments running or stopped. Duplicate, nested, Master and ineligible inserts addressed the expected instances. Master Mute left direct output audible, and muting the direct strip as well produced silence. [Mixer comparisons](../../frontend/tests/performance/verify-mix-comparison.js) · [Direct output](../../frontend/tests/performance/verify-workspace-mix.js) |
+
+## Reproduce the two open cases
+
+### Live drops the first Manual launch after a cold preview
+
+1. Load **UX Baseline Legacy** with Instruments stopped. In Live, choose **Preview pads** on **Manual lead**. Hold the pad 3 speaker until the preview starts, then press Escape and release it.
+2. Switch to **Launch pads**, select pad 1 and press the device’s **Play**. As soon as pad 1 shows as sounding, click pad 2 once.
+3. **Observed in the production build:** the editing selection moved to 2. The engine kept pad 1 active and reported no queued pad. Pad 2 neither showed as queued nor sounded during the 4.7-second observation window. Clicking pad 2 again during established playback made it sound. The unchanged legacy acceptance replay also timed out at the queued indicator on two fresh runs.
+
+The same replay completed when the click was made early in the next cycle. A second production replay, after the other test workloads finished, reproduced the missed first click. To clear this case, the first click after the sounding indication must queue pad 2 and play it at the intended boundary without a second click.
+
+### A long error leaves 12 pixels of Arrange editor content
+
+1. At **640 × 360**, open a clip or legacy occurrence in Arrange, then open **Keyboard**. In the production check, the working pane was **70.9 px** tall and the editor body was **40.6 px** tall.
+2. Trigger a long save error. The release probe returned an HTTP 503 with a storage message long enough to wrap. The status bar grew, leaving **37.8 px** for the working pane and **12 px** for its editor body. Both formats produced the same measurements. The existing shell regression uses **44 px** as the minimum working-pane height.
+3. The document remained **640 × 360**, with both window scroll offsets at zero. The editor header and keyboard stayed visible, but the note controls had too little working space. To clear this case, the full error must remain accessible while the player can still reach and use the editor. [Production screenshot](release-arrange-short-error.png) · [Shell regression](../../frontend/tests/performance/verify-workspace-shell.js)
+
+## Browser bounds, audio and persistence
+
+The ordinary production entry was checked with both saved songs in all three views at **1440 × 900, 1280 × 720, 736 × 720, 390 × 844 and 640 × 360**. Document width and height matched the viewport, with zero horizontal or vertical window offset in all 30 combinations. The Inspector was toggled at each size. The instrumented build repeated the matrix with the keyboard, a long error, open editors and the Inspector or drawer. Real **200% Chrome zoom** changed the CSS viewport from 1440 × 900 to 720 × 450 and device pixel ratio from 1 to 2. All six song/view combinations remained bounded. Touch input was emulated. [Measurements by format and view](perform-workflow-release-results.json)
+
+Navigation issued zero worker sequencer commands and zero HTTP sequencer writes during continuing song playback. In both formats, pure navigation and a held speaker preview preserved the authored configuration. Song Stop returned the cursor to zero after the audio queue drained. An injected preparation failure retained the edited tempo and running transport, navigation issued no retry, and the next deliberate edit succeeded. The legacy fallback build opened and edited a legacy occurrence and reopened a saved clip song.
+
+Native export/import, a failed Save followed by a successful retry, and reload preserved the authored snapshots, including array order. The saved clip used config v23 and the legacy song used v22. The two baseline songs and two edited legacy exports each rendered in MIDI and SCORE modes to finite stereo 48 kHz float audio. Note channels, pitches, velocities, starts and durations matched within each pair. Re-rendering identical CSD files also produced different PCM hashes on some runs, so waveform identity was not established as a repeatable result for these fixtures.
+
+The 46-device legacy profile added **zero underruns** in each of two 15-second samples. After three view-switch cycles, the hidden melodic editor and meters recorded zero renders while playback continued. The clip profile added **zero underruns** in each of three 30-second samples, including expanded and collapsed 16,000-beat arrangements. The browser PCM peak was 0.07466, and audio resumed after reconnect with no reported error. These are local measurements from Chrome 157 and Csound 6.18.
+
+Frontend lint, **1,492 tests** and the production build passed. Backend lint and **3,612 tests** passed with one Starlette TestClient deprecation warning. Manual validation passed for all 63 source pages. A temporary rebuild produced a 223-page English PDF. Rendered pages 5, 70, 83 and 130 were checked for the Arrange, Live, Mix and phrase-handoff instructions and figures.
+
+## Replay and evidence
+
+Use the [versioned fixture archive](baseline/performance-fixtures.zip), native Csound and an isolated database and asset directory. Import legacy first, then import the clip song reusing the same patches. The [browser replay instructions](../../frontend/tests/performance/README.md) describe the workspace harness, sample fixtures and profiling entry points. The production checks loaded the compiled app through FastAPI. Fixture extensions, saves, injected failures and browser profiles were confined to the disposable release environment.
+
+To rerun the two open cases, open the production app in an isolated English Playwright CLI session with those songs already in its disposable library. The [production probes](perform-workflow-release-probes.js) return separate results for pad selection, engine queue, sounding pad, document bounds and working height. The Save request used to produce the error is intercepted before storage.
+
+```sh
+playwright-cli --raw run-code --filename specifications/redesign-user-experience/perform-workflow-release-probes.js
+```

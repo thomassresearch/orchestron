@@ -12,6 +12,7 @@ own selections, panel layout and scroll positions for the current session.
   seven delivery milestones, compatibility checks and release criteria.
 - [Perform workflow follow-up plan](perform-workflow-follow-up-plan.md) covers the seven musician
   and producer findings, with implementation stages and checks for keeping Perform within the browser viewport.
+- [Stages 1–4 release checks](perform-workflow-release.md) records the seven workflow results, viewport measurements and open acceptance cases.
 - [Milestone 1 baseline](milestone-1-baseline.md) includes importable clip and legacy performances,
   musician workflows, command owners, browser measurements and two current behavior gaps.
 - [Milestone 2 preview and verification](milestone-2-view-state.md) explains how to try a same-device pad and clip edit, restore a view and check navigation during playback.
