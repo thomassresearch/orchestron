@@ -1,5 +1,5 @@
 import { CassetteIcon } from "./sequencer/CassetteIcon";
-import { laneMidiLabel } from "../lib/midiControllerChannels";
+import { laneMidiLabel, type MidiDevice } from "../lib/midiControllerChannels";
 import { scoreHasContent } from "../lib/scoreSequencer";
 import { controllerPadHasContent } from "../lib/patternWorkspace";
 import type { ArrangerActionCode } from "../store/arrangerHistory";
@@ -18,12 +18,12 @@ import { HelpIconButton } from "./HelpIconButton";
 import { arrangementCopy } from "../lib/arrangementCopy";
 import { arrangementSpans, firstUnusedPad, validateArrangementEdit } from "../lib/arrangementEditing";
 import { sequencerTransportStepsPerBeat } from "../lib/sequencer";
-import type { ArrangerLoopSelection, GuiLanguage, HelpDocId, PadLoopPatternState, PatchListItem, SequencerInstrumentBinding, SequencerState } from "../types";
+import type { ArrangerLoopSelection, GuiLanguage, HelpDocId, PadLoopPatternState, SequencerState } from "../types";
 
 const DEFAULT_STEP_PIXEL_WIDTH = 9;
 const MAX_STEP_PIXEL_WIDTH = 24;
 type ArrangerTrackKind = "sequencer" | "score" | "drummer" | "controller" | "arpeggiator";
-export type Lane = { id: string; kind: ArrangerTrackKind; title: string; subtitle: string; pattern: PadLoopPatternState; padBeats: number[]; availablePads: number[]; source: boolean; repeat: boolean; activePad: number; enabled: boolean; unusedPad: number; beatScale: number };
+export type Lane = { id: string; kind: ArrangerTrackKind; title: string; instrument: string; subtitle: string; pattern: PadLoopPatternState; padBeats: number[]; availablePads: number[]; source: boolean; repeat: boolean; activePad: number; enabled: boolean; unusedPad: number; beatScale: number };
 export type MultitrackArrangerProps = {
   sharedTransport?: boolean;
   collapsed: boolean;
@@ -63,8 +63,7 @@ export type MultitrackArrangerProps = {
     contextMenuInsertAtEnd: string;
   };
   sequencer: SequencerState;
-  patches: PatchListItem[];
-  instrumentBindings: SequencerInstrumentBinding[];
+  instrumentName: (device: MidiDevice) => string;
   onTransportPlay: () => void;
   onTransportStop: () => void;
   onTransportStopDoubleClick: () => void;
@@ -91,18 +90,12 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
   const scrollbar = useRef<HTMLDivElement>(null);
   const gesture = useRef<{ id: number; x: number; start: number; moved: boolean } | null>(null);
   const [rangePreview, setRangePreview] = useState<ArrangerLoopSelection | null>(null);
-  const channelLabel = (track: { midiChannel: number } | { inputChannel: number; targetChannel: number }) => {
-    const channel = "targetChannel" in track ? track.targetChannel : track.midiChannel;
-    const names = props.instrumentBindings.filter(binding => binding.midiChannel === channel)
-      .map(binding => props.patches.find(patch => patch.id === binding.patchId)?.name).filter(Boolean);
-    return `${laneMidiLabel(track)}${names.length ? ` · ${names.join(", ")}` : ""}`;
-  };
   const lanes: Lane[] = [
-    ...sequencer.tracks.map((t, i): Lane => ({ id: t.id, kind: "sequencer", title: t.name || copy.melodicSequencerWithIndex(i + 1), subtitle: channelLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.steps.some(s => s.note !== null || s.hold) ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !p.steps.some(s => s.note !== null || s.hold))) })),
-    ...(sequencer.scoreTracks ?? []).map((t): Lane => ({ id: t.id, kind: "score", title: t.name, subtitle: channelLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => scoreHasContent(p, t.timing) ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !scoreHasContent(p, t.timing))) })),
-    ...sequencer.drummerTracks.map((t, i): Lane => ({ id: t.id, kind: "drummer", title: t.name || copy.drummerSequencerWithIndex(i + 1), subtitle: channelLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.rows.some(r => r.steps.some(s => s.active)) ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !p.rows.some(r => r.steps.some(s => s.active)))) })),
-    ...sequencer.controllerSequencers.map((t, i): Lane => ({ id: t.id, kind: "controller", title: t.name || copy.controllerSequencerWithIndex(i + 1), subtitle: `${laneMidiLabel(t)} · CC ${t.controllerNumber}`, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.map((_, i) => i), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !controllerPadHasContent(p, t.controllerMode))) })),
-    ...sequencer.arpeggiators.filter(t => t.playbackMode === "arranger").map((t): Lane => ({ id: t.id, kind: "arpeggiator", title: t.name, subtitle: channelLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.steps.some(s => s.kind !== "rest") ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => p.steps.every(s => s.kind === "rest"))) }))
+    ...sequencer.tracks.map((t, i): Lane => ({ id: t.id, kind: "sequencer", title: t.name || copy.melodicSequencerWithIndex(i + 1), instrument: props.instrumentName(t), subtitle: laneMidiLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.steps.some(s => s.note !== null || s.hold) ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !p.steps.some(s => s.note !== null || s.hold))) })),
+    ...(sequencer.scoreTracks ?? []).map((t): Lane => ({ id: t.id, kind: "score", title: t.name, instrument: props.instrumentName(t), subtitle: laneMidiLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => scoreHasContent(p, t.timing) ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !scoreHasContent(p, t.timing))) })),
+    ...sequencer.drummerTracks.map((t, i): Lane => ({ id: t.id, kind: "drummer", title: t.name || copy.drummerSequencerWithIndex(i + 1), instrument: props.instrumentName(t), subtitle: laneMidiLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.rows.some(r => r.steps.some(s => s.active)) ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !p.rows.some(r => r.steps.some(s => s.active)))) })),
+    ...sequencer.controllerSequencers.map((t, i): Lane => ({ id: t.id, kind: "controller", title: t.name || copy.controllerSequencerWithIndex(i + 1), instrument: props.instrumentName(t), subtitle: `${laneMidiLabel(t)} · CC ${t.controllerNumber}`, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.map((_, i) => i), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !controllerPadHasContent(p, t.controllerMode))) })),
+    ...sequencer.arpeggiators.filter(t => t.playbackMode === "arranger").map((t): Lane => ({ id: t.id, kind: "arpeggiator", title: t.name, instrument: props.instrumentName(t), subtitle: laneMidiLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.steps.some(s => s.kind !== "rest") ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => p.steps.every(s => s.kind === "rest"))) }))
   ];
   const totalSteps = Math.max(quantum, sequencer.stepCount, ...lanes.map(lane => arrangementSpans(lane.pattern, lane.padBeats).reduce((sum, s) => sum + s.duration * lane.beatScale * quantum, 0)));
   const rangeEditor = useArrangementRangeEditing({ lanes: arrangementRangeLanes(sequencer), titles: Object.fromEntries(lanes.map(lane => [lane.id, lane.title])),

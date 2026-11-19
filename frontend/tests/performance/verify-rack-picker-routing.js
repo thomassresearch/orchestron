@@ -9,9 +9,49 @@ async page => {
     const clip = await page.evaluate(() => !!window.__workspaceTest.store.getState().sequencer.clipArrangement);
     const laneHeader = id => clip ? page.locator(`[data-clip-lane="${id}"] > .sticky`) :
       page.locator("section").filter({ has: page.locator(`[data-arrangement-lane="${id}"]`) }).last().locator(".arranger-lane-heading").locator("..");
-    check((await laneHeader("phrase").innerText()).includes("MIDI 1"), "Melodic channel missing");
+    const phrase = laneHeader("phrase");
+    const instrument = "UX Baseline Routed";
+    const longName = "Tenor Saxophone with layered harmonics and a long reverb tail";
+    const rename = (from, to) => page.evaluate(([from, to]) => window.__workspaceTest.store.setState(s => ({
+      patches: s.patches.map(p => p.name === from ? { ...p, name: to } : p)
+    })), [from, to]);
+    await phrase.getByText(instrument, { exact: true }).waitFor();
+    const geometry = () => phrase.evaluate(el => {
+      const r = el.getBoundingClientRect(), timeline = el.nextElementSibling.getBoundingClientRect();
+      return [r.width, timeline.left, timeline.width];
+    });
+    for (const [width, height] of [[1440, 900], [390, 844], [320, 568], [640, 360]]) {
+      await page.setViewportSize({ width, height });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const before = await geometry();
+      await rename(instrument, longName);
+      const name = phrase.getByText(longName, { exact: true });
+      await name.waitFor();
+      check(await name.evaluate(el => el.scrollWidth > el.clientWidth && getComputedStyle(el).textOverflow === "ellipsis"),
+        "Long instrument name was not contained in the header");
+      check((await geometry()).join() === before.join(), "The instrument name moved or narrowed the timeline");
+      await phrase.getByText(/MIDI 1/).waitFor();
+      for (const action of ["Mute", "Solo", "Controllers"]) {
+        const control = button(action, phrase);
+        await control.scrollIntoViewIfNeeded();
+        const r = await control.boundingBox(), h = await phrase.boundingBox();
+        check(r.x >= h.x && r.x + r.width <= h.x + h.width + 1 && await control.evaluate(el => {
+          const rect = el.getBoundingClientRect();
+          return el.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+        }), action + " is obscured at " + width + " × " + height);
+      }
+      check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth &&
+        document.documentElement.scrollHeight === innerHeight && !scrollX && !scrollY), "Arrange overflows the page");
+      if (width === 1440) {
+        await phrase.getByRole("button", { name: /^(?:[▾▸] )?Routed phrase$/ }).click();
+        await page.locator(".ws-inspector .ws-track-properties > p").filter({ hasText: longName }).waitFor();
+      }
+      await rename(longName, instrument);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.evaluate(() => window.__workspaceTest.store.getState().setSequencerTrackMidiChannel("phrase", 7));
     await laneHeader("phrase").getByText(/MIDI 7/).waitFor();
+    await phrase.getByText("No rack instrument", { exact: true }).waitFor();
     const cc = await page.evaluate(async () => {
       const s = window.__workspaceTest.store.getState();
       if (s.sequencer.clipArrangement) {
@@ -19,10 +59,11 @@ async page => {
         addClipLane("controller", s.addControllerSequencer);
       } else s.addControllerSequencer();
       const track = window.__workspaceTest.store.getState().sequencer.controllerSequencers.at(-1);
-      s.setControllerSequencerTargetChannels(track.id, [2, 5, 9]);
+      s.setControllerSequencerTargetChannels(track.id, [1, 2, 5, 9]);
       return track.id;
     });
-    await laneHeader(cc).getByText(/MIDI 2, 5, 9/).waitFor();
+    await laneHeader(cc).getByText(/MIDI 1, 2, 5, 9/).waitFor();
+    await laneHeader(cc).getByText("UX Baseline Routed, UX Baseline Direct", { exact: true }).waitFor();
     const arp = await page.evaluate(async () => {
       const store = window.__workspaceTest.store, state = store.getState();
       if (state.sequencer.clipArrangement) {
@@ -34,6 +75,7 @@ async page => {
       return { id: track.id, input: track.inputChannel };
     });
     await laneHeader(arp.id).getByText(new RegExp("MIDI " + arp.input + " → 1")).waitFor();
+    await laneHeader(arp.id).getByText(instrument, { exact: true }).waitFor();
     await button("Mix").click();
     const tools = page.locator(".ws-mix-tools"), nav = tools.getByRole("navigation");
     await button("Rack", nav).click();

@@ -7,6 +7,8 @@ In the Arrange preview, double-click a pad occurrence to edit its numbered pad b
 
 Pads are named 1–8 in the arranger and #1–#8 in sequencers. Defaults are green pads, red groups, violet supergroups and dark rests. Numbers identify pad slots, not duration. Right-click a musical occurrence or palette entry to Set colour or Reset colour. A custom colour is saved for that definition in this lane and shared by its palette and occurrences; sequencer colours stay unchanged.
 
+The lane header shows the assigned rack instrument below the track name, alongside its MIDI information and controls. Select the lane and open the Inspector to read long instrument names in full.
+
 The triangle beside a track title opens or closes its editor. Click anywhere in an occurrence to select it and open the lane; Cmd/Ctrl-click toggles selection. Empty timeline space clears highlights and sets Position without changing expansion. Closing preserves editing context; New/Load/Import resets it. Melodic and drummer sequencers provide an upper-right pattern workspace; controller and arpeggiator editors retain Patterns and phrases.
 
 Mute/Solo affects this lane only, even when lanes share an instrument. Multiple solos are allowed; explicit mute wins. Dashed amber Mute means suppressed by another Solo. Muted lanes keep advancing; unmute resumes future events at the current position. Existing notes release normally and CC values stay at their last applied value until another update. Drummer rows act together. Solo preserves needed arpeggiator inputs and processing; explicit mute still wins. External MIDI and independent Live arpeggiators are outside solo selection. Lane controls survive engine restart but reset on New/Load/Import or reload and are never saved or exported. Mixer controls remain independent.
@@ -33,6 +35,8 @@ Controller/arpeggiator Audition keeps its existing boundary-based behavior: it r
 Doppelklicke in der Arrangement-Vorschau auf ein Pad-Vorkommen, um das nummerierte Pad unter der Zeitleiste zu bearbeiten. Du kannst es auch auswählen und **Editor** drücken. **Pad in Live bearbeiten** im Inspektor öffnet dasselbe Pad in Live. Änderungen am Pad gelten für alle Vorkommen, die es verwenden. Die Umwandlung in Clips erfolgt über einen eigenen Befehl.
 
 Pads heißen im Arranger 1–8 und in Sequencern #1–#8. Standardfarben sind Grün für Pads, Rot für Gruppen, Violett für Supergruppen und Dunkel für Pausen. Nummern bezeichnen Pad-Plätze, keine Dauer. Rechtsklick auf ein musikalisches Vorkommen oder einen Paletteneintrag bietet Farbe festlegen und Farbe zurücksetzen. Eine eigene Farbe wird für die Definition dieser Spur gespeichert und gilt für Palette und alle Vorkommen; Sequencer-Farben bleiben unverändert.
+
+Unter dem Spurnamen steht das zugewiesene Rack-Instrument. MIDI-Kanal und Spurbedienelemente bleiben im Spurkopf sichtbar. Wähle die Spur und öffne den Inspektor, um lange Instrumentennamen vollständig zu lesen.
 
 Das Dreieck neben dem Spurnamen öffnet oder schließt den Editor. Ein Klick irgendwo im Element wählt es und öffnet die Spur; Cmd/Strg-Klick schaltet die Auswahl um. Freie Timeline-Fläche hebt Markierungen auf und setzt Position, ohne die Spur zu öffnen oder zu schließen. Schließen erhält den Bearbeitungszustand; Neu/Laden/Import setzt ihn zurück. Melodie- und Drummer-Sequencer haben oben rechts eine Pattern-Arbeitsfläche; Controller und Arpeggiatoren behalten Patterns und Phrasen.
 
@@ -61,6 +65,8 @@ Dans l’aperçu Arrangement, double-cliquez sur une occurrence pour modifier so
 
 Les pads sont nommés 1–8 dans l’arrangeur et #1–#8 dans les séquenceurs. Couleurs par défaut : pads verts, groupes rouges, supergroupes violets et silences sombres. Les numéros désignent des emplacements, pas des durées. Un clic droit sur une occurrence musicale ou une entrée de palette propose Définir la couleur et Réinitialiser la couleur. La couleur est sauvegardée pour cette définition de piste et partagée par sa palette et toutes ses occurrences ; les couleurs du séquenceur restent inchangées.
 
+Le nom de l’instrument du rack figure sous le nom de la piste. Le canal MIDI et les commandes restent visibles dans l’en-tête. Sélectionnez la piste et ouvrez l’Inspecteur pour lire les noms d’instruments en entier.
+
 Le triangle près du nom ouvre ou ferme l’éditeur. Cliquez n’importe où dans une occurrence pour la sélectionner et ouvrir la piste ; Cmd/Ctrl-clic bascule la sélection. Cliquer un espace vide efface les sélections et règle Position sans changer l’ouverture. Fermer conserve le contexte ; Nouveau/Charger/Importer le réinitialise. Les séquenceurs mélodiques et de batterie disposent d’un atelier en haut à droite ; contrôleurs et arpégiateurs gardent Motifs et phrases.
 
 Muet/Solo agit uniquement sur cette piste, même si plusieurs pistes partagent un instrument. Plusieurs solos sont possibles ; Muet explicite prime. Un bouton Muet ambre en pointillés indique l’exclusion par un autre Solo. Les pistes muettes avancent toujours ; leur réactivation reprend les événements futurs à la position actuelle. Les notes en cours se terminent normalement ; les valeurs CC restent jusqu’à une nouvelle mise à jour. Les lignes de batterie changent ensemble. Solo conserve les entrées et traitements d’arpégiateur nécessaires ; Muet explicite reste prioritaire. Le MIDI externe et les arpégiateurs Live indépendants restent hors de la sélection Solo. Ces contrôles survivent au redémarrage du moteur, se réinitialisent sur Nouveau/Charger/Importer ou rechargement et ne sont jamais sauvegardés ni exportés. Le mixeur reste indépendant.
@@ -87,6 +93,8 @@ L’écoute des contrôleurs/arpégiateurs conserve son fonctionnement aux limit
 En la vista previa de Arreglo, haz doble clic en una aparición para editar su pad numerado bajo la línea de tiempo. También puedes seleccionarla y pulsar **Editor**. **Editar pad en En vivo** abre el mismo pad en la vista En vivo. Los cambios en un pad se aplican a todas las apariciones que lo usan. La conversión a clips tiene su propio comando.
 
 Los pads se llaman 1–8 en el arreglador y #1–#8 en los secuenciadores. Colores predeterminados: pads verdes, grupos rojos, supergrupos violetas y silencios oscuros. Los números identifican espacios, no duraciones. El clic derecho en una aparición musical o entrada de paleta ofrece Establecer color y Restablecer color. El color se guarda para esa definición de pista y lo comparten su paleta y todas sus apariciones; los colores del secuenciador no cambian.
+
+El instrumento del rack aparece debajo del nombre de la pista. El canal MIDI y los controles siguen visibles en la cabecera. Selecciona la pista y abre el Inspector para leer los nombres completos de los instrumentos.
 
 El triángulo junto al nombre abre o cierra el editor. Pulsa cualquier zona de una aparición para seleccionarla y abrir la pista; Cmd/Ctrl-clic alterna la selección. Un espacio vacío borra las selecciones y establece Posición sin cambiar la apertura. Cerrar conserva el contexto; Nuevo/Cargar/Importar lo restablece. Los secuenciadores melódicos y de batería tienen un taller arriba a la derecha; controladores y arpegiadores conservan Patrones y frases.
 

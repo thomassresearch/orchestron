@@ -21,7 +21,7 @@ const copy = new Proxy({ selectionHint: "Loop ruler", clearSelection: "Clear loo
 function Arranger() {
   const sequencer = useAppStore(state => state.sequencer);
   return <MultitrackArranger collapsed={false} onCollapsedChange={noop} guiLanguage="english" copy={copy}
-    sequencer={sequencer} patches={[]} instrumentBindings={[]} onTransportPlay={noop} onTransportStop={noop}
+    sequencer={sequencer} instrumentName={() => "No rack instrument"} onTransportPlay={noop} onTransportStop={noop}
     onTransportStopDoubleClick={noop} onTransportRewind={noop} onTransportFastForward={noop}
     onArrangerLoopSelectionChange={selectionChanged}
     onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)} />;

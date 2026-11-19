@@ -15,7 +15,7 @@ const loopChanged = vi.fn();
 function Arranger({ collapsed = false }: { collapsed?: boolean }) {
   const sequencer = useAppStore(state => state.sequencer);
   return <MultitrackArranger collapsed={collapsed} onCollapsedChange={noop} guiLanguage="english" copy={copy}
-    sequencer={sequencer} patches={[]} instrumentBindings={[]} onTransportPlay={noop} onTransportStop={noop} onTransportStopDoubleClick={noop}
+    sequencer={sequencer} instrumentName={() => "No rack instrument"} onTransportPlay={noop} onTransportStop={noop} onTransportStopDoubleClick={noop}
     onTransportRewind={noop} onTransportFastForward={noop} onArrangerLoopSelectionChange={loopChanged}
     onArrangementRangeChange={(updates, action) => useAppStore.getState().applyArrangementRangeEdit(updates, action)} />;
 }

@@ -23,7 +23,7 @@ import { contentLength, resolveContent, patternDuration, QUARTER_TICKS } from ".
 import { clipEditorPlaybackView } from "../../lib/clipArranger/editorAdapter";
 import { useAppStore } from "../../store/useAppStore";
 import { clipHistoryStep, commitClipArrangement, openClipEditor, saveClipDraftWithIntent, setClipEditIntent, removeClipLane } from "../../store/clipActions";
-import { ClipArranger } from "./ClipArranger";
+import { ClipArranger, type ClipArrangerProps } from "./ClipArranger";
 import { clipButton, clipButtonClass } from "./buttonStyles";
 import { useStructureEditor } from "./StructureEditor";
 import { ClipEditorTargetContext, EditorDetails, RetainedScroll, usePerformanceEditorState } from "../sequencer/PerformanceEditorState";
@@ -37,8 +37,9 @@ import { clipCopy } from "./copy";
 
 const emptyArrangement: ClipArrangement = {version:1,revision:0,end:20160,lanes:[]};
 
-export function ClipPerformance({ language, renderEditor, transport, laneControls, onAddLane, position, onSeek, onLoopChange, onHelpRequest }: {
+export function ClipPerformance({ language, instrumentName, renderEditor, transport, laneControls, onAddLane, position, onSeek, onLoopChange, onHelpRequest }: {
   onHelpRequest?: (id: HelpDocId) => void;
+  instrumentName?: ClipArrangerProps["instrumentName"];
   language: GuiLanguage; renderEditor: (kind: SourceKind, id: string, state: SequencerState) => ReactNode;
   position?: number; onSeek?: (step: number) => void; onLoopChange?: (range: { startStep: number; endStep: number } | null) => void;
   transport?: ReactNode; laneControls?: (id: string) => ReactNode; onAddLane?: (source: SourceKind) => void;
@@ -187,7 +188,7 @@ export function ClipPerformance({ language, renderEditor, transport, laneControl
         {c.stop} · {selectedClip?.name ?? draft.definition.name}{passLabel && ` · ${passLabel}`}
       </button>
     </WorkspacePanel>}
-    <ClipArranger onHelpRequest={onHelpRequest} stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={(target, intent) => attempt(() => openClipEditor(target, intent))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
+    <ClipArranger instrumentName={instrumentName} onHelpRequest={onHelpRequest} stopAudition={stopEdit} structure={structure} zoom={zoom} minZoom={minZoom} setZoom={setZoom} viewport={viewport} viewportWidth={viewportWidth} laneHeaderWidth={laneHeaderWidth} editingTarget={draft?.target} language={language} model={model} sequencer={sequencer} onChange={commitClipArrangement} onEdit={(target, intent) => attempt(() => openClipEditor(target, intent))} laneControls={id => <>{laneControls?.(id)}{active.current?.id === id && <span title={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} aria-label={statuses[id]?.workspace_queued ? c.auditionQueued : c.auditioning} className="text-cyan-300">{statuses[id]?.workspace_queued ? "◷" : "▶"}</span>}</>} onAddLane={onAddLane} onRemoveLane={id => { void (active.current?.id === id ? stopEdit() : Promise.resolve()).then(() => attempt(() => removeClipLane(id))).catch(e => setError(String(e))); }} position={songPosition ?? position} onSeek={onSeek} onLoopChange={onLoopChange}
       renderAutomation={(target, range) => {
         if (!curve?.automationTarget || !draft || !lane || draftKey({ target }) !== draftKey(draft) || draft.definition.kind !== "pattern") return null;
         const original = lane.definitions.find(d => d.id === draft.definition.id);

@@ -172,12 +172,13 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   return <section aria-label={lane.title} className={`rounded border px-2 py-1 ${selected ? "border-cyan-700" : "border-slate-700"}`}>
     <div className="grid grid-cols-[204px_minmax(0,1fr)] gap-2">
       <div className="min-w-0">
-        <div className="arranger-lane-heading flex h-6 items-center gap-1">
-          <button ref={laneButton} onBlur={() => setMissingPhrase(false)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded}
+        <div className="arranger-lane-heading flex min-w-0 flex-col items-start gap-0.5">
+          <button ref={laneButton} onBlur={() => setMissingPhrase(false)} className="max-w-full truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded} aria-description={lane.instrument}
             onClick={() => { if (props.sharedTransport) select(); setExpanded(!expanded); cancelDrag(); closeMenu(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
+          <div className="max-w-full truncate text-[11px] leading-tight text-slate-300" title={lane.instrument}>{lane.instrument}</div>
+          <div className="text-[10px] text-slate-400">{lane.subtitle}</div>
           <LaneOutputButtons id={lane.id} language={props.guiLanguage} />
         </div>
-        <div className="truncate text-[10px] text-slate-400" title={lane.subtitle}>{lane.subtitle}</div>
       </div>
       <div className="min-w-0 overflow-hidden" onWheel={event => { const element = event.currentTarget.closest('#multitrack-arranger')?.querySelector('.h-4.overflow-x-auto'); if (element) element.scrollLeft += event.deltaX || event.deltaY; }}>
         <div role="list" data-arrangement-lane={lane.id} tabIndex={0} aria-label={`${lane.title} ${c.arrangement}`} className="relative h-12 touch-none rounded border border-slate-700 bg-slate-950"

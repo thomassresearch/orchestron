@@ -9,7 +9,7 @@ export function LaneOutputButtons({ id, language }: { id: string; language: GuiL
   const c = arrangementCopy(language);
   const shell = useContext(WorkspacePanels);
   const suppressed = laneOutputSuppressed(id, lanes, routes);
-  return <span className="flex shrink-0 gap-1" title={error ? `${c.outputError} ${error}` : c.laneOnly}>
+  return <span className="flex max-w-full flex-wrap gap-1" title={error ? `${c.outputError} ${error}` : c.laneOnly}>
     <button aria-label={c.mute} aria-pressed={lanes[id]?.mute ?? false} title={suppressed && !lanes[id]?.mute ? c.soloSuppressed : c.laneOnly}
       className={`rounded border px-1 py-0.5 text-[10px] ${lanes[id]?.mute ? "border-rose-400 bg-rose-900 text-rose-100" : suppressed ? "border-dashed border-amber-500 text-amber-200" : "border-slate-600 text-slate-300"}`}
       onClick={() => toggleLaneOutput(id, "mute")}>{c.mute}</button>

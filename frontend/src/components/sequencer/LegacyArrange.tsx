@@ -5,6 +5,7 @@ import type { GuiLanguage, PadLoopPatternItem, SequencerState } from "../../type
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { canInsertItemIntoPadLoopContainer } from "../../lib/padLoopPattern";
 import { sourceKeys } from "../../lib/clipArranger/migration";
+import type { MidiDevice } from "../../lib/midiControllerChannels";
 import type { SourceKind } from "../../lib/clipArranger/model";
 import { AddArrangeTrack } from "../clipArranger/AddArrangeTrack";
 import { arrangeCopy } from "../clipArranger/arrangeCopy";
@@ -18,8 +19,9 @@ type PadTarget = { id: string; kind: SourceKind; pad: number };
 export type LegacyPadAction = (kind: SourceKind, id: string, pad: number) => void;
 
 /** Temporarily direct physical-pad edits to the selected legacy occurrence. Live retains its own pad. */
-export function LegacyArrange({ sequencer, language, add, navigate, renderEditor, onSourceChange, children }: {
+export function LegacyArrange({ sequencer, language, instrumentName, add, navigate, renderEditor, onSourceChange, children }: {
   sequencer: SequencerState; language: GuiLanguage; add: (kind: SourceKind) => void; navigate: ViewNavigation;
+  instrumentName: (device: MidiDevice) => string;
   onSourceChange: (kind: SourceKind, id: string, enabled: boolean) => void;
   renderEditor: DeviceEditorRenderer; children: (select: LegacyPadAction, open: LegacyPadAction) => ReactNode;
 }) {
@@ -69,6 +71,7 @@ export function LegacyArrange({ sequencer, language, add, navigate, renderEditor
     <WorkspacePanel name="editorCommand"><button aria-pressed={!!edited && !shell?.editorHidden} disabled={!edited && !chosen}
       onClick={() => { if (edited && shell?.editorHidden) shell.revealEditor(); else if (edited) shell?.closeDock(); else if (chosen) open(chosen.kind, chosen.id, chosen.pad); }}>{shellCopy[language].editor}</button></WorkspacePanel>
     <WorkspacePanel name="inspector">{device && source ? <div className="ws-track-properties"><h3>{device.name}</h3>
+      <p className="[overflow-wrap:anywhere]">{instrumentName(device)}</p>
       {shell?.trackRouting(device.id, source)}
       {!("playbackMode" in device && device.playbackMode === "live") && <PlaybackSourceToggle language={language} arrangement={device.padLoopEnabled}
         hasArrangement={device.padLoopPattern.rootSequence.length > 0} onChange={enabled => onSourceChange(source, device.id, enabled)} />}

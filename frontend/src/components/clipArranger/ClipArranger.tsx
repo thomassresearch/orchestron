@@ -2,7 +2,7 @@ import { AddArrangeTrack } from "./AddArrangeTrack";
 import { WorkspacePanels, WorkspacePanel, shellCopy } from "../sequencer/WorkspacePanels";
 import { draftKey } from "../../lib/clipArranger/editorAdapter";
 import { arrangeCopy } from "./arrangeCopy";
-import { laneMidiLabel } from "../../lib/midiControllerChannels";
+import { laneMidiLabel, type MidiDevice } from "../../lib/midiControllerChannels";
 import type { EditScope } from "../../lib/clipArranger/relationships";
 import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { clipButton, clipButtonClass, clipButtonTone } from "./buttonStyles";
@@ -32,6 +32,7 @@ import { useAppStore } from '../../store/useAppStore';
 export const clipInput = "w-24 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100";
 export type ClipArrangerProps = {
   onHelpRequest?: (id: HelpDocId) => void;
+  instrumentName?: (device: MidiDevice) => string;
   model: ClipArrangement; sequencer: SequencerState; language: GuiLanguage;
   onChange: (model: ClipArrangement, label: string) => void;
   structure: ReturnType<typeof useStructureEditor>;
@@ -64,7 +65,7 @@ function firstVisibleTarget(lane: ClipLane, clip: Clip, timing?: PatternTiming):
   }
 }
 
-export function ClipArranger({ onHelpRequest, model, sequencer, language, onChange, onEdit, structure, zoom, minZoom, setZoom, viewport, viewportWidth, laneHeaderWidth, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane, stopAudition = async () => {} }: ClipArrangerProps) {
+export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, language, onChange, onEdit, structure, zoom, minZoom, setZoom, viewport, viewportWidth, laneHeaderWidth, editingTarget, transport, laneControls, onAddLane, inlineEditor, renderAutomation, position = 0, onSeek, onLoopChange, onRemoveLane, stopAudition = async () => {} }: ClipArrangerProps) {
   const c = clipCopy(language), t = structureCopy(language), timings = useMemo(() => arrangementTimings(sequencer), [sequencer]);
   const displayDraft = structure.previewDraft ?? structure.draft;
   const displayModel = useMemo(() => displayDraft ? structurePreview(model, displayDraft, timings) : model, [model, displayDraft, timings]);
@@ -126,6 +127,7 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
     try { onChange(addClip(saved??model,lane.id,clip,timings),c.add); select({laneId:lane.id,clipId:clip.id});structure.setFocus({laneId:lane.id,clipId:clip.id,pass:0,parent:[]});setError(null); } catch(e){setError(String(e));}
   });
   const selectedLane = model.lanes.find(l => l.id === selected?.laneId), selectedClip = selectedLane?.clips.find(cl => cl.id === selected?.clipId);
+  const selectedTrack = selectedLane && sequencer[sourceKeys[selectedLane.source]].find(track => track.id === selectedLane.id);
   const loopStart = sequencer.arrangerLoopSelection?.startStep, loopEnd = sequencer.arrangerLoopSelection?.endStep;
   useEffect(() => {
     // Selection is session-only. Give loaded performances a usable loop target
@@ -291,12 +293,14 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
         {shell && !model.lanes.length && <div className="sticky left-0 w-fit p-4">{addTrackControl}</div>}
         {displayModel.lanes.map(lane => {
           const track = sequencer[sourceKeys[lane.source]].find(t => t.id === lane.id);
+          const instrument = track && instrumentName?.(track);
           const detailed = expanded === lane.id;
           const expandedHeight = track && "automationTarget" in track && track.automationTarget && track.controllerMode === "curve"
             ? lane.clips.some(cl => cl.children.some(item => "definitionId" in item && lane.definitions.find(d => d.id === item.definitionId)?.kind !== "pattern")) ? 198 : 154 : 152;
           return <div key={lane.id}><div className="relative flex border-b border-slate-800" data-clip-lane={lane.id} data-expanded={detailed} style={{ height: detailed ? expandedHeight : undefined, minHeight: shell && fitTracks && !detailed ? undefined : 48 }}>
             <div style={{ width: laneHeaderWidth }} className="sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r border-slate-700 bg-slate-950 px-2 py-1">
-              <button className="truncate text-left text-xs font-semibold text-slate-200" aria-expanded={detailed} onClick={() => { structure.cancelDrag(); setExpanded(detailed ? null : lane.id); if (shell) { structure.clearSelection(); select({ laneId: lane.id }); } }}>{detailed ? "▾" : "▸"} {track?.name ?? lane.id}</button>
+              <button className="truncate text-left text-xs font-semibold text-slate-200" aria-expanded={detailed} aria-description={instrument} onClick={() => { structure.cancelDrag(); setExpanded(detailed ? null : lane.id); if (shell) { structure.clearSelection(); select({ laneId: lane.id }); } }}>{detailed ? "▾" : "▸"} {track?.name ?? lane.id}</button>
+              {instrument && <div className="truncate text-[11px] leading-tight text-slate-300" title={instrument}>{instrument}</div>}
               <div className="text-[10px] text-slate-400">{c[lane.source === "sequencer" ? "melodic" : lane.source]}{track && <> · {laneMidiLabel(track)}</>} {track && "automationSuspended" in track && track.automationSuspended && <span title={automationCopy(language).suspended} aria-label={automationCopy(language).suspended} className="text-amber-300">⚠</span>}</div>
               <div className="flex flex-wrap items-center gap-1 text-[10px] text-slate-500">{laneControls?.(lane.id)}<button className={`ml-auto rounded border px-2 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${clipButtonTone.add}`} aria-label={`${c.add}: ${track?.name}`} onClick={() => { createEmpty(lane,Math.max(0,...lane.clips.map(cl=>cl.start+cl.length))); }}>+</button></div>
             </div>
@@ -356,7 +360,9 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
     </div>
     {!shell && structure.toolbar}
     <WorkspacePanel name="inspector">
-      {shell && selectedLane && <div className="ws-track-properties"><h3>{sequencer[sourceKeys[selectedLane.source]].find(track => track.id === selectedLane.id)?.name}</h3>{shell.trackRouting(selectedLane.id, selectedLane.source)}</div>}
+      {shell && selectedLane && <div className="ws-track-properties"><h3>{selectedTrack?.name}</h3>
+        {selectedTrack && instrumentName && <p className="[overflow-wrap:anywhere]">{instrumentName(selectedTrack)}</p>}
+        {shell.trackRouting(selectedLane.id, selectedLane.source)}</div>}
       {shell && selectedLane && !selectedClip && laneActions}
       {selectedClip && selectedLane && <div data-clip-properties className="mt-3 flex flex-wrap items-end gap-3 border-t border-slate-700 pt-3 text-xs text-slate-400">
       <span className="self-center text-cyan-200">{selectedClip.name}</span>

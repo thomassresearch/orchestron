@@ -6,11 +6,11 @@ Open **Perform → Arrange**. The multitrack arranger brings melodic, Score, dru
 
 **New** creates an empty arrangement and one piano keyboard. Choose **Add track** to create a track with its first clip and pattern, then assign its instrument and MIDI channel. Double-click empty track space to add another clip. Use a clip’s **+** to add a new pattern or reuse existing content.
 
-The lane header shows the MIDI channel beside the sequencer type. Controller lanes list their target channels, with **MIDI 1–16** for all channels. An arpeggiator shows its input and output in order, for example **MIDI 3 → 7**.
+Each lane header shows the assigned rack instrument beneath the track name. The MIDI channel and lane buttons stay visible while you scroll the timeline. For a long name or a list of instruments, hover over the name or select the lane and open the **Inspector** to read it in full. An unassigned channel shows **No rack instrument**. Controller lanes list their target channels, with **MIDI 1–16** for all channels. An arpeggiator shows its input and output in order, for example **MIDI 3 → 7**.
 
 Click **Controllers** beside a lane’s **Mute** and **Solo** to adjust its instrument and insert effects in the lower panel. The button is available when at least one destination instrument publishes a usable performance control. An automation lane opens its bound instrument. Choose **Back to editor** to resume your open clip or pad, or **Close** if you opened controls from the timeline. On a very short screen the panel can occupy the working area.
 
-![Arrange with MIDI channels beside the sequencer types and the selected lane’s instrument controls below the timeline](../../screenshots/perform-arrange-instrument-controls.png)
+![Arrange with the rack instrument, MIDI channel, Mute, Solo and Controllers in each lane header and the selected instrument’s controls below the timeline](../../screenshots/perform-arrange-instrument-controls.png)
 
 The top-right **?** opens help specifically for this clip workflow in the selected GUI language (English, German, French or Spanish). It covers clip windows, reusable content, musical and structural drafts, editing scope, transport, sections, transposition and instrument automation. Close it with **Close**, Escape or a click outside the dialog.
 

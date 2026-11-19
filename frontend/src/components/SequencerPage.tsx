@@ -833,7 +833,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
   const sampleUploads = useAppStore(state => state.sampleUploads);
   const context = useSequencerPageContext(props);
   const {
-    instrumentBindings,
+    instrumentName,
     configFileInputRef,
     handleConfigFileChange,
     ui,
@@ -925,8 +925,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
             guiLanguage={guiLanguage}
             copy={arrangerCopy}
             sequencer={sequencer}
-            patches={patches}
-            instrumentBindings={instrumentBindings}
+            instrumentName={instrumentName}
             onTransportPlay={handleStartAll}
             onTransportStop={handleStopAll}
             onTransportStopDoubleClick={handleStopAllAndResetTransport}
@@ -1013,7 +1012,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           </div>
         </div>}
 
-        {showArrange && (sequencer.clipArrangement ? <ClipPerformance language={guiLanguage} onHelpRequest={onHelpRequest}
+        {showArrange && (sequencer.clipArrangement ? <ClipPerformance language={guiLanguage} instrumentName={instrumentName} onHelpRequest={onHelpRequest}
           laneControls={id => <LaneOutputButtons id={id} language={guiLanguage} />}
           position={(sequencer.cycle * sequencer.stepCount + sequencer.playhead) * sequencerTransportSubunitsPerStep()} onSeek={step => onSequencerArrangerLoopSelectionChange(sequencer.arrangerLoopSelection, step)}
           onLoopChange={onSequencerArrangerLoopSelectionChange}
@@ -1137,7 +1136,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
 
         </>}
         {showArrange && !sequencer.clipArrangement && (view && props.navigate
-          ? <LegacyArrange language={guiLanguage} sequencer={sequencer} add={kind => addDevice[kind]()} navigate={props.navigate} renderEditor={renderDeviceEditor}
+          ? <LegacyArrange language={guiLanguage} instrumentName={instrumentName} sequencer={sequencer} add={kind => addDevice[kind]()} navigate={props.navigate} renderEditor={renderDeviceEditor}
               onSourceChange={(kind, id, enabled) => {
                 switch (kind) {
                   case "sequencer": return context.onSequencerTrackPadLoopEnabledChange(id, enabled);
