@@ -12,7 +12,7 @@ import { arpeggiatorCopy } from "./arpeggiatorCopy";
 import { scoreCopy } from "./scoreCopy";
 import { LivePadBank } from "./LivePadBank";
 import { useLiveDeviceReorder } from "./useLiveDeviceReorder";
-import { copyArpeggiatorPad } from "../../lib/livePads";
+import { copyArpeggiatorPad, livePadLabel, livePatternNames } from "../../lib/livePads";
 import { liveCopy } from "./liveCopy";
 import { WorkspacePanel } from "./WorkspacePanels";
 import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
@@ -49,6 +49,8 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
   const pads = useAppStore(s => s.sequencerEditingPads);
   const score = useContext(ScoreTransportContext);
   const authored = useAppStore(s => s.sequencer);
+  const names = useMemo(() => new Map(authored.clipArrangement?.lanes.map(lane =>
+    [lane.id, livePatternNames(lane)])), [authored.clipArrangement]);
   const runtime = useAppStore(s => s.sequencerRuntime);
   const auditions = useAppStore(s => s.performanceAuditions);
   const draft = useAppStore(s => s.clipAuditionDraft);
@@ -119,6 +121,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
       }
     }
     const current = editing({ kind, track });
+    const patterns = names.get(track.id);
     const choosePad = (pad: number) => {
       select(track.id);
       selectPad(track.id, pad);
@@ -148,7 +151,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
           })}
         </div>}
       </div>
-      <LivePadBank device={authored[sourceKeys[kind]].find(t => t.id === track.id) ?? track} language={language}
+      <LivePadBank device={authored[sourceKeys[kind]].find(t => t.id === track.id) ?? track} language={language} patterns={patterns} compact={compact}
         editing={current} sounding={lane ? null : sounding} queued={queued} onLaunch={choosePad}
         onCopy={(from, to) => {
           switch (kind) {
@@ -163,7 +166,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
           (keyStep ? actions.onSequencerPadTransposeLong : actions.onSequencerPadTransposeShort)(track.id, pad, direction) : undefined} />
       <div className="ws-live-actions"><button type="button" aria-pressed={running} onClick={() => { select(track.id); play(kind, track, !running, current); }}>{running ? sc.stop : sc.play}</button>
         <button data-pad-editor-toggle aria-expanded={layout.dock === "editor" && selected?.track.id === track.id} onClick={() => { select(track.id); selectPad(track.id, current); setLayout(previous => ({ ...previous, dock: "editor" })); }}>{c("edit")}</button></div>
-      <div className="ws-live-state"><span>{a.editing} <b>{current + 1}</b></span><span>{a.playing} <b>{playingLabel}</b></span><span>{a.queued} <b>{queued == null ? "—" : queued + 1}</b></span></div>
+      <div className="ws-live-state"><span>{a.editing} <b>{patterns?.pads[current] ? livePadLabel(current, patterns.pads[current]) : current + 1}</b></span><span>{a.playing} <b>{playingLabel}</b></span><span>{a.queued} <b>{queued == null ? "—" : queued + 1}</b></span></div>
     </div>;
   };
   const addDevice = (kind: SourceKind) => {
@@ -184,6 +187,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
     controller: actions.onRemoveControllerSequencer, score: removeScoreTrack, arpeggiator: actions.onRemoveArpeggiator
   };
   const selectedLane = sequencer.clipArrangement?.lanes.find(lane => lane.id === selected?.track.id);
+  const selectedPadLabel = selected && livePadLabel(editing(selected), names.get(selected.track.id)?.pads[editing(selected)]);
   return <>
     <section className="ws-launcher" aria-label={c("launcher")} {...reorder.launcherEvents}>
       <header><h2>{c("launcher")}</h2><label>{c("add")} <select value="" onChange={e => addDevice(e.target.value as SourceKind)}><option value="">＋</option>{kinds.map(k => <option key={k} value={k}>{types[k === "sequencer" ? "melodic" : k]}</option>)}</select></label></header>
@@ -196,11 +200,11 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
         {selectedLane ? <p>{source.source} · {source.arrangement}</p>
           : "playbackMode" in selected.track && selected.track.playbackMode === "live" ? <p>{source.source} · {a.live}</p>
           : <PlaybackSourceToggle language={language} arrangement={selected.track.padLoopEnabled} hasArrangement={!!selected.track.padLoopPattern.rootSequence.length} onChange={value => changeSource(selected.kind, selected.track.id, value)} />}
-        <p>{a.editing} · Pad {editing(selected) + 1}</p>
+        <p className="ws-live-pad-detail">{a.editing} · {selectedPadLabel}</p>
         {!selectedLane && <button type="button" disabled={!canRemove && selected.kind !== "score"}
           onClick={() => removeDevice[selected.kind](selected.track.id)}>{c("remove")}</button>}
       </WorkspacePanel>
-      {layout.dock === "editor" && <WorkspacePanel name="editor"><header className="ws-live-editor-heading"><h3>{selected.track.name} / Pad {editing(selected) + 1}</h3>
+      {layout.dock === "editor" && <WorkspacePanel name="editor"><header className="ws-live-editor-heading"><h3>{selected.track.name} / {selectedPadLabel}</h3>
         <PadSaveStatus kind={selected.kind} id={selected.track.id} pad={editing(selected)} language={language} /></header>
         <LivePadEditorContext.Provider value><div key={selected.track.id}>{renderEditor(selected.kind, selected.track.id, sequencer)}</div></LivePadEditorContext.Provider>
       </WorkspacePanel>}

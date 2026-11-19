@@ -76,7 +76,11 @@ For a legacy performance, double-click a pad occurrence to edit that physical pa
 
 ## Launch pads in Live
 
-Open **Live** and find the device you want to play. **Editing** is the physical pad you can change. **Playing** follows playback. **Queued** shows the next manual launch. A clip lane shows its playing pattern by name. Its numbered pads are available for editing.
+Open **Live** and find the device you want to play. **Editing** shows the physical pad you can change, **Playing** follows playback, and **Queued** shows the next manual launch.
+
+Look for the Arrange pattern name beside the pad number, for example **2 · Verse 1**. If a numbered pattern is the sole content of a uniquely named clip, the pad shows that clip title. Long names wrap. Use the arrows above the row or swipe sideways to reach later pads. Tab moves focus through the pads without launching them. The same names appear in **Preview pads**, **Pad actions** and the pad editor. Patterns created only in Arrange appear under **Arrangement patterns** as a reference, separate from the playable pads.
+
+![Live device row with Introduction 1 and Verse 1 on numbered pads and a separate arrangement variation below](../../screenshots/perform-live-pattern-names.png)
 
 1. Select a pad on a **Manual pads** device and press **Play** in its row. As soon as the pad shows as playing, you can tap the next pad once to queue it for the pattern boundary. This also works immediately after a speaker preview. To jam alongside a clip song, use **Add live device** to create a separate device.
 2. Open **Keyboard** and choose the piano roll assigned to your instrument. Open **Keyboard settings** to set the MIDI channel, velocity and Autochord. Hold a focused key with Space or Enter and click another pad. On a touch screen, keep one finger on the key and tap a pad with the other.

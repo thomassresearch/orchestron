@@ -296,6 +296,8 @@ In a legacy performance, **Open in arranger** reveals the edited group, supergro
 
 In Live, **Edit** opens the selected physical pad. Its direct edits retain their existing live timing. The dock shows the pad’s save status and **Save Performance** persists it. Reusable pattern drafts retain **Apply**, and arpeggiator presets retain **Update preset** and **Save as preset**. A clip lane reports the playing definition by name. **Add live device** creates a separate device for manual launches alongside the clip arrangement. [Live implementation record](milestone-5-live.md)
 
+Named physical pads show their number and saved Arrange pattern name in all three pad modes, the copy picker and the editor. Resolve each pad by its lane and original slot identity. A default-numbered pattern can use its clip title when every reference is the sole item in a clip of that name. Independent definitions appear in the read-only **Arrangement patterns** list. Long names wrap and each overflowing pad row scrolls horizontally with its own arrows, touch or keyboard focus. Browsing keeps the current edit and playback intact.
+
 In Live, distinguish the pad selected for editing from the playing pad and queued launch.
 Running Manual pads actions retain boundary-quantized launches; stopped or Arrangement-source
 pad clicks only select for editing. Device Play remains an explicit independent action.

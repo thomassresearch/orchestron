@@ -328,10 +328,13 @@
 .ws-output { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 15px; padding: 4px 10px; border-top: 1px solid #40606b; background: #12212d; color: #cbe1ea; }
 .ws-output .ws-meter { max-width: 57rem; width: 100%; }
 
-.ws-live-bank { min-width: 0; display: grid; gap: 4px; }
+.ws-live-bank { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .ws-bank-options { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .75rem; }
 .ws-pad-legend { color: #a1b3c5; font-size: .69rem; }
 .ws-pad-legend b { color: #87e2bd; }
+.ws-pad-scroll-buttons { display: inline-flex; margin-left: auto; gap: 3px; }
+.ws-pad-scroll-buttons button { min-width: 28px; height: 24px; border: 1px solid #4b6075; border-radius: 4px; background: #17263a; font-size: 1.1rem; line-height: 1; }
+.ws-pad-scroll-buttons button:disabled { opacity: .4; }
 .ws-pad-slot { position: relative; min-width: 0; display: flex; }
 .ws-pad-speaker { display: none; }
 @container (min-width: 880px) {
@@ -343,6 +346,18 @@
 .ws-pad-slot[data-populated=true]::after { background: #87e2bd; border-color: #87e2bd; }
 .ws-pad-slot[data-sounding] > button { border-color: #58cbd7; }
 .ws-pad-slot[data-queued] > button { border-color: #efa85a; }
+.ws-live-pads[data-named], .ws-arrangement-patterns [role=list] {
+  display: flex; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin;
+}
+.ws-live-pads[data-named] .ws-pad-slot { flex: 1 0 auto; }
+.ws-live-pads[data-named] .ws-pad-slot > button { flex: auto; width: auto; height: auto; padding: 5px 10px; gap: 6px; }
+.ws-pad-name { max-width: min(17rem, 65cqi); overflow-wrap: anywhere; text-align: start; font-weight: 600; line-height: 1.2; }
+.ws-live-pads[data-named] button:focus-visible { outline: 2px solid #8be5fa; outline-offset: -2px; }
+.ws-live-state, .ws-pad-tools strong, .ws-live-editor-heading h3, .ws-live-pad-detail { overflow-wrap: anywhere; }
+.ws-arrangement-patterns { display: flex; align-items: baseline; gap: 8px; font-size: .72rem; color: #a1b3c5; }
+.ws-arrangement-patterns > span { flex: none; }
+.ws-arrangement-patterns [role=list] { gap: 10px; }
+.ws-arrangement-patterns [role=listitem] { flex: none; max-width: min(17rem, 60cqi); overflow-wrap: anywhere; color: #cedeeb; }
 .ws-pad-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: .75rem; }
 .ws-pad-tools button { min-height: 28px; min-width: 28px; padding: 2px 5px; border: 1px solid #4b6075; border-radius: 4px; }
 .ws-pad-tools span { color: #9bddc7; }

@@ -2,6 +2,7 @@ import type { PadLoopPatternItem, SequencerState } from "../../types";
 import { ClipError, QUARTER_TICKS, contentLength, localBeatTicks, validateArrangement, type ClipArrangement, type ClipLane, type ContentItem, type Definition, type LaneTiming, type PatternDefinition, type SourceKind } from "./model";
 
 export const sourceKeys = { sequencer: "tracks", score: "scoreTracks", drummer: "drummerTracks", controller: "controllerSequencers", arpeggiator: "arpeggiators" } as const;
+export const physicalPadDefinitionId = (laneId: string, index: number) => `${laneId}:pattern:${index}`;
 export function arrangementTimings(state: SequencerState): LaneTiming {
   return Object.fromEntries([...state.tracks, ...state.scoreTracks, ...state.drummerTracks, ...state.controllerSequencers].map(track => [track.id, "automationTarget" in track && track.automationTarget ? { ...track.timing, controllerMode: track.controllerMode, automation: true } : track.timing]));
 }
@@ -19,8 +20,8 @@ export function migrateClipArrangement(state: SequencerState): MigrationReport {
     const childId = () => id(`occurrence:${counter++}`);
     const convert = (item: PadLoopPatternItem): ContentItem => item.type === "pause"
       ? { id: childId(), restTicks: item.lengthBeats * localBeatTicks(timings[track.id]) }
-      : { id: childId(), definitionId: id(item.type === "pad" ? `pattern:${item.padIndex}` : item.type === "group" ? `group:${item.groupId}` : `supergroup:${item.superGroupId}`) };
-    const definitions: Definition[] = track.pads.map((payload, index) => ({ id: id(`pattern:${index}`), name: `#${index + 1}`, revision: 0,
+      : { id: childId(), definitionId: item.type === "pad" ? physicalPadDefinitionId(track.id, item.padIndex) : id(item.type === "group" ? `group:${item.groupId}` : `supergroup:${item.superGroupId}`) };
+    const definitions: Definition[] = track.pads.map((payload, index) => ({ id: physicalPadDefinitionId(track.id, index), name: `#${index + 1}`, revision: 0,
       kind: "pattern", source, payload: structuredClone(payload),
       ...("padPresetIds" in track ? { presetId: track.padPresetIds[index] } : {}),
       ...(track.padLoopPattern.definitionColors?.[`pad:${index}`] ? { color: track.padLoopPattern.definitionColors[`pad:${index}`] } : {}) }) as PatternDefinition);
