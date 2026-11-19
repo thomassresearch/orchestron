@@ -13,6 +13,7 @@ type Panel = "editor" | "inspector" | "editorCommand" | "dialogs" | "launcher" |
 export const WorkspacePanels = createContext<null | {
   slots: Record<Panel, HTMLElement | null>;
   trackRouting: (id: string, kind: SourceKind) => ReactNode;
+  laneControllers: (id: string) => ReactNode;
   getRememberedTarget: () => OccurrenceTarget | undefined;
   editorHidden: boolean;
   singlePane: boolean;

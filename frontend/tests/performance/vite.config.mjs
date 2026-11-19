@@ -11,6 +11,7 @@ export default defineConfig(environment => mergeConfig(testConfig(environment), 
     headers: { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "require-corp" },
     proxy: {
       "/api": { target: process.env.PROFILE_BACKEND_URL ?? "http://127.0.0.1:8000" },
+      "/static": { target: process.env.PROFILE_BACKEND_URL ?? "http://127.0.0.1:8000" },
       "/ws": { target: process.env.PROFILE_BACKEND_URL ?? "ws://127.0.0.1:8000", ws: true }
     }
   },

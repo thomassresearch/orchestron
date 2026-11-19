@@ -15,7 +15,9 @@ import { clipButtonClass } from "../clipArranger/buttonStyles";
 import { MidiChannelSelector } from "./MidiChannelSelector";
 import { SEQUENCER_UI_COPY } from "./sequencerUiCopy";
 
-export function ArrangeTrackRouting({ id, kind, language }: { id: string; kind: SourceKind; language: GuiLanguage }) {
+export function ArrangeTrackRouting({ id, kind, language }: {
+  id: string; kind: SourceKind; language: GuiLanguage;
+}) {
   const track = useAppStore(s => s.sequencer[sourceKeys[kind]].find(t => t.id === id));
   const patches = useAppStore(s => s.patches);
   const bindings = useAppStore(s => s.sequencerInstruments);
@@ -25,13 +27,16 @@ export function ArrangeTrackRouting({ id, kind, language }: { id: string; kind: 
   const ui = SEQUENCER_UI_COPY[language];
   if (!track) return null;
   if ("targetChannels" in track) {
-    if (track.automationTarget) {
-      const target = track.automationTarget, binding = bindings.find(b => b.id === target.instrumentId);
-      const patch = patches.find(p => p.id === binding?.patchId);
-      const controls = patch?.performance_controllers?.filter(d => target.controllerNodeIds.includes(d.node_id));
-      return <p>{patch?.name ?? track.name} · MIDI {track.targetChannels.join(", ")} · CC {track.controllerNumber}{controls?.length ? " · " + controls.map(d => d.label).join(", ") : ""}</p>;
-    }
-    return <MidiChannelSelector rows={2} ui={ui} channels={track.targetChannels} onChange={channels => useAppStore.getState().setControllerSequencerTargetChannels(id, channels)} />;
+    const automation = track.automationTarget;
+    const binding = automation && bindings.find(row => row.id === automation.instrumentId);
+    const patch = binding && patches.find(p => p.id === binding.patchId);
+    const controls = patch?.performance_controllers?.filter(d => automation?.controllerNodeIds.includes(d.node_id));
+    return <div className="ws-track-routing">
+      {automation
+        ? <p>{patch?.name ?? track.name} · MIDI {track.targetChannels.join(", ")} · CC {track.controllerNumber}{controls?.length ? " · " + controls.map(d => d.label).join(", ") : ""}</p>
+        : <MidiChannelSelector rows={2} ui={ui} channels={track.targetChannels}
+            onChange={channels => useAppStore.getState().setControllerSequencerTargetChannels(id, channels)} />}
+    </div>;
   }
   const channel = "targetChannel" in track ? track.targetChannel : track.midiChannel;
   const outputChannels = MIDI_CHANNELS.filter(ch => kind !== "arpeggiator" || !arpeggiators.some(a => a.inputChannel === ch));

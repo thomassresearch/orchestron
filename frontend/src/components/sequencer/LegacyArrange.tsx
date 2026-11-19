@@ -40,6 +40,7 @@ export function LegacyArrange({ sequencer, language, add, navigate, renderEditor
   const edited = target && layout.dock === "editor" && sequencer[sourceKeys[target.kind]].some(t => t.id === target.id) ? target : null;
   const handoff = useRef(false);
   const open: LegacyPadAction = (kind, id, pad) => {
+    shell?.revealEditor();
     setTarget({ id, kind, pad }); setLaneId(id); setLayout(l => ({ ...l, dock: "editor" }));
   };
   useLayoutEffect(() => {
@@ -65,8 +66,8 @@ export function LegacyArrange({ sequencer, language, add, navigate, renderEditor
       if (created) open(kind, created.id, created.activePad);
     }} />
     {children((kind, id, pad) => { if (!edited || edited.kind === kind) setTarget({ kind, id, pad }); }, open)}
-    <WorkspacePanel name="editorCommand"><button aria-pressed={!!edited} disabled={!edited && !chosen}
-      onClick={() => { if (edited) shell?.closeDock(); else if (chosen) open(chosen.kind, chosen.id, chosen.pad); }}>{shellCopy[language].editor}</button></WorkspacePanel>
+    <WorkspacePanel name="editorCommand"><button aria-pressed={!!edited && !shell?.editorHidden} disabled={!edited && !chosen}
+      onClick={() => { if (edited && shell?.editorHidden) shell.revealEditor(); else if (edited) shell?.closeDock(); else if (chosen) open(chosen.kind, chosen.id, chosen.pad); }}>{shellCopy[language].editor}</button></WorkspacePanel>
     <WorkspacePanel name="inspector">{device && source ? <div className="ws-track-properties"><h3>{device.name}</h3>
       {shell?.trackRouting(device.id, source)}
       {!("playbackMode" in device && device.playbackMode === "live") && <PlaybackSourceToggle language={language} arrangement={device.padLoopEnabled}

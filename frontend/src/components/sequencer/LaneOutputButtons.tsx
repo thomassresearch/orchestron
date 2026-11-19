@@ -1,3 +1,5 @@
+import { useContext } from "react";
+import { WorkspacePanels } from "./WorkspacePanels";
 import type { GuiLanguage } from "../../types";
 import { arrangementCopy } from "../../lib/arrangementCopy";
 import { laneOutputSuppressed, toggleLaneOutput, useLaneOutput } from "../../lib/laneOutput";
@@ -5,6 +7,7 @@ import { laneOutputSuppressed, toggleLaneOutput, useLaneOutput } from "../../lib
 export function LaneOutputButtons({ id, language }: { id: string; language: GuiLanguage }) {
   const { lanes, routes, error } = useLaneOutput();
   const c = arrangementCopy(language);
+  const shell = useContext(WorkspacePanels);
   const suppressed = laneOutputSuppressed(id, lanes, routes);
   return <span className="flex shrink-0 gap-1" title={error ? `${c.outputError} ${error}` : c.laneOnly}>
     <button aria-label={c.mute} aria-pressed={lanes[id]?.mute ?? false} title={suppressed && !lanes[id]?.mute ? c.soloSuppressed : c.laneOnly}
@@ -14,5 +17,6 @@ export function LaneOutputButtons({ id, language }: { id: string; language: GuiL
       className={`rounded border px-1 py-0.5 text-[10px] ${lanes[id]?.solo ? "border-amber-400 bg-amber-900 text-amber-100" : "border-slate-600 text-slate-300"}`}
       onClick={() => toggleLaneOutput(id, "solo")}>{c.solo}</button>
     {error && <span role="alert" className="text-red-300" aria-label={c.outputError}>!</span>}
+    {shell?.laneControllers(id)}
   </span>;
 }

@@ -30,7 +30,7 @@ The app has three working areas:
 
 - **Instrument Design** creates, edits and saves individual instruments and effects.
 - **Perform** has three views. Build the song in **Arrange**, launch pads and play the keyboard in **Live**, and balance or route instruments in **Mix**. Each view remembers where you were.
-- **Config** adjusts audio-engine and browser playback settings. Language and help are available throughout the app.
+- **Config** adjusts audio-engine and browser playback settings. The language and page selectors stay in the header while you scroll the settings or instrument editor.
 
 Read Instrument Design before Performance when learning the whole app. For ready-made sounds, go directly to Supplied Instruments and Effects. Configuration and the optional authoring tools can be consulted when needed.
 

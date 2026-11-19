@@ -160,7 +160,7 @@ export function RuntimePanel({
   })();
 
   return (
-    <aside className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-700/70 bg-slate-900/75 p-3">
+    <aside className="flex h-full min-h-0 flex-col studio-panel">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">{copy.title}</h2>
         {onToggleCollapse ? (

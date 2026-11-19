@@ -539,7 +539,7 @@ export function ConfigPage({
   return (
     <main className="grid gap-4 lg:grid-cols-[minmax(0,_700px)_minmax(0,_1fr)]">
       <div className="grid gap-4">
-        <section className="relative rounded-2xl border border-slate-700/70 bg-slate-900/75 p-5">
+        <section className="relative studio-panel">
           {onHelpRequest ? (
             <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_audio_engine")} />
           ) : null}
@@ -637,7 +637,7 @@ export function ConfigPage({
           </div>
         </section>
 
-        <section className="relative rounded-2xl border border-slate-700/70 bg-slate-900/65 p-5">
+        <section className="relative studio-panel">
           {onHelpRequest ? <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_audio_engine")} /> : null}
           <h3 className="font-display text-base font-semibold text-slate-100">{parallelCopy.title}</h3>
           <p className="mt-1 text-sm text-slate-400">{parallelCopy.description}</p>
@@ -665,7 +665,7 @@ export function ConfigPage({
         </section>
 
         {showBrowserClockLatencyConfig ? (
-          <section className="relative rounded-2xl border border-slate-700/70 bg-slate-900/65 p-5">
+          <section className="relative studio-panel">
             {onHelpRequest ? (
               <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_browser_clock_latency")} />
             ) : null}
@@ -746,7 +746,7 @@ export function ConfigPage({
         ) : null}
       </div>
 
-      <aside className="relative rounded-2xl border border-slate-700/70 bg-slate-900/55 p-5">
+      <aside className="relative studio-panel">
         {onHelpRequest ? (
           <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_engine_values")} />
         ) : null}

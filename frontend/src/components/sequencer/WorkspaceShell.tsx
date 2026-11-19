@@ -1,6 +1,8 @@
 import { useRackSelection } from "./useRackSelection";
 import { arrangeCopy } from "../clipArranger/arrangeCopy";
 import { ArrangeTrackRouting } from "./ArrangeTrackRouting";
+import { InstrumentControls } from "./InstrumentControls";
+import { useArrangeControlRoutes } from "./useArrangeControlRoutes";
 import { absoluteTransportStep } from "../../lib/arrangerTransport";
 import { sequencerTransportSubunitsPerStep } from "../../lib/sequencer";
 import { hasChangedClipDrafts } from "../../lib/clipArranger/draftResolution";
@@ -69,15 +71,26 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const [remembered, remember] = usePerformanceEditorState<string | null>("page", "closedEditor", null);
   const clipKey = useAppStore(s => s.clipEditingKey);
   const model = useAppStore(s => s.sequencer.clipArrangement);
+  const [controlsTarget, setControlsTarget] = usePerformanceEditorState<{ laneId: string } | "rack" | null>("arranger", "controlsTarget", null);
+  const routes = useArrangeControlRoutes(view === "arrange");
+  const controlsLaneId = typeof controlsTarget === "object" ? controlsTarget?.laneId : undefined;
+  const controlLane = controlsLaneId ? routes.get(controlsLaneId) : undefined;
+  const controlsIds = view !== "arrange" ? null : controlsTarget === "rack" && ids.length ? ids : controlLane?.enabled ? controlLane.ids : null;
+  useEffect(() => {
+    if (view === "arrange" && controlsTarget && !controlsIds) setControlsTarget(null);
+  }, [view, controlsTarget, controlsIds, setControlsTarget]);
   const [selected] = usePerformanceEditorState<{ clipId?: string; laneId: string } | null>("arranger", "clipSelection", null);
   const drafts = useAppStore(s => s.clipDrafts);
   const musicalChanges = useMemo(() => hasChangedClipDrafts(model, drafts), [model, drafts]);
   const structuralChanges = useStructureDraft(s => !!s.draft?.cursor);
   const appError = useAppStore(s => s.error || s.mixerSyncError);
   const issue = error || appError;
-  const dock = view === "arrange" && model ? clipKey ? "editor" : null : layout.dock;
+  const editorDock = view === "arrange" && model ? clipKey ? "editor" : null : layout.dock;
+  const dock = controlsIds ? "instrument" : editorDock;
   const detailOwner = view === "mix" && mixSelection && (dock === "samples" || ids.length === 1) ? `binding:${mixSelection}` as const : "page";
-  const dockLabel = dock === "samples" || dock === "instrument" ? mixCopy(language)(dock) : c.editor;
+  const copy = mixCopy(language);
+  const dockLabel = dock === "instrument" && controlLane ? `${controlLane.name} · ${copy("instrument")}`
+    : dock === "samples" || dock === "instrument" ? copy(dock) : c.editor;
   const work = useRef<HTMLDivElement>(null), main = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0, mainWidth: 0, mainHeight: 0 });
@@ -105,12 +118,16 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const overviewMinimum = view === "arrange" && model ? (size.width - sidebarWidth < 780 ? 312 : 245) : view === "mix" ? 255 : 165;
   const grip = coarse ? 24 : DIVIDER_HEIGHT;
   const narrow = size.width < 700 || window.innerHeight < 600 || size.height < MIN_DOCK + overviewMinimum + grip + 48;
-  const floatingRack = (keyboardOpen || view === "mix" && !!dock) && window.innerHeight <= 460;
+  const floatingRack = (keyboardOpen || !!controlsIds || view === "mix" && !!dock) && window.innerHeight <= 460;
   const rackOpen = floatingRack ? rackMenuView === view : layout.compactRackOpen ?? view === "mix";
   useEffect(() => { setRackMenuView(null); }, [view, floatingRack]);
   const inspector = narrow ? !!layout.drawerOpen : layout.inspectorOpen ?? view === "arrange";
-  const single = !!dock && (narrow || !!layout.dockExpanded);
-  const showOverview = single && view === "arrange" && !!clipKey && overviewClipKey === clipKey;
+  // A scrollable control card and one timeline lane can share a short window.
+  const compactControls = !!controlsIds && size.mainHeight < MIN_DOCK + overviewMinimum + grip;
+  const dockMinimum = compactControls ? 88 : MIN_DOCK;
+  const trackMinimum = compactControls ? 84 : overviewMinimum;
+  const single = !!dock && (controlsIds ? size.mainHeight < dockMinimum + trackMinimum + grip : narrow || !!layout.dockExpanded);
+  const showOverview = !controlsIds && single && view === "arrange" && !!clipKey && overviewClipKey === clipKey;
   const compactArrangeEditor = view === "arrange" && single && !showOverview && window.innerHeight <= 460;
   const compactLauncher = view === "live" && keyboardOpen && narrow;
   const showLauncherInEditor = compactLauncher && single && size.mainHeight >= MIN_DOCK + 128;
@@ -119,7 +136,18 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     const overview = main.current?.querySelector(".ws-overview");
     if (single && !showOverview && (document.activeElement === document.body || overview?.contains(document.activeElement))) back.current?.focus({ preventScroll: true });
   }, [single, showOverview, compactArrangeEditor, view]);
-  const max = maxDockHeight(size.mainHeight, overviewMinimum, grip), height = clampDock(layout.preferredDockHeight ?? 260, max);
+  const max = maxDockHeight(size.mainHeight, trackMinimum, grip, dockMinimum);
+  const height = clampDock(layout.preferredDockHeight ?? 260, max, dockMinimum);
+  useLayoutEffect(() => {
+    if (!compactControls || single) return;
+    const overview = main.current?.querySelector<HTMLElement>(".ws-overview");
+    const id = controlsLaneId ?? selected?.laneId;
+    const button = overview?.querySelector<HTMLElement>(id ? `[data-lane-controllers="${CSS.escape(id)}"]` : "[data-lane-controllers]");
+    if (!overview || !button) return;
+    const previous = overview.scrollTop;
+    button.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return () => { overview.scrollTop = previous; };
+  }, [compactControls, single, controlsLaneId, selected?.laneId]);
   const [launcherHost, setLauncherHost] = useState<HTMLDivElement | null>(null);
   const [mixControls, setMixControls] = useState<HTMLDivElement | null>(null);
   const [editorHost, setEditorHost] = useState<HTMLDivElement | null>(null);
@@ -131,6 +159,12 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const projectMenu = useRef<HTMLDetailsElement>(null);
   const errorDetails = useRef<HTMLDetailsElement>(null);
   const change = (patch: PerformViewLayout) => setLayout(previous => ({ ...previous, ...patch }));
+  const openInstrumentControls = (bindingIds: string[]) => {
+    setRackMenuView(null);
+    if (view === "arrange") { setControlsTarget("rack"); change({ drawerOpen: false }); }
+    else if (view === "mix") change({ dock: "instrument", drawerOpen: false });
+    else navigate?.("mix", { surface: "mixer", bindingIds, dock: "instrument" });
+  };
   const closeInspector = () => { change(narrow ? { drawerOpen: false } : { inspectorOpen: false }); trigger.current?.focus(); };
   useLayoutEffect(() => {
     if (focusDrawer.current && narrow && inspector) drawerClose.current?.focus();
@@ -153,26 +187,44 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     return () => { document.removeEventListener("keydown", key); document.removeEventListener("pointerdown", outside); };
   }, [narrow, inspector, setLayout, floatingRack, rackOpen]);
   const closeDock = () => {
+    if (controlsIds) { setControlsTarget(null); return; }
     if (clipKey && view === "arrange") { remember(clipKey); useAppStore.setState({ clipEditingKey: null }); }
     change({ dock: null, dockExpanded: false });
   };
   const returnToOverview = () => {
-    if (single && keyboardOpen && clipKey && view === "arrange") setOverviewClipKey(clipKey);
+    if (controlsIds) { setControlsTarget(null); setOverviewClipKey(null); }
+    else if (single && keyboardOpen && clipKey && view === "arrange") setOverviewClipKey(clipKey);
     else closeDock();
     requestAnimationFrame(() => {
       const frame = work.current?.closest(".ws-shell");
-      const source = view === "live" ? frame?.querySelector<HTMLButtonElement>("[data-selected] [data-pad-editor-toggle]") :
-        view === "mix" ? frame?.querySelector<HTMLButtonElement>(`.ws-mix-tools [data-mix-detail="${dock}"]`) : commandHost?.querySelector("button");
+      let source = commandHost?.querySelector("button");
+      if (controlsIds && !editorDock) source = controlsLaneId
+        ? frame?.querySelector<HTMLButtonElement>(`[data-lane-controllers="${CSS.escape(controlsLaneId)}"]`) : rackTrigger.current;
+      if (view === "live") source = frame?.querySelector<HTMLButtonElement>("[data-selected] [data-pad-editor-toggle]");
+      if (view === "mix") source = frame?.querySelector<HTMLButtonElement>(`.ws-mix-tools [data-mix-detail="${dock}"]`);
       (source ?? trigger.current)?.focus({ preventScroll: true });
     });
   };
+  const backLabel = controlsIds && editorDock ? copy("backToEditor") : single ? c.back : c.close;
   const context = { slots: { mixControls, launcher: launcherHost, editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
     trackRouting: (id: string, kind: keyof typeof sourceKeys) => <ArrangeTrackRouting key={id} id={id} kind={kind} language={language} />,
+    laneControllers: (id: string) => {
+      const route = routes.get(id);
+      if (!route) return null;
+      const pressed = !!controlsIds && controlsLaneId === id;
+      return <button type="button" data-lane-controllers={id} aria-pressed={pressed} aria-controls={dockId}
+        className="ws-lane-controllers" disabled={!route.enabled}
+        title={route.enabled ? copy("openControls") : route.ids.length ? copy("noControls") : copy("noDestination")}
+        onClick={() => { setControlsTarget(pressed ? null : { laneId: id }); setOverviewClipKey(null); change({ drawerOpen: false }); }}>
+        {copy("controllers")}
+      </button>;
+    },
     getRememberedTarget: () => {
       const target = remembered && survivingClipKey(remembered) ? useAppStore.getState().clipDrafts[remembered]?.target : undefined;
       return target?.laneId === selected?.laneId && target?.clipId === selected?.clipId ? target : undefined;
     },
-    singlePane: single, editorHidden: showOverview, revealEditor: () => setOverviewClipKey(null), closeDock };
+    singlePane: single, editorHidden: showOverview || !!controlsIds,
+    revealEditor: () => { setControlsTarget(null); setOverviewClipKey(null); }, closeDock };
   return <WorkspacePanels.Provider value={context}><section className="ws-shell" data-keys-open={keyboardOpen || undefined}>
     <header className="ws-head"><div className="ws-commandbar">
       <details className="ws-project" ref={projectMenu}><summary>{c.project}</summary>
@@ -195,26 +247,29 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
       }}>{c.inspector}</button>{engine}
       {onHelp && <button title={c.help} aria-label={c.help} onClick={onHelp}>?</button>}
     </div>
-      {rackOpen && <div ref={rackMenu} className={floatingRack ? "ws-rack-menu" : undefined}><CompactRack language={language} onNavigate={view === "mix" ? undefined : navigate} /></div>}
+      {rackOpen && <div ref={rackMenu} className={floatingRack ? "ws-rack-menu" : undefined}><CompactRack language={language} onOpenControls={openInstrumentControls} onNavigate={view === "mix" ? undefined : navigate} /></div>}
     </header>
     <div className="ws-work" ref={work} style={{ "--transport-height": size.height - size.mainHeight + "px" } as CSSProperties} data-sidebar={!narrow && inspector || undefined}>
       <div className="ws-column">
         <div className="ws-transport-row"><div className="ws-transport" role="group" aria-label={c.transport}>{transport}<SongPositionControls language={language} onSeek={onSeek} onTempo={onTempo} /></div>
-          {compactArrangeEditor && <button className="ws-back" ref={back} onClick={returnToOverview}>{c.back}</button>}
+          {compactArrangeEditor && <button className="ws-back" ref={back} onClick={returnToOverview}>{backLabel}</button>}
         </div>
-        <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined}>
+        <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined} data-compact-controllers={compactControls && !single || undefined}>
           <RetainedScroll key={view} owner="page" field="overviewScroll" className="ws-overview" data-compact-launch={compactLauncher || undefined} hidden={single && !showOverview} role="region" aria-label={c.overview}>
             {compactLauncher && !single && <div className="ws-compact-launch" ref={setLauncherHost} />}{children}
           </RetainedScroll>
-          {dock && !single && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
+          {dock && !single && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} min={dockMinimum} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
           {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} data-inline-back={compactArrangeEditor || undefined} aria-label={dockLabel}>
             {!compactArrangeEditor && <header><h2>{dockLabel}</h2>
-              {!narrow && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
-              <button ref={back} onClick={returnToOverview}>{single ? c.back : c.close}</button></header>}
+              {!narrow && !controlsIds && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
+              <button ref={back} onClick={returnToOverview}>{backLabel}</button></header>}
             {showLauncherInEditor && <div className="ws-compact-launch" ref={setLauncherHost} />}
             {view === "mix" && <div className="ws-dock-mix-controls" ref={setMixControls} />}
-            {view === "arrange" && model && dock === "editor" ? <div className="ws-clip-editor-host" ref={setEditorHost} /> : <RetainedScroll key={view + dock + detailOwner} className="ws-dock-scroll" owner={detailOwner} field={dock + "Scroll"}>
+            {view === "arrange" && model && editorDock === "editor" ? <div className="ws-clip-editor-host" hidden={!!controlsIds} ref={setEditorHost} /> : editorDock && <RetainedScroll key={view + editorDock + detailOwner} hidden={!!controlsIds} className="ws-dock-scroll" owner={detailOwner} field={editorDock + "Scroll"}>
               <div ref={setEditorHost} />
+            </RetainedScroll>}
+            {controlsIds && <RetainedScroll key={controlsLaneId ?? "rackControls"} owner={controlsLaneId ? `device:${controlsLaneId}` : "rack"} field="instrumentControlsScroll" className="ws-dock-scroll">
+              <InstrumentControls ids={controlsIds} language={language} />
             </RetainedScroll>}
           </section>}
         </div>

@@ -31,9 +31,13 @@ map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
 ## Compact Rack
 
-Choose **Compact rack** above the song transport. Select an instance by its patch number and MIDI channel. Continuous instruments show their type in place of a MIDI channel. Choose **Instrument controls**, **Samples**, **Routing** or **Manage rack** to open that destination in Mix.
+Open **Compact rack** above the transport in Arrange, Live or Mix. Click one instrument. Hold **Shift** and click others to add or remove them. With the keyboard, focus an entry and press **Shift+Enter** or **Shift+Space**. The patch number and MIDI channel distinguish instances of the same instrument.
 
-Switch back to Arrange or Live to resume your previous edit.
+Choose **Instrument controls** beside the rack entries to open the selection and its insert effects. Arrange shows the controls below the timeline. Live opens them in Mix. To adjust one lane’s sound, click **Controllers** beside its **Mute** and **Solo**. Choose **Back to editor** to return to your open clip or pad.
+
+![Arrange showing Controllers beside Mute and Solo, the selected clip on the timeline, and its instrument and Stereo Chorus insert in the lower panel](../../screenshots/perform-arrange-instrument-controls.png)
+
+**Samples** and **Routing** use the most recently selected instrument. **Manage rack** opens the full rack in Mix.
 
 ## Performance Metadata and Library Actions
 

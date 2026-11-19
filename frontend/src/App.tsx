@@ -1729,10 +1729,10 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
 
   const bounded = performWorkspace && activePage === "sequencer";
   return (
-    <div data-perform-workspace={bounded || undefined} className={`min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#1e293b,_#020617_60%)] px-4 py-4 text-slate-100 sm:px-6 lg:px-8 ${activePage === "sequencer" ? "pb-12" : ""}`}>
+    <div data-perform-workspace={bounded || undefined} className="app-shell text-slate-100">
       <DraftResolutionDialog language={guiLanguage} />
       {activePage === "sequencer" && !bounded && <EngineStatusLine diagnostics={sequencerPageData.browserAudioDiagnostics} />}
-      <div data-app-frame className={`mx-auto space-y-3 ${activePage === "sequencer" ? "w-full" : "max-w-[1700px]"}`}>
+      <div data-app-frame>
         <header className="app-header">
           <div className="app-brand">
             <img src={orchestronIcon} alt={appCopy.appIconAlt} />
@@ -1756,7 +1756,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
             </button>)}
           </nav>
         </header>
-
+        <div key={activePage} className={bounded ? "app-perform-content" : "app-page-scroll space-y-2"} data-app-content={activePage}>
         {error && !bounded && (
           <div className="rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 font-mono text-xs text-rose-200">
             {error}
@@ -1843,7 +1843,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
               </div>
 
               <section className="relative flex h-full min-h-[440px] flex-col gap-2">
-                <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+                <div className="studio-panel">
                   <AuditionPanel key={`${activeInstrumentTabId}:${currentPatch.id}`} stopPerformance={() => stopPerformance(false)}>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
@@ -1966,6 +1966,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
             />
           </Suspense>
         )}
+        </div>
       </div>
 
       {newFromTemplateDialogOpen && (

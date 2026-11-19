@@ -5,7 +5,7 @@ export const workspaceProfile = new URLSearchParams(location.search).has("worksp
 
 export function ProfileLayout({ controls, footer, children }) {
   if (!workspaceProfile) return <main className="p-4">{controls}{children}{footer}</main>;
-  return <div data-perform-workspace><div data-app-frame>
+  return <div className="app-shell" data-perform-workspace><div data-app-frame>
     <header>{controls}{footer}</header>
     {children}
   </div></div>;

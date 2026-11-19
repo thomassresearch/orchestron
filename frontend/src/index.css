@@ -100,6 +100,24 @@
   outline-offset: -2px;
 }
 
+.app-shell {
+  --workspace-font-size: .8rem;
+  --workspace-panel-border: 1px solid #334155;
+  height: 100dvh; overflow: hidden; padding: 6px 10px; background: #0a101c;
+}
+.app-shell > [data-app-frame] { height: 100%; display: grid; grid-template: auto minmax(0,1fr) / minmax(0,1fr); gap: 4px; }
+.app-page-scroll { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.app-perform-content { display: grid; min-height: 0; min-width: 0; }
+.app-page-scroll:is([data-app-content=instrument], [data-app-content=config]) { font-size: var(--workspace-font-size); }
+.studio-panel { border: var(--workspace-panel-border); border-radius: 6px; background: #0c1727; padding: 8px; }
+.app-page-scroll :is(.studio-panel h2, .studio-panel h3) {
+  font: inherit; font-size: .875rem; font-weight: 600; color: #cffafe; letter-spacing: normal; text-transform: none;
+}
+.studio-panel :is(label, button, input, select, textarea, dd, span).font-mono,
+.studio-panel :is(.font-body, .uppercase) { font-family: inherit; }
+.studio-panel .uppercase { letter-spacing: normal; text-transform: none; }
+.studio-panel .text-sm { font-size: var(--workspace-font-size); line-height: 1.4; }
+.studio-panel :is(input, select, textarea, button).rounded-lg { border-radius: 4px; padding-block: 3px; }
 .app-header {
   display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; min-width: 0; padding: 3px 8px;
   border: 1px solid #334155; border-radius: 6px; background: #101a2a;
@@ -126,6 +144,15 @@
   .app-header nav { flex-wrap: wrap; }
   .app-header button { padding: 4px 6px; font-size: .68rem; }
   .app-brand img { width: 28px; height: 28px; }
+}
+@media (max-width: 700px), (max-height: 600px) {
+  .app-shell { padding: 3px; }
+  .app-shell > [data-app-frame] { gap: 2px; }
+}
+@media (max-height: 460px) {
+  .app-header { padding-block: 1px; }
+  .app-brand img { height: 27px; }
+  .app-brand p { display: none; }
 }
 .engine-status { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px; font-size: .72rem; }
 .engine-status-embedded { flex: 1 1 auto; min-width: 0; }

@@ -171,7 +171,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
   const typeCopy = instrumentTypeCopy(props.guiLanguage);
 
   return (
-    <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-3 shadow-glow">
+    <section className="studio-panel">
       <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1">
         {props.tabs.map((tab) => {
           const isActive = tab.id === props.activeTabId;

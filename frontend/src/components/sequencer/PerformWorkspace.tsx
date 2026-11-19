@@ -121,14 +121,14 @@ function navigate(store: PerformanceEditorStore, next: PerformView) {
 }
 
 export type MixSurface = "mixer" | "rack" | "routing";
-export type MixDestination = { surface: MixSurface; bindingId?: string; dock?: "instrument" | "samples" };
+export type MixDestination = { surface: MixSurface; bindingIds?: string[]; dock?: "instrument" | "samples" };
 export type ViewNavigation = (view: PerformView, target?: { id: string; pad: number } | MixDestination | LegacyPhraseDestination) => void;
 
 // Touch browsers can omit click for a second finger while a piano key owns the first.
 function useKeyboardCompanionTap(keyboardOpen: boolean) {
   const tap = useRef<{ id: number; button: HTMLButtonElement; x: number; y: number } | null>(null);
   const handled = useRef<HTMLButtonElement | null>(null);
-  const commands = "[data-perform-view], [data-rack-choice], [data-mix-detail], [data-mix-toggle], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button";
+  const commands = "[data-perform-view], [data-rack-choice], [data-lane-controllers], [data-mix-detail], [data-mix-toggle], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button";
   return {
     onPointerDownCapture(event: PointerEvent<HTMLElement>) {
       handled.current = null;
@@ -197,6 +197,7 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
       const layout = editorKey("page", "layout", next), panels = editorKey("page", "collapsedPanels", next);
       const owner = `device:${target.laneId}` as const;
       store.setState(s => ({ legacyReveal: target, entries: { ...s.entries,
+        [editorKey("arranger", "controlsTarget", next)]: { owner: "arranger", value: null },
         [layout]: { owner: "page", value: { ...(s.entries[layout]?.value as PerformViewLayout), dock: null, dockExpanded: false, drawerOpen: false } },
         [panels]: { owner: "page", value: { ...(s.entries[panels]?.value as Partial<PanelCollapseState>), arranger: false } },
         [editorKey("arranger", "selectedLane", next)]: { owner: "arranger", value: target.laneId },
@@ -219,7 +220,7 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
       const layoutKey = editorKey("page", "layout", "mix");
       store.setState(s => ({ entries: { ...s.entries,
         [editorKey("mixer", "surface", "mix")]: { owner: "mixer", value: target.surface },
-        ...(target.bindingId ? { [editorKey("mixer", "selection", "mix")]: { owner: "mixer", value: [target.bindingId] } } : {}),
+        ...(target.bindingIds ? { [editorKey("mixer", "selection", "mix")]: { owner: "mixer", value: target.bindingIds } } : {}),
         [layoutKey]: { owner: "page", value: { ...(s.entries[layoutKey]?.value as PerformViewLayout | undefined),
           dock: target.dock ?? null, dockExpanded: false, drawerOpen: false } }
       } }));

@@ -36,7 +36,7 @@ To hear an insert change on a sustained sound, open **Keyboard** and hold a note
 
 ![A held keyboard chord while adjusting the routed instrument’s filter cutoff in Mix](../../screenshots/perform-mix-held-chord.png)
 
-Use **Compact rack** in Arrange or Live to select an instance and open its controls, samples or routing. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments. Return to Arrange or Live with its view button to resume your edit.
+Use **Compact rack → Instrument controls** in any Perform view to open the whole selection. The controls appear below the Arrange timeline when opened there, or in Mix when opened from Live. **Samples** and **Routing** follow the most recently selected instrument. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments.
 
 Open **Routing** while listening to inspect destinations, exact channel mappings, the routing diagram and diagnostics. Gain, balance, Mute/Solo, existing send controls and eligible insert Bypass work during playback. Choose **Stop to edit routing** or **Stop to edit rack** when you need to change connections or the rack itself.
 

@@ -172,7 +172,7 @@ export function ArrangerLane({ lane, props, selected, select, commit, zoom, widt
   return <section aria-label={lane.title} className={`rounded border px-2 py-1 ${selected ? "border-cyan-700" : "border-slate-700"}`}>
     <div className="grid grid-cols-[204px_minmax(0,1fr)] gap-2">
       <div className="min-w-0">
-        <div className="flex h-6 items-center gap-1">
+        <div className="arranger-lane-heading flex h-6 items-center gap-1">
           <button ref={laneButton} onBlur={() => setMissingPhrase(false)} className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-100" title={lane.title} aria-expanded={expanded}
             onClick={() => { if (props.sharedTransport) select(); setExpanded(!expanded); cancelDrag(); closeMenu(); }}><span aria-hidden>{expanded ? "▾" : "▸"}</span> {lane.title}</button>
           <LaneOutputButtons id={lane.id} language={props.guiLanguage} />

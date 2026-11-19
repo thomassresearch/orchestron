@@ -98,6 +98,8 @@ For the native [Mix checks](../../../specifications/redesign-user-experience/mil
 
 Run `verify-workspace-control-rack.js` with UX Baseline Clip on the disposable backend to check the live playback buffer, Shift selection, per-instance insert controls, full rack and shared page header. It loads the versioned patch fixtures and captures the corresponding manual screenshots.
 
+Run `verify-lane-instrument-controls.js` with UX Baseline Clip and UX Baseline Legacy. It exercises the lane Controllers button, compact rack selection, insert edits, destination changes and restoring an open edit. The clip run also checks instrument-bound automation and captures the Arrange controls screenshot. Run `verify-workspace-chrome.js` with UX Baseline Clip to compare header and selector positions on all three pages at desktop, phone and short landscape sizes.
+
 The [Arrange acceptance checks](../../../specifications/redesign-user-experience/milestone-4-arrange.md#replay-the-browser-checks) exercise draft isolation during playback, inline automation, scoped saves, the first-note workflow and legacy conversion. Use the isolated database for these checks. The first-note exercise creates a playable patch there.
 
 The [Live acceptance checks](../../../specifications/redesign-user-experience/milestone-5-live.md#replay-the-browser-checks) exercise native pad boundaries, held MIDI notes, a multi-touch phone viewport, controller gestures and Save/Load for independent devices in a clip performance.

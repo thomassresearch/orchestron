@@ -1663,7 +1663,7 @@ export function ReteNodeEditor({
   return (
     <>
       <div
-        className={`relative grid h-full min-h-0 w-full min-w-0 grid-cols-[minmax(0,1fr)_14px] grid-rows-[minmax(0,1fr)_14px] overflow-hidden rounded-2xl border bg-slate-950/75 ${
+        className={`relative grid h-full min-h-0 w-full min-w-0 grid-cols-[minmax(0,1fr)_14px] grid-rows-[minmax(0,1fr)_14px] overflow-hidden rounded-md border bg-slate-950/75 ${
           isOpcodeDragOver ? "border-accent/80 ring-2 ring-accent/50" : "border-slate-700/70"
         }`}
         onDragOver={onOpcodeDragOver}
