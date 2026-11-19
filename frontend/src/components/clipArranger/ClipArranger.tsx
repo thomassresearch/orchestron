@@ -2,6 +2,7 @@ import { AddArrangeTrack } from "./AddArrangeTrack";
 import { WorkspacePanels, WorkspacePanel, shellCopy } from "../sequencer/WorkspacePanels";
 import { draftKey } from "../../lib/clipArranger/editorAdapter";
 import { arrangeCopy } from "./arrangeCopy";
+import { laneMidiLabel } from "../../lib/midiControllerChannels";
 import type { EditScope } from "../../lib/clipArranger/relationships";
 import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { clipButton, clipButtonClass, clipButtonTone } from "./buttonStyles";
@@ -296,7 +297,8 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
           return <div key={lane.id}><div className="relative flex border-b border-slate-800" data-clip-lane={lane.id} data-expanded={detailed} style={{ height: detailed ? expandedHeight : undefined, minHeight: shell && fitTracks && !detailed ? undefined : 48 }}>
             <div style={{ width: laneHeaderWidth }} className="sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r border-slate-700 bg-slate-950 px-2 py-1">
               <button className="truncate text-left text-xs font-semibold text-slate-200" aria-expanded={detailed} onClick={() => { structure.cancelDrag(); setExpanded(detailed ? null : lane.id); if (shell) { structure.clearSelection(); select({ laneId: lane.id }); } }}>{detailed ? "▾" : "▸"} {track?.name ?? lane.id}</button>
-              <div className="flex flex-wrap items-center gap-1 text-[10px] text-slate-500"><span>{c[lane.source === "sequencer" ? "melodic" : lane.source]}</span>{track && "automationSuspended" in track && track.automationSuspended && <span title={automationCopy(language).suspended} aria-label={automationCopy(language).suspended} className="text-amber-300">⚠</span>}{laneControls?.(lane.id)}<button className={`ml-auto rounded border px-2 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${clipButtonTone.add}`} aria-label={`${c.add}: ${track?.name}`} onClick={() => { createEmpty(lane,Math.max(0,...lane.clips.map(cl=>cl.start+cl.length))); }}>+</button></div>
+              <div className="text-[10px] text-slate-400">{c[lane.source === "sequencer" ? "melodic" : lane.source]}{track && <> · {laneMidiLabel(track)}</>} {track && "automationSuspended" in track && track.automationSuspended && <span title={automationCopy(language).suspended} aria-label={automationCopy(language).suspended} className="text-amber-300">⚠</span>}</div>
+              <div className="flex flex-wrap items-center gap-1 text-[10px] text-slate-500">{laneControls?.(lane.id)}<button className={`ml-auto rounded border px-2 text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${clipButtonTone.add}`} aria-label={`${c.add}: ${track?.name}`} onClick={() => { createEmpty(lane,Math.max(0,...lane.clips.map(cl=>cl.start+cl.length))); }}>+</button></div>
             </div>
             <div data-clip-timeline className="relative flex-1" style={{ backgroundSize: `${zoom * rulerStep}px 100%`, backgroundImage: "linear-gradient(to right, #1e293b 1px, transparent 1px)" }} onDoubleClick={e => {
               if (e.target === e.currentTarget) { createEmpty(lane,Math.max(0,Math.round((e.clientX-e.currentTarget.getBoundingClientRect().left)/zoom*4)*Q/4)); }

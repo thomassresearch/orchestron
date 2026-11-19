@@ -8,7 +8,7 @@ pitch and speed. Notes with no assignment are silent.
 
 ## Assign and hear a sample
 
-1. In **Perform**, choose **Add Instrument** in the Instrument Rack, then select **Sample Player** from the slot’s available patches.
+1. In **Perform → Mix → Rack**, choose **Add Instrument**, search for **Sample Player** and select its name to create the slot.
 2. Open **Samples**. Enter a MIDI note from **0 to 127** and choose **Assign file**.
 3. Select a row and choose **Preview** to hear it through the instance’s mixer routing.
 4. To change a note number, type in its number field and press Enter or leave the field.

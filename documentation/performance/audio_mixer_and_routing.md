@@ -36,7 +36,7 @@ To hear an insert change on a sustained sound, open **Keyboard** and hold a note
 
 ![A held keyboard chord while adjusting the routed instrument’s filter cutoff in Mix](../../screenshots/perform-mix-held-chord.png)
 
-Use **Compact rack → Instrument controls** in any Perform view to open the whole selection. The controls appear below the Arrange timeline when opened there, or in Mix when opened from Live. **Samples** and **Routing** follow the most recently selected instrument. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments.
+Use **Compact rack → Instrument controls** to open the whole selection below the Arrange timeline, or in Mix when opened from Live. In the full **Mix → Rack**, adjust controls directly on each instrument card. **Samples** and **Routing** follow the most recently selected instrument. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments.
 
 Open **Routing** while listening to inspect destinations, exact channel mappings, the routing diagram and diagnostics. Gain, balance, Mute/Solo, existing send controls and eligible insert Bypass work during playback. Choose **Stop to edit routing** or **Stop to edit rack** when you need to change connections or the rack itself.
 
@@ -116,6 +116,10 @@ Adding a send does not replace the main output route. Avoid adding duplicate con
 Meters show stereo peak and RMS. CLIP indicates a peak at or above 0 dBFS; no automatic limiting, normalization or clipping is applied. The final **Audio Output** meter includes Master and direct paths. Connectivity diagnostics describe structure; meters measure actual audio activity.
 
 ## Routing and repair
+
+In **Mix → Routing**, the **Source** and **Destination** pickers show each instrument’s assigned MIDI channel beside its name. Use the channel to tell two instances of the same patch apart. The short instance ID also distinguishes continuous processors, which run without a MIDI channel.
+
+![Routing with a MIDI instrument selected as the source and Master as the destination](../../screenshots/perform-routing-midi-channel.png)
 
 Choose a source, destination and explicit channel mapping before adding a main route, send or custom connection. Stereo groups expand into their exact member ports. Uncheck **Stereo** to select one exact source port and destination inlet at a time, including custom or mono mappings. Group display names are not inlet names; legacy label suggestions never rename ports.
 

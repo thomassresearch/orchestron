@@ -1,4 +1,5 @@
 import { sampleCopy } from "../lib/sampleCopy";
+import { audioCopy } from "../lib/audioCopy";
 import { validateArrangementEdit } from "../lib/arrangementEditing";
 import { reorderRackInstruments } from "../lib/rackOrdering";
 import { removeRackInstrument } from "../lib/insertRouting";
@@ -163,6 +164,10 @@ export function createSequencerTrackStoreActions(
         return;
       }
       const selectedPatch = availableInstrumentPatches.find((patch) => patch.id === patchId);
+      if (requestedPatchId !== undefined && !selectedPatch) {
+        set({ error: audioCopy(state.guiLanguage)("missing") });
+        return;
+      }
 
       if (selectedPatch?.has_sample_player && new Set(state.sequencerInstruments.map(b => b.midiChannel).filter(Boolean)).size >= 16) {
         set({ error: sampleCopy(state.guiLanguage).noChannel }); return;
@@ -188,6 +193,7 @@ export function createSequencerTrackStoreActions(
         try { get().ensureMaster(); }
         catch (e) { set({ error: e instanceof Error ? e.message : "Master routing failed" }); }
       }
+      return binding.id;
     },
 
     duplicateSamplePlayer: (bindingId) => {

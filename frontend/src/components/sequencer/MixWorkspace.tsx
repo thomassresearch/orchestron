@@ -1,10 +1,11 @@
 import { useRackSelection } from "./useRackSelection";
 import { InstrumentControls } from "./InstrumentControls";
+import { PatchPicker } from "../PatchPicker";
 import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { audioCopy } from "../../lib/audioCopy";
 import { MASTER, defaultStrip, stripDestinations } from "../../lib/audioRouting";
 import { useAppStore } from "../../store/useAppStore";
-import type { GuiLanguage } from "../../types";
+import type { GuiLanguage, PatchListItem } from "../../types";
 import { MixerBody, editMixerPatch } from "../PerformMixer";
 import { AudioOutputMeter, StripControls } from "../MixerStripControls";
 import { RetainedScroll, usePerformanceEditorState, type PerformViewLayout } from "./PerformanceEditorState";
@@ -14,15 +15,14 @@ import { WorkspacePanel, WorkspacePanels, shellCopy } from "./WorkspacePanels";
 import type { MixSurface } from "./PerformWorkspace";
 import { mixCopy } from "./mixCopy";
 
-export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
-  language: GuiLanguage; running: boolean; onStop: () => void; onAdd: () => void; rack: ReactNode;
+export function MixWorkspace({ language, running, onStop, onAdd, patches, rack }: {
+  language: GuiLanguage; running: boolean; onStop: () => void; onAdd: (patchId: string) => string | void; patches: PatchListItem[]; rack: ReactNode;
 }) {
   const audio = audioCopy(language), copy = mixCopy(language), ui = SEQUENCER_UI_COPY[language];
   const [surface, setSurface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
   const { ids, primary: selected, select } = useRackSelection();
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
   const bindings = useAppStore(s => s.sequencerInstruments);
-  const patches = useAppStore(s => s.patches);
   const graph = useAppStore(s => s.audioGraph);
   const strip = useAppStore(s => s.mixer.strips[selected]) ?? defaultStrip();
   const binding = bindings.find(b => b.id === selected);
@@ -78,7 +78,7 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
     }
   }, [canOpenControls, capable, dock, setLayout]);
   const details = canOpenControls && <>
-    <button type="button" data-mix-detail="instrument" aria-expanded={dock === "instrument"} onClick={() => open("instrument")}>{copy("instrument")}</button>
+    {surface !== "rack" && <button type="button" data-mix-detail="instrument" aria-expanded={dock === "instrument"} onClick={() => open("instrument")}>{copy("instrument")}</button>}
     {capable && <button type="button" data-mix-detail="samples" aria-expanded={dock === "samples"} onClick={() => open("samples")}>{copy("samples")}</button>}
   </>;
   const compareStrip = (id: string) => {
@@ -95,12 +95,17 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
         {(["mixer", "rack", "routing"] as const).map(item => <button key={item} type="button" aria-pressed={surface === item}
           onClick={() => { if (surface !== item) switchSurface(item); }}>{item === "mixer" ? audio("mixer") : copy(item)}</button>)}
       </nav>
-      {surface === "rack" ? <>
-        <button type="button" onClick={onAdd} disabled={running}>{ui.addInstrument}</button>
-        {running && <button type="button" onClick={onStop}>{copy("stopRack")}</button>}
-      </> : <button type="button" onClick={() => switchSurface("rack")}>{copy("manage")}</button>}
+      {surface !== "rack" && <button type="button" onClick={() => switchSurface("rack")}>{copy("manage")}</button>}
       {details}
       {bindings.length > 1 && surface !== "routing" && <small className="text-slate-400">{copy("multi")}</small>}
+      {surface === "rack" && <>
+        {running && <button type="button" onClick={onStop}>{copy("stopRack")}</button>}
+        <div className="ws-rack-add"><PatchPicker guiLanguage={language} label={ui.addInstrument} patches={patches}
+          disabled={running} onSelectPatch={patchId => {
+            const id = onAdd(patchId);
+            if (id) select(id);
+          }} /></div>
+      </>}
     </div>
     {surface === "mixer" ? <MixerBody onStop={onStop} surface="mixer" onShowRouting={() => switchSurface("routing")} /> :
       <RetainedScroll key={surface} owner="mixer" field={surface + "Scroll"} className="ws-mix-page">

@@ -91,6 +91,8 @@ async page => {
   const patchNumber = id => rack.locator(`[data-rack-binding-id="${id}"] button[aria-pressed]`).first();
   await patchNumber(bass).click();
   await patchNumber(lead).press("Shift+Enter");
+  check(!await page.locator('[data-mix-detail="instrument"]').count(), "Full Rack offers duplicate instrument controls");
+  await button("Mixer", tools).click();
   await button("Instrument controls", tools).click();
   await verifyCards([bass, chorus, drive, lead]);
   for (const name of ["Instrument Design", "Config", "Perform"]) {

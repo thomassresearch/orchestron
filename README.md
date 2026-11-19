@@ -25,7 +25,7 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ![FM6 voice editor](screenshots/fm6_voice_editor.png)
 
-Choose **Add Instrument** in Perform, then select **Sample Player** from the available patches
+In **Perform → Mix → Rack**, choose **Add Instrument**, then browse by instrument type or search for **Sample Player**
 to assign WAV, MP3 or M4A files to MIDI notes. Each rack
 instance has its own map, and repeated hits can overlap at the original pitch and speed.
 Save the performance to keep the assignments. Native bundles and both Csound render modes
@@ -33,7 +33,7 @@ include the audio they need. See the [Sample Player guide](documentation/perform
 
 ![Sample Player added through the normal instrument rack](screenshots/performance_sample_player_rack.png)
 
-In **Arrange**, click **Controllers** beside a lane’s Mute and Solo buttons to adjust its instrument and insert effects below the timeline. **Back to editor** returns to your open clip or pad. To adjust several instruments together, open **Compact rack**, Shift-click the instruments and choose **Instrument controls**. **Mix → Rack** shows the full instrument cards.
+Each **Arrange** lane shows its MIDI channel beside the sequencer type. Click **Controllers** beside Mute and Solo to adjust the instrument and its inserts below the timeline. **Back to editor** returns to your open clip or pad. To adjust several instruments together, Shift-click them in **Compact rack** and choose **Instrument controls**. **Mix → Rack** shows the controls directly on each card. In **Mix → Routing**, the channel beside an instrument’s name distinguishes copies of the same patch.
 
 The Perform status bar shows engine CPU usage and how much audio is ready to play. Its segmented buffer meter turns red as the queue runs low and green as it fills. Open a red status message to read the full error while the editor and keyboard keep their space. **Parallel playback** starts enabled. The engine uses multiple Csound processes when the instruments and available resources allow it, with single rendering as the fallback. Clear the checkbox while stopped to request single rendering. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
 Set the parallel batch size in **Config → Parallel Playback**: **32–1024 samples**, default **256**.

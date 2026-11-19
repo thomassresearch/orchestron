@@ -22,8 +22,7 @@ See [Performance Controllers](performance_controllers.md) for grouping rules.
 
 ## Add a Sample Player
 
-Choose **Add Instrument**, then select **Sample Player** from the slot’s available patches,
-just as you would select any other saved instrument.
+Choose **Add Instrument**, search for **Sample Player** and select it to create a rack slot.
 Open **Samples** on the card to assign WAV, MP3 or M4A files to MIDI notes. Each instance has its own
 map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
@@ -86,12 +85,13 @@ While instruments run, adding/removing assignments, changing patch/channel assig
 
 ### Add Instrument
 
-- Use `Add Instrument` to create another rack slot.
-- Open the slot's patch picker to browse instruments in collapsed type groups: Percussion, Melody, Bass, Effects / Noise, and Continuous (always-on). Expand a group to see its instruments alphabetically.
-- Search names and descriptions across all types by entering at least four characters; results appear after a 500 ms typing pause. Clear the search to return to browsing. Template patches are excluded from the rack picker.
+- Choose **Add Instrument**, expand a category such as **Melody** or **Bass**, then pick an instrument by name. The rack creates and selects its card when you choose the name. Press Escape to cancel.
+- Names are alphabetical within each category. To search across categories, enter at least four characters of a name or description. Open the patch name on an existing card to replace its instrument using the same picker.
 - This enables multi-instrument performances driven by different MIDI channels.
 - Continuous effects run as explicit rack instances. Adding an insert creates a dedicated instance automatically; simply saving an effect in the library does not start it.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
+
+![Add Instrument with the Melody category expanded above the full rack](../../screenshots/perform-rack-add-instrument.png)
 
 ## Rack Transport (Instrument Engine Control)
 

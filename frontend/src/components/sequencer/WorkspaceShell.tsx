@@ -21,7 +21,7 @@ import { clampDock, DockDivider, maxDockHeight, MIN_DOCK, DIVIDER_HEIGHT } from 
 import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorState, usePerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
 import { shellCopy, WorkspacePanels } from "./WorkspacePanels";
 import { CompactRack } from "./CompactRack";
-import { survivingClipKey, type ViewNavigation } from "./PerformWorkspace";
+import { survivingClipKey, type MixSurface, type ViewNavigation } from "./PerformWorkspace";
 import type { SequencerPageTransportActions } from "./sequencerPageContracts";
 import "./workspace.css";
 
@@ -68,6 +68,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const [rackMenuView, setRackMenuView] = useState<PerformView | null>(null);
   const rackTrigger = useRef<HTMLButtonElement>(null), rackMenu = useRef<HTMLDivElement>(null);
   const { primary: mixSelection, ids } = useRackSelection();
+  const [mixSurface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
   const [remembered, remember] = usePerformanceEditorState<string | null>("page", "closedEditor", null);
   const clipKey = useAppStore(s => s.clipEditingKey);
   const model = useAppStore(s => s.sequencer.clipArrangement);
@@ -247,7 +248,8 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
       }}>{c.inspector}</button>{engine}
       {onHelp && <button title={c.help} aria-label={c.help} onClick={onHelp}>?</button>}
     </div>
-      {rackOpen && <div ref={rackMenu} className={floatingRack ? "ws-rack-menu" : undefined}><CompactRack language={language} onOpenControls={openInstrumentControls} onNavigate={view === "mix" ? undefined : navigate} /></div>}
+      {rackOpen && <div ref={rackMenu} className={floatingRack ? "ws-rack-menu" : undefined}><CompactRack language={language}
+        onOpenControls={view === "mix" && mixSurface === "rack" ? undefined : openInstrumentControls} onNavigate={view === "mix" ? undefined : navigate} /></div>}
     </header>
     <div className="ws-work" ref={work} style={{ "--transport-height": size.height - size.mainHeight + "px" } as CSSProperties} data-sidebar={!narrow && inspector || undefined}>
       <div className="ws-column">

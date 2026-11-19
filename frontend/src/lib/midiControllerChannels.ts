@@ -9,3 +9,12 @@ export function normalizeControllerTargetChannels(value: unknown): number[] {
     : [];
   return channels.length > 0 ? channels : [...MIDI_CHANNELS];
 }
+
+export function laneMidiLabel(track: { midiChannel: number } | { targetChannels: number[] } | { inputChannel: number; targetChannel: number }) {
+  if ("targetChannel" in track) return `MIDI ${track.inputChannel} → ${track.targetChannel}`;
+  if ("targetChannels" in track) {
+    const channels = normalizeControllerTargetChannels(track.targetChannels);
+    return `MIDI ${channels.length === MIDI_CHANNELS.length ? "1–16" : channels.join(", ")}`;
+  }
+  return `MIDI ${track.midiChannel}`;
+}

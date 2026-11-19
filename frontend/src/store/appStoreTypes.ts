@@ -157,7 +157,7 @@ export interface AppStore {
   applySampleMap: (binding: import("../types").SequencerInstrumentBinding, generation: number,
     map: import("../types").SampleMap | undefined, assets: import("../types").SampleAssets) => void;
   duplicateSamplePlayer: (bindingId: string) => void;
-  addSequencerInstrument: (patchId?: string) => void;
+  addSequencerInstrument: (patchId?: string) => string | undefined;
   removeSequencerInstrument: (bindingId: string) => void;
   moveSequencerInstrument: (sourceId: string, targetId: string, position?: "before" | "after") => void;
   updateSequencerInstrumentPatch: (bindingId: string, patchId: string) => void;

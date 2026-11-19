@@ -128,7 +128,7 @@ function feedbackGraph() {
 it("opens the filtered routing diagram from a feedback warning on the preview mixer", () => {
   useAppStore.setState({ audioGraph: feedbackGraph() });
   render(<PerformanceEditorProvider><PerformViewContext.Provider value="mix">
-    <MixWorkspace language="english" running={false} onStop={vi.fn()} onAdd={vi.fn()} rack={null} />
+    <MixWorkspace language="english" running={false} onStop={vi.fn()} onAdd={vi.fn()} patches={[source, effect]} rack={null} />
   </PerformViewContext.Provider></PerformanceEditorProvider>);
   fireEvent.click(screen.getByRole("button", { name: "Show offending connections" }));
   const filter = screen.getByRole("checkbox", { name: "Only feedback connections" }) as HTMLInputElement;
@@ -136,6 +136,30 @@ it("opens the filtered routing diagram from a feedback warning on the preview mi
   expect(filter.closest("details")?.open).toBe(true);
   expect(filter.closest("details")?.querySelectorAll("[data-feedback-routes]")).toHaveLength(2);
   expect(screen.queryByRole("region", { name: "Master" })).toBeNull();
+});
+
+it("adds the chosen patch after browsing Rack and shows its channel only when it receives MIDI", () => {
+  render(<PerformanceEditorProvider><PerformViewContext.Provider value="mix">
+    <MixWorkspace language="english" running={false} onStop={vi.fn()} onAdd={useAppStore.getState().addSequencerInstrument}
+      patches={[source, effect]} rack={null} />
+  </PerformViewContext.Provider></PerformanceEditorProvider>);
+  const nav = within(screen.getByRole("navigation", { name: "Mixer" }));
+  fireEvent.click(nav.getByRole("button", { name: "Rack" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Instrument" }));
+  const menu = within(screen.getByRole("dialog", { name: "Add Instrument" }));
+  fireEvent.click(menu.getByRole("button", { name: /Continuous/ }));
+  expect(useAppStore.getState().sequencerInstruments).toEqual(bindings);
+  fireEvent.click(menu.getByRole("button", { name: effect.name }));
+  const rack = useAppStore.getState().sequencerInstruments;
+  expect(rack).toHaveLength(bindings.length + 1);
+  const added = rack[bindings.length];
+  expect(added).toMatchObject({ patchId: effect.id, midiChannel: 0 });
+  expect(screen.queryByRole("button", { name: "Instrument controls" })).toBeNull();
+  fireEvent.click(nav.getByRole("button", { name: "Routing" }));
+  const sources = screen.getByRole("combobox", { name: "Source" }) as HTMLSelectElement;
+  expect(sources.value).toBe(added.id);
+  expect(sources.selectedOptions[0].text).not.toContain("MIDI");
+  expect(sources.querySelector('option[value="source"]')?.textContent).toContain("MIDI Ch. 1");
 });
 
 it.each([

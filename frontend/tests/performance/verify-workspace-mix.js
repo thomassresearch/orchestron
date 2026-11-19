@@ -98,6 +98,7 @@ async page => {
     await page.locator(".ws-routing-body summary").filter({hasText: /matrix/i}).click();
     check(await page.evaluate(id => window.__workspaceTest.store.getState().activeSessionId === id, session), "routing changed engine session");
     await button("Rack", nav).click();
+    check(await button("Add Instrument", page.locator(".ws-mix-tools")).isDisabled(), "Rack unlocked during playback");
     await button("Stop to edit rack").click();
     await page.waitForFunction(() => window.__workspaceTest.store.getState().activeSessionState !== "running");
     return { both, direct, silent, horizontalScroll: offset, visibleSubscribers, awaySubscribers: 0 };

@@ -976,7 +976,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           <RackBody context={context} showProject={!view} />
         </CollapsiblePanel>}
 
-        {view === "mix" && <MixWorkspace language={guiLanguage} running={instrumentsRunning} onStop={onStopInstruments} onAdd={onAddInstrument}
+        {view === "mix" && <MixWorkspace language={guiLanguage} running={instrumentsRunning} onStop={onStopInstruments} onAdd={onAddInstrument} patches={patches}
           rack={<RackBody context={context} showProject={false} selectable />} />}
 
         {!view && <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />}

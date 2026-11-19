@@ -10,7 +10,7 @@ import { SEQUENCER_UI_COPY } from "./sequencerUiCopy";
 import { mixCopy } from "./mixCopy";
 
 export function CompactRack({ language, onNavigate, onOpenControls }: {
-  language: GuiLanguage; onNavigate?: ViewNavigation; onOpenControls: (ids: string[]) => void;
+  language: GuiLanguage; onNavigate?: ViewNavigation; onOpenControls?: (ids: string[]) => void;
 }) {
   const bindings = useAppStore(s => s.sequencerInstruments);
   const patches = useAppStore(s => s.patches);
@@ -34,10 +34,10 @@ export function CompactRack({ language, onNavigate, onOpenControls }: {
           </button>;
         })}
       </RetainedScroll>
-      <button type="button" className="ws-open-controls" data-mix-detail="instrument" title={copy("openControls")}
+      {onOpenControls && <button type="button" className="ws-open-controls" data-mix-detail="instrument" title={copy("openControls")}
         disabled={!binding && !masterWithInserts} onClick={() => onOpenControls(ids)}>
         {copy("instrument")}{ids.length > 1 && ` (${ids.length})`}
-      </button>
+      </button>}
     </div>
     {onNavigate && <div className="ws-rack-links">
       <button onClick={() => go("rack")}>{copy("manage")}</button>
