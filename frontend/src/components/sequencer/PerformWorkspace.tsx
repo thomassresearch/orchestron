@@ -128,7 +128,7 @@ export type ViewNavigation = (view: PerformView, target?: { id: string; pad: num
 function useKeyboardCompanionTap(keyboardOpen: boolean) {
   const tap = useRef<{ id: number; button: HTMLButtonElement; x: number; y: number } | null>(null);
   const handled = useRef<HTMLButtonElement | null>(null);
-  const commands = "[data-perform-view], [data-rack-choice], [data-mix-detail], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button";
+  const commands = "[data-perform-view], [data-rack-choice], [data-mix-detail], [data-mix-toggle], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button";
   return {
     onPointerDownCapture(event: PointerEvent<HTMLElement>) {
       handled.current = null;

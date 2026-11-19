@@ -240,7 +240,7 @@ only on first entry.
 | --- | --- |
 | Arrange | The selected track, clip occurrence and editor selection, including a step, drum row or automation point. Restore Fit tracks and the timeline, editor and Inspector scroll positions. |
 | Live | The selected device and its editing pad, the launcher or open dock, and the device-list and dock scroll positions. Playing and queued indicators reflect the current device state. |
-| Mix | The selected instruments and focused instance, the Mixer, Rack or Routing view, the open Instrument controls or Samples dock, the channel-bank offset on both axes and the Master strip's own scroll position. |
+| Mix | The selected instruments and focused instance, the Mixer, Rack or Routing view, the open Instrument controls or Samples dock, the horizontal channel-bank offset, and each strip’s secondary-settings scroll and chosen comparison insert, including Master. |
 
 **Compact rack** remembers its disclosure and horizontal offset in each view. In Arrange and Live, selecting an instance keeps the current musical editor active. A named rack command opens Mix at that instance and destination. In Mix, selecting a compatible instance retargets the open detail. Selecting Master or an instance without a Sample Player closes an incompatible detail and ends its preview. **Routing** occupies the overview so the channel matrix can use the available width.
 
@@ -310,6 +310,12 @@ Instrument Design, Perform and Config share a compact header with the Orchestron
 In Mix, a plain click selects one instance. Shift-click or Shift+Enter/Space on strip names, compact rack entries or full rack patch numbers adds or removes individual instances. The most recently selected instance is the target for the Inspector, Samples and Routing. Selecting Master clears the instrument selection. Open detail explicitly.
 
 Instrument controls displays each selected instrument and its dedicated inserts in signal order where the routing forms a chain, including nested or bypassed processors. Show each instance once, with its own values and mappings. Use the expanded rack’s adaptive packing rules for the available width. Mix → Rack shows the full assignment and control cards, including sample maps. Compact rack remains the quick instance picker.
+
+Keep the channel name, gain, Mute, Solo and named insert Bypass within reach when Samples or Instrument controls is open. Size the fader for the actual strip height. Pan, sends and routing scroll inside each strip. Master has gain, Mute and its own insert comparison. Its final stereo Audio Output meter is a separate readout that includes direct paths.
+
+When the bank is hidden, place the focused strip’s controls, Master and Audio Output above the editor’s own scroll region. On a small screen the Mixer channel selector switches this control row between the focused strip and Master. If only the focused strip scrolls out of the horizontal bank, repeat just that strip above the editor. Neither case changes the instrument selection, restarts a sample preview or releases a held note.
+
+Use the processor’s rack instance ID for the strip selector and its Bypass button on the instrument card. Rack patch numbers distinguish effects with the same name. Include nested and Master inserts, show the actual bypass state in both places, and disable Bypass when the processor cannot pass its main input through to its main output.
 
 Use a horizontal bank for instrument and return strips, a pinned Master strip on the right
 and a separate stereo Audio Output meter below both. Show the main destination on each strip.

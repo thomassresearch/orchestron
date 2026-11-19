@@ -136,6 +136,19 @@ async page => {
       await cutoff.waitFor();
       check(await piano.evaluate(el => window.liveKey === el && el.getAttribute("aria-pressed") === "true" &&
         !window.liveMidi.some(m => m.type === "note_off")), "Entering Mix released or remounted the held chord");
+      const owner = page.locator(':is([data-detail-strip="routed"], [data-mixer-strip="routed"]):visible').first();
+      for (const control of [button("Mute", owner), button("Solo", owner), owner.locator(".ws-bypass").first()]) {
+        for (const expected of ["true", "false"]) {
+          if (phone) {
+            const tap = await point(control, 1);
+            await touch("touchStart", [note, tap]);
+            await touch("touchEnd", [tap]);
+          } else await control.click();
+          check(await control.getAttribute("aria-pressed") === expected, "Held chord blocked or doubled a mixer toggle");
+          check(await piano.evaluate(el => el.getAttribute("aria-pressed") === "true" && !window.liveMidi.some(m => m.type === "note_off")),
+            "A mixer toggle released the chord");
+        }
+      }
       await cutoff.scrollIntoViewIfNeeded();
       const previous = await cutoff.getAttribute("aria-valuenow");
       const dial = await point(cutoff, 1);

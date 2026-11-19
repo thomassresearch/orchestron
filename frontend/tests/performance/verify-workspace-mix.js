@@ -58,11 +58,12 @@ async page => {
     await page.locator(".ws-inspector").getByRole("heading", { name: "UX Baseline Direct" }).waitFor();
     await page.screenshot({ path: "screenshots/perform-workspace-mix.png" });
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.waitForFunction(() => document.querySelector(".ws-strip-bank").scrollHeight > document.querySelector(".ws-strip-bank").clientHeight);
     const original = await fixed();
-    const offset = await bank.evaluate(el => {
-      el.scrollTo(el.scrollWidth, el.scrollHeight);
-      return { x: el.scrollLeft, y: el.scrollTop };
+    const offset = await bank.evaluate(bank => {
+      const settings = bank.lastElementChild.querySelector(".ws-strip-settings");
+      bank.scrollLeft = bank.scrollWidth;
+      settings.scrollTop = settings.scrollHeight;
+      return { x: bank.scrollLeft, y: settings.scrollTop };
     });
     check(offset.x > 100 && offset.y > 0, "the fixture did not overflow on both axes");
     await page.locator('[data-meter-id="routed"] [aria-label]').waitFor({ state: "detached" });
@@ -74,7 +75,7 @@ async page => {
     await button("Mix").click();
     await page.waitForFunction(({x,y}) => {
       const bank = document.querySelector(".ws-strip-bank");
-      return Math.abs(bank.scrollLeft - x) < 2 && Math.abs(bank.scrollTop - y) < 2;
+      return Math.abs(bank.scrollLeft - x) < 2 && Math.abs(bank.lastElementChild.querySelector(".ws-strip-settings").scrollTop - y) < 2;
     }, offset);
     await page.locator(".ws-inspector").getByRole("heading", { name: "UX Baseline Direct" }).waitFor();
     await button("Mute", strip("$master")).click();

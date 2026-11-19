@@ -1,17 +1,18 @@
 import { useRackSelection } from "./useRackSelection";
 import { AdaptiveInstrumentRack } from "./AdaptiveInstrumentRack";
 import { instrumentsWithInserts } from "../../lib/insertRouting";
-import { useLayoutEffect, useMemo, type ReactNode } from "react";
+import { useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { audioCopy } from "../../lib/audioCopy";
 import { MASTER, defaultStrip, stripDestinations } from "../../lib/audioRouting";
 import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage } from "../../types";
 import { MixerBody, editMixerPatch } from "../PerformMixer";
+import { AudioOutputMeter, InsertBypass, StripControls } from "../MixerStripControls";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./PerformanceControllerRack";
 import { RetainedScroll, usePerformanceEditorState, type PerformViewLayout } from "./PerformanceEditorState";
 import { SampleMapEditor } from "./SamplePlayerRack";
 import { SEQUENCER_UI_COPY } from "./sequencerUiCopy";
-import { WorkspacePanel, shellCopy } from "./WorkspacePanels";
+import { WorkspacePanel, WorkspacePanels, shellCopy } from "./WorkspacePanels";
 import type { MixSurface } from "./PerformWorkspace";
 import { mixCopy } from "./mixCopy";
 
@@ -35,6 +36,32 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
   const name = patch?.name ?? binding?.patchId ?? audio("missing");
   const instanceLabel = `${ui.patch(number)} · ${name} · ${channel}`;
   const dock = layout.dock;
+  const single = useContext(WorkspacePanels)?.singlePane;
+  const overview = useRef<HTMLDivElement>(null);
+  const [stripOffscreen, setStripOffscreen] = useState(false);
+  const [monitorMaster, setMonitorMaster] = useState(false);
+  const canOpenControls = !!binding || master && Object.values(graph.insertOwners).includes(MASTER);
+  // Dedicated processors share the outermost owner's mixer strip.
+  let stripId = selected;
+  const ancestors = new Set<string>();
+  while (graph.insertOwners[stripId] && !ancestors.has(stripId)) {
+    ancestors.add(stripId);
+    stripId = graph.insertOwners[stripId];
+  }
+  const bankHidden = !!single || surface !== "mixer";
+  useLayoutEffect(() => setMonitorMaster(false), [stripId, dock]);
+  useLayoutEffect(() => {
+    setStripOffscreen(false);
+    if (bankHidden || !dock || !stripId || stripId === MASTER) return;
+    const bank = overview.current?.querySelector(".ws-strip-bank");
+    const strip = bank?.querySelector(`[data-mixer-strip="${CSS.escape(stripId)}"]`);
+    if (!bank || !strip || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setStripOffscreen(entry.intersectionRect.width + 1 < entry.boundingClientRect.width);
+    }, { root: bank, threshold: [0, .99, 1] });
+    observer.observe(strip);
+    return () => observer.disconnect();
+  }, [bankHidden, dock, stripId]);
   const patchesById = useMemo(() => new Map(patches.map(p => [p.id, p])), [patches]);
   const controlRows = useMemo(() => {
     if (dock !== "instrument") return [];
@@ -54,15 +81,23 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
   };
   const open = (next: "instrument" | "samples") => setLayout(previous => ({ ...previous, dock: next, drawerOpen: false }));
   useLayoutEffect(() => {
-    if (dock && (!binding || (dock === "samples" && !capable))) {
+    if (dock && (!canOpenControls || (dock === "samples" && !capable))) {
       setLayout(previous => ({ ...previous, dock: null, dockExpanded: false }));
     }
-  }, [binding, capable, dock, setLayout]);
-  const details = binding && <>
+  }, [canOpenControls, capable, dock, setLayout]);
+  const details = canOpenControls && <>
     <button type="button" data-mix-detail="instrument" aria-expanded={dock === "instrument"} onClick={() => open("instrument")}>{copy("instrument")}</button>
     {capable && <button type="button" data-mix-detail="samples" aria-expanded={dock === "samples"} onClick={() => open("samples")}>{copy("samples")}</button>}
   </>;
-  return <div className="ws-mix">
+  const compareStrip = (id: string) => {
+    const row = bindings.find(b => b.id === id);
+    const label = row ? `${endpointName(id)} · ${ui.patch(bindings.indexOf(row) + 1)}` : audio("master");
+    return <div className="ws-detail-strip" role="group" aria-label={label} data-detail-strip={id}
+      data-monitor-current={id === (monitorMaster && bankHidden ? MASTER : stripId) || undefined}>
+      <strong title={label}>{label}</strong><StripControls id={id} preferredInsert={selected} language={language} />
+    </div>;
+  };
+  return <div className="ws-mix" ref={overview}>
     <div className="ws-mix-tools">
       <nav aria-label={audio("mixer")}>
         {(["mixer", "rack", "routing"] as const).map(item => <button key={item} type="button" aria-pressed={surface === item}
@@ -92,12 +127,23 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
           {binding && <button disabled={!patch} onClick={() => patch && void editMixerPatch(patch.id)}>{audio("edit")}</button>}</div>
       </> : <p>{shellCopy[language].select}</p>}
     </WorkspacePanel>
+    {dock && canOpenControls && (bankHidden || stripOffscreen) && <WorkspacePanel name="mixControls">
+      <div className="ws-detail-console">
+        {bankHidden && stripId !== MASTER && <select className="ws-monitor-channel" aria-label={copy("monitorChannel")}
+          value={monitorMaster ? MASTER : stripId} onChange={e => setMonitorMaster(e.target.value === MASTER)}>
+          <option value={stripId}>{endpointName(stripId)} · {ui.patch(bindings.findIndex(b => b.id === stripId) + 1)}</option>
+          <option value={MASTER}>{audio("master")}</option>
+        </select>}
+        {stripId !== MASTER && compareStrip(stripId)}
+        {bankHidden && <>{compareStrip(MASTER)}<AudioOutputMeter language={language} /></>}
+      </div>
+    </WorkspacePanel>}
     {binding && dock === "samples" && capable && <WorkspacePanel name="editor">
       <div key={binding.id + binding.patchId} data-mix-detail-instance={binding.id}>
         <SampleMapEditor binding={binding} label={instanceLabel} capable={capable} running={running} language={language} />
       </div>
     </WorkspacePanel>}
-    {binding && dock === "instrument" && <WorkspacePanel name="editor">
+    {canOpenControls && dock === "instrument" && <WorkspacePanel name="editor">
       <PerformanceControllerSyncStatus language={language} />
       <AdaptiveInstrumentRack rows={controlRows} patches={patchesById} language={language} renderCard={({ binding: row, index }) => {
         const item = patchesById.get(row.patchId);
@@ -109,6 +155,7 @@ export function MixWorkspace({ language, running, onStop, onAdd, rack }: {
             <small className="text-slate-400">{ui.patch(index + 1)} · {midi}</small>
             <h3 className="font-semibold text-cyan-100">{item?.name ?? row.patchId}</h3>
             {owner && <small>{audio("inserts")} · {ownerIndex >= 0 && `${ui.patch(ownerIndex + 1)} · `}{endpointName(owner)}</small>}
+            {owner && <InsertBypass id={row.id} name={item?.name ?? row.patchId} patch={item} language={language} />}
           </header>
           <PerformanceControllerRack key={row.patchId} binding={row} patch={item} language={language} />
           {!item?.performance_controllers?.length && <p>{copy("noControls")}</p>}

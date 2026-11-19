@@ -105,7 +105,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const overviewMinimum = view === "arrange" && model ? (size.width - sidebarWidth < 780 ? 312 : 245) : view === "mix" ? 255 : 165;
   const grip = coarse ? 24 : DIVIDER_HEIGHT;
   const narrow = size.width < 700 || window.innerHeight < 600 || size.height < MIN_DOCK + overviewMinimum + grip + 48;
-  const floatingRack = keyboardOpen && window.innerHeight <= 460;
+  const floatingRack = (keyboardOpen || view === "mix" && !!dock) && window.innerHeight <= 460;
   const rackOpen = floatingRack ? rackMenuView === view : layout.compactRackOpen ?? view === "mix";
   useEffect(() => { setRackMenuView(null); }, [view, floatingRack]);
   const inspector = narrow ? !!layout.drawerOpen : layout.inspectorOpen ?? view === "arrange";
@@ -120,6 +120,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   }, [single, showOverview, view]);
   const max = maxDockHeight(size.mainHeight, overviewMinimum, grip), height = clampDock(layout.preferredDockHeight ?? 260, max);
   const [launcherHost, setLauncherHost] = useState<HTMLDivElement | null>(null);
+  const [mixControls, setMixControls] = useState<HTMLDivElement | null>(null);
   const [editorHost, setEditorHost] = useState<HTMLDivElement | null>(null);
   const [commandHost, setCommandHost] = useState<HTMLSpanElement | null>(null);
   const [inspectorHost, setInspectorHost] = useState<HTMLDivElement | null>(null);
@@ -161,13 +162,13 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
       (source ?? trigger.current)?.focus({ preventScroll: true });
     });
   };
-  const context = { slots: { launcher: launcherHost, editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
+  const context = { slots: { mixControls, launcher: launcherHost, editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
     trackRouting: (id: string, kind: keyof typeof sourceKeys) => <ArrangeTrackRouting key={id} id={id} kind={kind} language={language} />,
     getRememberedTarget: () => {
       const target = remembered && survivingClipKey(remembered) ? useAppStore.getState().clipDrafts[remembered]?.target : undefined;
       return target?.laneId === selected?.laneId && target?.clipId === selected?.clipId ? target : undefined;
     },
-    editorHidden: showOverview, revealEditor: () => setOverviewClipKey(null), closeDock };
+    singlePane: single, editorHidden: showOverview, revealEditor: () => setOverviewClipKey(null), closeDock };
   return <WorkspacePanels.Provider value={context}><section className="ws-shell" data-keys-open={keyboardOpen || undefined}>
     <header className="ws-head"><div className="ws-commandbar">
       <details className="ws-project" ref={projectMenu}><summary>{c.project}</summary>
@@ -205,6 +206,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
               {!narrow && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
               <button ref={back} onClick={returnToOverview}>{single ? c.back : c.close}</button></header>
             {showLauncherInEditor && <div className="ws-compact-launch" ref={setLauncherHost} />}
+            {view === "mix" && <div className="ws-dock-mix-controls" ref={setMixControls} />}
             {view === "arrange" && model && dock === "editor" ? <div className="ws-clip-editor-host" ref={setEditorHost} /> : <RetainedScroll key={view + dock + detailOwner} className="ws-dock-scroll" owner={detailOwner} field={dock + "Scroll"}>
               <div ref={setEditorHost} />
             </RetainedScroll>}

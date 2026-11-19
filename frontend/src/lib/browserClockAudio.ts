@@ -472,7 +472,7 @@ export class BrowserClockAudioClient {
     }
   }
 
-  private sendMixer(mixer: MixerState, revision?: number): Promise<MixerResponse> {
+  sendMixer(mixer: MixerState, revision?: number): Promise<MixerResponse> {
     const requestId = nextRequestId();
     return new Promise((resolve, reject) => {
       const timeoutId = window.setTimeout(() => { this.pendingMixerRequests.delete(requestId); reject(new Error("Mixer acknowledgment timed out")); }, 5000);

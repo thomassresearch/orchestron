@@ -20,9 +20,17 @@ Open **Mix → Mixer** to balance the performance. Scroll the instrument and ret
 
 ![Mix with a direct-output strip selected, Master on the right and stereo Audio Output along the bottom](../../screenshots/perform-workspace-mix.png)
 
+Leave **Samples** open and start a preview. Use the kit’s **Mute** to silence and restore it, **Solo** to hear it on its own, or the dB field to match its level. These controls and the selected insert’s **Bypass** stay at the top of the strip. Scroll inside the lower part of the strip for pan, sends and routing.
+
+![A running sample preview below its channel, with gain, Mute, Solo and a named insert beside Bypass](../../screenshots/perform-mix-sample-comparison.png)
+
 Select a strip name and open **Instrument controls** to adjust the instrument and its insert effects together. Shift-click another strip name or compact rack entry to add it to the selection. Shift-click it again to remove it. A plain click selects a single instrument. The Inspector and **Samples** follow the most recently selected instance. Its patch number and MIDI channel distinguish two copies of the same sound.
 
 ![Selected instruments with their insert controls in the expanded dock](../../screenshots/perform-mix-instrument-controls.png)
+
+When the editor fills the pane, its header brings the focused channel, Master and the stereo **Audio Output** meter with it. On a short or narrow screen, use **Mixer channel** to switch between the focused instrument and Master. You can mute Master, adjust its level or compare a Master insert while the same sample or instrument stays open.
+
+![Landscape Mix with the keyboard open, channel controls above the instrument editor and the final stereo meter at the right](../../screenshots/perform-mix-short-comparison.png)
 
 To hear an insert change on a sustained sound, open **Keyboard** and hold a note or Autochord. You can start the chord in Live and carry it into Mix. With Space or Enter held on a piano key, drag a live insert knob with the mouse. On a touch screen, hold the key with one finger and turn the knob with another. Selecting an instrument for editing keeps the keyboard on its original MIDI channel.
 
@@ -70,7 +78,7 @@ A **return** is a continuous rack instance that can receive sends from several s
 
 ### Compare inserts with Bypass
 
-Open **Inserts** on the owning mixer strip. Each continuous insert has a **Bypass** button and an **Active** or **Bypassed** label. You can switch while instruments are running. Reordering and removing inserts still require stopping playback. The same controls appear for nested inserts and for inserts with custom routing.
+Choose a processor in the strip’s **Inserts** selector and press **Bypass**. Press **Bypassed** to hear the effect again. The selector includes nested effects and shows each processor’s rack patch number, so you can distinguish two copies of the same patch. In **Instrument controls**, each insert card also has its own Bypass. Both controls follow the same processor. You can compare inserts during playback with several instruments selected. Open the strip’s **Inserts** list to see the full chain. Stop the instruments to reorder or remove an insert.
 
 Bypass passes that effect’s main input to its main output, using the declared channel order. A 20 ms crossfade suppresses abrupt transitions. The selected effect’s output, including its tails, fades out; downstream effects keep processing and can retain their own tails. The bypassed processor keeps receiving audio and running internally, so reactivation retains its current state. Live bypass does not reduce CPU use.
 

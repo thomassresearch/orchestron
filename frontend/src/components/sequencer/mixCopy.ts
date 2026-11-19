@@ -1,6 +1,7 @@
 import type { GuiLanguage } from "../../types";
 
 const labels = {
+  monitorChannel: ["Mixer channel", "Mischpultkanal", "Tranche du mixeur", "Canal del mezclador"],
   compact: ["Compact rack", "Kompaktes Rack", "Rack compact", "Rack compacto"],
   rack: ["Rack", "Rack", "Rack", "Rack"],
   routing: ["Routing", "Routing", "Routage", "Rutas"],

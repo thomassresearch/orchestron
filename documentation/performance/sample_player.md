@@ -18,6 +18,8 @@ You can preview during playback or while the performance is stopped.
 
 In Perform, select the kit in **Compact rack** and choose **Samples**. Check the patch number and MIDI channel above the map before changing a file. Two copies of one kit can use different files on the same note. Switching instances or closing Samples ends the current preview. Stop Instruments to edit the assignments.
 
+While a sample plays, use its channel’s **Mute**, **Solo**, gain and insert **Bypass** to compare what you hear. In a full-pane editor these controls sit above the sample map. Choosing Master in **Mixer channel** keeps the kit and its preview selected. [Mix a performance](audio_mixer_and_routing.md#mix-a-performance)
+
 ![Samples open below Mix for the second of two Sample Player instances, with stereo.wav assigned to MIDI note 36](../../screenshots/perform-workspace-mix-samples.png)
 
 Use **Replace file**, **Remove**, or **Clear map** to update the assignments. A failed or

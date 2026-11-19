@@ -4,13 +4,36 @@ import { BrowserClockAudioClient } from "../lib/browserClockAudio";
 import { sampleManifest } from "../lib/samplePlayer";
 import { normalizeSessionInstrumentAssignments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
-import type { SequencerInstrumentBinding } from "../types";
+import type { MixerState, SequencerInstrumentBinding } from "../types";
 
 type Preview = {
   assignment: string; note: number; gesture: string; session?: string;
   client?: BrowserClockAudioClient; sent: boolean; canceled: boolean;
-  work: Promise<void>; timer?: ReturnType<typeof setTimeout>;
+  work: Promise<void>; timer?: ReturnType<typeof setTimeout>; stopMixer?: () => void;
 };
+
+// A stopped-engine preview owns its audio client. Mirror mixer edits to that
+// session while the sample plays, including edits made during compilation.
+function followPreviewMixer(client: BrowserClockAudioClient, initial: MixerState, onError: (error: unknown) => void) {
+  let last = initial, pending: ReturnType<typeof setTimeout> | undefined;
+  let sending = false, closed = false;
+  function schedule() {
+    if (!closed && !sending && !pending && useAppStore.getState().mixer !== last) {
+      pending = setTimeout(() => { pending = undefined; void sync(); }, 34);
+    }
+  }
+  async function sync() {
+    const mixer = useAppStore.getState().mixer;
+    if (closed || sending || mixer === last) return;
+    sending = true;
+    last = mixer;
+    try { await client.sendMixer(mixer); }
+    catch (error) { if (!closed) onError(error); }
+    finally { sending = false; schedule(); }
+  }
+  const unsubscribe = useAppStore.subscribe((s, previous) => { if (s.mixer !== previous.mixer) schedule(); });
+  return { sync, stop() { closed = true; clearTimeout(pending); unsubscribe(); } };
+}
 
 export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (error: unknown) => void) {
   const [playing, setPlaying] = useState(false);
@@ -37,6 +60,7 @@ export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (
     if (!run || run.canceled) return;
     run.canceled = true;
     clearTimeout(run.timer);
+    run.stopMixer?.();
     if (mounted.current) setPlaying(false);
     await run.work;
     try { await cleanup(run); }
@@ -102,6 +126,10 @@ export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (
           await api.startSession(run.session);
           if (run.canceled) return;
           await run.client.connect(run.session);
+          if (run.canceled) return;
+          const mixer = followPreviewMixer(run.client, rack.mixer, error => report.current(error));
+          run.stopMixer = mixer.stop;
+          await mixer.sync();
         }
         if (!run.session || run.canceled) return;
         await api.previewSample(run.session, run.assignment, { action: "start", note, gesture: run.gesture });

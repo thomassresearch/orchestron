@@ -209,10 +209,10 @@ export function useRetainedScroll(ref: RefObject<HTMLElement>, owner: EditorOwne
   return useCallback(() => { if (ref.current) save(ref.current); }, [ref, save]);
 }
 
-export function RetainedScroll({ owner, field, ...props }: HTMLAttributes<HTMLDivElement> & { owner: EditorOwner; field: string }) {
+export function RetainedScroll({ owner, field, as: Element = "div", ...props }: HTMLAttributes<HTMLDivElement> & { owner: EditorOwner; field: string; as?: "article" | "div" }) {
   const ref = useRef<HTMLDivElement>(null);
   const save = useRetainedScroll(ref, owner, field);
-  return <div {...props} ref={ref} onScroll={(event) => { save(); props.onScroll?.(event); }} />;
+  return <Element {...props} ref={ref} onScroll={(event) => { save(); props.onScroll?.(event); }} />;
 }
 
 /** Native details semantics, with lazy contents and retained nested expansion state. */

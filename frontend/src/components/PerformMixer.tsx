@@ -4,16 +4,16 @@ import { MixerFeedbackDiagnostics } from "./MixerFeedbackDiagnostics";
 import { HelpIconButton } from "./HelpIconButton";
 import { MixerKnob } from "./MixerKnob";
 import { SEQUENCER_UI_COPY } from "./sequencer/sequencerUiCopy";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { api, isApiError } from "../api/client";
 import { audioCopy } from "../lib/audioCopy";
 import { groupRackInstruments, type RackInstrumentBindingRow } from "../lib/rackOrdering";
 import { MASTER, masterEndpoint, audioGraphDiagnostics, previewAudioFeedback, defaultStrip, mainPorts, newRoute, outputPorts, stripDestinations, suggestedInterface } from "../lib/audioRouting";
-import { canBypassInsert, insertChain, wireInsertChain } from "../lib/insertRouting";
-import { meterSnapshot, subscribeMeters } from "../lib/mixerRuntime";
+import { insertChain, wireInsertChain } from "../lib/insertRouting";
+import { AudioOutputMeter, Gain, InsertBypass, Meter, StripControls, VisibleMeter } from "./MixerStripControls";
 import { buildSequencerConfigSnapshot, normalizeSessionInstrumentAssignments } from "../store/appStoreModel";
 import { useAppStore } from "../store/useAppStore";
-import type { AudioDiagnostic, AudioGraph, AudioRoute, GuiLanguage, HelpDocId, MixerState, PatchListItem, SequencerInstrumentBinding } from "../types";
+import type { AudioDiagnostic, AudioGraph, AudioRoute, HelpDocId, MixerState, PatchListItem, SequencerInstrumentBinding } from "../types";
 
 type RoutingValidation = {
   graph: AudioGraph;
@@ -33,44 +33,6 @@ export async function editMixerPatch(patchId: string) {
   if (state.currentPatch.id === patchId && !state.error) state.setActivePage("instrument");
 }
 
-function Meter({ id, name }: { id: string; name: string }) {
-  const value = useSyncExternalStore(subscribeMeters, () => meterSnapshot(id));
-  const db = (gain: number) => gain > 0 ? Math.max(-60, 20 * Math.log10(gain)) : -60;
-  return <div className="my-2" aria-label={`${name} meter`}>
-    {(["L", "R"] as const).map((side) => <div key={side} className="mb-1 flex items-center gap-1 text-[9px]">
-      <span>{side}</span><div className="relative h-2 flex-1 overflow-hidden rounded bg-slate-950">
-        <div className="absolute h-full bg-emerald-500/70" style={{ width: `${(db(value[`rms${side}`]) + 60) / 60 * 100}%` }} />
-        <div className="absolute h-full w-0.5 bg-amber-200" style={{ left: `${Math.min(99, (db(value[`peak${side}`]) + 60) / 60 * 100)}%` }} />
-      </div><span className={value[`peak${side}`] >= 1 ? "text-red-400" : "text-slate-500"}>{value[`peak${side}`] >= 1 ? "CLIP" : value[`peak${side}`] > 0 ? db(value[`peak${side}`]).toFixed(0) : "−∞"}</span>
-    </div>)}
-  </div>;
-}
-// A scrolled-out strip has no meter listener. Remounting reads the current engine snapshot.
-function VisibleMeter({ id, name }: { id: string; name: string }) {
-  const viewport = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(() => typeof IntersectionObserver === "undefined");
-  useEffect(() => {
-    if (!viewport.current || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting && entry.intersectionRatio > 0), { threshold: [0, .001] });
-    observer.observe(viewport.current);
-    return () => observer.disconnect();
-  }, []);
-  return <div ref={viewport} className="ws-meter" data-meter-id={id}>
-    {visible && <Meter id={id} name={name} />}
-  </div>;
-}
-
-function Gain({ value, max = 12, label, onChange, onFinal, vertical = false, language }: { value: number | null; max?: number; label: string; onChange: (value: number | null) => void; onFinal: () => void; vertical?: boolean; language: GuiLanguage }) {
-  const t = audioCopy(language);
-  return <label className={`flex gap-2 ${vertical ? "flex-col items-center" : "items-center"}`}>
-    <span className="text-xs text-slate-400">{label}</span>
-    {!vertical ? <MixerKnob value={value ?? -61} min={-61} max={max} step={0.1} label={label} valueText={value === null ? "−∞ dB" : `${value} dB`} onChange={(v) => onChange(v <= -61 ? null : Math.max(-60, v))} onFinal={onFinal} /> : <input type="range" min={-61} max={max} step={0.1} value={value ?? -61} aria-label={label} title={t("reset")}
-      onChange={(e) => onChange(Number(e.target.value) <= -61 ? null : Math.max(-60, Number(e.target.value)))} onPointerUp={onFinal} onKeyUp={onFinal} onDoubleClick={() => { onChange(0); onFinal(); }}
-      className={vertical ? "h-36 accent-cyan-400 [direction:rtl] [writing-mode:vertical-lr]" : "w-24 accent-cyan-400"} />}
-    <span className="flex items-center gap-1"><input className={`${field} w-16 text-center`} aria-label={`${label} dB`} type="number" min={-60} max={max} step={0.1} placeholder="−∞" value={value ?? ""}
-      onChange={(e) => { const n = e.target.value === "" ? null : Number(e.target.value); if (n === null || Number.isFinite(n)) onChange(n === null ? null : Math.max(-60, Math.min(max, n))); }} onBlur={onFinal} /><span className="text-[10px] text-slate-400">dB</span></span>
-  </label>;
-}
 export function MixerBody({ onStop, surface, onShowRouting }: {
   onStop: () => void; surface?: "mixer" | "routing"; onShowRouting?: () => void;
 }) {
@@ -213,8 +175,6 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
     const processors = chain ?? Object.keys(graph.insertOwners).filter((id) => graph.insertOwners[id] === owner);
     return processors.map((processorId, i) => {
       const patch = byId.get(processorId);
-      const bypassed = mixer.strips[processorId]?.bypass ?? false;
-      const eligible = canBypassInsert(graph, processorId, patch);
       return <div key={processorId} data-feedback-instance={feedbackInstances.has(processorId) ? processorId : undefined} className={`my-2 rounded border p-1.5 ${feedbackInstances.has(processorId) ? "border-rose-500 bg-rose-950/30" : "border-slate-700"}`}>
         {feedbackInstances.has(processorId) && feedbackBadge}
         <div className="flex items-center gap-1">
@@ -227,11 +187,7 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
           <button disabled={running} className={button} onClick={() => useAppStore.getState().removeSequencerInstrument(processorId)}>×</button>
         </div>
         {patch?.always_on && <div className="mt-1 flex flex-wrap items-center justify-between gap-1">
-          <button className={`${button} ${bypassed ? "border-amber-500 bg-amber-950 text-amber-200" : ""}`}
-            aria-label={`${name(processorId)} ${t("bypass")}`} aria-pressed={bypassed} disabled={!eligible}
-            title={t(eligible ? "bypassHelp" : "bypassMapping")}
-            onClick={() => { setStrip(processorId, { bypass: !bypassed }); flush(); }}>{t("bypass")}</button>
-          <span className={`text-[10px] ${bypassed ? "text-amber-200" : "text-emerald-300"}`}>{t(bypassed ? "insertBypassed" : "insertActive")}</span>
+          <InsertBypass id={processorId} name={name(processorId)} patch={patch} language={language} showStatus />
         </div>}
         {insertRows(processorId, [...ancestors, owner])}
       </div>;
@@ -245,22 +201,41 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
     const direct = !master && destinations.includes("$output");
     const otherDestinations = destinations.filter(target => !direct || target !== "$output").map(name);
     const chain = insertChain(graph, id);
-    return <article key={id} data-mixer-strip={id} data-selected={ids.includes(id) || undefined} data-feedback-instance={feedbackInstances.has(id) ? id : undefined} className={`w-52 shrink-0 rounded-lg border p-3 ${master && !surface ? "sticky right-0 z-10 ml-auto shadow-[-8px_0_16px_#020617]" : ""} ${feedbackInstances.has(id) ? "border-rose-500 bg-rose-950/20" : master ? "border-cyan-600 bg-slate-900" : ids.includes(id) ? "border-cyan-500 bg-slate-800" : "border-slate-700 bg-slate-900"}`}>
+    const title = <>
       {feedbackInstances.has(id) && feedbackBadge}
-      <div className="min-h-[15px] text-[10px] leading-[15px] text-slate-400">{assignment}</div>
+      <div className="ws-strip-assignment min-h-[15px] text-[10px] leading-[15px] text-slate-400">{assignment}</div>
       <button className="w-full truncate text-left text-sm font-semibold" {...picker(id, surface === "mixer")}>{name(id)}</button>
-      <div className="my-1 min-h-8 text-[10px] text-slate-400">{direct && <span className="mr-1 rounded border border-amber-600 px-1 text-amber-200">{t("direct")}</span>}{otherDestinations.join(", ") || (!direct && "—")}</div>
-      {surface ? <VisibleMeter id={id} name={name(id)} /> : <Meter id={id} name={name(id)} />}
+    </>;
+    const destination = <div className="my-1 min-h-8 text-[10px] text-slate-400">{direct && <span className="mr-1 rounded border border-amber-600 px-1 text-amber-200">{t("direct")}</span>}{otherDestinations.join(", ") || (!direct && "—")}</div>;
+    const settings = <>
       <label className="flex flex-col text-[10px] text-slate-400">{t("balance")}<span className="self-center"><MixerKnob label={`${name(id)} ${t("balance")}`} min={-1} max={1} step={0.01} value={state.balance} onChange={(balance) => setStrip(id, { balance })} onFinal={flush} /></span>
         <input aria-label={`${name(id)} ${t("balance")} value`} className={`${field} my-1 w-20 self-center text-center`} type="number" min={-1} max={1} step={0.01} value={state.balance} onChange={(e) => setStrip(id, { balance: Math.max(-1, Math.min(1, Number(e.target.value))) })} onBlur={flush} /></label>
-      <Gain value={state.gainDb} label={t("gain")} vertical language={language} onChange={(gainDb) => setStrip(id, { gainDb })} onFinal={flush} />
-      <div className="my-3 flex justify-center gap-2"><button className={`${button} ${state.mute ? "bg-rose-800" : ""}`} aria-pressed={state.mute} onClick={() => { setStrip(id, { mute: !state.mute }); flush(); }}>{t("mute")}</button>{!master && <button className={`${button} ${state.solo ? "bg-amber-700" : ""}`} aria-pressed={state.solo} onClick={() => { setStrip(id, { solo: !state.solo }); flush(); }}>{t("solo")}</button>}</div>
-      <EditorDetails owner={owner} field="inserts" initiallyOpen={surface === "mixer" && !!chain?.length} className="text-xs" summary={<>{t("inserts")} · {chain?.length ?? t("custom")}</>}>{() => <>{insertRows(id)}</>}</EditorDetails>
+      {!surface && <>
+        <Gain value={state.gainDb} label={t("gain")} vertical language={language} onChange={(gainDb) => setStrip(id, { gainDb })} onFinal={flush} />
+        <div className="my-3 flex justify-center gap-2"><button className={`${button} ${state.mute ? "bg-rose-800" : ""}`} aria-pressed={state.mute} onClick={() => { setStrip(id, { mute: !state.mute }); flush(); }}>{t("mute")}</button>{!master && <button className={`${button} ${state.solo ? "bg-amber-700" : ""}`} aria-pressed={state.solo} onClick={() => { setStrip(id, { solo: !state.solo }); flush(); }}>{t("solo")}</button>}</div>
+      </>}
+      <EditorDetails owner={owner} field="inserts" className="text-xs" summary={<>{t("inserts")} · {chain?.length ?? t("custom")}</>}>{() => <>{insertRows(id)}</>}</EditorDetails>
       {groups.filter((rs) => rs[0].sourceId === id && rs[0].kind === "send").map((routes) => <div key={routes[0].id} data-feedback-routes={affected(routes) ? routes.filter(r => feedbackRoutes.has(r.id)).map(r => r.id).join(" ") : undefined} className={`mt-2 border-t pt-2 ${affected(routes) ? "border-rose-500 bg-rose-950/30" : "border-slate-700"}`}>{affected(routes) && feedbackBadge}<span className="text-xs">{t("send")} → {name(routes[0].targetId)}</span><Gain language={language} value={mixer.sends[routes[0].id]?.gainDb ?? null} max={6} label={t("gain")} onChange={(gainDb) => setSend(routes.map((r) => r.id), { gainDb })} onFinal={flush} /><select className={`${field} mt-1 w-full`} value={mixer.sends[routes[0].id]?.tap ?? "post"} onChange={(e) => { setSend(routes.map((r) => r.id), { tap: e.target.value as "pre" | "post" }); flush(); }}><option value="pre">{t("pre")}</option><option value="post">{t("post")}</option></select></div>)}
       <EditorDetails owner={owner} field="additional" className="mt-2 text-[10px]" summary={<>{t("additional")}</>}>{() => <>{patch?.audio_interface?.groups.filter((g) => g.direction === "output").map((g) => <div key={g.id}>{g.name}: {g.ports.join(" / ")}</div>)}<div>{outputPorts(patch).join(" / ")}</div></>}</EditorDetails>
       {!master && <button className={`${button} mt-2`} onClick={() => { select(id); open(id); }}>{t("edit")}</button>}
       {!master && <button disabled={running} className={`${button} mt-1`} onClick={() => void throughMaster(id)}>{t("routeMaster")}</button>}
-    </article>;
+    </>;
+    const stripProps = {
+      "data-mixer-strip": id, "data-selected": ids.includes(id) || undefined,
+      "data-feedback-instance": feedbackInstances.has(id) ? id : undefined,
+      className: `w-52 shrink-0 rounded-lg border p-3 ${master && !surface ? "sticky right-0 z-10 ml-auto shadow-[-8px_0_16px_#020617]" : ""} ${feedbackInstances.has(id) ? "border-rose-500 bg-rose-950/20" : master ? "border-cyan-600 bg-slate-900" : ids.includes(id) ? "border-cyan-500 bg-slate-800" : "border-slate-700 bg-slate-900"}`
+    };
+    if (surface === "mixer") {
+      return <RetainedScroll as="article" key={id} owner={owner} field="compactStripScroll" {...stripProps}>
+        <div className="ws-strip-main">{title}<VisibleMeter id={id} name={name(id)} />
+          <StripControls id={id} language={language} preferredInsert={selected} />
+        </div>
+        <RetainedScroll owner={owner} field="stripSettingsScroll" className="ws-strip-settings" aria-label={`${name(id)} · ${t("additional")}`}>
+          {destination}{settings}
+        </RetainedScroll>
+      </RetainedScroll>;
+    }
+    return <article key={id} {...stripProps}>{title}{destination}<Meter id={id} name={name(id)} />{settings}</article>;
   };
   const warnings = <>{notice && <div className="my-2 rounded border border-amber-800 p-2 text-xs text-amber-100">{t("migration")} <button className={button} onClick={() => useAppStore.setState({ migrationNotice: false })}>{t("dismiss")}</button></div>}{(error || syncError) && <div role="alert" className="my-2 text-xs text-rose-300">{error || syncError}</div>}<MixerFeedbackDiagnostics diagnostics={feedback} language={language} onShow={showFeedback} /></>;
   const routes = () => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
@@ -286,7 +261,7 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
         {strip(MASTER)}
       </RetainedScroll>
     </div>
-    <div className="ws-output"><strong>{t("audioOutput")}</strong><VisibleMeter id="$output" name={t("audioOutput")} /></div>
+    <AudioOutputMeter language={language} />
   </div>;
   return <>{warnings}<RetainedScroll owner="mixer" field="stripsScroll" className="my-3 flex gap-2 overflow-x-auto pb-2">{stripRows.map(row => strip(row.binding.id, row))}{strip(MASTER)}</RetainedScroll><div className="max-w-md text-xs">{t("audioOutput")}<Meter id="$output" name={t("audioOutput")} /></div>{running && <button className={button} onClick={onStop}>{t("stop")}</button>}<EditorDetails owner="mixer" field="routing" initiallyOpen className="mt-3 border-t border-slate-800 pt-2" summary={t("routing")}>{routes}</EditorDetails>{diagnosticsPanel}</>;
 }
