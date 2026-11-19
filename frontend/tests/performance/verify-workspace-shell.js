@@ -78,8 +78,9 @@ async page => {
   await button("Expand", dock).click(); check(!await divider.count() && !await page.locator(".ws-overview").isVisible(), "Expanded layout");
   await button("Restore split", dock).click(); check(await value() === 244, "Split did not restore");
   await button("Keyboard").click(); await page.getByRole("region", { name: "Keyboard", exact: true }).waitFor();
-  check(await value() === 244, "Keyboard lost preferred split");
-  await button("Editor").click(); await divider.waitFor();
+  check(await dock.isVisible() && await button("Editor").getAttribute("aria-pressed") === "true", "Keyboard displaced the clip editor");
+  await button("Keyboard").click(); await divider.waitFor(); await settle();
+  check(await value() === 244, "Closing the keyboard failed to restore the preferred split");
   await page.setViewportSize({ width: 1440, height: 900 });
   const restored = await geometry();
   check(restored.rulerY === closed.rulerY && restored.namesX === closed.namesX && restored.right === restored.workRight, "Pane geometry drifted");
@@ -110,5 +111,23 @@ async page => {
     await cdp.detach();
   }
   await page.evaluate(() => { delete window.__workspaceTest.beforeResize; });
+  await button("Keyboard").click();
+  for (const size of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 736, height: 720 },
+    { width: 390, height: 844 }, { width: 640, height: 360 }]) {
+    await page.setViewportSize(size);
+    for (const view of ["Arrange", "Live", "Mix"]) {
+      await button(view).click(); await settle();
+      const bounds = await page.evaluate(() => {
+        const height = selector => document.querySelector(selector).getBoundingClientRect().height;
+        return { viewport: innerHeight, work: height(".ws-panes"), keys: height(".ws-keyboard"), offset: [scrollX, scrollY],
+          bottom: document.querySelector(".ws-status").getBoundingClientRect().bottom,
+          overflow: [document.documentElement.scrollWidth - innerWidth, document.documentElement.scrollHeight - innerHeight] };
+      });
+      check(bounds.keys > 0 && bounds.work >= 44 && bounds.bottom <= size.height + 1 &&
+        bounds.offset.every(v => v === 0) && bounds.overflow.every(v => v <= 1), view + " " + JSON.stringify(bounds));
+    }
+  }
+  await button("Keyboard").click();
+  await page.setViewportSize({ width: 1440, height: 900 }); await button("Arrange").click();
   return { closed, edit, restored };
 }

@@ -16,6 +16,30 @@ async page => {
     };
   });
   try {
+    // The fixture keyboard plays through the routed instrument and its new insert.
+    const file = await page.evaluateHandle(() => Object.assign(document.createElement("input"), { type: "file" }));
+    await file.asElement().setInputFiles("backend/tests/fixtures/patches/stereo_moog_filter.patch.json");
+    const patch = await file.evaluate(async input => JSON.parse(await input.files[0].text()));
+    await file.dispose();
+    const patches = new URL("/api/patches", page.url()).href;
+    if (!(await (await page.request.get(patches)).json()).some(p => p.name === patch.name)) {
+      const response = await page.request.post(patches, { data: patch });
+      check(response.ok(), await response.text());
+    }
+    const filter = await page.evaluate(async name => {
+      const store = window.__workspaceTest.store;
+      await store.getState().refreshPatches();
+      const effect = store.getState().patches.find(p => p.name === name);
+      store.getState().addSequencerInstrument(effect.id);
+      const s = store.getState(), id = s.sequencerInstruments.at(-1).id;
+      const { wireInsertChain } = await import("/src/lib/insertRouting.ts");
+      store.setState({ audioGraph: wireInsertChain(s.audioGraph, s.sequencerInstruments, s.patches, "routed", [id]) });
+      s.setPianoRollMidiChannel(s.sequencer.pianoRolls[0].id, 1);
+      return id;
+    }, patch.name);
+    await button("Mix").click();
+    await page.locator('[data-rack-instance="routed"]').click();
+    await button("Instrument controls", page.locator(".ws-mix-tools")).click();
     await button("Live").click();
     const manual = group("Manual lead"), transport = group("Song transport");
     // Leave a full observable launch window beyond the browser's queued audio.
@@ -79,6 +103,8 @@ async page => {
       check(await piano.evaluate(el => window.liveKey === el && el.getAttribute("aria-pressed") === "true"), "Changing the launch device replaced the keyboard");
       for (const pad of [2, 3]) {
         // Queue early in the sounding pattern so even a slow touch dispatch observes both states.
+        await page.waitForFunction(() => window.__workspaceTest.store.getState().sequencerRuntime.trackLocalStepById.manual >= 4,
+          null, { timeout: 10000 });
         await page.waitForFunction(() => {
           const step = window.__workspaceTest.store.getState().sequencerRuntime.trackLocalStepById.manual;
           return step != null && step <= 2;
@@ -100,7 +126,37 @@ async page => {
       await button("Fast forward 1 beat", transport).click();
       await button("Stop", transport).click();
       await manual.locator('[data-sounding][aria-label="Pad 3"]').waitFor();
-      await button("Mix").click();
+      if (phone) {
+        const mix = await point(button("Mix"), 1);
+        await touch("touchStart", [note, mix]);
+        await touch("touchEnd", [mix]);
+      } else await button("Mix").click();
+      const processor = page.locator(`[data-mix-detail-instance="${filter}"]`);
+      const cutoff = processor.getByRole("slider", { name: "Cutoff (Hz)", exact: true });
+      await cutoff.waitFor();
+      check(await piano.evaluate(el => window.liveKey === el && el.getAttribute("aria-pressed") === "true" &&
+        !window.liveMidi.some(m => m.type === "note_off")), "Entering Mix released or remounted the held chord");
+      await cutoff.scrollIntoViewIfNeeded();
+      const previous = await cutoff.getAttribute("aria-valuenow");
+      const dial = await point(cutoff, 1);
+      if (phone) {
+        await touch("touchStart", [note, dial]);
+        await touch("touchMove", [note, { ...dial, y: dial.y - 30 }]);
+        await touch("touchEnd", [{ ...dial, y: dial.y - 30 }]);
+      } else {
+        await page.mouse.move(dial.x, dial.y); await page.mouse.down();
+        await page.mouse.move(dial.x, dial.y - 30, { steps: 4 }); await page.mouse.up();
+      }
+      const changed = await cutoff.getAttribute("aria-valuenow");
+      check(changed !== previous, "Insert cutoff failed to change");
+      await page.waitForFunction(async ({ filter, value }) => {
+        const s = window.__workspaceTest.store.getState();
+        const response = await fetch("/api/sessions/" + s.activeSessionId + "/performance-controllers");
+        return response.ok && (await response.json())[filter]?.values.smf_cutoff === value;
+      }, { filter, value: Number(changed) }, { polling: 100 });
+      check(await piano.evaluate(el => el.getAttribute("aria-pressed") === "true" && !window.liveMidi.some(m => m.type === "note_off")),
+        "Changing the insert released the chord");
+      if (!phone) await page.screenshot({ path: "screenshots/perform-mix-held-chord.png" });
       if (phone) await touch("touchEnd", []); else await page.keyboard.up("Space");
       const pitches = events => events.map(m => [m.source_id, m.channel, m.note].join("/")).sort().join(" ");
       await page.waitForFunction(n => window.liveMidi.filter(m => m.type === "note_off").length >= n, started.length);
@@ -108,11 +164,21 @@ async page => {
       await keyboard.waitFor();
       const events = await page.evaluate(() => window.liveMidi);
       check(pitches(started) === pitches(events.filter(m => m.type === "note_off")) && pitches(started) === pitches(events.filter(m => m.type === "note_on")), "A note leaked or replayed on view change");
-      check(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "Workspace overflows browser horizontally");
+      check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 &&
+        document.documentElement.scrollHeight <= innerHeight + 1 && !scrollX && !scrollY), "Workspace scrolls the document");
       await button("Stop", manual).click();
       await button("Play", manual).waitFor();
       logs.push({ viewport: phone ? "phone" : "desktop", pitches: pitches(started), pads: [1, 2, 3] });
     }
+    await piano.evaluate(() => { window.liveMidi.length = 0; });
+    await piano.focus(); await page.keyboard.down("Space");
+    await page.waitForFunction(() => window.liveMidi.some(m => m.type === "note_on"));
+    await button("Config", page.locator("[data-app-pages]")).click();
+    await page.waitForFunction(() => window.liveMidi.filter(m => m.type === "note_off").length ===
+      window.liveMidi.filter(m => m.type === "note_on").length);
+    await page.keyboard.up("Space");
+    await button("Perform", page.locator("[data-app-pages]")).click();
+    check(await piano.getAttribute("aria-pressed") === "false", "Returning from Config replayed a released key");
     await button("Edit", manual).click();
     await page.getByRole("heading", { name: "Manual lead / Pad 3" }).waitFor();
     await page.getByText("Pad saved in performance", { exact: true }).waitFor();
@@ -122,6 +188,7 @@ async page => {
     await page.waitForFunction(() => window.__workspaceTest.store.getState().activeSessionState !== "running");
     return logs;
   } finally {
+    if (await button("Stop Instruments").isVisible()) await button("Stop Instruments").click();
     await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: false });
     await cdp.detach();
     if (viewport) await page.setViewportSize(viewport);

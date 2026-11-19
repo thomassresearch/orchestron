@@ -22,6 +22,34 @@ async page => {
     }, kind);
     if (!await edit.isVisible()) throw Error("Missing dock for " + kind);
   }
+  const arpId = await page.evaluate(() => {
+    const s = window.__workspaceTest.store.getState(), arp = s.sequencer.arpeggiators[0], roll = s.sequencer.pianoRolls[0];
+    s.setPianoRollMidiChannel(roll.id, arp.inputChannel); s.setPianoRollEnabled(roll.id, true);
+    return arp.id;
+  });
+  await b("Start Instruments").click();
+  await page.waitForFunction(() => window.__workspaceTest.store.getState().activeSessionState === "running");
+  try {
+    await b("Play edit", edit).click();
+    await page.waitForFunction(id => window.__workspaceTest.store.getState().performanceAuditions[id]?.workspace_active, arpId);
+    await b("Keyboard").click();
+    const key = b("C4", page.getByRole("region", { name: "Keyboard" }));
+    await key.focus(); await page.keyboard.down("Space");
+    await page.waitForFunction(id => {
+      const s = window.__workspaceTest.store.getState(), arp = s.sequencerRuntime.arpeggiatorStatusById[id];
+      return s.performanceAuditions[id]?.workspace_active && arp?.heldNotes.includes(60) &&
+        (arp.activeNote != null || arp.status?.active_notes?.length);
+    }, arpId, { timeout: 8000 }).catch(async error => {
+      const current = await page.evaluate(id => window.__workspaceTest.store.getState().sequencerRuntime.arpeggiatorStatusById[id], arpId);
+      throw Error("No generated arpeggio while holding C4: " + JSON.stringify(current), { cause: error });
+    });
+    await page.keyboard.up("Space");
+    await b("Keyboard").click(); await b("Stop edit", edit).click();
+  } finally {
+    await page.keyboard.up("Space");
+    await b("Stop Instruments").click();
+    await page.waitForFunction(() => window.__workspaceTest.store.getState().activeSessionState !== "running");
+  }
 
   await page.locator(".ws-project summary").click(); await b("New").click();
   await page.waitForFunction(() => window.__workspaceTest.store.getState().sequencer.clipArrangement.lanes.length === 0);

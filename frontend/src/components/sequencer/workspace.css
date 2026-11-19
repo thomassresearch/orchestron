@@ -14,11 +14,14 @@
 .ws-view, .ws-shell, .ws-work, .ws-column, .ws-panes, .ws-dock, .ws-inspector { min-width: 0; min-height: 0; }
 .ws-view { flex: 1; }
 .ws-shell { height: 100%; display: grid; grid-template: auto minmax(0,1fr) auto / minmax(0,1fr); font-size: .8rem; }
+.ws-shell[data-keys-open] { grid-template-rows: auto minmax(0,1fr) auto auto; }
 .ws-commandbar, .ws-transport, .ws-status, .ws-dock > header, .ws-inspector > header {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 5px 8px;
   color: #ced8e5; background: #111c2c; border-bottom: 1px solid #334359;
 }
 .ws-commandbar { position: relative; z-index: 32; }
+.ws-head { position: relative; }
+.ws-rack-menu { position: absolute; top: 100%; right: 0; left: 0; z-index: 32; max-height: 42dvh; overflow: auto; background: #101d30; box-shadow: 0 6px 16px #040911b3; }
 .ws-commandbar button, .ws-project > summary, .ws-transport > button, .ws-dock > header button, .ws-inspector > header button {
   padding: 3px 8px; line-height: 1.35; background: #182537; border-radius: 4px; border: 1px solid #405269; color: #e0e8ef; cursor: pointer;
 }
@@ -30,6 +33,7 @@
 .ws-title { font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: min(32vw,30rem); }
 .ws-command-spacer { flex: 1; }
 .ws-editor-command:empty { display: none; }
+.ws-stop-edit { max-width: min(32ch, 52vw); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; vertical-align: bottom; }
 .ws-project-menu {
   border: 1px solid #50637a; border-radius: 7px; color: #dce9f3; background: #101c2c; padding: 12px;
   max-height: 65dvh; overflow: auto; box-shadow: 0 10px 32px #050a13aa;
@@ -46,7 +50,7 @@
 .ws-panes[data-split] { grid-template-rows: minmax(0,1fr) 12px var(--drag-height,var(--dock-height)); }
 .ws-overview, .ws-dock-scroll, .ws-inspector-scroll { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; }
 .ws-overview { background: #0a1322; padding: 4px; }
-.ws-overview[hidden] { display: none; }
+.ws-overview[hidden], .ws-dock[hidden], .ws-overview[data-compact-launch] .ws-launcher { display: none; }
 .ws-dock, .ws-inspector { display: grid; grid-template-rows: auto minmax(0,1fr); background: #0c1727; overflow: hidden; }
 .ws-dock > header h2, .ws-inspector > header h2 { margin-right: auto; font-weight: 600; color: #c7e8ed; }
 .ws-dock-scroll, .ws-inspector-scroll { padding: 6px 8px; }
@@ -133,9 +137,34 @@
 .ws-live-actions button[aria-pressed=true] { border-color: #66c7bc; }
 .ws-live-state { grid-column: 2 / -1; column-gap: 16px; }
 .ws-live-state b { color: #c5dce5; }
-.ws-keyboard-settings { margin: 5px 0; color: #c1d4df; font-size: .75rem; }
+.ws-keyboard {
+  position: relative; min-width: 0; background: #101d30; border-top: 1px solid #475970;
+  --piano-white-height: clamp(52px, 10dvh, 100px);
+  --piano-black-height: calc(var(--piano-white-height) * .63);
+}
+.ws-keyboard article {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  padding: 2px 5px; border: 0; border-radius: 0;
+}
+.ws-keyboard article > div:first-child { flex-wrap: nowrap; overflow-x: auto; margin: 0; white-space: nowrap; }
+.ws-keyboard article > div:first-child > * { flex-shrink: 0; }
+.ws-keyboard article > div:last-child { grid-column: 1 / -1; min-width: 0; }
+.ws-keyboard article > div:last-child > div { padding: 2px 28px; }
+.ws-keyboard .piano-keyboard-hint { display: none; }
+.ws-keyboard-settings { color: #c1d4df; font-size: .75rem; }
 .ws-keyboard-settings summary { cursor: pointer; padding: 4px; }
-.ws-keyboard-picker { display: flex; gap: 5px; align-items: center; margin-bottom: 4px; }
+.ws-keyboard-fields {
+  position: absolute; z-index: 33; right: 0; bottom: 100%; width: min(100%, 44rem);
+  padding: 8px; max-height: 35dvh; overflow: auto; overscroll-behavior: contain;
+  background: #142135; border: 1px solid #50637a; border-radius: 5px;
+}
+.ws-keyboard-picker { display: flex; gap: 5px; align-items: center; }
+@media (max-height: 460px) {
+  [data-perform-workspace] .app-header { padding-block: 1px; }
+  [data-perform-workspace] .app-brand img { height: 27px; }
+  [data-perform-workspace] .app-brand p { display: none; }
+  .ws-shell[data-keys-open] .ws-error { max-height: 2.7em; }
+}
 .ws-dock[data-compact-launch] { grid-template-rows: auto auto minmax(0,1fr); }
 .ws-compact-launch { max-height: 44dvh; overflow: auto; }
 .ws-compact-launch:empty { display: none; }

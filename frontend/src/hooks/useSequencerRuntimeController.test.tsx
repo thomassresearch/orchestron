@@ -586,9 +586,17 @@ it("keeps a disabled arpeggiator's clip audition clock running until Stop edit",
     auditions: { [id]: { active: true, queued: null, workspace_active: true, workspace_sequence: [1] } },
     arpeggiators: [{ arpeggiator_id: id, enabled: false, input_channel: 6, target_channel: 1, held_notes: [60, 64, 67],
       active_note: 64, step_index: 2, last_velocity: 100, active_pad: 1, state: "playing" }] });
-  const { result } = setup(false);
+  const { result } = setup(false, {
+    sequencer: state => ({ ...config, arpeggiators: buildBackendArpeggiatorRequest(state).arpeggiators }),
+    arpeggiators: buildBackendArpeggiatorRequest
+  });
   await act(() => result.current.auditionDevice(id, { action: "workspace_start", gestureId: "edit", clipDraft: draft }));
   await act(() => vi.advanceTimersByTimeAsync(100));
+  // The 80 ms rack-start timer holds only the saved pad. It must not replace the audition config.
+  const configured = vi.mocked(api.configureSessionSequencer).mock.lastCall?.[1].arpeggiators?.find(arp => arp.arpeggiator_id === id);
+  expect(configured?.pads).toHaveLength(2);
+  expect(configured?.audition_schedule).toBeDefined();
+  expect(api.configureSessionArpeggiators).not.toHaveBeenCalled();
   expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(true);
   expect(useAppStore.getState().performanceAuditions[id]?.workspace_active).toBe(true);
   // Runtime audition status also protects legacy workspace/preview clocks.

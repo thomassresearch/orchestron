@@ -87,7 +87,7 @@ Open **Live** and find the device you want to play. **Editing** is the physical 
 
 **Mix** recalls the selected instance, open controls and channel-bank position when you return. To reach a kit or effect from Arrange or Live, open **Compact rack**, select its patch number, then choose a destination. [Mix a performance](audio_mixer_and_routing.md#mix-a-performance)
 
-Closing the keyboard, switching views or leaving the browser window releases held notes. Returning to Live restores the keyboard and its settings. The Live overview also contains the manual MIDI controllers and their channel selectors.
+Keep holding the chord and switch to **Mix**. Open the instrument’s controls and turn a live insert knob. The keys continue playing on the piano roll’s MIDI channel until you release them. Closing **Keyboard**, changing its destination or leaving Perform releases held notes. The Live overview also contains the manual MIDI controllers and their channel selectors.
 
 ## Sequencer timing
 
@@ -103,15 +103,15 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 
 ## Collapsible Panels
 
-Close the lower editor or keyboard to give the overview its full height. On a desktop, drag the divider or focus it and use the arrow keys. Shift changes its height one pixel at a time. Home and End reach the limits. **Expand** gives the editor the whole working area and **Restore split** brings back the overview.
+The editor and keyboard open independently. Close either to return its space to the overview. On a desktop, drag the editor divider or focus it and use the arrow keys. Shift changes its height one pixel at a time. Home and End reach the limits. **Expand** gives the editor the working area above the keys and **Restore split** brings back the overview.
 
-On a narrow or short screen, **Back to overview** returns from the editor or keyboard. The **Inspector** opens over the right edge. Escape closes it and returns focus to the Inspector button.
+On a narrow or short screen, **Back to overview** returns from the editor. With a clip and keyboard open, this lets you see the song while your edit keeps sounding. **Editor** brings the same draft back. **Keyboard** toggles the keys. The **Inspector** opens over the right edge. Escape closes it and returns focus to the Inspector button.
 
 ![The Inspector drawer showing clip properties on a phone](../../screenshots/perform-workspace-shell-drawer.png)
 
 Draft names and controller values, validation feedback, arpeggiator preset drafts, clip selections, open containers, arranger selections, range clipboard and undo history, zoom and scroll positions survive collapse/expand and switching away from Perform. Nested Mixer sections remember their open state when a parent collapses. New, Load and Import clear retained editor state after successfully replacing the workspace, even when reloading the same performance. Saving does not clear it. Removed devices and invalid selections are discarded; restored scroll positions are limited to the current content. This temporary editor state is not stored in performance files or browser storage and does not survive a page reload.
 
-Collapsing closes temporary menus and pickers, cancels active drag previews and releases manually held piano notes. Already-applied edits remain, and existing input save/commit rules still apply. Sequenced notes continue playing. Collapsing reduces visual work and can help on a busy display.
+Collapsing a panel closes its temporary menus and pickers and cancels its active drag previews. Closing the keyboard releases manually held piano notes. Already-applied edits remain, and existing input save/commit rules still apply. Sequenced notes continue playing. Collapsing reduces visual work and can help on a busy display.
 
 **Compact rack** shows the instances available in this performance. Select an instance to open its controls or samples. [Compact rack](instrument_rack_and_engine_transport.md#compact-rack)
 

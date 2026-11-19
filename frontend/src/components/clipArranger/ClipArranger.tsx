@@ -149,6 +149,7 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
       return;
     }
     structure.guardEdit({ laneId: lane.id, clipId: clip.id, path, pass }, target => {
+      shell.revealEditor();
       select({ laneId: target.laneId, clipId: target.clipId });
       setExpanded(target.laneId);
       structure.select({ laneId: target.laneId, clipId: target.clipId, pass: target.pass, parent: target.path.slice(0, -1) }, target.path[target.path.length - 1], false);
@@ -255,7 +256,8 @@ export function ClipArranger({ onHelpRequest, model, sequencer, language, onChan
       </div>
   );
   return <section data-workspace-arranger={shell ? "" : undefined} data-fit-tracks={shell && fitTracks || undefined} className="relative mt-4 min-w-0 rounded-xl border border-slate-700 bg-slate-950/85 p-3" aria-label={c.title}>
-    {shell && <WorkspacePanel name="editorCommand"><button aria-pressed={!!editingTarget} onClick={() => {
+    {shell && <WorkspacePanel name="editorCommand"><button aria-pressed={!!editingTarget && !shell.editorHidden} onClick={() => {
+      if (shell.editorHidden) { shell.revealEditor(); return; }
       if (editingTarget) { void stopAudition(); shell.closeDock(); return; }
       if (selectedLane && selectedClip && editorTarget) open(selectedLane, selectedClip, editorTarget.path, editorTarget.pass);
     }} disabled={!editingTarget && !editorTarget}>{shellCopy[language].editor}</button></WorkspacePanel>}

@@ -36,20 +36,20 @@ Optional compact rack
 │ Timeline scroll/zoom controls    │                    │
 ├──────── Resizable divider ───────┤                    │
 │ Editor context, scope and Save   │                    │
-│ Selected editor OR keyboard     │                    │
+│ Selected editor                 │                    │
 └──────────────────────────────────┴────────────────────┘
+Optional playing keyboard and its MIDI destination
 Session status, renderer, CPU, buffer fill and parallel playback
 ```
 
 - Keep the song transport immediately above the arrangement. It includes the existing
   play/resume, pause, stop, seek, position, tempo and song-loop controls.
 - Use one pane order in both the study and the product. The arrangement sits above the
-  divider and the editor or keyboard sits below it. Restored sessions use the same order.
+  divider and the editor sits below it. The optional keyboard sits beneath both panes.
 - Opening or closing the dock changes the arrangement's available height while preserving
   its top edge, ruler and transport position. Preserve track and timeline scroll positions
   where the new scroll bounds allow.
-- The lower dock contains one focused editor or the keyboard at a time. Pattern, instrument
-  and routing views are contextual destinations within that dock, not vertically stacked panels.
+- The dock contains one focused editor. The keyboard has a separate bounded row above the status bar in Arrange, Live and Mix. Opening or closing the keys preserves the current clip draft, its local or linked scope and its audition.
 - In Arrange, Live and Mix, the optional Inspector occupies a right-hand column spanning the
   overview and dock. Opening it keeps the left edge of the working area fixed. Closing it
   returns the full width to the overview and dock. Its properties scroll independently.
@@ -71,6 +71,7 @@ the mock's fixed preview height. The shell must not create a long document page 
 | Arrangement | Takes the remaining work area above the dock; tracks scroll vertically within it. |
 | Timeline | Scrolls horizontally within its own region, with ruler and clips synchronized; keep track names reachable. |
 | Detail dock | Resizes through the draggable divider within usable limits; its content scrolls independently. |
+| Keyboard | Keeps the playable keys and range controls visible. Settings open above the keys and scroll locally. Closing it returns the row’s height to the working area. |
 | Inspector | Uses bounded width and independent vertical scrolling. |
 | Closed pane | Occupies no space and leaves no divider or minimum-height placeholder. |
 
@@ -105,7 +106,7 @@ and hover/active feedback. Provide a larger, non-overlapping target for touch in
   height. The interaction follows the sizing and arrow-key concepts of the
   [WAI-ARIA window splitter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/windowsplitter/);
   this study does not claim complete accessibility conformance.
-- Reopening the editor or keyboard restores the chosen split. A smaller browser window may
+- Reopening the editor restores the chosen split. Opening the keyboard or shrinking the browser may
   temporarily constrain it; enlarging the window restores the preferred size where possible.
   View changes preserve that preference without saving it as performance data.
 - Hide the divider when the dock is closed, the editor is expanded, or the workspace uses one
@@ -116,8 +117,7 @@ slider is removed as well; browser-height exploration remains available.
 
 ### When panels are closed
 
-- Closing Editor or Keyboard removes the dock and divider completely. Arrangement receives
-  the freed height. Closing Inspector returns its width to the working area.
+- Closing Editor removes the dock and divider. Closing Keyboard removes the keys. The working area receives the freed height in each case. Closing Inspector returns its width.
 - Closing all three does not leave a blank panel below the arrangement. The timeline extends
   to its footer and uses the available workspace height.
 - A small project may still have unused timeline canvas beneath its tracks. Continue the
@@ -152,6 +152,8 @@ The application uses one working pane when the work area is narrower than 700 CS
 
 The shell measures the working area after the application controls take their space. It switches to one pane when the open editor would crowd out the ruler and track controls. A coarse pointer gets a 24 px divider target. [Desktop, phone and zoom measurements](milestone-3-workspace-shell.md)
 
+When the keyboard is open and the browser is at most 460 CSS pixels tall, **Compact rack** opens over the working pane. Escape or a press outside closes it. The regular rack disclosure returns when there is room. In Live, **Back to overview** gives the compact launcher the space above the keys when the device editor needs the full pane.
+
 ## Placement of current Orchestron capabilities
 
 | Existing capability | Proposed home |
@@ -163,7 +165,7 @@ The shell measures the working area after the application controls take their sp
 | Melodic, drummer, Score, controller and arpeggiator editing | One type-specific editor in the lower dock, preserving each device's controls. |
 | Instrument-bound automation | Preserve direct curve editing in expanded arrangement clips and existing target/routing semantics. |
 | Pads, independent device play and Arrangement/Manual pads source choice | Live view, with selection, playing and queued states visibly distinct. |
-| Piano keyboard, chord controls and manual MIDI controls | Keyboard/detail view with explicit target and independent activation. |
+| Piano keyboard, chord controls and manual MIDI controls | Shared keyboard with an explicit MIDI destination and independent activation. Manual controllers live in the Live overview. |
 | Per-instance performance controls and CC mappings | Contextual Instrument view, retaining groups, control types and update-mode labels. |
 | Sample Player note maps | Open **Samples** from the selected rack instance in the Instrument dock. Show its MIDI channel, note, file, Preview and Stop preview together. |
 | Faders, pan/balance, meters, mute/solo, sends and inserts | Mix view with the pinned Master and clear Direct Audio Output indicators. |
@@ -207,12 +209,12 @@ and whether the player can identify what will sound or be saved before acting.
 | Select a track or clip | Update selection and inspector context without opening a closed dock or starting playback. |
 | Select another compatible target while its editor is open | Follow the new context while retaining per-target drafts and the editor's view state. |
 | Double-click editable content, or activate its accessible Open editor action | Open the appropriate editor below the arrangement; identify the target with its breadcrumb. |
-| Press Editor | Open the selected editor, replace Keyboard if visible, or close the currently visible editor. |
-| Press Keyboard | Open Keyboard, replace the editor if visible, or close Keyboard if already visible. |
+| Press Editor | Open the selected editor or close the visible editor. The keyboard remains playable. |
+| Press Keyboard | Show or hide the keys independently of the editor, its scroll position, and Play edit. |
 | Press Inspector | Open or close the inspector independently of the dock. |
 | Drag the divider or use its resize keys | Adjust the split within both panes' limits without changing selection, musical data, zoom, playback or save state. |
 | Expand editor | Temporarily give the editor the working area while preserving accessible song transport; restore the previous split on return. |
-| Close a panel | Retain its drafts and view state; close its menus, cancel active drags, and release held keyboard notes. |
+| Close a panel | Retain its drafts and view state, close its menus and cancel its drags. Closing the keyboard also releases its notes. |
 | Switch Arrange / Live / Mix | Restore the destination's selection, open panels and scroll positions. Selecting the active view again leaves it in place. |
 
 Selection highlights, shared-definition relationship highlights, and actual multi-selection
@@ -242,7 +244,7 @@ only on first entry.
 
 **Compact rack** remembers its disclosure and horizontal offset in each view. In Arrange and Live, selecting an instance keeps the current musical editor active. A named rack command opens Mix at that instance and destination. In Mix, selecting a compatible instance retargets the open detail. Selecting Master or an instance without a Sample Player closes an incompatible detail and ends its preview. **Routing** occupies the overview so the channel matrix can use the available width.
 
-Every view remembers its compact rack, Inspector, open editor or keyboard, expanded editor,
+Every view remembers its compact rack, Inspector, open editor, expanded editor,
 preferred split height and open property sections. A closed dock stays closed on return.
 Restore scroll after laying out the destination. If the available space or content has changed,
 use the nearest reachable position. Explicit actions such as **Manage rack** open their named
@@ -250,8 +252,9 @@ destination. The ordinary view buttons always resume where the musician left off
 
 The song cursor, transport, running devices, queued launches, mixer settings and musical drafts
 belong to the shared performance session. Returning to a view reads their current values.
-Leaving a keyboard releases held notes. Returning to it restores the controls without sounding
-those notes again.
+The keyboard’s visibility, roll and key range are shared across the three views. A held chord keeps its original MIDI channel across navigation, rack selection and insert edits. Closing the keys, changing roll or channel, stopping the keyboard or engine, losing browser focus and leaving Perform release its notes. Successful project replacement clears this temporary state.
+
+With a clip and keys open in a single pane, **Back to overview** shows the timeline and **Editor** returns to the same draft. The header identifies the audition and offers **Stop edit** in either pane. Closing the editor explicitly or leaving Arrange ends its clip audition.
 
 ## Editing scope, saving and audition
 
@@ -290,7 +293,7 @@ Running Manual pads actions retain boundary-quantized launches; stopped or Arran
 pad clicks only select for editing. Device Play remains an explicit independent action.
 Preserve existing queued/playing colors and pair them with labels or indicators. Queueing and
 applying a launch preserve the musician’s held chord, chosen MIDI destination and device settings.
-The compact keyboard pane includes a device picker, its eight pads, Play/Stop and Edit. The
+The compact launcher above the keys includes a device picker, its eight pads, Play/Stop and Edit. The
 silent study advances launches through **Advance loop boundary**. The application uses the
 device’s musical clock.
 
@@ -349,7 +352,7 @@ over preserving the desktop's density at every viewport size.
    capture, keyboard resizing, both size limits, gesture cancellation, and restoration of the
    chosen height, without dirtying the performance or rebuilding its editor contents.
 3. Selecting clips with the dock closed leaves it closed; explicit opening reveals the correct
-   context. Editor and Keyboard replace one another and toggle closed on a second activation.
+   context. Editor and Keyboard toggle independently. A clip audition continues through a keyboard toggle and resizing. A chord held from Live into Mix survives a live insert adjustment and releases once on its original channel.
 4. Many tracks, long patterns, large racks and detailed inspectors scroll within usable regions
    without turning Perform into a long document or hiding essential transport controls.
 5. Few tracks do not leave a reserved blank dock. Fit tracks changes only display geometry.

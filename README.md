@@ -172,7 +172,7 @@ Explore the [clip arranger guide](documentation/performance/multitrack_arranger.
 
 **Perform** opens in Arrange. Select a chorus repeat and edit a variation below the timeline, or update a linked phrase across the song. Legacy performances open their original pads in the same editor area. The Inspector keeps instrument assignments and clip properties beside the timeline. [Arrange a performance](documentation/performance/performance.md#arrange)
 
-In **Live**, hold a chord on the keyboard while launching pads, follow queued and playing pads on each device, and use **Edit** to change the selected pad. On a phone, the launcher stays above the keys. [Launch pads in Live](documentation/performance/performance.md#launch-pads-in-live)
+Open **Keyboard** in any Perform view. In **Arrange**, play along with an unsaved clip variation while **Play edit** runs. In **Live**, hold a chord while launching pads, then switch to **Mix** and adjust an insert while the chord sounds. On a phone, the launcher stays above the keys. [Launch pads in Live](documentation/performance/performance.md#launch-pads-in-live)
 
 In **Mix**, scroll through the channels while watching the pinned Master and the final stereo Audio Output. Select a rack instance to edit its performance controls or audition its samples. Open **Routing** to trace a signal while the song plays. [Mix a performance](documentation/performance/audio_mixer_and_routing.md#mix-a-performance)
 

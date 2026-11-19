@@ -14,15 +14,15 @@ export type PerformViewLayout = {
   inspectorOpen?: boolean;
   drawerOpen?: boolean;
   compactRackOpen?: boolean;
-  dock?: "editor" | "keyboard" | "instrument" | "samples" | null;
+  dock?: "editor" | "instrument" | "samples" | null;
   dockExpanded?: boolean;
   preferredDockHeight?: number;
 };
 
 export const PerformViewContext = createContext<PerformView | null>(null);
 export const ClipEditorTargetContext = createContext<string | null>(null);
-type EditorState = { captureScroll: Set<() => void>; entries: Record<string, Entry>; view: PerformView; suspendedClipKey: string | null };
-export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ captureScroll: new Set(), entries: {}, view: "arrange", suspendedClipKey: null }));
+type EditorState = { captureScroll: Set<() => void>; entries: Record<string, Entry>; view: PerformView; keyboardOpen: boolean; suspendedClipKey: string | null };
+export const createPerformanceEditorStore = () => createStore<EditorState>(() => ({ captureScroll: new Set(), entries: {}, view: "arrange", keyboardOpen: false, suspendedClipKey: null }));
 export type PerformanceEditorStore = ReturnType<typeof createPerformanceEditorStore>;
 export const OpenArrangerContext = createContext<(() => void) | null>(null);
 export const useOpenArranger = () => useContext(OpenArrangerContext);

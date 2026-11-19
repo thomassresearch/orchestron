@@ -4,6 +4,7 @@ async page => {
   const sizes = [{ width: 390, height: 844 }, { width: 640, height: 360 }];
   const languages = ["german", "french", "spanish", "english"];
   const hits = [];
+  await page.locator("[data-keyboard-toggle]").click();
   for (const size of sizes) {
     await page.setViewportSize(size);
     for (const language of languages) {
@@ -27,6 +28,7 @@ async page => {
       }
     }
   }
+  await page.locator("[data-keyboard-toggle]").click();
   await page.setViewportSize(sizes[0]);
   await page.locator('[data-arranger-clip="phrase-1"]').getByTitle(/Chorus · Drag/).click();
   await page.locator(".ws-project summary").focus();

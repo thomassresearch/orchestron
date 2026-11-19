@@ -8,7 +8,7 @@ Use the pen beside the device name to rename it. See [Device Names](performance.
 
 ## Collapse the Panel
 
-Open **Keyboard** from Arrange or Live. Close the keyboard or use **Back to overview** to return to the song or launcher. Closing the keyboard releases the notes you are holding.
+Open **Keyboard** in Arrange, Live or Mix. The keys sit above the status bar while you work in the song, launcher or mixer. Press **Keyboard** again to close it and release the notes you are holding.
 
 ## Purpose
 
@@ -64,7 +64,7 @@ Enable **Autochord** to extend a highlighted key into an ascending chord. **Chor
 
 The chord starts on the key you press and stacks every other highlighted note, continuing into higher octaves. It follows the same scale/mode as the keyboard. In **mixed** mode, it uses only notes common to the active scales; the resulting intervals may differ from thirds. For example, C major and G major share C, D, E, G, A, B, so pressing C4 with three notes plays C4–E4–A4. Sparse intersections can produce octave-spaced voicings. Keys outside the highlighted set still play single notes.
 
-All chord notes use the keyboard's MIDI channel and velocity, and visible sounding keys light up together. Release ends the chord; notes shared with another held chord stay on until their last held key releases. Changing scale, mode, channel, size, or the toggle affects the next press without altering held chords. Upper voices may extend beyond the visible keyboard, but notes above MIDI 127 are omitted.
+All chord notes use the keyboard’s MIDI channel and velocity. Sounding keys light up together. Notes shared with another chord stay on until their last held key releases. Scale, mode, chord size and Autochord changes take effect on the next press. Switching piano rolls or changing the keyboard’s MIDI channel releases held notes on their original channel. Upper voices can extend beyond the visible keys up to MIDI 127.
 
 Each piano roll retains its own toggle and size through Save/Load, Clone, autosave, and native JSON/ZIP export/import. Turning Autochord off retains the chosen size. Older performances default to off/3. These controls apply to the on-screen keyboard; live gestures are not recorded into sequencers or offline CSD exports.
 

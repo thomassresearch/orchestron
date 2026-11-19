@@ -531,7 +531,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
 
   return (
     <div className="relative rounded-xl border border-slate-700 bg-slate-950/70 p-2.5">
-      <div className="mb-2 text-[11px] text-slate-500">{ui.keyboardInfo}</div>
+      <div className="piano-keyboard-hint mb-2 text-[11px] text-slate-500">{ui.keyboardInfo}</div>
 
       {pianoHasOverflow && (
         <>
@@ -565,7 +565,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
           className="relative"
           style={{
             width: `${pianoKeyboard.width}px`,
-            height: `${PIANO_WHITE_KEY_HEIGHT}px`
+            height: `var(--piano-white-height, ${PIANO_WHITE_KEY_HEIGHT}px)`
           }}
         >
           <div className="absolute inset-0 flex items-start">
@@ -637,7 +637,7 @@ export const PianoRollKeyboard = memo(function PianoRollKeyboard({
                     touchAction: "none",
                     left: `${key.left}px`,
                     width: `${PIANO_BLACK_KEY_WIDTH}px`,
-                    height: `${PIANO_BLACK_KEY_HEIGHT}px`,
+                    height: `var(--piano-black-height, ${PIANO_BLACK_KEY_HEIGHT}px)`,
                     ...highlightStyle
                   }}
                 >

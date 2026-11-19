@@ -1106,6 +1106,9 @@ export function useSequencerRuntimeController({
           auditionCommandVersion.current.set(deviceId, (auditionCommandVersion.current.get(deviceId) ?? 0) + 1);
         }
         if (command.action === "workspace_start") {
+          // This config includes the temporary audition pads for every lane. A pending
+          // standalone arpeggiator update can still contain only the saved pads.
+          arpeggiatorSyncCancelRef.current();
           configSyncRef.current?.baseline(session, store.sequencerEditRevision);
           await api.configureSessionSequencer(session, buildBackendSequencerConfig(clipAudition?.state ?? store.sequencer));
           if (!current() || useAppStore.getState().activeSessionId !== session) return;

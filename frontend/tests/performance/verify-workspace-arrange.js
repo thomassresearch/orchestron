@@ -42,6 +42,50 @@ async page => {
       return s.sequencerRuntime.arrangerActive && s.sequencerRuntime.arrangerTransportSubunit > 0;
     });
     await button("HOLD", edit).nth(2).click();
+    await page.evaluate(() => {
+      const h = window.__workspaceTest, post = Worker.prototype.postMessage;
+      h.auditionRequests = [];
+      Worker.prototype.postMessage = function(message, ...args) {
+        if (message.type === "sequencer_request" && message.request.type === "audition") h.auditionRequests.push(message.request);
+        return post.call(this, message, ...args);
+      };
+      h.restoreWorker = () => { Worker.prototype.postMessage = post; };
+    });
+    try {
+      await button("Play edit", edit).click();
+      await page.waitForFunction(() => window.__workspaceTest.store.getState().performanceAuditions.phrase?.workspace_active);
+      await page.evaluate(() => {
+        const s = window.__workspaceTest.store.getState();
+        window.__workspaceTest.soundingVariation = s.clipDrafts[s.clipEditingKey];
+      });
+      await button("Keyboard").click();
+      const piano = button("C4", page.getByRole("region", { name: "Keyboard", exact: true }));
+      await piano.focus(); await page.keyboard.down("Space");
+      await page.getByRole("separator", { name: "Resize editor" }).press("ArrowUp");
+      await page.keyboard.up("Space");
+      await page.screenshot({ path: "screenshots/perform-arrange-play-edit-keyboard.png" });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await button("Back to overview").click();
+      await page.getByRole("button", { name: /Stop edit · .*Chorus.*Pass 2/ }).waitFor();
+      await button("Editor").click();
+      await button("Keyboard").click();
+      await page.setViewportSize({ width: 1440, height: 900 });
+      check(await page.evaluate(() => {
+        const h = window.__workspaceTest, s = h.store.getState();
+        return s.performanceAuditions.phrase?.workspace_active && s.clipDrafts[s.clipEditingKey] === h.soundingVariation
+          && s.clipAuditionDraft === h.soundingVariation && h.soundingVariation.editIntent.scope === "local";
+      }), "Opening the keyboard or changing pane interrupted the second-pass draft");
+      await page.getByRole("button", { name: /Stop edit · .*Chorus.*Pass 2/ }).click();
+      await page.waitForFunction(() => !window.__workspaceTest.store.getState().performanceAuditions.phrase?.workspace_active);
+      const auditionRequests = await page.evaluate(() => window.__workspaceTest.auditionRequests);
+      check(auditionRequests.map(r => r.action).join() === "workspace_start,workspace_end"
+        && auditionRequests[0].gesture_id === auditionRequests[1].gesture_id, "Draft was restarted or ended twice");
+    } finally {
+      await page.evaluate(() => {
+        const h = window.__workspaceTest;
+        h.restoreWorker(); delete h.restoreWorker; delete h.auditionRequests; delete h.soundingVariation;
+      });
+    }
     await button("Step properties 3", edit).click();
     await nested.nth(2).click();
     await page.waitForFunction(() => window.__workspaceTest.store.getState().clipDrafts[window.__workspaceTest.store.getState().clipEditingKey].target.pass === 2);

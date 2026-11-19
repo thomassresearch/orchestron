@@ -56,6 +56,10 @@ Choose **Edit linked pattern** to change every occurrence or **Create variation 
 
 ## Play and jam
 
+To harmonize with an unsaved variation, start **Play edit**, then open **Keyboard**. The editor keeps its draft, occurrence and editing scope as you play. On a small screen, **Back to overview** shows the arrangement above the keys. The **Stop edit** button next to **Editor** ends the audition from either pane.
+
+![The second Chorus pass auditioning a local variation with its editor and keyboard open](../../screenshots/perform-arrange-play-edit-keyboard.png)
+
 **Play** (triangle) and **Play edit** start instruments when needed. The tape controls provide rewind/forward by one beat, Play/resume, Pause, and Stop. Pause holds the song cursor; Stop returns to the selected loop start or song start. With the song stopped, Play edit auditions its target. With the song playing, the editor audition temporarily replaces its source lane while other lanes continue. Song start/stop/seek preserves the editor audition; Stop edit returns to the arrangement's current position or silence when the song is stopped. Audition state appears in the compact lane header. The open editor follows the audible pattern position with its existing step highlights, score playhead, controller cursor or arpeggiator status; standalone audition leaves the song cursor still. Closing the editor or leaving Perform ends the audition and retains its draft.
 
 Arpeggiator **Play edit** waits for incoming notes or a chord on its input channel. Once notes arrive, its existing rhythm-step highlight and generated-note previews follow the audition. The source’s saved enable switch does not need to be on. Both save scopes preserve playback and its indicators when the saved performance is reloaded.

@@ -24,6 +24,10 @@ Select a strip name and open **Instrument controls** to adjust the instrument an
 
 ![Selected instruments with their insert controls in the expanded dock](../../screenshots/perform-mix-instrument-controls.png)
 
+To hear an insert change on a sustained sound, open **Keyboard** and hold a note or Autochord. You can start the chord in Live and carry it into Mix. With Space or Enter held on a piano key, drag a live insert knob with the mouse. On a touch screen, hold the key with one finger and turn the knob with another. Selecting an instrument for editing keeps the keyboard on its original MIDI channel.
+
+![A held keyboard chord while adjusting the routed instrument’s filter cutoff in Mix](../../screenshots/perform-mix-held-chord.png)
+
 Use **Compact rack** in Arrange or Live to select an instance and open its controls, samples or routing. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments. Return to Arrange or Live with its view button to resume your edit.
 
 Open **Routing** while listening to inspect destinations, exact channel mappings, the routing diagram and diagnostics. Gain, balance, Mute/Solo, existing send controls and eligible insert Bypass work during playback. Choose **Stop to edit routing** or **Stop to edit rack** when you need to change connections or the rack itself.

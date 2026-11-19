@@ -1,4 +1,4 @@
-import { useLayoutEffect, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { useStore } from "zustand";
 import type { GuiLanguage, SequencerState } from "../../types";
 import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration";
@@ -116,9 +116,44 @@ export type MixSurface = "mixer" | "rack" | "routing";
 export type MixDestination = { surface: MixSurface; bindingId?: string; dock?: "instrument" | "samples" };
 export type ViewNavigation = (view: PerformView, target?: { id: string; pad: number } | MixDestination) => void;
 
+// Touch browsers can omit click for a second finger while a piano key owns the first.
+function useKeyboardCompanionTap(keyboardOpen: boolean) {
+  const tap = useRef<{ id: number; button: HTMLButtonElement; x: number; y: number } | null>(null);
+  const handled = useRef<HTMLButtonElement | null>(null);
+  const commands = "[data-perform-view], [data-rack-choice], [data-mix-detail], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button";
+  return {
+    onPointerDownCapture(event: PointerEvent<HTMLElement>) {
+      handled.current = null;
+      if (!keyboardOpen || event.pointerType !== "touch" || event.isPrimary) return;
+      const button = (event.target as Element).closest<HTMLButtonElement>(commands);
+      if (button && !button.disabled) tap.current = { id: event.pointerId, button, x: event.clientX, y: event.clientY };
+    },
+    onPointerCancelCapture(event: PointerEvent<HTMLElement>) {
+      if (tap.current?.id === event.pointerId) tap.current = null;
+    },
+    onPointerUpCapture(event: PointerEvent<HTMLElement>) {
+      const start = tap.current;
+      if (start?.id !== event.pointerId) return;
+      tap.current = null;
+      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12 ||
+          !start.button.contains(document.elementFromPoint(event.clientX, event.clientY))) return;
+      handled.current = start.button;
+      start.button.click();
+    },
+    onClickCapture(event: React.MouseEvent<HTMLElement>) {
+      const previous = handled.current;
+      if (previous && event.detail && previous.contains(event.target as Node)) {
+        event.preventDefault(); event.stopPropagation();
+      }
+    }
+  };
+}
+
 export function PerformWorkspace({ language, children }: { language: GuiLanguage; children: (view: PerformView, navigate: ViewNavigation) => ReactNode }) {
   const store = usePerformanceEditorStore();
   const view = useStore(store, s => s.view);
+  const keyboardOpen = useStore(store, s => s.keyboardOpen);
+  const companionTap = useKeyboardCompanionTap(keyboardOpen);
   const generation = useAppStore(s => s.performanceWorkspaceGeneration);
   useLayoutEffect(() => {
     const { view, suspendedClipKey } = store.getState();
@@ -166,9 +201,9 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
     }
   };
   const labels = copy[language];
-  return <main className="ws-workspace">
+  return <main className="ws-workspace" {...companionTap}>
     <nav aria-label={labels.views} className="mb-2 flex gap-1">
-      {views.map(item => <button key={item} type="button" aria-pressed={item === view} onClick={() => change(item)}
+      {views.map(item => <button key={item} type="button" data-perform-view={item} aria-pressed={item === view} onClick={() => change(item)}
         className="rounded-md border border-slate-600 px-4 py-2 text-sm text-slate-200 aria-pressed:border-cyan-400 aria-pressed:text-cyan-200">{labels[item]}</button>)}
     </nav>
     <PerformViewContext.Provider value={view}>

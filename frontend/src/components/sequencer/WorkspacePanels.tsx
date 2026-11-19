@@ -14,6 +14,8 @@ export const WorkspacePanels = createContext<null | {
   slots: Record<Panel, HTMLElement | null>;
   trackRouting: (id: string, kind: SourceKind) => ReactNode;
   getRememberedTarget: () => OccurrenceTarget | undefined;
+  editorHidden: boolean;
+  revealEditor: () => void;
   closeDock: () => void;
 }>(null);
 

@@ -2,7 +2,7 @@
 
 Perform now opens the bounded Arrange, Live and Mix workspace for both clip and legacy songs. The silent study preserves the design exploration. [Release verification and replay](milestone-7-release.md)
 
-Arrange uses one fixed order with the **arrangement above and the editor or keyboard below**.
+Arrange keeps the **arrangement above the editor**. The optional keyboard sits below both and stays available in Live and Mix.
 The Inspector opens on the right in all three views. Arrange, Live and Mix remember their
 own selections, panel layout and scroll positions for the current session.
 
@@ -10,6 +10,8 @@ own selections, panel layout and scroll positions for the current session.
   record of the selected direction, browser behavior, and requirements for future implementation.
 - [Implementation plan](implementation-plan.md) maps those decisions to frontend components,
   seven delivery milestones, compatibility checks and release criteria.
+- [Perform workflow follow-up plan](perform-workflow-follow-up-plan.md) covers the seven musician
+  and producer findings, with implementation stages and checks for keeping Perform within the browser viewport.
 - [Milestone 1 baseline](milestone-1-baseline.md) includes importable clip and legacy performances,
   musician workflows, command owners, browser measurements and two current behavior gaps.
 - [Milestone 2 preview and verification](milestone-2-view-state.md) explains how to try a same-device pad and clip edit, restore a view and check navigation during playback.

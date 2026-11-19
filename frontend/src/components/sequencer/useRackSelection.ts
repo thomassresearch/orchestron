@@ -13,6 +13,7 @@ export function useRackSelection() {
     });
   }, [setIds]);
   const picker = (id: string, multiple = true) => ({
+    "data-rack-choice": id,
     "aria-pressed": ids.includes(id),
     onClick: (event: MouseEvent<HTMLButtonElement>) => select(id, multiple && event.shiftKey),
     onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
