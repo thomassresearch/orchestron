@@ -1034,3 +1034,27 @@ def test_controller_workspace_emits_cc_values_and_restores_manual_phase():
     assert not runtime.audition_status()
     assert runtime._config.controller_tracks["filter"].active_pad == 0
     assert request.model_dump() == original
+
+
+@pytest.mark.parametrize("after_boundary", [False, True])
+def test_manual_launch_keeps_its_deadline_under_held_speaker(after_boundary):
+    runtime, request = _preview_runtime()
+    request.tracks[0].pad_loop_enabled = False
+    runtime.configure(request)
+    runtime.start()
+    runtime._midi_service.arranger_running = False
+    track = runtime._config.tracks["lead"]
+    beat = runtime._transport_subunit_count_for_length(1, track.timing)
+    runtime._advance_render_to_event_locked(runtime._config, beat)
+    due = runtime._next_track_cycle_boundary_subunit(track, runtime._absolute_subunit)
+    runtime.queue_pad("lead", 1)
+    runtime.audition(_preview_command())
+    release = due + beat if after_boundary else due - beat
+    runtime._advance_render_to_event_locked(runtime._config, release)
+    status = runtime.status().auditions["lead"]
+    expected = (1, None) if after_boundary else (0, 1)
+    assert (status["manual_active_pad"], status["manual_queued_pad"]) == expected
+    runtime.audition(_preview_command("preview_end", 2))
+    assert (track.active_pad, track.queued_pad) == expected
+    if after_boundary:
+        assert track.phase_offset_subunit == due

@@ -39,6 +39,12 @@ Performance save, autosave and exports use saved definitions. Resolve changed dr
 
 Use **Play edit** to hear a draft and **Stop edit** to return to the song. Audition does not save your work. See [Play and jam](multitrack_arranger.md#play-and-jam) for how previews interact with song playback, looping and arpeggiator input.
 
+## Build a legacy phrase from pads
+
+In **Live**, choose **Edit** on a legacy device and open **Pattern workspace**. In **Free workspace**, use **Insert pad…** three times to add pads 1, 2 and 1. Each insertion goes after the selected item, or at the end when the selection is empty. In **Pad actions** mode you can also drag a numbered pad directly to the desired position in the phrase.
+
+Choose **Select all**, then **Group** to save the phrase as a reusable definition. Open the named group to revise its sequence, then choose **Apply** to update every use. **Save Performance** keeps the pads and saved definitions. Place phrases in the song from **Arrange**.
+
 ## Transpose reusable content
 
 Use the arranger's transposition controls to change pitch without rewriting notes. Shared repetition settings and local placement offsets can combine. Review the affected occurrences before saving. See [Transpose clips without changing notes](multitrack_arranger.md#transpose-clips-without-changing-notes).

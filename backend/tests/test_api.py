@@ -11212,3 +11212,25 @@ def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path,
             csd = archive.read('Offline_Export/Offline_Export.csd').decode()
         assert 'ksmps = 1' in csd and csd.count('opcode vcs_fm6_voice,') == 1
         assert 'aOutput = kSum * iGain' in csd
+
+
+def test_live_physical_pad_preview_has_a_separate_slot_at_clip_capacity(tmp_path):
+    from backend.tests.test_clip_arrangement import capacity_audition_config
+
+    config = capacity_audition_config()
+    track = config["tracks"][0]
+    track["live_preview_pad"] = 513
+    track["pads"].append({"pad_index": 513, "length_beats": 1, "steps": [83, None, None, None]})
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Live pad preview")
+        base = f"/api/sessions/{session}/sequencer"
+        response = client.put(base + "/config", json=config)
+        assert response.status_code == 200, response.text
+        command = {"track_ids": ["lead"], "gesture_id": "speaker"}
+        response = client.post(base + "/audition", json={**command, "action": "preview_start", "revision": 1, "sequence": [513]})
+        assert response.status_code == 200, response.text
+        assert response.json()["tracks"][0]["active_pad"] == 513
+        response = client.post(base + "/audition", json={**command, "action": "preview_end", "revision": 2})
+        assert response.status_code == 200 and not response.json()["auditions"]
+        track["live_preview_pad"] = 512
+        assert client.put(base + "/config", json=config).status_code == 422

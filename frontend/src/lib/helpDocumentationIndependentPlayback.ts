@@ -7,7 +7,7 @@ With Manual pads, Play repeats the pad selected for editing from its beginning. 
 
 If Arranger Play starts stopped instruments, Arranger Stop also stops them. Instruments already running before Play remain running until manually stopped.
 
-Open Live and Keyboard to hold a chord while launching pads. On a phone use a second finger on the compact launcher. Edit opens the physical pad. Save Performance stores direct pad edits.
+Open Live and Keyboard to hold a chord while launching pads. On a phone use a second finger on the compact launcher. Edit opens the physical pad. Save Performance stores direct pad edits. Filled dots mark playable pads. Hold a speaker to preview, or choose Preview pads on a narrow bank. Pad actions lets you copy pads and transpose melodic pads while keeping a queued launch. Use Insert pad… in a legacy pattern workspace to build a phrase.
 
 Groups and supergroups play through their speaker preview or workspace Play. Device Play follows Playback source. The arranger cursor and global Play indicator stay stopped during independently started playback. These rules include controller sequencers and Arranger-mode arpeggiators; Live arpeggiators retain their behavior. Arpeggiators still require input notes.`,
   german: `### Ein Pattern mit Begleitspuren entwickeln
@@ -18,7 +18,7 @@ Bei Manuellen Pads wiederholt Play das zum Bearbeiten ausgewählte Pad von Anfan
 
 Wenn Arranger-Play die gestoppten Instrumente startet, stoppt Arranger-Stop auch diese. Bereits vor Play laufende Instrumente laufen weiter, bis sie manuell gestoppt werden.
 
-Unter Live kannst du die Klaviatur öffnen und beim Starten von Pads einen Akkord halten. Tippe auf dem Smartphone mit einem zweiten Finger auf den kompakten Launcher. Bearbeiten öffnet das Geräte-Pad. Performance speichern sichert direkte Pad-Änderungen.
+Unter Live kannst du die Klaviatur öffnen und beim Starten von Pads einen Akkord halten. Tippe auf dem Smartphone mit einem zweiten Finger auf den kompakten Launcher. Bearbeiten öffnet das Geräte-Pad. Performance speichern sichert direkte Pad-Änderungen. Gefüllte Punkte markieren Pads mit spielbarem Inhalt. Zum Vorhören den Lautsprecher halten oder bei wenig Platz Pads vorhören wählen. Mit Pad-Aktionen kannst du Pads kopieren und melodische Pads transponieren. Vorgemerkte Starts bleiben erhalten. Pad einfügen… fügt der Phrase auf der Pattern-Arbeitsfläche ein Pad hinzu.
 
 Gruppen und Supergruppen lassen sich über ihren Lautsprecher oder Workspace-Play anhören. Geräte-Play folgt der Wiedergabequelle. Bei unabhängig gestarteter Wiedergabe bleiben Arranger-Cursor und globale Play-Anzeige gestoppt. Dies gilt auch für Controller-Sequencer und Arpeggiatoren im Arranger-Modus; Live-Arpeggiatoren behalten ihr Verhalten. Arpeggiatoren benötigen weiterhin Eingangsnoten.`,
   french: `### Développer un motif avec un accompagnement
@@ -29,7 +29,7 @@ Avec Pads manuels, Play répète depuis son début le pad sélectionné pour l'�
 
 Si Play de l’arrangeur démarre les instruments arrêtés, Stop les arrête aussi. Les instruments déjà en marche avant Play continuent jusqu’à leur arrêt manuel.
 
-Ouvrez le clavier dans Live pour tenir un accord tout en lançant des pads. Sur téléphone, touchez le lanceur compact avec un deuxième doigt. Modifier ouvre le pad de l’appareil. Enregistrer la performance conserve les modifications directes du pad.
+Ouvrez le clavier dans Live pour tenir un accord tout en lançant des pads. Sur téléphone, touchez le lanceur compact avec un deuxième doigt. Modifier ouvre le pad de l’appareil. Enregistrer la performance conserve les modifications directes du pad. Un point plein signale un pad avec du contenu jouable. Maintenez son haut-parleur pour l’écouter, ou choisissez Écouter les pads sur un petit écran. Actions des pads permet de copier les pads et de transposer les pads mélodiques pendant qu’un lancement reste en attente. Insérer un pad… permet de composer une phrase dans l’atelier de motifs classique.
 
 Les groupes et supergroupes se jouent avec leur haut-parleur ou Play de l'atelier. Play de l'appareil suit sa source. Le curseur et l'indicateur Play global restent arrêtés pendant la lecture indépendante. Ces règles incluent les séquenceurs contrôleur et les arpégiateurs en mode Arrangeur ; le mode Live reste inchangé. Les arpégiateurs nécessitent toujours des notes d'entrée.`,
   spanish: `### Desarrollar un patrón con acompañamiento
@@ -40,7 +40,7 @@ Con Pads manuales, Play repite desde el principio el pad seleccionado para edita
 
 Si Play del arreglador inicia los instrumentos detenidos, Stop también los detiene. Los instrumentos que ya estaban en marcha antes de Play siguen hasta detenerlos manualmente.
 
-Abre el teclado en En vivo para mantener un acorde mientras lanzas pads. En el teléfono, toca el lanzador compacto con un segundo dedo. Editar abre el pad del dispositivo. Guardar interpretación conserva los cambios directos del pad.
+Abre el teclado en En vivo para mantener un acorde mientras lanzas pads. En el teléfono, toca el lanzador compacto con un segundo dedo. Editar abre el pad del dispositivo. Guardar interpretación conserva los cambios directos del pad. Los puntos llenos indican pads con contenido reproducible. Mantén pulsado el altavoz para escuchar un pad o elige Escuchar pads en una pantalla estrecha. Acciones de pad permite copiar pads y transponer los melódicos sin alterar el lanzamiento en cola. Insertar pad… añade una referencia a una frase en el taller de patrones clásico.
 
 Los grupos y supergrupos se escuchan con su altavoz o Play del espacio de trabajo. Play del dispositivo sigue su fuente. El cursor y el indicador Play global permanecen detenidos durante la reproducción independiente. Estas reglas incluyen los secuenciadores controladores y arpegiadores en modo Arreglador; Live conserva su comportamiento. Los arpegiadores siguen necesitando notas de entrada.`
 };

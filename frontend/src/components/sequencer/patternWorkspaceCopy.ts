@@ -1,7 +1,7 @@
 import type { GuiLanguage } from "../../types";
 
 const en = {
-  workspace: "Pattern workspace", free: "Free workspace", play: "Play workspace", stop: "Stop workspace",
+  insertPad: "Insert pad…", selectAll: "Select all", workspace: "Pattern workspace", free: "Free workspace", play: "Play workspace", stop: "Stop workspace",
   saved: "Saved phrases", hint: "Drag pads or phrases here. Cmd/Ctrl-click to select; right-click to group or split.",
   group: "Group", super: "Supergroup", split: "Ungroup", remove: "Remove", clear: "Clear workspace",
   edit: "Edit", apply: "Apply", saveNew: "Save as new", discard: "Discard changes", rest: "Add rest…",
@@ -13,7 +13,7 @@ const en = {
 };
 type Copy = typeof en;
 const de: Copy = {
-  workspace: "Pattern-Arbeitsfläche", free: "Freie Arbeitsfläche", play: "Arbeitsfläche abspielen", stop: "Arbeitsfläche stoppen",
+  insertPad: "Pad einfügen…", selectAll: "Alle auswählen", workspace: "Pattern-Arbeitsfläche", free: "Freie Arbeitsfläche", play: "Arbeitsfläche abspielen", stop: "Arbeitsfläche stoppen",
   saved: "Gespeicherte Phrasen", hint: "Pads oder Phrasen hierher ziehen. Cmd/Strg-Klick wählt aus; Rechtsklick gruppiert oder löst Gruppen auf.",
   group: "Gruppieren", super: "Supergruppe", split: "Gruppe auflösen", remove: "Entfernen", clear: "Arbeitsfläche leeren",
   edit: "Bearbeiten", apply: "Übernehmen", saveNew: "Als neu speichern", discard: "Änderungen verwerfen", rest: "Pause hinzufügen…",
@@ -24,7 +24,7 @@ const de: Copy = {
   queued: "Vorgemerkt", auditioning: "Arbeitsfläche spielt", actions: "Arbeitsflächenaktionen"
 };
 const fr: Copy = {
-  workspace: "Atelier de motifs", free: "Assemblage libre", play: "Lire l’assemblage", stop: "Arrêter l’assemblage",
+  insertPad: "Insérer un pad…", selectAll: "Tout sélectionner", workspace: "Atelier de motifs", free: "Assemblage libre", play: "Lire l’assemblage", stop: "Arrêter l’assemblage",
   saved: "Phrases enregistrées", hint: "Glisser des motifs ou phrases ici. Cmd/Ctrl-clic sélectionne ; clic droit pour grouper ou dissocier.",
   group: "Grouper", super: "Supergroupe", split: "Dissocier", remove: "Retirer", clear: "Vider l’assemblage",
   edit: "Modifier", apply: "Appliquer", saveNew: "Enregistrer une copie", discard: "Annuler les modifications", rest: "Ajouter un silence…",
@@ -35,7 +35,7 @@ const fr: Copy = {
   queued: "En attente", auditioning: "Lecture de l’assemblage", actions: "Actions de l’assemblage"
 };
 const es: Copy = {
-  workspace: "Taller de patrones", free: "Montaje libre", play: "Reproducir montaje", stop: "Detener montaje",
+  insertPad: "Insertar pad…", selectAll: "Seleccionar todo", workspace: "Taller de patrones", free: "Montaje libre", play: "Reproducir montaje", stop: "Detener montaje",
   saved: "Frases guardadas", hint: "Arrastra patrones o frases aquí. Cmd/Ctrl-clic selecciona; clic derecho para agrupar o separar.",
   group: "Agrupar", super: "Supergrupo", split: "Desagrupar", remove: "Quitar", clear: "Vaciar montaje",
   edit: "Editar", apply: "Aplicar", saveNew: "Guardar como nuevo", discard: "Descartar cambios", rest: "Añadir silencio…",

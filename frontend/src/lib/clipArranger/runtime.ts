@@ -8,7 +8,8 @@ import { arrangementTimings, sourceKeys } from "./migration";
 import { CLIP_LIMITS, resolveClip, resolveContent, validateArrangement, type ClipLane, type PatternTiming, type DefinitionDraft, type PatternDefinition } from "./model";
 
 export type RuntimeClipSchedule = { version: 1 | 2; transpose_plans?: OffsetPlan[]; end: number; cycle_ticks: number | null; clips: { id: string; start: number; length: number; offset: number; mode: "once" | "loop"; repeat_index_base?: number; content: { pad: number | null; length: number; transpose_refs?: number[] }[] }[] };
-type AuditionState = SequencerState & { clipAuditionContext?: { laneId: string; schedule: RuntimeClipSchedule } };
+export type LivePreviews = ReadonlyMap<string, { padIndex?: number }>;
+type AuditionState = SequencerState & { livePreviewSlots?: Record<string, number>; clipAuditionContext?: { laneId: string; schedule: RuntimeClipSchedule } };
 /** The standalone arpeggiator update must carry the same session-only schedule. */
 export function clipAuditionSchedule(state: SequencerState, laneId: string): RuntimeClipSchedule | undefined {
   const context = (state as AuditionState).clipAuditionContext;
@@ -44,17 +45,24 @@ export function runtimeSchedule(state: SequencerState, lane: ClipLane): RuntimeC
 }
 
 /** Compilation view only. Existing musical serializers remain the single payload authority. */
-export function clipRuntimeView(state: SequencerState): SequencerState {
+export function clipRuntimeView(state: SequencerState, previews?: LivePreviews): AuditionState {
   const model = state.clipArrangement;
   if (!model) return state;
   validateArrangement(model, arrangementTimings(state), (state as AuditionState).clipAuditionContext?.laneId);
-  const next = { ...state };
+  const next: AuditionState = { ...state };
   for (const lane of model.lanes) {
     const key = sourceKeys[lane.source];
     const definitions = lane.definitions.filter((d): d is PatternDefinition => d.kind === "pattern");
+    const pads = definitions.map(d => d.payload);
+    const index = previews?.get(lane.id)?.padIndex;
+    const physicalPad = index === undefined ? undefined : state[key].find(track => track.id === lane.id)?.pads[index];
+    if (physicalPad) {
+      (next.livePreviewSlots ??= {})[lane.id] = pads.length;
+      pads.push(physicalPad);
+    }
     Object.assign(next, { [key]: next[key].map(track => track.id === lane.id ? {
       ...track, activePad: 0, queuedPad: null, queuedEnabled: null, padLoopEnabled: true, padLoopRepeat: false,
-      padLoopPattern: { rootSequence: [], groups: [], superGroups: [] }, padLoopSequence: [], pads: definitions.map(d => d.payload)
+      padLoopPattern: { rootSequence: [], groups: [], superGroups: [] }, padLoopSequence: [], pads
     } : track) });
   }
   return next;
@@ -66,7 +74,12 @@ export function attachClipSchedules<T extends import("../../types").SessionSeque
   const schedules = new Map(model.lanes.map(lane => [lane.id, runtimeSchedule(state, lane)]));
   const scheduleFor = (id: string) => schedules.get(id) ?? schedules.get(parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? "");
   const audition = (state as AuditionState).clipAuditionContext;
-  const auditionFor = (id: string) => audition && (id === audition.laneId || parseDrummerRowRuntimeTrackId(id)?.drummerTrackId === audition.laneId) ? { audition_schedule: audition.schedule } : {};
+  const auditionFor = (id: string) => {
+    const device = parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? id;
+    const slot = (state as AuditionState).livePreviewSlots?.[device];
+    return { ...(audition?.laneId === device ? { audition_schedule: audition.schedule } : {}),
+      ...(slot === undefined ? {} : { live_preview_pad: slot }) };
+  };
   return { ...config,
     playback_end_step: state.arrangerLoopSelection ? config.playback_end_step : Math.ceil(model.end / 2520),
     tracks: config.tracks.map(track => ({ ...track, ...auditionFor(track.track_id), ...(scheduleFor(track.track_id) ? { clip_schedule: scheduleFor(track.track_id), pad_loop_sequence: [] } : {}) })),

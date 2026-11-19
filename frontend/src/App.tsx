@@ -65,7 +65,7 @@ import {
 } from "./lib/sequencer";
 import { drummerRowRuntimeTrackId } from "./lib/sequencerRuntime";
 import { useImportDialogs } from "./hooks/useImportDialogs";
-import { useSequencerRuntimeController } from "./hooks/useSequencerRuntimeController";
+import { useSequencerRuntimeController, type PreviewGestures } from "./hooks/useSequencerRuntimeController";
 import { useAppStore } from "./store/useAppStore";
 import orchestronIcon from "./assets/orchestron-icon.png";
 import {
@@ -371,6 +371,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     [activeMidiInput, midiInputs]
   );
   const instrumentsRunning = activeSessionState === "running";
+  const previewGestures = useRef<PreviewGestures>(new Map());
   const buildBackendSequencerConfig = useCallback(
     (
       state?: SequencerState,
@@ -379,7 +380,9 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     ): SessionSequencerConfigRequest => {
       const authored = state ?? useAppStore.getState().sequencer;
       const draft = mode === "runtime" ? useAppStore.getState().clipAuditionDraft : null;
-      const resolvedState = clipRuntimeView(draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored);
+      const compilation = draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored;
+      const previews = mode === "runtime" ? previewGestures.current : undefined;
+      const resolvedState = clipRuntimeView(compilation, previews);
       const transportStepCount = transportStepCountFromPerformanceSequencers(
         resolvedState.timing,
         resolvedState.tracks,
@@ -545,7 +548,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
         tracks: transportTracks,
         score_tracks: resolvedState.scoreTracks.map(t => scoreTrackConfig(t, exportMode)),
         controller_tracks: controllerTracks,
-        arpeggiators: buildBackendArpeggiatorConfigs(resolvedState).map((arp, index) => ({
+        arpeggiators: buildBackendArpeggiatorConfigs(compilation, previews).map((arp, index) => ({
           ...arp, enabled: exportMode && arp.playback_mode === "arranger" ? resolvedState.arpeggiators[index].padLoopEnabled : arp.enabled
         }))
       });
@@ -559,7 +562,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     const resolvedState = draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored;
     return {
       tempo_bpm: resolvedState.timing.tempoBPM,
-      arpeggiators: buildBackendArpeggiatorConfigs(resolvedState)
+      arpeggiators: buildBackendArpeggiatorConfigs(resolvedState, previewGestures.current)
     };
   }, []);
   const pianoRollNoteSessionRef = useRef(new Map<string, string>());
@@ -588,6 +591,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     stopSequencerTransport,
     cancelPendingArpeggiatorEdits,
   } = useSequencerRuntimeController({
+    previewGestures,
     activePage,
     melodicVisualsVisible: !collapsedPanels.melodic,
     drummerVisualsVisible: !collapsedPanels.drummer,

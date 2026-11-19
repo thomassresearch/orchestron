@@ -388,7 +388,12 @@ class PerformanceMidiRouter:
             status = {"active": bool(state.audition_sequence), "queued": state.audition_pending[0] if state.audition_pending else None}
             if state.preview:
                 status.update(preview_gesture=state.preview["gesture"], preview_revision=state.preview["revision"],
-                              preview_active=state.preview["applied"])
+                              preview_active=state.preview["applied"], preview_source_running=state.preview["running"])
+                if not state.config.pad_loop_enabled or state.config.playback_mode == "live":
+                    fields = state.preview["fields"]
+                    due = fields["queued_beat"] is not None and fields["queued_beat"] <= self._beat(self._sample)
+                    status.update(manual_active_pad=fields["queued_pad"] if due else fields["active_pad"],
+                                  manual_queued_pad=None if due else fields["queued_pad"])
             if state.workspace:
                 base = state.preview["fields"] if state.preview else self._override_fields(state)
                 active = state.workspace["applied"]

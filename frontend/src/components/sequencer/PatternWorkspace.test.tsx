@@ -231,3 +231,21 @@ it.each(["controller", "arpeggiator"] as const)("persists %s definitions without
   const restored = kind === "controller" ? useAppStore.getState().sequencer.controllerSequencers[0] : useAppStore.getState().sequencer.arpeggiators[0];
   expect(restored.padLoopPattern.groups).toEqual(device.padLoopPattern.groups);
 });
+
+it("inserts physical pad references after the selection, groups them and applies without reordering the song", () => {
+  render(<Editor />);
+  const insert = (pad: number) => fireEvent.change(screen.getByRole("combobox", { name: "Insert pad…" }), { target: { value: String(pad) } });
+  insert(0); insert(0);
+  fireEvent.click(within(strip()).getAllByRole("button", { name: "#1" })[0]);
+  insert(1);
+  fireEvent.click(screen.getByRole("button", { name: "Select all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Group" }));
+  const sequence = (pads: number[]) => pads.map(padIndex => ({ type: "pad", padIndex }));
+  expect(current.padLoopPattern.groups[0].sequence).toEqual(sequence([0, 1, 0]));
+  fireEvent.click(screen.getByRole("button", { name: "Group A" }));
+  insert(2);
+  fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+  expect(current.padLoopPattern.groups[0].sequence).toEqual(sequence([0, 1, 0, 2]));
+  expect(current.padLoopPattern.rootSequence).toEqual([]);
+  expect(audition).not.toHaveBeenCalled();
+});

@@ -173,7 +173,7 @@
 .ws-live-editor-heading { padding: 4px; }
 @container (max-width: 610px) {
   .ws-live-row { grid-template-columns: minmax(0,1fr) auto; gap: 5px 8px; }
-  .ws-live-pads { grid-row: 2; grid-column: 1 / -1; }
+  .ws-live-bank { grid-row: 2; grid-column: 1 / -1; }
   .ws-live-actions { grid-row: 1; grid-column: 2; }
   .ws-live-state { grid-column: 1 / -1; }
 }
@@ -204,3 +204,26 @@
 .ws-meter { height: 35px; display: grid; align-content: center; }
 .ws-output { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 15px; padding: 4px 10px; border-top: 1px solid #40606b; background: #12212d; color: #cbe1ea; }
 .ws-output .ws-meter { max-width: 57rem; width: 100%; }
+
+.ws-live-bank { min-width: 0; display: grid; gap: 4px; }
+.ws-bank-options { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .75rem; }
+.ws-pad-legend { color: #a1b3c5; font-size: .69rem; }
+.ws-pad-legend b { color: #87e2bd; }
+.ws-pad-slot { position: relative; min-width: 0; display: flex; }
+.ws-pad-speaker { display: none; }
+@container (min-width: 880px) {
+  .ws-pad-speaker { display: block; }
+  .ws-pad-speaker button { width: 24px; height: 100%; }
+}
+.ws-pad-slot > button { width: 100%; padding-inline: 1px; display: flex; justify-content: center; align-items: center; gap: 3px; }
+.ws-pad-slot::after { pointer-events: none; content: ""; position: absolute; left: 4px; top: 4px; width: 5px; height: 5px; border: 1px solid #8fa4b7; border-radius: 50%; }
+.ws-pad-slot[data-populated=true]::after { background: #87e2bd; border-color: #87e2bd; }
+.ws-pad-slot[data-sounding] > button { border-color: #58cbd7; }
+.ws-pad-slot[data-queued] > button { border-color: #efa85a; }
+.ws-pad-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: .75rem; }
+.ws-pad-tools button { min-height: 28px; min-width: 28px; padding: 2px 5px; border: 1px solid #4b6075; border-radius: 4px; }
+.ws-pad-tools span { color: #9bddc7; }
+@container (max-width: 610px) {
+  .ws-pad-slot > button { gap: 1px; }
+  .ws-pad-slot > button svg { width: 11px; }
+}

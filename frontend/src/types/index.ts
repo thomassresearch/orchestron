@@ -892,6 +892,7 @@ export interface SessionControllerSequencerPadConfig {
 }
 
 export interface SessionSequencerTrackConfig {
+  live_preview_pad?: number;
   audition_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   track_id: string;
@@ -923,6 +924,7 @@ export interface SessionScoreTrackConfig extends Omit<SessionSequencerTrackConfi
 
 export interface SessionControllerSequencerTrackConfig {
   automation_target?: { instrument_id: string; controller_node_ids: string[] };
+  live_preview_pad?: number;
   audition_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   controller_mode?: ControllerSequencerMode;
@@ -989,6 +991,7 @@ export interface SessionArpeggiatorPadConfig {
 }
 
 export interface SessionArpeggiatorConfig extends SessionArpeggiatorPadConfig {
+  live_preview_pad?: number;
   audition_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   clip_schedule?: import("../lib/clipArranger/runtime").RuntimeClipSchedule;
   arpeggiator_id: string;
@@ -1435,7 +1438,7 @@ export interface SessionAuditionRequest {
   arpeggiator_id?: string;
   sequence?: number[];
 }
-export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean; workspace_gesture?: string; workspace_active?: boolean; workspace_queued?: boolean; workspace_sequence?: number[]; workspace_position?: number | null }>;
+export type PerformanceAuditionStatus = Record<string, { active: boolean; queued: SessionAuditionRequest["action"] | null; preview_gesture?: string; preview_revision?: number; preview_active?: boolean; preview_source_running?: boolean; manual_active_pad?: number; manual_queued_pad?: number | null; workspace_gesture?: string; workspace_active?: boolean; workspace_queued?: boolean; workspace_sequence?: number[]; workspace_position?: number | null }>;
 
 export interface SessionLaneOutputRequest { revision: number; lanes: Record<string, { mute: boolean; solo: boolean }> }
 

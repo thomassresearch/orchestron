@@ -83,6 +83,14 @@ Open **Live** and find the device you want to play. **Editing** is the physical 
 3. Watch the queued pad turn into the playing pad at the device’s launch boundary. The compact launcher stays above the keys on a phone. Use the song transport to bring in the arrangement. An independently started Manual device keeps playing through a song seek or stop.
 4. Choose **Edit** in the device row to open its physical pad. Direct pad edits take effect as you play. **Save Performance** stores them with the project. For reusable pattern definitions use **Apply**. Arpeggiator presets have separate **Update preset** and **Save as preset** actions.
 
+A filled green dot marks a pad with playable content in its current length. A hollow dot marks an empty or silent pad. You can launch either. A controller pad sends values to its assigned destination, and an arpeggiator needs input notes to sound.
+
+**Listen before launching.** Hold the speaker beside a pad for a quarter of a second. On a narrow bank, choose **Preview pads**, then hold the numbered speaker with a finger, Space or Enter. Release to hear the underlying part again. A Manual pad already in the queue keeps its launch time. Choose **Launch pads** to resume launching. [Phone view with a held key and pad preview](../../screenshots/perform-workspace-live-pad-preview.png)
+
+**Prepare a variation.** Choose **Pad actions** on the device. Select the source pad, choose a destination under **Copy pad to…**, and press the button showing both pad numbers. You can also drag a pad onto another slot in this mode. For a melodic pad, select the copy and use the arrows to move its notes in scale. Hold an arrow to move the key by one degree, or choose **Move key by degree** and press an arrow once. [Build a legacy phrase from pads](pattern_pads_and_pad_looper.md#build-a-legacy-phrase-from-pads)
+
+![Pad actions on a melodic track with its legacy phrase open below](../../screenshots/perform-workspace-live-pad-actions.png)
+
 ![Live launcher with pad 1 playing, pad 2 queued and a held chord on the keyboard](../../screenshots/perform-workspace-live-launcher.png)
 
 **Mix** recalls the selected instance, open controls and channel-bank position when you return. To reach a kit or effect from Arrange or Live, open **Compact rack**, select its patch number, then choose a destination. [Mix a performance](audio_mixer_and_routing.md#mix-a-performance)

@@ -104,6 +104,29 @@ async page => {
     await button("Pad 3", phrase).click();
     await button("Edit", phrase).click();
     await button("HOLD").first().click();
+    const padMode = phrase.getByRole("combobox", { name: "Pad mode" });
+    await padMode.selectOption("actions");
+    await button("Pad actions · Pad 1", phrase).click();
+    await phrase.getByRole("combobox", { name: "Copy pad to…" }).selectOption("4");
+    await phrase.getByRole("button", { name: /^(Copy|Replace) · 1 → 5$/ }).click();
+    await button("Pad actions · Pad 5", phrase).click();
+    await button("Notes in scale · Up · Pad 5", phrase).click();
+    await padMode.selectOption("preview");
+    const speaker = button("Audition Routed phrase · Pad 5", phrase);
+    await speaker.focus();
+    const prepare = page.waitForRequest(req => req.method() === "PUT" && req.url().endsWith("/sequencer/config")
+      && req.postDataJSON().tracks.some(t => t.track_id === "phrase" && t.live_preview_pad !== undefined));
+    await page.keyboard.down("Space");
+    try {
+      const payload = (await prepare).postDataJSON().tracks.find(t => t.track_id === "phrase");
+      const slot = payload.live_preview_pad;
+      const pitch = await page.evaluate(() => window.__workspaceTest.store.getState().sequencer.tracks.find(t => t.id === "phrase").pads[4].steps[0].note);
+      check(payload.pads.find(p => p.pad_index === slot).steps[0].note === pitch
+        && payload.clip_schedule.clips.every(c => c.content.every(s => s.pad !== slot)), "Speaker used a saved clip slot");
+      await page.waitForFunction(() => window.__workspaceTest.store.getState().performanceAuditions.phrase?.preview_active);
+    } finally { await page.keyboard.up("Space"); }
+    await page.waitForFunction(() => !window.__workspaceTest.store.getState().performanceAuditions.phrase?.preview_gesture);
+    check(await page.evaluate(() => window.__workspaceTest.store.getState().sequencerEditingPads.phrase === 2), "Preview selected a pad");
     await button("Arrange").click();
     await edit.waitFor();
     await page.waitForFunction(({ x, zoom, top }) => document.querySelector(".ws-dock-scroll").scrollTop === top && document.querySelector("[data-arranger-viewport]").scrollLeft === x && document.querySelector('[aria-label="Zoom"]').value === zoom, before);

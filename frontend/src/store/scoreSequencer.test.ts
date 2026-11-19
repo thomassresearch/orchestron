@@ -1,7 +1,7 @@
 import { beforeEach, expect, it } from "vitest";
 import fixture from "../../../backend/tests/fixtures/sequencers/score.json";
 import { useAppStore } from "./useAppStore";
-import { addScoreTrack, selectScorePad, updateScoreTrack } from "./scoreActions";
+import { addScoreTrack, copyScorePad, selectScorePad, updateScoreTrack } from "./scoreActions";
 import { buildPersistedAppStateSnapshot, normalizeSequencerState } from "./appStoreModel";
 import { normalizeScoreTrack, scoreTrackConfig, scoreHasContent } from "../lib/scoreSequencer";
 import { buildPerformanceExportPayload, parsePerformanceExportPayload } from "../lib/bundleImportExport";
@@ -102,4 +102,20 @@ it("clears the queued pad when an audible score launch marker arrives", () => {
   useAppStore.getState().syncSequencerRuntime({ isPlaying: true, tracks: event.switches.map(t => ({ trackId: t.track_id, activePad: t.active_pad, queuedPad: t.queued_pad, runtimePadStartSubunit: t.runtime_pad_start_subunit })) });
   const state = useAppStore.getState();
   expect(mergedSequencerState(state.sequencer, state.sequencerRuntime).scoreTracks[0]).toMatchObject({ activePad: 1, queuedPad: null });
+});
+
+it("copies hidden Score notes with independent IDs while preserving the editing and playback slots", () => {
+  load();
+  const id = track().id;
+  updateScoreTrack(id, t => ({ ...t, pads: t.pads.map((p, i) => i === 0 ? { ...p, lengthBeats: 1 } : p) }));
+  selectScorePad(id, 3);
+  const source = structuredClone(track().pads[0]);
+  expect(source.notes.some(n => n.startTicks >= 20160)).toBe(true);
+  copyScorePad(id, 0, 1);
+  const copied = track().pads[1];
+  expect(copied.notes.map(n => n.id)).not.toEqual(source.notes.map(n => n.id));
+  expect({ ...copied, notes: copied.notes.map((n, i) => ({ ...n, id: source.notes[i].id })) }).toEqual(source);
+  expect(track().pads[0]).toEqual(source);
+  expect(track().activePad).toBe(0);
+  expect(useAppStore.getState().sequencerEditingPads[id]).toBe(3);
 });

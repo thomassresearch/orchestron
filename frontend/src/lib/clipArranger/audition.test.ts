@@ -67,3 +67,21 @@ it('ignores unrelated draft additions and rejects over-budget selected trees',()
   expect(()=>clipAuditionState(state,draft)).toThrow('definition budget');
   expect(lane.definitions).toHaveLength(2);
 });
+
+it.each(Object.keys(sourceKeys) as SourceKind[])("keeps a held Live %s pad separate from saved clips and the draft audition", source => {
+  const { state, model, lane, target } = setup(3, source);
+  const draft = clipAuditionState(state, beginDraft(model, target));
+  const sourceKey = sourceKeys[source], original = state[sourceKey].find(t => t.id === lane.id)!;
+  const previews = new Map([[lane.id, { padIndex: 6 }]]);
+  const compiled = clipRuntimeView(draft.state, previews);
+  const slot = compiled.livePreviewSlots![lane.id], device = compiled[sourceKey].find(t => t.id === lane.id)!;
+  expect(device.pads[slot]).toEqual(original.pads[6]);
+  expect(slot).toBe(device.pads.length - 1);
+  expect(draft.sequence).not.toContain(slot);
+  expect(clipRuntimeView(state).livePreviewSlots).toBeUndefined();
+  if (source === "arpeggiator") {
+    const config = buildBackendArpeggiatorConfigs(draft.state, previews).find(a => a.arpeggiator_id === lane.id)!;
+    expect(config.live_preview_pad).toBe(slot);
+    expect(config.clip_schedule!.clips[0].content[0].pad).toBe(0);
+  }
+});

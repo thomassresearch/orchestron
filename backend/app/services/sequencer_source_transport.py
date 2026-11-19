@@ -110,8 +110,8 @@ class SequencerSourceTransport:
     def track_origin(self, track):
         return self.origin if track.pad_loop_enabled else self.manual_origins.get(track.track_id, 0)
 
-    def locate(self, track, at: int):
-        origin = self.track_origin(track)
+    def locate(self, track, at: int, *, origin: int | None = None):
+        origin = self.track_origin(track) if origin is None else origin
         self.runtime._position_prepared_track(track, max(0, at - origin))
         track.phase_offset_subunit += origin
         if track.clip_boundary is not None:

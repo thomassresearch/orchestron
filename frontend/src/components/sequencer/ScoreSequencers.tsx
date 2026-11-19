@@ -3,7 +3,7 @@ import { memo, useContext, useEffect, useMemo, useState } from "react";
 import { ScoreTransportContext } from "./ScoreTransportContext";
 import type { GuiLanguage, HelpDocId, ScorePadState, ScoreTrackState, SequencerState, SequencerTimingConfig } from "../../types";
 import { useAppStore } from "../../store/useAppStore";
-import { addScoreTrack, removeScoreTrack, selectScorePad, updateScoreTrack } from "../../store/scoreActions";
+import { addScoreTrack, copyScorePad, removeScoreTrack, selectScorePad, updateScoreTrack } from "../../store/scoreActions";
 import { normalizeSequencerTiming } from "../../store/appStoreModel";
 import { scoreBeatTicks, scoreHasContent, scoreLengthTicks } from "../../lib/scoreSequencer";
 import { arrangerTransportExtent } from "../../lib/arrangerTransport";
@@ -119,7 +119,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
         aria-pressed={i === padIndex} onClick={() => { selectScorePad(track.id, i); if (running && !track.padLoopEnabled) void transport?.queue(track.id, i === soundingPad ? null : i).catch(e => setError(String(e))); }}>#{i + 1}</button>
       <ArrangerSpeaker id={track.id} item={{ type: "pad", padIndex: i }} label={`#${i + 1}`} language={language} />
     </div>)}
-      <label className="text-xs text-slate-400">{c.copyPad} <select className={input} value="" onChange={e => { const target = Number(e.target.value); attempt(() => updateScoreTrack(track.id, t => ({ ...t, pads: t.pads.map((p, i) => i === target ? { ...pad, notes: pad.notes.map(n => ({ ...n, id: crypto.randomUUID() })) } : p) }))); }}><option value="">—</option>{track.pads.map((_, i) => i !== padIndex && <option key={i} value={i}>#{i + 1}</option>)}</select></label>
+      <label className="text-xs text-slate-400">{c.copyPad} <select className={input} value="" onChange={e => { const target = Number(e.target.value); attempt(() => copyScorePad(track.id, padIndex, target)); }}><option value="">—</option>{track.pads.map((_, i) => i !== padIndex && <option key={i} value={i}>#{i + 1}</option>)}</select></label>
     </div>
     <PatternWorkspace track={track} language={language} padHasContent={i => scoreHasContent(track.pads[i], track.timing)}
       onPatternChange={padLoopPattern => attempt(() => updateScoreTrack(track.id, t => ({ ...t, padLoopPattern })))}

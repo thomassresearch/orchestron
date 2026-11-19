@@ -8,6 +8,7 @@ import type { ArpeggiatorCommand, ArpeggiatorPadState, ArpeggiatorPresetState, A
 import { ARPEGGIATOR_PATTERNS, ARPEGGIATOR_RATES, normalizeArpeggiatorSettings } from "../../store/appStoreModel";
 import { PatternWorkspace } from "./PatternWorkspace";
 import { ArrangerSpeaker } from "./ArrangerSpeaker";
+import { copyArpeggiatorPad } from "../../lib/livePads";
 import { arpeggiatorPadHasSound } from "../../lib/patternWorkspace";
 import { usePerformanceEditorState } from "./PerformanceEditorState";
 import { arpeggiatorCopy } from "./arpeggiatorCopy";
@@ -96,7 +97,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
         if (manualPlayback) command(i === playingPad ? { command: "cancel" } : { command: "launch", pad_index: i });
       }}
         onDragStart={e => { e.dataTransfer.setData("application/x-visualcsound-sequencer-pad", JSON.stringify({ trackId: arp.id, padIndex: i })); }}
-        onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); try { const data = JSON.parse(e.dataTransfer.getData("application/x-visualcsound-sequencer-pad")) as { trackId: string; padIndex: number }; if (data.trackId === arp.id && arp.pads[data.padIndex]) onChange({ pads: arp.pads.map((p, n) => n === i ? normalizeArpeggiatorSettings(arp.pads[data.padIndex]) : p) }); } catch { /* Ignore unrelated drags. */ } }}>
+        onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); try { const data = JSON.parse(e.dataTransfer.getData("application/x-visualcsound-sequencer-pad")) as { trackId: string; padIndex: number }; if (data.trackId === arp.id && data.padIndex !== i && arp.pads[data.padIndex]) onChange(copyArpeggiatorPad(arp, data.padIndex, i)); } catch { /* Ignore unrelated drags. */ } }}>
         #{i + 1}{arp.enabled && playingPad === i ? " ●" : ""}{runtime?.queued_pad === i ? " ◷" : ""}</button>
       <ArrangerSpeaker key={previewContext} id={arp.id} item={{ type: "pad", padIndex: i }} label={`#${i + 1}`} language={language} /></div>)}</div>
     <p className="text-[11px] text-slate-400">{c.hint}</p>

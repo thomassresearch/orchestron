@@ -54,3 +54,18 @@ it("transport cancellation also clears the initial hold delay", () => {
   expect(audition).toHaveBeenCalledExactlyOnceWith("lane", expect.objectContaining({ action: "preview_arm" }));
   expect(speaker.getAttribute("aria-pressed")).toBe("false");
 });
+
+it.each(["Escape", "visibilitychange"])("ends a pointer-owned preview on %s while keyboard focus is elsewhere", event => {
+  const { speaker, select } = setup();
+  fireEvent.pointerDown(speaker, { button: 0 });
+  act(() => vi.advanceTimersByTime(250));
+  if (event === "Escape") fireEvent.keyDown(window, { key: "Escape" });
+  else {
+    vi.spyOn(document, "visibilityState", "get").mockReturnValueOnce("hidden");
+    fireEvent(document, new Event("visibilitychange"));
+    vi.restoreAllMocks();
+  }
+  fireEvent.pointerUp(speaker);
+  expect(audition.mock.calls.map(([, command]) => command.action)).toEqual(["preview_arm", "preview_start", "preview_end"]);
+  expect(select).not.toHaveBeenCalled();
+});

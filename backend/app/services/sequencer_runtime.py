@@ -386,7 +386,10 @@ class SessionSequencerRuntime:
             status = {"active": bool(state.get("sequence")), "queued": state.get("action")}
             preview = state.get("preview")
             if preview:
-                status.update(preview_gesture=preview["gesture"], preview_revision=preview["revision"], preview_active=preview.get("applied", False))
+                status.update(preview_gesture=preview["gesture"], preview_revision=preview["revision"], preview_active=preview.get("applied", False), preview_source_running=preview["running"])
+                if preview["manual"]:
+                    pad, queued, _ = self._manual_preview_position(preview, self._absolute_subunit)
+                    status.update(manual_active_pad=pad, manual_queued_pad=queued)
             workspace = state.get("workspace")
             if workspace:
                 base = preview["previous"] if preview else state
@@ -551,6 +554,13 @@ class SessionSequencerRuntime:
             "active_pad": track.active_pad, "phase": track.phase_offset_subunit,
             "queued_pad": track.queued_pad, "queued_enabled": getattr(track, "queued_enabled", None),
         } for track in targets}
+        for track in targets:
+            snapshot = snapshots[track.track_id]
+            if snapshot["running"] and snapshot["manual"] and track.queued_pad is not None:
+                due = self._next_track_cycle_boundary_subunit(track, at)
+                if isinstance(track, SequencerTrackRuntime) and track.is_score and track.launch_quantization == "bar":
+                    due = min(due, _scores.next_bar(track, at))
+                snapshot["launch_at"] = due
         if request.action == "preview_start" and not was_running:
             self.start_audition_clock()
             at = self._absolute_subunit
@@ -573,6 +583,13 @@ class SessionSequencerRuntime:
         self._reset_render_event_cursor_locked(self._ensure_config())
         return self._status_locked()
 
+    @staticmethod
+    def _manual_preview_position(snapshot, at):
+        due = snapshot.get("launch_at")
+        if due is not None and at >= due:
+            return snapshot["queued_pad"], None, due
+        return snapshot["active_pad"], snapshot["queued_pad"], snapshot["phase"]
+
     def _end_preview(self, track, at):
         self._end_override(track, at, "preview")
 
@@ -594,6 +611,7 @@ class SessionSequencerRuntime:
             setattr(track, key, value)
         previous = snapshot["previous"]
         origin = self.sources.track_origin(track) if self.sources.active else 0
+        queued = snapshot["queued_pad"]
         if previous:
             previous["authored"] = state["authored"]
             self._auditions[track.track_id] = previous
@@ -601,21 +619,21 @@ class SessionSequencerRuntime:
                 self._overlay_audition(track, previous["sequence"], previous.get("clip_context", False))
                 origin = previous["origin"]
         elif snapshot["manual"]:
-            track.configured_active_pad = snapshot["active_pad"]
-            origin = snapshot["phase"]
-        self._position_prepared_track(track, max(0, at - origin))
-        track.phase_offset_subunit += origin
+            track.configured_active_pad, queued, origin = self._manual_preview_position(snapshot, at)
+            if self.sources.active and snapshot["running"]:
+                self.sources.manual_pads[track.track_id] = track.configured_active_pad
+                self.sources.manual_origins[track.track_id] = origin
+        self.sources.locate(track, at, origin=origin)
         if not snapshot["running"]:
             track.enabled = False
-        track.queued_pad = snapshot["queued_pad"]
+        track.queued_pad = queued
         if isinstance(track, SequencerTrackRuntime):
             track.queued_enabled = snapshot["queued_enabled"]
         if previous and previous.get("action") and previous["boundary"] <= at:
             boundary = previous["boundary"]
             self._apply_audition_command(track, boundary)
             if previous.get("sequence") and track.track_id in self._auditions:
-                self._position_prepared_track(track, max(0, at - boundary))
-                track.phase_offset_subunit += boundary
+                self.sources.locate(track, at, origin=boundary)
         elif isinstance(track, ControllerSequencerTrackRuntime):
             _controllers.restart_step_controller(self, track)
 
@@ -640,8 +658,7 @@ class SessionSequencerRuntime:
             state["sequence"] = state["pending"]
             state["origin"] = at
             self._overlay_audition(track, state["sequence"], state.get("clip_context", False))
-            self._position_prepared_track(track, 0)
-            track.phase_offset_subunit += at
+            self.sources.locate(track, at, origin=at)
         else:
             for key, value in state["authored"].items():
                 setattr(track, key, value)

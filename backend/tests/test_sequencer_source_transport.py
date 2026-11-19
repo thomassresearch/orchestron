@@ -450,3 +450,28 @@ def test_whole_song_loop_live_toggle_preserves_position_and_manual_phase():
     assert track(engine, "manual").enabled
     assert engine.sources.manual_origins["manual"] == manual_origin
     engine.stop()
+
+
+def test_physical_pad_preview_returns_to_clip_boundary_on_the_shared_clock():
+    engine, config, _ = runtime()
+    payload = config.model_dump()
+    lead = payload["tracks"][0]
+    beat = 20160
+    lead.update(pad_loop_sequence=[], live_preview_pad=1, clip_schedule={
+        "end": 8 * beat, "cycle_ticks": 8 * beat,
+        "clips": [{"id": "lead-clip", "start": 0, "length": 8 * beat, "mode": "loop",
+                   "content": [{"pad": 0, "length": 4 * beat}]}]})
+    engine.configure(SessionSequencerConfigRequest.model_validate(payload))
+    command(engine, track="manual", pad_index=0)
+    advance(engine, 5)
+    command(engine, track=None)
+    origin = engine.sources.origin
+    assert origin != 0
+    engine.audition(SessionAuditionRequest(action="preview_start", track_ids=["lead"], sequence=[1], gesture_id="speaker", revision=1))
+    advance(engine, 36)
+    assert engine.audition_status()["lead"]["preview_active"]
+    engine.audition(SessionAuditionRequest(action="preview_end", track_ids=["lead"], gesture_id="speaker", revision=2))
+    restored = track(engine, "lead")
+    expected = restored.clip_schedule.locate(engine._absolute_subunit - origin)
+    assert restored.active_pad == expected.pad == 0
+    assert restored.clip_boundary == expected.boundary + origin

@@ -453,6 +453,14 @@ def _validate_audition_capacity(track, indexes):
     if track.clip_schedule and any(s.pad is not None and s.pad >= MAX_AUTHORED_CLIP_PADS
                                    for c in track.clip_schedule.clips for s in c.content):
         raise ValueError("Authored clip schedules support 512 pads.")
+    preview = track.live_preview_pad
+    if preview is not None:
+        if not track.clip_schedule or preview not in indexes or preview != max(indexes) or any(
+            span.pad == preview for schedule in (track.clip_schedule, track.audition_schedule) if schedule
+            for clip in schedule.clips for span in clip.content
+        ):
+            raise ValueError("A physical preview requires a separate final clip slot.")
+        extra.discard(preview)
     if extra:
         used = {s.pad for c in track.audition_schedule.clips for s in c.content} if track.audition_schedule else set()
         if not extra <= used:
@@ -491,6 +499,7 @@ class SessionSequencerTrackConfig(BaseModel):
     gate_ratio: float = Field(default=0.8, gt=0.0, le=1.0)
     sync_to_track_id: str | None = Field(default=None, min_length=1, max_length=256)
     audition_schedule: ClipSchedule | None = None
+    live_preview_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS, strict=True)
     clip_schedule: ClipSchedule | None = None
     active_pad: int = Field(default=0, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     queued_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
@@ -585,6 +594,7 @@ class SessionControllerSequencerTrackConfig(BaseModel):
     timing: SessionSequencerTimingConfig = Field(default_factory=SessionSequencerTimingConfig)
     length_beats: ControllerSequencerPadLengthBeats = 4
     audition_schedule: ClipSchedule | None = None
+    live_preview_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS, strict=True)
     clip_schedule: ClipSchedule | None = None
     active_pad: int = Field(default=0, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     queued_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
@@ -709,6 +719,7 @@ class SessionArpeggiatorConfig(ArpeggiatorPadConfig):
     hold_mode: Literal["off", "replace", "toggle"] = "off"
     restart_mode: ArpeggiatorRestartMode = "free"
     audition_schedule: ClipSchedule | None = None
+    live_preview_pad: int | None = Field(default=None, ge=0, lt=MAX_RUNTIME_CLIP_PADS, strict=True)
     clip_schedule: ClipSchedule | None = None
     active_pad: int = Field(default=0, ge=0, lt=MAX_RUNTIME_CLIP_PADS)
     pad_loop_enabled: bool = True
@@ -909,7 +920,8 @@ class SessionAuditionRequest(BaseModel):
             raise ValueError("An audition requires a playable sequence.")
         if self.action.startswith(("preview_", "workspace_")) and (self.gesture_id is None or self.revision is None):
             raise ValueError("A preview requires a gesture identity and revision.")
-        if any(t not in set(range(MAX_RUNTIME_CLIP_PADS if self.clip_context else MAX_AUTHORED_CLIP_PADS)) | {-1, -2, -4, -8, -16, -32} for t in self.sequence):
+        limit = MAX_RUNTIME_CLIP_PADS if self.clip_context or self.action == "preview_start" else MAX_AUTHORED_CLIP_PADS
+        if any(not 0 <= token < limit and token not in {-1, -2, -4, -8, -16, -32} for token in self.sequence):
             raise ValueError("Invalid audition token.")
         return self
 

@@ -1,6 +1,22 @@
 import type { GuiLanguage } from "../../types";
 
 const labels = {
+  launch: ["Launch pads", "Pads starten", "Lancer les pads", "Lanzar pads"],
+  preview: ["Preview pads", "Pads vorhören", "Écouter les pads", "Escuchar pads"],
+  actions: ["Pad actions", "Pad-Aktionen", "Actions des pads", "Acciones de pad"],
+  mode: ["Pad mode", "Pad-Modus", "Mode des pads", "Modo de pads"],
+  populated: ["Populated", "Belegt", "Avec contenu", "Con contenido"],
+  empty: ["Empty", "Leer", "Vide", "Vacío"],
+  copyTo: ["Copy pad to…", "Pad kopieren nach…", "Copier le pad vers…", "Copiar pad a…"],
+  copy: ["Copy", "Kopieren", "Copier", "Copiar"],
+  replace: ["Replace", "Ersetzen", "Remplacer", "Reemplazar"],
+  copied: ["Copied", "Kopiert", "Copié", "Copiado"],
+  transpose: ["Transpose", "Transponieren", "Transposer", "Transponer"],
+  inScale: ["Notes in scale", "Noten in der Skala", "Notes dans la gamme", "Notas en la escala"],
+  keyStep: ["Move key by degree", "Tonart um eine Stufe versetzen", "Décaler la tonalité d’un degré", "Mover la tonalidad un grado"],
+  up: ["Up", "Aufwärts", "Monter", "Subir"],
+  down: ["Down", "Abwärts", "Descendre", "Bajar"],
+  holdKey: ["Hold to move the key", "Halten, um die Tonart zu versetzen", "Maintenir pour décaler la tonalité", "Mantén para mover la tonalidad"],
   launcher: ["Pad launcher", "Pad-Launcher", "Lanceur de pads", "Lanzador de pads"],
   device: ["Device", "Gerät", "Appareil", "Dispositivo"],
   add: ["Add live device", "Live-Gerät hinzufügen", "Ajouter un appareil live", "Añadir dispositivo en vivo"],

@@ -2,7 +2,7 @@
 
 This plan covers the seven musician and producer findings against the released Perform workspace at `d44d4ea`. The target is a session in which a player can hear a variation, prepare the next pad, and adjust its sound while the arrangement keeps its place. Arrange stays above its editor, the Inspector stays on the right, and the browser document stays within the viewport.
 
-Stage 1 makes an explicitly opened keyboard a shared playing surface within Perform. Editor selection, detail panels, Inspector state and scroll positions belong to each view. Stages 2–4 remain planned. [Current interaction rules](layout-and-interaction-spec.md#selection-and-panel-interactions) · [Original command inventory](baseline/command-map.md) · [Release measurements](milestone-7-release.md)
+Stage 1 makes an explicitly opened keyboard a shared playing surface within Perform. Editor selection, detail panels, Inspector state and scroll positions belong to each view. Stage 2 restores preparation in the Live pad bank. Stages 3 and 4 remain planned. [Current interaction rules](layout-and-interaction-spec.md#selection-and-panel-interactions) · [Original command inventory](baseline/command-map.md) · [Release measurements](milestone-7-release.md)
 
 ## Delivery order
 
@@ -47,6 +47,8 @@ Within Perform, an ordinary view switch preserves a held note on that visible ke
 **Pass when** a player holds C minor on one roll in Live, launches a pad, enters Mix, turns a live-capable insert control and releases the chord. Record one note-on and one final note-off per pitch on the original channel, with silence from those keys after release. Check desktop key-down with a mouse-operated knob and two simultaneous touch contacts on a phone. Compare with a restart-required control, whose existing timing label still applies. Update the existing navigation test to distinguish a switch *within* Perform from leaving Perform.
 
 ## Stage 2. Restore Live pad preparation without accidental launches
+
+Implemented on 19 November 2026. Wide rows pair a launch target with a speaker. **Preview pads** gives each speaker the full slot width on a phone. **Pad actions** makes each numbered target a preparation or drag source and keeps the device’s editing pad independent. Desktop and phone browser checks cover Manual launch restoration, phrase editing and document bounds. The clip replay compares the prepared physical pad with the song schedule and checks the original unsaved variation after returning to Arrange. [Legacy replay](../../frontend/tests/performance/verify-live-pad-preparation.js) · [Clip replay](../../frontend/tests/performance/verify-workspace-arrange.js)
 
 ### 2. Live — identify content and listen before launching
 

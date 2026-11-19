@@ -128,6 +128,14 @@ function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChan
   };
   const label = (item: PadLoopPatternItem) => item.type === "pause" ? `${a.rest} ${item.lengthBeats}` : itemDisplayLabel(item);
   const hasContent = (item: PadLoopPatternItem) => item.type !== "pad" || padHasContent(item.padIndex);
+  const insert = (item: PadLoopPatternItem, position: number) => {
+    if (item.type === "pad" && (!Number.isInteger(item.padIndex) || !track.pads[item.padIndex])) throw new Error("Unknown pad.");
+    if (!compileDefinition(pattern, item).length) throw new Error("Empty definition.");
+    const next = [...items.slice(0, position), item, ...items.slice(position)];
+    validateWorkspace(pattern, next, active);
+    setDraft(next, [position]);
+    anchor.current = position;
+  };
   const drop = (event: DragEvent, position: number) => {
     event.preventDefault(); event.stopPropagation(); setDropIndex(null);
     attempt(() => {
@@ -143,9 +151,7 @@ function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChan
       const data = JSON.parse(event.dataTransfer.getData(ARRANGEMENT_ITEM_MIME) || event.dataTransfer.getData(PAD_MIME) || "null");
       if (!data || data.trackId !== track.id) return;
       const item = data.item ?? { type: "pad", padIndex: data.padIndex };
-      if (!compileDefinition(pattern, item).length) throw new Error("Empty definition.");
-      const next = [...items.slice(0, position), item, ...items.slice(position)];
-      validateWorkspace(pattern, next, active); setDraft(next, [position]);
+      insert(item, position);
     });
     endArrangementDrag();
   };
@@ -170,6 +176,11 @@ function LegacyPatternWorkspace({ track, language, onPatternChange, onSourceChan
       <button type="button" className={`${button} ${gesture ? "border-cyan-400 text-cyan-200" : ""}`} aria-label={gesture ? c.stop : c.play} aria-pressed={!!gesture} disabled={!audition || !gesture && !tokens.length} onClick={play}>{gesture ? "■" : "▶"}</button>
       <span className="mr-auto text-xs text-slate-300">{active ? `${a.editing}: ${active.id}` : c.free}{dirty ? ` · ${c.changes}` : ""}</span>
       {gesture && <span className="text-xs text-cyan-300">{status?.workspace_queued ? c.queued : c.auditioning}{playingIndex >= 0 && `: ${label(items[playingIndex])}`}</span>}
+      <select className={button} aria-label={c.insertPad} value="" onChange={event => {
+        const padIndex = Number(event.target.value);
+        attempt(() => insert({ type: "pad", padIndex }, selection.length ? selection[selection.length - 1] + 1 : items.length));
+      }}><option value="" disabled>{c.insertPad}</option>{track.pads.map((_, i) => <option key={i} value={i}>Pad {i + 1}</option>)}</select>
+      <button className={button} disabled={!items.length} onClick={() => setDraft(items, items.map((_, i) => i))}>{c.selectAll}</button>
       <button className={button} disabled={!canGroup("group")} onClick={() => group("group")}>{c.group}</button>
       <button className={button} disabled={!canGroup("super")} onClick={() => group("super")}>{c.super}</button>
       <select className={button} aria-label={c.rest} value="" onChange={e => editItems([...items, { type: "pause", lengthBeats: Number(e.target.value) as 1 | 2 | 4 | 8 | 16 }])}>

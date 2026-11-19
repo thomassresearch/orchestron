@@ -297,6 +297,10 @@ The compact launcher above the keys includes a device picker, its eight pads, Pl
 silent study advances launches through **Advance loop boundary**. The application uses the
 device’s musical clock.
 
+Live’s bank mode belongs to each device. **Launch pads** retains the normal transport behavior. A filled or hollow dot reports physical pad content independently of the editing, queued and playing indications. On a wide bank each pad has an adjacent speaker. In **Preview pads** the whole numbered target is the speaker. A 250 ms hold auditions the physical pad, including on a clip lane. Release, Escape, pointer cancellation, visibility loss and leaving the bank end the gesture. A pending Manual launch retains its original deadline and phase underneath the speaker.
+
+**Pad actions** selects a preparation source without selecting an editing pad or launching it. Copy supports a same-device drop or numbered destination. Occupied drops show both pad numbers before replacement. The melodic arrows transpose in scale on a short press and move the key by one degree on a hold. A selector makes both operations available by keyboard and touch. In legacy Pattern workspace, a drop inserts at the pointer and **Insert pad…** inserts after selection or appends. Group and Apply reuse the existing definition workflow. All controls remain in the bounded launcher and editor panes.
+
 Instrument Design, Perform and Config share a compact header with the Orchestron logo, localized description, GUI language and page selector.
 
 In Mix, a plain click selects one instance. Shift-click or Shift+Enter/Space on strip names, compact rack entries or full rack patch numbers adds or removes individual instances. The most recently selected instance is the target for the Inspector, Samples and Routing. Selecting Master clears the instrument selection. Open detail explicitly.

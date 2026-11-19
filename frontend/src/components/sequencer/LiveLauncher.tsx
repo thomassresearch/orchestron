@@ -1,15 +1,17 @@
-import { useContext, useMemo, useRef } from "react";
+import { useContext, useMemo } from "react";
 import { playingClipPattern, clipAuditionDefinitions } from "../../lib/clipArranger/runtime";
 import { sourceKeys } from "../../lib/clipArranger/migration";
 import type { SourceKind } from "../../lib/clipArranger/model";
 import { arrangementCopy } from "../../lib/arrangementCopy";
-import { removeScoreTrack } from "../../store/scoreActions";
+import { copyScorePad, removeScoreTrack } from "../../store/scoreActions";
 import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage, SequencerState } from "../../types";
 import { clipCopy } from "../clipArranger/copy";
 import { LivePadEditorContext } from "../clipArranger/context";
 import { arpeggiatorCopy } from "./arpeggiatorCopy";
 import { scoreCopy } from "./scoreCopy";
+import { LivePadBank } from "./LivePadBank";
+import { copyArpeggiatorPad } from "../../lib/livePads";
 import { liveCopy } from "./liveCopy";
 import { WorkspacePanel } from "./WorkspacePanels";
 import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
@@ -18,37 +20,12 @@ import type { DeviceEditorRenderer } from "./PerformWorkspace";
 import { ScoreTransportContext } from "./ScoreTransportContext";
 import type { SequencerPageArpeggiatorActions, SequencerPageControllerSequencerActions, SequencerPageDrummerTrackActions, SequencerPageMelodicTrackActions } from "./sequencerPageContracts";
 
-type Actions = Pick<SequencerPageMelodicTrackActions, "onRemoveSequencerTrack" | "onSequencerPadPress" | "onSequencerTrackEnabledChange" | "onSequencerTrackPadLoopEnabledChange">
-  & Pick<SequencerPageDrummerTrackActions, "onRemoveDrummerSequencerTrack" | "onDrummerSequencerPadPress" | "onDrummerSequencerTrackEnabledChange" | "onDrummerSequencerTrackPadLoopEnabledChange">
-  & Pick<SequencerPageControllerSequencerActions, "onRemoveControllerSequencer" | "onControllerSequencerPadPress" | "onControllerSequencerEnabledChange" | "onControllerSequencerPadLoopEnabledChange">
+type Actions = Pick<SequencerPageMelodicTrackActions, "onRemoveSequencerTrack" | "onSequencerPadPress" | "onSequencerPadCopy" | "onSequencerPadTransposeShort" | "onSequencerPadTransposeLong" | "onSequencerTrackEnabledChange" | "onSequencerTrackPadLoopEnabledChange">
+  & Pick<SequencerPageDrummerTrackActions, "onRemoveDrummerSequencerTrack" | "onDrummerSequencerPadPress" | "onDrummerSequencerPadCopy" | "onDrummerSequencerTrackEnabledChange" | "onDrummerSequencerTrackPadLoopEnabledChange">
+  & Pick<SequencerPageControllerSequencerActions, "onRemoveControllerSequencer" | "onControllerSequencerPadPress" | "onControllerSequencerPadCopy" | "onControllerSequencerEnabledChange" | "onControllerSequencerPadLoopEnabledChange">
   & Pick<SequencerPageArpeggiatorActions, "onRemoveArpeggiator" | "onArpeggiatorCommand" | "onArpeggiatorEnabledChange" | "onArpeggiatorChange">;
 const kinds = Object.keys(sourceKeys) as SourceKind[];
 type Device = SequencerState[(typeof sourceKeys)[SourceKind]][number];
-
-function LaunchPad({ number, editing, sounding, queued, onSelect }: {
-  number: number; editing: boolean; sounding: boolean; queued: boolean; onSelect: () => void;
-}) {
-  const touch = useRef<{ id: number; x: number; y: number } | null>(null);
-  const handledTouch = useRef(false);
-  return <button type="button" aria-label={`Pad ${number}`} aria-pressed={editing}
-    data-sounding={sounding || undefined} data-queued={queued || undefined}
-    onPointerDown={event => {
-      handledTouch.current = false;
-      touch.current = event.pointerType === "touch" ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
-    }}
-    onPointerCancel={() => { touch.current = null; }}
-    onPointerUp={event => {
-      const start = touch.current;
-      if (start?.id !== event.pointerId) return;
-      touch.current = null;
-      // A second finger on a pad gets pointer events even when the browser omits its click.
-      handledTouch.current = true;
-      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) <= 12) onSelect();
-    }}
-    onClick={event => { if (!handledTouch.current || event.detail === 0) onSelect(); }}>
-    {number}<small aria-hidden>{queued ? "◷" : sounding ? "▶" : ""}</small>
-  </button>;
-}
 
 function PadSaveStatus({ kind, id, pad, language }: { kind: SourceKind; id: string; pad: number; language: GuiLanguage }) {
   const device = useAppStore(s => s.sequencer[sourceKeys[kind]].find(t => t.id === id));
@@ -114,9 +91,13 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
     const arp = "playbackMode" in track ? track : undefined;
     const liveArp = !lane && arp?.playbackMode === "live";
     const manual = !lane && (liveArp || !track.padLoopEnabled);
-    const running = engineRunning && (arp ? liveArp ? arp.enabled : !!arp.runtimeStatus?.enabled : sequencer.isPlaying && track.enabled);
-    const active = arp ? arp.runtimeStatus?.active_pad : track.activePad;
-    const queued = running && manual ? arp ? arp.runtimeStatus?.queued_pad : "queuedPad" in track ? track.queuedPad : null : null;
+    const preview = auditions[track.id];
+    const deviceRunning = arp ? liveArp ? arp.enabled : !!arp.runtimeStatus?.enabled : sequencer.isPlaying && track.enabled;
+    const running = engineRunning && (preview?.preview_source_running ?? deviceRunning);
+    const active = preview?.manual_active_pad ?? (arp ? arp.runtimeStatus?.active_pad : track.activePad);
+    const deviceQueue = arp ? arp.runtimeStatus?.queued_pad : "queuedPad" in track ? track.queuedPad : null;
+    const manualQueue = preview?.manual_active_pad !== undefined ? preview.manual_queued_pad : deviceQueue;
+    const queued = running && manual ? manualQueue : null;
     const rest = !manual && "padLoopSequence" in track && track.padLoopPosition != null && track.padLoopSequence[track.padLoopPosition] < 0;
     const arpWaiting = arp?.runtimeStatus?.state && arp.runtimeStatus.state !== "playing";
     const sounding = running && !rest && !arpWaiting ? active : null;
@@ -152,8 +133,19 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
           : <button className="ws-live-name" aria-pressed={selected?.track.id === track.id} onClick={() => select(track.id)}>{track.name}</button>}
         <span>{liveArp ? a.live : manual ? source.manual : source.arrangement}{manual && <> · {boundary}</>}</span>
       </div>
-      <div className="ws-live-pads">{track.pads.map((_, i) => <LaunchPad key={i} number={i + 1} editing={i === current}
-        sounding={!lane && i === sounding} queued={i === queued} onSelect={() => choosePad(i)} />)}</div>
+      <LivePadBank device={authored[sourceKeys[kind]].find(t => t.id === track.id) ?? track} language={language}
+        editing={current} sounding={lane ? null : sounding} queued={queued} onLaunch={choosePad}
+        onCopy={(from, to) => {
+          switch (kind) {
+            case "sequencer": return actions.onSequencerPadCopy(track.id, from, to);
+            case "drummer": return actions.onDrummerSequencerPadCopy(track.id, from, to);
+            case "controller": return actions.onControllerSequencerPadCopy(track.id, from, to);
+            case "score": return copyScorePad(track.id, from, to);
+            case "arpeggiator": if (arp) actions.onArpeggiatorChange(track.id, copyArpeggiatorPad(arp, from, to)); break;
+          }
+        }}
+        onTranspose={kind === "sequencer" ? (pad, direction, keyStep) =>
+          (keyStep ? actions.onSequencerPadTransposeLong : actions.onSequencerPadTransposeShort)(track.id, pad, direction) : undefined} />
       <div className="ws-live-actions"><button type="button" aria-pressed={running} onClick={() => { select(track.id); play(kind, track, !running, current); }}>{running ? sc.stop : sc.play}</button>
         <button data-pad-editor-toggle aria-expanded={layout.dock === "editor" && selected?.track.id === track.id} onClick={() => { select(track.id); selectPad(track.id, current); setLayout(previous => ({ ...previous, dock: "editor" })); }}>{c("edit")}</button></div>
       <div className="ws-live-state"><span>{a.editing} <b>{current + 1}</b></span><span>{a.playing} <b>{playingLabel}</b></span><span>{a.queued} <b>{queued == null ? "—" : queued + 1}</b></span></div>

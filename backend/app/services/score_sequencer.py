@@ -133,16 +133,19 @@ def next_event(runtime, track, pad, now):
     if state:
         candidates.extend(now - local + n.end for n in state.voices.values() if n.end > local)
     if track.queued_pad is not None and not track.pad_loop_enabled and track.launch_quantization == "bar":
-        bar = track.timing.local_beat_subunits * track.timing.meter_numerator * track.timing.beat_rate_denominator // track.timing.beat_rate_numerator
-        candidates.append(now - local + (local // bar + 1) * bar)
+        candidates.append(next_bar(track, now))
     return candidates
+
+
+def next_bar(track, now):
+    bar = track.timing.local_beat_subunits * track.timing.meter_numerator * track.timing.beat_rate_denominator // track.timing.beat_rate_numerator
+    return now + bar - (now - track.phase_offset_subunit) % bar
 
 
 def bar_launch(track, now):
     if not track.is_score or track.pad_loop_enabled or track.launch_quantization != "bar" or track.queued_pad is None:
         return False
-    bar = track.timing.local_beat_subunits * track.timing.meter_numerator * track.timing.beat_rate_denominator // track.timing.beat_rate_numerator
-    return now > track.phase_offset_subunit and (now - track.phase_offset_subunit) % bar == 0
+    return now > track.phase_offset_subunit and next_bar(track, now - 1) == now
 
 
 def reconcile(runtime, config):

@@ -19,6 +19,16 @@ export function updateScoreTrack(id: string, update: (track: ScoreTrackState) =>
   access.set({ sequencer: { ...state.sequencer, scoreTracks } });
 }
 
+export function copyScorePad(id: string, source: number, target: number) {
+  if (source === target) return;
+  updateScoreTrack(id, track => {
+    const pad = track.pads[source];
+    if (!pad || !track.pads[target]) return track;
+    const copy = { ...pad, notes: pad.notes.map(note => ({ ...note, id: crypto.randomUUID() })) };
+    return { ...track, pads: track.pads.map((previous, index) => index === target ? copy : previous) };
+  });
+}
+
 export function addScoreTrack(prefix: string) {
   const access = sequencerEditAccess(useAppStore.setState, useAppStore.getState);
   const state = access.get();

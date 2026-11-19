@@ -39,9 +39,10 @@ function setup(playing: boolean, builders?: {
   arpeggiators: (state?: SequencerState) => ReturnType<typeof buildBackendArpeggiatorRequest>;
 }) {
   useAppStore.getState().setSequencerPlaying(playing);
+  const previewGestures = { current: new Map() };
   return renderHook(() => {
     const store = useAppStore();
-    return useSequencerRuntimeController({ ...store, activePage: "sequencer",
+    return useSequencerRuntimeController({ ...store, previewGestures, activePage: "sequencer",
       sequencer: mergedSequencerState(store.sequencer, store.sequencerRuntime), sequencerConfig: store.sequencer,
       buildBackendSequencerConfig: builders?.sequencer ?? buildConfig, buildBackendArpeggiatorConfig: builders?.arpeggiators ?? buildArpeggiators,
       errors, setSequencerError: setError });
