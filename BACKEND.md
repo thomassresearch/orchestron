@@ -1309,6 +1309,8 @@ Arranger Stop accepts an optional `reset_position_subunit` on either transport. 
 
 This command opts the session into a monotonic shared sequencer clock with a separate arrangement-position mapping. First independent Arrangement Play starts at the marked loop start or supplied stopped song cursor; subsequent devices join its position. Manual Play uses the explicitly selected pad. Arranger Play starts Arrangement sources and retains independent Manual pads; arranger Stop ends Arrangement sources and temporary playback. Song seeks, loops and finite endings affect Arrangement sources only. Live arpeggiators retain their independent clock and input behavior.
 
+Sequencer status and sequencer PCM markers carry a session-local `source_transport_revision`. An applied device or arranger transport command advances it, as does a full sequencer stop in independent playback. After the browser accepts a new revision, older sequencer markers or replies from that session cannot restore a finished preview or change the device’s launch state. Arpeggiator markers follow their own clock.
+
 Status and PCM markers add `independent_sources`, `arrangement_running` and `arrangement_transport_subunit`; `arranger_active` continues to describe the global arranger control. `transport_subunit` is the shared clock. Device `runtime_pad_start_subunit` is a signed phase anchor in that clock (it can precede zero when joining partway through a song pad). The GUI keeps a separate stopped arranger cursor. Playback intent, pad overrides and clock mappings are session-only; authored configuration, performance v16, exports and legacy transport clients retain their contracts.
 
 ### Arranger history metadata

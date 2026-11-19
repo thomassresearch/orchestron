@@ -311,14 +311,16 @@ def test_device_play_replaces_preview_and_ignores_its_late_release():
     engine, config, _ = runtime()
     config.tracks[0].enabled = True
     engine.configure(config)
-    engine.audition(_preview_command())
-    command(engine, position_step=24)
+    preview = engine.audition(_preview_command())
+    play = command(engine, position_step=24)
+    assert play.source_transport_revision > preview.source_transport_revision
     engine.audition(_preview_command("preview_end", 2))
     assert track(engine, "lead").enabled
     assert not track(engine, "backing").enabled
     assert not engine.audition_status()
-    command(engine, "stop")
-    command(engine, position_step=24)
+    stop = command(engine, "stop")
+    restart = command(engine, position_step=24)
+    assert play.source_transport_revision < stop.source_transport_revision < restart.source_transport_revision
     assert track(engine, "lead").enabled
 
 

@@ -241,6 +241,25 @@ it("transport stop cancels a prepared preview and its later release cannot resum
   expect(audition).not.toHaveBeenCalled();
 });
 
+it("keeps Device Play in effect when a cold preview's buffered markers and status arrive late", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  deviceTransport.mockResolvedValueOnce({ ...status(0), source_transport_revision: 1, auditions: {} });
+  await act(() => result.current.transportDevice(id, true));
+  const stopped = { kind: "stopped" as const, target_frame: 48000, target_frame_offset: 0, payload: {} };
+  act(() => {
+    audioParams.applyBrowserClockTransportEventsRef.current([
+      { ...stopped, kind: "step", payload: { ...status(0), previous_step: 0,
+        auditions: { [id]: { active: true, queued: null, preview_source_running: false } } } }, stopped
+    ]);
+    audioParams.applySequencerStatusRef.current(status(0, false));
+  });
+  expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(true);
+  expect(useAppStore.getState().performanceAuditions).toEqual({});
+  act(() => audioParams.applyBrowserClockTransportEventsRef.current([{ ...stopped, payload: { source_transport_revision: 1 } }]));
+  expect(useAppStore.getState().sequencerRuntime.isPlaying).toBe(false);
+});
+
 it("keeps the stopped song cursor through preview status and audible clock updates, then resumes there", async () => {
   const { result } = setup(false);
   await act(() => result.current.seekSequencerTransport(8));

@@ -2097,6 +2097,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                           className="absolute right-0 top-0 inline-flex items-center gap-1 rounded px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-300 transition hover:bg-slate-800/80"
                           title={ui.hold}
                           aria-label={ui.hold}
+                          aria-pressed={holdActive}
                         >
                           <span>{ui.hold}</span>
                           <span

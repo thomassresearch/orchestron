@@ -7993,7 +7993,9 @@ def test_device_transport_http_and_browser_clock_preserve_manual_lane(tmp_path):
             socket.send_json({"type": "request_render", "block_count": 8})
             metadata = socket.receive_json()
             socket.receive_bytes()
-            assert any(event["payload"].get("independent_sources") for event in metadata["transport_events"])
+            source_events = [event["payload"] for event in metadata["transport_events"] if event["payload"].get("independent_sources")]
+            assert source_events and status["source_transport_revision"] > 0
+            assert all(event["source_transport_revision"] == status["source_transport_revision"] for event in source_events)
         before = client.get(base + "/status").json()
         invalid = client.post(base + "/device-transport", json={"action": "play", "track_ids": ["lead", "manual"], "config": config})
         assert invalid.status_code == 422

@@ -1,7 +1,9 @@
 {
-  "revision": "b6dd6a3db78cbfd7dd6a576ce99526e524bd21cb",
+  "revision": "51db777aad91b2eaa4ee2d877852fd46ffbf4789",
+  "revisionScope": "working tree based on this revision",
+  "applicationDiffSha256": "e87cd22cd2ca9465524733427d597922ec4dec92cf8f85edc9620a8bf797c684",
   "date": "2026-11-19",
-  "verdict": "hold",
+  "verdict": "pass",
   "browser": "157.0.8103.79",
   "browserEngine": "Chromium (headless Google Chrome); CDP touch emulation",
   "nativeAudio": "Csound 6.18, browser_clock",
@@ -12,8 +14,9 @@
   ],
   "gates": {
     "documentBounds": "pass",
-    "firstManualLaunchAfterStoppedEnginePreview": "fail",
-    "minimumArrangeWorkspaceWithKeysAndLongError": "fail"
+    "firstManualLaunchAfterStoppedEnginePreview": "pass",
+    "minimumArrangeWorkspaceWithKeysAndLongError": "pass",
+    "fullErrorAndNoteEditAt640x360": "pass"
   },
   "productionGeometry": {
     "Clip": [
@@ -29,7 +32,7 @@
       {"view": "Arrange", "viewport": [390, 844], "document": [390, 844], "windowScroll": [0, 0], "workPx": 395},
       {"view": "Live", "viewport": [390, 844], "document": [390, 844], "windowScroll": [0, 0], "workPx": 395},
       {"view": "Mix", "viewport": [390, 844], "document": [390, 844], "windowScroll": [0, 0], "workPx": 338},
-      {"view": "Arrange", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 71},
+      {"view": "Arrange", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 97},
       {"view": "Live", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 97},
       {"view": "Mix", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 97}
     ],
@@ -46,45 +49,45 @@
       {"view": "Arrange", "viewport": [390, 844], "document": [390, 844], "windowScroll": [0, 0], "workPx": 395},
       {"view": "Live", "viewport": [390, 844], "document": [390, 844], "windowScroll": [0, 0], "workPx": 395},
       {"view": "Mix", "viewport": [390, 844], "document": [390, 844], "windowScroll": [0, 0], "workPx": 338},
-      {"view": "Arrange", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 71},
+      {"view": "Arrange", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 97},
       {"view": "Live", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 97},
       {"view": "Mix", "viewport": [640, 360], "document": [640, 360], "windowScroll": [0, 0], "workPx": 97}
     ]
   },
   "errorAndEditorGeometry": {
     "Clip": [
-      {"view": "Arrange", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 537.14, "editorBodyPx": 223.73},
-      {"view": "Arrange", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 375.14, "editorBodyPx": 338.88},
-      {"view": "Arrange", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 313.91, "editorBodyPx": 277.64},
-      {"view": "Arrange", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 340.81, "editorBodyPx": 310.55},
-      {"view": "Arrange", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 37.78, "editorBodyPx": 12},
-      {"view": "Live", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 537.14, "editorBodyPx": 223.73},
-      {"view": "Live", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 375.14, "editorBodyPx": 161.73},
-      {"view": "Live", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 313.91, "editorBodyPx": 168.58},
-      {"view": "Live", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 340.81, "editorBodyPx": 134.48},
-      {"view": "Live", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 64.31, "editorBodyPx": 34.05},
-      {"view": "Mix", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 480.84, "editorBodyPx": 177.73},
-      {"view": "Mix", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 318.84, "editorBodyPx": 240.58},
-      {"view": "Mix", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 257.61, "editorBodyPx": 179.34},
-      {"view": "Mix", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 284.52, "editorBodyPx": 202.25},
-      {"view": "Mix", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 64.31, "editorBodyPx": 29.31}
+      {"view": "Arrange", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 552.67, "editorBodyPx": 223.73},
+      {"view": "Arrange", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 390.67, "editorBodyPx": 354.41},
+      {"view": "Arrange", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 350.2, "editorBodyPx": 313.94},
+      {"view": "Arrange", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 377.11, "editorBodyPx": 346.84},
+      {"view": "Arrange", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 97.41, "editorBodyPx": 97.41},
+      {"view": "Live", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 552.67, "editorBodyPx": 223.73},
+      {"view": "Live", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 390.67, "editorBodyPx": 177.73},
+      {"view": "Live", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 350.2, "editorBodyPx": 204.88},
+      {"view": "Live", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 377.11, "editorBodyPx": 170.78},
+      {"view": "Live", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 97.41, "editorBodyPx": 67.14},
+      {"view": "Mix", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 496.38, "editorBodyPx": 192.73},
+      {"view": "Mix", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 334.38, "editorBodyPx": 256.11},
+      {"view": "Mix", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 293.91, "editorBodyPx": 215.64},
+      {"view": "Mix", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 320.81, "editorBodyPx": 238.55},
+      {"view": "Mix", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 97.41, "editorBodyPx": 62.41}
     ],
     "Legacy": [
-      {"view": "Arrange", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 537.14, "editorBodyPx": 223.73},
-      {"view": "Arrange", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 375.14, "editorBodyPx": 161.73},
-      {"view": "Arrange", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 313.91, "editorBodyPx": 277.64},
-      {"view": "Arrange", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 340.81, "editorBodyPx": 310.55},
-      {"view": "Arrange", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 37.78, "editorBodyPx": 12},
-      {"view": "Live", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 537.14, "editorBodyPx": 223.73},
-      {"view": "Live", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 375.14, "editorBodyPx": 161.73},
-      {"view": "Live", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 313.91, "editorBodyPx": 168.58},
-      {"view": "Live", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 340.81, "editorBodyPx": 134.48},
-      {"view": "Live", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 64.31, "editorBodyPx": 34.05},
-      {"view": "Mix", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 480.84, "editorBodyPx": 177.73},
-      {"view": "Mix", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 318.84, "editorBodyPx": 240.58},
-      {"view": "Mix", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 257.61, "editorBodyPx": 179.34},
-      {"view": "Mix", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 284.52, "editorBodyPx": 202.25},
-      {"view": "Mix", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 64.31, "editorBodyPx": 29.31}
+      {"view": "Arrange", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 552.67, "editorBodyPx": 223.73},
+      {"view": "Arrange", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 390.67, "editorBodyPx": 177.73},
+      {"view": "Arrange", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 350.2, "editorBodyPx": 313.94},
+      {"view": "Arrange", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 377.11, "editorBodyPx": 346.84},
+      {"view": "Arrange", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 97.41, "editorBodyPx": 97.41},
+      {"view": "Live", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 552.67, "editorBodyPx": 223.73},
+      {"view": "Live", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 390.67, "editorBodyPx": 177.73},
+      {"view": "Live", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 350.2, "editorBodyPx": 204.88},
+      {"view": "Live", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 377.11, "editorBodyPx": 170.78},
+      {"view": "Live", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 97.41, "editorBodyPx": 67.14},
+      {"view": "Mix", "viewport": [1440, 900], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 496.38, "editorBodyPx": 192.73},
+      {"view": "Mix", "viewport": [1280, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 334.38, "editorBodyPx": 256.11},
+      {"view": "Mix", "viewport": [736, 720], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 293.91, "editorBodyPx": 215.64},
+      {"view": "Mix", "viewport": [390, 844], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 320.81, "editorBodyPx": 238.55},
+      {"view": "Mix", "viewport": [640, 360], "maxAbsDocumentDeltaPx": 0, "maxAbsWindowScrollPx": 0, "workPx": 97.41, "editorBodyPx": 62.41}
     ]
   },
   "zoom200Percent": {
@@ -264,30 +267,30 @@
       "sample": {
         "stoppedEngine": {
           "preview": {
-            "output": 0.01761326945622659,
-            "pcm": 0.020008627325296402
+            "output": 0.013732882146635445,
+            "pcm": 0.02326490543782711
           },
           "muted": {
             "output": 0,
             "pcm": 0
           },
           "restored": {
-            "output": 0.011293407277719558,
-            "pcm": 0.03564772009849548
+            "output": 0.007393931749960267,
+            "pcm": 0.027423731982707977
           }
         },
         "runningEngine": {
           "preview": {
-            "output": 0.002310502277137749,
-            "pcm": 0.01270768791437149
+            "output": 0.009608272981952435,
+            "pcm": 0.01764610782265663
           },
           "muted": {
             "output": 0,
             "pcm": 0
           },
           "restored": {
-            "output": 0.010946905769045046,
-            "pcm": 0.025951508432626724
+            "output": 0.011198861101246405,
+            "pcm": 0.030730508267879486
           }
         }
       },
@@ -316,7 +319,7 @@
         }
       ],
       "songStop": {
-        "paused": 3.19,
+        "paused": 3.06,
         "stopped": 0
       }
     },
@@ -324,30 +327,30 @@
       "sample": {
         "stoppedEngine": {
           "preview": {
-            "output": 0.014068983236966084,
-            "pcm": 0.021428223699331284
+            "output": 0.01761326945622659,
+            "pcm": 0.020011119544506073
           },
           "muted": {
             "output": 0,
             "pcm": 0
           },
           "restored": {
-            "output": 0.011984735908140283,
-            "pcm": 0.033892713487148285
+            "output": 0.011293407277719558,
+            "pcm": 0.03565263748168945
           }
         },
         "runningEngine": {
           "preview": {
-            "output": 0.015328700133565026,
-            "pcm": 0.024081546813249588
+            "output": 0.002310502277137749,
+            "pcm": 0.013000947423279285
           },
           "muted": {
             "output": 0,
             "pcm": 0
           },
           "restored": {
-            "output": 0.010612980455819102,
-            "pcm": 0.03284654766321182
+            "output": 0.012206785674320908,
+            "pcm": 0.03589702397584915
           }
         }
       },
@@ -376,7 +379,7 @@
         }
       ],
       "songStop": {
-        "paused": 3.24,
+        "paused": 3.06,
         "stopped": 0
       }
     }
@@ -386,7 +389,7 @@
       "nativeSnapshotEquality": true,
       "noteCount": 8,
       "midiAndScoreNotesMatch": true,
-      "eventSha256": "cf3e0b2d9507136807d2261cad322ee69c041fa49d4bc53363844041199523b1",
+      "eventSha256": "3e3f3a5279c5d94f7edce0c73ace9b5bada325607a65b6ae57c36b8313882d0b",
       "floatBits": 32,
       "channels": 2,
       "sampleRate": 48000,
@@ -395,19 +398,23 @@
         288000
       ],
       "peaksMidiScore": [
-        0.06861165910959244,
-        0.06861165910959244
+        0.07093121856451035,
+        0.06692281365394592
       ],
       "renderPcmSha256MidiScore": [
-        "185139ee5d8802a89cf1a0f29a2c06af6f8b64571554b897a1a4a6203f92fddb",
-        "185139ee5d8802a89cf1a0f29a2c06af6f8b64571554b897a1a4a6203f92fddb"
-      ]
+        "665b7691e4fd8013152a5a537bf8b9c4e9f14893499f99bfc62643415ba35e3c",
+        "edb99287d34f822dc85716e06bd7918ea57d459cb1a7560581d0cca297d34a18"
+      ],
+      "identicalCsdRerenderPcmMatch": {
+        "midi": false,
+        "score": false
+      }
     },
     "edited-roundtrip-Legacy": {
       "nativeSnapshotEquality": true,
       "noteCount": 16,
       "midiAndScoreNotesMatch": true,
-      "eventSha256": "adc7d1d1075e01539f01f43a42ec76080cedb38bf0b060bde822ee5471138ae5",
+      "eventSha256": "51ce152a370d9188e3f0ec652f3dd4406c862d3998582c01d866491039012419",
       "floatBits": 32,
       "channels": 2,
       "sampleRate": 48000,
@@ -416,23 +423,23 @@
         864000
       ],
       "peaksMidiScore": [
-        0.10819174349308014,
-        0.0988292470574379
+        0.10366860032081604,
+        0.10859884321689606
       ],
       "renderPcmSha256MidiScore": [
-        "e44b95c62cb5556e836222aff278356f9bc7238dd80ac6e61fdba0ef9088d0e4",
-        "fc62de95a6ff36d9105efddcfd808b7d2229933312aafd096a98d2a0639a698b"
+        "a2f1b1a2296f54645677749c36697c2a214ea38952dbf782309cc153ec140b8f",
+        "0d346fc517f82872c38c0d4a843f8ad1960b9303bb2c41e47c8aa0345c6794b8"
       ],
-      "earlierRenderPcmSha256MidiScore": [
-        "4fba819e0c11f3aa7c67c73283128e44d2f1c5a2901f55121ebbf9e6b1fa9c28",
-        "939f3bdccdfd360ba015c104ee54cf9e6b99d0b340a2f18f288126b5ee7275f9"
-      ]
+      "identicalCsdRerenderPcmMatch": {
+        "midi": false,
+        "score": false
+      }
     },
     "roundtrip-Clip": {
       "nativeSnapshotEquality": true,
       "noteCount": 16,
       "midiAndScoreNotesMatch": true,
-      "eventSha256": "ccc564deed492e5026b3dd5dc482d67ede905523ac25c4470dd8e01a7498128d",
+      "eventSha256": "b8e870b97b8f2f3eb678b20ed57f668f894cfcf932ec38d3b8697845f2357a62",
       "floatBits": 32,
       "channels": 2,
       "sampleRate": 48000,
@@ -441,23 +448,23 @@
         288000
       ],
       "peaksMidiScore": [
-        0.09202934056520462,
-        0.0868178978562355
+        0.09728024899959564,
+        0.09407912194728851
       ],
       "renderPcmSha256MidiScore": [
-        "2149dea718b9937aa641d38994658a3564f1b5f81e2d0f6e9927e9e78004b53e",
-        "ba194a5c1191b627557c49504181cdf953e948c09d43650f41190324bb9c7f32"
+        "d1a845fd890d232a9bf52fc1bc444b14eb98f9ce9d5320aa01b399971758775f",
+        "9017160b031de02994ce34a80f5655d8909040c578b1d185aedc614511ff2326"
       ],
-      "earlierRenderPcmSha256MidiScore": [
-        "32e43dfb284b29485baef1be3a1f0b8c0ba4ad05ac98732d38bb33406964a8d3",
-        "32e43dfb284b29485baef1be3a1f0b8c0ba4ad05ac98732d38bb33406964a8d3"
-      ]
+      "identicalCsdRerenderPcmMatch": {
+        "midi": false,
+        "score": false
+      }
     },
     "roundtrip-Legacy": {
       "nativeSnapshotEquality": true,
       "noteCount": 8,
       "midiAndScoreNotesMatch": true,
-      "eventSha256": "cf3e0b2d9507136807d2261cad322ee69c041fa49d4bc53363844041199523b1",
+      "eventSha256": "3e3f3a5279c5d94f7edce0c73ace9b5bada325607a65b6ae57c36b8313882d0b",
       "floatBits": 32,
       "channels": 2,
       "sampleRate": 48000,
@@ -466,17 +473,17 @@
         288000
       ],
       "peaksMidiScore": [
-        0.0699135810136795,
-        0.0699135810136795
+        0.07001089304685593,
+        0.07001089304685593
       ],
       "renderPcmSha256MidiScore": [
-        "1702389d7ff75e0ccd656d16f4714b2e44b597907dc7594add3cf40357111aa3",
-        "1702389d7ff75e0ccd656d16f4714b2e44b597907dc7594add3cf40357111aa3"
+        "8a087fdb659397be6648e194f446adeac8c901a54d14af38d86fc91d57584d10",
+        "8a087fdb659397be6648e194f446adeac8c901a54d14af38d86fc91d57584d10"
       ],
-      "earlierRenderPcmSha256MidiScore": [
-        "eb0f0f928f18d4f19cb28496fcd5e0e093b4d038751a5b128ca6f04872476b5a",
-        "eb0f0f928f18d4f19cb28496fcd5e0e093b4d038751a5b128ca6f04872476b5a"
-      ]
+      "identicalCsdRerenderPcmMatch": {
+        "midi": false,
+        "score": false
+      }
     }
   },
   "replays": {
@@ -486,29 +493,32 @@
     "edited-pad-roundtrip:Legacy": "pass",
     "edited-roundtrip:Legacy": "pass",
     "fallback:Legacy": "pass",
-    "geometry:Clip": "document bounded; short Arrange below 44 CSS px",
-    "geometry:Legacy": "document bounded; short Arrange below 44 CSS px",
+    "geometry:Clip": "pass",
+    "geometry:Legacy": "pass",
     "import": "pass",
     "keyboard-owners:Clip": "pass",
     "keyboard-owners:Legacy": "pass",
-    "live-pad-preparation:Legacy": "fail",
+    "live-pad-preparation:Legacy": "pass",
     "live-set-preparation:Legacy": "pass",
+    "localized-editor:Clip": "pass",
+    "localized-editor:Legacy": "pass",
     "mix-comparison:Clip": "pass",
     "mix-comparison:Legacy": "pass",
     "mixed-held:Clip": "pass",
-    "pad-boundary:Legacy": "pass",
     "production:Clip": "pass",
     "production:Legacy": "pass",
-    "production-error:Clip": "document bounded; usable height failed",
-    "production-error:Legacy": "document bounded; usable height failed",
-    "production-queue:Legacy": "first launch failed; second click sounded",
+    "production-error:Clip": "pass",
+    "production-error:Legacy": "pass",
+    "production-queue:Legacy": "pass",
     "pure-preview:Clip": "pass",
     "pure-preview:Legacy": "pass",
-    "release-probes": "fail",
+    "release-probes-repeat": "pass",
+    "release-probes-third": "pass",
+    "release-probes": "pass",
     "roundtrip:Clip": "pass",
     "roundtrip:Legacy": "pass",
-    "stress-detail:Clip": "document bounded; short Arrange below 44 CSS px",
-    "stress-detail:Legacy": "document bounded; short Arrange below 44 CSS px",
+    "stress-detail:Clip": "pass",
+    "stress-detail:Legacy": "pass",
     "workspace-access:Clip": "pass",
     "workspace-arrange:Clip": "pass",
     "workspace-control-rack:Clip": "pass",
@@ -527,6 +537,96 @@
     "zoom:Clip": "pass",
     "zoom:Legacy": "pass"
   },
+  "previousBlockers": {
+    "revision": "b6dd6a3db78cbfd7dd6a576ce99526e524bd21cb",
+    "verdict": "hold",
+    "production": {
+      "pass": false,
+      "launch": {
+        "pass": false,
+        "selected": true,
+        "queued": false,
+        "sounded": false,
+        "secondClickSounded": true
+      },
+      "editors": [
+        {
+          "format": "Clip",
+          "bounded": true,
+          "pass": false,
+          "before": {
+            "viewport": [
+              640,
+              360
+            ],
+            "document": [
+              640,
+              360
+            ],
+            "offset": [
+              0,
+              0
+            ],
+            "work": 70.875,
+            "editorBody": 40.609375
+          },
+          "after": {
+            "viewport": [
+              640,
+              360
+            ],
+            "document": [
+              640,
+              360
+            ],
+            "offset": [
+              0,
+              0
+            ],
+            "work": 37.78125,
+            "editorBody": 12
+          }
+        },
+        {
+          "format": "Legacy",
+          "bounded": true,
+          "pass": false,
+          "before": {
+            "viewport": [
+              640,
+              360
+            ],
+            "document": [
+              640,
+              360
+            ],
+            "offset": [
+              0,
+              0
+            ],
+            "work": 70.875,
+            "editorBody": 40.609375
+          },
+          "after": {
+            "viewport": [
+              640,
+              360
+            ],
+            "document": [
+              640,
+              360
+            ],
+            "offset": [
+              0,
+              0
+            ],
+            "work": 37.78125,
+            "editorBody": 12
+          }
+        }
+      ]
+    }
+  },
   "productionSaveError": {
     "Clip": {
       "before": {
@@ -542,8 +642,8 @@
           0,
           0
         ],
-        "work": 70.875,
-        "editorBody": 40.609375
+        "work": 97.40625,
+        "editorBody": 97.40625
       },
       "after": {
         "document": [
@@ -558,8 +658,8 @@
           0,
           0
         ],
-        "work": 37.78125,
-        "editorBody": 12
+        "work": 97.40625,
+        "editorBody": 97.40625
       }
     },
     "Legacy": {
@@ -576,8 +676,8 @@
           0,
           0
         ],
-        "work": 70.875,
-        "editorBody": 40.609375
+        "work": 97.40625,
+        "editorBody": 97.40625
       },
       "after": {
         "document": [
@@ -592,25 +692,32 @@
           0,
           0
         ],
-        "work": 37.78125,
-        "editorBody": 12
+        "work": 97.40625,
+        "editorBody": 97.40625
       }
     }
   },
   "productionRecheck": {
-    "pass": false,
+    "pass": true,
     "launch": {
-      "pass": false,
+      "pass": true,
       "selected": true,
-      "queued": false,
-      "sounded": false,
-      "secondClickSounded": true
+      "queued": true,
+      "queuedInLive": true,
+      "sounded": true,
+      "secondClickSounded": null
     },
     "editors": [
       {
         "format": "Clip",
         "bounded": true,
-        "pass": false,
+        "fullError": true,
+        "focusRestored": true,
+        "edited": true,
+        "restored": true,
+        "controlsReachable": true,
+        "localScroll": 265,
+        "pass": true,
         "before": {
           "viewport": [
             640,
@@ -624,8 +731,8 @@
             0,
             0
           ],
-          "work": 70.875,
-          "editorBody": 40.609375
+          "work": 97.40625,
+          "editorBody": 97.40625
         },
         "after": {
           "viewport": [
@@ -640,14 +747,36 @@
             0,
             0
           ],
-          "work": 37.78125,
-          "editorBody": 12
+          "work": 97.40625,
+          "editorBody": 97.40625
+        },
+        "expanded": {
+          "viewport": [
+            640,
+            360
+          ],
+          "document": [
+            640,
+            360
+          ],
+          "offset": [
+            0,
+            0
+          ],
+          "work": 97.40625,
+          "editorBody": 97.40625
         }
       },
       {
         "format": "Legacy",
         "bounded": true,
-        "pass": false,
+        "fullError": true,
+        "focusRestored": true,
+        "edited": true,
+        "restored": true,
+        "controlsReachable": true,
+        "localScroll": 114,
+        "pass": true,
         "before": {
           "viewport": [
             640,
@@ -661,8 +790,8 @@
             0,
             0
           ],
-          "work": 70.875,
-          "editorBody": 40.609375
+          "work": 97.40625,
+          "editorBody": 97.40625
         },
         "after": {
           "viewport": [
@@ -677,63 +806,238 @@
             0,
             0
           ],
-          "work": 37.78125,
-          "editorBody": 12
+          "work": 97.40625,
+          "editorBody": 97.40625
+        },
+        "expanded": {
+          "viewport": [
+            640,
+            360
+          ],
+          "document": [
+            640,
+            360
+          ],
+          "offset": [
+            0,
+            0
+          ],
+          "work": 97.40625,
+          "editorBody": 97.40625
         }
       }
     ]
   },
+  "consecutiveProductionRechecks": [
+    {
+      "startUtc": "2026-11-19T11:49:38.151Z",
+      "pass": true,
+      "launch": {
+        "pass": true,
+        "selected": true,
+        "queued": true,
+        "queuedInLive": true,
+        "sounded": true,
+        "secondClickSounded": null
+      },
+      "editableCssPx": {
+        "Clip": 97.40625,
+        "Legacy": 97.40625
+      }
+    },
+    {
+      "startUtc": "2026-11-19T11:49:45.429Z",
+      "pass": true,
+      "launch": {
+        "pass": true,
+        "selected": true,
+        "queued": true,
+        "queuedInLive": true,
+        "sounded": true,
+        "secondClickSounded": null
+      },
+      "editableCssPx": {
+        "Clip": 97.40625,
+        "Legacy": 97.40625
+      }
+    },
+    {
+      "startUtc": "2026-11-19T11:49:52.779Z",
+      "pass": true,
+      "launch": {
+        "pass": true,
+        "selected": true,
+        "queued": true,
+        "queuedInLive": true,
+        "sounded": true,
+        "secondClickSounded": null
+      },
+      "editableCssPx": {
+        "Clip": 97.40625,
+        "Legacy": 97.40625
+      }
+    }
+  ],
   "immediateManualLaunch": {
-    "firstSounded": false,
-    "firstQueued": false,
-    "secondSounded": true,
+    "firstSounded": true,
+    "firstQueued": true,
+    "secondSounded": null,
     "editingPad2": true,
     "backendTrackAndUiPolls": 47,
     "firstAndLastPollMs": [
       29,
-      4664
+      4644
     ],
     "backendActivePad_oneBased": [
-      1
+      1,
+      2
     ],
-    "backendQueuedPads_oneBased": [],
-    "cleanRunsOfUnchangedAcceptanceThatMissedQueuedPad": 2,
-    "nextCycleTimingControl": {
-      "phrase": [
-        1,
-        2,
-        1
-      ],
-      "desktopAndPhoneBounded": true,
-      "restoredPad": 2,
-      "copiedDevices": [
-        "drummer",
-        "score",
-        "controller",
-        "arpeggiator"
-      ]
-    }
+    "backendQueuedPads_oneBased": [
+      2
+    ],
+    "firstBackendQueueMs": 29,
+    "firstVisibleQueueMs": 128,
+    "firstBackendPad2Ms": 2534,
+    "firstVisiblePad2Ms": 3537
+  },
+  "shortScreenLanguages": {
+    "Clip": [
+      {
+        "language": "french",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 70.875,
+        "errorLabel": "Détails de l’erreur",
+        "inaccessible": []
+      },
+      {
+        "language": "german",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 70.875,
+        "errorLabel": "Fehlerdetails",
+        "inaccessible": []
+      },
+      {
+        "language": "spanish",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 97.40625,
+        "errorLabel": "Detalles del error",
+        "inaccessible": []
+      },
+      {
+        "language": "english",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 97.40625,
+        "errorLabel": "Error details",
+        "inaccessible": []
+      }
+    ],
+    "Legacy": [
+      {
+        "language": "french",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 70.875,
+        "errorLabel": "Détails de l’erreur",
+        "inaccessible": []
+      },
+      {
+        "language": "german",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 70.875,
+        "errorLabel": "Fehlerdetails",
+        "inaccessible": []
+      },
+      {
+        "language": "spanish",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 97.40625,
+        "errorLabel": "Detalles del error",
+        "inaccessible": []
+      },
+      {
+        "language": "english",
+        "document": [
+          640,
+          360
+        ],
+        "offset": [
+          0,
+          0
+        ],
+        "editor": 97.40625,
+        "errorLabel": "Error details",
+        "inaccessible": []
+      }
+    ]
   },
   "directOutput": {
     "both": {
       "routed": {
-        "direct": 0,
-        "master": 0.005251210239790338,
-        "output": 0.005251210239790338,
-        "pcm": 0.01859145797789097
+        "direct": 0.004461217363543738,
+        "master": 0.005182457888347173,
+        "output": 0.005182457888347173,
+        "pcm": 0.019452281296253204
       },
       "direct": {
-        "direct": 0.05599691313272743,
-        "master": 0.04455805954564584,
-        "output": 0.05925000100948407,
-        "pcm": 0.05922174081206322
+        "direct": 0.004461217363543738,
+        "master": 0.005182457888347173,
+        "output": 0.005182457888347173,
+        "pcm": 0.022269148379564285
       }
     },
     "direct": {
-      "direct": 0.04987360995952335,
+      "direct": 0.02662480293037677,
       "master": 0,
-      "output": 0.04987360995952335,
-      "pcm": 0.04324563965201378
+      "output": 0.02662480293037677,
+      "pcm": 0.06512121111154556
     },
     "silent": {
       "direct": 0,
@@ -750,7 +1054,7 @@
   },
   "navigation": {
     "startTick": 2520,
-    "endTick": 7560,
+    "endTick": 10080,
     "workerCommands": 0,
     "sequencerWrites": 0
   },
@@ -815,10 +1119,10 @@
       "mode": "device-editor",
       "seconds": 15,
       "addedUnderruns": 0,
-      "peak": 0.7154259453380647,
+      "peak": 0.6570304474240015,
       "transport": {
         "isPlaying": true,
-        "transportSubunit": 68040
+        "transportSubunit": 73080
       },
       "renderCounts": {
         "MelodicSequencersBody": 240,
@@ -826,31 +1130,31 @@
         "MidiControllersBody": 240
       },
       "mainThread": {
-        "TaskDuration": 4.511969000000001,
-        "ScriptDuration": 3.4560059999999995,
-        "LayoutDuration": 0.004006999999999998,
-        "RecalcStyleDuration": 0.044391999999999994,
+        "TaskDuration": 4.306970000000001,
+        "ScriptDuration": 3.306856,
+        "LayoutDuration": 0.004269000000000002,
+        "RecalcStyleDuration": 0.044125,
         "LayoutCount": 7,
-        "RecalcStyleCount": 509
+        "RecalcStyleCount": 515
       }
     },
     {
       "mode": "launcher-after-switches",
       "seconds": 15,
       "addedUnderruns": 0,
-      "peak": 0.7154259453380647,
+      "peak": 0.6570304474240015,
       "transport": {
         "isPlaying": true,
-        "transportSubunit": 173880
+        "transportSubunit": 178920
       },
       "renderCounts": {
         "MidiControllersBody": 240
       },
       "mainThread": {
-        "TaskDuration": 3.2779089999999993,
-        "ScriptDuration": 3.117363,
-        "LayoutDuration": 0.005285999999999999,
-        "RecalcStyleDuration": 0.0035609999999999947,
+        "TaskDuration": 2.5294609999999995,
+        "ScriptDuration": 2.44461,
+        "LayoutDuration": 0.004158999999999996,
+        "RecalcStyleDuration": 0.0029589999999999894,
         "LayoutCount": 8,
         "RecalcStyleCount": 24
       }
@@ -864,10 +1168,10 @@
         "addedUnderruns": 0,
         "pcmPeak": 0.07466255128383636,
         "finite": true,
-        "nodes": 422,
+        "nodes": 423,
         "mainThread": {
-          "TaskDuration": 2.218003,
-          "ScriptDuration": 2.153219,
+          "TaskDuration": 1.0275189999999998,
+          "ScriptDuration": 0.9996460000000001,
           "LayoutDuration": 0,
           "RecalcStyleDuration": 0
         }
@@ -878,10 +1182,10 @@
         "addedUnderruns": 0,
         "pcmPeak": 0.07466255128383636,
         "finite": true,
-        "nodes": 708,
+        "nodes": 709,
         "mainThread": {
-          "TaskDuration": 3.0056749999999997,
-          "ScriptDuration": 2.90976,
+          "TaskDuration": 1.460142,
+          "ScriptDuration": 1.42304,
           "LayoutDuration": 0,
           "RecalcStyleDuration": 0
         }
@@ -892,10 +1196,10 @@
         "addedUnderruns": 0,
         "pcmPeak": 0.07466255128383636,
         "finite": true,
-        "nodes": 478,
+        "nodes": 479,
         "mainThread": {
-          "TaskDuration": 2.408722,
-          "ScriptDuration": 2.3318260000000004,
+          "TaskDuration": 1.125245,
+          "ScriptDuration": 1.0930659999999999,
           "LayoutDuration": 0,
           "RecalcStyleDuration": 0
         }
@@ -909,12 +1213,17 @@
     }
   },
   "automatedChecks": {
-    "frontendTestsPassed": 1492,
+    "frontendTestsPassed": 1493,
     "frontendTestFiles": 127,
     "productionBuild": "pass",
     "backendLint": "All checks passed!",
-    "backendSummary": "3612 passed, 1 warning in 996.57s (0:16:36)",
+    "backendSummary": "3612 passed, 1 warning in 1013.67s (0:16:53)",
     "manualPdfPages": 223,
-    "docsCheck": "pass"
+    "manualPagesInspected": [
+      70,
+      72,
+      73
+    ],
+    "docsCheck": "Manual validated: 63 pages, 1 explicit exclusions."
   }
 }

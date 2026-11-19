@@ -108,7 +108,7 @@ Measure the strip area after the dock, keyboard and Inspector have taken their s
 
 ## Release checks
 
-The [final stages 1–4 release record](perform-workflow-release.md) gives the outcome for each workflow and the two open acceptance cases.
+The [final stages 1–4 release record](perform-workflow-release.md) gives the outcome for each workflow, including the first Manual launch after a cold preview and the 640 × 360 editor with an open keyboard and a long error.
 
 1. **Fixtures and evidence.** Use the clip and legacy baseline songs on a disposable backend. Extend the cases in memory with three melodic devices, populated and empty pads, duplicate names, two independent keyboard destinations, a sample kit and nested inserts. Use versioned test fixtures for patches and samples. Record which targets were audible, selected, queued and saved. [Baseline fixtures](baseline/performance-fixtures.zip) · [Browser replay procedures](../../frontend/tests/performance/README.md)
 2. **Geometry.** Exercise all three views at 1440 × 900, 1280 × 720, 736 × 720, 390 × 844 and 640 × 360, plus real 200% browser zoom. Combine the relevant dock, keyboard, Inspector/drawer and a long status error with dense content. For every transition, assert that document width and height fit the viewport within one CSS pixel, window scroll offsets stay zero, and intended inner regions actually scroll. Tab to edge controls and hit-test their centers. Verify that closing all detail reclaims the space and that resizing during a held touch or drag cannot strand a note or a drop target.

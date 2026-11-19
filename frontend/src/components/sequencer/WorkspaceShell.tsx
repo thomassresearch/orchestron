@@ -111,13 +111,14 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const inspector = narrow ? !!layout.drawerOpen : layout.inspectorOpen ?? view === "arrange";
   const single = !!dock && (narrow || !!layout.dockExpanded);
   const showOverview = single && view === "arrange" && !!clipKey && overviewClipKey === clipKey;
+  const compactArrangeEditor = view === "arrange" && single && !showOverview && window.innerHeight <= 460;
   const compactLauncher = view === "live" && keyboardOpen && narrow;
   const showLauncherInEditor = compactLauncher && single && size.mainHeight >= MIN_DOCK + 128;
   useEffect(() => { setOverviewClipKey(null); }, [clipKey, view]);
   useLayoutEffect(() => {
     const overview = main.current?.querySelector(".ws-overview");
     if (single && !showOverview && (document.activeElement === document.body || overview?.contains(document.activeElement))) back.current?.focus({ preventScroll: true });
-  }, [single, showOverview, view]);
+  }, [single, showOverview, compactArrangeEditor, view]);
   const max = maxDockHeight(size.mainHeight, overviewMinimum, grip), height = clampDock(layout.preferredDockHeight ?? 260, max);
   const [launcherHost, setLauncherHost] = useState<HTMLDivElement | null>(null);
   const [mixControls, setMixControls] = useState<HTMLDivElement | null>(null);
@@ -128,6 +129,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const focusDrawer = useRef(false);
   const dockId = useId(), inspectorId = useId();
   const projectMenu = useRef<HTMLDetailsElement>(null);
+  const errorDetails = useRef<HTMLDetailsElement>(null);
   const change = (patch: PerformViewLayout) => setLayout(previous => ({ ...previous, ...patch }));
   const closeInspector = () => { change(narrow ? { drawerOpen: false } : { inspectorOpen: false }); trigger.current?.focus(); };
   useLayoutEffect(() => {
@@ -137,11 +139,13 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented || document.querySelector("dialog[open]")) return;
-      if (projectMenu.current?.open) { projectMenu.current.open = false; projectMenu.current.querySelector("summary")?.focus(); }
+      if (errorDetails.current?.open) { errorDetails.current.open = false; errorDetails.current.querySelector("summary")?.focus(); }
+      else if (projectMenu.current?.open) { projectMenu.current.open = false; projectMenu.current.querySelector("summary")?.focus(); }
       else if (floatingRack && rackOpen) { setRackMenuView(null); rackTrigger.current?.focus(); }
       else if (narrow && inspector) { setLayout(s => ({ ...s, drawerOpen: false })); trigger.current?.focus(); }
     };
     const outside = (e: PointerEvent) => {
+      if (errorDetails.current?.open && !errorDetails.current.contains(e.target as Node)) errorDetails.current.open = false;
       if (projectMenu.current?.open && !projectMenu.current.contains(e.target as Node)) projectMenu.current.open = false;
       if (floatingRack && rackOpen && !rackMenu.current?.contains(e.target as Node) && !rackTrigger.current?.contains(e.target as Node)) setRackMenuView(null);
     };
@@ -195,16 +199,18 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     </header>
     <div className="ws-work" ref={work} style={{ "--transport-height": size.height - size.mainHeight + "px" } as CSSProperties} data-sidebar={!narrow && inspector || undefined}>
       <div className="ws-column">
-        <div className="ws-transport" role="group" aria-label={c.transport}>{transport}<SongPositionControls language={language} onSeek={onSeek} onTempo={onTempo} /></div>
+        <div className="ws-transport-row"><div className="ws-transport" role="group" aria-label={c.transport}>{transport}<SongPositionControls language={language} onSeek={onSeek} onTempo={onTempo} /></div>
+          {compactArrangeEditor && <button className="ws-back" ref={back} onClick={returnToOverview}>{c.back}</button>}
+        </div>
         <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined}>
           <RetainedScroll key={view} owner="page" field="overviewScroll" className="ws-overview" data-compact-launch={compactLauncher || undefined} hidden={single && !showOverview} role="region" aria-label={c.overview}>
             {compactLauncher && !single && <div className="ws-compact-launch" ref={setLauncherHost} />}{children}
           </RetainedScroll>
           {dock && !single && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
-          {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} aria-label={dockLabel}>
-            <header><h2>{dockLabel}</h2>
+          {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} data-inline-back={compactArrangeEditor || undefined} aria-label={dockLabel}>
+            {!compactArrangeEditor && <header><h2>{dockLabel}</h2>
               {!narrow && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
-              <button ref={back} onClick={returnToOverview}>{single ? c.back : c.close}</button></header>
+              <button ref={back} onClick={returnToOverview}>{single ? c.back : c.close}</button></header>}
             {showLauncherInEditor && <div className="ws-compact-launch" ref={setLauncherHost} />}
             {view === "mix" && <div className="ws-dock-mix-controls" ref={setMixControls} />}
             {view === "arrange" && model && dock === "editor" ? <div className="ws-clip-editor-host" ref={setEditorHost} /> : <RetainedScroll key={view + dock + detailOwner} className="ws-dock-scroll" owner={detailOwner} field={dock + "Scroll"}>
@@ -226,7 +232,10 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     <footer className="ws-status" aria-label={c.status}><span className="ws-session">{session}</span><span>{midi}</span>
       {(musicalChanges || structuralChanges) && <span className="text-amber-200">{clip.unsaved}</span>}
       <EngineStatusLine embedded diagnostics={diagnostics} />
-      {issue && <span role="alert" className="ws-error" tabIndex={0}>{issue}</span>}
+      {issue && <details className="ws-error" ref={errorDetails}>
+        <summary title={c.errorDetails}><span role="alert">{issue}</span></summary>
+        <div className="ws-error-details" role="region" aria-label={c.errorDetails} tabIndex={0}>{issue}</div>
+      </details>}
     </footer>
   </section></WorkspacePanels.Provider>;
 }

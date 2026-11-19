@@ -1096,6 +1096,7 @@ export interface SessionArpeggiatorStatus {
 }
 
 export interface SessionSequencerStatus {
+  source_transport_revision?: number;
   independent_sources?: boolean;
   arrangement_running?: boolean;
   arrangement_transport_subunit?: number | null;

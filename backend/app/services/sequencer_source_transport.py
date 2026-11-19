@@ -23,6 +23,7 @@ class SequencerSourceTransport:
 
     def __init__(self, runtime: SessionSequencerRuntime):
         self.runtime = runtime
+        self.revision = 0
         self.active = False
         self.arranger_active = False
         self.arrangement_running = False
@@ -49,7 +50,7 @@ class SequencerSourceTransport:
     def status(self, at: int | None = None):
         if not self.active:
             return {}
-        return {"independent_sources": True, "arrangement_running": self.arrangement_running,
+        return {"independent_sources": True, "source_transport_revision": self.revision, "arrangement_running": self.arrangement_running,
                 "arrangement_transport_subunit": self.position(at)}
 
     def activate(self):
@@ -196,6 +197,7 @@ class SequencerSourceTransport:
         if request.pad_index is not None and any(request.pad_index not in track.pads for track in targets):
             raise ValueError("Device pad is not configured.")
         self.activate()
+        self.revision += 1
         play = request.action == "play"
         if request.arranger:
             clip_mode = getattr(runtime._midi_service, "has_clip_schedules", False) or any(t.clip_schedule is not None or runtime._auditions.get(t.track_id, {}).get("authored", {}).get("clip_schedule") is not None for t in tracks.values())
@@ -310,6 +312,7 @@ class SequencerSourceTransport:
                                                                     **self.status()})
 
     def stop(self):
+        self.revision += 1
         self.cursor = self.position()
         self.arrangement_running = self.arranger_active = False
         self.playing.clear()

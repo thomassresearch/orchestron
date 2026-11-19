@@ -45,11 +45,12 @@ async page => {
 
       // At the fixture's 120 BPM, this covers two complete four-beat cycles.
       const start = Date.now();
-      let queued = false, sounded = false;
+      let queued = false, queuedInLive = false, sounded = false;
       while (!sounded && Date.now() - start < 4700) {
         const engine = await (await page.request.get(status)).json();
         const track = engine.tracks.find(track => track.track_id === "manual");
-        queued ||= track.queued_pad === 1;
+        queued ||= track.active_pad === 0 && track.queued_pad === 1;
+        queuedInLive ||= await row.locator('[data-queued][aria-label="Pad 2"]').isVisible();
         sounded = track.active_pad === 1 && await sounding(2).isVisible();
         if (!sounded) await page.waitForTimeout(95);
       }
@@ -59,7 +60,7 @@ async page => {
         await button("Pad 2", row).click();
         secondClickSounded = await sounding(2).waitFor({ timeout: 7000 }).then(() => true, () => false);
       }
-      return { pass: sounded, selected, queued, sounded, secondClickSounded };
+      return { pass: selected && queued && queuedInLive && sounded, selected, queued, queuedInLive, sounded, secondClickSounded };
     } finally {
       await page.keyboard.up("Space");
       if (await button("Stop Instruments").isVisible()) await button("Stop Instruments").click();
@@ -84,16 +85,50 @@ async page => {
     await settle();
     const before = await bounds();
     const path = "**/api/performances/*";
+    const message = "Temporary storage unavailable for this performance. ".repeat(60) + "End of storage report.";
     await page.route(path, route => route.request().method() === "PUT" ? route.fulfill({
-      status: 503, json: { detail: "Temporary storage unavailable for this performance. ".repeat(10) }
+      status: 503, json: { detail: message }
     }) : route.continue());
     try {
       await button("Save Performance").click();
       await page.locator(".ws-status [role=alert]").filter({ hasText: "Temporary storage unavailable" }).waitFor();
       await settle();
       const after = await bounds();
-      const bounded = [before, after].every(r => r.offset.every(v => v === 0) && r.document.every((v, i) => Math.abs(v - r.viewport[i]) <= 1));
-      return { format, bounded, pass: bounded && after.work >= 44, before, after };
+      const summary = page.locator(".ws-error summary");
+      await summary.press("Enter");
+      const details = page.getByRole("region", { name: "Error details", exact: true });
+      await details.focus();
+      while (await details.evaluate(el => el.scrollTop + el.clientHeight < el.scrollHeight - 1)) {
+        const next = await details.evaluate(el => Math.min(el.scrollHeight - el.clientHeight, el.scrollTop + el.clientHeight / 2));
+        await details.press("PageDown");
+        await page.waitForFunction(next => document.activeElement.scrollTop >= next - 1, next);
+      }
+      const fullError = await details.evaluate(el => el.scrollTop > 0) && (await details.innerText()).includes(message);
+      const expanded = await bounds();
+      await page.keyboard.press("Escape");
+      const focusRestored = await summary.evaluate(el => el === document.activeElement);
+      const dock = page.locator(".ws-dock");
+      if (format === "Clip") await button("Create variation here", dock).click();
+      const hold = button("HOLD", dock).nth(2);
+      const initial = await hold.getAttribute("aria-pressed");
+      await hold.click();
+      const edited = await hold.getAttribute("aria-pressed") === (initial === "true" ? "false" : "true");
+      const localScroll = await dock.locator(".ws-dock-scroll").evaluate(el => el.scrollTop);
+      await hold.press("Enter");
+      const restored = await hold.getAttribute("aria-pressed") === initial;
+      const hit = el => {
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+      };
+      const controlsReachable = await hold.evaluate(hit) && await button("Back to overview").evaluate(hit)
+        && await button("Play", page.getByRole("group", { name: "Song transport" })).evaluate(hit)
+        && await page.locator(".ws-keyboard [aria-label='C1']").first().evaluate(hit);
+      const bounded = [before, after, expanded, await bounds()].every(r =>
+        r.offset.every(v => v === 0) && r.document.every((v, i) => Math.abs(v - r.viewport[i]) <= 1));
+      return { format, bounded, fullError, focusRestored, edited, restored, controlsReachable, localScroll,
+        pass: bounded && fullError && focusRestored && edited && restored && controlsReachable && localScroll > 0 &&
+          after.work >= 44 && after.editorBody >= 44 && after.editorBody >= before.editorBody - 1 && expanded.editorBody === after.editorBody,
+        before, after, expanded };
     } finally {
       await page.unroute(path);
     }

@@ -10,7 +10,7 @@ import type { AuditionDevice, PreviewCommand } from "../components/sequencer/Per
 import { SequencerConfigSync } from "../lib/sequencerConfigSync";
 import { consumeSequencerEnablementCommands } from "../store/sequencerEdits";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
-import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
 
 import { api, wsBaseUrl } from "../api/client";
 import {
@@ -172,6 +172,7 @@ export function useSequencerRuntimeController({
   const auditionDefinitions = useRef(new Map<string, AuditionDefinition>());
   const auditionCommandVersion = useRef(new Map<string, number>());
   const deviceCommandVersions = useRef(new Map<string, number>());
+  const sourceTransport = useRef({ session: activeSessionId, revision: 0 });
   const deviceCommandQueue = useRef(Promise.resolve());
   const pendingArrangerStop = useRef(Promise.resolve());
   const arrangerStartedSession = useRef<string | null>(null);
@@ -184,6 +185,9 @@ export function useSequencerRuntimeController({
     if (activeSessionState !== "running" || arrangerStartedSession.current !== activeSessionId ||
         previewLifecycle.current.generation !== workspaceGeneration) arrangerStartedSession.current = null;
     const previous = previewLifecycle.current;
+    if (previous.state === "running" && activeSessionState !== "running") {
+      sourceTransport.current = { session: null, revision: 0 };
+    }
     previewLifecycle.current = { id: activeSessionId, state: activeSessionState, generation: workspaceGeneration };
     if (previous.generation !== workspaceGeneration || previous.id && previous.id !== activeSessionId || previous.state === "running" && activeSessionState !== "running") {
       // Starting a stopped engine may replace its compiled rack/session.
@@ -263,7 +267,7 @@ export function useSequencerRuntimeController({
     visualUpdatesEnabled: activePage === "sequencer"
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     sequencerRef.current = sequencer;
   }, [sequencer]);
 
@@ -374,6 +378,11 @@ export function useSequencerRuntimeController({
 
   const applySequencerStatus = useCallback(
     (status: SessionSequencerStatus, options?: ApplySequencerStatusOptions) => {
+      const session = useAppStore.getState().activeSessionId;
+      if (status.session_id && session && status.session_id !== session) return;
+      const revision = status.source_transport_revision ?? 0;
+      if (sourceTransport.current.session === session && revision < sourceTransport.current.revision) return;
+      sourceTransport.current = { session, revision };
       acknowledgeLaneOutput(status);
       if (status.auditions) {
         const audible = useAppStore.getState().performanceAuditions;
@@ -573,6 +582,11 @@ export function useSequencerRuntimeController({
   applyBrowserClockTransportEventsRef.current = (transportEvents) => {
     const visualTrackingEnabled = activePage === "sequencer" && document.visibilityState === "visible";
     for (const transportEvent of transportEvents) {
+      // Buffered PCM can deliver the previous preview's stopped/playing markers
+      // after Device Play has acknowledged a new source. The arpeggiator has its own clock.
+      const source = sourceTransport.current;
+      if (transportEvent.kind !== "arpeggiators" && source.session === useAppStore.getState().activeSessionId &&
+          Number(transportEvent.payload.source_transport_revision ?? 0) < source.revision) continue;
       const auditionStates = (transportEvent.payload as { auditions?: PerformanceAuditionStatus }).auditions;
       if (auditionStates) {
         const arpIds = new Set(useAppStore.getState().sequencer.arpeggiators.map(a => a.id));

@@ -870,6 +870,8 @@ class SessionSequencerRuntime:
         kind: Literal["step", "pad_switches", "loop", "stopped"],
         payload: dict[str, Any],
     ) -> None:
+        if kind in {"loop", "stopped"} and self.sources.active:
+            payload["source_transport_revision"] = self.sources.revision
         if kind in {"loop", "stopped"} and not self.sources.active:
             notify = getattr(self._midi_service, "transport_discontinuity", None)
             if notify is not None:

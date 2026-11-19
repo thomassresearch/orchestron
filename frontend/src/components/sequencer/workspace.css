@@ -22,7 +22,7 @@
 .ws-commandbar { position: relative; z-index: 32; }
 .ws-head { position: relative; }
 .ws-rack-menu { position: absolute; top: 100%; right: 0; left: 0; z-index: 32; max-height: 42dvh; overflow: auto; background: #101d30; box-shadow: 0 6px 16px #040911b3; }
-.ws-commandbar button, .ws-project > summary, .ws-transport > button, .ws-dock > header button, .ws-inspector > header button {
+.ws-commandbar button, .ws-project > summary, .ws-transport > button, .ws-back, .ws-dock > header button, .ws-inspector > header button {
   padding: 3px 8px; line-height: 1.35; background: #182537; border-radius: 4px; border: 1px solid #405269; color: #e0e8ef; cursor: pointer;
 }
 .ws-shell :is(button, summary, input, select, [tabindex]):focus-visible { outline: 2px solid #76d9ff; outline-offset: 1px; }
@@ -44,6 +44,9 @@
 .ws-work[data-sidebar] { grid-template-columns: minmax(0,1fr) clamp(230px,23%,360px); }
 .ws-column { display: grid; grid-template-rows: auto minmax(0,1fr); }
 .ws-transport { background: #0f1a2a; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.ws-transport-row:has(.ws-back) { display: flex; align-items: center; background: #0f1a2a; border-bottom: 1px solid #334359; }
+.ws-transport-row:has(.ws-back) .ws-transport { flex: 1; border-bottom: 0; }
+.ws-back { margin-inline: 4px; font-size: .72rem; }
 .ws-transport label { white-space: nowrap; }
 .ws-number { width: 4.5em; border: 1px solid #41516a; border-radius: 4px; background: #060d18; padding: 2px 4px; }
 .ws-panes { display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr); overflow: hidden; }
@@ -52,6 +55,7 @@
 .ws-overview { background: #0a1322; padding: 4px; }
 .ws-overview[hidden], .ws-dock[hidden], .ws-overview[data-compact-launch] .ws-launcher { display: none; }
 .ws-dock, .ws-inspector { display: grid; grid-template-rows: auto minmax(0,1fr); background: #0c1727; overflow: hidden; }
+.ws-dock[data-inline-back] { grid-template-rows: minmax(0,1fr); }
 .ws-dock > header h2, .ws-inspector > header h2 { margin-right: auto; font-weight: 600; color: #c7e8ed; }
 .ws-dock-scroll, .ws-inspector-scroll { padding: 6px 8px; }
 .ws-dock-scroll section:first-child { margin-top: 0; }
@@ -66,7 +70,11 @@
 .ws-divider:focus-visible { outline: 2px solid #69ddf2; outline-offset: -2px; }
 .ws-status { border-top: 1px solid #35475a; border-bottom: 0; gap: 2px 12px; font-size: .72rem; line-height: 1.35; }
 .ws-status .ws-session { color: #a3dbc5; }
-.ws-status .ws-error { flex-basis: 100%; color: #ffabb0; overflow-wrap: anywhere; max-height: 4.5em; overflow-y: auto; }
+.ws-status { position: relative; }
+.ws-error { min-width: 0; flex-basis: 100%; color: #ffabb0; }
+.ws-error summary { cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-error-details { position: absolute; bottom: 100%; right: 0; left: 0; z-index: 35; max-height: 40dvh; overflow: auto;
+  overscroll-behavior: contain; white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px; background: #241c29; border: 1px solid #a76776; }
 [data-workspace-arranger] { display: flex; flex-direction: column; height: 100%; margin-top: 0; padding: 7px; }
 [data-workspace-arranger] > div { flex: none; }
 [data-workspace-arranger] > [data-arranger-viewport] {
@@ -169,7 +177,10 @@
   [data-perform-workspace] .app-header { padding-block: 1px; }
   [data-perform-workspace] .app-brand img { height: 27px; }
   [data-perform-workspace] .app-brand p { display: none; }
-  .ws-shell[data-keys-open] .ws-error { max-height: 2.7em; }
+  .ws-commandbar { column-gap: 3px; }
+  .ws-commandbar button, .ws-project > summary { padding-inline: 5px; }
+  .ws-shell[data-keys-open] .ws-error { flex: 1 1 8rem; }
+  .ws-shell[data-keys-open] .ws-status:has(.ws-error) .engine-status { order: 1; flex-basis: 100%; }
 }
 .ws-dock[data-compact-launch] { grid-template-rows: auto auto minmax(0,1fr); }
 .ws-compact-launch { max-height: 44dvh; overflow: auto; }

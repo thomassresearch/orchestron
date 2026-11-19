@@ -997,6 +997,7 @@ class SessionArpeggiatorStatus(BaseModel):
 
 
 class SessionSequencerStatus(BaseModel):
+    source_transport_revision: int = Field(default=0, ge=0)
     lane_output: dict[str, Any] = Field(default_factory=dict)
     auditions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     arranger_active: bool = False

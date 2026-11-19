@@ -78,7 +78,7 @@ For a legacy performance, double-click a pad occurrence to edit that physical pa
 
 Open **Live** and find the device you want to play. **Editing** is the physical pad you can change. **Playing** follows playback. **Queued** shows the next manual launch. A clip lane shows its playing pattern by name. Its numbered pads are available for editing.
 
-1. Select a pad on a **Manual pads** device and press **Play** in its row. To jam alongside a clip song, use **Add live device** to create a separate device.
+1. Select a pad on a **Manual pads** device and press **Play** in its row. As soon as the pad shows as playing, you can tap the next pad once to queue it for the pattern boundary. This also works immediately after a speaker preview. To jam alongside a clip song, use **Add live device** to create a separate device.
 2. Open **Keyboard** and choose the piano roll assigned to your instrument. Open **Keyboard settings** to set the MIDI channel, velocity and Autochord. Hold a focused key with Space or Enter and click another pad. On a touch screen, keep one finger on the key and tap a pad with the other.
 3. Watch the queued pad turn into the playing pad at the device’s launch boundary. The compact launcher stays above the keys on a phone. Use the song transport to bring in the arrangement. An independently started Manual device keeps playing through a song seek or stop.
 4. Choose **Edit** in the device row to open its physical pad. Direct pad edits take effect as you play. **Save Performance** stores them with the project. For reusable pattern definitions use **Apply**. Arpeggiator presets have separate **Update preset** and **Save as preset** actions.
@@ -118,6 +118,10 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 The editor and keyboard open independently. Close either to return its space to the overview. On a desktop, drag the editor divider or focus it and use the arrow keys. Shift changes its height one pixel at a time. Home and End reach the limits. **Expand** gives the editor the working area above the keys and **Restore split** brings back the overview.
 
 On a narrow or short screen, **Back to overview** returns from the editor. With a clip and keyboard open, this lets you see the song while your edit keeps sounding. **Editor** brings the same draft back. **Keyboard** toggles the keys. The **Inspector** opens over the right edge. Escape closes it and returns focus to the Inspector button.
+
+On a short landscape screen, **Back to overview** sits beside the song transport. Scroll inside the editor to reach the note controls above the keys. If a save or playback error appears, select the red message in the status bar to read and scroll its full text. Press Escape or tap the message again to close it.
+
+![Arrange on a 640 × 360 screen with editable steps above the keyboard and a save error in the status bar](../../screenshots/perform-arrange-short-error.png)
 
 ![The Inspector drawer showing clip properties on a phone](../../screenshots/perform-workspace-shell-drawer.png)
 

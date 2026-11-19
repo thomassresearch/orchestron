@@ -75,6 +75,8 @@ the mock's fixed preview height. The shell must not create a long document page 
 | Inspector | Uses bounded width and independent vertical scrolling. |
 | Closed pane | Occupies no space and leaves no divider or minimum-height placeholder. |
 
+At 640 × 360, the single Arrange editor shares its top row with the song transport and **Back to overview**. With the keyboard open, the status bar gives a long error one truncated line. Its disclosure opens the full, locally scrollable message above the bar. Escape closes it and restores focus. In either performance format a player can reach a note step, change it and play the keyboard with no document scroll.
+
 Avoid competing scroll areas inside the same editor unless the content is inherently two
 dimensional, such as a score or piano roll. Keep the horizontal timeline scrollbar reachable
 without scrolling through all tracks. Resizing must not trap controls outside the visible area.
