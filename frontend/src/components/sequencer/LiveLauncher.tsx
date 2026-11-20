@@ -1,3 +1,4 @@
+import { useSongPlaybackState } from "../../hooks/useSongPlaybackState";
 import { useContext, useMemo } from "react";
 import { playingClipPattern, clipAuditionDefinitions } from "../../lib/clipArranger/runtime";
 import { sourceKeys } from "../../lib/clipArranger/migration";
@@ -51,6 +52,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
   const pads = useAppStore(s => s.sequencerEditingPads);
   const score = useContext(ScoreTransportContext);
   const authored = useAppStore(s => s.sequencer);
+  const song = useSongPlaybackState();
   const names = useMemo(() => new Map(authored.clipArrangement?.lanes.map(lane =>
     [lane.id, livePatternNames(lane)])), [authored.clipArrangement]);
   const runtime = useAppStore(s => s.sequencerRuntime);
@@ -96,7 +98,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
     }
   };
   const row = ({ kind, track }: { kind: SourceKind; track: Device }, compact: boolean) => {
-    const lane = sequencer.clipArrangement?.lanes.find(l => l.id === track.id);
+    const lane = song.clipArrangement?.lanes.find(l => l.id === track.id);
     const arp = "playbackMode" in track ? track : undefined;
     const liveArp = !lane && arp?.playbackMode === "live";
     const manual = !lane && (liveArp || !track.padLoopEnabled);

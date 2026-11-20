@@ -1,5 +1,6 @@
 import type { SequencerState } from "../../types";
 import { sourceKeys } from "./migration";
+import type { SongPatternEdit } from "./songDrafts";
 import type { DefinitionDraft } from "./model";
 
 /** A temporary pad view lets existing editors keep every musical control and gesture. */
@@ -25,16 +26,18 @@ export const draftKey = (draft: Pick<DefinitionDraft, "target">) => {
 };
 
 /** Map arpeggiator runtime definition slots onto the editor's single displayed pad. */
-export function clipEditorPlaybackView(state: SequencerState, draft: DefinitionDraft, audition: DefinitionDraft | null): SequencerState {
+export function clipEditorPlaybackView(state: SequencerState, draft: DefinitionDraft, audition: DefinitionDraft | null, edits: SongPatternEdit[] = []): SequencerState {
   const view = clipEditorView(state, draft);
   if (draft.definition.kind !== "pattern" || draft.definition.source !== "arpeggiator") return view;
   const patterns = state.clipArrangement?.lanes.find(l => l.id === draft.target.laneId)?.definitions.filter(d => d.kind === "pattern") ?? [];
-  const savedSlot = patterns.findIndex(d => d.id === draft.definition.id);
-  const auditionSlot = audition && draftKey(audition) === draftKey(draft) ? patterns.length : -1;
+  const local = edits.filter(edit => edit.scope === "local" && edit.draft.target.laneId === draft.target.laneId);
+  const index = local.findIndex(edit => edit.key === draftKey(draft));
+  const songSlot = index < 0 ? patterns.findIndex(d => d.id === draft.definition.id) : patterns.length + index;
+  const auditionSlot = audition && draftKey(audition) === draftKey(draft) ? patterns.length + local.length : -1;
   return { ...view, arpeggiators: view.arpeggiators.map(arp => {
     if (arp.id !== draft.target.laneId || !arp.runtimeStatus) return arp;
     const runtime = arp.runtimeStatus;
-    const matches = runtime.active_pad !== undefined && (runtime.active_pad === savedSlot || runtime.active_pad === auditionSlot);
+    const matches = runtime.active_pad !== undefined && (runtime.active_pad === songSlot || runtime.active_pad === auditionSlot);
     // The backend's enabled flag remains authored/source intent during audition.
     return { ...arp, enabled: runtime.enabled || runtime.state === "playing",
       runtimeStatus: { ...runtime, active_pad: matches ? 0 : -1 } };

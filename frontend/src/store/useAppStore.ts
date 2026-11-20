@@ -1,3 +1,4 @@
+import { sameSongEdits, songPatternEdits } from "../lib/clipArranger/songDrafts";
 import { automationRouting, mappedControls, reconcileAutomation } from "../lib/clipArranger/automation";
 import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { useAutomationMerge } from "../lib/clipArranger/automationMerge";
@@ -1257,6 +1258,16 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
     void flushPersistedAppState();
   }, APP_STATE_PERSIST_DEBOUNCE_MS);
 }
+
+// Draft edits use the normal audio preparation revision. Opening an editor or updating
+// its selection leaves the audio revision alone. Drafts never enter the authored sequencer.
+useAppStore.subscribe((state, previous) => {
+  if (state.clipDrafts === previous.clipDrafts || state.sequencerEditRevision !== previous.sequencerEditRevision ||
+      state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) return;
+  if (!sameSongEdits(songPatternEdits(previous.sequencer, previous.clipDrafts), songPatternEdits(state.sequencer, state.clipDrafts))) {
+    useAppStore.setState({ sequencerEditRevision: state.sequencerEditRevision + 1 });
+  }
+});
 
 // Channel/patch/rack changes derive bound routing without re-enabling suspended sources.
 useAppStore.subscribe((state, previous) => {

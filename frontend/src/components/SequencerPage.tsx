@@ -36,6 +36,7 @@ import { normalizeTimingOffset } from "../lib/sequencer";
 import { ArpeggiatorEditor } from "./sequencer/ArpeggiatorEditor";
 import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
+import { useSongPlaybackState } from "../hooks/useSongPlaybackState";
 import { pianoRollFollowingTheories } from "../lib/pianoRollFollowing";
 import { ArrangeSettings, EditorDetails, OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, useStepProperties, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
@@ -3201,9 +3202,10 @@ function PianoRollsBody({ context, compact = false }: { context: ReturnType<type
   const runtime = useAppStore(state => state.sequencerRuntime);
   const auditions = useAppStore(state => state.performanceAuditions);
   const auditionDraft = useAppStore(state => state.clipAuditionDraft);
+  const song = useSongPlaybackState();
   const runningSequencerTheories = useMemo(
-    () => pianoRollFollowingTheories(sequencer, runtime, auditions, auditionDraft),
-    [sequencer, runtime, auditions, auditionDraft]
+    () => pianoRollFollowingTheories(song, runtime, auditions, auditionDraft),
+    [song, runtime, auditions, auditionDraft]
   );
   const runningSequencerSummary = useMemo(() => {
     if (runningSequencerTheories.length === 0) {

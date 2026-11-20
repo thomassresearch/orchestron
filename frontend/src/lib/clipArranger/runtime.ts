@@ -130,9 +130,9 @@ export function clipAuditionDefinitions(lane: ClipLane, draft: DefinitionDraft) 
 }
 
 /** Append a temporary definition for audition; arranged references still point to saved data. */
-export function clipAuditionState(state: SequencerState, draft: import("./model").DefinitionDraft): { state: SequencerState; sequence: number[]; clipContext?: boolean } {
+export function clipAuditionState(state: SequencerState, draft: DefinitionDraft, song: SequencerState = state): { state: SequencerState; sequence: number[]; clipContext?: boolean } {
   if (!state.clipArrangement) throw new Error("A clip audition requires a clip arrangement.");
-  const next = structuredClone(state), lane = next.clipArrangement!.lanes.find(l => l.id === draft.target.laneId);
+  const next = structuredClone(song), lane = next.clipArrangement!.lanes.find(l => l.id === draft.target.laneId);
   if (!lane) throw new Error("The audition lane no longer exists.");
   lane.definitions = structuredClone(clipAuditionDefinitions(lane, draft));
   const definition = lane.definitions[lane.definitions.length - 1];
@@ -145,7 +145,7 @@ export function clipAuditionState(state: SequencerState, draft: import("./model"
   const sourceClip = sourceLane.clips.find(c => c.id === draft.target.clipId)!;
   const logical = logicalRepeatIndex(sourceLane,sourceClip,draft.target.path,draft.target.pass);
   const inherited = transposePlans(sourceLane, sourceClip, draft.target.path);
-  lane.transposeProfiles = structuredClone(sourceLane.transposeProfiles);
+  const auditionLane = { ...lane, transposeProfiles: sourceLane.transposeProfiles };
   // The selected level is already included in inherited; descendants add their own scopes.
   delete definition.transposeProfileId;
   const root = { id: 'audition-root', definitionId: definition.id, repeatIndex:logical };
@@ -166,7 +166,7 @@ export function clipAuditionState(state: SequencerState, draft: import("./model"
     return indices.get(key)!;
   };
   const content = resolveContent(lane,[root],timing).map(leaf=>({pad:leaf.definition?slots.get(leaf.definition.id)!:null,length:leaf.length,
-    transpose_refs:leaf.definition?[...inherited,...transposePlans(lane,contextClip,leaf.path)].map(intern):[]}));
+    transpose_refs:leaf.definition?[...inherited,...transposePlans(auditionLane,contextClip,leaf.path)].map(intern):[]}));
   const duration=content.reduce((sum,l)=>sum+l.length,0);
   const schedule: RuntimeClipSchedule = {version:2,end:duration,cycle_ticks:duration,transpose_plans:plans,
     clips:[{id:'audition',start:0,length:duration,offset:0,mode:'once',content}]};

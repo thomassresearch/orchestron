@@ -64,7 +64,7 @@ Example: a 16-beat window loops an 8-beat supergroup containing Group A → Patt
 
 Authoring state, editor drafts and runtime audition overlays are separate. A musical edit enters the draft associated with its base definition revision and occurrence path. It must not change every linked occurrence before the user chooses a save scope. The same draft backs the full editor and inline curve view.
 
-During Play edit, prepared draft updates may be heard through a temporary runtime overlay. Without Play edit, editing a draft does not silently replace the arranged definition. Keep the existing preparation pipeline, coalescing and failure behavior; only the source of the pending payload changes.
+Arrange playback compiles pending musical pattern edits at their song positions with their chosen local or linked scope. Independent drafts stay audible across selections. Cancel removes that preview and Save commits the pattern at the existing transport position. Play edit provides a separate looping audition. Both use the existing preparation pipeline, coalescing and failure behavior. Persistence and exports read committed definitions.
 
 On Save, validate the complete change and then atomically:
 

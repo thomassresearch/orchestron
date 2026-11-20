@@ -16,7 +16,11 @@ The counter allows **10 points including both endpoints**. Endpoint positions st
 
 **Curve duration · master beats** stretches the normalized curve without changing its points or the clip window. **Use clip length** copies the selected window's duration. Trimming crops the existing content. Extending Song end leaves existing curves at their saved durations. Curves can span up to the arrangement limit of 1,000,000 master beats.
 
-Shared curves follow the same [editing scope and saving rules](pattern_pads_and_pad_looper.md#edit-and-save) as musical patterns, including when editing their inline points. **Cancel edits** discards the selected curve draft and closes the editor. Play edit auditions the draft through the usual workspace controls. Performance save, autosave and native/CSD export retain committed definitions; unsaved curves remain session-only. Committed edits use arranger Undo/Redo. Adding, splitting or merging source lanes clears clip history, following the existing topology rules.
+Shared curves follow the same [editing scope and saving rules](pattern_pads_and_pad_looper.md#edit-and-save) as musical patterns, including when editing their inline points. Press **Play** and drag a point to hear the curve as the song passes through its clip. Select the instrument track and open **Controllers** to watch its mapped knob follow the edited curve. The curve stays visible on its track. For note instruments, listen to the next note or phrase to hear its new setting.
+
+![The Synth Bass Tone knob following an unsaved automation curve during song playback](../../screenshots/arranger-live-curve-preview.png)
+
+**Cancel edits** restores the saved curve during playback. Save the pattern to keep the curve in the arrangement. **Play edit** loops the selected draft independently of the song position. Performance save, autosave and native/CSD export retain committed definitions; unsaved curves remain session-only. Committed edits use arranger Undo/Redo. Adding, splitting or merging source lanes clears clip history, following the existing topology rules.
 
 ![Editing an instrument's CC curve directly inside a song-length clip](../../screenshots/clip-arranger-instrument-automation.png)
 

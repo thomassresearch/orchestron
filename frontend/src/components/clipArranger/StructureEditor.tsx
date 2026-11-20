@@ -1,3 +1,4 @@
+import { arrangementTimings } from "../../lib/clipArranger/migration";
 import type { StructureFocus } from "../../lib/clipArranger/structure";
 import { arrangeSaveLabel, arrangeCopy } from "./arrangeCopy";
 import { WorkspacePanel, WorkspacePanels } from "../sequencer/WorkspacePanels";
@@ -17,10 +18,11 @@ import { type ContainerTarget, type StructureNode, type StructureSelection, type
 import type { ClipArrangement, LaneTiming, OccurrenceTarget } from '../../lib/clipArranger/model';
 import { ClipError, contentLength } from '../../lib/clipArranger/model';
 import { useAppStore } from '../../store/useAppStore';
-import { hasChangedClipDrafts } from '../../lib/clipArranger/draftResolution';
-import { beginDraft } from '../../lib/clipArranger/operations';
+import { hasChangedClipDrafts, occurrenceEditIntent } from '../../lib/clipArranger/draftResolution';
+import { songPatternEdits } from '../../lib/clipArranger/songDrafts';
+import { beginDraft, definitionAt } from '../../lib/clipArranger/operations';
 import { draftKey } from '../../lib/clipArranger/editorAdapter';
-import { affectedDraftKeys, rebaseStructure, remapStructureCommand } from '../../lib/clipArranger/structuralDraftResolution';
+import { affectedDraftKeys, rebaseStructure, remapMusicalTarget, remapStructureCommand } from '../../lib/clipArranger/structuralDraftResolution';
 import { commitClipArrangement, openClipEditor, saveClipDraftWithIntent, setClipEditIntent } from '../../store/clipActions';
 import { PatternPreview } from './PatternPreview';
 import { clipInput } from "./ClipArranger";
@@ -94,6 +96,27 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
   return keys.filter(key=>state.clipDrafts[key]&&hasChangedClipDrafts(state.sequencer.clipArrangement,{[key]:state.clipDrafts[key]}));
  };
  const resolveMusical=(key:string,resume:(before:ClipArrangement,after:ClipArrangement)=>void)=>{setError(null);setMusical({key,resume});};
+ // Two local variations can coexist. A linked edit owns every use of the same definition.
+ const guardPattern = (requested: OccurrenceTarget, chosen: EditScope | undefined, proceed: (target: OccurrenceTarget) => void) => {
+   const state = useAppStore.getState(), current = state.sequencer.clipArrangement!;
+   const lane = current.lanes.find(l => l.id === requested.laneId)!;
+   const definition = definitionAt(lane, requested);
+   if (definition.kind !== "pattern") { proceed(requested); return; }
+   const key = draftKey({ target: requested });
+   const clip = lane.clips.find(c => c.id === requested.clipId)!;
+   const relationship = definitionRelationships(lane, arrangementTimings(state.sequencer)[lane.id]).get(definition.id);
+   const intent = occurrenceEditIntent(current, state.clipDrafts[key], state.clipEditingKey === key, relationship,
+     clip.mode === "loop" ? (clip.repeatIndexBase ?? 0) + requested.pass : undefined);
+   const scope = chosen ?? effectiveScope(intent, relationship);
+   const conflict = scope && songPatternEdits(state.sequencer, state.clipDrafts).find(edit =>
+     edit.key !== key && edit.draft.target.laneId === lane.id && edit.pattern.id === definition.id &&
+     (scope === "all" || edit.scope === "all"));
+   if (!conflict) { proceed(requested); return; }
+   resolveMusical(conflict.key, (before, after) => {
+     const target = before === after ? requested : remapMusicalTarget(before, after, requested, arrangementTimings(state.sequencer));
+     guardPattern(target, chosen, proceed);
+   });
+ };
  const run=(command:StructureCommand,f=focus)=>{
   if(!f)return;setMenu(null);
   try {
@@ -424,14 +447,14 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const selectedDefinition=selectionSize===1&&!spansPasses?selectedNodes[0]?.definition:undefined;
  const selectedTarget=selectedDefinition&&focus&&selection?{laneId:focus.laneId,clipId:focus.clipId,pass:focus.pass,path:[...selection.parent,selectedNodes[0].id]}:undefined;
  const selectedRelationship=selectedDefinition&&focus?relationships.get(focus.laneId)?.get(selectedDefinition.id):undefined;
- const editSelected=(scope:EditScope)=>{if(selectedTarget)guardEdit(selectedTarget,target=>openClipEditor(target,scope));setMenu(null);};
+ const editSelected=(scope:EditScope)=>{if(selectedTarget)guardEdit(selectedTarget,target=>guardPattern(target,scope,ready=>openClipEditor(ready,scope)));setMenu(null);};
  const editButtons=(menu=false)=><><button role={menu?"menuitem":undefined} disabled={!selectedDefinition} className={clipButtonClass('edit')} onClick={()=>editSelected('all')}>{selectedDefinition?sc[selectedDefinition.kind]:c.edit}{selectedRelationship?` (${selectedRelationship.occurrences})`:''}</button><button role={menu?"menuitem":undefined} disabled={!selectedDefinition||!selectedRelationship?.shared} className={clipButtonClass('add')} onClick={()=>editSelected('local')}>{sc.variation}</button></>;
  const contextMenu = menu && <div role="menu" className="fixed z-50 flex flex-wrap gap-2 overflow-y-auto rounded border border-slate-500 bg-slate-900 p-2"
    style={{ width: "min(440px, calc(100vw - 16px))", left: `clamp(8px, ${menu.x}px, 100vw - 448px)`, top: menu.y,
      transform: menu.y > window.innerHeight / 2 ? "translateY(-100%)" : undefined, maxHeight: "calc(50dvh - 8px)" }}>
    {selectedDefinition?.kind === "pattern" && selectedTarget && <button role="menuitem" autoFocus className={clipButtonClass("edit")} onClick={() => {
      setMenu(null);
-     guardEdit(selectedTarget, onRenamePattern);
+     guardEdit(selectedTarget, target=>guardPattern(target, undefined, onRenamePattern));
    }}>{arrangeCopy(language).renamePattern}</button>}
    {editButtons(true)}
    <button role="menuitem" className={clipButtonClass("remove")} disabled={!selection || spansPasses} onClick={() => remove()}>{t.remove}</button>
@@ -442,7 +465,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    <button role="menuitem" className={clipButtonClass("add")} onClick={() => { setMenu(null); if (focus) add(focus,items.length); }}>{c.addContent}</button>
  </div>;
  const toolbar=<>{drop&&ghost&&<div aria-hidden className="pointer-events-none fixed z-50 h-16 border-l-2 border-cyan-300" style={{left:drop.screenX??ghost.x-12,top:drop.screenY??ghost.y-12}}/>}{resizeFeedback&&<p role="status" className="text-cyan-300">{resizeFeedback}</p>}{ghost&&<div className="pointer-events-none fixed z-50 rounded border border-cyan-300 bg-slate-900 px-3 py-2 text-xs text-cyan-100" style={{left:ghost.x,top:ghost.y}}>{ghost.count} · {c.content}</div>}{contextMenu}<WorkspacePanel name="inspector"><div className="my-2 flex flex-wrap items-center gap-2 text-xs text-slate-200">{focus&&<>{editButtons()}{selectedDefinition&&<span>{selectedDefinition.name} · <RelationshipSummary relationship={selectedRelationship} language={language}/></span>}<input aria-label={arrangeCopy(language).groupName} placeholder={arrangeCopy(language).groupName} value={groupName} onChange={e=>setGroupName(e.target.value)} className={clipInput}/><button className={clipButtonClass("add")} onClick={()=>add(focus,items.length)}>{t.add}</button><button disabled={!selection||spansPasses} className={clipButtonClass("remove")} onClick={()=>remove()}>{t.remove}</button><button disabled={!canGroup('group')} className={clipButtonClass("add")} onClick={()=>group('group')}>{c.group}</button><button disabled={!canGroup('supergroup')} className={clipButtonClass("add")} onClick={()=>group('supergroup')}>{c.supergroup}</button>{canUngroup&&<button className={clipButtonClass("edit")} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button>}<button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(-1)}>←</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(1)}>→</button><select disabled={spansPasses} aria-label={t.move} className={clipInput} value="" onChange={e=>{const dest=destinations[Number(e.target.value)];if(selection)run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:dest.path,index:dest.length}});}}><option value="">{t.move}</option>{destinations.map((d,i)=><option key={i} value={i}>{d.label}</option>)}</select></>}{draft&&<><span className="text-amber-300">{draft.cursor?c.unsaved:c.saved}</span><button className={clipButtonClass("edit")} disabled={!draft.cursor} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,-1)})}>{c.undo}</button><button className={clipButtonClass("edit")} disabled={draft.cursor===draft.history.length-1} onClick={()=>useStructureDraft.setState({draft:stepStructure(draft,1)})}>{c.redo}</button><button className={clipButtonClass("save")} disabled={!draft.cursor||!preview.result||busy} onClick={openSave}>{shell ? saveLabel : scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button><button className={clipButtonClass("remove")} onClick={discard}>{t.discard}</button></>}</div>{!containerEditing&&scopeControls}</WorkspacePanel>{error&&<p role="alert" className="text-rose-300">{error}</p>}{drop&&<p className="text-cyan-300">{t.insert} {drop.target.ticks!==undefined?`${drop.target.ticks/20160} ${c.beats}`:drop.target.index+1} · {containerLabel(drop.target.path)}</p>}{preview.error&&<p role="alert" className="text-rose-300">{preview.error}</p>}{preview.result&&draft&&<p className="text-xs text-slate-400">{sc.effects}: {preview.result.model.lanes.find(l=>l.id===draft.laneId)?.clips.filter(cl=>!equal(cl,draft.basis.clips.find(old=>old.id===cl.id))||scope==='all'&&affectedClipIds(relationships.get(draft.laneId),impact?.definitions??[]).includes(cl.id)).map(cl=>`${cl.name} (${cl.start/20160}–${(cl.start+cl.length)/20160})`).join(", ")}</p>}<WorkspacePanel name="dialogs">{modal}{conflictModal}{scopeModal}</WorkspacePanel></>;
- return {saveLabel,canSave:!!draft?.cursor&&!!preview.result&&!busy,scopeControls,selectedDefinition,selectedTarget,relationships,startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number,onSelected:()=>void)=>{
+ return {saveLabel,canSave:!!draft?.cursor&&!!preview.result&&!busy,scopeControls,selectedDefinition,selectedTarget,relationships,startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,guardPattern,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number,onSelected:()=>void)=>{
    const show=()=>{onSelected();setMenu({x,y});};
    if(isSelected(f,id))show();else select(f,id,false,show);
  },keepSelectionAt:setSelectionRevision,focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current||resizing.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};

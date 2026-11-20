@@ -10460,6 +10460,62 @@ def test_instrument_automation_persistence_native_bundles_and_limits(tmp_path):
         assert client.get(endpoint).json()["config"] == config
 
 
+def test_running_song_applies_and_reverts_automation_to_new_notes_without_restarting(tmp_path, monkeypatch):
+    import numpy as np
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_instrument_automation import automation_wire
+
+    with _client(tmp_path) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        patch = client.post("/api/patches", json=load_patch_fixture("performance_controller_midi").model_dump(mode="json"))
+        assert patch.status_code == 201, patch.text
+        session = client.post("/api/sessions", json={"instruments": [{"id": "one", "patch_id": patch.json()["id"],
+            "midi_channel": 1, "performance_controller_midi_ccs": {"setting": 21}}]}).json()["session_id"]
+        base = f"/api/sessions/{session}"
+        assert client.post(base + "/compile").status_code == 200
+        config = automation_wire(16 * 20160)
+        config["tracks"] = [{"track_id": "notes", "midi_channel": 1, "pad_loop_enabled": True, "pad_loop_repeat": True,
+            "pad_loop_sequence": [0], "pads": [{"pad_index": 0, "length_beats": 4, "steps": [60] * 16}]}]
+        points = config["controller_tracks"][0]["pads"][0]["keypoints"]
+        for point in points:
+            point["value"] = 24
+        start = client.post(base + "/sequencer/device-transport", json={"action": "play", "arranger": True, "config": config})
+        assert start.status_code == 200, start.text
+        assert client.app.state.container.session_service._sessions[session].worker.backend == "ctcsound"
+        with client.websocket_connect(f"/ws/sessions/{session}/browser-clock") as socket:
+            socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 256})
+            assert socket.receive_json()["type"] == "stream_config"
+
+            def next_notes():
+                samples = []
+                frames = 0
+                while frames < 24000:
+                    socket.send_json({"type": "request_render", "block_count": 256})
+                    chunk = socket.receive_json()
+                    assert chunk["type"] == "render_chunk", chunk
+                    frames += chunk["target_frame_count"]
+                    samples.append(np.frombuffer(socket.receive_bytes(), dtype="<f4").reshape(-1, 2))
+                # Skip the held note at the boundary. This controller is sampled on note-on.
+                return float(np.abs(np.concatenate(samples)[12000:]).max())
+
+            quiet = next_notes()
+            assert quiet > 0
+            position = 0
+            for value in [112, 24]:
+                for point in points:
+                    point["value"] = value
+                update = client.put(base + "/sequencer/config", json=config)
+                assert update.status_code == 200, update.text
+                peak = next_notes()
+                controls = client.get(base + "/instruments/one/performance-controllers").json()
+                assert controls["values"]["setting"] == pytest.approx(value / 127)
+                status = client.get(base + "/sequencer/status").json()
+                assert status["running"] and status["arrangement_transport_subunit"] > position
+                position = status["arrangement_transport_subunit"]
+                assert peak == pytest.approx(quiet * value / 24, rel=0.05)
+
+
 def test_instrument_automation_mapping_update_is_revision_checked_and_atomic(tmp_path):
     from backend.tests.csound_test_support import load_patch_fixture
     from backend.tests.test_instrument_automation import automation_wire

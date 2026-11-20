@@ -33,7 +33,9 @@ Double-click the original loop pass to edit the linked pattern, group or supergr
 
 ![Choosing linked or local scope for a repeated pattern](../../screenshots/arranger-pattern-scope.png)
 
-**Cancel edits** discards the open pattern draft. If you close a changed pattern, choose its Save action, **Discard edits**, or **Keep editing**. After saving or discarding the last draft, choose **Save Performance**.
+Press **Play** to hear your pattern at its place in the song. If the song is already playing, edit notes, drum hits, arpeggiator settings or controller values as it runs. You can select another track or edit a second pattern and still hear both drafts. A local variation sounds only at the chosen occurrence. A linked edit sounds at every use.
+
+**Cancel edits** restores the saved pattern at the current playhead. Saving the pattern commits the change to the arrangement as one undoable edit. If you close a changed pattern, choose its Save action, **Discard edits**, or **Keep editing**. After saving or discarding the last draft, choose **Save Performance**.
 
 Performance save, autosave and exports use saved definitions. Resolve changed drafts before saving the performance, or explicitly choose the saved definitions. Drafts survive view switches until you reload the browser. **Cancel** keeps you in the current view with your edits. If loading a replacement performance fails, your drafts are still available.
 

@@ -1,4 +1,4 @@
-import { clipAuditionState } from "../lib/clipArranger/runtime";
+import { clipSongPlayback } from "../lib/clipArranger/songDrafts";
 import { syncTransposeStatus } from "../lib/clipArranger/transposeStatus";
 import type { LiveInputAction } from "../audio/browserPlaybackPolicy";
 import { playingArrangerSourceChanges } from "../store/arrangerHistory";
@@ -172,9 +172,10 @@ export function useSequencerRuntimeController({
   const auditionDefinitions = useRef(new Map<string, AuditionDefinition>());
   const auditionCommandVersion = useRef(new Map<string, number>());
   const deviceCommandVersions = useRef(new Map<string, number>());
+  const unboundDeviceStarts = useRef(new Map<string, number>());
   const sourceTransport = useRef({ session: activeSessionId, revision: 0 });
   const deviceCommandQueue = useRef(Promise.resolve());
-  const pendingArrangerStop = useRef(Promise.resolve());
+  const pendingArrangerStop = useRef<Promise<void> | null>(null);
   const arrangerStartedSession = useRef<string | null>(null);
   const clipEditorStartedSession = useRef<string | null>(null);
   const workspaceGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string; command: WorkspaceCommand; resume?: WorkspaceCommand }>());
@@ -192,7 +193,10 @@ export function useSequencerRuntimeController({
     if (previous.generation !== workspaceGeneration || previous.id && previous.id !== activeSessionId || previous.state === "running" && activeSessionState !== "running") {
       // Starting a stopped engine may replace its compiled rack/session.
       if (previous.generation !== workspaceGeneration || previous.state === "running") {
-        for (const [id, version] of deviceCommandVersions.current) deviceCommandVersions.current.set(id, version + 1);
+        for (const [id, version] of deviceCommandVersions.current) {
+          if (previous.generation === workspaceGeneration && unboundDeviceStarts.current.get(id) === version) continue;
+          deviceCommandVersions.current.set(id, version + 1);
+        }
       }
       // A Play edit request can itself replace a stopped session after loading
       // a performance. Keep that unbound request alive until startSession returns.
@@ -870,7 +874,10 @@ export function useSequencerRuntimeController({
     const version = (deviceCommandVersions.current.get(key) ?? 0) + 1;
     deviceCommandVersions.current.set(key, version);
     const generation = useAppStore.getState().performanceWorkspaceGeneration;
-    const initialSession = useAppStore.getState().activeSessionState === "running" ? useAppStore.getState().activeSessionId : null;
+    let initialSession = useAppStore.getState().activeSessionState === "running" ? useAppStore.getState().activeSessionId : null;
+    const precedingStop = playing ? pendingArrangerStop.current : null;
+    // A Play queued during shutdown belongs to the next running session.
+    if (playing && (!initialSession || precedingStop)) unboundDeviceStarts.current.set(key, version);
     const current = () => deviceCommandVersions.current.get(key) === version &&
       useAppStore.getState().performanceWorkspaceGeneration === generation &&
       (!initialSession || useAppStore.getState().activeSessionId === initialSession);
@@ -885,7 +892,13 @@ export function useSequencerRuntimeController({
       if (!current()) return;
       setSequencerError(null);
       try {
+        if (precedingStop) {
+          await precedingStop;
+          if (!current()) return;
+        }
         if (playing && useAppStore.getState().activeSessionState !== "running") {
+          // Starting a stopped rack can allocate a replacement session.
+          initialSession = null;
           browserClockClientRef.current.prime();
           await useAppStore.getState().startSession();
           const started = useAppStore.getState();
@@ -937,10 +950,15 @@ export function useSequencerRuntimeController({
     // command. Stop bypasses this queue to cancel preparation already in flight.
     if (!playing) {
       const task = run();
-      if (!deviceId) pendingArrangerStop.current = task;
+      if (!deviceId) {
+        pendingArrangerStop.current = task;
+        void task.finally(() => { if (pendingArrangerStop.current === task) pendingArrangerStop.current = null; });
+      }
       return task;
     }
-    const task = deviceCommandQueue.current.then(run);
+    const task = deviceCommandQueue.current.then(run).finally(() => {
+      if (unboundDeviceStarts.current.get(key) === version) unboundDeviceStarts.current.delete(key);
+    });
     deviceCommandQueue.current = task;
     return task;
   }, [applySequencerStatus, browserClockClientRef, buildBackendSequencerConfig, effectiveAudioOutputModeRef, setSequencerError, setSequencerTransportAbsoluteStep]);
@@ -1111,7 +1129,7 @@ export function useSequencerRuntimeController({
         const initial = useAppStore.getState();
         const device = [...initial.sequencer.tracks, ...initial.sequencer.scoreTracks, ...initial.sequencer.drummerTracks, ...initial.sequencer.controllerSequencers, ...initial.sequencer.arpeggiators].find(d => d.id === deviceId);
         if (!device) return;
-        const clipAudition = command.action === "workspace_start" && command.clipDraft ? clipAuditionState(initial.sequencer, command.clipDraft) : null;
+        const clipAudition = command.action === "workspace_start" && command.clipDraft ? clipSongPlayback(initial.sequencer, initial.clipDrafts, command.clipDraft) : null;
         const sequence = clipAudition?.sequence ?? (command.action === "workspace_start" ? compilePadLoopPattern({ ...device.padLoopPattern, rootSequence: command.items ?? [] }).sequence : []);
         if (command.action === "workspace_start" && !command.padPreview && !sequence.length) throw new Error("An audition requires a playable sequence.");
         if (command.action === "workspace_start" && initial.activeSessionState !== "running") {
@@ -1334,8 +1352,13 @@ export function useSequencerRuntimeController({
     if (activeSessionState !== "running") {
       return null;
     }
-    return JSON.stringify(buildBackendArpeggiatorConfig(sequencerConfig));
-  }, [activeSessionState, buildBackendArpeggiatorConfig, sequencerConfig]);
+    try {
+      return JSON.stringify(buildBackendArpeggiatorConfig(sequencerConfig));
+    } catch {
+      // The combined sequencer update reports invalid musical drafts and retains the playing config.
+      return null;
+    }
+  }, [activeSessionState, authoredRevision, buildBackendArpeggiatorConfig, sequencerConfig]);
 
   const setLiveInput = useCallback((source: string, action: LiveInputAction) => {
     browserClockClientRef.current.setLiveInput(source, action);

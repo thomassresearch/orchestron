@@ -579,6 +579,31 @@ it("stops an engine whose startup completes after composer Stop", async () => {
   expect(deviceTransport.mock.calls.every(([, request]) => request.action === "stop")).toBe(true);
 });
 
+it("waits for engine shutdown before playing an edited song again", async () => {
+  useAppStore.setState({ activeSessionId: null, activeSessionState: "idle" });
+  const { start, stop } = mockInstrumentLifecycle();
+  let finishStop!: () => void;
+  stop.mockImplementationOnce(() => new Promise<void>(resolve => { finishStop = () => {
+    useAppStore.setState({ activeSessionState: "compiled" });
+    resolve();
+  }; }));
+  const { result } = setup(false);
+  await act(() => result.current.transportDevice(null, true));
+  let stopping!: Promise<void>, restarting!: Promise<void>;
+  await act(async () => { stopping = result.current.transportDevice(null, false); });
+  expect(stop).toHaveBeenCalledOnce();
+  deviceTransport.mockClear();
+  start.mockImplementationOnce(async () => {
+    useAppStore.setState({ activeSessionId: "replacement", activeSessionState: "running" });
+  });
+  await act(async () => { restarting = result.current.transportDevice(null, true); });
+  expect(deviceTransport).not.toHaveBeenCalled();
+  // The session event can reach React before the Stop response arrives.
+  act(() => useAppStore.setState({ activeSessionState: "compiled" }));
+  await act(async () => { finishStop(); await Promise.all([stopping, restarting]); });
+  expect(deviceTransport).toHaveBeenCalledExactlyOnceWith("replacement", expect.objectContaining({ action: "play", arranger: true }));
+});
+
 it("waits for an in-flight song Stop before starting clip audition instruments", async () => {
   useAppStore.setState(s => ({ activeSessionId: null, activeSessionState: "idle", sequencer: { ...s.sequencer,
     clipArrangement: { version: 1, revision: 0, end: 322560, lanes: [] },

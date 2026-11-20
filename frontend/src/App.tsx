@@ -1,7 +1,8 @@
+import { clipSongPlayback } from "./lib/clipArranger/songDrafts";
 import { DraftResolutionDialog } from "./components/clipArranger/DraftResolutionDialog";
 import { registerAutomationRuntime } from "./lib/clipArranger/automationRuntime";
 import { confirmReplacement, resolveClipDrafts } from "./lib/clipArranger/draftResolution";
-import { withPadAudition, clipRuntimeView, attachClipSchedules, clipAuditionState } from "./lib/clipArranger/runtime";
+import { withPadAudition, clipRuntimeView, attachClipSchedules } from "./lib/clipArranger/runtime";
 import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
 import { scoreTrackConfig } from "./lib/scoreSequencer";
 import { EngineStatusLine } from "./components/EngineStatusLine";
@@ -379,8 +380,9 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
       arrangerActive = useAppStore.getState().sequencerRuntime.arrangerActive ?? false
     ): SessionSequencerConfigRequest => {
       const authored = state ?? useAppStore.getState().sequencer;
-      const draft = mode === "runtime" ? useAppStore.getState().clipAuditionDraft : null;
-      const compilation = draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored;
+      const { clipDrafts, clipAuditionDraft } = useAppStore.getState();
+      const compilation = mode === "runtime" && !("clipAuditionContext" in authored)
+        ? clipSongPlayback(authored, clipDrafts, clipAuditionDraft).state : authored;
       const previews = mode === "runtime" ? previewGestures.current : undefined;
       const resolvedState = withPadAudition(clipRuntimeView(compilation, previews), mode === "runtime" ? useAppStore.getState().padAudition : null);
       const transportStepCount = transportStepCountFromPerformanceSequencers(
@@ -558,8 +560,8 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   useEffect(() => { registerAutomationRuntime(buildBackendSequencerConfig); return () => registerAutomationRuntime(undefined); }, [buildBackendSequencerConfig]);
   const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
     const authored = state ?? useAppStore.getState().sequencer;
-    const draft = useAppStore.getState().clipAuditionDraft;
-    const resolvedState = draft && authored.clipArrangement ? clipAuditionState(authored, draft).state : authored;
+    const { clipDrafts, clipAuditionDraft } = useAppStore.getState();
+    const resolvedState = clipSongPlayback(authored, clipDrafts, clipAuditionDraft).state;
     return {
       tempo_bpm: resolvedState.timing.tempoBPM,
       arpeggiators: buildBackendArpeggiatorConfigs(resolvedState, previewGestures.current)

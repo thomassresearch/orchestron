@@ -283,3 +283,22 @@ it("cancels only the active occurrence's draft", async () => {
   expect(state.clipDrafts[otherKey].definition.name).toBe("Unfinished linked name");
   expect(model()).toBe(original);
 });
+
+it("resolves an overlapping linked edit before opening another occurrence", async () => {
+  show();
+  fireEvent.doubleClick(patterns()[1]);
+  fireEvent.click(editor().getByRole('button', { name: 'Create variation here' }));
+  fireEvent.click(editor().getByRole('button', { name: 'Change note' }));
+  const localKey = useAppStore.getState().clipEditingKey;
+  fireEvent.doubleClick(patterns()[0]);
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+  expect(useAppStore.getState().clipEditingKey).toBe(localKey);
+  fireEvent.doubleClick(patterns()[0]);
+  await act(async () => fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /save/i })));
+  const state = useAppStore.getState();
+  const target = state.clipDrafts[state.clipEditingKey!].target;
+  const reopened = model().lanes[0].clips.find(c => c.id === target.clipId)!;
+  expect(reopened.start).toBe(0);
+  expect(state.clipDrafts[state.clipEditingKey!].editIntent?.scope).toBe('all');
+  expect(model().lanes[0].clips.some(c => c.mode === 'once' && c.start === 4 * Q)).toBe(true);
+});

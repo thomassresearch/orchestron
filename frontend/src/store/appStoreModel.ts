@@ -2525,7 +2525,8 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
 export function shouldDeferSequencerPersistence(
   current: PersistWatchState, previous: PersistWatchState | null, isPlaying: boolean
 ): boolean {
-  if (previous === null || !isPlaying) return false;
+  // A committed clip edit (including Undo/Redo) can be recovered while playback continues.
+  if (previous === null || !isPlaying || current.sequencer.clipHistory !== previous.sequencer.clipHistory) return false;
   // Incoming automation CCs update rack values on every render. Do not turn
   // those updates into full-workspace autosaves while the song is playing.
   const withoutValues = (key: string, value: unknown) => key === "performanceControllerValues" ? undefined : value;
