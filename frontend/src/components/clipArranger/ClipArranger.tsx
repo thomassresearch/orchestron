@@ -4,8 +4,11 @@ import { AddArrangeTrack } from "./AddArrangeTrack";
 import { WorkspacePanels, WorkspacePanel, shellCopy } from "../sequencer/WorkspacePanels";
 import { draftKey } from "../../lib/clipArranger/editorAdapter";
 import { arrangeCopy } from "./arrangeCopy";
+import { InspectorName } from "./InspectorName";
+import { EditScopeControls, EditScopeDialog } from "./EditScopeControls";
 import { type MidiDevice } from "../../lib/midiControllerChannels";
-import type { EditScope } from "../../lib/clipArranger/relationships";
+import { localLoopWindows, type EditScope } from "../../lib/clipArranger/relationships";
+import { occurrenceEditIntent } from "../../lib/clipArranger/draftResolution";
 import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { clipButton, clipButtonClass, clipButtonTone } from "./buttonStyles";
 import { HelpIconButton } from "../HelpIconButton";
@@ -28,7 +31,7 @@ import { PatternPreview } from "./PatternPreview";
 import { clipCopy } from "./copy";
 import { EditorDetails, usePerformanceEditorState, useRetainedScroll } from "../sequencer/PerformanceEditorState";
 import { LaneTransposeBadge, LaneTransposeDialog } from './LaneTransposition';
-import { openClipTransposition, renameClipPattern } from '../../store/clipActions';
+import { openClipTransposition, saveInspectorPatternName } from '../../store/clipActions';
 import { useAppStore } from '../../store/useAppStore';
 
 export const clipInput = "w-24 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100";
@@ -102,7 +105,7 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
   const firstRulerBeat = Math.floor(scroll / (zoom * rulerStep)) * rulerStep;
   const rulerBeats = Array.from({ length: Math.ceil(timelineWidth / (zoom * rulerStep)) + 2 },
     (_, index) => firstRulerBeat + index * rulerStep).filter(beat => beat * zoom < width);
-  const attempt = (action: () => ClipArrangement, label: string) => { try { onChange(action(), label); setError(null); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
+  const attempt = (action: () => ClipArrangement, label: string) => { try { const next = action(); onChange(next, label); setError(null); return next; } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
   const focusStructureOccurrence = (lane: ClipLane, clip: Clip, pass: number, path: string[]) => {
     const node = viewport.current;
     if (!node) return;
@@ -195,7 +198,12 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
   const nameTarget = hasContentSelection ? selectedOccurrence : firstTarget;
   const namedDefinition = selectedOccurrence ? structure.selectedDefinition : selectedLane && nameTarget && definitionAt(selectedLane, nameTarget);
   const nameKey = nameTarget && draftKey({ target: nameTarget });
-  const nameDraft = useAppStore(s => nameKey && s.clipEditingKey === nameKey ? s.clipDrafts[nameKey] : undefined);
+  const nameDraft = useAppStore(s => nameKey ? s.clipDrafts[nameKey] : undefined);
+  const nameRelationship = namedDefinition && selectedLane && structure.relationships.get(selectedLane.id)?.get(namedDefinition.id);
+  const namePass = selectedClip?.mode === "loop" && nameTarget ? (selectedClip.repeatIndexBase ?? 0) + nameTarget.pass : undefined;
+  const nameScope = occurrenceEditIntent(model, nameDraft, !!nameDraft && nameDraft.target === editingTarget, nameRelationship, namePass).scope;
+  const labels = arrangeCopy(language);
+  const selectedPass = selectedOccurrence && `${labels.pass} ${(selectedClip?.repeatIndexBase ?? 0) + selectedOccurrence.pass + 1}`;
   const openTranspose = (requested:OccurrenceTarget,trigger:HTMLButtonElement) => {
     structure.cancelDrag();
     structure.guardEdit(requested,target=>{openClipTransposition(target);setTransposing({target,trigger});});
@@ -428,15 +436,25 @@ export function ClipArranger({ onHelpRequest, instrumentName, model, sequencer, 
       </div>}
       {shell && selectedLane && !selectedClip && laneActions}
       {selectedClip && selectedLane && <div data-clip-properties className="mt-3 flex flex-wrap items-end gap-3 border-t border-slate-700 pt-3 text-xs text-slate-400">
-      <span className="self-center text-cyan-200">{clipDisplayName(selectedLane, selectedClip)}</span>
-      {shell && selectedOccurrence && <p className="w-full">{structure.selectedDefinition?.name} · {arrangeCopy(language).pass} {(selectedClip.repeatIndexBase ?? 0) + selectedOccurrence.pass + 1}</p>}
-      {shell && namedDefinition?.kind === "pattern" && nameTarget && <label className="flex flex-col gap-1">
-        {arrangeCopy(language).patternName}<input className={clipInput} maxLength={128}
-          value={nameDraft?.editIntent?.scope === "local" ? nameDraft.editIntent.variationName : nameDraft?.definition.name ?? namedDefinition.name}
-          onFocus={() => { if (!nameDraft) open(selectedLane, selectedClip, nameTarget.path, nameTarget.pass); }}
-          readOnly={!!nameDraft && !nameDraft.editIntent?.scope}
-          onChange={e => { if (useAppStore.getState().clipEditingKey === nameKey) renameClipPattern(e.target.value); }} />
-      </label>}
+      <InspectorName key={JSON.stringify([selectedLane.id, selectedClip.id])} label={labels.clipName} renameLabel={labels.renameClip}
+        name={clipDisplayName(selectedLane, selectedClip)} onSave={name => {
+          const saved = attempt(() => updateClip(model, selectedLane.id, selectedClip.id, { name, nameIsExplicit: true }, timings), labels.renameClip);
+          if (saved) structure.keepSelectionAt(saved.revision);
+        }} />
+      {shell && selectedOccurrence && namedDefinition?.kind !== "pattern" && <p className="w-full">{namedDefinition?.name} · {selectedPass}</p>}
+      {shell && namedDefinition?.kind === "pattern" && nameTarget && <InspectorName key={nameKey}
+        label={labels.patternName} renameLabel={labels.renamePattern} name={namedDefinition.name} scope={nameScope} detail={selectedPass}
+        chooseScope={(choose, cancel) => <EditScopeDialog language={language} onCancel={cancel}>
+          <EditScopeControls language={language} scope={null} relationship={nameRelationship} repeat={selectedClip.mode === "loop"}
+            splitWindows={localLoopWindows(selectedLane, selectedClip.id, nameTarget.pass, selectedTiming)} onChoose={choose} />
+        </EditScopeDialog>}
+        onSave={(name, scope) => structure.guardEdit(nameTarget, target => {
+          const renamed = saveInspectorPatternName(target, name, scope);
+          if (renamed && selectedOccurrence) {
+            const { path, ...focus } = renamed;
+            structure.select({ ...focus, parent: path.slice(0, -1) }, path[path.length - 1], false);
+          }
+        })} />}
       {laneActions}
       {(["start", "length", "offset"] as const).map(field => <label key={`${selectedClip.id}:${field}:${selectedClip[field]}`} className="flex flex-col gap-1">{field === "offset" ? c.offset : c[field]} · {c.beats}
         <input className={clipInput} type="number" step="0.25" min={field === "length" ? .25 : 0} defaultValue={selectedClip[field] / Q} onBlur={e => { const value = Number(e.target.value) * Q; if (value !== selectedClip[field]) attempt(() => updateClip(model, selectedLane.id, selectedClip.id, { [field]: value }, timings), c.edit); }} /></label>)}

@@ -164,7 +164,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    if(!items.some(n=>n.id===id))throw Error(t.selectionChanged);
    let ids=[id],anchor=id,anchorPass=f.pass;
    if(shift&&focus&&selection){const a=items.findIndex(n=>n.id===selection.anchor),b=items.findIndex(n=>n.id===id);if(a>=0&&b>=0){ids=items.slice(Math.min(a,b),Math.max(a,b)+1).map(n=>n.id);anchor=selection.anchor;anchorPass=selection.anchorPass??focus.pass;}}
-   setFocus(f);setSelection({parent:f.parent,ids,anchor,anchorPass,tip:{pass:f.pass,id}});onSelected?.();setError(null);
+   setSelectionRevision(current.revision);setFocus(f);setSelection({parent:f.parent,ids,anchor,anchorPass,tip:{pass:f.pass,id}});onSelected?.();setError(null);
   }catch(e){setError(String(e));}};
   const current=useStructureDraft.getState().draft;
   if(current&&(current.laneId!==f.laneId||current.clipId!==f.clipId||current.pass!==f.pass))guard(action);else action();
@@ -445,5 +445,5 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  return {saveLabel,canSave:!!draft?.cursor&&!!preview.result&&!busy,scopeControls,selectedDefinition,selectedTarget,relationships,startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,remove,run,openSave,discard,contextMenu:(f:StructureFocus,id:string,x:number,y:number,onSelected:()=>void)=>{
    const show=()=>{onSelected();setMenu({x,y});};
    if(isSelected(f,id))show();else select(f,id,false,show);
- },focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current||resizing.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
+ },keepSelectionAt:setSelectionRevision,focusContainer:(f:StructureFocus)=>{setFocus(f);setSelection(null);},toolbar,boundary,lostCapture:()=>{if(drag.current||resizing.current)cancelDrag();},pointerDown,pointerMove,pointerUp,cancelDrag,setFocus};
 }

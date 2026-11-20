@@ -2,12 +2,19 @@ import type { AppStore } from "../../store/appStoreTypes";
 import { useStructureDraft } from './structureStore';
 import { create } from "zustand";
 import type { ClipArrangement, DefinitionDraft } from "./model";
+import { initialEditIntent, type DefinitionRelationship } from "./relationships";
 
 export function hasChangedClipDrafts(model: ClipArrangement | undefined, drafts: Record<string, DefinitionDraft>): boolean {
   return !!model && Object.values(drafts).some(draft => {
     const original = model.lanes.find(l => l.id === draft.target.laneId)?.definitions.find(d => d.id === draft.definition.id);
     return (draft.editIntent?.scope === "local" && !!draft.editIntent.variationNameEdited) || !!draft.transposeEdits?.length || !!draft.additions?.length || JSON.stringify(original) !== JSON.stringify(draft.definition);
   });
+}
+
+export function occurrenceEditIntent(model: ClipArrangement, draft: DefinitionDraft | undefined, active: boolean, relationship: DefinitionRelationship | undefined, loopPass?: number) {
+  const intent = draft?.editIntent;
+  if (draft && intent?.explicit && (loopPass === undefined || active || hasChangedClipDrafts(model, { draft }))) return intent;
+  return { ...intent, ...initialEditIntent(relationship, loopPass) };
 }
 export const useClipResolution = create<{ pending: { replace: boolean; resolve: (accepted: boolean) => void } | null }>(() => ({ pending: null }));
 export function resolveClipDrafts(model: ClipArrangement | undefined, drafts: Record<string, DefinitionDraft>, replace = false): Promise<boolean> {

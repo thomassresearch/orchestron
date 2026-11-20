@@ -8,6 +8,8 @@ async page => {
   const editor = page.getByRole("region", { name: "Editing", exact: true });
   const inspector = page.getByRole("complementary", { name: "Inspector" });
   const name = inspector.getByRole("textbox", { name: "Pattern name", exact: true });
+  const patternPencil = button("Rename pattern", inspector);
+  const editorName = editor.getByRole("textbox", { name: "Pattern name", exact: true });
   const rack = page.locator(".ws-compact-rack");
   const choosePatch = async patch => {
     const dialog = page.getByRole("dialog", { name: "Add Instrument" });
@@ -22,7 +24,11 @@ async page => {
     check(!await editor.count(), "Creating a track opened the editor");
     await channel.selectOption("add");
     await choosePatch(patch);
+    await patternPencil.click();
     await name.fill(pattern);
+    await name.press("Tab");
+    check(!await editor.count() && (await patternPencil.innerText()).includes(pattern), "Inspector did not save the pattern name independently");
+    await button("Editor").click();
     // Use actual note edits so the two saved previews can be distinguished in the manual.
     await page.evaluate(pitches => {
       const s = window.__workspaceTest.store.getState();
@@ -53,16 +59,22 @@ async page => {
   // Verify both menu entry points and clear the warning before capturing the overview.
   const last = page.locator("[data-arranger-clip]").last();
   await last.locator("button").first().click();
-  await name.fill("Discard this");
+  await button("Editor").click();
+  await editorName.fill("Discard this");
   await page.locator(".ws-dock").getByRole("button", { name: "Close", exact: true }).click();
   await button("Keep editing", page.getByRole("dialog")).click();
   await button("Cancel edits", editor).click();
-  await name.fill("Discard on close");
+  await button("Editor").click();
+  await editorName.fill("Discard on close");
   await page.locator(".ws-dock").getByRole("button", { name: "Close", exact: true }).click();
   await button("Discard edits", page.getByRole("dialog")).click();
+  await patternPencil.click();
+  await name.fill("Canceled name");
+  await name.press("Escape");
+  check((await patternPencil.innerText()).includes("Walking bass"), "Escape changed the saved name");
+  await patternPencil.click();
   await name.fill("Walking bassline");
-  await page.locator(".ws-dock").getByRole("button", { name: "Close", exact: true }).click();
-  await button("Save pattern here", page.getByRole("dialog")).click();
+  await name.press("Tab");
   await button("Save Performance").click();
   await page.waitForFunction(() => !!window.__workspaceTest.store.getState().currentPerformanceId && !window.__workspaceTest.store.getState().loading);
   await state(async () => {

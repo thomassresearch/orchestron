@@ -29,7 +29,8 @@ async page => {
   check(await button("Editor").isDisabled(), "A range of occurrences offered an unrelated editor");
   await nested.nth(1).click();
   check(!await page.locator(".ws-dock").count(), "Selection opened a closed dock");
-  check((await inspector.innerText()).includes("#1 · Pass 2"), "Inspector lost nested target");
+  check((await button("Rename pattern", inspector).innerText()).includes("#1") &&
+    await inspector.getByText("Pattern name · Pass 2", { exact: true }).isVisible(), "Inspector lost nested target");
   await button("Loop", transport).click();
   await button("Editor").click();
   await button("Create variation here", edit).click();

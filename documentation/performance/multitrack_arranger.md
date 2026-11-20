@@ -55,7 +55,11 @@ Double-click a pattern name or its note preview to open the editor. You can also
 
 Melodic and Score clips use compact Note maps. Drums use step dots with a fixed velocity gradient. Arpeggiators show parameters, because their pitches depend on incoming chords. Controller Step Mode uses bars; Curve Mode uses the real interpolation. Selecting a curve pattern also opens the production curve editor inside its expanded lane, sharing the same draft as the full editor. Drag, click and double-click retain their usual behavior; the point list offers numeric position and value editing, including independent endpoint values.
 
-Right-click a pattern name or its preview and choose **Rename pattern**. Type the new **Pattern name** in the editor and save. You can also edit the name in the Inspector. For a shared pattern, the linked save updates every use. Choose **Create variation here** and edit **Variation name** to rename just this occurrence. **Group name** names a new group of selected items. The saved pattern name appears inside each occurrence, including on compact tracks. Use **Loop details** for the beat ranges affected by a local edit.
+To rename a clip or pattern, select it and click the pencil beside **Clip name** or **Pattern name** in the Inspector. Type the new name, then click elsewhere or press Tab to save. Press Esc to keep the previous name. A clip name belongs to its window. A linked pattern name appears wherever the pattern is used.
+
+![Inspector showing the pencils beside the clip name Verse and the pattern name Bass phrase](../../screenshots/arranger-inspector-names.png)
+
+You can also right-click a pattern name or its preview and choose **Rename pattern**. Type the new **Pattern name** in the editor and save. Choose **Create variation here** and edit **Variation name** to rename just this occurrence. **Group name** names a new group of selected items. The saved pattern name appears inside each occurrence, including on compact tracks. Use **Loop details** for the beat ranges affected by a local edit.
 
 ![Editing scope for the second pass of a looping bass pattern](../../screenshots/arranger-pattern-scope.png)
 

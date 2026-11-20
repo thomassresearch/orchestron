@@ -30,7 +30,7 @@ export function definitionAt(lane: ClipLane, target: OccurrenceTarget): Definiti
 /** Fresh single-pattern windows inherit a numbered pad title. Show its current definition name. */
 export function clipDisplayName(lane: ClipLane, clip: Clip): string {
   const first = clip.children[0];
-  if (!/^#\d+$/.test(clip.name) || clip.children.length !== 1 || !("definitionId" in first)) return clip.name;
+  if (clip.nameIsExplicit === true || !/^#\d+$/.test(clip.name) || clip.children.length !== 1 || !("definitionId" in first)) return clip.name;
   return lane.definitions.find(d => d.id === first.definitionId && d.kind === "pattern")?.name ?? clip.name;
 }
 

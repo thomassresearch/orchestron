@@ -42,7 +42,7 @@ export function beginStructure(model: ClipArrangement, laneId: string, clipId: s
 export function refreshStructureWindows(model: ClipArrangement, draft: StructureDraft): StructureDraft {
   const current=model.lanes.find(l=>l.id===draft.laneId);
   if(!current||JSON.stringify(current)===JSON.stringify(draft.basis))return draft;
-  const musical=(lane:ClipLane)=>({...lane,clips:lane.clips.map(({start:_start,length:_length,offset:_offset,name:_name,...content})=>content)});
+  const musical=(lane:ClipLane)=>({...lane,clips:lane.clips.map(({start:_start,length:_length,offset:_offset,name:_name,nameIsExplicit:_explicit,...content})=>content)});
   if(JSON.stringify(musical(current))!==JSON.stringify(musical(draft.basis)))return draft;
   const clip=current.clips.find(c=>c.id===draft.clipId)!;
   const old=draft.basis.clips.find(c=>c.id===draft.clipId)!;

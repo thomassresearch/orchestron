@@ -19,7 +19,7 @@ export type DefinitionIdentity = { id: string; name: string; revision: number; c
 export type ContentItem = { id: string; definitionId: string; repeatIndex?: number; transpose?: OffsetPlan } | { id: string; restTicks: number };
 export type ContainerDefinition = DefinitionIdentity & { kind: "group" | "supergroup"; children: ContentItem[] };
 export type Definition = PatternDefinition | ContainerDefinition;
-export type Clip = { id: string; name: string; start: number; length: number; offset: number; mode: "once" | "loop"; children: ContentItem[]; repeatIndexBase?: number; transposePlacements?: { path: string[]; plan: OffsetPlan }[] };
+export type Clip = { id: string; name: string; nameIsExplicit?: true; start: number; length: number; offset: number; mode: "once" | "loop"; children: ContentItem[]; repeatIndexBase?: number; transposePlacements?: { path: string[]; plan: OffsetPlan }[] };
 export type ClipLane = {
   id: string; source: SourceKind; transposeProfiles?: TransposeProfile[]; definitions: Definition[]; clips: Clip[];
   /** Legacy repeating lanes repeat their authored cycle, independently of song looping. */

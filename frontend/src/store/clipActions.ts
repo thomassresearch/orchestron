@@ -1,13 +1,13 @@
-import { definitionRelationships, effectiveScope, initialEditIntent, uniqueVariationName, type EditScope } from "../lib/clipArranger/relationships";
+import { definitionRelationships, effectiveScope, uniqueVariationName, type EditScope } from "../lib/clipArranger/relationships";
 import { scopeCopy } from "../lib/clipArranger/scopeCopy";
-import { hasChangedClipDrafts } from "../lib/clipArranger/draftResolution";
+import { hasChangedClipDrafts, occurrenceEditIntent } from "../lib/clipArranger/draftResolution";
 import { beginStructure, refreshStructureWindows } from '../lib/clipArranger/structure';
 import { useAppStore } from "./useAppStore";
 import { arrangementTimings, migrateClipArrangement, sourceKeys } from "../lib/clipArranger/migration";
 import { contentLength, validateArrangement, type ClipArrangement, type Definition, type OccurrenceTarget } from "../lib/clipArranger/model";
 import { beginDraft, emptyClipHistory, recordClipEdit, replayClipEdit, saveDraft } from "../lib/clipArranger/operations";
 import { draftKey } from "../lib/clipArranger/editorAdapter";
-import { rebaseStructure, retainMusicalDrafts } from "../lib/clipArranger/structuralDraftResolution";
+import { rebaseStructure, remapMusicalTarget, retainMusicalDrafts } from "../lib/clipArranger/structuralDraftResolution";
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
 import { saveTransposeEdits } from '../lib/clipArranger/transposeEdits';
 
@@ -58,18 +58,15 @@ export function openClipEditor(target: OccurrenceTarget, scope?: EditScope) {
   const clip = lane.clips.find(c => c.id === target.clipId)!;
   const loopPass = clip.mode === "loop" ? (clip.repeatIndexBase ?? 0) + target.pass : undefined;
   const relationship = definitionRelationships(lane, arrangementTimings(state.sequencer)[lane.id]).get(draft.definition.id);
-  const freshLoopEdit = loopPass !== undefined && state.clipEditingKey !== key &&
-    (!state.clipDrafts[key] || !hasChangedClipDrafts(model, { [key]: draft }));
-  let editIntent = draft.editIntent;
-  if (scope !== undefined) editIntent = { ...editIntent, scope, explicit: true };
-  else if (!editIntent?.explicit || freshLoopEdit) editIntent = { ...editIntent, ...initialEditIntent(relationship, loopPass) };
+  let editIntent = scope !== undefined ? { ...draft.editIntent, scope, explicit: true }
+    : occurrenceEditIntent(model, draft, state.clipEditingKey === key, relationship, loopPass);
   editIntent = { ...editIntent, variationName: editIntent.variationName ?? uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix) };
   if (draft.definition.kind !== 'pattern') {
     const existing = useStructureDraft.getState().draft;
     const matches = existing?.laneId === target.laneId && existing.clipId === target.clipId && existing.pass === target.pass;
     if (existing?.cursor && !matches) throw Error('Resolve the current structure before editing another container.');
     const structure = matches ? existing : beginStructure(model, target.laneId, target.clipId, target.pass);
-    if (scope === undefined && structure.editIntent && (!freshLoopEdit || structure.cursor)) editIntent = structure.editIntent;
+    if (scope === undefined && structure.editIntent && (loopPass === undefined || state.clipEditingKey === key || structure.cursor || hasChangedClipDrafts(model, { draft }))) editIntent = structure.editIntent;
     useStructureDraft.setState({ draft: { ...structure, editIntent, editorTarget: target } });
   }
   useAppStore.setState({ clipEditingKey: key, clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent } } });
@@ -133,10 +130,28 @@ export function saveClipDraft(scope: "local" | "all", name: string, resolvingKey
   }
   if (draft.definition.kind !== "pattern") throw Error("Use Save structure for container edits.");
   const next = saveDraft(basis, { ...draft, definition: { ...draft.definition, name } }, scope, arrangementTimings(state.sequencer));
+  commitPatternEdit(model, next, key, name);
+}
+
+export function saveInspectorPatternName(target: OccurrenceTarget, name: string, scope: EditScope) {
+  const { sequencer } = useAppStore.getState();
+  const model = sequencer.clipArrangement;
+  if (!model) return;
+  const draft = beginDraft(model, target);
+  if (draft.definition.kind !== "pattern") return;
+  const timings = arrangementTimings(sequencer);
+  const next = saveDraft(model, { ...draft, definition: { ...draft.definition, name } }, scope, timings);
+  const renamed = remapMusicalTarget(model, next, target, timings);
+  commitPatternEdit(model, next, draftKey(draft), name, true);
+  return renamed;
+}
+
+function commitPatternEdit(model: ClipArrangement, next: ClipArrangement, key: string, name: string, nameOnly = false) {
+  const state = useAppStore.getState(), timings = arrangementTimings(state.sequencer);
   const structural = useStructureDraft.getState().draft;
   if (structural && JSON.stringify(structural.basis) !== JSON.stringify(model.lanes.find(l => l.id === structural.laneId))) throw Error("The track changed. Resolve the structure draft before saving.");
-  const rebased = structural ? rebaseStructure(structural, next, arrangementTimings(state.sequencer)) : null;
-  const retained = retainMusicalDrafts(model, next, state.clipDrafts, key, arrangementTimings(state.sequencer));
+  const rebased = structural ? rebaseStructure(structural, next, timings) : null;
+  const retained = retainMusicalDrafts(model, next, state.clipDrafts, key, timings, nameOnly);
   commitClipArrangement(next, name);
   useStructureDraft.setState({ draft: rebased });
   useAppStore.setState({ clipDrafts: retained.drafts, clipEditingKey: state.clipEditingKey ? retained.keys.get(state.clipEditingKey) ?? null : null });

@@ -12,7 +12,7 @@ Drag a clip header to move its window and its edges to trim it. Start, length an
 
 ### Edit and save
 
-Right-click a pattern and choose **Rename pattern**, edit **Pattern name** and save. You can also use the Inspector. To rename a single shared occurrence, choose **Create variation here** and edit **Variation name**. The name appears on the timeline. **Cancel edits** discards this pattern draft. Closing a changed pattern offers Save, **Discard edits**, or **Keep editing**. Open **Loop details** to see the affected beat ranges.
+Right-click a pattern and choose **Rename pattern**, edit **Pattern name** and save. In the Inspector, click the pencil beside a clip or pattern name. Click elsewhere or press Tab to save the name, or press Esc to cancel. To rename a single shared occurrence, choose **Create variation here** and edit **Variation name**. The name appears on the timeline. **Cancel edits** discards this pattern draft. Closing a changed pattern offers Save, **Discard edits**, or **Keep editing**. Open **Loop details** to see the affected beat ranges.
 
 Double-click a pattern, group or supergroup, or focus its name and press Enter. The original loop pass opens its linked definition directly. On a later pass, choose **Edit linked** to update every use or **Create variation here** to edit only this occurrence. The editor keeps the scope visible; **Change scope** preserves your edits. **Play edit** auditions the draft. Save uses the chosen scope without asking again. A local loop variation splits the clip into before, edited and after windows.
 
@@ -37,7 +37,7 @@ Den Clip-Kopf ziehen, um sein Fenster zu verschieben; die Ränder ziehen, um es 
 
 ### Bearbeiten und speichern
 
-Klicke mit der rechten Maustaste auf ein Pattern, wähle **Pattern umbenennen**, ändere den **Patternnamen** und speichere. Der Name lässt sich auch im Inspektor bearbeiten. Um nur eine verknüpfte Verwendung umzubenennen, erstelle dort eine Variation und ändere ihren Namen. **Bearbeitung abbrechen** verwirft diesen Entwurf. Beim Schließen kannst du speichern, verwerfen oder weiter bearbeiten. **Schleifendetails** zeigt die betroffenen Schläge.
+Klicke mit der rechten Maustaste auf ein Pattern, wähle **Pattern umbenennen**, ändere den **Patternnamen** und speichere. Klicke im Inspektor auf den Stift neben dem Clip- oder Patternnamen. Klicke zum Speichern an eine andere Stelle oder drücke die Tabulatortaste. Mit Esc brichst du die Umbenennung ab. Um nur eine verknüpfte Verwendung umzubenennen, erstelle dort eine Variation und ändere ihren Namen. **Bearbeitung abbrechen** verwirft diesen Entwurf. Beim Schließen kannst du speichern, verwerfen oder weiter bearbeiten. **Schleifendetails** zeigt die betroffenen Schläge.
 
 Ein Pattern, eine Gruppe oder Supergruppe doppelklicken oder den Namen fokussieren und Enter drücken. Im ersten Schleifendurchlauf öffnet sich die verknüpfte Definition direkt. Bei einer Wiederholung ändert **Verknüpftes Pattern bearbeiten** alle Vorkommen. **Hier eine Variante erstellen** ändert nur dieses Vorkommen. Das gilt auch für Gruppen und Supergruppen. Der Umfang bleibt sichtbar; **Umfang ändern** erhält die Bearbeitung. **Entwurf abspielen** hört vor. Speichern verwendet den gewählten Umfang ohne erneute Abfrage. Eine lokale Schleifenvariante teilt den Clip in Fenster davor, bearbeitet und danach.
 
@@ -62,7 +62,7 @@ Glissez l’en-tête d’un clip pour déplacer sa fenêtre et ses bords pour la
 
 ### Modifier et enregistrer
 
-Faites un clic droit sur un motif, choisissez **Renommer le motif**, modifiez le **Nom du motif** et enregistrez. Le nom est aussi modifiable dans l’inspecteur. Pour renommer une seule occurrence liée, choisissez **Créer une variante ici** et modifiez son nom. **Annuler les modifications** abandonne ce brouillon. À la fermeture, choisissez d’enregistrer, d’abandonner ou de continuer à modifier. **Détails de la boucle** affiche les temps concernés.
+Faites un clic droit sur un motif, choisissez **Renommer le motif**, modifiez le **Nom du motif** et enregistrez. Dans l’inspecteur, cliquez sur le crayon à côté du nom du clip ou du motif. Cliquez ailleurs ou appuyez sur Tab pour enregistrer le nom, ou sur Échap pour annuler. Pour renommer une seule occurrence liée, choisissez **Créer une variante ici** et modifiez son nom. **Annuler les modifications** abandonne ce brouillon. À la fermeture, choisissez d’enregistrer, d’abandonner ou de continuer à modifier. **Détails de la boucle** affiche les temps concernés.
 
 Double-cliquez sur un motif, groupe ou supergroupe, ou focalisez son nom et appuyez sur Entrée. Le premier passage de la boucle ouvre directement la définition liée. Sur une répétition, choisissez **Modifier le motif lié** pour modifier toutes les occurrences ou **Créer une variante ici** pour modifier uniquement celle-ci. Ce choix vaut aussi pour les groupes et supergroupes. La portée reste visible ; **Changer la portée** conserve vos modifications. **Écouter le brouillon** permet de l’auditionner. L’enregistrement utilise la portée choisie sans nouvelle question. Une variante locale de boucle sépare le clip en fenêtres avant, modifiée et après.
 
@@ -87,7 +87,7 @@ Arrastra la cabecera de un clip para mover su ventana y sus bordes para recortar
 
 ### Editar y guardar
 
-Haz clic derecho en un patrón, elige **Renombrar patrón**, edita el **Nombre del patrón** y guarda. También puedes cambiarlo en el Inspector. Para renombrar una sola aparición vinculada, elige **Crear variación aquí** y cambia su nombre. **Cancelar cambios** descarta este borrador. Al cerrar, puedes guardar, descartar los cambios o seguir editando. **Detalles del bucle** muestra los pulsos afectados.
+Haz clic derecho en un patrón, elige **Renombrar patrón**, edita el **Nombre del patrón** y guarda. En el Inspector, pulsa el lápiz junto al nombre del clip o del patrón. Haz clic fuera del campo o pulsa Tab para guardar el nombre, o pulsa Esc para cancelar. Para renombrar una sola aparición vinculada, elige **Crear variación aquí** y cambia su nombre. **Cancelar cambios** descarta este borrador. Al cerrar, puedes guardar, descartar los cambios o seguir editando. **Detalles del bucle** muestra los pulsos afectados.
 
 Haz doble clic en un patrón, grupo o supergrupo, o enfoca su nombre y pulsa Enter. La primera pasada del bucle abre directamente la definición vinculada. En una repetición, elige **Editar patrón vinculado** para cambiar todas las apariciones o **Crear variación aquí** para cambiar solo esa aparición. Lo mismo se aplica a los grupos y supergrupos. El alcance permanece visible; **Cambiar alcance** conserva tus cambios. **Reproducir edición** permite escuchar el borrador. Guardar utiliza el alcance elegido sin volver a preguntar. Una variación local de bucle separa el clip en ventanas anterior, editada y posterior.
 

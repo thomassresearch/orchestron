@@ -93,7 +93,6 @@
 }
 .ws-inspector[data-drawer] { top: var(--transport-height); }
 .ws-inspector [data-clip-properties] { align-content: start; gap: 10px; }
-.ws-inspector [data-clip-properties] > span:first-child { flex-basis: 100%; font-size: 1rem; font-weight: 600; }
 .ws-inspector [data-clip-properties] > label { flex: 1 1 115px; }
 .ws-inspector [data-clip-properties] > label input { width: 100%; }
 .ws-lane-actions { order: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; border-top: 1px solid #344358; padding-top: 10px; }

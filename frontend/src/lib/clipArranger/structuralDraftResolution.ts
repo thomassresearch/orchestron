@@ -93,14 +93,31 @@ export function affectedDraftKeys(before: ClipArrangement, after: ClipArrangemen
   }).map(([key]) => key);
 }
 
-export function retainMusicalDrafts(before: ClipArrangement, after: ClipArrangement, drafts: Record<string, DefinitionDraft>, removedKey: string, timings: LaneTiming) {
+/** A name-only save can rebase pending notes and transposition onto the same music. */
+function rebaseAfterRename(before: ClipArrangement, after: ClipArrangement, draft: DefinitionDraft, target: OccurrenceTarget, renamedHere: boolean): DefinitionDraft {
+  const original = beginDraft(before, draft.target);
+  if (draft.baseFingerprint !== original.baseFingerprint) return { ...draft, target };
+  const saved = beginDraft(after, target);
+  const forkedHere = renamedHere && original.definition.id !== saved.definition.id;
+  const definition = saved.definition.kind === "pattern" && draft.definition.kind === "pattern"
+    ? { ...draft.definition, id: saved.definition.id, revision: saved.definition.revision, transposeProfileId: saved.definition.transposeProfileId,
+        name: renamedHere || draft.definition.name === original.definition.name ? saved.definition.name : draft.definition.name }
+    : saved.definition;
+  const transposeEdits = draft.transposeEdits?.map(edit => edit.fingerprint === transposeFingerprint(before, draft.target)
+    ? { ...edit, fingerprint: transposeFingerprint(after, target) } : edit);
+  return { ...draft, ...saved, definition, transposeEdits,
+    editIntent: forkedHere ? { scope: "all", explicit: true } : draft.editIntent };
+}
+
+export function retainMusicalDrafts(before: ClipArrangement, after: ClipArrangement, drafts: Record<string, DefinitionDraft>, savedKey: string, timings: LaneTiming, nameOnly = false) {
   const result: Record<string, DefinitionDraft> = {}, keys = new Map<string, string>();
   for (const [key, draft] of Object.entries(drafts)) {
-    if (key === removedKey) continue;
+    if (key === savedKey && !nameOnly) continue;
     let next = draft;
     try {
       const target = remapMusicalTarget(before, after, draft.target, timings);
-      next = hasChangedClipDrafts(before, { draft }) ? { ...draft, target } : { ...beginDraft(after, target), editIntent: draft.editIntent };
+      if (nameOnly) next = rebaseAfterRename(before, after, draft, target, key === savedKey);
+      else next = hasChangedClipDrafts(before, { draft }) ? { ...draft, target } : { ...beginDraft(after, target), editIntent: draft.editIntent };
     } catch { /* Retain conflicting drafts for explicit resolution, never silently discard them. */ }
     const nextKey = draftKey(next);
     keys.set(key, nextKey); result[nextKey] = next;

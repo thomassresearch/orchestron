@@ -7,6 +7,7 @@ import { migrateClipArrangement } from '../../lib/clipArranger/migration';
 import { QUARTER_TICKS as Q } from '../../lib/clipArranger/model';
 import { clipHistoryStep, openClipEditor, renameClipPattern, saveClipDraftWithIntent, setClipEditIntent } from '../../store/clipActions';
 import { ClipPerformance } from './ClipPerformance';
+import { WorkspacePanels } from '../sequencer/WorkspacePanels';
 
 beforeEach(() => {
   useAppStore.setState(useAppStore.getInitialState(), true); useStructureDraft.setState({ draft: null });
@@ -27,6 +28,88 @@ function show() {
   render(<ClipPerformance language="english" renderEditor={(_kind,id) => <button onClick={() => useAppStore.getState().setSequencerTrackStepNote(id, 0, 73)}>Change note</button>} />);
   fireEvent.click(screen.getByRole('button', { expanded: false, name: /▸/ }));
 }
+
+function showInspector() {
+  const inspector = render(<aside />).container;
+  render(<WorkspacePanels.Provider value={{
+    slots: { inspector, editor: null, dialogs: null, editorCommand: null, launcher: null, mixControls: null },
+    patternClose: { current: null }, laneControllers: () => null, getRememberedTarget: () => undefined,
+    singlePane: false, editorHidden: true, revealEditor: vi.fn(), closeDock: vi.fn()
+  }}><ClipPerformance language="english" renderEditor={() => null} /></WorkspacePanels.Provider>);
+  return within(inspector);
+}
+
+it.each(["clip", "pattern"] as const)("cancels the Inspector %s name on Escape and saves one history entry on blur", kind => {
+  const inspector = showInspector(), before = model();
+  const pencil = () => inspector.getByRole("button", { name: `Rename ${kind}` });
+  const input = () => inspector.getByRole("textbox", { name: kind === "clip" ? "Clip name" : "Pattern name" });
+  fireEvent.click(pencil());
+  expect(document.activeElement).toBe(input());
+  fireEvent.change(input(), { target: { value: "Canceled" } });
+  fireEvent.keyDown(input(), { key: "Escape" });
+  expect(model()).toBe(before);
+  expect(document.activeElement).toBe(pencil());
+  fireEvent.click(pencil());
+  fireEvent.change(input(), { target: { value: "   " } });
+  fireEvent.blur(input());
+  expect(model()).toBe(before);
+  fireEvent.click(pencil());
+  fireEvent.change(input(), { target: { value: "  Bridge  " } });
+  expect(model()).toBe(before);
+  fireEvent.blur(input());
+  expect(pencil().textContent).toContain("Bridge");
+  expect(model().lanes[0].clips[0].name).toBe(kind === "clip" ? "Bridge" : "Verse");
+  expect(model().lanes[0].definitions[0].name).toBe(kind === "pattern" ? "Bridge" : "Phrase");
+  expect(useAppStore.getState().clipEditingKey).toBeNull();
+  act(() => clipHistoryStep(false));
+  expect(model().lanes).toEqual(before.lanes);
+});
+
+it("distinguishes an inherited pattern title from an explicitly numbered clip name", () => {
+  const lane = model().lanes[0];
+  lane.clips[0].name = "#1";
+  const inspector = showInspector(), pencil = () => inspector.getByRole("button", { name: "Rename clip" });
+  expect(pencil().textContent).toContain("Phrase");
+  fireEvent.click(pencil());
+  const input = inspector.getByRole("textbox", { name: "Clip name" });
+  fireEvent.change(input, { target: { value: "#2" } });
+  fireEvent.blur(input);
+  expect(pencil().textContent).toContain("#2");
+  expect(model().lanes[0].definitions[0].name).toBe("Phrase");
+  act(() => clipHistoryStep(false));
+  expect(pencil().textContent).toContain("Phrase");
+});
+
+it.each([false, true])("keeps a local Inspector rename on its loop pass with an existing note draft = %s", hasDraft => {
+  const inspector = showInspector();
+  fireEvent.click(screen.getByRole("button", { expanded: false, name: /▸/ }));
+  fireEvent.click(patterns()[1]);
+  const lane = model().lanes[0], clip = lane.clips[0];
+  const target = { laneId: lane.id, clipId: clip.id, pass: 1, path: [clip.children[0].id] };
+  if (hasDraft) act(() => {
+    openClipEditor(target, "local");
+    useAppStore.getState().setSequencerTrackStepNote(lane.id, 0, 79);
+  });
+  fireEvent.click(inspector.getByRole("button", { name: "Rename pattern" }));
+  if (!hasDraft) {
+    const scope = within(inspector.getByRole("dialog", { name: "Choose editing scope" }));
+    fireEvent.click(scope.getByRole("button", { name: "Create variation here" }));
+  }
+  const input = inspector.getByRole("textbox", { name: "Pattern name" });
+  fireEvent.change(input, { target: { value: "Turnaround" } });
+  fireEvent.blur(input);
+  const saved = model().lanes[0], variation = saved.definitions.find(d => d.name === "Turnaround");
+  expect(saved.clips.find(c => c.start === 4 * Q)?.children[0]).toMatchObject({ definitionId: variation?.id });
+  expect(variation?.kind === "pattern" && variation.source === "sequencer" && variation.payload.steps[0].note).not.toBe(79);
+  expect(saved.definitions[0].name).toBe("Phrase");
+  expect(inspector.getByRole("button", { name: "Rename pattern" }).textContent).toContain("Turnaround");
+  if (hasDraft) {
+    act(() => saveClipDraftWithIntent());
+    const edited = model().lanes[0].definitions.find(d => d.id === variation?.id);
+    expect(edited?.kind === "pattern" && edited.source === "sequencer" && edited.payload.steps[0].note).toBe(79);
+    expect(model().lanes[0].definitions).toHaveLength(saved.definitions.length);
+  } else expect(useAppStore.getState().clipEditingKey).toBeNull();
+});
 it('separates relationship highlighting from selection and shows repetition indicators', () => {
   show(); fireEvent.click(patterns()[1]);
   expect(document.querySelectorAll('[data-linked-highlight=true]')).toHaveLength(4);
