@@ -1,0 +1,446 @@
+{
+  "sourcePatchId": "fe7c5369-9797-4d87-895b-215b17295179",
+  "name": "Ducker",
+  "description": "Use a kick to duck a stereo bass. Route bass → Ducker Audio and Ducker Stereo Output → Master. Remove the parallel bass-to-Master route. Send the kick to Ducker Control and keep its own route to Master. The louder Control channel’s RMS drives both Audio channels. At 0.25 RMS the reduction is half the Depth setting in dB. At 0.5 RMS and above it reaches full Depth. Attack and Release set the envelope half-times. Start with 5 ms Attack, 150 ms Release and 12 dB Depth. All three controls update during playback.",
+  "isTemplate": false,
+  "alwaysOn": true,
+  "instrumentType": "continuous",
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "duck_attack",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 1,
+          "max": 100,
+          "default": 5,
+          "scale": "logarithmic",
+          "label": "Attack half-time (ms)"
+        },
+        "position": {
+          "x": 1000,
+          "y": 580
+        }
+      },
+      {
+        "id": "duck_release",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 10,
+          "max": 1000,
+          "default": 150,
+          "scale": "logarithmic",
+          "label": "Release half-time (ms)"
+        },
+        "position": {
+          "x": 1000,
+          "y": 880
+        }
+      },
+      {
+        "id": "duck_depth",
+        "opcode": "perf_controller",
+        "params": {
+          "min": 0,
+          "max": 24,
+          "default": 12,
+          "scale": "linear",
+          "label": "Depth (dB)"
+        },
+        "position": {
+          "x": 1700,
+          "y": 600
+        }
+      },
+      {
+        "id": "audio_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "audio_left"
+        },
+        "position": {
+          "x": 1730,
+          "y": -640
+        }
+      },
+      {
+        "id": "control_left",
+        "opcode": "inleta",
+        "params": {
+          "sname": "control_left"
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": "rms_left",
+        "opcode": "rms",
+        "params": {
+          "ihp": 30
+        },
+        "position": {
+          "x": 330,
+          "y": 0
+        }
+      },
+      {
+        "id": "audio_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "audio_right"
+        },
+        "position": {
+          "x": 1730,
+          "y": -400
+        }
+      },
+      {
+        "id": "control_right",
+        "opcode": "inleta",
+        "params": {
+          "sname": "control_right"
+        },
+        "position": {
+          "x": 0,
+          "y": 260
+        }
+      },
+      {
+        "id": "rms_right",
+        "opcode": "rms",
+        "params": {
+          "ihp": 30
+        },
+        "position": {
+          "x": 330,
+          "y": 300
+        }
+      },
+      {
+        "id": "stereo_level",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 670,
+          "y": 0
+        }
+      },
+      {
+        "id": "bounded_level",
+        "opcode": "limit",
+        "params": {
+          "xmin": 0,
+          "xmax": 1
+        },
+        "position": {
+          "x": 1000,
+          "y": 0
+        }
+      },
+      {
+        "id": "envelope",
+        "opcode": "follow2",
+        "params": {},
+        "position": {
+          "x": 1350,
+          "y": 0
+        }
+      },
+      {
+        "id": "envelope_level",
+        "opcode": "downsamp",
+        "params": {},
+        "position": {
+          "x": 1700,
+          "y": 0
+        }
+      },
+      {
+        "id": "gain_reduction",
+        "opcode": "k_to_a",
+        "params": {},
+        "position": {
+          "x": 2040,
+          "y": 0
+        }
+      },
+      {
+        "id": "apply_left",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 2380,
+          "y": -540
+        }
+      },
+      {
+        "id": "out_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 2720,
+          "y": -540
+        }
+      },
+      {
+        "id": "apply_right",
+        "opcode": "a_mul",
+        "params": {},
+        "position": {
+          "x": 2380,
+          "y": -260
+        }
+      },
+      {
+        "id": "out_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 2720,
+          "y": -260
+        }
+      }
+    ],
+    "connections": [
+      {
+        "from_node_id": "control_left",
+        "from_port_id": "asignal",
+        "to_node_id": "rms_left",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "control_right",
+        "from_port_id": "asignal",
+        "to_node_id": "rms_right",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "rms_left",
+        "from_port_id": "krms",
+        "to_node_id": "stereo_level",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "rms_right",
+        "from_port_id": "krms",
+        "to_node_id": "stereo_level",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "stereo_level",
+        "from_port_id": "aout",
+        "to_node_id": "bounded_level",
+        "to_port_id": "xin"
+      },
+      {
+        "from_node_id": "bounded_level",
+        "from_port_id": "xout",
+        "to_node_id": "envelope",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "duck_attack",
+        "from_port_id": "iout",
+        "to_node_id": "envelope",
+        "to_port_id": "katt"
+      },
+      {
+        "from_node_id": "duck_release",
+        "from_port_id": "iout",
+        "to_node_id": "envelope",
+        "to_port_id": "krel"
+      },
+      {
+        "from_node_id": "envelope",
+        "from_port_id": "aout",
+        "to_node_id": "envelope_level",
+        "to_port_id": "asig"
+      },
+      {
+        "from_node_id": "duck_depth",
+        "from_port_id": "iout",
+        "to_node_id": "gain_reduction",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "envelope_level",
+        "from_port_id": "kout",
+        "to_node_id": "gain_reduction",
+        "to_port_id": "kin"
+      },
+      {
+        "from_node_id": "audio_left",
+        "from_port_id": "asignal",
+        "to_node_id": "apply_left",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gain_reduction",
+        "from_port_id": "aout",
+        "to_node_id": "apply_left",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "apply_left",
+        "from_port_id": "aout",
+        "to_node_id": "out_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "from_node_id": "audio_right",
+        "from_port_id": "asignal",
+        "to_node_id": "apply_right",
+        "to_port_id": "a"
+      },
+      {
+        "from_node_id": "gain_reduction",
+        "from_port_id": "aout",
+        "to_node_id": "apply_right",
+        "to_port_id": "b"
+      },
+      {
+        "from_node_id": "apply_right",
+        "from_port_id": "aout",
+        "to_node_id": "out_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "input_formulas": {
+        "stereo_level::kin": {
+          "expression": "left + right + abs(left - right)",
+          "inputs": [
+            {
+              "token": "left",
+              "from_node_id": "rms_left",
+              "from_port_id": "krms"
+            },
+            {
+              "token": "right",
+              "from_node_id": "rms_right",
+              "from_port_id": "krms"
+            }
+          ]
+        },
+        "envelope::katt": {
+          "expression": "ms * 0.009965784284662087",
+          "inputs": [
+            {
+              "token": "ms",
+              "from_node_id": "duck_attack",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "envelope::krel": {
+          "expression": "ms * 0.009965784284662087",
+          "inputs": [
+            {
+              "token": "ms",
+              "from_node_id": "duck_release",
+              "from_port_id": "iout"
+            }
+          ]
+        },
+        "gain_reduction::kin": {
+          "expression": "1 - ampdb(-depth * amount)",
+          "inputs": [
+            {
+              "token": "depth",
+              "from_node_id": "duck_depth",
+              "from_port_id": "iout"
+            },
+            {
+              "token": "amount",
+              "from_node_id": "envelope_level",
+              "from_port_id": "kout"
+            }
+          ]
+        },
+        "apply_left::b": {
+          "expression": "1 - reduction",
+          "inputs": [
+            {
+              "token": "reduction",
+              "from_node_id": "gain_reduction",
+              "from_port_id": "aout"
+            }
+          ]
+        },
+        "apply_right::b": {
+          "expression": "1 - reduction",
+          "inputs": [
+            {
+              "token": "reduction",
+              "from_node_id": "gain_reduction",
+              "from_port_id": "aout"
+            }
+          ]
+        }
+      },
+      "audio_blocks": {
+        "audio": true,
+        "control": true,
+        "output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "control_rate": 1500,
+      "ksmps": 32,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "effect",
+      "groups": [
+        {
+          "id": "audio",
+          "name": "Audio",
+          "direction": "input",
+          "layout": "stereo",
+          "purpose": "main",
+          "ports": [
+            "audio_left",
+            "audio_right"
+          ]
+        },
+        {
+          "id": "control",
+          "name": "Control",
+          "direction": "input",
+          "layout": "stereo",
+          "purpose": "sidechain",
+          "ports": [
+            "control_left",
+            "control_right"
+          ]
+        },
+        {
+          "id": "output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "purpose": "main",
+          "ports": [
+            "left",
+            "right"
+          ]
+        }
+      ],
+      "mainInput": "audio",
+      "mainOutput": "output",
+      "guided": false
+    },
+    "control_flow": {}
+  }
+}
