@@ -31,6 +31,7 @@ async page => {
   await button("Live").click();
   const manual = row("manual"), bass = row("voice3");
   await button("Edit", bass).click();
+  await button("Settings", page.locator(".ws-dock")).click();
   await page.locator('.ws-dock summary', { hasText: "Pattern workspace" }).click();
   check(await page.locator(".ws-dock").getByRole("combobox", { name: "Sync To" }).inputValue() === "phrase", "Editor lost the sync destination");
   const workspace = page.getByRole("region", { name: "Pattern workspace" });
@@ -115,18 +116,22 @@ async page => {
   await page.locator(".ws-inspector").getByText("Group B", { exact: true }).waitFor();
   await page.screenshot({ path: "screenshots/perform-arrange-legacy-phrase.png" });
   await button("Live").click();
+  await button("Settings", page.locator(".ws-dock")).click();
   check(await button("Apply", workspace).isEnabled() && await button("Group B", workspace).getAttribute("aria-pressed") === "true", "Lost source draft");
   await button("Group A", workspace).click();
   await reveal("group:A"); // Repeated group.
   await page.setViewportSize({ width: 390, height: 700 });
   await button("Live").click();
+  await button("Settings", page.locator(".ws-dock")).click();
   await button("Supergroup I", workspace).click();
   await reveal("super:I");
   await button("Live").click();
+  await button("Settings", page.locator(".ws-dock")).click();
   await button("Free workspace", workspace).click();
   await button("Back to overview").click();
   await button("Pad 7", bass).click();
   await button("Edit", bass).click();
+  await button("Settings", page.locator(".ws-dock")).click();
   await reveal("pad:6"); // The physical pad being edited can be empty and different from the playing pad.
   await lane.locator("button[title='Sub bass']").click();
   await button("Live").click(); await button("Arrange").click();
@@ -136,6 +141,7 @@ async page => {
   await button("Move up", bass).click();
   check(await order() === "phrase,manual,voice0,voice1,voice3,voice2" && await bounded(), "Phone reorder broke the workspace");
   await button("Edit", bass).click();
+  await button("Settings", page.locator(".ws-dock")).click();
   await button("Group B", workspace).click();
   await page.evaluate(() => {
     const s = window.__workspaceTest.store.getState();

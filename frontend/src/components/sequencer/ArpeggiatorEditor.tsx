@@ -1,3 +1,4 @@
+import { PatternSettings } from "./PatternEditor";
 import { ClipEditingContext, useSinglePatternEditor } from "../clipArranger/context";
 import { transportStartButtonClass, transportStopButtonClass } from "./transportButtonStyles";
 import { patternPadClass } from "../../lib/patternItemPresentation";
@@ -65,6 +66,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
   const number = (label: string, value: number, min: number, max: number, change: (value: number) => void) => <label className="flex min-w-0 flex-col gap-1 text-xs text-slate-300">{label}<input className={field} type="number" min={min} max={max} value={value} onChange={e => { if (e.target.value !== "") change(Math.max(min, Math.min(max, Number(e.target.value)))); }} /></label>;
   const section = (key: keyof typeof c, children: ReactNode) => <details className="rounded-lg border border-slate-700 p-2" open={expanded[key] ?? false} onToggle={e => { const open = e.currentTarget.open; if (open !== !!expanded[key]) setExpanded(v => ({ ...v, [key]: open })); }}><summary className="cursor-pointer text-xs font-semibold text-slate-300">{c[key]}</summary><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{children}</div></details>;
   return <article id={`sequencer-${arp.id}`} className="min-w-0 space-y-3 rounded-xl border border-slate-700 bg-slate-900/65 p-3">
+    <PatternSettings>
     <header className="flex flex-wrap items-center gap-2">{name}<span role="status" className="rounded-full border border-cyan-900 px-2 py-1 text-xs text-cyan-100">{hasTarget ? c[state] : c.missing}</span>
       <button hidden={singlePattern} type="button" className={devicePlaying ? transportStopButtonClass : transportStartButtonClass} onClick={() => onEnabled(!devicePlaying)}>{devicePlaying ? ui.stop : ui.start}</button>
       <button hidden={singlePattern} className={`${button} ml-auto text-rose-200`} disabled={!canRemove} onClick={onRemove}>{ui.remove}</button>{help}</header>
@@ -111,6 +113,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
       {number(c.cycle, pad.steps.length, 1, 32, v => updatePad({ steps: Array.from({ length: v }, (_, i) => pad.steps[i] ?? { kind: "next", notePosition: 1, velocity: 100, gateRatio: null, probability: 1, ratchets: 1 }) }))}
       {select(c.duration, String(pad.lengthBeats), [1, 2, 3, 4, 5, 6, 7, 8, 16].map(v => [String(v), String(v)]), v => updatePad({ lengthBeats: Number(v) as ArpeggiatorPadState["lengthBeats"] }))}
     </div>
+    </PatternSettings>
     <div ref={gridRef} role="group" aria-label={c.cycle} className="grid gap-1 overflow-x-auto rounded-lg bg-slate-950 p-2" style={{ gridTemplateColumns: `repeat(${pad.steps.length}, minmax(56px, 1fr))` }}>
       {pad.steps.map((s, i) => {
         const notes = playingPad === editingPad && s.kind !== "rest" && s.kind !== "tie" ? runtime?.preview_notes?.[i] ?? [] : [];

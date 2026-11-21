@@ -4,7 +4,7 @@ import { MixWorkspace } from "./sequencer/MixWorkspace";
 import { LiveLauncher } from "./sequencer/LiveLauncher";
 import { createMidiInstrumentLookup, laneMidiLabel, type MidiDevice } from "../lib/midiControllerChannels";
 import { liveCopy } from "./sequencer/liveCopy";
-import { arrangeCopy } from "./clipArranger/arrangeCopy";
+import { PatternSettings } from "./sequencer/PatternEditor";
 import { LegacyArrange, type LegacyPadAction } from "./sequencer/LegacyArrange";
 import { PerformWorkspace, type DeviceEditorRenderer, type ViewNavigation } from "./sequencer/PerformWorkspace";
 import { ClipTransport } from "./clipArranger/ClipTransport";
@@ -38,7 +38,7 @@ import { MidiChannelSelector } from "./sequencer/MidiChannelSelector";
 import { useAppStore } from "../store/useAppStore";
 import { useSongPlaybackState } from "../hooks/useSongPlaybackState";
 import { pianoRollFollowingTheories } from "../lib/pianoRollFollowing";
-import { ArrangeSettings, EditorDetails, OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, useStepProperties, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
+import { EditorDetails, OpenArrangerContext, PerformanceEditorProvider, usePerformanceEditorState, useStepProperties, RetainedScroll, type EditorOwner, type PerformView } from "./sequencer/PerformanceEditorState";
 import { PerformanceDeviceName } from "./sequencer/PerformanceDeviceName";
 import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib/performanceDeviceNames";
 import { CollapsiblePanel, type PanelCollapseState } from "./CollapsiblePanel";
@@ -1739,6 +1739,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
             }}
             className="relative rounded-xl border border-slate-700 bg-slate-900/65 p-2.5 pr-10"
           >
+            <PatternSettings>
             {onHelpRequest ? (
               <HelpIconButton
                 guiLanguage={guiLanguage}
@@ -1791,7 +1792,6 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </button>
             </div>
 
-            <ArrangeSettings id={track.id} label={arrangeCopy(guiLanguage).settings}>
             <div className="mb-2 grid gap-2 lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] lg:items-start">
               <div className="grid gap-2">
                 <div className="flex flex-wrap items-end gap-2">
@@ -1889,7 +1889,6 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
               </div>
             </div>
 
-            </ArrangeSettings>
             <div className="mb-2 text-[11px] text-slate-500">
               {ui.notesInScaleMode(scaleLabel, modeLabel)}
             </div>
@@ -1988,7 +1987,7 @@ function MelodicSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 })}
               </div>
             </div>
-
+            </PatternSettings>
             {propertiesTarget?.trackId === track.id && propertiesTarget.padIndex === track.activePad && track.steps[propertiesTarget.step] && (
               <MelodicStepProperties key={`${track.id}:${track.activePad}:${propertiesTarget.step}`}
                 step={track.steps[propertiesTarget.step]} index={propertiesTarget.step}
@@ -2568,6 +2567,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
             id={`sequencer-${track.id}`}
             className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
           >
+            <PatternSettings>
             {onHelpRequest ? (
               <HelpIconButton
                 guiLanguage={guiLanguage}
@@ -2690,7 +2690,7 @@ function DrummerSequencersBody({ context }: { context: ReturnType<typeof useSequ
                 })}
               </div>
             </div>
-
+            </PatternSettings>
             {timingTarget?.trackId === track.id && timingTarget.padIndex === track.activePad && (() => {
               const cell = track.pads[track.activePad]?.rows.find(row => row.rowId === timingTarget.rowId)?.steps[timingTarget.step];
               const row = track.rows.find(row => row.id === timingTarget.rowId);
@@ -2962,6 +2962,7 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
             id={`sequencer-${controllerSequencer.id}`}
             className="relative rounded-xl border border-slate-700 bg-slate-900/70 p-2.5 pr-10"
           >
+            <PatternSettings>
             {onHelpRequest ? (
               <HelpIconButton
                 guiLanguage={guiLanguage}
@@ -3112,12 +3113,12 @@ function ControllerSequencersBody({ context }: { context: ReturnType<typeof useS
                 })}
               </div>
             </div>
-
+            </PatternSettings>
             {controllerSequencer.controllerMode === "step" ? <ControllerSequencerStepEditor
               track={controllerSequencer} language={guiLanguage}
               transportSubunit={controllerSequencerIsRunning && playingPad === controllerSequencer.activePad ? sequencerTransportSubunit : null}
               onChange={(step, value) => onControllerSequencerStepChange?.(controllerSequencer.id, step, value)}
-            /> : clipEditing && controllerSequencer.automationTarget ? <p className="text-[10px] text-slate-500">{ui.curveEditorHint}</p> : <ControllerSequencerCurveEditor
+            /> : <ControllerSequencerCurveEditor
               ui={ui}
               controllerSequencer={controllerSequencer}
               playbackTransport={

@@ -15,7 +15,7 @@ Select a Score clip and use **Remove track** to remove its track.
 
 ## Draw and edit notes
 
-**Markov Generator** creates a single melodic line. By default it uses the edited pattern’s scale and grid. **Keep pitches** learns pitch transitions between successive onsets inside the pattern. **Keep durations** learns transitions between the notes’ original tick lengths. Notes starting together share an onset. A length of half a grid step appears as **1/2** in the duration graph. Choose the two phrase lengths, adjust any edge percentages, audition the take and choose **Use pattern**. Notes beyond the pattern end and the hidden tails of notes crossing it are preserved. One **Undo** restores the previous score. See the [generator controls](sequencer_tracks_and_steps.md#markov-generator).
+In the pattern editor, **Settings → Markov Generator** creates a single melodic line. By default it uses the edited pattern’s scale and grid. **Keep pitches** learns pitch transitions between successive onsets inside the pattern. **Keep durations** learns transitions between the notes’ original tick lengths. Notes starting together share an onset. A length of half a grid step appears as **1/2** in the duration graph. Choose the two phrase lengths, adjust any edge percentages, audition the take and choose **Use pattern**. Notes beyond the pattern end and the hidden tails of notes crossing it are preserved. One **Undo** restores the previous score. See the [generator controls](sequencer_tracks_and_steps.md#markov-generator).
 
 The vertical keyboard stays on the left while the score scrolls. All 128 MIDI
 pitches remain available. Coloured rows and keyboard markers show scale degrees;

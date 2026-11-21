@@ -864,6 +864,18 @@ for (const language of ["english", "german", "french", "spanish"] as const) {
   if (appendix) appendix[language] = (appendix[language] ?? "") + "\n\n" + audioRoutingHelp[language];
 }
 
+const patternEditorHelp: Record<GuiLanguage, string> = {
+  english: "In Arrange and Live, the pattern opens on the note grid, drum cells or curve. In Arrange, choose the edit scope if prompted. Open **Settings** for naming, MIDI routing and timing. Press Escape or choose **Settings** again to return to the pattern.",
+  german: "In Arrangement und Live öffnet sich das Pattern direkt mit dem Notenraster, den Schlagzeugschritten oder der Kurve. Wähle im Arrangement bei Bedarf den Bearbeitungsumfang. Unter **Einstellungen** findest du Namen, MIDI-Routing und Timing. Mit Escape oder **Einstellungen** kehrst du zum Pattern zurück.",
+  french: "Dans les vues Arrangement et Live, le motif s’ouvre sur la grille de notes, les pas de batterie ou la courbe. Dans l’arrangement, choisissez la portée de la modification si nécessaire. Ouvrez **Réglages** pour le nom, le routage MIDI et le rythme. Appuyez sur Échap ou sur **Réglages** pour revenir au motif.",
+  spanish: "En Arreglo y En vivo, el patrón se abre en la cuadrícula de notas, los pasos de batería o la curva. En el arreglo, elige el alcance de la edición si se solicita. Abre **Ajustes** para cambiar el nombre, las rutas MIDI y el ritmo. Pulsa Escape o vuelve a elegir **Ajustes** para regresar al patrón."
+};
+for (const language of ["english", "german", "french", "spanish"] as const) {
+  for (const id of ["sequencer_clip_arranger", "sequencer_tracks", "sequencer_track_editor", "sequencer_drummer_sequencer", "sequencer_controller_sequencer", "sequencer_arpeggiator", "sequencer_score_sequencer"] as const) {
+    sequencerHelpDocuments[id][language].markdown += "\n\n" + patternEditorHelp[language];
+  }
+}
+
 for (const language of ["english", "german", "french", "spanish"] as const) {
   sequencerHelpAppendices.sequencer_instrument_rack![language] += "\n\n" + performanceControllerHelp(language, "rack");
 }

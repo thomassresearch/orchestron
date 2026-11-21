@@ -14,14 +14,25 @@ interface Props {
   language: GuiLanguage;
   onMeterNumerator: (value: number) => void;
   onMeterDenominator: (value: number) => void;
-  onSubdivision: (value: number) => void;
+  onSubdivision?: (value: number) => void;
   onLength: (value: number) => void;
   onSpeed: (numerator: number, denominator: number) => void;
 }
 
+const field = "min-h-8 min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200";
+
+export function SubdivisionSelect({ timing, language, onChange, disabled }: {
+  timing: SequencerTimingConfig; language: GuiLanguage; onChange: (value: number) => void; disabled?: (grid: number) => boolean;
+}) {
+  return <label className="flex min-w-0 max-w-full flex-col gap-1 text-xs text-slate-400">{timingCopy(language).subdivision}
+    <select className={field} value={timing.stepsPerBeat} onChange={e => onChange(Number(e.target.value))}>
+      {SEQUENCER_STEPS_PER_BEAT_OPTIONS.map(n => <option key={n} value={n} disabled={disabled?.(n)}>{subdivisionLabel(n, timing.meterDenominator, language)}</option>)}
+    </select>
+  </label>;
+}
+
 export function SequencerTimingControls(p: Props) {
   const c = timingCopy(p.language);
-  const field = "min-h-8 min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200";
   const speed = p.timing.beatRateNumerator / p.timing.beatRateDenominator;
   const seconds = Math.round(p.lengthBeats * 4 / p.timing.meterDenominator / speed * 60 / p.timing.tempoBPM);
   const oversized = (grid: number) => !p.score && p.pads.some(pad => pad.lengthBeats * grid > MAX_STEPS_PER_PAD);
@@ -42,11 +53,7 @@ export function SequencerTimingControls(p: Props) {
           {Array.from({length:p.controller ? 32 : 16}, (_, i) => i + 1).map(n => <option key={n} value={n} disabled={n * p.timing.stepsPerBeat > MAX_STEPS_PER_PAD}>{patternLengthLabel(n, p.timing.meterNumerator, p.language)}</option>)}
         </select>}
       </label>
-      <label className="flex min-w-0 max-w-full flex-col gap-1 text-xs text-slate-400">{c.subdivision}
-        <select className={field} value={p.timing.stepsPerBeat} onChange={e => p.onSubdivision(Number(e.target.value))}>
-          {SEQUENCER_STEPS_PER_BEAT_OPTIONS.map(n => <option key={n} value={n} disabled={oversized(n)}>{subdivisionLabel(n, p.timing.meterDenominator, p.language)}</option>)}
-        </select>
-      </label>
+      {p.onSubdivision && <SubdivisionSelect timing={p.timing} language={p.language} onChange={p.onSubdivision} disabled={oversized} />}
     </div>
     <div className="text-xs text-slate-200" aria-live="polite">{p.score ? `${patternLengthLabel(p.lengthBeats, p.timing.meterNumerator, p.language)} · ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : timingSummary(p.timing, p.lengthBeats, p.language)}</div>
     <div className="text-[11px] text-slate-400">{c.scope}</div>

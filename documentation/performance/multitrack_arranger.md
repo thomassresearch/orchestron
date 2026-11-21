@@ -51,7 +51,7 @@ then double-click the nested pattern to open the **Score sequencer**. Hold its
 piano keys to audition pitches or double-click them to append quarter notes.
 See the [Score pattern walkthrough](score_sequencers.md#create-a-score-pattern-in-the-clip-arranger).
 
-Double-click a pattern name or its note preview to open the editor. You can also focus the name and press Enter. The breadcrumb identifies the pattern you are editing; draft status, **Play edit** and **Save** sit above the musical controls. You can edit notes/chords/holds/strums, sparse score notes, drum velocities/ratchets, both controller datasets, and arpeggiator parameters/presets. Lane-wide timing, routing and instrument settings affect the whole track.
+Double-click a pattern name or its note preview to open the editor. You can also focus the name and press Enter. The editor toolbar shows the pattern, loop pass and edit scope beside **Play edit** and the scoped **Save** button. The notes, drum cells or curve are immediately below. Click the scope or **Settings** to change the scope, rename the pattern or adjust track settings. You can edit notes/chords/holds/strums, sparse score notes, drum velocities/ratchets, both controller datasets, and arpeggiator parameters/presets. Lane-wide timing, routing and instrument settings affect the whole track.
 
 Press **Play** to hear musical edits at their position in the arrangement. You can keep editing while it plays or select another track to hear the result in context. If playback is stopped, start it when you are ready. **Cancel edits** restores the saved pattern at the current song position. Saving the pattern keeps your changes in the arrangement. **Save Performance** updates the library copy.
 

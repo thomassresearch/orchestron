@@ -129,7 +129,7 @@ Step cells visually indicate:
 
 ## Markov Generator
 
-Open **Markov Generator** in a pattern editor. **Pitch** uses the edited pattern’s scale and mode, its upper root and a rest. **Octave** chooses the register. **Duration** measures the time to the next event in local grid steps. A sustained note becomes one attack followed by HOLD steps.
+In the pattern editor, open **Settings → Markov Generator**. **Pitch** uses the edited pattern’s scale and mode, its upper root and a rest. **Octave** chooses the register. **Duration** measures the time to the next event in local grid steps. A sustained note becomes one attack followed by HOLD steps.
 
 On a pattern that contains notes, **Keep pitches** uses the exact pitches present when you opened the generator, including octaves and chord tones. **Keep durations** uses the existing note lengths, including HOLD steps. Each switch learns its own transition percentages. If C leads to D twice and to E once, the C row starts at 66.7% for D and 33.3% for E. The count includes the transition from the last event back to the first.
 

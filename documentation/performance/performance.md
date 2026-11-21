@@ -64,11 +64,11 @@ Tracks start compact. Expand a track to work with nested patterns, groups and su
 
 ## Arrange
 
-In **Arrange**, click a clip or one of its patterns to see its properties in the right-hand **Inspector**. Double-click a pattern or select it and choose **Editor** to open it below the timeline. The breadcrumb names the track, clip, pattern and loop pass you are editing. Drag the divider to give the steps more room. **Cancel edits** discards the current pattern draft. Closing a changed pattern lets you save, discard, or keep editing.
+In **Arrange**, click a clip or one of its patterns to see its properties in the right-hand **Inspector**. Double-click a pattern or select it and choose **Editor** to open it below the timeline. The toolbar names the track, clip, pattern and loop pass. Once you choose an edit scope, the first note, drum cell or curve point is ready to edit. Open **Settings** for naming, routing and timing. Press Escape or select **Settings** again to return to the grid. **Cancel edits** discards the current pattern draft. Closing a changed pattern lets you save, discard, or keep editing.
 
 For a fill on just one chorus repeat, choose **Create variation here**, edit the notes, then choose **Save variation here**. To change the phrase everywhere it plays, choose the linked scope. Its Save button shows how many uses will change. You can switch to Live to edit a physical pad and return to the same unfinished clip. **Save Performance** stores the song.
 
-![Editing a fill on the second pass of Chorus, with the timeline above, the step editor below and the clip properties on the right](../../screenshots/perform-workspace-arrange-occurrence.png)
+![The first melodic step and its note, chord, octave and velocity controls below the Arrange toolbar](../../screenshots/perform-arrange-pattern-editor.png)
 
 For a legacy performance, double-click a pad occurrence to edit that physical pad. Every occurrence that refers to the pad plays the change. Use **Edit pad in Live** when you want to move to the launcher. The performance stays in its original format until you explicitly convert it.
 
@@ -87,9 +87,11 @@ Look for the Arrange pattern name beside the pad number, for example **2 · Vers
 1. Select a pad on a **Manual pads** device and press **Play** in its row. As soon as the pad shows as playing, you can tap the next pad once to queue it for the pattern boundary. This also works immediately after a speaker preview. To jam alongside a clip song, use **Add live device** to create a separate device.
 2. Open **Keyboard** and choose the piano roll assigned to your instrument. Open **Keyboard settings** to set the MIDI channel, velocity and Autochord. Hold a focused key with Space or Enter and click another pad. On a touch screen, keep one finger on the key and tap a pad with the other.
 3. Watch the queued pad turn into the playing pad at the device’s launch boundary. The compact launcher stays above the keys on a phone. Use the song transport to bring in the arrangement. An independently started Manual device keeps playing through a song seek or stop.
-4. Choose **Edit** in the device row to open its physical pad. Direct pad edits take effect as you play. **Save Performance** stores them with the project. For reusable pattern definitions use **Apply**. Arpeggiator presets have separate **Update preset** and **Save as preset** actions.
+4. Choose **Edit** in the device row to open its physical pad. The pad opens on its notes, hits, rhythm steps or controller curve. Use **Settings** for MIDI routing, timing or the reusable pattern workspace. Direct pad edits take effect as you play. **Save Performance** stores them with the project. For reusable pattern definitions use **Apply**. Arpeggiator presets have separate **Update preset** and **Save as preset** actions.
 
 A filled green dot marks a pad with playable content in its current length. A hollow dot marks an empty or silent pad. You can launch either. A controller pad sends values to its assigned destination, and an arpeggiator needs input notes to sound.
+
+![The first controller endpoint available to drag in the Live pad editor](../../screenshots/perform-live-curve-editor.png)
 
 **Listen before launching.** Hold the speaker beside a pad for a quarter of a second. On a narrow bank, choose **Preview pads**, then hold the numbered speaker with a finger, Space or Enter. Release to hear the underlying part again. A Manual pad already in the queue keeps its launch time. Choose **Launch pads** to resume launching. [Phone view with a held key and pad preview](../../screenshots/perform-workspace-live-pad-preview.png)
 
@@ -121,11 +123,11 @@ Melodic sequencers, drummer sequencers, controller sequencers, arpeggiators, pia
 
 ## Collapsible Panels
 
-The editor and keyboard open independently. Close either to return its space to the overview. On a desktop, drag the editor divider or focus it and use the arrow keys. Shift changes its height one pixel at a time. Home and End reach the limits. **Expand** gives the editor the working area above the keys and **Restore split** brings back the overview.
+The editor and keyboard open independently. Close either to return its space to the overview. The initial split leaves room for a complete melodic step. A short window gives the editor the available space. On a desktop, drag the editor divider or focus it and use the arrow keys. Shift changes its height one pixel at a time. Home and End reach the limits. **Expand** gives the editor the working area above the keys and **Restore split** brings back the overview.
 
 On a narrow or short screen, **Back to overview** returns from the editor. With a clip and keyboard open, this lets you see the song while your edit keeps sounding. **Editor** brings the same draft back. **Keyboard** toggles the keys. The **Inspector** opens over the right edge. Escape closes it and returns focus to the Inspector button.
 
-On a short landscape screen, **Back to overview** sits beside the song transport. Scroll inside the editor to reach the note controls above the keys. If a save or playback error appears, select the red message in the status bar to read and scroll its full text. Press Escape or tap the message again to close it.
+On a short landscape screen, **Back to overview** sits beside the song transport. The grid opens above the keys. On a short screen, swipe across the editor toolbar to reach further actions. If a save or playback error appears, select the red message in the status bar to read and scroll its full text. Press Escape or tap the message again to close it.
 
 ![Arrange on a 640 × 360 screen with editable steps above the keyboard and a save error in the status bar](../../screenshots/perform-arrange-short-error.png)
 

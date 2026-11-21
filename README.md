@@ -172,7 +172,7 @@ Explore the [clip arranger guide](documentation/performance/multitrack_arranger.
 
 ## Perform and shape the mix
 
-**Perform** opens in Arrange. Select a chorus repeat and edit a variation below the timeline, or update a linked phrase across the song. Legacy performances open their original pads in the same editor area. The Inspector keeps instrument assignments and clip properties beside the timeline. [Arrange a performance](documentation/performance/performance.md#arrange)
+**Perform** opens in Arrange. Select a chorus repeat and edit a variation below the timeline, or update a linked phrase across the song. Arrange and Live pattern editors open directly on the notes, drum hits or controller curve. **Settings** holds naming, routing and timing. Legacy performances open their original pads in the same editor area. The Inspector keeps instrument assignments and clip properties beside the timeline. [Arrange a performance](documentation/performance/performance.md#arrange)
 
 Open **Keyboard** in any Perform view. In **Arrange**, play along with an unsaved clip variation while **Play edit** runs. In **Live**, hold a chord while launching pads, then switch to **Mix** and adjust an insert while the chord sounds. Each Live device shows its MIDI channel and rack instrument. The pads show Arrange pattern names beside their numbers and scroll sideways for later pads. On a phone, the launcher stays above the keys. Filled dots identify pads with playable content. Hold a pad’s speaker to audition it, or choose **Pad actions** to copy and transpose a fill while the queued pad keeps its place. [Launch pads in Live](documentation/performance/performance.md#launch-pads-in-live)
 

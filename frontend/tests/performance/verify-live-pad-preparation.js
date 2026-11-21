@@ -36,6 +36,7 @@ async page => {
   await button("Move key by degree · Up · Pad 2", manual).press("Enter");
   check((await data()).pads[1].scaleRoot === before.pads[0].scaleRoot, "Explicit key-step did not reverse the hold");
   await button("Edit", manual).click();
+  await button("Settings", page.locator(".ws-dock")).click();
   const disclosure = page.locator("summary", { hasText: "Pattern workspace" });
   await disclosure.click();
   const workspace = page.getByRole("region", { name: "Pattern workspace" });

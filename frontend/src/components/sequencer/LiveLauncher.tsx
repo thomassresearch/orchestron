@@ -1,3 +1,4 @@
+import { PatternEditor } from "./PatternEditor";
 import { useSongPlaybackState } from "../../hooks/useSongPlaybackState";
 import { useContext, useMemo } from "react";
 import { playingClipPattern, clipAuditionDefinitions } from "../../lib/clipArranger/runtime";
@@ -218,10 +219,11 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
         {!selectedLane && <button type="button" disabled={!canRemove && selected.kind !== "score"}
           onClick={() => removeDevice[selected.kind](selected.track.id)}>{c("remove")}</button>}
       </WorkspacePanel>
-      {layout.dock === "editor" && <WorkspacePanel name="editor"><header className="ws-live-editor-heading"><h3>{selected.track.name} / {selectedPadLabel}</h3>
-        <PadSaveStatus kind={selected.kind} id={selected.track.id} pad={editing(selected)} language={language} /></header>
-        <LivePadEditorContext.Provider value><div key={selected.track.id}>{renderEditor(selected.kind, selected.track.id, sequencer)}</div></LivePadEditorContext.Provider>
-      </WorkspacePanel>}
+      {layout.dock === "editor" && <WorkspacePanel name="editor"><PatternEditor key={selected.track.id + ":" + editing(selected)} language={language}
+        title={selected.track.name + " / " + selectedPadLabel} owner={`device:${selected.track.id}`} scrollField={`padEditor:${editing(selected)}`}
+        actions={<PadSaveStatus kind={selected.kind} id={selected.track.id} pad={editing(selected)} language={language} />}>
+        <LivePadEditorContext.Provider value>{renderEditor(selected.kind, selected.track.id, sequencer)}</LivePadEditorContext.Provider>
+      </PatternEditor></WorkspacePanel>}
     </>}
   </>;
 }

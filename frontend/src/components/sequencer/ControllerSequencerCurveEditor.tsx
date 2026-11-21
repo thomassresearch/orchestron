@@ -385,7 +385,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
     : Math.ceil(minimumLabelBeats / controllerSequencer.timing.meterNumerator) * controllerSequencer.timing.meterNumerator;
 
   return (
-    <div className="rounded-xl border border-teal-700/50 bg-slate-950/70 p-2">
+    <div className="ws-curve-editor rounded-xl border border-teal-700/50 bg-slate-950/70 p-2">
       <div className="mb-1 flex text-[11px] text-slate-400" aria-hidden="true">
         {beatGroups.map((group, index) =>
           <span key={group.start} className="min-w-0 flex-1 whitespace-nowrap">{index % labelEvery === 0 ? `${group.bar}.${group.beat}` : ""}</span>)}
@@ -396,7 +396,7 @@ export const ControllerSequencerCurveEditor = memo(function ControllerSequencerC
         preserveAspectRatio="none"
         role="img"
         aria-label={ui.curveEditorHint}
-        style={{ height: height === 150 ? 160 : height }}
+        style={{ height: height === 150 ? "var(--curve-height, 160px)" : height }}
         className="w-full cursor-crosshair overflow-visible rounded-lg border border-slate-700 bg-slate-950"
       >
         <defs>

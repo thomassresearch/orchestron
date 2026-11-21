@@ -45,7 +45,7 @@ Use **Play edit** to hear a draft and **Stop edit** to return to the song. Audit
 
 ## Build a legacy phrase from pads
 
-In **Live**, choose **Edit** on a legacy device and open **Pattern workspace**. In **Free workspace**, use **Insert pad…** three times to add pads 1, 2 and 1. Each insertion goes after the selected item, or at the end when the selection is empty. In **Pad actions** mode you can also drag a numbered pad directly to the desired position in the phrase.
+In **Live**, choose **Edit** on a legacy device, then open **Settings → Pattern workspace**. In **Free workspace**, use **Insert pad…** three times to add pads 1, 2 and 1. Each insertion goes after the selected item, or at the end when the selection is empty. In **Pad actions** mode you can also drag a numbered pad directly to the desired position in the phrase.
 
 Choose **Select all**, then **Group** to save the phrase as a reusable definition. Open the named group to revise its sequence, then choose **Apply** to update every use. **Save Performance** keeps the pads and saved definitions. Place phrases in the song from **Arrange**.
 

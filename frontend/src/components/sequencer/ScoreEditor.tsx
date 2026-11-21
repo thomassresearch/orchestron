@@ -3,6 +3,8 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import type { GuiLanguage, ScoreNoteState, ScorePadState, ScoreTrackState } from "../../types";
 import { buildSequencerChordOptions, scaleDegreeForNote } from "../../lib/sequencer";
 import { SCORE_TICKS_PER_QUARTER, scoreBeatTicks, scoreLengthTicks } from "../../lib/scoreSequencer";
+import { SubdivisionSelect } from "./SequencerTimingControls";
+import { usePatternEditor } from "./PatternEditor";
 import { usePerformanceEditorState } from "./PerformanceEditorState";
 import { scoreCopy } from "./scoreCopy";
 import { ScoreTransportContext } from "./ScoreTransportContext";
@@ -37,16 +39,24 @@ function ScorePlayhead({ track, pad, width, height, readPosition }: {
   return <line ref={ref} y1={0} y2={height} stroke="#f8fafc" strokeWidth={1.5} pointerEvents="none" />;
 }
 
-export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, language, onCommit, readPosition, soundingPad }: {
+export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, language, onCommit, readPosition, soundingPad, onSubdivision }: {
   track: ScoreTrackState; padIndex: number; pad: ScorePadState; language: GuiLanguage;
-  onCommit: (pad: ScorePadState) => boolean; readPosition?: () => number | null; soundingPad: number;
+  onSubdivision?: (value: number) => void; onCommit: (pad: ScorePadState) => boolean; readPosition?: () => number | null; soundingPad: number;
 }) {
   const c = scoreCopy(language), owner = `device:${track.id}` as const, key = `score:${padIndex}`;
   const [selected, setSelected] = usePerformanceEditorState<string[]>(owner, `${key}:selection`, []);
   const [clipboard, setClipboard] = usePerformanceEditorState<ScoreNoteState[]>(owner, "scoreClipboard", []);
   const [zoom, setZoom] = usePerformanceEditorState(owner, `${key}:zoom`, 64);
   const [row, setRow] = usePerformanceEditorState(owner, `${key}:row`, 24);
-  const [savedScroll, saveScroll] = usePerformanceEditorState(owner, `${key}:scroll`, { left: 0, top: 50 * 24 });
+  const compact = usePatternEditor();
+  const [savedScroll, saveScroll] = usePerformanceEditorState(owner, `${key}:scroll`, () => {
+    const beatTicks = scoreBeatTicks(track.timing);
+    const duration = scoreLengthTicks(pad, track.timing);
+    const first = compact && pad.notes.reduce<ScoreNoteState | undefined>((earliest, note) =>
+      note.startTicks < duration && (!earliest || note.startTicks < earliest.startTicks) ? note : earliest, undefined);
+    return first ? { left: Math.floor(first.startTicks / beatTicks * zoom), top: (127 - first.pitch) * row }
+      : { left: 0, top: 50 * 24 };
+  });
   const [tool, setTool] = usePerformanceEditorState<"draw" | "select">(owner, "scoreTool", "draw");
   const [position, setPosition] = useState(0);
   const transport = useContext(ScoreTransportContext);
@@ -180,9 +190,10 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
       saveScroll(next); setView(v => ({ ...v, ...next }));
     }
   };
-  return <div className="space-y-2">
-    <div className="flex flex-wrap items-center gap-2">
+  return <div className="ws-score-editor space-y-2">
+    <div className="ws-score-tools flex flex-wrap items-center gap-2">
       {(["draw", "select"] as const).map(t => <button key={t} className={`${button} ${tool === t ? "!border-cyan-300 !text-cyan-200" : ""}`} aria-pressed={tool === t} onClick={() => setTool(t)}>{c[t]}</button>)}
+      {onSubdivision && <SubdivisionSelect timing={track.timing} language={language} onChange={onSubdivision} />}
       <button className={button} onClick={copy} disabled={!selected.length}>{c.copy}</button><button className={button} onClick={paste} disabled={!clipboard.length}>{c.paste}</button>
       <button className={button} onClick={() => { setZoom(Math.max(0.0625, (view.width - 64) / pad.lengthBeats)); if (scroll.current) scroll.current.scrollLeft = 0; }}>{c.fit}</button>
       <label className="text-xs text-slate-400">{c.zoom} <input aria-label={c.zoom} type="range" min={-4} max={8} step={0.1} value={Math.log2(zoom)} onChange={e => setZoom(2 ** Number(e.target.value))} /></label>
@@ -200,7 +211,7 @@ export const ScoreEditor = memo(function ScoreEditor({ track, padIndex, pad, lan
       <button className={button} onClick={() => { onCommit({ ...pad, notes: pad.notes.filter(n => n.id !== property.id) }); setPropertyId(null); }}>{c.delete}</button>
       <button className={button} aria-label={c.close} onClick={() => setPropertyId(null)}>×</button>
     </div>}
-    <div ref={scroll} className="relative h-[360px] overflow-auto rounded border border-slate-700 bg-slate-950" onScroll={e => {
+    <div ref={scroll} className="ws-score-grid relative h-[360px] overflow-auto rounded border border-slate-700 bg-slate-950" onScroll={e => {
       const next = { left: e.currentTarget.scrollLeft, top: e.currentTarget.scrollTop }; saveScroll(next); setView(v => ({ ...v, ...next }));
     }}>
       <div style={{ width: Math.max(width + 64, view.width), height, position: "relative" }}>

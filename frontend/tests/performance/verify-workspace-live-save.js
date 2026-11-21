@@ -15,6 +15,7 @@ async page => {
   await button("Edit", selected).click();
   await button("HOLD").first().click();
   await page.getByText("Unsaved pad changes", { exact: true }).waitFor();
+  await button("Settings", page.locator(".ws-dock")).click();
   check(await page.locator(".ws-dock summary", { hasText: "Pattern workspace" }).count() === 1, "Missing reusable definition workspace");
   await page.locator(".ws-dock summary", { hasText: "Pattern workspace" }).click();
   check(await button("Open in arranger").count() === 0, "Independent device offered an unavailable legacy palette");

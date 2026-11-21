@@ -1,3 +1,4 @@
+import { PatternSettings, usePatternEditor } from "./PatternEditor";
 import { MarkovGenerator } from "./MarkovGenerator";
 import { ClipEditingContext, useSinglePatternEditor } from "../clipArranger/context";
 import { memo, useContext, useEffect, useMemo, useState } from "react";
@@ -34,12 +35,16 @@ export function ScoreSequencers({ sequencer, language, collapsed, onCollapse, re
   const c = scoreCopy(language);
   const selections = useAppStore(s => s.sequencerEditingPads);
   const editing = clipEditing ? sequencer : sequencerEditingView(sequencer, selections);
+  const compact = usePatternEditor();
+  const help = onHelpRequest && <HelpIconButton guiLanguage={language} onClick={() => onHelpRequest("sequencer_score_sequencer")} />;
+  const cards = editing.scoreTracks.map(track => <ScoreCard key={track.id} track={track} language={language} readPosition={readPosition}
+    soundingPad={sequencer.scoreTracks.find(t => t.id === track.id)?.activePad ?? 0} running={sequencer.isPlaying && track.enabled} />);
+  if (compact) return <><PatternSettings>{help}</PatternSettings>{cards}</>;
   return <CollapsiblePanel unmountOnCollapse title={c.title} collapsed={collapsed} onCollapsedChange={onCollapse}
     className="mt-4 rounded-xl border border-indigo-800/60 bg-slate-950/85 p-3" titleClassName="text-indigo-200"
-    help={onHelpRequest ? <HelpIconButton guiLanguage={language} onClick={() => onHelpRequest("sequencer_score_sequencer")} /> : null}
+    help={help}
     actions={!singlePattern && <button type="button" className="rounded-md border border-accent/60 bg-accent/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent transition hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50" disabled={sequencer.scoreTracks.length >= 16} onClick={() => { addScoreTrack(c.name); onCollapse(false); }}>{c.add}</button>}>
-    {editing.scoreTracks.map(track => <ScoreCard key={track.id} track={track} language={language} readPosition={readPosition}
-      soundingPad={sequencer.scoreTracks.find(t => t.id === track.id)?.activePad ?? 0} running={sequencer.isPlaying && track.enabled} />)}
+    {cards}
   </CollapsiblePanel>;
 }
 
@@ -48,6 +53,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
 }) {
   const clipEditing = useContext(ClipEditingContext);
   const singlePattern = useSinglePatternEditor();
+  const compact = usePatternEditor();
   const c = scoreCopy(language), transport = useContext(ScoreTransportContext);
   const [error, setError] = useState<string | null>(null);
   const clipKey = useAppStore(s => s.clipEditingKey);
@@ -72,6 +78,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
     const next = normalizeSequencerTiming({ ...t.timing, ...value });
     return { ...t, timing: next, pads: t.pads.map(p => ({ ...p, stepCount: p.lengthBeats * next.stepsPerBeat })) };
   }));
+  const setSubdivision = (stepsPerBeat: number) => timing({ stepsPerBeat: stepsPerBeat as SequencerTimingConfig["stepsPerBeat"] });
   const duration = scoreLengthTicks(pad, track.timing);
   const hidden = pad.notes.filter(n => n.startTicks >= duration || n.startTicks + n.durationTicks > duration).length;
   const transpose = (direction: -1 | 1, octave: boolean) => changePad({ ...pad, notes: pad.notes.map(n => {
@@ -84,6 +91,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
     onKeyDown={e => { if ((e.target as Element).closest("input,select,textarea")) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.stopPropagation(); historyStep(e.shiftKey); }
     }}>
+    <PatternSettings>
     <div className="flex flex-wrap items-center gap-3">
       <PerformanceDeviceName kind="scoreTracks" device={track} fallback={c.name} sequencer={useAppStore.getState().sequencer} guiLanguage={language} onRename={useAppStore.getState().renamePerformanceDevice} />
       <button hidden={singlePattern} className={`${button} ${running ? "!border-amber-500" : "!border-cyan-500"}`} onClick={() => void transport?.play(track.id, !running).catch(e => setError(String(e)))}>{running ? c.stop : c.play}</button>
@@ -100,7 +108,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
     </div>
     <SequencerTimingControls score id={track.id} language={language} timing={track.timing} pads={track.pads} lengthBeats={pad.lengthBeats}
       onMeterNumerator={n => timing({ meterNumerator: n as SequencerTimingConfig["meterNumerator"] })}
-      onMeterDenominator={n => timing({ meterDenominator: n as 4 | 8 })} onSubdivision={n => timing({ stepsPerBeat: n as SequencerTimingConfig["stepsPerBeat"] })}
+      onMeterDenominator={n => timing({ meterDenominator: n as 4 | 8 })} onSubdivision={compact ? undefined : setSubdivision}
       onSpeed={(n, d) => timing({ beatRateNumerator: n as SequencerTimingConfig["beatRateNumerator"], beatRateDenominator: d as SequencerTimingConfig["beatRateDenominator"] })}
       onLength={lengthBeats => changePad({ ...pad, lengthBeats, stepCount: lengthBeats * track.timing.stepsPerBeat })} />
     <div className="flex flex-wrap items-center gap-2">
@@ -127,7 +135,8 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
     <PatternWorkspace track={track} language={language} padHasContent={i => scoreHasContent(track.pads[i], track.timing)}
       onPatternChange={padLoopPattern => attempt(() => updateScoreTrack(track.id, t => ({ ...t, padLoopPattern })))}
       onSourceChange={source => attempt(() => useAppStore.getState().commitArrangerEdit("source", [{ id: track.id, kind: "score", source }]))} />
+    </PatternSettings>
     {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
-    <ScoreEditor track={track} padIndex={padIndex} pad={pad} language={language} onCommit={changePad} readPosition={readPosition} soundingPad={soundingPad} />
+    <ScoreEditor onSubdivision={compact ? setSubdivision : undefined} track={track} padIndex={padIndex} pad={pad} language={language} onCommit={changePad} readPosition={readPosition} soundingPad={soundingPad} />
   </article>;
 });

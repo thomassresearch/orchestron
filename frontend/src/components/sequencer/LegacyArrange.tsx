@@ -1,3 +1,4 @@
+import { PatternEditor } from "./PatternEditor";
 import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
 import { useContext, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useAppStore } from "../../store/useAppStore";
@@ -87,7 +88,10 @@ export function LegacyArrange({ sequencer, language, instrumentName, add, naviga
         handoff.current = edited?.id === chosen.id;
         navigate("live", chosen);
       }}>{arrangeCopy(language).editPad}</button></>}</div> : <p>{shellCopy[language].select}</p>}</WorkspacePanel>
-    {edited && <WorkspacePanel name="editor"><h3>{sequencer[sourceKeys[edited.kind]].find(t => t.id === edited.id)?.name} / Pad {edited.pad + 1}</h3>
-      <LivePadEditorContext.Provider value><div key={edited.id + ":" + edited.pad}>{renderEditor(edited.kind, edited.id, sequencer)}</div></LivePadEditorContext.Provider></WorkspacePanel>}
+    {edited && <WorkspacePanel name="editor"><PatternEditor key={edited.id + ":" + edited.pad} language={language}
+      title={`${sequencer[sourceKeys[edited.kind]].find(t => t.id === edited.id)?.name} / Pad ${edited.pad + 1}`}
+      owner={`device:${edited.id}`} scrollField={`padEditor:${edited.pad}`}>
+      <LivePadEditorContext.Provider value>{renderEditor(edited.kind, edited.id, sequencer)}</LivePadEditorContext.Provider>
+    </PatternEditor></WorkspacePanel>}
   </>;
 }

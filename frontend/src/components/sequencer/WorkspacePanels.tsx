@@ -17,6 +17,7 @@ export const WorkspacePanels = createContext<null | {
   getRememberedTarget: () => OccurrenceTarget | undefined;
   editorHidden: boolean;
   singlePane: boolean;
+  paneActions?: ReactNode;
   revealEditor: () => void;
   closeDock: () => void;
 }>(null);

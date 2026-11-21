@@ -60,11 +60,13 @@ async page => {
   const last = page.locator("[data-arranger-clip]").last();
   await last.locator("button").first().click();
   await button("Editor").click();
+  await button("Settings", editor).click();
   await editorName.fill("Discard this");
   await page.locator(".ws-dock").getByRole("button", { name: "Close", exact: true }).click();
   await button("Keep editing", page.getByRole("dialog")).click();
   await button("Cancel edits", editor).click();
   await button("Editor").click();
+  await button("Settings", editor).click();
   await editorName.fill("Discard on close");
   await page.locator(".ws-dock").getByRole("button", { name: "Close", exact: true }).click();
   await button("Discard edits", page.getByRole("dialog")).click();
@@ -97,6 +99,7 @@ async page => {
   await page.setViewportSize({width:390,height:844});
   check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "Narrow editor overflow");
   await button("Create variation here", editor).click();
+  await button("Settings", editor).click();
   const variation = editor.getByRole("textbox", { name: "Variation name" });
   await variation.fill("Bass turnaround");
   await button("Save variation here", editor).click();

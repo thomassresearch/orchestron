@@ -223,8 +223,3 @@ export function EditorDetails({ owner, field, initiallyOpen = false, summary, su
     if (event.target === event.currentTarget) setOpen(event.currentTarget.open);
   }}><summary className={summaryClassName}>{summary}</summary>{open ? children() : null}</details>;
 }
-
-export function ArrangeSettings({ id, label, children }: { id: string; label: string; children: ReactNode }) {
-  const view = useContext(PerformViewContext);
-  return view === "arrange" ? <EditorDetails owner={`device:${id}`} field="melodicSettings" summary={label} className="mb-2 text-xs">{() => children}</EditorDetails> : children;
-}

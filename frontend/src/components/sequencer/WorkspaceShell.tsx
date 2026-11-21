@@ -90,6 +90,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const issue = error || appError;
   const editorDock = view === "arrange" && model ? clipKey ? "editor" : null : layout.dock;
   const dock = controlsIds ? "instrument" : editorDock;
+  const patternDock = dock === "editor" && view !== "mix";
   const detailOwner = view === "mix" && mixSelection && (dock === "samples" || ids.length === 1) ? `binding:${mixSelection}` as const : "page";
   const copy = mixCopy(language);
   const dockLabel = dock === "instrument" && controlLane ? `${controlLane.name} · ${copy("instrument")}`
@@ -132,7 +133,11 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const currentDraft = clipKey ? drafts[clipKey] : undefined;
   const scopeOnly = view === "arrange" && !controlsIds && currentDraft?.definition.kind === "pattern" &&
     currentDraft.editIntent?.scope === null && !layout.dockExpanded && size.mainHeight >= 260;
-  const single = !!dock && !scopeOnly && (controlsIds ? size.mainHeight < dockMinimum + trackMinimum + grip : narrow || !!layout.dockExpanded);
+  // Leave room for the toolbar, beat ruler and a complete melodic step in the initial split.
+  const patternHeight = 300;
+  const splitMinimum = patternDock && layout.preferredDockHeight === undefined ? patternHeight : dockMinimum;
+  const shortSplit = patternDock && size.mainHeight < splitMinimum + trackMinimum + grip;
+  const single = !!dock && !scopeOnly && (controlsIds ? size.mainHeight < dockMinimum + trackMinimum + grip : narrow || shortSplit || !!layout.dockExpanded);
   const showOverview = !controlsIds && single && view === "arrange" && !!clipKey && overviewClipKey === clipKey;
   const compactArrangeEditor = view === "arrange" && single && !showOverview && window.innerHeight <= 460;
   const compactLauncher = view === "live" && keyboardOpen && narrow;
@@ -143,7 +148,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     if (single && !showOverview && (document.activeElement === document.body || overview?.contains(document.activeElement))) back.current?.focus({ preventScroll: true });
   }, [single, showOverview, compactArrangeEditor, view]);
   const max = maxDockHeight(size.mainHeight, trackMinimum, grip, dockMinimum);
-  const height = clampDock(layout.preferredDockHeight ?? 260, max, dockMinimum);
+  const height = clampDock(layout.preferredDockHeight ?? (patternDock ? patternHeight : 260), max, dockMinimum);
   useLayoutEffect(() => {
     if (!compactControls || single) return;
     const overview = main.current?.querySelector<HTMLElement>(".ws-overview");
@@ -217,8 +222,12 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     });
   };
   const backLabel = controlsIds && editorDock ? copy("backToEditor") : single ? c.back : c.close;
+  const paneActions = <>
+    {!narrow && !shortSplit && !controlsIds && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
+    <button ref={back} onClick={returnToOverview}>{backLabel}</button>
+  </>;
   const context = { slots: { mixControls, launcher: launcherHost, editor: editorHost, inspector: inspectorHost, editorCommand: commandHost, dialogs: document.body },
-    patternClose,
+    patternClose, paneActions: patternDock && !compactArrangeEditor ? paneActions : null,
     laneControllers: (id: string) => {
       const route = routes.get(id);
       if (!route) return null;
@@ -271,13 +280,12 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
             {compactLauncher && !single && <div className="ws-compact-launch" ref={setLauncherHost} />}{children}
           </RetainedScroll>
           {dock && !single && !scopeOnly && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} min={dockMinimum} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
-          {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} data-inline-back={compactArrangeEditor || undefined} aria-label={dockLabel}>
-            {!compactArrangeEditor && <header><h2>{dockLabel}</h2>
-              {!narrow && !controlsIds && <button aria-expanded={!!layout.dockExpanded} onClick={() => change({ dockExpanded: !layout.dockExpanded })}>{layout.dockExpanded ? c.restore : c.expand}</button>}
-              <button ref={back} onClick={returnToOverview}>{backLabel}</button></header>}
+          {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} data-inline-back={compactArrangeEditor || undefined} data-pattern-dock={patternDock || undefined} aria-label={dockLabel}>
+            {!compactArrangeEditor && !patternDock && <header><h2>{dockLabel}</h2>
+              {paneActions}</header>}
             {showLauncherInEditor && <div className="ws-compact-launch" ref={setLauncherHost} />}
             {view === "mix" && <div className="ws-dock-mix-controls" ref={setMixControls} />}
-            {view === "arrange" && model && editorDock === "editor" ? <div className="ws-clip-editor-host" hidden={!!controlsIds} ref={setEditorHost} /> : editorDock && <RetainedScroll key={view + editorDock + detailOwner} hidden={!!controlsIds} className="ws-dock-scroll" owner={detailOwner} field={editorDock + "Scroll"}>
+            {editorDock === "editor" && view !== "mix" ? <div className="ws-clip-editor-host" hidden={!!controlsIds} ref={setEditorHost} /> : editorDock && <RetainedScroll key={view + editorDock + detailOwner} hidden={!!controlsIds} className="ws-dock-scroll" owner={detailOwner} field={editorDock + "Scroll"}>
               <div ref={setEditorHost} />
             </RetainedScroll>}
             {controlsIds && <RetainedScroll key={controlsLaneId ?? "rackControls"} owner={controlsLaneId ? `device:${controlsLaneId}` : "rack"} field="instrumentControlsScroll" className="ws-dock-scroll">

@@ -47,12 +47,11 @@ export const ControllerSequencerStepEditor = memo(function ControllerSequencerSt
   const stepDuration = sequencerTransportSubunitsPerLocalStep(track.timing);
   const offset = (transportSubunit ?? 0) - (track.runtimePadStartSubunit ?? 0);
   const current = transportSubunit === null ? -1 : ((Math.floor(offset / stepDuration) % track.stepCount) + track.stepCount) % track.stepCount;
-  return <div className="space-y-2">
-    <p className="text-xs text-slate-400">{controllerModeCopy[language].hint}</p>
+  return <div className="ws-controller-steps space-y-2">
     <RetainedScroll owner={`device:${track.id}`} field="controllerStepGrid" className="overflow-x-auto pb-2">
       <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${track.stepCount}, minmax(44px, 1fr))`, minWidth: track.stepCount * 48 }}>
         <BeatGroupHeaders timing={track.timing} stepCount={track.stepCount} language={language} />
-        {Array.from({ length: track.stepCount }, (_, step) => <div key={`header-${step}`}
+        {Array.from({ length: track.stepCount }, (_, step) => <div data-step-number key={`header-${step}`}
           className={`rounded border border-slate-700 py-1 text-center font-mono text-[10px] ${current === step ? "bg-emerald-400/15 text-emerald-200" : "text-slate-400"}`}
           style={{ borderLeftWidth: sequencerStepBoundary(track.timing, step).barStart ? 3 : sequencerStepBoundary(track.timing, step).beatStart ? 2 : 1 }}>
           {step + 1}
@@ -62,5 +61,6 @@ export const ControllerSequencerStepEditor = memo(function ControllerSequencerSt
           value={track.pads[track.activePad]?.steps?.[step] ?? null} onChange={onChange} />)}
       </div>
     </RetainedScroll>
+    <p className="text-xs text-slate-400">{controllerModeCopy[language].hint}</p>
   </div>;
 });
