@@ -47,7 +47,9 @@ that an opcode needs its own parallel implementation.
   with unmodeled state (including named generators) retain single fallback; they are not silently copied or assigned zero cost.
 - Shared native random-stream users are co-located so their relative execution and random
   consumption remain intact. This can reduce the available parallelism even without audio wires.
-- `initc7` and MIDI readers retain their shared initialization domain. Parent-generated MIDI,
+- `initc7` shares an owner with other writers and with `ctrl7` or `midictrl` readers whose
+  channel and CC can overlap. Literals, defaults and direct integer constants can identify a
+  selector. An unresolved selector matches any value in its dimension. Parent-generated MIDI,
   sequencer controllers, automation and live controls retain ordered, timestamped broadcast at
   the same engine block; event pruning by instrument MIDI channel remains forbidden.
 - Existing scoped legato collectors/panic helpers retain one owner. Unknown custom/global

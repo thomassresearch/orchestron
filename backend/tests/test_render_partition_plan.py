@@ -181,8 +181,50 @@ def test_legato_helpers_allocation_and_midi_initialization_stay_with_consumers(c
     assert set(partition.helpers) == expected
     assert all(p.midi_delivery == "ordered_broadcast" for p in plan.partitions)
     initialized = candidate(analyze(compiler, "midi_initialization"))
-    assert initialized.layout == "single"
-    assert any(c.reason == "midi_controller_initialization" for c in initialized.graph.colocations)
+    assert initialized.layout == "coarse"
+    assert [c.stages for c in initialized.graph.colocations if c.reason == "midi_controller_initialization"] == [
+        ("patch:source0", "patch:source1")]
+    assert ownership(initialized)["patch:source0"] == ownership(initialized)["patch:source1"]
+
+
+@pytest.mark.parametrize(("opcode", "params", "matches"), [
+    ("ctrl7", {"ichan": 1, "ictlno": 0}, True),
+    ("ctrl7", {"ichan": 2, "ictlno": 0}, False),
+    ("ctrl7", {"ichan": 1, "ictlno": 1}, False),
+    ("ctrl7", {"ichan": "p4", "ictlno": 0}, True),
+    ("ctrl7", {"ichan": "p4", "ictlno": 1}, False),
+    ("ctrl7", {"ichan": 1, "ictlno": "p4"}, True),
+    ("ctrl7", {"ichan": 2, "ictlno": "p4"}, False),
+    ("midictrl", {"inum": 0}, False),  # source1 receives notes on channel 2.
+    ("initc7", {"ichan": 1, "ictlno": 0}, True),
+    ("initc7", {"ichan": 2, "ictlno": 0}, False),
+])
+def test_initc7_only_groups_overlapping_cc_accesses(compiler, opcode, params, matches):
+    targets, routes, _ = planner_inputs("four")
+    sources = [t for t in targets if t.midi_channel]
+    sources[0].patch.graph.nodes.append(NodeInstance(id="writer", opcode="initc7", params={"ictlno": 0}))
+    sources[1].patch.graph.nodes.append(NodeInstance(id="other", opcode=opcode, params=params))
+    graph = compiler.analyze_realtime_graph(targets, routes)
+    groups = [c.stages for c in graph.colocations if c.reason == "midi_controller_initialization"]
+    assert groups == ([("patch:source0", "patch:source1")] if matches else [])
+
+
+def test_dynamic_initc7_channel_keeps_cc_precision_and_groups_implicit_readers(compiler):
+    from backend.tools._parallel_render_workload import connection
+
+    targets, routes, _ = planner_inputs("four")
+    sources = [t for t in targets if t.midi_channel]
+    patch = sources[0].patch.graph
+    patch.nodes.extend([NodeInstance(id="channel", opcode="perf_controller"),
+                        NodeInstance(id="number", opcode="const_i", params={"value": 21}),
+                        NodeInstance(id="writer", opcode="initc7")])
+    patch.connections.extend([connection("channel", "iout", "writer", "ichan"),
+                              connection("number", "iout", "writer", "ictlno")])
+    for target, cc in zip(sources[1:], (21, 22, 21), strict=True):
+        target.patch.graph.nodes.append(NodeInstance(id="read", opcode="midictrl", params={"inum": cc}))
+    graph = compiler.analyze_realtime_graph(targets, routes)
+    groups = [c.stages for c in graph.colocations if c.reason == "midi_controller_initialization"]
+    assert groups == [("patch:source0", "patch:source1", "patch:source3")]
 
 
 def test_performance_controls_are_instance_scoped_host_subscriptions(compiler):

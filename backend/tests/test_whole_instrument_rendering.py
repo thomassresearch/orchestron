@@ -124,6 +124,30 @@ def test_shared_random_stream_preserved_without_blocking_ordinary_voice_dsp():
     assert owners(plan)['patch:source0'] == owners(plan)['patch:source1']
 
 
+def test_note_triggered_initc7_reaches_another_instruments_active_voice():
+    inputs = planner_inputs('four')
+    writer, reader, *_ = [target for target in inputs[0] if target.midi_channel]
+    writer.patch.graph.nodes.append(NodeInstance(id='init', opcode='initc7', params={'ichan': 2, 'ictlno': 20}))
+    next(node for node in writer.patch.graph.nodes if node.id == 'amp').params['iscal'] = 0
+    reader_graph = reader.patch.graph
+    amp = next(node for node in reader_graph.nodes if node.id == 'amp')
+    amp.opcode, amp.params = 'midictrl', {'inum': 20, 'imin': 0, 'imax': .1}
+    for link in reader_graph.connections:
+        if link.from_node_id == amp.id:
+            link.from_port_id = 'kval'
+
+    plan, compilation = prepare(inputs)
+    assert plan.layout == 'coarse'
+    # A held note on channel 2 becomes audible when the silent channel 1
+    # instrument initializes its CC. The external CC clears it again.
+    result = compare_sequential(compilation, plan, frames=8192, events=[
+        (0, [0xB1, 20, 0]), (128, [0x91, 60, 100]), (2048, [0x90, 72, 100]), (6144, [0xB1, 20, 0])])
+    assert np.max(np.abs(result.canonical[:2048])) == 0
+    assert np.max(np.abs(result.canonical[2048:6144])) > .001
+    np.testing.assert_array_equal(result.canonical, result.partitioned)
+    np.testing.assert_array_equal(result.canonical_meters, result.partitioned_meters)
+
+
 def test_named_generators_do_not_inherit_numeric_generator_resource_semantics():
     targets, graph, _ = planner_inputs('tables')
     targets[0].patch.graph.ui_layout['gen_nodes']['table']['routineName'] = 'padsynth'

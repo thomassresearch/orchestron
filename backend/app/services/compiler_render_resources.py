@@ -25,7 +25,7 @@ from backend.app.services.compiler_legato import has_legato, validate_legato
 from backend.app.services.performance_controller_service import controller_bindings
 from backend.app.services.compiler_private_tables import TABLE_CACHE_ENTRIES, input_bounds, private_table_size
 
-CAPABILITY_VERSION = "whole-instrument-resources-v4"
+CAPABILITY_VERSION = "whole-instrument-resources-v5"
 
 # Semantic identities bind the resource rules to shipped compiler definitions.
 # Ordinary filters, arithmetic, envelopes and internal branches remain intact.
@@ -87,9 +87,50 @@ def _static_input(node, port, context, layout):
     return node.params.get(port.id, port.default), True
 
 
+def _midi_selector(compiled, port_id, context, layout, minimum, maximum):
+    port = next(p for p in compiled.spec.inputs if p.id == port_id)
+    value, static = _static_input(compiled.node, port, context, layout)
+    if static:
+        if isinstance(value, str) and re.fullmatch(r"[0-9]+(?:\.0+)?", value.strip()):
+            value = float(value)
+        if isinstance(value, (int, float)) and minimum <= value <= maximum and value == int(value):
+            return int(value)
+    # Formulas and runtime controls may change independently of this start.
+    # Keep the other selector precise even when this one is unknown.
+    return None
+
+
+def _cc_address(compiled, target, context, layout):
+    if compiled.spec.name == "midictrl":
+        # The note supplies the channel. Continuous and omni assignments have
+        # no single proven note channel.
+        channel = target.midi_channel if not target.always_on and target.midi_channel else None
+        return channel, _midi_selector(compiled, "inum", context, layout, 0, 127)
+    return (_midi_selector(compiled, "ichan", context, layout, 1, 16),
+            _midi_selector(compiled, "ictlno", context, layout, 0, 127))
+
+
+def _midi_colocations(writers, readers):
+    # Only a native write makes CC state local to a Csound process. Readers
+    # without a matching writer independently receive the ordered MIDI stream.
+    constraints = set()
+    for (channel, cc), stages in writers.items():
+        owners = stages.copy()
+        for addresses in (writers, readers):
+            for (other_channel, other_cc), users in addresses.items():
+                if channel is not None and other_channel is not None and channel != other_channel:
+                    continue
+                if cc is None or other_cc is None or cc == other_cc:
+                    owners.update(users)
+        if len(owners) > 1:
+            constraints.add(tuple(sorted(owners)))
+    return [RenderCoLocation(stages, "midi_controller_initialization") for stages in sorted(constraints)]
+
+
 def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
     accesses, colocations, helpers, blockers = [], [], [], []
-    hashes, legato_stages, midi_stages, midi_initializers = {}, [], set(), set()
+    hashes, legato_stages = {}, []
+    cc_writers, cc_readers = defaultdict(set), defaultdict(set)
     table_users = defaultdict(set)
     table_writers = set()
     table_resources = []
@@ -220,11 +261,13 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                 resource("allocation:" + identity, node, "instance", "read_write")
                 helpers.append(RenderHelper("maxalloc:" + identity + ":" + node.id, (stage,)))
             elif name == "initc7":
-                midi_initializers.add(stage)
-                resource("midi:controller-state", node, "performance", "write")
+                channel, cc = _cc_address(compiled, target, context, layout)
+                cc_writers[channel, cc].add(stage)
+                resource(f"midi:cc:{channel or '*'}:{cc if cc is not None else '*'}", node, "performance", "write")
             elif name in MIDI_READERS:
-                midi_stages.add(stage)
                 resource("midi:ordered-stream", node, "host", "subscribe")
+                if name in {"ctrl7", "midictrl"}:
+                    cc_readers[_cc_address(compiled, target, context, layout)].add(stage)
                 if name == "midi_legato":
                     legato_stages.append(stage)
                     resource("legato:" + identity, node, "instance", "read_write")
@@ -246,8 +289,7 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
         helpers.append(RenderHelper("legato:panic", stages, "1"))
         for number, stage in enumerate(legato_stages, 2):
             helpers.append(RenderHelper("legato:collector:" + stage[6:], (stage,), str(number)))
-    if midi_initializers:
-        colocations.append(RenderCoLocation(tuple(sorted(midi_stages | midi_initializers)), "midi_controller_initialization"))
+    colocations.extend(_midi_colocations(cc_writers, cc_readers))
     # The canonical score initializes table 1 in every program. Read-only users
     # can replicate it. A writer (or dynamic reference) restores shared ownership.
     wildcard = "tables:*" in table_users

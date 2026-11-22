@@ -84,7 +84,7 @@ The [resource analyzer](../backend/app/services/compiler_render_resources.py) co
 | Shared mutable numbered tables | Group declarations, readers and writers in one process. Dynamic table references and automatic `ftgenonce` allocation join the table domain. |
 | Built-in sine tables | Table 1 can be replicated read-only under the canonical wrapper; native sine table -1 is private/read-only. A writer to table 1 requires shared ownership. |
 | Shared native random stream | Group its consumers, including `rnd`/`birnd` in scalar expressions, to preserve relative random consumption. |
-| MIDI initialization and compiler helpers | Co-locate related `initc7`/reader stages and scoped helper users where their initialization or state requires it. |
+| MIDI controller initialization | Keep `initc7` with writers and readers that can access the same channel and CC. `ctrl7` specifies its channel explicitly. `midictrl` uses the note's channel. An unresolved channel or CC can match any value in that dimension. Note pitch and velocity readers stay independent. |
 | Unknown global state, unsupported native assets or unbounded allocations | Retain single rendering with a diagnostic reason. Unknown resource memory is not treated as zero. |
 
 Ordinary arithmetic, filters, envelopes and internal If/Switch branches stay inside whole instruments. They need no separate parallel opcode implementation. Conversely, an otherwise ordinary opcode can contain an expression that introduces shared or unknown state.

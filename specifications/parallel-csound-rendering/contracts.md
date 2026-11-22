@@ -171,8 +171,8 @@ single partition with stable reason codes. No runtime/session path calls this pl
   replicated. Hashes bind asset identity/configuration metadata, not verified file contents.
 - Keep a patch, its strip and bypass together; declared inserts remain with their owner.
   Each legato collector and `maxalloc` declaration has one owner. The current shared legato
-  panic listener co-locates all its consumers. MIDI initialization conservatively co-locates
-  its writers and MIDI readers. Host performance-control subscriptions are instance scoped
+  panic listener co-locates all its consumers. MIDI controller initialization co-locates
+  writers and readers with potentially overlapping channel and CC addresses. Host performance-control subscriptions are instance scoped
   and do not force unrelated branches together. Future partitions receive the full ordered
   MIDI stream; note assignment alone never permits pruning controller events.
 
