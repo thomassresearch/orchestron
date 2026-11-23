@@ -202,6 +202,72 @@ it("exposes retained trailing silence and fits the finite song end explicitly wi
   expect(screen.getByRole("alert").textContent).toContain("boundary");
 });
 
+it.each([320, 1000])("follows song playback between the center and the authored end at width %i", initialWidth => {
+  let viewportWidth = initialWidth;
+  let resize = () => {};
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(measure: () => void) { resize = measure; }
+    observe() {}
+    disconnect() {}
+  });
+  const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(() => viewportWidth);
+  const visible = () => viewportWidth - Math.min(192, Math.floor(viewportWidth * 0.45));
+  const tick = (beat: number, arrangerActive = true) => act(() => useAppStore.setState(s => ({
+    sequencerRuntime: { ...s.sequencerRuntime, isPlaying: true, arrangerActive, arrangerTransportSubunit: beat * QUARTER_TICKS }
+  })));
+  try {
+    useAppStore.setState(s => ({ sequencer: { ...s.sequencer,
+      clipArrangement: { ...s.sequencer.clipArrangement!, end: 80 * QUARTER_TICKS } } }));
+    const { container } = render(<ClipPerformance language="english" renderEditor={() => null} />);
+    const viewport = container.querySelector<HTMLElement>("[data-arranger-viewport]")!;
+    const follow = screen.getByRole("checkbox", { name: "Follow playhead" }) as HTMLInputElement;
+    const zoom = screen.getByRole("slider", { name: "Zoom" });
+    viewport.scrollTop = 32;
+    expect(follow.checked).toBe(false);
+    tick(30);
+    expect(viewport.scrollLeft).toBe(0);
+    fireEvent.click(follow);
+    expect(viewport.scrollLeft).toBe(30 * 40 - visible() / 2);
+    tick(1);
+    expect(viewport.scrollLeft).toBe(0);
+    tick(40);
+    const center = 40 * 40 - visible() / 2;
+    expect(viewport.scrollLeft).toBe(center);
+    fireEvent.scroll(viewport, { target: { scrollLeft: 90 } });
+    tick(41);
+    expect(viewport.scrollLeft).toBe(center + 40);
+
+    tick(79);
+    const end = 80 * 40 + 1 - visible();
+    expect(viewport.scrollLeft).toBe(end);
+    tick(80);
+    expect(viewport.scrollLeft).toBe(end);
+    tick(40);
+    expect(viewport.scrollLeft).toBe(center);
+
+    fireEvent.change(zoom, { target: { value: "100" } });
+    expect(viewport.scrollLeft).toBeCloseTo(40 * 100 - visible() / 2);
+    viewportWidth += 100;
+    act(() => resize());
+    expect(viewport.scrollLeft).toBeCloseTo(40 * 100 - visible() / 2);
+    fireEvent.click(follow);
+    const parked = viewport.scrollLeft;
+    tick(25);
+    expect(viewport.scrollLeft).toBe(parked);
+    tick(25, false);
+    fireEvent.click(follow);
+    tick(2, false);
+    expect(viewport.scrollLeft).toBe(parked);
+    tick(40);
+    fireEvent.change(zoom, { target: { value: "0" } });
+    tick(80);
+    expect(viewport.scrollLeft).toBe(0);
+    expect(viewport.scrollTop).toBe(32);
+  } finally {
+    width.mockRestore();
+  }
+});
+
 it.each([320, 1000])("zooms around the visible timeline center at a viewport width of %i", viewportWidth => {
   const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(viewportWidth);
   try {

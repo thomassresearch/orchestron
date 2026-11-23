@@ -1,6 +1,7 @@
 import type { GuiLanguage } from "../types";
 
 const en = {
+  followPlayhead: "Follow playhead",
   holdPreview: "Hold 0.25 s to preview; at the next cycle when playing. Release to restore playback.", setColor: "Set colour…", resetColor: "Reset colour", customColor: "Custom colour", newDefinition: "Create new definition", updateDefinition: "Update existing definition", apply: "Apply", cancelEdit: "Cancel", groupHint: "Select at least two adjacent elements. Groups accept pads/rests; supergroups also accept groups.", actions: "Lane actions", editPattern: "Edit pattern", dragHint: "Drag to the lane; edges insert, empty space places.",
   mute: "Mute", solo: "Solo", laneOnly: "Only this lane; existing notes finish their releases.", soloSuppressed: "Suppressed by another lane’s Solo", outputError: "Lane output update failed.",
   library: "Patterns and phrases", source: "Playback source", arrangement: "Arrangement", manual: "Manual pads",
@@ -19,6 +20,7 @@ const en = {
 };
 export type ArrangementCopy = typeof en;
 const de: ArrangementCopy = {
+  followPlayhead: "Abspielposition folgen",
   holdPreview: "Zum Vorhören 0,25 s halten; bei Wiedergabe ab dem nächsten Zyklus. Loslassen stellt die Wiedergabe wieder her.", setColor: "Farbe festlegen…", resetColor: "Farbe zurücksetzen", customColor: "Eigene Farbe", newDefinition: "Neue Definition erstellen", updateDefinition: "Bestehende Definition aktualisieren", apply: "Anwenden", cancelEdit: "Abbrechen", groupHint: "Mindestens zwei benachbarte Elemente wählen. Gruppen erlauben Pads/Pausen; Supergruppen zusätzlich Gruppen.", actions: "Spuraktionen", editPattern: "Pattern bearbeiten", dragHint: "In die Spur ziehen; Kanten fügen ein, freie Stellen platzieren.",
   mute: "Mute", solo: "Solo", laneOnly: "Nur diese Spur; klingende Noten klingen aus.", soloSuppressed: "Durch Solo einer anderen Spur stumm", outputError: "Spurausgabe konnte nicht aktualisiert werden.",
   library: "Patterns und Phrasen", source: "Wiedergabequelle", arrangement: "Arrangement", manual: "Manuelle Pads",
@@ -36,6 +38,7 @@ const de: ArrangementCopy = {
   manualHint: "Arranger-Start stoppt manuelle Sequencer.", fill: "Eine Phrase zum Bearbeiten wählen.", newEmpty: "Unbenutztes Pad"
 };
 const fr: ArrangementCopy = {
+  followPlayhead: "Suivre la tête de lecture",
   holdPreview: "Maintenir 0,25 s ; au prochain cycle pendant la lecture. Relâcher restaure la lecture.", setColor: "Définir la couleur…", resetColor: "Rétablir la couleur", customColor: "Couleur personnalisée", newDefinition: "Créer une définition", updateDefinition: "Modifier une définition existante", apply: "Appliquer", cancelEdit: "Annuler", groupHint: "Sélectionner au moins deux éléments adjacents. Groupes : pads/silences ; supergroupes : groupes également.", actions: "Actions de piste", editPattern: "Modifier le motif", dragHint: "Glisser dans la piste ; les bords insèrent, les espaces libres accueillent.",
   mute: "Muet", solo: "Solo", laneOnly: "Cette piste uniquement ; les notes en cours se terminent.", soloSuppressed: "Désactivée par le Solo d’une autre piste", outputError: "Échec de la mise à jour de la sortie de piste.",
   library: "Motifs et phrases", source: "Source de lecture", arrangement: "Arrangement", manual: "Pads manuels",
@@ -53,6 +56,7 @@ const fr: ArrangementCopy = {
   manualHint: "La lecture de l’arrangeur arrête les séquenceurs manuels.", fill: "Choisir une phrase à modifier.", newEmpty: "Pad inutilisé"
 };
 const es: ArrangementCopy = {
+  followPlayhead: "Seguir el cabezal de reproducción",
   holdPreview: "Mantén 0,25 s; en el próximo ciclo durante la reproducción. Soltar restaura la reproducción.", setColor: "Elegir color…", resetColor: "Restablecer color", customColor: "Color personalizado", newDefinition: "Crear definición", updateDefinition: "Actualizar definición existente", apply: "Aplicar", cancelEdit: "Cancelar", groupHint: "Selecciona al menos dos elementos adyacentes. Grupos: pads/silencios; supergrupos: también grupos.", actions: "Acciones de pista", editPattern: "Editar patrón", dragHint: "Arrastra a la pista; los bordes insertan y los huecos permiten colocar.",
   mute: "Mute", solo: "Solo", laneOnly: "Solo esta pista; las notas activas terminan normalmente.", soloSuppressed: "Silenciada por el Solo de otra pista", outputError: "No se pudo actualizar la salida de la pista.",
   library: "Patrones y frases", source: "Fuente de reproducción", arrangement: "Arreglo", manual: "Pads manuales",

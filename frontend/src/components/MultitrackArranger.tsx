@@ -7,16 +7,18 @@ import { ArrangerHistoryControls } from "./sequencer/ArrangerHistoryControls";
 import { useAppStore } from "../store/useAppStore";
 import { sequencerTransportSubunitsPerStep } from "../lib/sequencer";
 import { ArrangerLane } from "./ArrangerLane";
+import { arrangerTransportExtent } from "../lib/arrangerTransport";
+import { ArrangerFollowPlayhead, followPlayheadOffset } from "./sequencer/ArrangerFollowPlayhead";
 import { useArrangementRangeEditing } from "./sequencer/useArrangementRangeEditing";
 import { arrangementRangeLanes, type ArrangementRangeUpdate } from "../lib/arrangementRange";
 import { sequencerTransportSubunitsPerBeat } from "../lib/sequencer";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { EditorScope, usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { HelpIconButton } from "./HelpIconButton";
 import { arrangementCopy } from "../lib/arrangementCopy";
-import { arrangementSpans, firstUnusedPad, validateArrangementEdit } from "../lib/arrangementEditing";
+import { firstUnusedPad, validateArrangementEdit } from "../lib/arrangementEditing";
 import { sequencerTransportStepsPerBeat } from "../lib/sequencer";
 import type { ArrangerLoopSelection, GuiLanguage, HelpDocId, PadLoopPatternState, SequencerState } from "../types";
 
@@ -76,7 +78,7 @@ export type MultitrackArrangerProps = {
   onHelpRequest?: (helpDocId: HelpDocId) => void;
 };
 
-function MultitrackArrangerBody(props: MultitrackArrangerProps) {
+function MultitrackArrangerBody(props: MultitrackArrangerProps & { following: boolean }) {
   const { sequencer, copy } = props;
   const c = arrangementCopy(props.guiLanguage);
   const quantum = sequencerTransportStepsPerBeat(sequencer.timing);
@@ -97,7 +99,8 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     ...sequencer.controllerSequencers.map((t, i): Lane => ({ id: t.id, kind: "controller", title: t.name || copy.controllerSequencerWithIndex(i + 1), instrument: props.instrumentName(t), subtitle: `${laneMidiLabel(t)} · CC ${t.controllerNumber}`, pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: "timing" in t ? 4 / t.timing.meterDenominator * t.timing.beatRateDenominator / t.timing.beatRateNumerator : 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.map((_, i) => i), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => !controllerPadHasContent(p, t.controllerMode))) })),
     ...sequencer.arpeggiators.filter(t => t.playbackMode === "arranger").map((t): Lane => ({ id: t.id, kind: "arpeggiator", title: t.name, instrument: props.instrumentName(t), subtitle: laneMidiLabel(t), pattern: t.padLoopPattern, padBeats: t.pads.map(p => p.lengthBeats), beatScale: 1, source: t.padLoopEnabled, repeat: t.padLoopRepeat, activePad: t.activePad, enabled: t.enabled, availablePads: t.pads.flatMap((p, i) => p.steps.some(s => s.kind !== "rest") ? [i] : []), unusedPad: firstUnusedPad(t.padLoopPattern, t.pads.map(p => p.steps.every(s => s.kind === "rest"))) }))
   ];
-  const totalSteps = Math.max(quantum, sequencer.stepCount, ...lanes.map(lane => arrangementSpans(lane.pattern, lane.padBeats).reduce((sum, s) => sum + s.duration * lane.beatScale * quantum, 0)));
+  const songEndSteps = arrangerTransportExtent(sequencer);
+  const totalSteps = Math.max(sequencer.stepCount, songEndSteps);
   const rangeEditor = useArrangementRangeEditing({ lanes: arrangementRangeLanes(sequencer), titles: Object.fromEntries(lanes.map(lane => [lane.id, lane.title])),
     language: props.guiLanguage, pixelsPerSubunit: zoom / sequencerTransportSubunitsPerStep(), scroll, ruler: viewport, commit: props.onArrangementRangeChange });
   const visibleSteps = Math.max(totalSteps, rangeEditor.extent / sequencerTransportSubunitsPerStep());
@@ -113,7 +116,7 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
     const fit = viewportWidth > 0 ? Math.max(1, viewportWidth - 2) / totalSteps : DEFAULT_STEP_PIXEL_WIDTH;
     setMetrics(old => old.fitStepPixelWidth === fit ? old : { minStepPixelWidth: Math.min(DEFAULT_STEP_PIXEL_WIDTH, fit), fitStepPixelWidth: fit });
   }, [viewportWidth, totalSteps, setMetrics]);
-  useEffect(() => { if (scrollbar.current && scrollbar.current.scrollLeft !== scroll) scrollbar.current.scrollLeft = scroll; }, [scroll]);
+  useLayoutEffect(() => { if (scrollbar.current && scrollbar.current.scrollLeft !== scroll) scrollbar.current.scrollLeft = scroll; }, [scroll]);
   const rawPosition = (x: number) => Math.max(0, (x - (ruler.current?.getBoundingClientRect().left ?? 0) - (ruler.current?.clientLeft ?? 0) + scroll) / zoom);
   const snapped = (x: number) => Math.min(totalSteps, Math.floor(rawPosition(x) / quantum) * quantum);
   const rangeAt = (x: number): ArrangerLoopSelection => {
@@ -132,6 +135,11 @@ function MultitrackArrangerBody(props: MultitrackArrangerProps) {
   const arrangerPosition = useAppStore(state => state.sequencerRuntime.arrangerTransportSubunit);
   const playhead = (arrangerPosition !== undefined
     ? arrangerPosition / sequencerTransportSubunitsPerStep() : sequencer.cycle * sequencer.stepCount + sequencer.playhead) * zoom;
+  useLayoutEffect(() => {
+    if (props.following && viewportWidth > 0 && viewport.current?.clientWidth) {
+      setScroll(Math.round(followPlayheadOffset(playhead, songEndSteps * zoom, viewportWidth)));
+    }
+  }, [props.following, playhead, songEndSteps, zoom, viewportWidth, setScroll]);
   const commit = (lane: Lane, pattern: PadLoopPatternState, action: ArrangerActionCode, copyPad?: { from: number; to: number }) => {
     validateArrangementEdit(lane.pattern, pattern);
     useAppStore.getState().commitArrangerEdit(action, [{ id: lane.id, kind: lane.kind, pattern, copyPad,
@@ -181,13 +189,15 @@ export function MultitrackArranger(props: MultitrackArrangerProps) {
 function MultitrackArrangerShell(props: MultitrackArrangerProps) {
   const { collapsed, onCollapsedChange, guiLanguage, copy, onHelpRequest, onTransportRewind, onTransportStop, onTransportStopDoubleClick, onTransportPlay, onTransportFastForward } = props;
   const [stepPixelWidth, setStepPixelWidth] = usePerformanceEditorState<number>("arranger", "stepPixelWidth", DEFAULT_STEP_PIXEL_WIDTH);
+  const [followPlayhead, setFollowPlayhead] = usePerformanceEditorState("arranger", "followPlayhead", false);
   const [timelineViewportWidth] = usePerformanceEditorState<number>("arranger", "timelineViewportWidth", 0);
   const [, setTimelineScrollLeft] = usePerformanceEditorState<number>("arranger", "timelineScrollLeft", 0);
   const [{ minStepPixelWidth, fitStepPixelWidth }] = usePerformanceEditorState("arranger", "metrics", { minStepPixelWidth: DEFAULT_STEP_PIXEL_WIDTH, fitStepPixelWidth: DEFAULT_STEP_PIXEL_WIDTH });
   const canZoomOut = stepPixelWidth > minStepPixelWidth + 1e-6;
   const canZoomIn = stepPixelWidth < MAX_STEP_PIXEL_WIDTH - 1e-6;
   const zoomPercent = Math.round((stepPixelWidth / DEFAULT_STEP_PIXEL_WIDTH) * 100);
-  const arrangerActive = useAppStore(state => state.sequencerRuntime.arrangerActive) ?? props.sequencer.isPlaying;
+  const playingSong = useAppStore(state => state.sequencerRuntime.arrangerActive);
+  const arrangerActive = playingSong ?? props.sequencer.isPlaying;
   const activeTransportClass = " ring-2 ring-amber-300 !bg-amber-300 !text-slate-950";
   const transportButtonClass = "inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-400/50 bg-amber-400/10 text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-45";
   if (props.sequencer.tracks.length + props.sequencer.scoreTracks.length + props.sequencer.drummerTracks.length + props.sequencer.controllerSequencers.length + props.sequencer.arpeggiators.length === 0) return null;
@@ -285,9 +295,10 @@ function MultitrackArrangerShell(props: MultitrackArrangerProps) {
         <span className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] text-slate-300">
           {zoomPercent}%
         </span>
+        <ArrangerFollowPlayhead language={guiLanguage} checked={followPlayhead} onChange={setFollowPlayhead} />
       </div>
     </>}
   >
-    <MultitrackArrangerBody {...props} />
+    <MultitrackArrangerBody {...props} following={followPlayhead && playingSong === true} />
   </CollapsiblePanel>);
 }

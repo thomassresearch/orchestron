@@ -135,6 +135,8 @@ Toggle [Audition](documentation/instrument_design/runtime_panel_and_compilation.
 
 Build a song in the default **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips. Center a passage in the timeline and use **Zoom** to inspect it, or move the slider all the way left to see the whole song, including trailing silence.
 
+Enable **Follow playhead** beside **Zoom** to scroll the tracks beneath the playhead during playback. When the song end comes into view, the tracks stay still and the playhead moves to the end.
+
 ![The First Pulse of a New Machine in the redesigned multitrack arranger, with compact tracks, note previews, transposition badges and automation at position 160](screenshots/perform_multitrack_arranger_redesigned.jpg)
 
 *The First Pulse of a New Machine centered on position 160 master beats (bar 41), with drums, bass, cloud harmonies, lead, bells and automation sharing the same timeline.*

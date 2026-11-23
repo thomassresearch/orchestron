@@ -98,6 +98,38 @@ it.each(["pointerCancel", "lostPointerCapture"] as const)("cancels the preview o
   expect((ruler.querySelector("span.border-x") as HTMLElement).style.left).toBe("216px");
 });
 
+it("follows the song across legacy lanes, loop ruler and scrollbar", () => {
+  const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(160);
+  try {
+    const { container, ruler } = setup();
+    const tick = (step: number, arrangerActive: boolean) => act(() => useAppStore.setState(s => ({
+      sequencerRuntime: { ...s.sequencerRuntime, isPlaying: true, arrangerActive, arrangerTransportSubunit: step * sequencerTransportSubunitsPerStep() }
+    })));
+    const scrollbar = container.querySelector<HTMLElement>(".h-4.overflow-x-auto")!;
+    const follow = screen.getByRole("checkbox", { name: "Follow playhead" });
+    fireEvent.click(follow);
+    tick(24, false);
+    expect(scrollbar.scrollLeft).toBe(0);
+    tick(4, true);
+    expect(scrollbar.scrollLeft).toBe(0);
+    tick(24, true);
+    const centered = 24 * 9 - 80;
+    expect(scrollbar.scrollLeft).toBe(centered);
+    const translation = `translateX(${-centered}px)`;
+    expect((ruler.firstElementChild as HTMLElement).style.transform).toBe(translation);
+    expect((container.querySelector("[data-arrangement-occurrence]")!.parentElement as HTMLElement).style.transform).toBe(translation);
+    tick(60, true);
+    expect(scrollbar.scrollLeft).toBe(64 * 9 + 1 - 160);
+    tick(2, true);
+    expect(scrollbar.scrollLeft).toBe(0);
+    fireEvent.click(follow);
+    tick(24, true);
+    expect(scrollbar.scrollLeft).toBe(0);
+  } finally {
+    width.mockRestore();
+  }
+});
+
 it("maps a scrolled, zoomed ruler to the correct beat", () => {
   const { ruler, container } = setup();
   fireEvent.click(screen.getByRole("button", { name: "zoomIn" }));

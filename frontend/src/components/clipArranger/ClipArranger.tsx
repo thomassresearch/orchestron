@@ -14,6 +14,7 @@ import { scopeCopy } from "../../lib/clipArranger/scopeCopy";
 import { clipButton, clipButtonClass, clipButtonTone } from "./buttonStyles";
 import { HelpIconButton } from "../HelpIconButton";
 import { PositionInput } from "./PositionInput";
+import { ArrangerFollowPlayhead, followPlayheadOffset } from "../sequencer/ArrangerFollowPlayhead";
 import { structureDropLayout, structureContentAt, STRUCTURE_TREE_TOP } from '../../lib/clipArranger/structureHitTest';
 import { structureCopy } from './structureCopy';
 import { addOffsets, offsetAt } from "../../lib/clipArranger/transposition";
@@ -79,6 +80,8 @@ export function ClipArranger({ songEdits = [], onHelpRequest, instrumentName, mo
   const displayModel = useMemo(() => displayDraft ? structurePreview(model, displayDraft, timings) : model, [model, displayDraft, timings]);
   const shell = useContext(WorkspacePanels);
   const [fitTracks, setFitTracks] = usePerformanceEditorState("arranger", "fitTracks", false);
+  const [followPlayhead, setFollowPlayhead] = usePerformanceEditorState("arranger", "followPlayhead", false);
+  const following = useAppStore(state => followPlayhead && state.sequencerRuntime.arrangerActive === true);
   const [expanded, setExpanded] = usePerformanceEditorState<string | null>("arranger", "clipExpandedLane", null);
   const [transposing,setTransposing] = useState<{target:OccurrenceTarget;trigger:HTMLButtonElement}|null>(null);
   const generation = useAppStore(s=>s.performanceWorkspaceGeneration);
@@ -105,7 +108,7 @@ export function ClipArranger({ songEdits = [], onHelpRequest, instrumentName, mo
   const pendingZoomBeat = useRef<number | null>(null);
   const lastZoomAnchor = useRef<{ beat: number; centerPixel: number; zoom: number } | null>(null);
   const changeZoom = (value: number) => {
-    if (viewport.current) {
+    if (viewport.current && !following) {
       const centerPixel = viewport.current.scrollLeft + timelineWidth / 2;
       const last = lastZoomAnchor.current;
       // Reuse the exact beat across slider steps. Rounded scroll pixels accumulate drift on long songs.
@@ -125,6 +128,15 @@ export function ClipArranger({ songEdits = [], onHelpRequest, instrumentName, mo
     setScroll(node.scrollLeft);
     retainScroll();
   }, [zoom, width, timelineWidth, viewport, retainScroll]);
+  useLayoutEffect(() => {
+    const node = viewport.current;
+    if (!following || !node?.clientWidth) return;
+    const left = followPlayheadOffset(position * unit, model.end * unit, timelineWidth);
+    if (Math.abs(node.scrollLeft - left) < 0.5) return;
+    node.scrollLeft = left;
+    setScroll(node.scrollLeft);
+    retainScroll();
+  }, [following, position, unit, model.end, timelineWidth, viewport, retainScroll]);
   const beatsPerBar = sequencer.timing.meterNumerator;
   const rulerStep = zoom >= 12 ? 1 : beatsPerBar * Math.ceil(48 / (zoom * beatsPerBar));
   const firstRulerBeat = Math.floor(scroll / (zoom * rulerStep)) * rulerStep;
@@ -336,6 +348,7 @@ export function ClipArranger({ songEdits = [], onHelpRequest, instrumentName, mo
       {!shell && onSeek && <label className="text-xs text-slate-400">{c.position} <PositionInput key={generation} className={clipInput} beats={position / Q} onSeek={onSeek} /></label>}
       {loopTarget && onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} title={c[loopTarget.label]} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : loopTarget.range)}>{c.loop}</button>}
       <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="0" max="100" value={sliderValue} onChange={e => changeZoom(Number(e.target.value))} /></label>
+      <ArrangerFollowPlayhead language={language} checked={followPlayhead} onChange={setFollowPlayhead} />
       {shell && <button className={clipButton} aria-pressed={fitTracks} onClick={() => setFitTracks(!fitTracks)}>{shellCopy[language].fit}</button>}
     </div>
     <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">

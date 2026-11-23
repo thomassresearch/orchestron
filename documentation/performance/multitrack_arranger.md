@@ -99,6 +99,12 @@ Loading selects a clip even when looping is off: a matching saved loop takes pri
 
 ![Explicit song end and fitting to the last clip](../../screenshots/clip-arranger-song-end.png)
 
+Check **Follow playhead** beside **Zoom** to scroll the tracks during song playback. At first the vertical line moves across the tracks. When it reaches the middle, it stays there as the ruler and tracks scroll together. Once **Song end** is visible, scrolling stops and the line moves to the end. If the whole song fits on screen, the tracks stay still throughout playback.
+
+![Follow playhead enabled, with the vertical line centered in the visible tracks during playback](../../screenshots/arranger-follow-playhead.png)
+
+Uncheck **Follow playhead** to browse another passage while the song plays. Check it again to return to the current position. The arranger remembers your choice when you pause or switch views. It starts unchecked when you create, load or import a performance or reload the page.
+
 Scroll until the passage you want to inspect is in the middle of the visible tracks. Move **Zoom** to the right for more detail or to the left for more context. The beat in the middle stays centered until the view reaches either end of the timeline.
 
 ![The Chorus starts at bar 9 in the center of the tracks at both zoom levels](../../screenshots/clip-arranger-centered-zoom.png)
