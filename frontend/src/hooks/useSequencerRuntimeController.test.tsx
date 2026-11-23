@@ -4,6 +4,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "../../../backend/tests/fixtures/performances/arranger_seek.json";
 import configFixture from "../../../backend/tests/fixtures/sequencers/arranger_seek.json";
+import { LIVE_LAUNCH_GESTURE } from "../lib/livePads";
 import { api } from "../api/client";
 import { mergedSequencerState } from "../lib/mergedSequencerState";
 import { buildPerformanceExportPayload } from "../lib/bundleImportExport";
@@ -361,6 +362,28 @@ it("advances workspace highlighting only from audible markers, not render-ahead 
   expect(useAppStore.getState().performanceAuditions[id]).toMatchObject({ workspace_position: 1, workspace_sequence: [0, 1] });
   emit(replacement);
   expect(useAppStore.getState().performanceAuditions[id]).toMatchObject({ workspace_position: 0, workspace_sequence: [1, 0] });
+});
+
+it("keeps the accepted Live queue while earlier PCM plays, without preparing each pad again", async () => {
+  const { result } = setup(false);
+  const id = useAppStore.getState().sequencer.tracks[0].id;
+  const command = { action: "workspace_start" as const, gestureId: LIVE_LAUNCH_GESTURE };
+  const first = { active: true, queued: null, workspace_gesture: LIVE_LAUNCH_GESTURE, workspace_revision: 1,
+    workspace_active: true, workspace_sequence: [1], workspace_position: 0 };
+  const next = { ...first, workspace_revision: 2, workspace_queued: true, workspace_pending_sequence: [2] };
+  audition.mockResolvedValueOnce({ ...status(0), auditions: { [id]: first } });
+  await act(() => result.current.auditionDevice(id, { ...command, items: [{ type: "pad", padIndex: 1 }] }));
+  audition.mockResolvedValueOnce({ ...status(0), auditions: { [id]: next } });
+  await act(() => result.current.auditionDevice(id, { ...command, items: [{ type: "pad", padIndex: 2 }] }));
+  expect(api.configureSessionSequencer).toHaveBeenCalledTimes(1);
+
+  const emit = (value: typeof first) => act(() => audioParams.applyBrowserClockTransportEventsRef.current([{
+    kind: "step", target_frame: 48000, target_frame_offset: 0, payload: { ...status(0), previous_step: 0, auditions: { [id]: value } }
+  }]));
+  emit(first);
+  expect(useAppStore.getState().performanceAuditions[id]).toMatchObject({ workspace_sequence: [1], workspace_pending_sequence: [2] });
+  emit({ ...first, workspace_revision: 2, workspace_sequence: [2] });
+  expect(useAppStore.getState().performanceAuditions[id].workspace_pending_sequence).toBeUndefined();
 });
 
 it.each(["transport", "performance"])("cancels workspace preparation on %s changes without late restoration", async reason => {

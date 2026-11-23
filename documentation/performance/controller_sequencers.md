@@ -122,6 +122,10 @@ This makes it easy to understand exactly what value is being sent at each transp
 
 ## Live Use Notes
 
+In **Live**, find the controller’s target MIDI channels beside its name. Its pattern pads line up with the melodic and drum pads above it. Scroll the controller row sideways to reach more curves while keeping the other instruments’ pads in place.
+
+![Filter automation, melody and drum tracks with their Live pattern pads aligned](../../screenshots/perform-live-controller-row.png)
+
 - Controller sequencers run alongside melodic sequencers on the same backend transport clock.
 - Curve and step edits are combined after an 80 ms editing pause and prepared while the previous configuration keeps playing. They take effect at the next engine block without resetting transport. The editor modifies the displayed pad even when the arranger selected it automatically.
 - See [Editing During Playback](live_status_and_safety_controls.md#editing-during-playback) for failure handling and transport behavior.

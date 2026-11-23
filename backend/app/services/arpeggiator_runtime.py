@@ -398,10 +398,13 @@ class PerformanceMidiRouter:
                 base = state.preview["fields"] if state.preview else self._override_fields(state)
                 active = state.workspace["applied"]
                 audible = active and not (state.preview and state.preview["applied"])
-                status.update(workspace_gesture=state.workspace["gesture"], workspace_active=active,
+                status.update(workspace_gesture=state.workspace["gesture"], workspace_revision=state.workspace["revision"], workspace_active=active,
                               workspace_queued=bool(base["audition_pending"]),
                               workspace_sequence=list(base["audition_sequence"]) if active else [],
                               workspace_position=state.pad_loop_position if audible else None)
+                pending = base["audition_pending"]
+                if pending and pending[0] == "start":
+                    status["workspace_pending_sequence"] = list(pending[1])
             result[key] = status
         return result
 

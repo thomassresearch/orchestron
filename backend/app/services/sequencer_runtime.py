@@ -396,9 +396,11 @@ class SessionSequencerRuntime:
                 track = self._config.tracks.get(identity) or self._config.controller_tracks.get(identity)
                 active = workspace.get("applied", False)
                 audible = active and self._running and track.enabled and not (preview and preview.get("applied"))
-                status.update(workspace_gesture=workspace["gesture"], workspace_active=active,
+                status.update(workspace_gesture=workspace["gesture"], workspace_revision=workspace["revision"], workspace_active=active,
                     workspace_queued=bool(base.get("action")), workspace_sequence=list(base.get("sequence", ())) if active else [],
                     workspace_position=track.pad_loop_position if audible else None)
+                if base.get("action") == "start":
+                    status["workspace_pending_sequence"] = list(base["pending"])
             result[identity] = status
         return result
 
@@ -516,6 +518,7 @@ class SessionSequencerRuntime:
                 base.pop("action")
             snapshot = base.get("workspace", snapshots[track.track_id]) if base else snapshots[track.track_id]
             snapshot["gesture"] = request.gesture_id
+            snapshot["revision"] = request.revision
             authored = state["authored"] if state else self._authored_track_fields(track)
             next_state = {**(base or {}), "authored": authored, "workspace": snapshot,
                           "action": "start", "pending": tuple(request.sequence), "boundary": boundary, "clip_context": request.clip_context}

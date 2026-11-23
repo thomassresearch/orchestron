@@ -15,7 +15,8 @@ import { arpeggiatorCopy } from "./arpeggiatorCopy";
 import { scoreCopy } from "./scoreCopy";
 import { LivePadBank } from "./LivePadBank";
 import { useLiveDeviceReorder } from "./useLiveDeviceReorder";
-import { copyArpeggiatorPad, livePadLabel, livePatternNames } from "../../lib/livePads";
+import { copyArpeggiatorPad, LIVE_LAUNCH_GESTURE, livePadLabel, livePatternNames } from "../../lib/livePads";
+import { usePerformanceAudition } from "./PerformanceAudition";
 import { liveCopy } from "./liveCopy";
 import { WorkspacePanel } from "./WorkspacePanels";
 import { PlaybackSourceToggle } from "./PlaybackSourceToggle";
@@ -52,6 +53,8 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
   const pads = useAppStore(s => s.sequencerEditingPads);
   const score = useContext(ScoreTransportContext);
+  const audition = usePerformanceAudition();
+  const [selectedPatterns, setSelectedPatterns] = usePerformanceEditorState<Record<string, string>>("page", "livePatterns", {});
   const authored = useAppStore(s => s.sequencer);
   const song = useSongPlaybackState();
   const names = useMemo(() => new Map(authored.clipArrangement?.lanes.map(lane =>
@@ -105,32 +108,66 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
     const manual = !lane && (liveArp || !track.padLoopEnabled);
     const preview = auditions[track.id];
     const deviceRunning = arp ? liveArp ? arp.enabled : !!arp.runtimeStatus?.enabled : sequencer.isPlaying && track.enabled;
-    const running = engineRunning && (preview?.preview_source_running ?? deviceRunning);
+    const liveLaunch = engineRunning && preview?.workspace_gesture === LIVE_LAUNCH_GESTURE;
+    const running = engineRunning && (liveLaunch || (preview?.preview_source_running ?? deviceRunning));
     const active = preview?.manual_active_pad ?? (arp ? arp.runtimeStatus?.active_pad : track.activePad);
     const deviceQueue = arp ? arp.runtimeStatus?.queued_pad : "queuedPad" in track ? track.queuedPad : null;
     const manualQueue = preview?.manual_active_pad !== undefined ? preview.manual_queued_pad : deviceQueue;
-    const queued = running && manual ? manualQueue : null;
+    const queued = liveLaunch ? preview.workspace_pending_sequence?.[0] : running && manual ? manualQueue : null;
     const rest = !manual && "padLoopSequence" in track && track.padLoopPosition != null && track.padLoopSequence[track.padLoopPosition] < 0;
     const arpWaiting = arp?.runtimeStatus?.state && arp.runtimeStatus.state !== "playing";
-    const sounding = running && !rest && !arpWaiting ? active : null;
+    const patterns = names.get(track.id);
+    const definitions = patterns?.definitions;
+    const selectedSlot = definitions?.findIndex(entry => entry.pattern.id === selectedPatterns[track.id]) ?? -1;
+    const clipSelection = selectedSlot >= 0 ? selectedSlot : 0;
+    let sounding = running && !rest && !arpWaiting ? active : null;
     let playingLabel: string | number = sounding == null ? "—" : sounding + 1;
-    if (lane && sounding != null) {
+    if (liveLaunch && preview.workspace_active) {
+      sounding = preview.preview_active ? null : preview.workspace_sequence?.[0];
+      playingLabel = sounding == null ? "—" : definitions?.[sounding]?.label ?? sounding + 1;
+    } else if (lane && running) {
       const audition = auditions[track.id];
       if (audition?.workspace_active && draft?.target.laneId === track.id) {
         const definitions = clipAuditionDefinitions(lane, draft).filter(d => d.kind === "pattern");
-        playingLabel = definitions[sounding]?.name ?? "—";
+        playingLabel = sounding == null ? "—" : definitions[sounding]?.name ?? "—";
+        sounding = null;
       } else {
         const timing = "automationTarget" in track && track.automationTarget
           ? { ...track.timing, controllerMode: track.controllerMode, automation: true } : "timing" in track ? track.timing : undefined;
-        playingLabel = playingClipPattern(lane, sequencer.clipArrangement!.end, runtime, timing)?.name ?? "—";
+        const playing = playingClipPattern(lane, sequencer.clipArrangement!.end, runtime, timing);
+        sounding = playing ? definitions?.findIndex(entry => entry.pattern.id === playing.id) : null;
+        playingLabel = playing && sounding != null ? definitions?.[sounding]?.label ?? playing.name : "—";
       }
     }
     const current = editing({ kind, track });
-    const patterns = names.get(track.id);
+    const launchPattern = (slot: number) => {
+      const pattern = definitions?.[slot]?.pattern;
+      if (definitions && !pattern) return;
+      void audition?.(track.id, { action: "workspace_start", gestureId: LIVE_LAUNCH_GESTURE,
+        ...(pattern ? { patternId: pattern.id } : { items: [{ type: "pad", padIndex: slot }] }) }).catch(fail);
+    };
+    const choosePattern = (slot: number) => {
+      const entry = definitions?.[slot];
+      if (!entry) return;
+      select(track.id);
+      setSelectedPatterns(previous => ({ ...previous, [track.id]: entry.pattern.id }));
+      if (entry.physicalPad !== undefined) selectPad(track.id, entry.physicalPad);
+      if (running) launchPattern(slot);
+    };
+    const togglePlayback = () => {
+      select(track.id);
+      if (liveLaunch) {
+        void audition?.(track.id, { action: "workspace_end", gestureId: LIVE_LAUNCH_GESTURE })
+          .then(() => score?.play(track.id, false)).catch(fail);
+      } else if (!running && !manual) {
+        launchPattern(definitions ? clipSelection : current);
+      } else play(kind, track, !running, current);
+    };
     const choosePad = (pad: number) => {
       select(track.id);
       selectPad(track.id, pad);
-      if (!manual || !running) return;
+      if (!running || definitions) return;
+      if (!manual) return launchPattern(pad);
       switch (kind) {
         case "sequencer": return actions.onSequencerPadPress(track.id, pad);
         case "drummer": return actions.onDrummerSequencerPadPress(track.id, pad);
@@ -166,7 +203,8 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
         </div>}
       </div>
       <LivePadBank device={authored[sourceKeys[kind]].find(t => t.id === track.id) ?? track} language={language} patterns={patterns} compact={compact}
-        editing={current} sounding={lane ? null : sounding} queued={queued} onLaunch={choosePad}
+        editing={current} sounding={sounding} queued={queued} onLaunch={choosePad}
+        clipSelection={clipSelection} onPattern={choosePattern}
         onCopy={(from, to) => {
           switch (kind) {
             case "sequencer": return actions.onSequencerPadCopy(track.id, from, to);
@@ -178,9 +216,9 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
         }}
         onTranspose={kind === "sequencer" ? (pad, direction, keyStep) =>
           (keyStep ? actions.onSequencerPadTransposeLong : actions.onSequencerPadTransposeShort)(track.id, pad, direction) : undefined} />
-      <div className="ws-live-actions"><button type="button" aria-pressed={running} onClick={() => { select(track.id); play(kind, track, !running, current); }}>{running ? sc.stop : sc.play}</button>
-        <button data-pad-editor-toggle aria-expanded={layout.dock === "editor" && selected?.track.id === track.id} onClick={() => { select(track.id); selectPad(track.id, current); setLayout(previous => ({ ...previous, dock: "editor" })); }}>{c("edit")}</button></div>
-      <div className="ws-live-state"><span>{a.editing} <b>{patterns?.pads[current] ? livePadLabel(current, patterns.pads[current]) : current + 1}</b></span><span>{a.playing} <b>{playingLabel}</b></span><span>{a.queued} <b>{queued == null ? "—" : queued + 1}</b></span></div>
+      <div className="ws-live-actions"><button type="button" aria-pressed={running} disabled={!running && definitions?.length === 0} onClick={togglePlayback}>{running ? sc.stop : sc.play}</button>
+        <button data-pad-editor-toggle aria-expanded={layout.dock === "editor" && selected?.track.id === track.id} onClick={() => { select(track.id); selectPad(track.id, current); setLayout(previous => ({ ...previous, dock: "editor" })); }}>{definitions && definitions[clipSelection]?.physicalPad === undefined ? c("physical") : c("edit")}</button></div>
+      <div className="ws-live-state"><span>{definitions ? c("selected") : a.editing} <b>{definitions ? definitions[clipSelection]?.label ?? "—" : current + 1}</b></span><span>{a.playing} <b>{playingLabel}</b></span><span>{a.queued} <b>{queued == null ? "—" : definitions?.[queued]?.label ?? queued + 1}</b></span></div>
     </div>;
   };
   const addDevice = (kind: SourceKind) => {
@@ -205,7 +243,7 @@ export function LiveLauncher({ sequencer, language, engineRunning, actions, add,
   return <>
     <section className="ws-launcher" aria-label={c("launcher")} {...reorder.launcherEvents}>
       <header><h2>{c("launcher")}</h2><label>{c("add")} <select value="" onChange={e => addDevice(e.target.value as SourceKind)}><option value="">＋</option>{kinds.map(k => <option key={k} value={k}>{types[k === "sequencer" ? "melodic" : k]}</option>)}</select></label></header>
-      {devices.map(d => row(d, false))}
+      <div className="ws-live-rows">{devices.map(d => row(d, false))}</div>
     </section>
     {selected && <>
       <WorkspacePanel name="launcher">{row(selected, true)}</WorkspacePanel>

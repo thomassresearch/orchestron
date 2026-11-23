@@ -881,10 +881,12 @@ def test_workspace_status_keeps_audible_sequence_until_queued_edit_starts():
     runtime.audition(_workspace_command(revision=2, sequence=[1, 0]))
     queued = runtime.audition_status()["lead"]
     assert queued["workspace_position"] == 0 and queued["workspace_sequence"] == [0, 1]
+    assert queued["workspace_pending_sequence"] == [1, 0]
     assert queued["workspace_queued"]
     runtime._advance_render_to_event_locked(runtime._config, 8 * TRANSPORT_SUBUNITS_PER_BEAT)
     playing = runtime.audition_status()["lead"]
     assert playing["workspace_position"] == 0 and playing["workspace_sequence"] == [1, 0]
+    assert "workspace_pending_sequence" not in playing
     assert not playing["workspace_queued"]
 
 

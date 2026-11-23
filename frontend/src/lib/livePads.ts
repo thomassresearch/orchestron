@@ -1,18 +1,20 @@
 import type { ArpeggiatorState, ControllerSequencerState, DrummerSequencerTrackState, ScoreTrackState, SequencerTrackState } from "../types";
 import { DEFAULT_PAD_COUNT, normalizeArpeggiatorSettings } from "../store/appStoreModel";
 import { physicalPadDefinitionId } from "./clipArranger/migration";
-import type { ClipLane } from "./clipArranger/model";
+import type { ClipLane, PatternDefinition } from "./clipArranger/model";
 import { arpeggiatorPadHasSound, controllerPadHasContent, drummerPadHasSound, melodicPadHasSound } from "./patternWorkspace";
 import { scoreHasContent } from "./scoreSequencer";
 
 export type LiveDevice = SequencerTrackState | DrummerSequencerTrackState | ControllerSequencerState | ScoreTrackState | ArpeggiatorState;
+export const LIVE_LAUNCH_GESTURE = "live-launcher";
+
 export type LivePatternNames = {
   pads: (string | undefined)[];
-  arrangementOnly: { id: string; name: string }[];
+  definitions: { pattern: PatternDefinition; label: string; physicalPad?: number }[];
 };
 
 export function livePatternNames(lane: ClipLane): LivePatternNames {
-  const patterns = new Map(lane.definitions.filter(d => d.kind === "pattern").map(d => [d.id, d]));
+  const patterns = lane.definitions.filter(d => d.kind === "pattern");
   // A numbered pattern can take its clip's title if the clip contains just this
   // pattern and every use gives it the same title.
   const titles = new Map<string, string | null>();
@@ -29,22 +31,29 @@ export function livePatternNames(lane: ClipLane): LivePatternNames {
       titles.set(item.definitionId, unique ? clip.name : null);
     }
   }
-  const pads = Array.from({ length: DEFAULT_PAD_COUNT }, (_, i) => {
-    const id = physicalPadDefinitionId(lane.id, i);
-    const pattern = patterns.get(id);
-    if (!pattern) return undefined;
-    patterns.delete(id);
-    const name = pattern.name === `#${i + 1}` ? titles.get(id) : pattern.name;
-    return name && name !== `#${i + 1}` ? name : undefined;
+  const physical = new Map(Array.from({ length: DEFAULT_PAD_COUNT }, (_, i) => [physicalPadDefinitionId(lane.id, i), i]));
+  const pads: (string | undefined)[] = [];
+  const definitions = patterns.map(pattern => {
+    const physicalPad = physical.get(pattern.id);
+    const label = (/^#\d+$/.test(pattern.name) && titles.get(pattern.id)) || pattern.name;
+    if (physicalPad !== undefined && label !== `#${physicalPad + 1}`) pads[physicalPad] = label;
+    return { pattern, label, physicalPad };
   });
-  const arrangementOnly = [...patterns.values()].map(({ id, name }) => ({
-    id, name: /^#\d+$/.test(name) ? titles.get(id) ?? name : name
-  }));
-  return { pads, arrangementOnly };
+  return { pads, definitions };
 }
 
 export function livePadLabel(index: number, name?: string) {
-  return name ? `Pad ${index + 1} · ${name}` : `Pad ${index + 1}`;
+  return name ?? `Pad ${index + 1}`;
+}
+
+export function livePatternHasContent(pattern: PatternDefinition, device: LiveDevice) {
+  switch (pattern.source) {
+    case "sequencer": return melodicPadHasSound(pattern.payload);
+    case "drummer": return drummerPadHasSound(pattern.payload);
+    case "arpeggiator": return arpeggiatorPadHasSound(pattern.payload);
+    case "controller": return "controllerMode" in device && controllerPadHasContent(pattern.payload, device.controllerMode);
+    case "score": return "launchQuantization" in device && scoreHasContent(pattern.payload, device.timing);
+  }
 }
 
 export function livePadHasContent(device: LiveDevice, index: number) {

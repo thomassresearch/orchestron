@@ -78,22 +78,22 @@ For a legacy performance, double-click a pad occurrence to edit that physical pa
 
 Open **Live** and find the device you want to play. The MIDI channel sits beside its name, with the assigned rack instrument underneath. The compact launcher keeps both in view above the keyboard. Arpeggiators show input → output. Controller devices list their target channels, or **MIDI 1–16** for all channels. Open the **Inspector** to read a long instrument list.
 
-**Editing** shows the physical pad you can change, **Playing** follows playback, and **Queued** shows the next manual launch.
+Each arranger track has a pad for every saved pattern, including variations and patterns inside groups. The pad shows its Arrange name. A numbered pattern used alone in a uniquely named clip can show the clip title. Scroll a row with its arrows or swipe sideways to reach later patterns. Each instrument keeps its own scroll position. Tab moves between pads and Enter selects one.
 
-Look for the Arrange pattern name beside the pad number, for example **2 · Verse 1**. If a numbered pattern is the sole content of a uniquely named clip, the pad shows that clip title. Long names wrap. Use the arrows above the row or swipe sideways to reach later pads. Tab moves focus through the pads without launching them. The same names appear in **Preview pads**, **Pad actions** and the pad editor. Patterns created only in Arrange appear under **Arrangement patterns** as a reference, separate from the playable pads.
+**Selected** shows the pattern ready to launch. **Playing** follows the audible pattern. **Queued** shows the pattern that will take over at the next boundary.
 
-![Routed phrase on MIDI 1 plays Tenor Saxophone, with Introduction 1 and Verse 1 visible on the pads](../../screenshots/perform-live-pattern-names.png)
+![The Melody track in Live with Introduction selected and four more named patterns available](../../screenshots/perform-live-pattern-names.png)
 
-1. Select a pad on a **Manual pads** device and press **Play** in its row. As soon as the pad shows as playing, you can tap the next pad once to queue it for the pattern boundary. This also works immediately after a speaker preview. To jam alongside a clip song, use **Add live device** to create a separate device.
+1. Select a pattern and press **Play** in its device row. Tap a different pattern while the device is playing to queue it. You can change the queued pattern before it starts. To play alongside a song with a separate set of physical pads, choose **Add live device**.
 2. Open **Keyboard** and choose the piano roll assigned to your instrument. Open **Keyboard settings** to set the MIDI channel, velocity and Autochord. Hold a focused key with Space or Enter and click another pad. On a touch screen, keep one finger on the key and tap a pad with the other.
 3. Watch the queued pad turn into the playing pad at the device’s launch boundary. The compact launcher stays above the keys on a phone. Use the song transport to bring in the arrangement. An independently started Manual device keeps playing through a song seek or stop.
-4. Choose **Edit** in the device row to open its physical pad. The pad opens on its notes, hits, rhythm steps or controller curve. Use **Settings** for MIDI routing, timing or the reusable pattern workspace. Direct pad edits take effect as you play. **Save Performance** stores them with the project. For reusable pattern definitions use **Apply**. Arpeggiator presets have separate **Update preset** and **Save as preset** actions.
+4. To edit an Arrange pattern, open it in Arrange. To work on one of the device’s eight physical pads, select **Edit physical pads** in the pad mode menu, choose a pad, then open the row’s editor. Use **Settings** for MIDI routing, timing or the reusable pattern workspace. **Save Performance** stores physical pad edits with the project.
 
-A filled green dot marks a pad with playable content in its current length. A hollow dot marks an empty or silent pad. You can launch either. A controller pad sends values to its assigned destination, and an arpeggiator needs input notes to sound.
+A hollow dot marks a pattern with no playable content in its current length. When viewing physical pads, a filled green dot also identifies pads with playable content. You can launch either. A controller pad sends values to its assigned destination, and an arpeggiator needs input notes to sound.
 
 ![The first controller endpoint available to drag in the Live pad editor](../../screenshots/perform-live-curve-editor.png)
 
-**Listen before launching.** Hold the speaker beside a pad for a quarter of a second. On a narrow bank, choose **Preview pads**, then hold the numbered speaker with a finger, Space or Enter. Release to hear the underlying part again. A Manual pad already in the queue keeps its launch time. Choose **Launch pads** to resume launching. [Phone view with a held key and pad preview](../../screenshots/perform-workspace-live-pad-preview.png)
+**Listen before launching.** Hold the speaker beside a pad for a quarter of a second. On a narrow bank, choose **Preview pads**, then hold the pad’s speaker with a finger, Space or Enter. Release to hear the underlying part again. A Manual pad already in the queue keeps its launch time. Choose **Launch pads** to resume launching. [Phone view with a held key and pad preview](../../screenshots/perform-workspace-live-pad-preview.png)
 
 **Prepare a variation.** Choose **Pad actions** on the device. Select the source pad, choose a destination under **Copy pad to…**, and press the button showing both pad numbers. You can also drag a pad onto another slot in this mode. For a melodic pad, select the copy and use the arrows to move its notes in scale. Hold an arrow to move the key by one degree, or choose **Move key by degree** and press an arrow once. [Build a legacy phrase from pads](pattern_pads_and_pad_looper.md#build-a-legacy-phrase-from-pads)
 

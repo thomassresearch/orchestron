@@ -10719,6 +10719,26 @@ def test_clip_capacity_audition_api_preserves_authored_schedule(tmp_path):
         assert not response.json()["auditions"]
 
 
+def test_live_launcher_queues_saved_clip_slots_past_eight(tmp_path):
+    from backend.tests.test_clip_arrangement import capacity_audition_config
+
+    with _client(tmp_path) as client:
+        session = _create_running_session(client, patch_name="Live patterns")
+        base = f"/api/sessions/{session}/sequencer"
+        assert client.put(base + "/config", json=capacity_audition_config()).status_code == 200
+        launch = {"action": "workspace_start", "gesture_id": "live-launcher", "track_ids": ["lead"]}
+        def play(slot, revision):
+            response = client.post(base + "/audition", json={**launch, "sequence": [slot], "revision": revision})
+            assert response.status_code == 200, response.text
+            return response.json()["auditions"]["lead"]
+
+        assert play(8, 1)["workspace_sequence"] == [8]
+        queued = play(511, 2)
+        assert queued["workspace_sequence"] == [8]
+        assert queued["workspace_pending_sequence"] == [511]
+        assert play(9, 3)["workspace_pending_sequence"] == [9]
+
+
 def test_clip_capacity_audition_native_pcm_survives_failed_prepare(tmp_path, monkeypatch):
     import numpy as np
     from backend.tests.csound_test_support import load_patch_fixture

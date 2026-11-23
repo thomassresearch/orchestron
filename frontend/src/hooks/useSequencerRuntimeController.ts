@@ -4,6 +4,7 @@ import type { LiveInputAction } from "../audio/browserPlaybackPolicy";
 import { playingArrangerSourceChanges } from "../store/arrangerHistory";
 import { acknowledgeLaneOutput, setLaneOutputSender } from "../lib/laneOutput";
 import { compilePadLoopPattern } from "../lib/padLoopPattern";
+import { LIVE_LAUNCH_GESTURE } from "../lib/livePads";
 import { compileDefinition } from "../lib/arrangementEditing";
 import { cancelArrangerPreviewGestures } from "../lib/arrangerPreviewGesture";
 import type { AuditionDevice, PreviewCommand, WorkspaceCommand } from "../components/sequencer/PerformanceAudition";
@@ -144,6 +145,14 @@ function auditionContext(id: string) {
     : [...sequencer.tracks, ...sequencer.scoreTracks, ...sequencer.drummerTracks, ...sequencer.controllerSequencers].some(device => device.id === id) ? id : null;
 }
 
+// Clip runtime slots follow the saved pattern definitions, before any temporary draft slots.
+function livePatternSequence(state: SequencerState, laneId: string, patternId: string): number[] {
+  const lane = state.clipArrangement?.lanes.find(lane => lane.id === laneId);
+  const slot = lane?.definitions.filter(d => d.kind === "pattern").findIndex(d => d.id === patternId);
+  if (slot === undefined || slot < 0) throw new Error("The pattern is no longer in this lane.");
+  return [slot];
+}
+
 export function useSequencerRuntimeController({
   previewGestures,
   activePage,
@@ -178,7 +187,7 @@ export function useSequencerRuntimeController({
   const pendingArrangerStop = useRef<Promise<void> | null>(null);
   const arrangerStartedSession = useRef<string | null>(null);
   const clipEditorStartedSession = useRef<string | null>(null);
-  const workspaceGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string; command: WorkspaceCommand; resume?: WorkspaceCommand }>());
+  const workspaceGestures = useRef(new Map<string, { gesture: string; generation: number; session?: string; preparedRevision?: number; command: WorkspaceCommand; resume?: WorkspaceCommand }>());
   const refreshAuditions = useRef<(sessionId: string) => Promise<void>>(async () => {});
   const workspaceGeneration = useAppStore(state => state.performanceWorkspaceGeneration);
   const previewLifecycle = useRef({ id: activeSessionId, state: activeSessionState, generation: workspaceGeneration });
@@ -594,8 +603,20 @@ export function useSequencerRuntimeController({
       const auditionStates = (transportEvent.payload as { auditions?: PerformanceAuditionStatus }).auditions;
       if (auditionStates) {
         const arpIds = new Set(useAppStore.getState().sequencer.arpeggiators.map(a => a.id));
-        const retained = Object.fromEntries(Object.entries(useAppStore.getState().performanceAuditions).filter(([id]) => transportEvent.kind === "arpeggiators" ? !arpIds.has(id) : arpIds.has(id)));
-        useAppStore.setState({ performanceAuditions: { ...retained, ...Object.fromEntries(Object.entries(auditionStates).map(([id,value]) => [parseDrummerRowRuntimeTrackId(id)?.drummerTrackId ?? id, value])) } });
+        const previous = useAppStore.getState().performanceAuditions;
+        const retained = Object.fromEntries(Object.entries(previous).filter(([id]) => transportEvent.kind === "arpeggiators" ? !arpIds.has(id) : arpIds.has(id)));
+        for (const [runtimeId, audible] of Object.entries(auditionStates)) {
+          const id = parseDrummerRowRuntimeTrackId(runtimeId)?.drummerTrackId ?? runtimeId;
+          const intent = previous[id];
+          // Buffered audio can describe the old pattern after the next launch was acknowledged.
+          // Advance the audible sequence while retaining the latest accepted queue.
+          retained[id] = intent?.workspace_gesture === LIVE_LAUNCH_GESTURE && audible.workspace_gesture === LIVE_LAUNCH_GESTURE &&
+            (intent.workspace_revision ?? 0) > (audible.workspace_revision ?? 0)
+            ? { ...audible, workspace_revision: intent.workspace_revision, workspace_queued: intent.workspace_queued,
+                workspace_pending_sequence: intent.workspace_pending_sequence }
+            : audible;
+        }
+        useAppStore.setState({ performanceAuditions: retained });
       }
 
       if (transportEvent.kind === "arpeggiators") {
@@ -1111,7 +1132,7 @@ export function useSequencerRuntimeController({
         return dispatchAudition(deviceId, draft ? { ...resume, clipDraft: draft } : resume);
       }
       const resume = command.temporary ? (previous?.command.temporary ? previous.resume : previous?.command) : undefined;
-      const entry = { gesture: command.gestureId, generation, session: previous?.session, command, resume };
+      const entry = { gesture: command.gestureId, generation, session: previous?.session, preparedRevision: previous?.preparedRevision, command, resume };
       if (command.action === "workspace_start") workspaceGestures.current.set(deviceId, entry);
       else workspaceGestures.current.delete(deviceId);
       const versionKey = `workspace:${deviceId}`;
@@ -1122,7 +1143,7 @@ export function useSequencerRuntimeController({
       try {
         // An arranger Stop can still be shutting down the engine when Play edit
         // is pressed. Wait before deciding whether its session can be reused.
-        if (command.action === "workspace_start" && (command.clipDraft || command.padPreview)) {
+        if (command.action === "workspace_start" && (command.clipDraft || command.padPreview || command.gestureId === LIVE_LAUNCH_GESTURE)) {
           await pendingArrangerStop.current;
           if (!current()) return;
         }
@@ -1130,7 +1151,7 @@ export function useSequencerRuntimeController({
         const device = [...initial.sequencer.tracks, ...initial.sequencer.scoreTracks, ...initial.sequencer.drummerTracks, ...initial.sequencer.controllerSequencers, ...initial.sequencer.arpeggiators].find(d => d.id === deviceId);
         if (!device) return;
         const clipAudition = command.action === "workspace_start" && command.clipDraft ? clipSongPlayback(initial.sequencer, initial.clipDrafts, command.clipDraft) : null;
-        const sequence = clipAudition?.sequence ?? (command.action === "workspace_start" ? compilePadLoopPattern({ ...device.padLoopPattern, rootSequence: command.items ?? [] }).sequence : []);
+        const sequence = command.patternId !== undefined ? livePatternSequence(initial.sequencer, deviceId, command.patternId) : clipAudition?.sequence ?? (command.action === "workspace_start" ? compilePadLoopPattern({ ...device.padLoopPattern, rootSequence: command.items ?? [] }).sequence : []);
         if (command.action === "workspace_start" && !command.padPreview && !sequence.length) throw new Error("An audition requires a playable sequence.");
         if (command.action === "workspace_start" && initial.activeSessionState !== "running") {
           void browserClockClientRef.current.prime();
@@ -1152,7 +1173,9 @@ export function useSequencerRuntimeController({
           previewGestures.current.delete(deviceId);
           auditionCommandVersion.current.set(deviceId, (auditionCommandVersion.current.get(deviceId) ?? 0) + 1);
         }
-        if (command.action === "workspace_start") {
+        const preparedLaunch = command.gestureId === LIVE_LAUNCH_GESTURE && previous?.gesture === LIVE_LAUNCH_GESTURE &&
+          previous.session === session && previous.preparedRevision === store.sequencerEditRevision;
+        if (command.action === "workspace_start" && !preparedLaunch) {
           // This config includes the temporary audition pads for every lane. A pending
           // standalone arpeggiator update can still contain only the saved pads.
           arpeggiatorSyncCancelRef.current();
@@ -1167,6 +1190,7 @@ export function useSequencerRuntimeController({
           }
           await api.configureSessionSequencer(session, config);
           if (!current() || useAppStore.getState().activeSessionId !== session) return;
+          entry.preparedRevision = store.sequencerEditRevision;
         }
         const status = effectiveAudioOutputModeRef.current === "browser_clock"
           ? await browserClockClientRef.current.audition(session, request) : await api.auditionSequence(session, request);
@@ -1204,7 +1228,7 @@ export function useSequencerRuntimeController({
     auditionCommandVersion.current.set(deviceId, version);
     const generation = useAppStore.getState().performanceWorkspaceGeneration;
     if (preview?.action === "preview_start") previewGestures.current.set(deviceId, { gesture: preview.gestureId, generation,
-      padIndex: preview.item?.type === "pad" ? preview.item.padIndex : undefined });
+      padIndex: preview.patternId === undefined && preview.item?.type === "pad" ? preview.item.padIndex : undefined });
     else previewGestures.current.delete(deviceId);
     let commandSession: string | null = null;
     try {
@@ -1233,12 +1257,12 @@ export function useSequencerRuntimeController({
         ...(preview ? { gesture_id: preview.gestureId, revision: version } : {}),
         ...("playbackMode" in device ? { arpeggiator_id: deviceId } : { track_ids: "rows" in device ? device.rows.map(row => drummerRowRuntimeTrackId(deviceId, row.id)) : [deviceId] }) };
       if (item) {
-        request.sequence = compileDefinition(device.padLoopPattern, item);
+        request.sequence = preview?.patternId !== undefined ? livePatternSequence(store.sequencer, deviceId, preview.patternId) : compileDefinition(device.padLoopPattern, item);
         if (!request.sequence.length) return;
         // Compilation finishes before a new override can replace audible material.
         configSyncRef.current?.baseline(sessionId, store.sequencerEditRevision);
         const config = buildBackendSequencerConfig(store.sequencer);
-        if (preview && item.type === "pad" && store.sequencer.clipArrangement?.lanes.some(lane => lane.id === deviceId)) {
+        if (preview && preview.patternId === undefined && item.type === "pad" && store.sequencer.clipArrangement?.lanes.some(lane => lane.id === deviceId)) {
           const target = request.arpeggiator_id
             ? config.arpeggiators?.find(arp => arp.arpeggiator_id === deviceId)
             : [...config.tracks, ...config.controller_tracks, ...(config.score_tracks ?? [])].find(track => track.track_id === request.track_ids?.[0]);

@@ -6,8 +6,8 @@ import { usePerformanceAudition } from "./PerformanceAudition";
 import { ARRANGER_PREVIEW_CANCEL } from "../../lib/arrangerPreviewGesture";
 
 /** A gesture owns both the delayed launch and its matching release. */
-export function ArrangerSpeaker({ id, item, label, language, disabled = false, children, description }: {
-  id: string; item: PadLoopPatternItem; label: string; language: GuiLanguage; disabled?: boolean; children?: ReactNode; description?: string;
+export function ArrangerSpeaker({ id, item, patternId, label, language, disabled = false, children, description }: {
+  id: string; item: PadLoopPatternItem; patternId?: string; label: string; language: GuiLanguage; disabled?: boolean; children?: ReactNode; description?: string;
 }) {
   const audition = usePerformanceAudition();
   const status = useAppStore(state => state.performanceAuditions[id]);
@@ -23,7 +23,7 @@ export function ArrangerSpeaker({ id, item, label, language, disabled = false, c
     if (current.started) void audition?.(id, { action: "preview_end", gestureId: current.gesture }).catch(() => {});
   }, [audition, id]);
   const itemKey = JSON.stringify(item);
-  useEffect(() => release, [release, itemKey]);
+  useEffect(() => release, [release, itemKey, patternId]);
   useEffect(() => {
     if (!pressed) return;
     const visibility = () => { if (document.visibilityState !== "visible") release(); };
@@ -48,7 +48,7 @@ export function ArrangerSpeaker({ id, item, label, language, disabled = false, c
     current.timer = setTimeout(() => {
       if (hold.current !== current) return;
       current.started = true;
-      void audition(id, { action: "preview_start", gestureId: current.gesture, item }).catch(() => {
+      void audition(id, { action: "preview_start", gestureId: current.gesture, item, ...(patternId !== undefined ? { patternId } : {}) }).catch(() => {
         if (hold.current === current) release();
       });
     }, 250);

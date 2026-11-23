@@ -539,6 +539,7 @@ def test_hidden_workspace_edits_use_hidden_boundary_and_audible_markers_include_
     p.router.audition(temporary("preview_start", sequence=(3,), gesture="speaker"))
     p.advance(24001)
     p.router.audition(temporary(revision=2, sequence=(1, 1, -1)))
+    assert p.router.audition_status()["arp"]["workspace_pending_sequence"] == [1, 1, -1]
     p.advance(120001)  # Hidden edit applies at beat five.
     p.router.audition(temporary(revision=3, sequence=(2, -1)))
     p.advance(220000)

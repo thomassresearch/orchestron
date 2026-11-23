@@ -119,7 +119,9 @@
 .ws-launcher header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; }
 .ws-launcher h2 { font-weight: 650; color: #d5eaf4; }
 .ws-launcher select, .ws-compact-launch select, .ws-keyboard-picker select { min-width: 0; max-width: 100%; color: #e0eaf0; background: #16263a; border: 1px solid #426078; border-radius: 4px; padding: 3px 6px; }
-.ws-live-row { display: grid; grid-template-columns: minmax(9rem, .85fr) minmax(14rem, 2fr) auto; align-items: center; gap: 4px 14px; margin-top: 5px; padding: 7px 10px; background: #101d30; border: 1px solid #304055; border-radius: 5px; }
+.ws-live-rows, .ws-compact-launch .ws-live-row { display: grid; grid-template-columns: minmax(9rem, .85fr) minmax(14rem, 2fr) fit-content(32%); column-gap: 14px; }
+.ws-live-row { display: grid; align-items: center; row-gap: 4px; margin-top: 5px; padding: 7px 10px; background: #101d30; border: 1px solid #304055; border-radius: 5px; }
+.ws-live-rows > .ws-live-row { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .ws-live-row[data-selected] { border-color: #56818f; }
 .ws-live-row[data-drop-position=before] { box-shadow: 0 -3px #7cdef4; }
 .ws-live-row[data-drop-position=after] { box-shadow: 0 3px #7cdef4; }
@@ -184,7 +186,8 @@
 .ws-dock[data-compact-launch]:has(.ws-compact-launch:empty) { grid-template-rows: auto minmax(0,1fr); }
 .ws-compact-launch .ws-live-row { margin: 0; border-radius: 0; }
 @container (max-width: 610px) {
-  .ws-live-row { grid-template-columns: minmax(0,1fr) auto; gap: 5px 8px; }
+  .ws-live-rows, .ws-compact-launch .ws-live-row { grid-template-columns: minmax(0,1fr) fit-content(58%); column-gap: 8px; }
+  .ws-live-row { row-gap: 5px; }
   .ws-live-bank { grid-row: 2; grid-column: 1 / -1; }
   .ws-live-actions { grid-row: 1; grid-column: 2; }
   .ws-live-state { grid-column: 1 / -1; }
@@ -350,16 +353,17 @@
 .ws-pad-scroll-buttons button:disabled { opacity: .4; }
 .ws-pad-slot { position: relative; min-width: 0; display: flex; }
 .ws-pad-speaker { display: none; }
+.ws-live-pads[data-physical] .ws-pad-speaker { display: block; }
+.ws-pad-speaker button { width: 24px; height: 100%; }
 @container (min-width: 880px) {
   .ws-pad-speaker { display: block; }
-  .ws-pad-speaker button { width: 24px; height: 100%; }
 }
 .ws-pad-slot > button { width: 100%; padding-inline: 1px; display: flex; justify-content: center; align-items: center; gap: 3px; }
-.ws-pad-slot::after { pointer-events: none; content: ""; position: absolute; left: 4px; top: 4px; width: 5px; height: 5px; border: 1px solid #8fa4b7; border-radius: 50%; }
+.ws-pad-slot[data-populated]::after { pointer-events: none; content: ""; position: absolute; left: 4px; top: 4px; width: 5px; height: 5px; border: 1px solid #8fa4b7; border-radius: 50%; }
 .ws-pad-slot[data-populated=true]::after { background: #87e2bd; border-color: #87e2bd; }
 .ws-pad-slot[data-sounding] > button { border-color: #58cbd7; }
 .ws-pad-slot[data-queued] > button { border-color: #efa85a; }
-.ws-live-pads[data-named], .ws-arrangement-patterns [role=list] {
+.ws-live-pads[data-named] {
   display: flex; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin;
 }
 .ws-live-pads[data-named] .ws-pad-slot { flex: 1 0 auto; }
@@ -367,10 +371,6 @@
 .ws-pad-name { max-width: min(17rem, 65cqi); overflow-wrap: anywhere; text-align: start; font-weight: 600; line-height: 1.2; }
 .ws-live-pads[data-named] button:focus-visible { outline: 2px solid #8be5fa; outline-offset: -2px; }
 .ws-live-state, .ws-pad-tools strong, .ws-live-pad-detail { overflow-wrap: anywhere; }
-.ws-arrangement-patterns { display: flex; align-items: baseline; gap: 8px; font-size: .72rem; color: #a1b3c5; }
-.ws-arrangement-patterns > span { flex: none; }
-.ws-arrangement-patterns [role=list] { gap: 10px; }
-.ws-arrangement-patterns [role=listitem] { flex: none; max-width: min(17rem, 60cqi); overflow-wrap: anywhere; color: #cedeeb; }
 .ws-pad-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: .75rem; }
 .ws-pad-tools button { min-height: 28px; min-width: 28px; padding: 2px 5px; border: 1px solid #4b6075; border-radius: 4px; }
 .ws-pad-tools span { color: #9bddc7; }

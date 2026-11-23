@@ -102,17 +102,18 @@ async page => {
     check(before.top > 0 && before.x > 0, "Timeline fixture must scroll horizontally");
     await button("Live").click();
     const phrase = page.getByRole("group", { name: "Routed phrase", exact: true });
+    const padMode = phrase.getByRole("combobox", { name: "Pad mode" });
+    await padMode.selectOption("physical");
     await button("Pad 3", phrase).click();
     await button("Edit", phrase).click();
     await button("HOLD").first().click();
-    const padMode = phrase.getByRole("combobox", { name: "Pad mode" });
     await padMode.selectOption("actions");
     await button("Pad actions · Pad 1", phrase).click();
     await phrase.getByRole("combobox", { name: "Copy pad to…" }).selectOption("4");
     await phrase.getByRole("button", { name: /^(Copy|Replace) · 1 → 5$/ }).click();
     await button("Pad actions · Pad 5", phrase).click();
     await button("Notes in scale · Up · Pad 5", phrase).click();
-    await padMode.selectOption("preview");
+    await padMode.selectOption("physical");
     const speaker = button("Audition Routed phrase · Pad 5", phrase);
     await speaker.focus();
     const prepare = page.waitForRequest(req => req.method() === "PUT" && req.url().endsWith("/sequencer/config")
