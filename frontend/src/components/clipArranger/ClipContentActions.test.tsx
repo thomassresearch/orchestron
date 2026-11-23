@@ -5,6 +5,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useAppStore } from '../../store/useAppStore';
 import { useStructureDraft } from '../../lib/clipArranger/structureStore';
 import { migrateClipArrangement } from '../../lib/clipArranger/migration';
+import { clipSongPlayback, songDraftPlayback } from '../../lib/clipArranger/songDrafts';
+import { runtimeSchedule } from '../../lib/clipArranger/runtime';
 import { QUARTER_TICKS as Q } from '../../lib/clipArranger/model';
 import { clipHistoryStep, openClipEditor } from '../../store/clipActions';
 import { ClipPerformance } from './ClipPerformance';
@@ -25,6 +27,113 @@ const patterns=()=>Array.from(document.querySelectorAll<HTMLButtonElement>('butt
 function show(expand=true){render(<ClipPerformance language="english" renderEditor={()=>null}/>);const toggle=screen.queryByRole('button',{expanded:false,name:/▸/});if(expand&&toggle)fireEvent.click(toggle);}
 function context(item:HTMLElement){fireEvent.contextMenu(item,{clientX:200,clientY:100});return within(screen.getByRole('menu'));}
 async function save(){fireEvent.click(structureSaveButton());await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());}
+
+function playback() {
+  const { sequencer, clipDrafts } = useAppStore.getState();
+  const song = songDraftPlayback(sequencer, clipDrafts, useStructureDraft.getState().draft);
+  return runtimeSchedule(song, song.clipArrangement!.lanes[0]);
+}
+
+it('plays Duplicate and a timed nudge immediately, follows draft undo/redo and restores the saved rest on Discard', () => {
+  show();
+  const before = useAppStore.getState(), original = playback();
+  fireEvent.click(context(patterns()[0]).getByRole('menuitem', { name: 'Duplicate' }));
+  const duplicated = playback(), revision = useAppStore.getState().sequencerEditRevision;
+  expect(revision).toBeGreaterThan(before.sequencerEditRevision);
+  expect(duplicated.clips[0].content.map(c => c.pad)).toEqual([0, 0, null]);
+  fireEvent.keyDown(patterns()[1], { key: 'ArrowRight' });
+  expect(useAppStore.getState().sequencerEditRevision).toBeGreaterThan(revision);
+  const moved = playback();
+  expect(moved.clips[0].content.map(c => [c.pad, c.length / Q])).toEqual([[0, 4], [null, .25], [0, 4], [null, 3.75]]);
+  const draftControls = within(structureSaveButton().parentElement!);
+  fireEvent.click(draftControls.getByRole('button', { name: 'Undo' }));
+  expect(playback()).toEqual(duplicated);
+  fireEvent.click(draftControls.getByRole('button', { name: 'Redo' }));
+  expect(playback()).toEqual(moved);
+  const beforeDiscard = useAppStore.getState().sequencerEditRevision;
+  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+  expect(useAppStore.getState().sequencerEditRevision).toBeGreaterThan(beforeDiscard);
+  expect(playback()).toEqual(original);
+  expect(useAppStore.getState().sequencer).toBe(before.sequencer);
+});
+
+it.each(['save', 'discard'])('edits a provisional duplicate through the note editor and resolves both changes on %s', async choice => {
+  show();
+  const before = useAppStore.getState(), savedLane = structuredClone(lane());
+  fireEvent.click(context(patterns()[0]).getByRole('menuitem', { name: 'Duplicate' }));
+  fireEvent.doubleClick(patterns()[1]);
+  const editor = () => {
+    const state = useAppStore.getState();
+    return state.clipDrafts[state.clipEditingKey!];
+  };
+  expect(editor()?.provisionalDuplicate).toBe(true);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  act(() => before.setSequencerTrackStepNote(lane().id, 0, 79));
+  act(() => before.setSequencerTrackStepNote(lane().id, 1, 82));
+  const structure = useStructureDraft.getState().draft!;
+  const state = useAppStore.getState();
+  const edited = editor().definition;
+  if (edited.kind !== 'pattern' || edited.source !== 'sequencer') throw Error('Expected a melodic duplicate');
+  expect(edited.payload.steps.slice(0, 2).map(step => step.note)).toEqual([79, 82]);
+  const song = songDraftPlayback(state.sequencer, state.clipDrafts, structure);
+  const playedLane = song.clipArrangement!.lanes[0];
+  const slots = runtimeSchedule(song, playedLane).clips[0].content.map(leaf => leaf.pad);
+  const definitions = playedLane.definitions.filter(def => def.kind === 'pattern');
+  expect(slots[0]).not.toBe(slots[1]);
+  expect(definitions[slots[0]!]).toEqual(savedLane.definitions[0]);
+  expect(definitions[slots[1]!]).toMatchObject({ id: edited.id, payload: edited.payload });
+  const audition = clipSongPlayback(state.sequencer, state.clipDrafts, editor(), structure);
+  expect(audition.state.clipArrangement!.lanes[0].definitions.filter(d => d.kind === 'pattern')[audition.sequence[0]]).toMatchObject({ payload: edited.payload });
+  expect(state.buildSequencerConfigSnapshot().sequencer.clipArrangement!.lanes[0]).toEqual(savedLane);
+  const controls = within(structureSaveButton().parentElement!);
+  fireEvent.click(controls.getByRole('button', { name: 'Undo' }));
+  expect(playback().clips[0].content.map(leaf => leaf.pad)).toEqual([0, 0, null]);
+  fireEvent.click(controls.getByRole('button', { name: 'Redo' }));
+  expect(editor().definition).toEqual(edited);
+  const panel = within(screen.getByRole('region', { name: 'Editing' }));
+  if (choice === 'save') {
+    const restored = useAppStore.getState();
+    const expected = songDraftPlayback(restored.sequencer, restored.clipDrafts, useStructureDraft.getState().draft).clipArrangement!.lanes[0];
+    fireEvent.click(panel.getByRole('button', { name: /^Save structure/ }));
+    await waitFor(() => expect(useStructureDraft.getState().draft).toBeNull());
+    expect(lane()).toEqual(expected);
+    act(() => clipHistoryStep(false));
+    expect(lane()).toEqual(savedLane);
+    act(() => clipHistoryStep(true));
+    expect(lane()).toEqual(expected);
+  } else {
+    fireEvent.click(panel.getByRole('button', { name: 'Discard' }));
+    expect(lane()).toEqual(savedLane);
+    expect(playback().clips[0].content.map(leaf => leaf.pad)).toEqual([0, null]);
+    expect(useAppStore.getState().sequencer.clipHistory).toBe(before.sequencer.clipHistory);
+  }
+  expect(useAppStore.getState().clipEditingKey).toBeNull();
+});
+
+it('keeps notes on the appended copy of a loop after closing its editor and moving it', async () => {
+  const clip = lane().clips[0];
+  clip.children.pop();
+  clip.mode = 'loop';
+  clip.length = 8 * Q;
+  show();
+  fireEvent.click(context(patterns()[1]).getByRole('menuitem', { name: 'Duplicate' }));
+  fireEvent.doubleClick(patterns()[2]);
+  act(() => useAppStore.getState().setSequencerTrackStepNote(lane().id, 0, 83));
+  fireEvent.click(screen.getByRole('button', { name: 'Close editor' }));
+  expect(useAppStore.getState().clipEditingKey).toBeNull();
+  fireEvent.keyDown(patterns()[2], { key: 'ArrowRight' });
+  const events = playback().clips[0].content;
+  expect(events.map(e => e.pad)).toEqual([0, 0, null, lane().definitions.filter(d => d.kind === 'pattern').length]);
+  expect(events[2].length).toBe(Q / 4);
+  fireEvent.doubleClick(patterns()[2]);
+  const state = useAppStore.getState(), editor = state.clipDrafts[state.clipEditingKey!];
+  if (editor.definition.kind !== 'pattern' || editor.definition.source !== 'sequencer') throw Error('Expected melodic copy');
+  expect(editor.definition.payload.steps[0].note).toBe(83);
+  await save();
+  expect(playback().clips[0].content).toEqual(events);
+  act(() => clipHistoryStep(false));
+  expect(lane().clips[0]).toEqual(clip);
+});
 
 it('hides Ungroup for a pattern and duplicates a linked occurrence through save/reload and undo',async()=>{
   show();const original=structuredClone(lane());
@@ -51,7 +160,10 @@ it('disables duplication for rests and cross-repetition selections',()=>{
 
 it('appends once after the final loop repetition and saves as one clip',async()=>{
   const clip=lane().clips[0];clip.children.pop();clip.mode='loop';clip.length=16*Q;useAppStore.getState().sequencer.clipArrangement!.end=clip.length;
-  show();fireEvent.click(context(patterns()[1]).getByRole('menuitem',{name:'Duplicate'}));expect(patterns()).toHaveLength(5);await save();
+  show();fireEvent.click(context(patterns()[1]).getByRole('menuitem',{name:'Duplicate'}));expect(patterns()).toHaveLength(5);
+  const preview=playback();expect(preview.end).toBe(20*Q);expect(preview.clips[0].content).toHaveLength(5);
+  expect(useAppStore.getState().buildSequencerConfigSnapshot().sequencer.clipArrangement!.end).toBe(16*Q);
+  await save();expect(playback()).toEqual(preview);
   expect(lane().clips).toHaveLength(1);expect(lane().clips[0]).toMatchObject({mode:'once',length:20*Q});
 });
 

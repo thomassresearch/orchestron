@@ -4,7 +4,7 @@ import { useStore } from "zustand";
 import type { GuiLanguage, SequencerState } from "../../types";
 import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration";
 import type { OccurrenceTarget, SourceKind } from "../../lib/clipArranger/model";
-import { structureChildren } from "../../lib/clipArranger/structure";
+import { duplicatePattern, structureChildren } from "../../lib/clipArranger/structure";
 import { useStructureDraft } from "../../lib/clipArranger/structureStore";
 import { definitionAt } from "../../lib/clipArranger/operations";
 import { localLoopWindows } from "../../lib/clipArranger/relationships";
@@ -37,6 +37,7 @@ export function survivingClipKey(key: string | null) {
   const { sequencer, clipDrafts } = useAppStore.getState();
   const draft = key ? clipDrafts[key] : undefined;
   if (!draft) return null;
+  if (draft.provisionalDuplicate) return duplicatePattern(useStructureDraft.getState().draft, draft.target) ? key : null;
   const lane = laneForPass(sequencer, draft.target);
   if (!lane) return null;
   try { return definitionAt(lane, draft.target).id === draft.definition.id ? key : null; }

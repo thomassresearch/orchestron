@@ -6,6 +6,7 @@ import { initialEditIntent, type DefinitionRelationship } from "./relationships"
 
 export function hasChangedClipDrafts(model: ClipArrangement | undefined, drafts: Record<string, DefinitionDraft>): boolean {
   return !!model && Object.values(drafts).some(draft => {
+    if (draft.provisionalDuplicate) return false;
     const original = model.lanes.find(l => l.id === draft.target.laneId)?.definitions.find(d => d.id === draft.definition.id);
     return (draft.editIntent?.scope === "local" && !!draft.editIntent.variationNameEdited) || !!draft.transposeEdits?.length || !!draft.additions?.length || JSON.stringify(original) !== JSON.stringify(draft.definition);
   });

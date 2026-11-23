@@ -1,5 +1,43 @@
 [
   {
+    "name": "instance_noise",
+    "category": "noise",
+    "description": "White noise and a fresh positive seed for each note, independent for each rack instance.",
+    "documentation_url": "https://csound.com/docs/manual/rnd31.html",
+    "documentation_markdown": "### Instance Noise\n\nEach rack assignment and node has its own reproducible sequence. Each note gets a separate white-noise voice and a seed for physical models. Restarting the engine resets the sequence.",
+    "inputs": [
+      {
+        "id": "amp",
+        "name": "Peak amplitude",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "i"
+        ],
+        "default": 1
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "White noise",
+        "signal_type": "a"
+      },
+      {
+        "id": "iseed",
+        "name": "Note seed",
+        "signal_type": "i"
+      }
+    ],
+    "template": "; Instance Noise uses a per-assignment seed and audio-rate rnd31.",
+    "tags": [
+      "random",
+      "seed",
+      "white noise",
+      "polyphonic"
+    ],
+    "icon_filename": "oscili.svg"
+  },
+  {
     "name": "sample_player",
     "category": "oscillator",
     "description": "Play the sample assigned to the exact MIDI note in this rack instance.",

@@ -20,10 +20,12 @@ def input_bounds(node, port, context, layout):
     variables = {}
     for index, compiled in enumerate(context.compiled_nodes.values()):
         source = compiled.node
-        for output in compiled.spec.outputs:
-            key = f'v{index}'
+        for port_index, output in enumerate(compiled.spec.outputs):
+            key = f'v{index}_{port_index}'
             variables[source.id, output.id] = key
-            if source.opcode == 'const_i':
+            if source.opcode == 'instance_noise' and output.id == 'iseed':
+                bindings[key] = (1, 999982)
+            elif source.opcode == 'const_i':
                 value = source.params.get('value', 0)
                 if isinstance(value, (int, float)):
                     bindings[key] = (value, value)

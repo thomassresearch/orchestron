@@ -36,7 +36,7 @@ AUDITED_OPCODE_HASHES = json.loads((Path(__file__).resolve().parents[1] / "data"
 # Keep consumers together so splitting does not duplicate/correlate that stream.
 RANDOM_STATE_USERS = frozenset({"jitter", "random", "randomh", "randomi", "noise", "pinker", "pinkish",
     "sekere", "sleighbells", "dripwater", "grain", "grain2", "granule", "vibr", "vibrato",
-    "waveguide_string", "swept_gate", "pluck", "marimba", "wgclar", "wgflute", "wgbow", "wgbowedbar", "prepiano"})
+    "swept_gate", "pluck", "marimba", "wgclar", "wgflute", "wgbow", "wgbowedbar", "prepiano"})
 TABLE_PORTS = frozenset({"ifn", "ifn1", "ifn2", "ifn3", "ifn4", "ifna", "ifnb", "ifnenv",
     "ivfn", "ivibfn", "igfn", "iwfn", "kfn", "iafn", "ioctfn", "imp", "irattles", "irubbers"})
 MIDI_READERS = frozenset({"cpsmidi", "ampmidi", "notnum", "midi_note", "midi_legato", "ctrl7", "midictrl"})
@@ -275,7 +275,13 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
             elif name not in {"outs", "inleta", "outleta", "const_a", "const_i", "const_k", "const_s"}:
                 resource("voice:" + identity + ":" + node.id, node, "voice", "read_write")
 
-            if name in RANDOM_STATE_USERS:
+            if name == "instance_noise":
+                resource("note-random:" + identity, node, "instance", "read_write")
+            elif name == "waveguide_string":
+                seed = input_bounds(node, next(p for p in spec.inputs if p.id == "iseed"), context, layout)
+                if seed is None or seed[0] < 1:
+                    resource("engine:random", node, "performance", "read_write")
+            elif name in RANDOM_STATE_USERS:
                 resource("engine:random", node, "performance", "read_write")
             if name == "grain3":
                 seed = input_bounds(node, next(p for p in spec.inputs if p.id == "iseed"), context, layout)

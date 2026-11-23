@@ -5,8 +5,10 @@ import { draftKey } from "./editorAdapter";
 import { arrangementTimings, migrateClipArrangement, sourceKeys } from "./migration";
 import { patternDuration, resolveClip, type ClipLane, type DefinitionDraft } from "./model";
 import { beginDraft } from "./operations";
-import { clipRuntimeView, runtimeSchedule } from "./runtime";
+import { clipAuditionSchedule, clipRuntimeView, runtimeSchedule } from "./runtime";
 import { clipSongPlayback, songDraftPlayback, songPatternEdits } from "./songDrafts";
+import { applyStructure, beginStructure } from "./structure";
+import { structureAuditionDraft } from "./structureAudition";
 
 function setup() {
   const state = parseSequencerConfigSnapshot(fixture.config, [], null).sequencer;
@@ -40,6 +42,51 @@ function edit(state: ReturnType<typeof setup>, lane: ClipLane, pass: number, sco
   return draft;
 }
 const keyed = (...drafts: DefinitionDraft[]) => Object.fromEntries(drafts.map(draft => [draftKey(draft), draft]));
+
+it("plays a structural draft alongside pending music and falls back safely on a collision", () => {
+  const state = setup(), model = state.clipArrangement!, [lane, other] = model.lanes;
+  model.version = 4;
+  const clip = lane.clips[0], timing = arrangementTimings(state);
+  const musical = keyed(edit(state, other, 1, "local", 2));
+  const duplicate = () => ({
+    ...applyStructure(beginStructure(model, lane.id, clip.id, 0), { kind: "duplicate", parent: [], ids: [clip.children[0].id] }, timing, model),
+    editIntent: { scope: "local" as const, explicit: true }
+  });
+  const draft = duplicate();
+  const preview = songDraftPlayback(state, musical, draft);
+  expect(runtimeSchedule(preview, preview.clipArrangement!.lanes[0]).clips[0].content).toHaveLength(5);
+  const musicalOnly = songDraftPlayback(state, musical);
+  expect(preview.clipArrangement!.lanes[1]).toEqual(musicalOnly.clipArrangement!.lanes[1]);
+  expect(model.lanes[1]).not.toEqual(musicalOnly.clipArrangement!.lanes[1]);
+  lane.clips.push({ ...clip, id: "next", start: clip.length, children: [{ ...clip.children[0], id: "another-use" }] });
+  model.end = Math.max(model.end, clip.length * 2);
+  expect(songDraftPlayback(state, musical, duplicate())).toEqual(songDraftPlayback(state, musical));
+});
+
+it("previews both structural scopes and keeps a container audition on the captured pattern", () => {
+  const state = setup(), model = state.clipArrangement!, lane = model.lanes[0], timing = arrangementTimings(state);
+  const clip = lane.clips[0], pattern = lane.definitions[0];
+  if (pattern.kind !== "pattern") throw Error("Expected a pattern");
+  const duration = patternDuration(pattern, timing[lane.id]);
+  const nested = { id: "child", definitionId: pattern.id };
+  lane.definitions.push({ id: "group", kind: "group", name: "Group", revision: 0, children: [nested] });
+  Object.assign(clip, { mode: "once", length: 2 * duration, children: [{ id: "group-use", definitionId: "group" }] });
+  lane.clips.push({ ...clip, id: "linked", start: clip.length, children: [{id: "other-group", definitionId: "group"}] });
+  const base = beginStructure(model, lane.id, clip.id, 0);
+  const target = { laneId: lane.id, clipId: clip.id, pass: 0, path: ["group-use"] };
+  const audition = structureAuditionDraft(model, base, target, timing);
+  const draft = applyStructure(base, { kind: "rest", target: { path: target.path, index: 0 }, ticks: duration }, timing, model);
+  for (const scope of ["local", "all"] as const) {
+    const result = clipSongPlayback(state, {}, audition, { ...draft, editIntent: { scope, explicit: true } });
+    const runtime = clipRuntimeView(result.state);
+    const [here, linked] = runtimeSchedule(runtime, runtime.clipArrangement!.lanes[0]).clips;
+    expect(here.content.map(c => c.pad)).toEqual([null, 0]);
+    expect(linked.content.map(c => c.pad)).toEqual(scope === "all" ? [null, 0] : [0]);
+    expect(clipAuditionSchedule(runtime, lane.id)!.clips[0].content).toEqual([
+      { pad: 1, length: duration, transpose_refs: [] }
+    ]);
+  }
+});
 
 it("plays pending patterns across all five source types and leaves the authored configuration intact", () => {
   const state = setup(), lanes = state.clipArrangement!.lanes, before = structuredClone(state);

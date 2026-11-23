@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+from hashlib import sha256
 
 from collections import defaultdict
 from pathlib import PurePosixPath
@@ -59,6 +60,7 @@ class OrchestraEmitter:
         instrument_number: int,
         instrument_name: str | None = None,
         global_scope_key: str,
+        instance_id: str,
         packaged_asset_paths: frozenset[str] = frozenset(),
         performance_input_mode: str = "midi",
         score_midi_channel: int = 0,
@@ -229,6 +231,21 @@ class OrchestraEmitter:
 
             if compiled.spec.name == "fm6_voice":
                 instrument_lines.extend(fm6_node_lines(compiled.node, env))
+                continue
+
+            if compiled.spec.name == "instance_noise":
+                # One init-rate sequence per rack assignment and node. Two draws per
+                # note keep its waveguide seed separate from its voice-local rnd31.
+                digest = sha256(f"{len(instance_id)}:{instance_id}{node_id}".encode()).hexdigest()
+                state = f"gi_vcs_rng_{digest[:24]}"
+                initial = 1 + int(digest[:16], 16) % 999982
+                global_header_lines.append(f"{state} init {initial}")
+                # 15 is a primitive root modulo 999983. All integer products fit
+                # exactly even in single precision and every seed is positive.
+                advance = f"{state} = (15 * {state}) % 999983"
+                instrument_lines.extend([self._node_comment(node_id, compiled.spec.name),
+                    advance, f"{env['iseed']} = {state}", advance,
+                    f"{env['aout']} rnd31 {env['amp']}, 0, {state}"])
                 continue
 
             if compiled.spec.name == "sample_player":

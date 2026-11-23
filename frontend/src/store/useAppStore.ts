@@ -2,7 +2,8 @@ import { sameSongEdits, songPatternEdits } from "../lib/clipArranger/songDrafts"
 import { automationRouting, mappedControls, reconcileAutomation } from "../lib/clipArranger/automation";
 import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
 import { useAutomationMerge } from "../lib/clipArranger/automationMerge";
-import { useStructureDraft } from "../lib/clipArranger/structureStore";
+import { refreshDuplicateEditors, reviewStructureDraft, useStructureDraft } from "../lib/clipArranger/structureStore";
+import { arrangementTimings } from "../lib/clipArranger/migration";
 import { confirmReplacement, resolveClipDrafts } from "../lib/clipArranger/draftResolution";
 import { migrateSequencerTiming } from "../lib/sequencerTimingMigration";
 import { createArrangerHistoryActions, emptyArrangerHistory, historyMatches, readArrangerHistory } from "./arrangerHistory";
@@ -1267,6 +1268,20 @@ useAppStore.subscribe((state, previous) => {
   if (!sameSongEdits(songPatternEdits(previous.sequencer, previous.clipDrafts), songPatternEdits(state.sequencer, state.clipDrafts))) {
     useAppStore.setState({ sequencerEditRevision: state.sequencerEditRevision + 1 });
   }
+});
+
+useStructureDraft.subscribe(({ draft }, previous) => {
+  if (draft?.roots === previous.draft?.roots && draft?.editIntent?.scope === previous.draft?.editIntent?.scope) return;
+  const state = useAppStore.getState();
+  const model = state.sequencer.clipArrangement;
+  if (!model || (!draft?.cursor && !previous.draft?.cursor)) return;
+  const timings = arrangementTimings(state.sequencer);
+  const changed = reviewStructureDraft(model, previous.draft, timings).result !== reviewStructureDraft(model, draft, timings).result;
+  const clipDrafts = refreshDuplicateEditors(draft, state.clipDrafts);
+  if (changed || clipDrafts !== state.clipDrafts) useAppStore.setState({
+    clipDrafts, clipEditingKey: state.clipEditingKey && clipDrafts[state.clipEditingKey] ? state.clipEditingKey : null,
+    sequencerEditRevision: state.sequencerEditRevision + Number(changed)
+  });
 });
 
 // Channel/patch/rack changes derive bound routing without re-enabling suspended sources.

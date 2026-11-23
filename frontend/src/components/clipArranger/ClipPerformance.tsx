@@ -19,7 +19,7 @@ import { ClipEditingContext } from "./context";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { mergedSequencerState } from "../../lib/mergedSequencerState";
 import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
-import type { ClipArrangement, SourceKind } from "../../lib/clipArranger/model";
+import type { ClipArrangement, DefinitionDraft, SourceKind } from "../../lib/clipArranger/model";
 import { contentLength, resolveContent, patternDuration, QUARTER_TICKS } from "../../lib/clipArranger/model";
 import { clipEditorPlaybackView } from "../../lib/clipArranger/editorAdapter";
 import { useAppStore } from "../../store/useAppStore";
@@ -75,7 +75,7 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
   const auditionRef = useRef(audition); auditionRef.current = audition;
   const statuses = useAppStore(s => s.performanceAuditions);
   const songPosition = useAppStore(s => s.sequencerRuntime.arrangerTransportSubunit);
-  const active = useRef<{ id: string; gesture: string; key: string; last: unknown } | null>(null);
+  const active = useRef<{ id: string; gesture: string; key: string; last: DefinitionDraft } | null>(null);
   const [auditioning, setAuditioning] = useState(false);
   const stopEdit = async () => {
     const previous = active.current; active.current = null; setAuditioning(false);
@@ -85,7 +85,7 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
     if (!active.current && owned && useAppStore.getState().clipAuditionDraft === owned) useAppStore.setState({ clipAuditionDraft: null });
   };
   useEffect(() => {
-    if (shell && active.current && active.current.key !== key) void stopEdit().catch(e => setError(String(e)));
+    if (active.current && (shell || active.current.last.provisionalDuplicate) && active.current.key !== key) void stopEdit().catch(e => setError(String(e)));
   }, [key]);
   const [renameKey, setRenameKey] = useState<string | null>(null);
   const nameInput = useRef<HTMLInputElement>(null);
@@ -106,7 +106,7 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
     const current = active.current;
     const editing = current ? drafts[current.key] : undefined;
     if (!auditioning || !current || !editing || editing.definition.kind !== "pattern" || current.last === editing) return;
-    const previous = current.last as typeof editing;
+    const previous = current.last;
     if (JSON.stringify(previous.definition) === JSON.stringify(editing.definition)) return;
     const snapshot = { ...editing, transposeEdits: previous.transposeEdits };
     const timer = setTimeout(() => {
@@ -192,13 +192,14 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
     }
     catch { breadcrumb = `${name} / ${draft.definition.name}`; }
   }
-  const previewSaveLabel = draft?.definition.kind === "pattern" ? arrangeSaveLabel(language, "pattern", scope, relationship) : structure.saveLabel;
+  const separatePattern = draft?.definition.kind === "pattern" && !draft.provisionalDuplicate;
+  const previewSaveLabel = separatePattern ? arrangeSaveLabel(language, "pattern", scope, relationship) : structure.saveLabel;
   const attempt = (action: () => void) => { try { action(); setError(null); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } };
   const renderPanel = () => {
     if (!draft || !lane) return !shell && <p className="px-3 py-2 text-xs text-slate-500">{c.select}</p>;
     const actions = <>
       {active.current && <span role="status" className="text-cyan-200">{statuses[active.current.id]?.workspace_queued ? c.auditionQueued : c.auditioning}</span>}
-      <span className="text-amber-200">{(draft.definition.kind === "pattern" ? dirty : structure.draft?.cursor) ? c.unsaved : c.saved}</span>
+      <span className="text-amber-200">{(separatePattern ? dirty : structure.draft?.cursor) ? c.unsaved : c.saved}</span>
       <button className={clipButtonClass(active.current ? "edit" : "add")} disabled={!active.current && (!scope || (draft.definition.kind!=="pattern"&&!container))} onClick={() => { void (async () => {
         if (active.current) { await stopEdit(); return; }
         const gesture = crypto.randomUUID();
@@ -210,18 +211,24 @@ export function ClipPerformance({ language, instrumentName, renderEditor, transp
         useAppStore.setState({ clipAuditionDraft: played });
         try { await audition?.(lane.id, { action: "workspace_start", gestureId: gesture, clipDraft: played }); if (active.current?.gesture === gesture) setAuditioning(true); }
         catch (e) { if (active.current?.gesture === gesture) { active.current = null; useAppStore.setState({ clipAuditionDraft: null }); setError(String(e)); } }
-      })(); }}>{active.current ? c.stop : c.play}</button><button className={clipButtonClass("save")} disabled={draft.definition.kind==="pattern" ? !scope || !dirty : !structure.canSave} onClick={() => { if(draft.definition.kind==='pattern') void stopEdit().then(()=>attempt(()=>saveClipDraftWithIntent(key ?? undefined))).catch(e=>setError(String(e))); else structure.openSave(); }}>{shell ? previewSaveLabel : draft.definition.kind==="pattern" ? scope==='local'?sc.saveLocal:relationship?.shared?`${sc.saveAll} (${relationship.occurrences})`:c.save : structure.draft?.editIntent?.scope==='all'?sc.saveStructureAll:sc.saveStructureLocal}</button>{key && draft.definition.kind === "pattern" && <button className={clipButtonClass("remove")} onClick={() => void resolveClose(key, "discard")}>{arrangeCopy(language).cancelEdits}</button>}
+      })(); }}>{active.current ? c.stop : c.play}</button>
+      <button className={clipButtonClass("save")} disabled={separatePattern ? !scope || !dirty : !structure.canSave} onClick={() => {
+        if (separatePattern) void stopEdit().then(() => attempt(() => saveClipDraftWithIntent(key ?? undefined))).catch(e => setError(String(e)));
+        else structure.openSave();
+      }}>{shell ? previewSaveLabel : separatePattern ? scope === 'local' ? sc.saveLocal : relationship?.shared ? `${sc.saveAll} (${relationship.occurrences})` : c.save : structure.draft?.editIntent?.scope === 'all' ? sc.saveStructureAll : sc.saveStructureLocal}</button>
+      {draft.provisionalDuplicate && <button className={clipButtonClass("remove")} onClick={structure.discard}>{t.discard}</button>}
+      {key && separatePattern && <button className={clipButtonClass("remove")} onClick={() => void resolveClose(key, "discard")}>{arrangeCopy(language).cancelEdits}</button>}
       {!shell && <button className={clipButton} onClick={() => requestClose(() => useAppStore.setState({ clipEditingKey: null }))}>{c.close}</button>}
     </>;
-    const chooseScope = draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}
+    const chooseScope = draft.provisionalDuplicate ? null : draft.definition.kind === 'pattern' ? <EditScopeControls key={key} language={language} scope={scope} relationship={relationship} repeat={selectedClip?.mode==='loop'} splitWindows={localLoopWindows(lane,draft.target.clipId,draft.target.pass,timings[lane.id])}
         variationName={draft.editIntent?.variationName ?? uniqueVariationName(lane, draft.definition.name, sc.variationSuffix)}
         onChoose={next => structure.guardPattern(draft.target, next, ready =>
           setClipEditIntent(next, draft.editIntent?.variationName ?? uniqueVariationName(lane, draft.definition.name, sc.variationSuffix), draftKey({ target: ready })))}
         patternName={draft.definition.name} nameInputRef={nameInput} onNameChange={renameClipPattern} /> : structure.scopeControls;
     const settings = <>
-      {shell ? ["sequencer", "score", "arpeggiator"].includes(lane.source) && <EditorDetails owner={`device:${lane.id}`} field="clipTranspose" className="mb-2 text-xs" summary={transposeCopy(language).title}>
+      {!draft.provisionalDuplicate && (shell ? ["sequencer", "score", "arpeggiator"].includes(lane.source) && <EditorDetails owner={`device:${lane.id}`} field="clipTranspose" className="mb-2 text-xs" summary={transposeCopy(language).title}>
         {() => <TransposeInspector key={key} language={language} stopAudition={stopEdit} />}
-      </EditorDetails> : <TransposeInspector key={key} language={language} stopAudition={stopEdit} />}
+      </EditorDetails> : <TransposeInspector key={key} language={language} stopAudition={stopEdit} />)}
       <AutomationDuration language={language} />
       <p className="mb-2 text-[10px] text-slate-500">{c.laneSettings}</p>
     </>;

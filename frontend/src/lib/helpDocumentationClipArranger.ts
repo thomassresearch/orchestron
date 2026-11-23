@@ -12,7 +12,7 @@ Drag a clip header to move its window and its edges to trim it. Start, length an
 
 ### Edit and save
 
-Press **Play** to hear musical edits where the pattern occurs in the song. Switching tracks keeps pending edits audible. **Cancel edits** restores the saved pattern at the current position. Save keeps your changes in the arrangement.
+Press **Play** to hear musical edits where the pattern occurs in the song. Switching tracks keeps pending edits audible. When you duplicate or move a pattern, it plays at its new position. Double-click an unsaved duplicate to edit its notes. **Save structure here** keeps its placement and notes together. **Discard** removes the copy and its edits. **Cancel edits** restores the saved pattern at the current position. Save keeps your changes in the arrangement.
 
 Right-click a pattern and choose **Rename pattern**, edit **Pattern name** and save. In the Inspector, click the pencil beside a clip or pattern name. Click elsewhere or press Tab to save the name, or press Esc to cancel. To rename a single shared occurrence, choose **Create variation here** and edit **Variation name**. The name appears on the timeline. **Cancel edits** discards this pattern draft. Closing a changed pattern offers Save, **Discard edits**, or **Keep editing**. Open **Loop details** to see the affected beat ranges.
 
@@ -39,7 +39,7 @@ Den Clip-Kopf ziehen, um sein Fenster zu verschieben; die Ränder ziehen, um es 
 
 ### Bearbeiten und speichern
 
-Bei laufender Wiedergabe hörst du deine Änderungen an den jeweiligen Stellen im Song. Beim Spurwechsel bleiben sie hörbar. **Bearbeitung abbrechen** stellt das gespeicherte Pattern an der aktuellen Songposition wieder her. Speichern übernimmt die Änderungen ins Arrangement.
+Bei laufender Wiedergabe hörst du deine Änderungen an den jeweiligen Stellen im Song. Beim Spurwechsel bleiben sie hörbar. Duplizierte oder verschobene Patterns hörst du an ihrer neuen Position. Doppelklicke auf eine ungespeicherte Kopie, um ihre Noten zu bearbeiten. **Struktur hier speichern** übernimmt Position und Noten zusammen. **Verwerfen** entfernt die Kopie samt Änderungen. **Bearbeitung abbrechen** stellt das gespeicherte Pattern an der aktuellen Songposition wieder her. Speichern übernimmt die Änderungen ins Arrangement.
 
 Klicke mit der rechten Maustaste auf ein Pattern, wähle **Pattern umbenennen**, ändere den **Patternnamen** und speichere. Klicke im Inspektor auf den Stift neben dem Clip- oder Patternnamen. Klicke zum Speichern an eine andere Stelle oder drücke die Tabulatortaste. Mit Esc brichst du die Umbenennung ab. Um nur eine verknüpfte Verwendung umzubenennen, erstelle dort eine Variation und ändere ihren Namen. **Bearbeitung abbrechen** verwirft diesen Entwurf. Beim Schließen kannst du speichern, verwerfen oder weiter bearbeiten. **Schleifendetails** zeigt die betroffenen Schläge.
 
@@ -66,7 +66,7 @@ Glissez l’en-tête d’un clip pour déplacer sa fenêtre et ses bords pour la
 
 ### Modifier et enregistrer
 
-Lancez la lecture pour entendre vos modifications aux endroits où le motif apparaît dans le morceau. Vous pouvez changer de piste tout en les écoutant. **Annuler les modifications** rétablit le motif enregistré à la position en cours. Enregistrez le motif pour conserver les modifications dans l’arrangement.
+Lancez la lecture pour entendre vos modifications aux endroits où le motif apparaît dans le morceau. Vous pouvez changer de piste tout en les écoutant. Un motif dupliqué ou déplacé joue à sa nouvelle position. Double-cliquez sur une copie avant de l’enregistrer pour modifier ses notes. **Enregistrer la structure ici** conserve sa position et ses notes ensemble. **Abandonner** supprime la copie et ses modifications. **Annuler les modifications** rétablit le motif enregistré à la position en cours. Enregistrez le motif pour conserver les modifications dans l’arrangement.
 
 Faites un clic droit sur un motif, choisissez **Renommer le motif**, modifiez le **Nom du motif** et enregistrez. Dans l’inspecteur, cliquez sur le crayon à côté du nom du clip ou du motif. Cliquez ailleurs ou appuyez sur Tab pour enregistrer le nom, ou sur Échap pour annuler. Pour renommer une seule occurrence liée, choisissez **Créer une variante ici** et modifiez son nom. **Annuler les modifications** abandonne ce brouillon. À la fermeture, choisissez d’enregistrer, d’abandonner ou de continuer à modifier. **Détails de la boucle** affiche les temps concernés.
 
@@ -93,7 +93,7 @@ Arrastra la cabecera de un clip para mover su ventana y sus bordes para recortar
 
 ### Editar y guardar
 
-Inicia la reproducción para escuchar los cambios donde aparece el patrón en la canción. Puedes cambiar de pista y seguir escuchándolos. **Cancelar cambios** recupera el patrón guardado en la posición actual. Guarda el patrón para conservar los cambios en el arreglo.
+Inicia la reproducción para escuchar los cambios donde aparece el patrón en la canción. Puedes cambiar de pista y seguir escuchándolos. Al duplicar o mover un patrón, lo oirás en su nueva posición. Haz doble clic en una copia sin guardar para editar sus notas. **Guardar estructura aquí** conserva su posición y sus notas juntas. **Descartar** elimina la copia y sus cambios. **Cancelar cambios** recupera el patrón guardado en la posición actual. Guarda el patrón para conservar los cambios en el arreglo.
 
 Haz clic derecho en un patrón, elige **Renombrar patrón**, edita el **Nombre del patrón** y guarda. En el Inspector, pulsa el lápiz junto al nombre del clip o del patrón. Haz clic fuera del campo o pulsa Tab para guardar el nombre, o pulsa Esc para cancelar. Para renombrar una sola aparición vinculada, elige **Crear variación aquí** y cambia su nombre. **Cancelar cambios** descarta este borrador. Al cerrar, puedes guardar, descartar los cambios o seguir editando. **Detalles del bucle** muestra los pulsos afectados.
 

@@ -1,14 +1,14 @@
 import { definitionRelationships, effectiveScope, uniqueVariationName, type EditScope } from "../lib/clipArranger/relationships";
 import { scopeCopy } from "../lib/clipArranger/scopeCopy";
 import { hasChangedClipDrafts, occurrenceEditIntent } from "../lib/clipArranger/draftResolution";
-import { beginStructure, refreshStructureWindows } from '../lib/clipArranger/structure';
+import { beginStructure, duplicatePattern, refreshStructureWindows } from '../lib/clipArranger/structure';
 import { useAppStore } from "./useAppStore";
 import { arrangementTimings, migrateClipArrangement, sourceKeys } from "../lib/clipArranger/migration";
 import { contentLength, validateArrangement, type ClipArrangement, type Definition, type OccurrenceTarget } from "../lib/clipArranger/model";
 import { beginDraft, emptyClipHistory, recordClipEdit, replayClipEdit, saveDraft } from "../lib/clipArranger/operations";
 import { draftKey } from "../lib/clipArranger/editorAdapter";
 import { rebaseStructure, remapMusicalTarget, retainMusicalDrafts } from "../lib/clipArranger/structuralDraftResolution";
-import { useStructureDraft } from "../lib/clipArranger/structureStore";
+import { editDuplicatePattern, useStructureDraft } from "../lib/clipArranger/structureStore";
 import { saveTransposeEdits } from '../lib/clipArranger/transposeEdits';
 
 export function saveClipTransposition(resolvingKey?: string) {
@@ -53,6 +53,13 @@ export function openClipEditor(target: OccurrenceTarget, scope?: EditScope) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
   if (!model) return;
   const key = draftKey({ target });
+  const copy = duplicatePattern(useStructureDraft.getState().draft, target);
+  if (copy) {
+    useAppStore.setState({ clipEditingKey: key, clipDrafts: { ...state.clipDrafts, [key]: {
+      target, definition: copy, baseRevision: copy.revision, provisionalDuplicate: true, editIntent: { scope: 'local', explicit: true }
+    } } });
+    return;
+  }
   const draft = state.clipDrafts[key] ?? beginDraft(model, target);
   const lane = model.lanes.find(l => l.id === target.laneId)!;
   const clip = lane.clips.find(c => c.id === target.clipId)!;
@@ -114,6 +121,10 @@ export function saveClipDraftWithIntent(resolvingKey?: string) {
 export function updateClipDraft(definition: Definition, additions?: Definition[]) {
   const state = useAppStore.getState(), key = state.clipEditingKey;
   if (!key || !state.clipDrafts[key]) return;
+  if (state.clipDrafts[key].provisionalDuplicate && definition.kind === 'pattern') {
+    editDuplicatePattern(state.clipDrafts[key], definition);
+    return;
+  }
   useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...state.clipDrafts[key], definition, ...(additions ? { additions } : {}) } } });
 }
 export function saveClipDraft(scope: "local" | "all", name: string, resolvingKey?: string) {

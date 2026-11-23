@@ -3,7 +3,7 @@ import { defaultControllerSequencer, defaultControllerSequencerPad } from "./app
 import { mappedControls, automationCandidates, controllerToMidi, readAutomationTarget } from "../lib/clipArranger/automation";
 import { arrangementTimings } from "../lib/clipArranger/migration";
 import { validateArrangement, type ClipLane, type PatternDefinition } from "../lib/clipArranger/model";
-import { commitClipArrangement } from "./clipActions";
+import { updateClipDraft, commitClipArrangement } from "./clipActions";
 
 export function generateAutomation(laneId: string, clipId: string, instrumentId: string) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
@@ -62,5 +62,5 @@ export function setAutomationCurveDuration(ticks: number) {
   if (!state.sequencer.controllerSequencers.find(t => t.id === draft.target.laneId)?.automationTarget) return;
   if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > 20160000000) return;
   const definition = { ...draft.definition, payload: { ...draft.definition.payload, curveDurationTicks: ticks } };
-  useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...draft, definition } } });
+  updateClipDraft(definition);
 }

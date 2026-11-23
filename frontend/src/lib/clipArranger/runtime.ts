@@ -111,6 +111,7 @@ export function attachClipSchedules<T extends import("../../types").SessionSeque
 
 /** Shared definition order for audition compilation and audible UI slot lookup. */
 export function clipAuditionDefinitions(lane: ClipLane, draft: DefinitionDraft) {
+  if (draft.auditionContext) return [...lane.definitions, ...Object.values(draft.auditionContext.patterns)];
   const additions = new Map((draft.additions ?? []).filter(d => !lane.definitions.some(existing => existing.id === d.id)).map(d => [d.id, d]));
   const reachable = new Set<string>();
   const visit = (definition: typeof draft.definition) => {
@@ -135,38 +136,50 @@ export function clipAuditionState(state: SequencerState, draft: DefinitionDraft,
   const next = structuredClone(song), lane = next.clipArrangement!.lanes.find(l => l.id === draft.target.laneId);
   if (!lane) throw new Error("The audition lane no longer exists.");
   lane.definitions = structuredClone(clipAuditionDefinitions(lane, draft));
-  const definition = lane.definitions[lane.definitions.length - 1];
   const patterns = lane.definitions.filter(d => d.kind === "pattern"), slots = new Map(patterns.map((p, i) => [p.id, i]));
   const timing = arrangementTimings(next)[lane.id];
   // Use the exact schedule for every saved format. This view is session-only.
-  next.clipArrangement!.version = state.clipArrangement.version === 4 ? 4 : 3;
+  next.clipArrangement!.version = next.clipArrangement!.version === 4 ? 4 : 3;
   const preview = saveTransposeEdits(state.clipArrangement, draft.target, draft.transposeEdits ?? [], arrangementTimings(state));
-  const sourceLane = draft.auditionContext?.lane ?? preview.lanes.find(l => l.id === lane.id)!;
+  const snapshot = draft.auditionContext;
+  const sourceLane = snapshot?.lane ?? preview.lanes.find(l => l.id === lane.id)!;
   const sourceClip = sourceLane.clips.find(c => c.id === draft.target.clipId)!;
-  const logical = logicalRepeatIndex(sourceLane,sourceClip,draft.target.path,draft.target.pass);
-  const inherited = transposePlans(sourceLane, sourceClip, draft.target.path);
-  const auditionLane = { ...lane, transposeProfiles: sourceLane.transposeProfiles };
-  // The selected level is already included in inherited; descendants add their own scopes.
-  delete definition.transposeProfileId;
-  const root = { id: 'audition-root', definitionId: definition.id, repeatIndex:logical };
-  const contextClip = { ...sourceClip, children: [root], transposePlacements: sourceClip.transposePlacements?.flatMap(p => {
-    if (p.path.length <= draft.target.path.length || !draft.target.path.every((id,i)=>p.path[i]===id)) return [];
-    const suffix = p.path.slice(draft.target.path.length).map(id => draft.auditionContext?.childIds[id] ?? id);
-    if (definition.kind !== 'pattern' && draft.definition.kind !== 'pattern') {
-      const index = draft.definition.children.findIndex(i=>i.id===p.path[draft.target.path.length]);
-      if (index < 0) throw Error('The audition placement changed. Refresh the draft.');
-      suffix[0] = definition.children[index].id;
-    }
-    return [{...p,path:[root.id,...suffix]}];
-  }) };
   const plans: OffsetPlan[] = [], indices = new Map<string,number>();
   const intern = (p: OffsetPlan) => {
     const frozen = {base:offsetAt(p,(sourceClip.repeatIndexBase??0)+draft.target.pass),repetitions:[]}, key = JSON.stringify(frozen);
     if (!indices.has(key)) { indices.set(key,plans.length); plans.push(frozen); }
     return indices.get(key)!;
   };
-  const content = resolveContent(lane,[root],timing).map(leaf=>({pad:leaf.definition?slots.get(leaf.definition.id)!:null,length:leaf.length,
-    transpose_refs:leaf.definition?[...inherited,...transposePlans(auditionLane,contextClip,leaf.path)].map(intern):[]}));
+  let content: RuntimeClipSchedule['clips'][number]['content'];
+  if (snapshot) {
+    const parent = draft.target.path.slice(0, -1);
+    const root = { id: draft.target.path[draft.target.path.length - 1], definitionId: draft.definition.id };
+    content = resolveContent(sourceLane, [root], timing).map(leaf => ({
+      pad: leaf.definition ? slots.get(snapshot.patterns[leaf.definition.id].id)! : null,
+      length: leaf.length,
+      transpose_refs: leaf.definition ? transposePlans(sourceLane, sourceClip, [...parent, ...leaf.path]).map(intern) : []
+    }));
+  } else {
+    const definition = lane.definitions[lane.definitions.length - 1];
+    const logical = logicalRepeatIndex(sourceLane,sourceClip,draft.target.path,draft.target.pass);
+    const inherited = transposePlans(sourceLane, sourceClip, draft.target.path);
+    const auditionLane = { ...lane, transposeProfiles: sourceLane.transposeProfiles };
+    // The selected level is already included in inherited; descendants add their own scopes.
+    delete definition.transposeProfileId;
+    const root = { id: 'audition-root', definitionId: definition.id, repeatIndex:logical };
+    const contextClip = { ...sourceClip, children: [root], transposePlacements: sourceClip.transposePlacements?.flatMap(p => {
+      if (p.path.length <= draft.target.path.length || !draft.target.path.every((id,i)=>p.path[i]===id)) return [];
+      const suffix = p.path.slice(draft.target.path.length);
+      if (definition.kind !== 'pattern' && draft.definition.kind !== 'pattern') {
+        const index = draft.definition.children.findIndex(i=>i.id===p.path[draft.target.path.length]);
+        if (index < 0) throw Error('The audition placement changed. Refresh the draft.');
+        suffix[0] = definition.children[index].id;
+      }
+      return [{...p,path:[root.id,...suffix]}];
+    }) };
+    content = resolveContent(lane,[root],timing).map(leaf=>({pad:leaf.definition?slots.get(leaf.definition.id)!:null,length:leaf.length,
+      transpose_refs:leaf.definition?[...inherited,...transposePlans(auditionLane,contextClip,leaf.path)].map(intern):[]}));
+  }
   const duration=content.reduce((sum,l)=>sum+l.length,0);
   const schedule: RuntimeClipSchedule = {version:2,end:duration,cycle_ticks:duration,transpose_plans:plans,
     clips:[{id:'audition',start:0,length:duration,offset:0,mode:'once',content}]};

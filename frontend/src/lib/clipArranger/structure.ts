@@ -2,10 +2,10 @@ import type { EditIntent } from "./relationships";
 import { nodeTicks, placeAt, resizeNode } from './timedStructure';
 import { sumPlans, offsetAt, TRANSPOSE_LIMITS, type OffsetPlan } from "./transposition";
 import { remapPlacementChildren } from "./transposeEdits";
-import { CLIP_LIMITS, ClipError, resolveContent, contentLength, definitionMap, newClipId, validateArrangement, type ClipArrangement, type Clip, type ClipLane, type ContentItem, type Definition, type LaneTiming, type OccurrenceTarget } from './model';
+import { CLIP_LIMITS, ClipError, resolveContent, contentLength, definitionMap, newClipId, validateArrangement, type ClipArrangement, type Clip, type ClipLane, type ContentItem, type Definition, type LaneTiming, type OccurrenceTarget, type PatternDefinition } from './model';
 
 /** Nodes represent occurrences, including repeated uses of the same definition. */
-export type StructureNode = { id: string; repeatIndex?: number; originalPass?: number; definition?: Definition; restTicks?: number; children?: StructureNode[]; transpose?: OffsetPlan; placement?: OffsetPlan; originalPath?: string[]; variationOf?: string };
+export type StructureNode = { id: string; duplicate?: boolean; repeatIndex?: number; originalPass?: number; definition?: Definition; restTicks?: number; children?: StructureNode[]; transpose?: OffsetPlan; placement?: OffsetPlan; originalPath?: string[]; variationOf?: string };
 export type ContainerTarget = { path: string[]; index: number; ticks?: number };
 export type StructureFocus = { laneId: string; clipId: string; pass: number; parent: string[] };
 export type StructureSelection = { parent: string[]; ids: string[]; anchor: string; anchorPass?: number; tip?: {pass:number;id:string}; range?: {first:number;last:number} };
@@ -17,6 +17,7 @@ export type StructureCommand =
   | { kind: 'groupRepetitions'; range: RepetitionRange; level:'group'|'supergroup'; name:string }
   | { kind: 'insert'; target: ContainerTarget; definition: Definition; variation: boolean }
   | { kind: 'rest'; target: ContainerTarget; ticks: number }
+  | { kind: 'editDuplicate'; path: string[]; pattern: PatternDefinition }
   | { kind: 'rename'; path: string[]; name: string }
   | { kind: 'move'; parent: string[]; ids: string[]; target: ContainerTarget }
   | { kind: 'group'; parent: string[]; ids: string[]; level: 'group' | 'supergroup'; name: string }
@@ -57,6 +58,17 @@ export function structureChildren(roots: StructureNode[], path: string[]): Struc
     items = node!.children!;
   }
   return items;
+}
+/** Only copies created in this structural transaction can open a provisional note editor. */
+export function duplicatePattern(draft: StructureDraft | null, target: OccurrenceTarget) {
+  if (!draft || draft.laneId !== target.laneId || draft.clipId !== target.clipId || draft.pass !== target.pass) return;
+  let nodes = draft.roots;
+  let node: StructureNode | undefined;
+  for (const id of target.path) {
+    node = nodes.find(item => item.id === id);
+    nodes = node?.children ?? [];
+  }
+  return node?.duplicate && node.definition?.kind === 'pattern' ? node.definition : undefined;
 }
 function fixedIndexAt(roots: StructureNode[], path: string[]): number | undefined {
   let index: number | undefined, nodes = roots;
@@ -121,6 +133,13 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
     }
     if (rank(node) >= parentRank(roots, command.target.path)) fail('This content cannot be nested here.');
     if(command.target.ticks!==undefined){const placed=placeAt(items,[node],command.target.ticks,timings[draft.laneId]);items.splice(0,items.length,...placed);}else items.splice(command.target.index, 0, node);
+  } else if (command.kind === 'editDuplicate') {
+    const node = structureChildren(roots, command.path.slice(0, -1)).find(n => n.id === command.path[command.path.length - 1]);
+    if (!node?.duplicate || node.definition?.kind !== 'pattern' || node.definition.source !== command.pattern.source) {
+      throw new ClipError('invalid', 'The duplicated pattern no longer exists.');
+    }
+    node.variationOf ??= node.definition.id;
+    node.definition = { ...command.pattern, transposeProfileId: node.definition.transposeProfileId, revision: 0 };
   } else if (command.kind === 'rename') {
     const node = structureChildren(roots, command.path.slice(0, -1)).find(n => n.id === command.path[command.path.length - 1]);
     if (!node?.definition || node.definition.kind === 'pattern') fail('Select a container to rename.');
@@ -143,6 +162,7 @@ export function applyStructure(draft: StructureDraft, command: StructureCommand,
       const duplicates = copy(chosen);
       const forgetOrigin = (nodes: StructureNode[]) => nodes.forEach(n => {
         delete n.originalPath; delete n.originalPass;
+        n.duplicate = true;
         if (n.children) forgetOrigin(n.children);
       });
       forgetOrigin(duplicates);
@@ -358,8 +378,14 @@ function materialize(draft: StructureDraft, scope: 'local'|'all', preview = fals
     const original = draft.basis.definitions.find(d=>d.id===n.definition!.id);
     const def = copy(n.definition);
     if (n.variationOf && def.transposeProfileId) {
-      const profile = lane.transposeProfiles!.find(p=>p.id===def.transposeProfileId)!;
-      const fork = {...copy(profile),id:newClipId(),revision:0}; lane.transposeProfiles!.push(fork); def.transposeProfileId=fork.id;
+      const existing = lane.definitions.find(d => d.id === def.id);
+      if (existing?.transposeProfileId) def.transposeProfileId = existing.transposeProfileId;
+      else {
+        const profile = lane.transposeProfiles!.find(p => p.id === def.transposeProfileId)!;
+        const fork = { ...copy(profile), id: newClipId(), revision: 0 };
+        lane.transposeProfiles!.push(fork);
+        def.transposeProfileId = fork.id;
+      }
     }
     if (def.kind!=='pattern') def.children=visit(n.children!);
     const changed = !original || JSON.stringify(def)!==JSON.stringify(original);
@@ -367,7 +393,7 @@ function materialize(draft: StructureDraft, scope: 'local'|'all', preview = fals
     // The proposed local name never mutates the shared definition or the draft tree.
     if (scope==='local' && draft.editIntent?.scope==='local' && draft.editorTarget && JSON.stringify(n.originalPath)===JSON.stringify(draft.editorTarget.path) && draft.editIntent.variationName?.trim()) def.name=draft.editIntent.variationName.trim();
     if (original) shared=true;
-    if (scope==='all' && original) {
+    if (scope==='all' && original && !n.duplicate) {
       const signature=JSON.stringify(def.kind==='pattern'?def:{...def,children:def.children.map(i=>'definitionId' in i?{definitionId:i.definitionId,transpose:i.transpose,repeatIndex:i.repeatIndex}:{restTicks:i.restTicks})});
       if (changes.has(def.id) && changes.get(def.id)!==signature) fail('Different occurrences require incompatible structures. Save only this occurrence.');
       changes.set(def.id,signature); def.revision=original.revision+1;

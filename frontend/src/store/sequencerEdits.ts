@@ -1,3 +1,4 @@
+import { editDuplicatePattern } from "../lib/clipArranger/structureStore";
 import { clipEditorView } from "../lib/clipArranger/editorAdapter";
 import type { DefinitionDraft, PatternDefinition } from "../lib/clipArranger/model";
 import type { StoreApi } from "zustand";
@@ -154,8 +155,10 @@ export function sequencerEditAccess(set: StoreApi<AppStore>["setState"], get: ()
     }
     const sequencer = sameFields(authored, state.sequencer) ? state.sequencer : authored;
     const changed = sequencerAudioChanged(sequencer, state.sequencer);
-    set({ ...delta, clipDrafts, sequencer, sequencerEditRevision: state.sequencerEditRevision + Number(changed),
+    const duplicate = draft?.provisionalDuplicate && state.clipEditingKey ? clipDrafts[state.clipEditingKey] : undefined;
+    set({ ...delta, clipDrafts: duplicate ? state.clipDrafts : clipDrafts, sequencer, sequencerEditRevision: state.sequencerEditRevision + Number(changed),
       sequencerRuntime: state.sequencerRuntime.isPlaying ? runtime : delta.sequencerRuntime ?? runtime });
+    if (duplicate && duplicate !== draft && duplicate.definition.kind === "pattern") editDuplicatePattern(duplicate, duplicate.definition);
   };
   return { get: read, set: write };
 }

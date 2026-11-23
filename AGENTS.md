@@ -124,7 +124,7 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   of arranger playback; retain the documented seek/reset behavior.
 - Device editors select stopped/Arrangement pads for editing. Running Manual pads queue at pattern boundaries (orange queued, cyan playing). In Live, each arranger lane launches its saved patterns by definition ID through a session-only workspace. Arrangement devices share a song-position mapping. Manual pads retain phase through song seeks, loops, endings and arranger controls. Runtime intent and signed phase anchors never enter saved configuration. See backend independent-device transport.
 - Musical and structural clip drafts retain upfront local/all-linked editing scope in session-only metadata.
-  Arrange Play previews pending musical edits at their scoped song occurrences across selections. Cancel restores the committed pattern and Save commits one undoable edit. Scope changes never commit content; ordinary Save consumes established intent. Relationship highlights
+  Arrange Play previews scoped musical edits and valid structural drafts, including duplicates and timed moves. Note edits on provisional duplicates fork the copy within the structural draft. Discard restores saved playback and Save commits one undoable edit. Scope changes never commit content; ordinary Save consumes established intent. Relationship highlights
   are not multi-selection. See the arranger guide for pending gestures and local-only operations.
 - Arranger Undo/Redo stores 25 atomic actions and a cursor in optional `arrangerHistory` metadata;
   preserve it through save/load/autosave/native bundles. External conflicting edits clear it; runtime

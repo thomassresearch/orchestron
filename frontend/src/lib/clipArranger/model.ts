@@ -27,7 +27,7 @@ export type ClipLane = {
 };
 export type ClipArrangement = { version: 1 | 2 | 3 | 4; revision: number; end: number; lanes: ClipLane[] };
 export type OccurrenceTarget = { laneId: string; clipId: string; path: string[]; pass: number };
-export type DefinitionDraft = { editIntent?: EditIntent; target: OccurrenceTarget; baseRevision: number; baseFingerprint?: string; definition: Definition; additions?: Definition[]; transposeEdits?: import("./transposeEdits").TransposeEdit[]; auditionContext?: { lane: ClipLane; childIds: Record<string,string> } };
+export type DefinitionDraft = { provisionalDuplicate?: boolean; editIntent?: EditIntent; target: OccurrenceTarget; baseRevision: number; baseFingerprint?: string; definition: Definition; additions?: Definition[]; transposeEdits?: import("./transposeEdits").TransposeEdit[]; auditionContext?: { lane: ClipLane; patterns: Record<string, PatternDefinition> } };
 export type ClipHistoryChange =
   | { kind: "replace"; path: (string | number)[]; before?: unknown; after?: unknown }
   | { kind: "splice"; path: (string | number)[]; index: number; before: unknown[]; after: unknown[] };

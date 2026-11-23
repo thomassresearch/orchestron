@@ -14,6 +14,8 @@ There is no legato, sample playback, convolution, reverb, or pitch-transposition
 
 ## Playing controls
 
+For a duet, import [Steel String Guitar — Independent Plucks](../../examples/instruments/Steel_String_Guitar_Independent_Plucks.orch.instrument.json) or the complete [Sunlit Strings performance](../../examples/performances/Sunlit_Strings_Independent_Plucks.orch.json). Each rack assignment generates its own pick noise and a new string seed on every note. The same notes played from an engine restart reproduce the same attacks. With **Parallel playback** enabled, the two guitars can use separate workers while sharing the reverb.
+
 These are [per-instance performance settings](../performance/performance_controllers.md).
 Changes apply to new notes; held notes retain their settings.
 

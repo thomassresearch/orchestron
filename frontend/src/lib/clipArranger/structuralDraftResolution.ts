@@ -46,7 +46,7 @@ export function remapStructureCommand(command: StructureCommand, before: Structu
     });
   };
   if (command.kind === 'insert' || command.kind === 'rest') return { ...command, target: { ...command.target, path: path(command.target.path) } };
-  if (command.kind === 'rename') return { ...command, path: path(command.path) };
+  if (command.kind === 'rename' || command.kind === 'editDuplicate') return { ...command, path: path(command.path) };
   const parent = path(command.parent), oldItems = structureChildren(before, command.parent), newItems = structureChildren(after, parent);
   const ids = command.kind==='timed'&&command.nodes?[]:command.ids.map(id => {
     const item = newItems[oldItems.findIndex(n => n.id === id)];
@@ -112,7 +112,8 @@ function rebaseAfterRename(before: ClipArrangement, after: ClipArrangement, draf
 export function retainMusicalDrafts(before: ClipArrangement, after: ClipArrangement, drafts: Record<string, DefinitionDraft>, savedKey: string, timings: LaneTiming, nameOnly = false) {
   const result: Record<string, DefinitionDraft> = {}, keys = new Map<string, string>();
   for (const [key, draft] of Object.entries(drafts)) {
-    if (key === savedKey && !nameOnly) continue;
+    // Replayed structural commands own the copy's notes and create fresh occurrence paths.
+    if (draft.provisionalDuplicate || (key === savedKey && !nameOnly)) continue;
     let next = draft;
     try {
       const target = remapMusicalTarget(before, after, draft.target, timings);

@@ -192,14 +192,14 @@ export function ClipArranger({ songEdits = [], onHelpRequest, instrumentName, mo
   const lastClipEnd = Math.max(Q / 4, ...model.lanes.flatMap(lane => lane.clips.map(clip => clip.start + clip.length)));
   const setSongEnd = (end: number) => attempt(() => ({ ...model, revision: model.revision + 1, end }), c.songEnd);
   const open = (lane: ClipLane, clip: Clip, path: string[], pass: number, selectItem = true) => {
-    structure.guardEdit({ laneId: lane.id, clipId: clip.id, path, pass }, requested => structure.guardPattern(requested, undefined, target => {
+    structure.openEditor({ laneId: lane.id, clipId: clip.id, path, pass }, undefined, target => {
       shell?.revealEditor();
       select({ laneId: target.laneId, clipId: target.clipId });
       setExpanded(target.laneId);
       if (selectItem) structure.select({ laneId: target.laneId, clipId: target.clipId, pass: target.pass, parent: target.path.slice(0, -1) }, target.path[target.path.length - 1], false);
       else structure.clearSelection();
       onEdit(target);
-    }));
+    });
   };
   const compatible = (lane: ClipLane, target: OccurrenceTarget) => {
     if (!shell || !editingTarget || draftKey({ target }) === draftKey({ target: editingTarget })) return false;

@@ -5,7 +5,9 @@ import type { ClipArrangement, DefinitionDraft, OccurrenceTarget, PatternDefinit
 import { definitionRelationships, effectiveScope, localLoopWindows, type EditScope } from "./relationships";
 import { definitionAt, saveDraft } from "./operations";
 import { clipAuditionState } from "./runtime";
-import { remapMusicalTarget } from "./structuralDraftResolution";
+import { affectedDraftKeys, remapMusicalTarget } from "./structuralDraftResolution";
+import { duplicatePattern, structurePreview, type StructureDraft } from "./structure";
+import { reviewStructureDraft } from "./structureStore";
 
 export type SongPatternEdit = {
   key: string;
@@ -14,10 +16,11 @@ export type SongPatternEdit = {
   scope: EditScope;
 };
 
-/** Selection, names and separate structure/transposition inspectors do not change song playback. */
+/** Only scoped musical changes contribute pattern payloads to song playback. */
 export function songPatternEdits(state: SequencerState, drafts: Record<string, DefinitionDraft>): SongPatternEdit[] {
   const edits: SongPatternEdit[] = [];
   for (const [key, draft] of Object.entries(drafts)) {
+    if (draft.provisionalDuplicate) continue;
     const pattern = draft.definition;
     if (pattern.kind !== "pattern" || !draft.editIntent?.scope) continue;
     const lane = state.clipArrangement?.lanes.find(l => l.id === draft.target.laneId);
@@ -69,11 +72,18 @@ function previewIdFactory(target: OccurrenceTarget) {
 }
 
 /** Apply the same window splits and linked edits as Save, on a compilation-only model. */
-export function songDraftPlayback(state: SequencerState, drafts: Record<string, DefinitionDraft>): SequencerState {
+export function songDraftPlayback(state: SequencerState, drafts: Record<string, DefinitionDraft>, structure: StructureDraft | null = null): SequencerState {
   const edits = songPatternEdits(state, drafts);
-  if (!edits.length || !state.clipArrangement) return state;
+  if (!state.clipArrangement || (!edits.length && !structure?.cursor)) return state;
   const timings = arrangementTimings(state);
   let model: ClipArrangement = state.clipArrangement;
+  const proposed = reviewStructureDraft(model, structure, timings).result?.model;
+  if (structure && proposed) {
+    // Keep a conflicting musical edit audible until the editor resolves its target.
+    const sameLane = edits.filter(edit => edit.draft.target.laneId === structure.laneId);
+    const musicalDrafts = Object.fromEntries(sameLane.map(edit => [edit.key, edit.draft]));
+    if (!affectedDraftKeys(model, proposed, musicalDrafts).length) model = proposed;
+  }
   const targets = edits.map(edit => edit.draft.target);
   for (const [index, edit] of edits.entries()) {
     const before = model;
@@ -86,11 +96,16 @@ export function songDraftPlayback(state: SequencerState, drafts: Record<string, 
       }
     }
   }
-  return { ...state, clipArrangement: model };
+  return model === state.clipArrangement ? state : { ...state, clipArrangement: model };
 }
 
 /** Reserve audition slots after all arranged patterns, including temporary local variations. */
-export function clipSongPlayback(state: SequencerState, drafts: Record<string, DefinitionDraft>, audition: DefinitionDraft | null): ReturnType<typeof clipAuditionState> {
-  const song = songDraftPlayback(state, drafts);
+export function clipSongPlayback(state: SequencerState, drafts: Record<string, DefinitionDraft>, audition: DefinitionDraft | null, structure: StructureDraft | null = null): ReturnType<typeof clipAuditionState> {
+  const song = songDraftPlayback(state, drafts, structure);
+  if (audition?.provisionalDuplicate) {
+    if (!structure || !state.clipArrangement || !duplicatePattern(structure, audition.target)) return { state: song, sequence: [] };
+    const source = { ...state, clipArrangement: structurePreview(state.clipArrangement, structure, arrangementTimings(state)) };
+    return clipAuditionState(source, audition, song);
+  }
   return audition && state.clipArrangement ? clipAuditionState(state, audition, song) : { state: song, sequence: [] };
 }

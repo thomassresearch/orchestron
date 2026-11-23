@@ -654,6 +654,7 @@ def lower_mixer_bundle(
                 instrument_number=int(manifest["instrumentReferences"][identity]),
                 instrument_name=names[stage],
                 global_scope_key=token(identity),
+                instance_id=identity,
                 packaged_asset_paths=packaged_asset_paths,
                 performance_input_mode=performance_input_mode,
                 score_midi_channel=target.midi_channel,

@@ -159,7 +159,15 @@ Use **Remove selected**, the matching context-menu action, or Delete/Backspace w
 
 ![Remove selected in the expanded arranger](../../screenshots/clip-arranger-remove-content.png)
 
-Structural work is a session-only draft: the song continues to play saved content. **Save structure · local** or **Save structure · all linked** applies the established scope atomically; **Discard** abandons it. Draft Undo/Redo is separate from the arranger's saved history. Performance save/export offers the existing saved definitions when unresolved drafts remain; loading another performance requires resolving them.
+Use arranger **Play** to hear a duplicate where it was added. Drag a pattern and release it to hear it at the new position, or nudge it with Left/Right. You can make these edits while the song plays. Playback follows the chosen edit scope and the draft’s Undo/Redo. If a proposed change overlaps another clip, the arranger plays the saved structure while you correct the draft.
+
+Choose **Discard** to restore the saved structure at the current song position. **Save structure here** or **Save linked structure** keeps the edit as one arranger Undo step. Performance save and export use the saved structure.
+
+![Arranger playing a duplicated bass phrase after a quarter-beat move, with Save structure here and Discard in the Inspector](../../screenshots/arranger-structure-preview.png)
+
+Double-click a duplicated pattern before saving to open its note editor. The copy starts linked to the source. Editing its notes gives the copy its own pattern. Use arranger **Play** to hear the original phrase followed by your variation, or **Play edit** to loop the copy on its own. Closing the note editor keeps the edits pending. Choose **Save structure here** to keep the duplicate, its placement and its notes in one Undo step. **Discard** removes them together.
+
+![Editing the first note of the duplicated bass phrase during playback, with Save structure here and Discard in the note editor](../../screenshots/arranger-duplicate-note-editor.png)
 
 Longer content grows the affected windows if space permits. Loop windows preserve their full and partial repetition span. Saving all linked occurrences evaluates every affected clip together. A collision rejects the complete save, retains the draft and names the blocking clips; later independent clips are never shifted. Shortening content does not automatically shrink clips. Valid growth extends Song end when necessary.
 
@@ -179,7 +187,7 @@ If the pending action intersects an unsaved musical draft, choose Save, Discard 
 
 When a musical save forks shared parents or splits a loop pass, the pending structural edit follows the new occurrence paths and retains draft Undo/Redo. Following passes created from that same source during resolution still move when its edited portion grows. Independent clips stay in place. If resolving a conflict makes the pending structural save valid, it resumes using the established scope; otherwise the draft remains available with an error.
 
-Container **Play edit** auditions a snapshot of the current structure. Further structural edits remain visual and do not re-prepare audio; stop and restart Play edit to hear the changed structure. Saving ends the editor audition through the existing lifecycle. Musical sequencer controls retain their existing live-edit behavior.
+Container **Play edit** loops the structure as it was when you started the audition. Stop and restart **Play edit** to refresh that loop. If the song is playing, **Stop edit** returns the lane to its current position in the arrangement, including pending structural edits.
 
 ## Transpose clips without changing notes
 

@@ -1,4 +1,5 @@
 import { clipSongPlayback } from "./lib/clipArranger/songDrafts";
+import { useStructureDraft } from "./lib/clipArranger/structureStore";
 import { DraftResolutionDialog } from "./components/clipArranger/DraftResolutionDialog";
 import { registerAutomationRuntime } from "./lib/clipArranger/automationRuntime";
 import { confirmReplacement, resolveClipDrafts } from "./lib/clipArranger/draftResolution";
@@ -383,7 +384,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
       const authored = state ?? useAppStore.getState().sequencer;
       const { clipDrafts, clipAuditionDraft } = useAppStore.getState();
       const compilation = mode === "runtime" && !("clipAuditionContext" in authored)
-        ? clipSongPlayback(authored, clipDrafts, clipAuditionDraft).state : authored;
+        ? clipSongPlayback(authored, clipDrafts, clipAuditionDraft, useStructureDraft.getState().draft).state : authored;
       const previews = mode === "runtime" ? previewGestures.current : undefined;
       const resolvedState = withPadAudition(clipRuntimeView(compilation, previews), mode === "runtime" ? useAppStore.getState().padAudition : null);
       const transportStepCount = transportStepCountFromPerformanceSequencers(
@@ -562,7 +563,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
     const authored = state ?? useAppStore.getState().sequencer;
     const { clipDrafts, clipAuditionDraft } = useAppStore.getState();
-    const resolvedState = clipSongPlayback(authored, clipDrafts, clipAuditionDraft).state;
+    const resolvedState = clipSongPlayback(authored, clipDrafts, clipAuditionDraft, useStructureDraft.getState().draft).state;
     return {
       tempo_bpm: resolvedState.timing.tempoBPM,
       arpeggiators: buildBackendArpeggiatorConfigs(resolvedState, previewGestures.current)

@@ -1,4 +1,34 @@
 {
+  "instance_noise": {
+    "description": {
+      "english": "Repeatable white noise with a separate sequence for each rack instrument and node. Each new note advances its instrument’s sequence.",
+      "german": "Reproduzierbares weißes Rauschen mit einer getrennten Folge für jedes Rack-Instrument und jeden Knoten. Jede neue Note schaltet die Folge ihres Instruments weiter.",
+      "french": "Bruit blanc reproductible avec une séquence distincte par instrument du rack et par nœud. Chaque note fait avancer la séquence de son instrument.",
+      "spanish": "Ruido blanco reproducible con secuencias independientes para cada instrumento del rack y cada nodo. Cada nota avanza la secuencia de su instrumento."
+    },
+    "inputs": {
+      "amp": {
+        "english": "Peak amplitude of the bipolar noise.",
+        "german": "Spitzenamplitude des bipolaren Rauschens.",
+        "french": "Amplitude de crête du bruit bipolaire.",
+        "spanish": "Amplitud de pico del ruido bipolar."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Uniform white noise for each sounding note.",
+        "german": "Gleichverteiltes weißes Rauschen für jede klingende Note.",
+        "french": "Bruit blanc uniforme propre à chaque note active.",
+        "spanish": "Ruido blanco uniforme propio de cada nota activa."
+      },
+      "iseed": {
+        "english": "Positive per-note seed. Connect to the Seed input of waveguide_string for repeatable pluck variation.",
+        "german": "Positiver Startwert pro Note. Mit dem Seed-Eingang von waveguide_string verbinden, um den Anschlag reproduzierbar zu variieren.",
+        "french": "Graine positive par note. Reliez-la à l’entrée Seed de waveguide_string pour varier le pincement de manière reproductible.",
+        "spanish": "Semilla positiva por nota. Conéctala a la entrada Seed de waveguide_string para variar la pulsación de forma reproducible."
+      }
+    }
+  },
   "sample_player": {
     "description": {
       "english": "Use one Sample Player in the main graph of a MIDI instrument. In Perform, assign WAV, MP3 or M4A files to individual MIDI notes. Each hit plays once at its original pitch and speed. An empty map is silent.",

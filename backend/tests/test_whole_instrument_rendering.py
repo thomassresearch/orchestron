@@ -236,6 +236,49 @@ def test_compiler_random_initializers_share_the_same_owner():
     assert owners(plan)['patch:source0'] == owners(plan)['patch:source1']
 
 
+def test_waveguide_with_private_note_seed_is_independent_only_when_nonzero_is_proven():
+    from backend.app.models.patch import Connection
+    targets, routes, _ = planner_inputs('four')
+    guitar = next(t for t in targets if t.assignment_id == 'source0')
+    graph = guitar.patch.graph
+    graph.nodes.extend([NodeInstance(id='pluck', opcode='instance_noise'), NodeInstance(id='string', opcode='waveguide_string')])
+    graph.connections.append(Connection(from_node_id='pluck', from_port_id='iseed', to_node_id='string', to_port_id='iseed'))
+    compiler = CompilerService(OpcodeService('/static/icons'))
+    def random_users():
+        dependency = compiler.analyze_realtime_graph(targets, routes)
+        return {r.node for r in dependency.resources if r.stage == 'patch:source0' and r.resource == 'engine:random'}
+    assert 'string' not in random_users()
+    graph.ui_layout.setdefault('input_formulas', {})['string::iseed'] = {
+        'expression': '0 * s', 'inputs': [{'token': 's', 'from_node_id': 'pluck', 'from_port_id': 'iseed'}]}
+    assert 'string' in random_users()
+
+
+def test_instance_noise_retriggers_vary_and_other_rack_notes_cannot_advance_the_stream():
+    from backend.app.models.audio import AudioGraph, AudioRoute, MixerState
+    from backend.app.models.patch import PatchDocument, PatchGraph
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    from backend.tools._parallel_render_workload import connection
+
+    patch = PatchDocument(name='Private noise', graph=PatchGraph(
+        nodes=[NodeInstance(id='noise', opcode='instance_noise', params={'amp': .1}),
+               NodeInstance(id='out', opcode='outleta', params={'sname': 'pluck'})],
+        connections=[connection('noise', 'aout', 'out', 'asignal')]))
+    targets = [PatchInstrumentTarget(patch, channel, side) for channel, side in enumerate(('left', 'right'), 1)]
+    routes = [AudioRoute(id=side, sourceId=side, sourcePort='pluck', targetId='$output', targetPort=side)
+              for side in ('left', 'right')]
+    plan, compiled = prepare((targets, AudioGraph(routes=routes), MixerState()))
+    left = [(0, [0x90, 60, 100]), (256, [0x80, 60, 0]), (512, [0x90, 60, 100])]
+    solo = compare_sequential(compiled, plan, frames=1024, events=left).canonical.reshape(-1, 2)
+    duet = compare_sequential(compiled, plan, frames=1024, events=sorted(left + [
+        (0, [0x91, 60, 100]), (256, [0x81, 60, 0]), (384, [0x91, 60, 100])]))
+    signal = duet.canonical.reshape(-1, 2)
+    np.testing.assert_array_equal(duet.canonical, duet.partitioned)
+    np.testing.assert_array_equal(solo[:, 0], signal[:, 0])
+    assert np.max(np.abs(signal[:256]), axis=0).min() > .01
+    assert not np.array_equal(signal[:256, 0], signal[512:768, 0])
+    assert not np.array_equal(signal[:256, 0], signal[:256, 1])
+
+
 def test_scalar_parameter_expressions_cannot_hide_shared_native_state():
     compiler = CompilerService(OpcodeService('/static/icons'))
     targets, graph, _ = planner_inputs('four')

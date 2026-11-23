@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Previous](instrument_import_export.md) | [Next](../performance/performance.md)
 
-This reference lists **201** user-selectable opcodes and editor constructs in the Instrument Design catalog. Use the catalog search to find an opcode and its **?** button to open integrated help.
+This reference lists **202** user-selectable opcodes and editor constructs in the Instrument Design catalog. Use the catalog search to find an opcode and its **?** button to open integrated help.
 
 <a id="how-to-use-this-appendix"></a>
 
@@ -30,7 +30,7 @@ This reference lists **201** user-selectable opcodes and editor constructs in th
 | midi | 10 |
 | mixer | 3 |
 | modulation | 11 |
-| noise | 3 |
+| noise | 4 |
 | oscillator | 23 |
 | output | 1 |
 | physical_modeling | 31 |
@@ -228,6 +228,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 
 | Opcode | Inputs | Outputs | Short Description |
 | --- | --- | --- | --- |
+| instance_noise | 1 (k) | 2 (a, i) | Per-instance white noise and a separate seed for each note. Connect the seed to waveguide_string for independent pluck variation. |
 | noise | 4 (k, k, i, i) | 1 (a) | Variable-color random audio noise. |
 | pinker | - | 1 (a) | Pink noise generator. |
 | pinkish | 2 (a, i) | 1 (a) | Pinkening filter for shaping white noise toward a pink spectrum. |

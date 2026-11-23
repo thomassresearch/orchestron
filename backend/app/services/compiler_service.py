@@ -176,6 +176,7 @@ class CompilerService:
                 instrument_number=instrument_number + offset,
                 instrument_name=instrument_names[instrument_number - 1] if instrument_names is not None else None,
                 global_scope_key=f"{instrument_number}_{target.patch.id}",
+                instance_id=target.assignment_id or f"instrument-{instrument_number}",
                 packaged_asset_paths=packaged_asset_paths,
                 performance_input_mode=performance_input_mode,
                 score_midi_channel=target.midi_channel,

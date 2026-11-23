@@ -1120,6 +1120,27 @@ def test_waveguide_helper_absent_without_waveguide():
     assert 'opcode vcs_waveguide_string' not in artifact.orc
 
 
+@pytest.mark.parametrize('mode', ['midi', 'score'])
+def test_instance_noise_seeds_follow_rack_assignment_across_reordering(mode):
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    patch = load_patch_fixture('steel_string_waveguide')
+    noise = next(n for n in patch.graph.nodes if n.opcode == 'noise')
+    noise.opcode, noise.params = 'instance_noise', {'amp': .785}
+    string = next(n for n in patch.graph.nodes if n.opcode == 'waveguide_string')
+    patch.graph.connections.append(Connection(from_node_id=noise.id, from_port_id='iseed',
+                                             to_node_id=string.id, to_port_id='iseed'))
+    targets = [PatchInstrumentTarget(patch, channel, name) for channel, name in [(1, 'lead'), (2, 'accompaniment')]]
+    compiler = CompilerService(OpcodeService('/static/icons'))
+    def seeds(rack):
+        orc = compiler.compile_patch_bundle(rack, '0', 'none', performance_input_mode=mode).orc
+        assert orc.count(' rnd31 0.785, 0, gi_vcs_rng_') == len(rack)
+        return [line for line in orc.splitlines() if line.startswith('gi_vcs_rng_') and ' init ' in line]
+    lead, accompaniment = seeds(targets)
+    assert lead.split()[-1] != accompaniment.split()[-1]
+    assert seeds(targets[::-1]) == [accompaniment, lead]
+
+
 @pytest.mark.parametrize("mode", ["ftgen", "ftgenonce"])
 @pytest.mark.parametrize("normalize", [True, False])
 def test_gen19_structured_partials_compile_in_csound_order(mode, normalize) -> None:

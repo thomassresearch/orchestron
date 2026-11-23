@@ -50,7 +50,7 @@ def test_zdf_and_zfilter_catalog_has_icons_and_complete_localized_help(name: str
         assert "not summed" in details["inputs"]["icoeffs"]["english"]
 
 
-@pytest.mark.parametrize("name", ["atone", "atonek", "atonex"])
+@pytest.mark.parametrize("name", ["atone", "atonek", "atonex", "instance_noise"])
 def test_atone_catalog_has_icons_and_complete_localized_help(name: str) -> None:
     root = Path(__file__).resolve().parents[2]
     opcode = OpcodeService(icon_prefix="/static/icons").get_opcode(name)

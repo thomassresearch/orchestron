@@ -8578,6 +8578,8 @@ def test_physical_guitar_opcodes_and_saved_graph_compile(tmp_path: Path) -> None
     with _client(tmp_path) as client:
         catalog = {s['name']: s for s in client.get('/api/opcodes').json()}
         assert catalog['mode']['documentation_url'] == 'https://csound.com/docs/manual/mode.html'
+        assert catalog['instance_noise']['documentation_url'] == 'https://csound.com/docs/manual/rnd31.html'
+        assert [(p['id'], p['signal_type']) for p in catalog['instance_noise']['outputs']] == [('aout', 'a'), ('iseed', 'i')]
         assert [p['id'] for p in catalog['waveguide_string']['outputs']] == ['astring', 'abridge']
         assert catalog['mode']['inputs'][1]['accepted_signal_types'] == ['a', 'k', 'i']
         saved = client.post('/api/patches',json=payload)
