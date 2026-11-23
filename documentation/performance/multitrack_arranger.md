@@ -99,7 +99,11 @@ Loading selects a clip even when looping is off: a matching saved loop takes pri
 
 ![Explicit song end and fitting to the last clip](../../screenshots/clip-arranger-song-end.png)
 
-Move **Zoom** all the way left, or focus the slider and press **Home**, to see the entire song through **Song end**, including trailing silence. The overview adjusts when the song length or timeline width changes. Zoom back in for beat markers and detailed clip editing.
+Scroll until the passage you want to inspect is in the middle of the visible tracks. Move **Zoom** to the right for more detail or to the left for more context. The beat in the middle stays centered until the view reaches either end of the timeline.
+
+![The Chorus starts at bar 9 in the center of the tracks at both zoom levels](../../screenshots/clip-arranger-centered-zoom.png)
+
+Move **Zoom** all the way left, or focus the slider and press **Home**, to see the entire song through **Song end**, including trailing silence. The overview adjusts when the song length or timeline width changes.
 
 ![Full song at minimum zoom, including the trailing silence before the dashed Song end marker](../../screenshots/clip-arranger-full-song-zoom.png)
 

@@ -202,6 +202,46 @@ it("exposes retained trailing silence and fits the finite song end explicitly wi
   expect(screen.getByRole("alert").textContent).toContain("boundary");
 });
 
+it.each([320, 1000])("zooms around the visible timeline center at a viewport width of %i", viewportWidth => {
+  const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(viewportWidth);
+  try {
+    const songBeats = 16000;
+    useAppStore.setState(state => ({ sequencer: { ...state.sequencer,
+      clipArrangement: { ...state.sequencer.clipArrangement!, end: songBeats * QUARTER_TICKS } } }));
+    const { container } = render(<ClipPerformance language="english" renderEditor={() => null} />);
+    const viewport = container.querySelector<HTMLElement>("[data-arranger-viewport]")!;
+    const laneHeader = container.querySelector<HTMLElement>("[data-clip-lane] > div")!;
+    const songEnd = container.querySelector<HTMLElement>('[title="Song end"]')!;
+    const slider = screen.getByRole("slider", { name: "Zoom" });
+    const visibleHalf = (viewportWidth - parseFloat(laneHeader.style.width)) / 2;
+    const scale = () => parseFloat(songEnd.style.left) / songBeats;
+    const centerBeat = () => (viewport.scrollLeft + visibleHalf) / scale();
+    // Match browsers that round assigned scroll offsets to whole CSS pixels.
+    let scrollLeft = 0;
+    Object.defineProperty(viewport, "scrollLeft", {
+      get: () => scrollLeft, set: (left: number) => { scrollLeft = Math.round(left); }
+    });
+
+    for (const left of [0, 1460]) {
+      viewport.scrollLeft = left;
+      const beat = centerBeat();
+      for (const value of ["100", "95"]) {
+        fireEvent.change(slider, { target: { value } });
+        expect(Math.abs(centerBeat() - beat) * scale()).toBeLessThanOrEqual(0.501);
+      }
+    }
+    fireEvent.change(slider, { target: { value: "0" } });
+    expect(viewport.scrollLeft).toBe(0);
+    const overviewCenter = centerBeat();
+    for (const value of ["1", "5", "30", "60", "100"]) {
+      fireEvent.change(slider, { target: { value } });
+      expect(Math.abs(centerBeat() - overviewCenter) * scale()).toBeLessThanOrEqual(0.501);
+    }
+  } finally {
+    width.mockRestore();
+  }
+});
+
 it("keeps the whole song in view at minimum zoom as the timeline or song length changes", () => {
   let viewportWidth = 1000;
   let resize = () => {};

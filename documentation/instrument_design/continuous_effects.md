@@ -58,11 +58,17 @@ Left and right channels are processed separately. The effect does not detect a k
 
 [Download Vocoder](../../examples/instruments/Vocoder.orch.instrument.json), import it in Instrument Design, and add it as a Continuous rack instrument. In custom routing, connect speech to `speech_left`/`speech_right`, a harmonically rich carrier to `sound_left`/`sound_right`, and the effect's `left`/`right` outputs to Master. Remove direct source-to-Master routes to hear only the effect.
 
-Each speech channel shapes its corresponding carrier channel independently. Feed mono speech to both speech channels. The output is fully wet; no MIDI notes are needed to start the effect.
+Each speech channel shapes its corresponding carrier channel independently. Feed mono speech to both speech channels. The effect runs without MIDI notes.
 
-**Spectral Detail** ranges from 16 to 128 (default 80), rounded to whole cepstral coefficients. Lower values smooth the spectral envelope more. **Makeup Gain (dB)** ranges from 0 to 24 (default +3), raising both channels equally. **Output Gain (dB)** ranges from −24 to 0 (default −6) and trims the result. All three controls target K-rate inputs and belong to each rack instance. Makeup 0 restores the previous gain behavior.
+Quiet syllables drive the analysis at nearly the same level as loud ones. Each speech input has a fixed 20:1 compressor with a −48 dBFS knee, 0.5 ms attack, 45 ms release and 1 ms lookahead. After compression, a 300 Hz high-pass and a 3 kHz low-pass filter roll off rumble and hiss before spectral analysis. The carrier has its own full-band analysis path.
 
-The +3 dB default was checked with near-full-scale synthetic vowel and bright-carrier inputs. This is makeup gain, not a limiter: other signals or larger boosts can overload. Watch Vocoder and Master peaks and reduce Output Gain when needed. The two gain values add in decibels; +24 dB makeup and −24 dB output cancel each other.
+**Spectral Detail** ranges from 16 to 128 (default 80), rounded to whole cepstral coefficients. Lower values smooth the spectral envelope more.
+
+**Dry Mixin** adds the original stereo `sound` input to the full vocoded signal before the output compressor. Its logarithmic gain starts at 0.0001 (−80 dB, the default). Each tenfold increase raises the dry carrier by 20 dB, up to 0.1 (−20 dB). Raise it to hear more of the carrier chords, including during speech pauses.
+
+**Output Compression Ratio** controls syllable peaks in the finished vocal. The default is 4:1. Turn it down to 1:1 for the original dynamics or up toward 10:1 for stronger peak control. Both channels follow the louder peak, keeping the stereo image stable. The compressor uses a −36 dBFS threshold, 0.5 ms attack, 80 ms release and 5 ms lookahead. Automatic makeup gain rises with the ratio, from 0 dB at 1:1 to +10.5 dB at 4:1.
+
+**Output Gain (dB)** trims the result from −24 to 0 dB (default −6). Set the mix and compression ratio, then use Output Gain to place the result in the performance. All four controls update live for each rack instance.
 
 The graph uses `pvsanal`, `pvsvoc` and `pvsynth`, with a 1024-sample Hann window and 256-sample hop. Processing adds latency; the exact latency has not yet been measured for this instrument. See the [Csound pvsvoc reference](https://csound.com/docs/manual/pvsvoc.html).
 

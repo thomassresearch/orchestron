@@ -22,7 +22,7 @@ import { AutomationGenerator } from "./AutomationControls";
 import { automationCopy } from "./automationCopy";
 import type { useStructureEditor } from "./StructureEditor";
 import { beginStructure, structurePreview, structureClip, isExpandedStructure, structureDisplayGeometry } from "../../lib/clipArranger/structure";
-import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
 import { localBeatTicks, patternDuration, contentLength, definitionMap, newClipId, QUARTER_TICKS as Q, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type OccurrenceTarget, type PatternTiming } from "../../lib/clipArranger/model";
 import { definitionAt, clipDisplayName, addClip, convertLaneCycle, deleteClip, fitClip, trimClip, updateClip } from "../../lib/clipArranger/operations";
@@ -102,6 +102,29 @@ export function ClipArranger({ songEdits = [], onHelpRequest, instrumentName, mo
   const renderAhead = Math.max(1800, timelineWidth);
   const zoomRatio = 100 / minZoom;
   const sliderValue = Math.round(100 * Math.log(zoom / minZoom) / Math.log(zoomRatio));
+  const pendingZoomBeat = useRef<number | null>(null);
+  const lastZoomAnchor = useRef<{ beat: number; centerPixel: number; zoom: number } | null>(null);
+  const changeZoom = (value: number) => {
+    if (viewport.current) {
+      const centerPixel = viewport.current.scrollLeft + timelineWidth / 2;
+      const last = lastZoomAnchor.current;
+      // Reuse the exact beat across slider steps. Rounded scroll pixels accumulate drift on long songs.
+      pendingZoomBeat.current = last?.centerPixel === centerPixel && last.zoom === zoom ? last.beat : centerPixel / zoom;
+    }
+    setZoom(value === 0 ? null : minZoom * zoomRatio ** (value / 100));
+  };
+  useLayoutEffect(() => {
+    const node = viewport.current, beat = pendingZoomBeat.current;
+    if (!node || beat === null) return;
+    pendingZoomBeat.current = null;
+    // The new canvas width must be in the DOM before assigning its scroll offset.
+    const target = beat * zoom - timelineWidth / 2;
+    const left = Math.max(0, Math.min(width - timelineWidth, target));
+    node.scrollLeft = left;
+    lastZoomAnchor.current = left === target ? { beat, centerPixel: node.scrollLeft + timelineWidth / 2, zoom } : null;
+    setScroll(node.scrollLeft);
+    retainScroll();
+  }, [zoom, width, timelineWidth, viewport, retainScroll]);
   const beatsPerBar = sequencer.timing.meterNumerator;
   const rulerStep = zoom >= 12 ? 1 : beatsPerBar * Math.ceil(48 / (zoom * beatsPerBar));
   const firstRulerBeat = Math.floor(scroll / (zoom * rulerStep)) * rulerStep;
@@ -312,14 +335,7 @@ export function ClipArranger({ songEdits = [], onHelpRequest, instrumentName, mo
     <div className={`mb-3 flex flex-wrap items-center gap-2 ${onHelpRequest ? "pr-8" : ""}`}><h2 className="mr-auto text-sm font-semibold text-cyan-100">{c.title}</h2>{transport}
       {!shell && onSeek && <label className="text-xs text-slate-400">{c.position} <PositionInput key={generation} className={clipInput} beats={position / Q} onSeek={onSeek} /></label>}
       {loopTarget && onLoopChange && <button className={clipButton + (sequencer.arrangerLoopSelection ? " !border-amber-300 !bg-amber-300 !text-slate-950 ring-2 ring-amber-300" : "")} aria-pressed={!!sequencer.arrangerLoopSelection} title={c[loopTarget.label]} onClick={() => onLoopChange(sequencer.arrangerLoopSelection ? null : loopTarget.range)}>{c.loop}</button>}
-      <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="0" max="100" value={sliderValue} onChange={e => {
-        const value = Number(e.target.value);
-        if (value === 0 && viewport.current) {
-          viewport.current.scrollLeft = 0;
-          setScroll(0);
-        }
-        setZoom(value === 0 ? null : minZoom * zoomRatio ** (value / 100));
-      }} /></label>
+      <label className="flex items-center gap-2 text-xs text-slate-400">{c.zoom}<input aria-label={c.zoom} type="range" min="0" max="100" value={sliderValue} onChange={e => changeZoom(Number(e.target.value))} /></label>
       {shell && <button className={clipButton} aria-pressed={fitTracks} onClick={() => setFitTracks(!fitTracks)}>{shellCopy[language].fit}</button>}
     </div>
     <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">

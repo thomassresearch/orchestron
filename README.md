@@ -133,7 +133,7 @@ Toggle [Audition](documentation/instrument_design/runtime_panel_and_compilation.
 
 ## Build patterns and arrangements
 
-Build a song in the default **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips, or move **Zoom** all the way left to see the whole song, including trailing silence.
+Build a song in the default **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips. Center a passage in the timeline and use **Zoom** to inspect it, or move the slider all the way left to see the whole song, including trailing silence.
 
 ![The First Pulse of a New Machine in the redesigned multitrack arranger, with compact tracks, note previews, transposition badges and automation at position 160](screenshots/perform_multitrack_arranger_redesigned.jpg)
 
@@ -285,7 +285,7 @@ with manual Tempo, Beats per cycle and Depth controls. It preserves separate
 channels, passes audio unchanged at zero Depth, and supports automatic live updates
 after changing settings.
 
-[Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns. [Vocoder](documentation/instrument_design/continuous_effects.md#vocoder) transfers a stereo speech envelope onto a separate stereo carrier.
+[Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns. [Vocoder](documentation/instrument_design/continuous_effects.md#vocoder) shapes a stereo carrier with compressed, 300 Hz–3 kHz speech. Its logarithmic Dry Mixin control adds a trace of the original carrier before stereo-linked output compression.
 
 [Stereo Moog Filter](documentation/instrument_design/stereo_moog_filter.md) provides
 resonant stereo low-pass filtering with per-instance Cutoff and Resonance settings.
