@@ -21,8 +21,8 @@ import { createPerformanceEditorStore } from "./components/sequencer/Performance
 
 import { api } from "./api/client";
 import { ConfirmationListDialog } from "./components/ConfirmationListDialog";
-import { CsdExportAccuracyDialog } from "./components/CsdExportAccuracyDialog";
-import { useCsdExportAccuracyDialog } from "./hooks/useCsdExportAccuracyDialog";
+import { CsdExportOptionsDialog } from "./components/CsdExportOptionsDialog";
+import { useCsdExportOptionsDialog } from "./hooks/useCsdExportOptionsDialog";
 import { HelpIconButton } from "./components/HelpIconButton";
 import { ImportDialogs } from "./components/ImportDialogs";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
@@ -35,6 +35,7 @@ import {
   collectPerformanceImportConflictItems,
   extractImportPatchDefinitions,
   hasResolvableImportedPerformance,
+  performanceHasSamples,
   parsePerformanceExportPayload,
   partitionImportConflictItems,
   resolveImportedPerformanceConfig,
@@ -340,7 +341,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   const [activeHelpDocumentation, setActiveHelpDocumentation] = useState<HelpDocId | null>(null);
   const [activeOpcodeDocumentation, setActiveOpcodeDocumentation] = useState<string | null>(null);
   const [sequencerError, setSequencerError] = useState<string | null>(null);
-  const { open: csdExportAccuracyOpen, request: requestCsdExportAccuracy, close: closeCsdExportAccuracy } = useCsdExportAccuracyDialog();
+  const { controls: csdExportControls, request: requestCsdExportOptions, close: closeCsdExportOptions } = useCsdExportOptionsDialog();
   const csdExportInProgress = useRef(false);
   const [instrumentPatchIoError, setInstrumentPatchIoError] = useState<string | null>(null);
   const [newFromTemplateDialogOpen, setNewFromTemplateDialogOpen] = useState(false);
@@ -1224,10 +1225,12 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
             enabled: controller.enabled
           }))
       };
-      if (eventSource === "score" && exportState.controllerSequencers.length > 0) {
-        const tolerance = await requestCsdExportAccuracy();
-        if (tolerance === null) return;
-        exportPayload.controllerCurveTolerance = tolerance;
+      const showCurveAccuracy = eventSource === "score" && exportState.controllerSequencers.length > 0;
+      const showSampleLocation = performanceHasSamples(payload);
+      if (showCurveAccuracy || showSampleLocation) {
+        const options = await requestCsdExportOptions({ showCurveAccuracy, showSampleLocation });
+        if (!options) return;
+        Object.assign(exportPayload, options);
       }
       const { blob } = await api.exportPerformanceCsdBundle(exportPayload as unknown as Record<string, unknown>);
       const url = URL.createObjectURL(blob);
@@ -1248,7 +1251,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     appCopy.errors.failedToExportPerformanceCsd,
     buildBackendSequencerConfig,
     buildCurrentPerformanceExport,
-    requestCsdExportAccuracy
+    requestCsdExportOptions
   ]);
 
   const onImportSequencerConfig = useCallback(
@@ -2058,7 +2061,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
         />
       )}
 
-      {csdExportAccuracyOpen && <CsdExportAccuracyDialog guiLanguage={guiLanguage} onClose={closeCsdExportAccuracy} />}
+      {csdExportControls && <CsdExportOptionsDialog {...csdExportControls} guiLanguage={guiLanguage} onClose={closeCsdExportOptions} />}
 
       <ImportDialogs
         importDialogCopy={importDialogCopy}

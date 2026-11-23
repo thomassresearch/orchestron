@@ -63,7 +63,7 @@ toward the 256 MiB limit. The parent retains a single voice registry and sends o
 attacks and cuts at the original k-block boundaries. Both native worker loops resolve
 the events against their local note map before synthesis.
 
-Both CSD packages load canonical WAVs via relative `assets/soundin.*` names.
+Both CSD packages load canonical WAVs as `soundin.*` files. Their relative `SSDIR` points to `assets` by default and to `.` when `samplesInSubfolder` is false.
 Captured sampler attacks and cuts project to the same finite score events
 in both packages. MIDI mode also retains sampler notes in the MIDI file for
 exchange; editing only that file does not change the captured sampler score.

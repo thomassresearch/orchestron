@@ -58,6 +58,7 @@ export interface PerformanceCsdExportRequestPayload {
   approximateControllerCurves?: boolean;
   useOriginalControllerCurves?: boolean;
   controllerCurveTolerance?: number;
+  samplesInSubfolder?: boolean;
   midiControllers?: Array<{
     controllerNumber: number;
     targetChannels?: number[];
@@ -109,6 +110,19 @@ export type PerformanceImportOperation =
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function performanceHasSamples(payload: PerformanceExportPayload): boolean {
+  if (payload.performance.config.instruments.some(instrument => instrument.sampleMap?.entries.length)) return true;
+  return payload.patch_definitions.some(({ graph }) =>
+    ["gen_nodes", "sfload_nodes", "adsyn_nodes"].some(key => {
+      const configs = graph.ui_layout[key];
+      return isRecord(configs) && Object.values(configs).some(config =>
+        isRecord(config) && isRecord(config.sampleAsset) && typeof config.sampleAsset.stored_name === "string"
+        && config.sampleAsset.stored_name.trim().length > 0
+      );
+    })
+  );
 }
 
 export function exportedPatchDefinitionName(definition: ExportedPatchDefinition): string {

@@ -199,21 +199,26 @@ class PerformanceExportService:
         request = request.model_copy(update={"performance_export": select_performance_csd_instruments(request)})
         sample_assets = request.performance_export.performance.config.sample_assets
         verify_sample_assets(sample_assets, self._gen_asset_service)
+        asset_directory = PurePosixPath("assets" if request.samples_in_subfolder else ".")
         sample_filecodes = {}
         sample_files = []
         for sample in sorted({asset.playback.stored_name for asset in sample_assets.values()}):
             code = 1_000 + len(sample_filecodes)
             sample_filecodes[sample] = code
             sample_files.append(BundledAsset(self._gen_asset_service.resolve_audio_path(sample),
-                                             f"assets/soundin.{code}"))
+                                             str(asset_directory / f"soundin.{code}")))
         base_name = self._sanitize_file_base_name(request.performance_export.performance.name)
         bundle_root = PurePosixPath(base_name)
         midi_file_name = f"{base_name}.mid"
         csd_file_name = f"{base_name}.csd"
         output_wave_name = f"{base_name}.wav"
 
-        patch_definitions, bundled_assets = self._rewrite_patch_definitions_for_export(
-            request.performance_export.patch_definitions
+        reserved_names = {PurePosixPath(file.archive_path).name for file in sample_files}
+        if not request.samples_in_subfolder:
+            reserved_names.update({csd_file_name, midi_file_name, output_wave_name, "README.txt", "WARNINGS.txt"})
+        bundle_index = _AssetBundleIndex(self._gen_asset_service, asset_directory, reserved_names)
+        patch_definitions = self._rewrite_patch_definitions_for_export(
+            request.performance_export.patch_definitions, bundle_index
         )
         targets = self._build_compile_targets(
             performance_export=request.performance_export,
@@ -229,7 +234,7 @@ class PerformanceExportService:
             targets=targets,
             midi_input="0",
             rtmidi_module="virtual",
-            allow_packaged_asset_paths=True,
+            packaged_asset_paths=frozenset(asset.archive_path for asset in bundle_index.assets),
             performance_input_mode="score" if request.event_source == "score" else "midi",
             profile=CompilationProfile.OFFLINE,
             audio_graph=config.audio_graph,
@@ -312,7 +317,7 @@ class PerformanceExportService:
                 created_at=request.performance_export.exported_at,
                 output_wave_name=output_wave_name,
                 score_lines=score_lines,
-                sample_directory=bool(sample_files),
+                sample_directory=str(asset_directory) if sample_files else None,
                 score_controller_initializer_lines=self._score_controller_initializer_lines(captured_events),
             )
             readme = self._build_score_readme(
@@ -334,7 +339,7 @@ class PerformanceExportService:
                 controller_score_lines=[line for _, line in self._mapped_controller_lines(
                     captured_events, targets, compile_artifact.manifest, midi_tempo=request.sequencer_config.timing.tempo_bpm)],
                 sample_lines=[line for _, line in sample_lines],
-                sample_directory=bool(sample_files),
+                sample_directory=str(asset_directory) if sample_files else None,
             )
             midi_bytes = self._encode_midi_file(
                 tempo_bpm=request.sequencer_config.timing.tempo_bpm,
@@ -348,11 +353,11 @@ class PerformanceExportService:
                 output_wave_name=output_wave_name,
             )
 
+        if bundle_index.assets or sample_files:
+            location = "in the assets/ subfolder" if request.samples_in_subfolder else "beside the CSD"
+            readme += f"\nKeep the bundled sample and instrument files {location}.\n"
         if sample_files:
-            readme += (
-                "\nSample Player audio is in assets/. Keep this directory beside the CSD.\n"
-                "Rendering includes any sample tails that continue after the selected range.\n"
-            )
+            readme += "Rendering includes any sample tails that continue after the selected range.\n"
             if midi_bytes is not None:
                 readme += (
                     "The MIDI file includes the captured sampler notes for exchange. This CSD\n"
@@ -368,7 +373,7 @@ class PerformanceExportService:
             archive.writestr(str(bundle_root / "README.txt"), readme.encode("utf-8"))
             if warnings:
                 archive.writestr(str(bundle_root / "WARNINGS.txt"), "\n".join(warnings).encode("utf-8"))
-            for asset in [*bundled_assets, *sample_files]:
+            for asset in [*bundle_index.assets, *sample_files]:
                 archive.write(asset.source_path, str(bundle_root / asset.archive_path))
 
         return archive_buffer.getvalue() if output is None else None
@@ -430,9 +435,9 @@ class PerformanceExportService:
     def _rewrite_patch_definitions_for_export(
         self,
         patch_definitions: list[ExportedPatchDefinition],
-    ) -> tuple[list[ExportedPatchDefinition], list[BundledAsset]]:
+        bundle_index: "_AssetBundleIndex",
+    ) -> list[ExportedPatchDefinition]:
         rewritten: list[ExportedPatchDefinition] = []
-        bundle_index = _AssetBundleIndex(self._gen_asset_service)
         for definition in patch_definitions:
             graph = definition.graph.model_copy(deep=True)
             graph.engine_config = self._offline_engine_config(graph.engine_config)
@@ -443,7 +448,7 @@ class PerformanceExportService:
                     deep=True,
                 )
             )
-        return rewritten, bundle_index.assets
+        return rewritten
 
     def _build_compile_targets(
         self,
@@ -524,6 +529,7 @@ class PerformanceExportService:
                 updated.pop("sampleAsset", None)
                 gen_nodes[node_id] = updated
 
+        bundled_file_nodes = set()
         for opcode in ("sfload", "adsyn"):
             file_nodes = ui_layout.get(f"{opcode}_nodes")
             if isinstance(file_nodes, dict):
@@ -547,13 +553,12 @@ class PerformanceExportService:
                     updated["samplePath"] = archive_path
                     updated.pop("sampleAsset", None)
                     file_nodes[node_id] = updated
+                    bundled_file_nodes.add((opcode, node_id))
 
         for node in graph.nodes:
             if node.opcode not in {"sfload", "adsyn"}:
                 continue
-            file_nodes = ui_layout.get(f"{node.opcode}_nodes")
-            raw_config = file_nodes.get(node.id) if isinstance(file_nodes, dict) else None
-            if isinstance(raw_config, dict) and self._has_exportable_sample_reference(raw_config):
+            if (node.opcode, node.id) in bundled_file_nodes:
                 continue
             raw_filename = node.params.get("filename", node.params.get("ifilcod"))
             if raw_filename is not None and str(raw_filename).strip():
@@ -581,16 +586,6 @@ class PerformanceExportService:
                 raise ValueError(raw_path_error)
 
         return None
-
-    @staticmethod
-    def _has_exportable_sample_reference(raw_node_config: dict[str, object]) -> bool:
-        sample_asset = raw_node_config.get("sampleAsset")
-        if isinstance(sample_asset, dict):
-            stored_name = sample_asset.get("stored_name")
-            if isinstance(stored_name, str) and stored_name.strip():
-                return True
-        sample_path = raw_node_config.get("samplePath")
-        return isinstance(sample_path, str) and sample_path.strip().startswith("assets/")
 
     @staticmethod
     def _is_gen01_node_config(raw_node_config: dict[str, object]) -> bool:
@@ -648,7 +643,7 @@ class PerformanceExportService:
         duration_seconds: float,
         controller_score_lines: list[str] | None = None,
         sample_lines: list[str] | None = None,
-        sample_directory: bool = False,
+        sample_directory: str | None = None,
     ) -> str:
         return "\n".join(
             [
@@ -659,7 +654,7 @@ class PerformanceExportService:
                 ),
                 "<CsoundSynthesizer>",
                 "<CsOptions>",
-                f"-d -W -f -o {output_wave_name} -F {midi_file_name}" + (" --env:SSDIR=assets" if sample_directory else ""),
+                f"-d -W -f -o {output_wave_name} -F {midi_file_name}" + (f" --env:SSDIR={sample_directory}" if sample_directory else ""),
                 "</CsOptions>",
                 "<CsInstruments>",
                 orc,
@@ -684,7 +679,7 @@ class PerformanceExportService:
         output_wave_name: str,
         score_lines: list[str],
         score_controller_initializer_lines: list[str] | None = None,
-        sample_directory: bool = False,
+        sample_directory: str | None = None,
     ) -> str:
         return "\n".join(
             [
@@ -695,7 +690,7 @@ class PerformanceExportService:
                 ),
                 "<CsoundSynthesizer>",
                 "<CsOptions>",
-                f"-d -W -f -o {output_wave_name}" + (" --env:SSDIR=assets" if sample_directory else ""),
+                f"-d -W -f -o {output_wave_name}" + (f" --env:SSDIR={sample_directory}" if sample_directory else ""),
                 "</CsOptions>",
                 "<CsInstruments>",
                 orc,
@@ -1407,7 +1402,6 @@ class PerformanceExportService:
                 "Contents:",
                 f"- {csd_file_name}: compiled offline-render Csound document",
                 f"- {midi_file_name}: multitrack arranger playback from beginning to arrangement end",
-                "- assets/: referenced sample audio and SoundFont files bundled for the CSD",
                 "",
                 "Render steps:",
                 f"1. Extract the ZIP and change into the bundled '{bundle_directory_name}/' directory.",
@@ -1441,7 +1435,6 @@ class PerformanceExportService:
             "",
             "Contents:",
             f"- {csd_file_name}: compiled offline-render Csound document with inline score events",
-            "- assets/: referenced sample audio and SoundFont files bundled for the CSD",
         ]
         if warnings:
             lines.append("- WARNINGS.txt: export-time approximations or skipped events")
@@ -1487,7 +1480,9 @@ class PerformanceExportService:
 
 
 class _AssetBundleIndex:
-    def __init__(self, gen_asset_service: GenAssetService) -> None:
+    def __init__(self, gen_asset_service: GenAssetService, directory: PurePosixPath, reserved_names: set[str]) -> None:
+        self._directory = directory
+        self._used_names = {name.casefold() for name in reserved_names}
         self._gen_asset_service = gen_asset_service
         self.assets: list[BundledAsset] = []
         self._archive_path_by_source: dict[str, BundledAsset] = {}
@@ -1502,7 +1497,14 @@ class _AssetBundleIndex:
         existing = self._archive_path_by_source.get(source_key)
         if existing is not None:
             return existing
-        archive_path = PurePosixPath("assets") / stored_name
+        name = stored_name
+        suffix = PurePosixPath(stored_name).suffix[:16]
+        number = len(self.assets) + 1
+        while name.casefold() in self._used_names:
+            name = f"asset-{number}{suffix}"
+            number += 1
+        self._used_names.add(name.casefold())
+        archive_path = self._directory / name
         bundled = BundledAsset(source_path=source_path, archive_path=str(archive_path))
         self._archive_path_by_source[source_key] = bundled
         self.assets.append(bundled)

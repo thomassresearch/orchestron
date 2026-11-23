@@ -95,11 +95,11 @@ SCORE export also removes controller-array writes that no compiled instrument re
 
 SCORE exports preserve eligible **original Catmull–Rom controller curves** using a shared Csound helper. Each keypoint pattern is stored once, with its arrangement occurrences. The helper reproduces the sequencer's sampled, rounded CC values, pad changes, rests and finite ending. Continuous controls follow the curve throughout held notes. Mapped I-rate parameters read its value when a new note starts and retain that setting for the note. Instrument comments remain intact.
 
-When controller sequencers are present, **Export CSD (SCORE)** opens the **CSD export accuracy** dialog. **Maximum deviation** defaults to **1 CC** and accepts whole values from **1 to 10 CC units**. This limit applies only when a curve needs fallback approximation. Original curves do not use the tolerance, so changing it may leave file size and sound unchanged. Higher values can reduce fallback curve data at the cost of accuracy. Choose **Export CSD** to continue, or **Cancel** / **Escape** to close without exporting. MIDI export and SCORE export without controller sequencers proceed directly.
+When controller sequencers are present, **Export CSD (SCORE)** opens the **CSD export options** dialog. **Maximum deviation** defaults to **1 CC** and accepts whole values from **1 to 10 CC units**. This limit applies only when a curve needs fallback approximation. Original curves do not use the tolerance, so changing it may leave file size and sound unchanged. Higher values can reduce fallback curve data at the cost of accuracy. Choose **Export CSD** to continue, or **Cancel** / **Escape** to close without exporting. When a performance contains samples, both modes offer **Export samples in the assets/ subfolder** in this dialog. Clear the checkbox to place the files beside the CSD. Exports proceed directly when neither control applies.
 
 The exporter verifies original-curve scheduling against captured controller events. Cases it cannot reproduce use the existing event or approximation path. Competing lanes and note-triggered `initc7` retain explicit events; legato or independently scheduled voices retain explicit mapped parameter updates. Eligible fallback Curve Mode streams use piecewise linear `linseg` approximation, bounded by the selected deviation on the **0–127 MIDI scale** at **48 kHz** and `ksmps=1`. Startup values, abrupt jumps and final resets remain explicit. Step patterns and mapped I-rate fallback values are not approximated. Only ZIPs that actually approximate curves record the selected accuracy in the CSD header and `WARNINGS.txt`.
 
-API exports enable `useOriginalControllerCurves` by default. Set it to `false` to use the previous piecewise-linear export. `controllerCurveTolerance` accepts integers from 1 to 10, default 1. For an exact-event SCORE export without either curve representation, send `approximateControllerCurves: false` to `/api/bundles/export/performance-csd`. Lossless unused-write and I-rate compaction still apply. CSD (MIDI) retains its captured MIDI events and ignores these settings. Changing sample rate or `ksmps` in an external host changes scheduling resolution; render comparisons and approximation bounds apply to the default settings.
+The `samplesInSubfolder` request field defaults to `true`. Set it to `false` for a flat layout. API exports enable `useOriginalControllerCurves` by default. Set it to `false` to use the previous piecewise-linear export. `controllerCurveTolerance` accepts integers from 1 to 10, default 1. For an exact-event SCORE export without either curve representation, send `approximateControllerCurves: false` to `/api/bundles/export/performance-csd`. Lossless unused-write and I-rate compaction still apply. CSD (MIDI) retains its captured MIDI events and ignores these settings. Changing sample rate or `ksmps` in an external host changes scheduling resolution; render comparisons and approximation bounds apply to the default settings.
 
 SCORE exports also reduce file size without adding approximation: drum settings used only by specific note-selected Switch cases retain updates around those notes, and repeated explicit controller values and fallback curve shapes share compact definitions. Csound expands these score macros to their original numbers before rendering.
 
@@ -113,10 +113,10 @@ ZIP layout:
 
 - The ZIP contains a single top-level directory
 - That directory has the same basename as the exported performance `.csd`
-- Inside the MIDI export directory you will find the `.csd`, `.mid`, `README.txt`, and `assets/` subdirectory
-- Inside the SCORE export directory you will find the `.csd`, `README.txt`, optional `WARNINGS.txt`, and `assets/` subdirectory
+- Inside the MIDI export directory you will find the `.csd`, `.mid`, `README.txt`, and any referenced assets
+- Inside the SCORE export directory you will find the `.csd`, `README.txt`, optional `WARNINGS.txt`, and any referenced assets
 
-Typical extracted structure:
+Typical extracted structure with the default sample subfolder:
 
 ```text
 Offline_Export/

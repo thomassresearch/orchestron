@@ -1355,7 +1355,7 @@ def test_adsyn_rejects_missing_or_unmanaged_files(tmp_path, config, params):
         adsyn_compiler(tmp_path).compile_patch(patch, midi_input="0", rtmidi_module="none")
 
 
-@pytest.mark.parametrize("path,allowed", [("assets/tone.het", True), ("/tmp/tone.het", False),
+@pytest.mark.parametrize("path,allowed", [("assets/tone.het", True), ("tone.het", True), ("/tmp/tone.het", False),
                                           ("assets/../tone.het", False), ("assets/soundin.1", False)])
 def test_adsyn_packaged_paths_are_export_only(tmp_path, path, allowed):
     from backend.tests.adsyn_test_support import adsyn_compiler, adsyn_patch
@@ -1366,7 +1366,7 @@ def test_adsyn_packaged_paths_are_export_only(tmp_path, path, allowed):
     with pytest.raises(CompilationError):
         compiler.compile_patch(patch, midi_input="0", rtmidi_module="none")
     kwargs = dict(targets=[PatchInstrumentTarget(patch=patch, midi_channel=1)], midi_input="0",
-                  rtmidi_module="none", allow_packaged_asset_paths=True)
+                  rtmidi_module="none", packaged_asset_paths=frozenset({path}))
     if allowed:
         assert f'"{path}"' in compiler.compile_patch_bundle(**kwargs).orc
     else:

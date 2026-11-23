@@ -74,7 +74,7 @@ class CompilerService:
         midi_input: str,
         rtmidi_module: str,
         *,
-        allow_packaged_asset_paths: bool = False,
+        packaged_asset_paths: frozenset[str] = frozenset(),
         performance_input_mode: str = "midi",
         profile: CompilationProfile = CompilationProfile.LIVE,
         audio_graph=None,
@@ -105,7 +105,7 @@ class CompilerService:
             from backend.app.services.compiler_mixer import compile_mixer_bundle
             artifact = compile_mixer_bundle(self, targets, audio_graph, mixer or MixerState(),
                 midi_input=midi_input, rtmidi_module=rtmidi_module,
-                allow_packaged_asset_paths=allow_packaged_asset_paths,
+                packaged_asset_paths=packaged_asset_paths,
                 performance_input_mode=performance_input_mode, profile=profile)
             if controller_manifest:
                 artifact.manifest["performanceControllers"] = controller_manifest
@@ -176,7 +176,7 @@ class CompilerService:
                 instrument_number=instrument_number + offset,
                 instrument_name=instrument_names[instrument_number - 1] if instrument_names is not None else None,
                 global_scope_key=f"{instrument_number}_{target.patch.id}",
-                allow_packaged_asset_paths=allow_packaged_asset_paths,
+                packaged_asset_paths=packaged_asset_paths,
                 performance_input_mode=performance_input_mode,
                 score_midi_channel=target.midi_channel,
                 performance_controllers=controller_manifest.get(target.assignment_id or f"instrument-{instrument_number}", {}),

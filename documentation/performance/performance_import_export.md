@@ -80,7 +80,7 @@ For patch-name conflicts, choose overwrite, rename or skip. For the performance 
 
 1. Finish the arrangement and set a finite song end. Disable looping for the offline export.
 2. Open **Project** and choose **Export CSD (MIDI)** or **Export CSD (SCORE)**.
-3. If SCORE export asks for controller accuracy, choose a maximum deviation and continue.
+3. When the performance contains samples, leave **Export samples in the assets/ subfolder** checked to keep them in `assets/`, or clear it to put them beside the CSD. For SCORE exports with controller sequencers, choose **Maximum deviation** in the same dialog. Select **Export CSD** to continue.
 4. Extract the ZIP. Open the included `README.txt` and run its Csound command from the extracted directory.
 5. Read `WARNINGS.txt` when present before relying on the rendered result.
 
@@ -88,15 +88,15 @@ The packages render at **48 kHz**, `ksmps=1`, with **32-bit float WAV** output a
 
 Both modes include instrument instance settings and seed enabled manual MIDI controller values on their selected channels. Live keyboard gestures are not recordings and are not added to the exported arrangement.
 
-Both modes package the audio for selected Sample Player instances. Leave the `assets` folder
-where it was extracted. A sample triggered just before the end of the range can play to
-completion before the effect tail ends.
+The folder choice applies to Sample Player audio, GEN01 samples, SoundFonts and analysis files.
+The CSD resolves these files relative to its extracted folder. A Sample Player note triggered just
+before the end of the range can play to completion before the effect tail ends.
 
 ## Controller accuracy
 
 SCORE export preserves eligible original controller curves. Where a curve needs approximation, **Maximum deviation** accepts **1–10 CC units**, default **1**, on the 0–127 MIDI scale. A larger allowance can reduce data at the cost of accuracy. Changing the allowance may have no effect when original curves can be used directly. Step patterns and abrupt resets retain their events.
 
-![CSD export accuracy dialog](../../screenshots/csd_export_accuracy.png)
+![CSD export options showing maximum controller deviation and the default sample subfolder](../../screenshots/csd_export_accuracy.png)
 
 Any actual curve approximation is described in the exported warnings. MIDI export retains the captured MIDI events.
 

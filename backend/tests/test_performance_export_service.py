@@ -13,6 +13,22 @@ from backend.app.services.performance_export_service import (
 from backend.tests.csound_test_support import load_patch_fixture
 
 
+def test_flat_asset_names_avoid_render_output_and_other_assets(tmp_path):
+    from pathlib import PurePosixPath
+    from backend.app.services.gen_asset_service import GenAssetService
+    from backend.app.services.performance_export_service import _AssetBundleIndex
+
+    store = GenAssetService(tmp_path)
+    index = _AssetBundleIndex(store, PurePosixPath("."), {"Song.wav"})
+    for name in ["song.wav", "asset-1.wav"]:
+        store.resolve_audio_path(name).write_bytes(b"sample")
+    first = index.add_stored_asset("song.wav")
+    second = index.add_stored_asset("asset-1.wav")
+    assert first.archive_path == "asset-1.wav"
+    assert second.archive_path == "asset-2.wav"
+    assert index.add_stored_asset("song.wav") is first
+
+
 @pytest.fixture
 def exporter():
     return PerformanceExportService(compiler_service=None, gen_asset_service=None)

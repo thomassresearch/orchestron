@@ -3174,7 +3174,8 @@ def test_master_insert_diagnostics_in_validation_and_csd_export(
                 assert warnings_file not in archive.namelist()
 
 
-def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path) -> None:
+@pytest.mark.parametrize("subfolder", [None, False], ids=["default", "beside-csd"])
+def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_path: Path, subfolder) -> None:
     asset_dir = tmp_path / "gen_audio_assets"
     asset_dir.mkdir(parents=True, exist_ok=True)
     stored_name = "sample.aiff"
@@ -3216,6 +3217,10 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
         },
     )
 
+    prefix = "assets/" if subfolder is None else ""
+    if subfolder is not None:
+        payload["samplesInSubfolder"] = subfolder
+
     external_secret_path = tmp_path / "outside-secret.sf2"
     external_secret_bytes = b"outside-secret-soundfont"
     external_secret_path.write_bytes(external_secret_bytes)
@@ -3235,16 +3240,16 @@ def test_performance_csd_export_bundle_includes_csd_midi_readme_and_assets(tmp_p
             assert f"{bundle_root}/Offline_Export.csd" in entries
             assert f"{bundle_root}/Offline_Export.mid" in entries
             assert f"{bundle_root}/README.txt" in entries
-            assert f"{bundle_root}/assets/{stored_name}" in entries
-            assert f"{bundle_root}/assets/{soundfont_stored_name}" in entries
-            assert archive.read(f"{bundle_root}/assets/{stored_name}") == uploaded_sample_bytes
-            assert archive.read(f"{bundle_root}/assets/{soundfont_stored_name}") == soundfont_bytes
+            assert f"{bundle_root}/{prefix}{stored_name}" in entries
+            assert f"{bundle_root}/{prefix}{soundfont_stored_name}" in entries
+            assert archive.read(f"{bundle_root}/{prefix}{stored_name}") == uploaded_sample_bytes
+            assert archive.read(f"{bundle_root}/{prefix}{soundfont_stored_name}") == soundfont_bytes
 
             csd = archive.read(f"{bundle_root}/Offline_Export.csd").decode("utf-8")
             assert "sr = 48000" in csd
             assert "ksmps = 1" in csd
-            assert f'"assets/{stored_name}"' in csd
-            assert f'"assets/{soundfont_stored_name}"' in csd
+            assert f'"{prefix}{stored_name}"' in csd
+            assert f'"{prefix}{soundfont_stored_name}"' in csd
             assert str(tmp_path) not in csd
             assert "-d -W -f -o Offline_Export.wav -F Offline_Export.mid" in csd
             assert "-F Offline_Export.mid" in csd
@@ -9786,7 +9791,8 @@ def test_adsyn_opcode_upload_save_compile_and_native_bundle(tmp_path):
 
 
 @pytest.mark.parametrize("mode", ["score", "midiFile"])
-def test_adsyn_performance_exports_bundle_analysis(tmp_path, mode):
+@pytest.mark.parametrize("subfolder", [True, False])
+def test_adsyn_performance_exports_bundle_analysis(tmp_path, mode, subfolder):
     from backend.tests.adsyn_test_support import ANALYSIS_FILE, adsyn_patch
     from backend.app.engine.ctcsound_loader import load_ctcsound_module
     import numpy as np
@@ -9797,6 +9803,7 @@ def test_adsyn_performance_exports_bundle_analysis(tmp_path, mode):
     patch = adsyn_patch(kamod=.2)
     payload["performanceExport"]["patch_definitions"][0]["graph"] = patch.graph.model_dump(mode="json", by_alias=True)
     payload["eventSource"] = mode
+    payload["samplesInSubfolder"] = subfolder
     with _client(tmp_path) as client:
         native = client.post("/api/bundles/export/performance", json=payload["performanceExport"])
         assert native.status_code == 200, native.text
@@ -9811,7 +9818,8 @@ def test_adsyn_performance_exports_bundle_analysis(tmp_path, mode):
     (asset_dir / ANALYSIS_FILE.name).unlink()
     root = destination / "Offline_Export"
     csd = (root / "Offline_Export.csd").read_text()
-    assert f'"assets/{ANALYSIS_FILE.name}"' in csd and str(asset_dir) not in csd
+    relative_path = f"assets/{ANALYSIS_FILE.name}" if subfolder else ANALYSIS_FILE.name
+    assert f'"{relative_path}"' in csd and str(asset_dir) not in csd
     # Render the exported bundle with its own directory as Csound's working directory.
     old_cwd = Path.cwd()
     cs = load_ctcsound_module().Csound()
@@ -11236,7 +11244,8 @@ def test_sample_map_persistence_native_commit_and_active_reachability(tmp_path, 
 
 
 @pytest.mark.parametrize("force_cancel", [False, True], ids=["short-gate", "overlap-and-cancel"])
-def test_sample_csd_modes_render_identically_after_relocation(tmp_path, monkeypatch, force_cancel):
+@pytest.mark.parametrize("subfolder", [True, False], ids=["subfolder", "beside-csd"])
+def test_sample_csd_modes_render_identically_after_relocation(tmp_path, monkeypatch, force_cancel, subfolder):
     import shutil
     import subprocess
     import numpy as np
@@ -11265,14 +11274,18 @@ def test_sample_csd_modes_render_identically_after_relocation(tmp_path, monkeypa
                                       "sampleMap": {"version": 1, "entries": [{"note": 60, "assetId": unused["asset_id"]}]}})
         config["sampleAssets"][unused["asset_id"]] = unused["asset"]
         request["sequencerConfig"]["tracks"][0]["gate_ratio"] = 0.16
+        request["samplesInSubfolder"] = subfolder
         results = []
         for mode in ("midiFile", "score"):
             response = client.post("/api/bundles/export/performance-csd", json={**request, "eventSource": mode})
             assert response.status_code == 200, response.text
             folder = tmp_path / f"relocated-{mode}"
             with zipfile.ZipFile(BytesIO(response.content)) as package:
-                packaged = [member for member in package.namelist() if "/assets/" in member]
-                assert len(packaged) == 1
+                packaged = [member for member in package.namelist() if Path(member).name.startswith("soundin.")]
+                prefix = "assets/" if subfolder else ""
+                assert packaged == [f"Offline_Export/{prefix}soundin.1000"]
+                readme = package.read("Offline_Export/README.txt").decode()
+                assert ("assets/" in readme) == subfolder
                 path = client.app.state.container.gen_asset_service.resolve_audio_path(upload["asset"]["playback"]["stored_name"])
                 assert package.read(packaged[0]) == path.read_bytes()
                 package.extractall(folder)

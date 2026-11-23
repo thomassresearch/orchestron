@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { audioTemplate } from "./audioTemplates";
 import { useAppStore } from "../store/useAppStore";
-import { buildPerformanceExportPayload, parsePerformanceExportPayload, planPatchImports, resolveImportedPerformanceConfig } from "./bundleImportExport";
+import { buildPerformanceExportPayload, parsePerformanceExportPayload, performanceHasSamples, planPatchImports, resolveImportedPerformanceConfig } from "./bundleImportExport";
 import { buildSequencerConfigSnapshot, defaultSequencerState } from "../store/appStoreModel";
 import { migrateClipArrangement } from "./clipArranger/migration";
 import { emptyClipHistory, recordClipEdit } from "./clipArranger/history";
@@ -11,6 +11,24 @@ function bundle() {
   return buildPerformanceExportPayload({ snapshot: useAppStore.getState().buildSequencerConfigSnapshot(),
     selectedPatches: [audioTemplate("empty")], performanceName: "Song", performanceDescription: "" }).payload;
 }
+
+it("offers sample placement for mapped notes and managed patch assets", () => {
+  const exported = bundle();
+  const instrument = { id: "rack", patchId: "kit", midiChannel: 1 };
+  exported.performance.config.instruments = [{ ...instrument, sampleMap: { version: 1, entries: [] } }];
+  expect(performanceHasSamples(exported)).toBe(false);
+  exported.performance.config.instruments[0].sampleMap!.entries.push({ note: 60, assetId: "kick" });
+  expect(performanceHasSamples(exported)).toBe(true);
+
+  exported.performance.config.instruments = [instrument];
+  for (const key of ["gen_nodes", "sfload_nodes", "adsyn_nodes"]) {
+    const graph = exported.patch_definitions[0].graph;
+    graph.ui_layout = { [key]: { node: { sampleAsset: null } } };
+    expect(performanceHasSamples(exported)).toBe(false);
+    graph.ui_layout = { [key]: { node: { sampleAsset: { stored_name: "instrument-file" } } } };
+    expect(performanceHasSamples(exported)).toBe(true);
+  }
+});
 
 it("rejects ambiguous and malformed definitions instead of silently dropping them", () => {
   const exported = bundle();

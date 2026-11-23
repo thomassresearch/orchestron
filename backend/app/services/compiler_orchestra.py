@@ -59,7 +59,7 @@ class OrchestraEmitter:
         instrument_number: int,
         instrument_name: str | None = None,
         global_scope_key: str,
-        allow_packaged_asset_paths: bool = False,
+        packaged_asset_paths: frozenset[str] = frozenset(),
         performance_input_mode: str = "midi",
         score_midi_channel: int = 0,
         direct_output_ports: dict[str, tuple[str, str]] | None = None,
@@ -277,7 +277,7 @@ class OrchestraEmitter:
                     compiled.node,
                     ui_layout,
                     env,
-                    allow_packaged_asset_paths=allow_packaged_asset_paths,
+                    packaged_asset_paths=packaged_asset_paths,
                 )
                 instrument_lines.extend(
                     [self._node_comment(compiled.node.id, compiled.spec.name), *rendered.splitlines()]
@@ -290,7 +290,7 @@ class OrchestraEmitter:
                         compiled.node,
                         ui_layout,
                         env,
-                        allow_packaged_asset_paths=allow_packaged_asset_paths,
+                        packaged_asset_paths=packaged_asset_paths,
                     )
                 )
                 continue
@@ -298,7 +298,7 @@ class OrchestraEmitter:
             if compiled.spec.name == "adsyn":
                 filename = self._resolve_file_asset_filename(
                     ui_layout, compiled.node.id, compiled.node.params,
-                    allow_packaged_asset_paths=allow_packaged_asset_paths, opcode="adsyn",
+                    packaged_asset_paths=packaged_asset_paths, opcode="adsyn",
                 )
                 if filename is None:
                     raise CompilationError([f"adsyn node '{compiled.node.id}' requires an uploaded hetro analysis file."])
@@ -685,7 +685,7 @@ class OrchestraEmitter:
         ui_layout: dict[str, object],
         env: dict[str, str],
         *,
-        allow_packaged_asset_paths: bool = False,
+        packaged_asset_paths: frozenset[str] = frozenset(),
     ) -> str:
         if "ift" not in env:
             raise CompilationError([f"GEN node '{node.id}' is missing output variable binding."])
@@ -703,7 +703,7 @@ class OrchestraEmitter:
             node_id=node.id,
             config=config,
             routine_number=1 if is_gen01_routine else 0 if routine_name is not None else routine_number,
-            allow_packaged_asset_paths=allow_packaged_asset_paths,
+            packaged_asset_paths=packaged_asset_paths,
         )
         if len(args) > MAX_GEN_ARGUMENT_COUNT:
             raise CompilationError(
@@ -737,7 +737,7 @@ class OrchestraEmitter:
         node_id: str,
         config: GenNodeConfig,
         routine_number: int,
-        allow_packaged_asset_paths: bool = False,
+        packaged_asset_paths: frozenset[str] = frozenset(),
     ) -> list[str | int | float | bool]:
         if routine_number == 10:
             partials = config.harmonic_amplitudes
@@ -811,9 +811,9 @@ class OrchestraEmitter:
                         sample_path = self._resolve_gen_audio_asset_path(normalized_stored_name)
             raw_sample_path = config.sample_path
             if sample_path is None and isinstance(raw_sample_path, str) and raw_sample_path.strip():
-                if allow_packaged_asset_paths:
+                if packaged_asset_paths:
                     sample_path = self._resolve_packaged_asset_path(
-                        raw_sample_path.strip(),
+                        raw_sample_path.strip(), packaged_asset_paths,
                         node_id=node_id,
                         opcode="GEN01",
                     )
@@ -860,7 +860,7 @@ class OrchestraEmitter:
         ui_layout: dict[str, object],
         env: dict[str, str],
         *,
-        allow_packaged_asset_paths: bool = False,
+        packaged_asset_paths: frozenset[str] = frozenset(),
     ) -> SfloadGlobalRequest:
         output_name = env.get("ifilhandle")
         if not output_name:
@@ -870,7 +870,7 @@ class OrchestraEmitter:
             ui_layout,
             node.id,
             legacy_params=node.params,
-            allow_packaged_asset_paths=allow_packaged_asset_paths,
+            packaged_asset_paths=packaged_asset_paths,
         )
         if filename is None:
             raise CompilationError([f"sfload node '{node.id}' requires an uploaded SF2 asset."])
@@ -951,7 +951,7 @@ class OrchestraEmitter:
         node_id: str,
         legacy_params: dict[str, object] | None = None,
         *,
-        allow_packaged_asset_paths: bool = False,
+        packaged_asset_paths: frozenset[str] = frozenset(),
         opcode: str = "sfload",
     ) -> str | None:
         raw_nodes = ui_layout.get(f"{opcode}_nodes")
@@ -974,9 +974,9 @@ class OrchestraEmitter:
 
         raw_sample_path = raw_config.get("samplePath")
         if isinstance(raw_sample_path, str) and raw_sample_path.strip():
-            if allow_packaged_asset_paths:
+            if packaged_asset_paths:
                 return self._resolve_packaged_asset_path(
-                    raw_sample_path.strip(),
+                    raw_sample_path.strip(), packaged_asset_paths,
                     node_id=node_id,
                     opcode=opcode,
                 )
@@ -1000,22 +1000,22 @@ class OrchestraEmitter:
         return None
 
     @staticmethod
-    def _resolve_packaged_asset_path(raw_path: str, *, node_id: str, opcode: str) -> str:
+    def _resolve_packaged_asset_path(raw_path: str, packaged_asset_paths: frozenset[str], *, node_id: str, opcode: str) -> str:
         normalized = raw_path.strip()
         path = PurePosixPath(normalized)
         if (
-            "\\" in normalized
+            normalized not in packaged_asset_paths
+            or "\\" in normalized
             or path.is_absolute()
-            or len(path.parts) != 2
-            or path.parts[0] != "assets"
+            or path.parent not in {PurePosixPath("."), PurePosixPath("assets")}
             or any(part in {"", ".", ".."} for part in path.parts)
-            or not re.fullmatch(r"[A-Za-z0-9._-]{1,255}", path.parts[1])
-            or re.fullmatch(r"soundin\.\d+", path.parts[1])
+            or not re.fullmatch(r"[A-Za-z0-9._-]{1,255}", path.name)
+            or re.fullmatch(r"soundin\.\d+", path.name)
         ):
             raise CompilationError(
                 [
                     f"{opcode} node '{node_id}' has an invalid packaged asset path. "
-                    "Only exporter-generated assets/<stored_name> paths are supported."
+                    "Only relative paths to bundled assets are supported."
                 ]
             )
         return "/".join(path.parts)

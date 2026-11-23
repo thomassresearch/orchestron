@@ -415,7 +415,7 @@ app state and active sessions protect both files from collection.
 - Emits both `orc` and full `csd` strings.
 - Supports multi-instrument session compilation by assigning MIDI channels with `massign`.
 - Requires GEN01 and `sfload` runtime sample loading to use uploaded/imported assets. Raw `samplePath` values and legacy `sfload` `filename` parameters are rejected for live session compile/start.
-- Offline performance CSD export may compile only exporter-generated `assets/<stored_name>` paths after the export service has copied referenced assets into the ZIP.
+- Offline performance CSD export may compile only relative paths on the export service’s list of bundled assets. The `samplesInSubfolder` request option defaults to true and places files under `assets/`. A false value places files beside the CSD.
 
 Implementation note: when compiling a multi-instrument bundle, the engine settings are taken from the first target patch in the session.
 
@@ -660,7 +660,7 @@ Bundle behavior:
 - Performance exports place the JSON at `performance.orch.json`.
 - Referenced audio files are stored under `audio/<stored_name>` inside the ZIP.
 - Offline performance CSD exports reject looping playback, playback range lengths or absolute end positions above 65,536 transport steps, step note lists above 16 notes, and estimated MIDI event counts above 200,000 before export work starts. MIDI synthesis also has an event-count fuse and a 5 second wall-clock fuse.
-- Offline performance CSD exports reject raw GEN01/`sfload` `samplePath` values and legacy `sfload` `filename` parameters. Only uploaded/imported assets are rewritten to archive-local `assets/<stored_name>` references.
+- Offline performance CSD exports reject raw GEN01/`sfload` `samplePath` values and legacy `sfload` `filename` parameters. Only uploaded/imported assets are rewritten to archive-local references in the selected sample directory.
 
 Import behavior:
 
@@ -1506,8 +1506,8 @@ Tables are limited to 256 MiB at double precision, with at most 120 seconds per 
 `POST /api/sessions/{id}/instruments/{assignment_id}/sample-preview` starts/stops a
 gesture scoped to the running instance's routed sample. It does not mutate the map.
 Native bundles include both physical files for every used asset. Offline MIDI/SCORE
-packages include only selected instances' canonical files, with relative `assets/soundin.*`
-members. Both modes schedule the same finite sampler score voices; MIDI mode also
+packages include only selected instances' canonical files as `soundin.*` in the chosen
+sample directory. Both modes schedule the same finite sampler score voices; MIDI mode also
 retains the standard captured MIDI. The render extends to the latest surviving sample
 or range end, whichever is later, then adds the effect tail.
 
