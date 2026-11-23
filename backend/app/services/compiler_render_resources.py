@@ -23,7 +23,7 @@ from backend.app.services.compiler_formula import lookup_input_formula_config, r
 from backend.app.services.compiler_graph import compile_graph_context
 from backend.app.services.compiler_legato import has_legato, validate_legato
 from backend.app.services.performance_controller_service import controller_bindings
-from backend.app.services.compiler_private_tables import TABLE_CACHE_ENTRIES, input_bounds, private_table_size
+from backend.app.services.compiler_private_tables import AUTO_TABLE_BASE, TABLE_CACHE_ENTRIES, input_bounds, private_table_size
 
 CAPABILITY_VERSION = "whole-instrument-resources-v5"
 
@@ -167,6 +167,9 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
             if not isinstance(value, str):
                 return
             identifiers = expression_names(value)
+            if target.samples and identifiers & {"p1", "p7"}:
+                block("sample_local_score_reference", node,
+                      "The expression reads the sampler's native instrument number or table index.")
             if identifiers & {"rnd", "birnd"}:
                 resource("engine:random", node, "performance", "read_write")
             unknown = {n for n in identifiers - PURE_EXPRESSION_NAMES - {"rnd", "birnd"}
@@ -213,13 +216,6 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                                 and math.isfinite(value) and value > 0 and value == int(value))
                     key = f"table:{int(value)}" if numbered else "tables:*"
                     table(key, node, "read")
-            if name == "sample_player":
-                block("sample_player_single_renderer", node, "Sample Player voices and tables require the single renderer.")
-                resource("sample-voices:" + identity, node, "instance", "read_write")
-                for sample in {item.sha256: item for item in target.samples.values()}.values():
-                    resource("sample-table:" + sample.sha256, node, "performance", "read",
-                             (sample.frame_count + 2) * sample.channels * 8)
-                continue
             if name == "ftgenonce" and node.id in private_tables:
                 private_allocations.append((len(accesses), private_tables[node.id]))
                 resource(f"private-table:{identity}:{node.id}", node, "instance", "read_write")
@@ -255,6 +251,11 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
             elif hashes[name] != AUDITED_OPCODE_HASHES[name]:
                 resource("unknown:" + name, node, "unknown", "read_write")
                 block("opcode_definition_changed", node, f"Opcode '{name}' differs from the audited semantic definition.")
+            elif name == "sample_player":
+                resource("sample-voices:" + identity, node, "instance", "read_write")
+                for sample in {item.sha256: item for item in target.samples.values()}.values():
+                    resource("sample-table:" + sample.sha256, node, "replicated", "read",
+                             (sample.frame_count + 2) * sample.channels * 8)
             elif name == "perf_controller":
                 resource("channel:" + controllers[node.id]["channel"], node, "host", "read")
             elif name == "maxalloc":
@@ -293,6 +294,12 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
     # The canonical score initializes table 1 in every program. Read-only users
     # can replicate it. A writer (or dynamic reference) restores shared ownership.
     wildcard = "tables:*" in table_users
+    # A dynamic or high numbered user table can alias Csound's automatic sample tables.
+    if any(t.samples for t in targets) and (wildcard or any(
+        key.startswith("table:") and int(key[6:]) > AUTO_TABLE_BASE for key in table_users
+    )):
+        blockers.append(RenderPlanDiagnostic("sample_table_alias_unknown",
+                                             "A user table reference may address an automatic sample table."))
     if private_allocations:
         # Numeric/dynamic references could observe auto IDs or mutate a cached table.
         if set(table_users) - {"table:1"} or table_writers:

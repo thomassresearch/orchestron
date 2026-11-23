@@ -13,6 +13,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
+from backend.app.engine.sample_voices import LocalSampleCommands
 from backend.app.engine.partition_native import NativeCsoundPartition
 from backend.app.engine.render_block_codec import RENDER_MAGIC, SteadyBlockCodec
 from backend.app.engine.render_cpu_placement import apply_worker_cpu
@@ -44,7 +45,7 @@ def _exit_with_parent():
         os._exit(1)
 
 
-def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready, *, predecessor_ready=(), successor_ready=(), cpu_affinity=None, _batch_factory=None):
+def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready, *, predecessor_ready=(), successor_ready=(), cpu_affinity=None, sample_asset_dir=None, _batch_factory=None):
     """Small spawn arguments; CSD/metadata live in the pre-provisioned arena.
 
     No queue feeder threads, callbacks, schedulers or Python service objects cross
@@ -64,11 +65,11 @@ def run_csound_process(name, size, bootstrap, digest, command_ready, reply_ready
         _batch_factory = default_batch_factory
     _serve(name, size, bootstrap, digest, command_ready, reply_ready,
            predecessor_ready=predecessor_ready, successor_ready=successor_ready, cpu_affinity=cpu_affinity,
-           _batch_factory=_batch_factory)
+           sample_asset_dir=sample_asset_dir, _batch_factory=_batch_factory)
 
 
 def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_factory=None,
-           predecessor_ready=(), successor_ready=(), cpu_affinity=None, _batch_factory=None):
+           predecessor_ready=(), successor_ready=(), cpu_affinity=None, sample_asset_dir=None, _batch_factory=None):
     """The injected native factory is only for spawn-based fault/barrier tests."""
     arena = SharedArena(size=size, name=name)
     instance = None
@@ -107,8 +108,10 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
         phase = "start"
         apply_worker_cpu(cpu_affinity)
         phase = "compile"
+        samples = LocalSampleCommands(program.csd, engine.sample_rate, engine.ksmps)
         if native_factory is None:
-            instance = NativeCsoundPartition(load_ctcsound_module(), program.csd, engine, config["sample_bytes"])
+            instance = NativeCsoundPartition(load_ctcsound_module(), program.csd, engine, config["sample_bytes"],
+                                             sample_asset_dir=sample_asset_dir)
         else:
             instance = native_factory(program, engine, config["sample_bytes"])
         codec = SteadyBlockCodec(digest)
@@ -142,7 +145,7 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
                 raise ValueError("Native batch loops require the real native owner.")
             batch_loop = _batch_factory(instance=instance, engine=engine, inputs=inputs, outputs=outputs,
                 meter_views=meter_views, meter_names=program.meters, final_views=final_views,
-                pcm_views=pcm_views, mode_views=mode_views)
+                pcm_views=pcm_views, mode_views=mode_views, samples=samples)
         ready = Ready(**identity, artifact_hash=config["artifact_hash"], engine=native_format)
         arena.send(reply, arena.encode(ready, reply))
         reply_ready.release()
@@ -193,6 +196,12 @@ def _serve(name, size, bootstrap, digest, command_ready, reply_ready, *, native_
                     controls = [(c.channel, c.value) for c in delivery.controls] if delivery else ()
                     for copy in input_copies[slot][block_index]:
                         copy()
+                    if delivery:
+                        for event in delivery.samples:
+                            channel, fields = samples.resolve(event)
+                            instance.cs.setControlChannel(channel, 0 if fields else 1)
+                            if fields and instance.cs.scoreEvent("i", fields) != 0:
+                                raise RuntimeError("Native sample attack failed.")
                     instance.perform(midi, controls)
                     for copy in output_copies[slot][block_index]:
                         copy()

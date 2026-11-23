@@ -39,7 +39,7 @@ from backend.app.services.compiler_fm6 import fm6_header
 from backend.app.services.insert_bypass import bypass_ports
 from backend.app.models.render_plan import RenderConnection
 from backend.app.services.compiler_stage_lowering import (
-    AlwaysOn, ControlInit, LoweredMixer, LoweredStage, MidiAssignment, ScopedSetup,
+    AlwaysOn, ControlInit, LoweredMixer, LoweredStage, MidiAssignment, SampleTableSetup, ScopedSetup,
     instance_connections, route_connections,
 )
 
@@ -566,7 +566,8 @@ def lower_mixer_bundle(
         sample_targets, [manifest["instrumentReferences"][target.assignment_id] for target in sample_targets],
         stored_filecode=service.sample_filecode,
     )
-    header.extend(sample_setup)
+    if sample_setup:
+        header.append(SampleTableSetup(tuple(sample_setup)))
     if sample_bindings:
         manifest["sampleBindings"] = sample_bindings
     if setter_count:

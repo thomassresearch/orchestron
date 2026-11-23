@@ -12,6 +12,9 @@ from backend.app.engine.csound_process import native_float32_mode, run_csound_pr
 from backend.experiments.rust_worker.build import default_library
 
 
+WORKER_ABI = 2
+
+
 def worker_implementation():
     mode = os.environ.get("VISUALCSOUND_PARALLEL_WORKER", "rust").strip().lower()
     if mode not in {"rust", "python"}:
@@ -36,33 +39,39 @@ class Config(C.Structure):
         ("meter_ptrs", C.POINTER(C.c_void_p)), ("meter_count", C.c_size_t),
         ("meters", C.c_void_p * 2), ("final_audio", C.c_void_p * 2),
         ("pcm", C.c_void_p * 2), ("spout", C.c_void_p),
-        *[(name, C.c_void_p) for name in ("perform", "set_audio", "get_audio", "set_control", "set_read")]]
+        *[(name, C.c_void_p) for name in ("perform", "set_audio", "get_audio", "set_control", "set_read", "score_event")]]
 
 
 class Control(C.Structure):
     _fields_ = [("name", C.c_char_p), ("value", C.c_double)]
 
 
+class Sample(C.Structure):
+    _fields_ = [("slot_name", C.c_char_p), ("fields", C.POINTER(C.c_double))]
+
+
 class Events(C.Structure):
     _fields_ = [("midi", C.c_char_p), ("midi_len", C.c_size_t),
-                ("controls", C.POINTER(Control)), ("control_count", C.c_size_t)]
+                ("controls", C.POINTER(Control)), ("control_count", C.c_size_t),
+                ("samples", C.POINTER(Sample)), ("sample_count", C.c_size_t)]
 
 
 ERRORS = {1: "Invalid Rust batch bounds", 2: "Previous sealed MIDI block was not consumed.",
     3: "Native partition ended before the requested block completed.",
     4: "Partition output exceeds float32 PCM range.", 5: "Native partition produced nonfinite audio/meters.",
-    6: "Reentrant Rust batch"}
+    6: "Reentrant Rust batch", 7: "Native sample attack failed."}
 
 
 class RustBatchLoop:
     def __init__(self, *, library, instance, engine, inputs, outputs, meter_views, meter_names,
-                 final_views, pcm_views, mode_views):
+                 final_views, pcm_views, mode_views, samples):
         if instance.dtype != np.dtype("float64") or engine.channels != 2:
             raise RuntimeError("Rust parallel worker requires native float64 stereo; no silent Python fallback.")
+        self.samples = samples
         self.handle = None
         self.lib = C.CDLL(str(Path(library).resolve(strict=True)))
         self.lib.worker_abi.restype = C.c_uint32
-        if self.lib.worker_abi() != 1:
+        if self.lib.worker_abi() != WORKER_ABI:
             raise RuntimeError("Rust parallel worker ABI mismatch")
         self.lib.worker_create.argtypes, self.lib.worker_create.restype = [C.POINTER(Config)], C.c_void_p
         self.lib.worker_render.argtypes = [C.c_void_p, C.c_size_t, C.c_size_t, C.POINTER(Events)]
@@ -117,7 +126,7 @@ class RustBatchLoop:
             instance.output_buffer.ctypes.data if final_views else None,
             *(C.cast(getattr(instance._library, name), C.c_void_p).value for name in (
                 "csoundPerformKsmps", "csoundSetAudioChannel", "csoundGetAudioChannel", "csoundSetControlChannel",
-                "csoundSetExternalMidiReadCallback")))
+                "csoundSetExternalMidiReadCallback", "csoundScoreEvent")))
         self.handle = self.lib.worker_create(C.byref(self.config))
         if not self.handle:
             raise RuntimeError("Cannot initialize Rust batch loop")
@@ -134,8 +143,12 @@ class RustBatchLoop:
                 midi = bytes(byte for event in delivery.midi for byte in event.message)
                 controls = (Control * len(delivery.controls))(
                     *(Control(c.channel.encode(), c.value) for c in delivery.controls))
-                # ctypes retains both buffers through the containing structure.
-                events[index] = Events(midi, len(midi), controls, len(controls))
+                samples = (Sample * len(delivery.samples))()
+                for i, command in enumerate(delivery.samples):
+                    channel, fields = self.samples.resolve(command)
+                    samples[i] = Sample(channel.encode(), (C.c_double * 11)(*fields) if fields else None)
+                # The containing ctypes structure retains the buffers until worker_render returns.
+                events[index] = Events(midi, len(midi), controls, len(controls), samples, len(samples))
         code = self.lib.worker_render(self.handle, slot, block_count, events)
         if code:
             raise RuntimeError(ERRORS.get(code, f"Unknown Rust worker status {code}"))

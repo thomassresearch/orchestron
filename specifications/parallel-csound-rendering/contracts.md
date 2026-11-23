@@ -53,13 +53,20 @@ Every envelope carries an explicit version, positive epoch, partition identity a
 | --- | --- | --- |
 | INIT | `artifact_hash`, `engine` | Select pre-provisioned immutable CSD and bus-resource manifest; native compile/start begins |
 | READY | Same artifact digest and actual engine format | Parent verifies exact handshake before any render; a mismatch fails startup |
-| RENDER | Block identity, slots, ordered `midi`, coalesced `controls` | Render exactly one sealed global block |
+| RENDER | Block identity, slots, ordered `midi`, owner-scoped `samples`, coalesced `controls` | Render exactly one sealed global block |
 | DONE | Exact block identity and owned slot generations | All outputs published before completion notification |
 | ERROR | Bounded code/detail, last fully completed sequence or -1 | Child reports failure; parent invalidates the epoch and coordinates shutdown |
 | STOP | Envelope only | Stop the identified epoch; superseding epochs cannot be affected |
 | STOPPED | Envelope only | Native instance closed; parent can reclaim resources after all owners are reaped |
 
 `engine` is `(sample_rate, ksmps, zero_dbfs, native_sample_type)`. A block identity is `(sequence, sample_start, frame_count, control_revision)`; `sample_end = sample_start + frame_count`. A slot is `(bus_id, slot in {0,1}, generation)`. MIDI includes authoritative sequence, source, clamped target sample, three channel-voice bytes and late flag. Controller writes carry channel and finite value.
+
+The parent resolves sampler ownership, polyphony and source cancellations before sealing
+each k-block. Up to 512 ordered sample commands carry the MIDI channel, mapped note,
+velocity and global slot (0–255). A positive velocity starts the voice and zero cuts it.
+Only the owning worker receives those commands. Its local map supplies the Csound
+instrument, table index, channels and frame count. Both worker loops apply commands
+before the corresponding native synthesis step. Rust worker ABI 2 includes score-event delivery.
 
 Frame counts are structurally bounded, but the coordinator must additionally require `frame_count == plan.ksmps`, contiguous sample ranges, matching engine settings/revision and exactly the declared bus set. Structural validation alone does not verify stage ownership, valid resources, predecessor readiness, sequence/epoch freshness or correct native sample width. T03/T05 own those stateful checks.
 

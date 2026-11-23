@@ -15,9 +15,11 @@ from backend.app.engine.parallel_csound_renderer import (
 )
 from backend.app.engine.realtime_renderer import EngineStartResult
 from backend.app.engine.render_capacity import MIB, RenderAdmissionError
+from backend.app.engine.sample_voices import SampleVoices, parse_bindings
+from backend.app.models.sample_player import MAX_SAMPLE_TABLE_BYTES
 from backend.app.engine.render_ipc import build_layout
 from backend.app.engine.render_qualification import runtime_fingerprint, select_qualification
-from backend.app.models.render_protocol import ControlWrite, MidiDelivery
+from backend.app.models.render_protocol import ControlWrite, MidiDelivery, SampleDelivery
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.render_partition_plan import plan_render_partitions
 
@@ -54,9 +56,7 @@ class ParallelCsoundRenderer(CsoundWorker):
         self._canonical_csd = canonical.csd
         self._fallback_reason = None
         self._qualification = None
-        if canonical.manifest.get("sampleBindings"):
-            self._fallback_reason = "sample_player_single_renderer"
-        elif self.options.enabled is not None and not self.options.enabled():
+        if self.options.enabled is not None and not self.options.enabled():
             self._fallback_reason = "parallel_disabled"
         elif self.options.blocked_reason:
             self._fallback_reason = self.options.blocked_reason
@@ -114,12 +114,16 @@ class ParallelCsoundRenderer(CsoundWorker):
         private = self._qualification.private_memory_bytes if self._qualification else workers * 128 * MIB
         # Compiler-owned table allocations are charged once per process/resource;
         # built-in read-only tables are already covered by the native base budget.
+        sample_bytes = 0
         for partition in plan.partitions:
             allocations = {}
             for resource in plan.graph.resources:
                 if resource.stage in partition.stages:
                     allocations[resource.resource] = max(allocations.get(resource.resource, 0), resource.memory_bytes)
             private += sum(allocations.values())
+            sample_bytes += sum(size for key, size in allocations.items() if key.startswith("sample-table:"))
+        if sample_bytes > MAX_SAMPLE_TABLE_BYTES:
+            raise RenderAdmissionError("sample_table_capacity_exceeded")
         memory = private + layout.size + MAX_REQUEST_FRAMES * 2 * 4
         try:
             lease = self.options.admission.acquire(self, workers=workers, memory_bytes=memory, shared_bytes=layout.size,
@@ -206,7 +210,9 @@ class ParallelCsoundRenderer(CsoundWorker):
             if self._candidate is not None and not (self._quarantined and self.options.policy.mode == "auto"):
                 try:
                     self._admit()
-                    self._coordinator.start(*self._candidate, cancel_event=cancel)
+                    bindings = parse_bindings(csd)
+                    asset_options = {"sample_asset_dir": self._gen_audio_assets_dir} if bindings else {}
+                    self._coordinator.start(*self._candidate, cancel_event=cancel, **asset_options)
                     self._check_start(generation)
                 except Exception as exc:
                     self._coordinator.stop()
@@ -228,6 +234,8 @@ class ParallelCsoundRenderer(CsoundWorker):
                         self._render_sample_cursor = 0
                         self._midi_scheduler.reset()
                         self._midi_scheduler.set_engine_sample_rate(self._runtime_sr)
+                        self._midi_scheduler.sample_channels = frozenset(bindings)
+                        self._sample_voices = SampleVoices(bindings, self._runtime_sr, self._runtime_ksmps) if bindings else None
                         self._host_midi_enabled = True
                         self._parallel = self._running = True
                     with self._mixer_lock:
@@ -292,10 +300,10 @@ class ParallelCsoundRenderer(CsoundWorker):
                         mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sync_stale=sync_stale)
         if target_engine_sample is not None:
             return self._midi_scheduler.enqueue(message, target_engine_sample=max(sample, int(target_engine_sample)),
-                late=target_engine_sample < sample, **metadata)[0]
+                late=target_engine_sample < sample, sample_source=sample_source, **metadata)[0]
         return self._midi_scheduler.enqueue_after_delay(message, current_engine_sample=sample,
             delivery_delay_seconds=delivery_delay_seconds, source=source, source_timestamp_ns=source_timestamp_ns,
-            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns)[0]
+            mapped_backend_monotonic_ns=mapped_backend_monotonic_ns, sample_source=sample_source)[0]
 
     def panic(self):
         if not self._parallel:
@@ -304,6 +312,7 @@ class ParallelCsoundRenderer(CsoundWorker):
         def apply():
             self._midi_scheduler.reset()
             self._midi_scheduler.set_engine_sample_rate(self.runtime_sample_rate)
+            self._midi_scheduler.panic_samples(self.render_sample_cursor)
             # Full ordered broadcast reaches every local note assignment and the
             # scoped legato panic listeners, independent of instrument numbers.
             for channel in range(16):
@@ -335,17 +344,26 @@ class ParallelCsoundRenderer(CsoundWorker):
                     before_block(index, sample) if arity >= 2 else before_block(index)
                 events = self._midi_scheduler.drain_block(block_start_sample=sample,
                                                         block_end_sample=sample + self.runtime_ksmps)
+                commands = []
+                if self._sample_voices is not None:
+                    self._sample_voices.expire(sample)
+                    if events:
+                        def command(voice, velocity):
+                            commands.append(SampleDelivery(channel=voice.channel, note=voice.note,
+                                                          slot=voice.slot, velocity=velocity))
+                        events = self._sample_voices.dispatch(events, sample,
+                            lambda v: command(v, v.velocity), lambda v: command(v, 0))
                 self.performance_controllers.deliver(events)
                 with self._mixer_lock:
                     pending, self._control_pending = self._control_pending, {}
                 if pending:
                     self._control_revision += 1
                     self._empty_inputs = BlockInputs(control_revision=self._control_revision)
-                elif not events:
+                elif not events and not commands:
                     # Immutable empty payload only. Drain schedulers and boundary
                     # actions on every block, including between requests.
                     return self._empty_inputs
-                return BlockInputs(control_revision=self._control_revision,
+                return BlockInputs(control_revision=self._control_revision, samples=tuple(commands),
                     midi=tuple(MidiDelivery(sequence=e.sequence, source=e.source, target_engine_sample=e.target_engine_sample,
                                            message=tuple(e.message), late=e.late) for e in events),
                     controls=tuple(ControlWrite(channel=name, value=float(value)) for name, value in pending.items()))
@@ -373,6 +391,7 @@ class ParallelCsoundRenderer(CsoundWorker):
                 self._release_if_reaped()
                 with self._lock:
                     self._running = False
+                    self._sample_voices = None
                 if not self._cancel_start.is_set():
                     self.fatal_error = str(exc)
                     self._quarantined = True

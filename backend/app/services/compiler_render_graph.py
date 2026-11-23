@@ -110,7 +110,8 @@ def analyze_render_graph(targets, audio_graph, opcode_service) -> RenderDependen
         "targets": [{"identity": identity, "patch_id": t.patch.id, "graph": t.patch.graph.model_dump(mode="json"),
                      "midi_channel": t.midi_channel, "always_on": t.always_on,
                      "controllers": t.performance_controller_values, "ccs": t.performance_controller_midi_ccs,
-                     "legacy_sources": t.effect_source_ids, "legacy_routes": t.effect_routes}
+                     "legacy_sources": t.effect_source_ids, "legacy_routes": t.effect_routes,
+                     **({"sample_map": {note: sample.sha256 for note, sample in t.samples.items()}} if t.samples else {})}
                     for identity, t in zip(identities, targets, strict=True)],
         "audio_graph": audio_graph.model_dump(mode="json") if audio_graph is not None else None,
         "opcode_hashes": resources.opcode_hashes,

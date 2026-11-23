@@ -18,6 +18,11 @@ class ScopedSetup:
 
 
 @dataclass(frozen=True, slots=True)
+class SampleTableSetup:
+    lines: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class MidiAssignment:
     stage: str
     channel: int
@@ -49,7 +54,7 @@ class LoweredStage:
 
 @dataclass(frozen=True, slots=True)
 class LoweredMixer:
-    header: tuple[str | ScopedSetup | MidiAssignment | AlwaysOn | ControlInit | RenderConnection, ...]
+    header: tuple[str | ScopedSetup | SampleTableSetup | MidiAssignment | AlwaysOn | ControlInit | RenderConnection, ...]
     stages: tuple[LoweredStage, ...]
     diagnostics: tuple[str, ...]
     manifest: dict
@@ -67,7 +72,7 @@ def header_lines(entry, names):
     quote = OrchestraEmitter._format_csound_string
     if isinstance(entry, str):
         return [entry]
-    if isinstance(entry, ScopedSetup):
+    if isinstance(entry, (ScopedSetup, SampleTableSetup)):
         return list(entry.lines)
     if isinstance(entry, MidiAssignment):
         return [f"massign {entry.channel}, {entry.reference}"]

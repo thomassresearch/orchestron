@@ -247,4 +247,4 @@ def validate_render(message, identity, *, sequence, sample, frames, revision, bu
 
 
 def expected_done(message):
-    return Done(**message.model_dump(exclude={"type", "midi", "controls", "blocks"}))
+    return Done(**message.model_dump(exclude={"type", "midi", "controls", "samples", "blocks"}))

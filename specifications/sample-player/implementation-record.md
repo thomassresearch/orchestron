@@ -57,7 +57,11 @@ voices at 64 per instance and 256 per engine, and decoded audio at 120 seconds
 per file and the existing per-file byte limit. Up to two decoding workers
 run concurrently with a shared 30-second deadline for the probe and decode.
 Unaccepted attacks increment a bounded engine counter; offline exports
-also list them in `WARNINGS.txt`. The sample resource forces single rendering.
+also list them in `WARNINGS.txt`. Parallel playback keeps each instance on one render worker.
+Each owner preloads its own deduplicated tables. Admission counts all physical copies
+toward the 256 MiB limit. The parent retains a single voice registry and sends ordered
+attacks and cuts at the original k-block boundaries. Both native worker loops resolve
+the events against their local note map before synthesis.
 
 Both CSD packages load canonical WAVs via relative `assets/soundin.*` names.
 Captured sampler attacks and cuts project to the same finite score events

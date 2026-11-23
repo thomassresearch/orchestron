@@ -1490,7 +1490,12 @@ save/import. File checks cache against content metadata and the filesystem ident
 canonical WAV is never regenerated during import.
 
 One root `sample_player` node is allowed in a MIDI patch. The compiler preloads one
-deduplicated canonical table per playback identity and selects the single renderer.
+table per playback identity in each Csound process that owns a mapped instance.
+Parallel playback assigns each whole sampler patch to one worker. The parent owns the
+voice slots and lifetimes across all workers. For each k-block it sends mapped attacks
+and forced cuts only to their owner, which resolves the local instrument and table.
+Admission charges every worker copy against both memory capacity and the 256 MiB sampler
+budget. In auto mode an over-budget plan falls back to single rendering.
 The engine translates exact-note attacks into finite instances of the whole patch.
 Output fades at the sample edges; forced cancellation ramps the patch output over 5 ms.
 Ordinary note-off only changes MIDI ownership. A separate bounded voice registry handles

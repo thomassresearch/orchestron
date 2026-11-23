@@ -30,6 +30,7 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 In **Perform → Mix → Rack**, choose **Add Instrument**, then browse by instrument type or search for **Sample Player**
 to assign WAV, MP3 or M4A files to MIDI notes. Each rack
 instance has its own map, and repeated hits can overlap at the original pitch and speed.
+Sample Players can participate in parallel playback, including when a sample supplies the speech input to a Vocoder.
 Save the performance to keep the assignments. Native bundles and both Csound render modes
 include the audio they need. See the [Sample Player guide](documentation/performance/sample_player.md).
 

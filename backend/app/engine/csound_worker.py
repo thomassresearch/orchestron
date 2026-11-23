@@ -201,10 +201,10 @@ class CsoundWorker:
 
     def release_lane_events(self, identities: list[str], *, force_samples: bool = True) -> None:
         self._midi_scheduler.release_sources({f"lane:{identity}" for identity in identities},
-                                            sample=self._render_sample_cursor, force_samples=force_samples)
+                                            sample=self.render_sample_cursor, force_samples=force_samples)
 
     def cancel_sample_sources(self, sources, sample=None) -> None:
-        self._midi_scheduler.cancel_sample_sources(sources, self._render_sample_cursor if sample is None else sample)
+        self._midi_scheduler.cancel_sample_sources(sources, self.render_sample_cursor if sample is None else sample)
 
     def enqueue_timestamped_midi(
         self,
@@ -717,27 +717,13 @@ class CsoundWorker:
         voices, csound = self._sample_voices, self._csound
         if voices is None or csound is None:
             return events
-        passthrough = []
-        for event in events:
-            if event.sample_panic or event.sample_cancel is not None:
-                for voice in voices.cancel(sample, sources=event.sample_cancel):
-                    csound.setControlChannel(SLOT_CHANNELS[voice.slot], 1)
-                continue
-            status, cc, _ = event.message
-            channel = (status & 15) + 1
-            if channel in voices.bindings:
-                kind = status & 0xf0
-                if kind in (0x80, 0x90):
-                    voice = voices.attack(event.message, event.sample_source or event.source, sample)
-                    if voice is not None:
-                        csound.setControlChannel(SLOT_CHANNELS[voice.slot], 0)
-                        csound.scoreEvent("i", voice.pfields(voices.rate))
-                    continue
-                if kind == 0xb0 and cc == 120:
-                    for voice in voices.cancel(sample, sources=frozenset((event.sample_source or event.source,)), channel=channel):
-                        csound.setControlChannel(SLOT_CHANNELS[voice.slot], 1)
-            passthrough.append(event)
-        return passthrough
+
+        def start(voice):
+            csound.setControlChannel(SLOT_CHANNELS[voice.slot], 0)
+            csound.scoreEvent("i", voice.pfields(voices.rate))
+
+        return voices.dispatch(events, sample, start,
+                               lambda voice: csound.setControlChannel(SLOT_CHANNELS[voice.slot], 1))
 
     @staticmethod
     def _callback_arity(callback: Callable[..., None] | None) -> int:

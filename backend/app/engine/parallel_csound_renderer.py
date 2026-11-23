@@ -22,6 +22,7 @@ from pydantic import Field
 from backend.app.engine.browser_audio_pcm import resample_stereo_block_linear
 from backend.app.engine.csound_process import run_csound_process
 from backend.app.engine.realtime_renderer import EngineRenderResult
+from backend.app.engine.sample_voices import parse_bindings
 from backend.app.engine.render_block_codec import SteadyBlockCodec
 from backend.app.engine.render_cpu_placement import PROCESS_RENDER_CPU_PLACEMENT
 from backend.app.engine.render_notification import completion_notification
@@ -30,7 +31,7 @@ from backend.app.engine.render_ipc import (
     build_layout, coordination_blocks, expected_done, slots_for, validate_envelope,
 )
 from backend.app.models.render_protocol import (
-    Contract, ControlWrite, EngineFormat, Error, Init, MidiDelivery, Ready, Render, RenderBatch, RendererPolicy, Stop,
+    Contract, ControlWrite, EngineFormat, Error, Init, MidiDelivery, Ready, Render, RenderBatch, RendererPolicy, SampleDeliveries, Stop,
 )
 from backend.app.services.compiler_partitioned import validate_realtime_partition_compilation
 
@@ -47,6 +48,7 @@ class PartitionCancelled(PartitionRuntimeError):
 
 class BlockInputs(Contract):
     """Already drained/gated parent events; callbacks execute once before sealing."""
+    samples: SampleDeliveries = ()
     midi: tuple[MidiDelivery, ...] = Field(default=(), max_length=16384)
     controls: tuple[ControlWrite, ...] = Field(default=(), max_length=16384)
     control_revision: int = Field(default=0, ge=0)
@@ -193,7 +195,7 @@ class PartitionRenderCoordinator:
         finally:
             self._operation.release()
 
-    def start(self, compilation, plan, *, cancel_event=None):
+    def start(self, compilation, plan, *, cancel_event=None, sample_asset_dir=None):
         with self._state:
             if self._stoppers:
                 raise PartitionCancelled("Start cancelled by concurrent Stop.")
@@ -222,6 +224,11 @@ class PartitionRenderCoordinator:
                     raise ValueError("Unsupported partition worker count or output format.")
                 self._worker_cpus = PROCESS_RENDER_CPU_PLACEMENT.acquire(self, len(compilation.programs))
                 self._plan, self._compilation = plan, compilation
+                self._sample_channels = {p.id: frozenset(parse_bindings(p.csd)) for p in compilation.programs}
+                self._all_sample_channels = frozenset().union(*self._sample_channels.values())
+                if (len(self._all_sample_channels) != sum(map(len, self._sample_channels.values()))
+                        or self._all_sample_channels != parse_bindings(compilation.canonical.csd).keys()):
+                    raise ValueError("Each Sample Player channel must have exactly one worker.")
                 self._render_programs = tuple((p,
                     tuple(b for b, _ in (*p.inputs, *p.outputs)) + ((FINAL_BUS, FINAL_PCM_BUS, FINAL_F32_MODE_BUS) if p.owns_output else ()),
                     frozenset(p.controls)) for p in compilation.programs)
@@ -267,6 +274,7 @@ class PartitionRenderCoordinator:
                     process = self._context.Process(target=self._target, name=f"csound-{program.id}", daemon=True,
                         args=(self._arena.name, self._arena.size, regions.bootstrap, regions.bootstrap_hash, command, reply),
                         kwargs={"cpu_affinity": cpu,
+                                **({"sample_asset_dir": sample_asset_dir} if self._sample_channels[program.id] else {}),
                                 "predecessor_ready": tuple(fence for (pred, target), fence in self._dependency_fences.items()
                                                            if target == program.id),
                                 "successor_ready": tuple(fence for (source, target), fence in self._dependency_fences.items()
@@ -291,16 +299,19 @@ class PartitionRenderCoordinator:
         descriptors = {}
         for program, buses, subscribed in self._render_programs:
             child = self._children[program.id]
-            deliveries = tuple((entry, tuple(c for c in entry.controls if c.channel in subscribed)) for entry in inputs)
-            if not any(entry.midi or controls for entry, controls in deliveries):
+            channels = self._sample_channels[program.id]
+            deliveries = tuple((entry, tuple(c for c in entry.controls if c.channel in subscribed),
+                                tuple(e for e in entry.samples if e.channel in channels) if entry.samples else ())
+                               for entry in inputs)
+            if not any(entry.midi or controls or samples for entry, controls, samples in deliveries):
                 encoded = child.codec.render(self._sequence, sample, inputs[-1].control_revision, len(inputs))
                 descriptors[program.id] = (None, encoded, child.codec.done(encoded))
                 continue
             slots = slots_for(buses, self._sequence)
             blocks = tuple(Render(**child.identity, sequence=self._sequence,
                 sample_start=sample + index * self._format.ksmps, frame_count=self._format.ksmps,
-                control_revision=entry.control_revision, slots=slots, midi=entry.midi, controls=controls)
-                for index, (entry, controls) in enumerate(deliveries))
+                control_revision=entry.control_revision, slots=slots, midi=entry.midi, controls=controls, samples=samples)
+                for index, (entry, controls, samples) in enumerate(deliveries))
             message = blocks[0] if len(blocks) == 1 else RenderBatch(**child.identity,
                 sequence=self._sequence, sample_start=sample, frame_count=len(blocks) * self._format.ksmps,
                 control_revision=inputs[-1].control_revision, slots=slots, blocks=blocks)
@@ -387,6 +398,8 @@ class PartitionRenderCoordinator:
                         if (len({c.channel for c in inputs.controls}) != len(inputs.controls)
                                 or any(c.channel not in self._all_controls for c in inputs.controls)):
                             raise ValueError("Unknown or uncoalesced parent control write.")
+                        if inputs.samples and any(e.channel not in self._all_sample_channels for e in inputs.samples):
+                            raise ValueError("Unknown Sample Player channel.")
                         prepared.append(inputs)
                         revision = inputs.control_revision
                         self._preparing_sample = sample + self._format.ksmps

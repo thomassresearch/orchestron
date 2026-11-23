@@ -85,7 +85,7 @@ COPY --from=backend-build /app/.venv/lib/python3.13/site-packages/backend/experi
 RUN VISUALCSOUND_SEQUENCER_IMPLEMENTATION=cython .venv/bin/python -c \
     "import ctcsound, numpy; from backend.app.services.sequencer_playback import implementation; assert implementation == 'cython'"
 RUN .venv/bin/python -c \
-    "from backend.experiments.rust_worker.build import default_library; from backend.experiments.rust_worker.bridge import worker_implementation; assert worker_implementation() == 'rust'; import ctypes; lib = ctypes.CDLL(str(default_library())); assert lib.worker_abi() == 1"
+    "from backend.experiments.rust_worker.build import default_library; from backend.experiments.rust_worker.bridge import WORKER_ABI, worker_implementation; assert worker_implementation() == 'rust'; import ctypes; lib = ctypes.CDLL(str(default_library())); assert lib.worker_abi() == WORKER_ABI"
 
 COPY frontend ./frontend
 COPY --from=frontend-build /build/frontend/dist ./frontend/dist

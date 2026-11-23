@@ -6,7 +6,7 @@
 //! No borrowed Csound address crosses processes. No allocation in the render loop.
 
 use std::cell::{Cell, UnsafeCell};
-use std::ffi::{c_char, c_int, c_void};
+use std::ffi::{c_char, c_int, c_long, c_void};
 use std::ptr;
 
 type ReadMidi = unsafe extern "C" fn(*mut c_void, *mut c_void, *mut u8, c_int) -> c_int;
@@ -39,6 +39,7 @@ pub struct Config {
     get_audio: unsafe extern "C" fn(*mut c_void, *const c_char, *mut f64),
     set_control: unsafe extern "C" fn(*mut c_void, *const c_char, f64),
     set_read: unsafe extern "C" fn(*mut c_void, ReadMidi),
+    score_event: unsafe extern "C" fn(*mut c_void, c_char, *const f64, c_long) -> c_int,
 }
 
 #[repr(C)]
@@ -48,11 +49,19 @@ pub struct Control {
 }
 
 #[repr(C)]
+pub struct Sample {
+    slot_name: *const c_char,
+    fields: *const f64, // Eleven score fields for an attack; null for a cut.
+}
+
+#[repr(C)]
 pub struct Events {
     midi: *const u8,
     midi_len: usize,
     controls: *const Control,
     control_count: usize,
+    samples: *const Sample,
+    sample_count: usize,
 }
 
 struct Midi {
@@ -92,7 +101,7 @@ unsafe extern "C" fn read_midi(cs: *mut c_void, _: *mut c_void, dest: *mut u8, c
 
 #[no_mangle]
 pub extern "C" fn worker_abi() -> u32 {
-    1
+    2
 }
 
 /// # Safety
@@ -163,12 +172,27 @@ unsafe fn render(cfg: &Config, midi: *mut Midi, slot: usize, blocks: usize, even
                 let step = &*events.add(block);
                 if step.midi_len > pending.bytes.len() || step.control_count > 16384
                     || (step.midi_len > 0 && step.midi.is_null())
-                    || (step.control_count > 0 && step.controls.is_null()) {
+                    || (step.control_count > 0 && step.controls.is_null())
+                    || step.sample_count > 512 || (step.sample_count > 0 && step.samples.is_null()) {
                     return 1;
                 }
                 if step.midi_len > 0 {
                     ptr::copy_nonoverlapping(step.midi, pending.bytes.as_mut_ptr(), step.midi_len);
                     pending.len = step.midi_len;
+                }
+                for index in 0..step.sample_count {
+                    let sample = &*step.samples.add(index);
+                    if sample.slot_name.is_null() {
+                        return 1;
+                    }
+                    if sample.fields.is_null() {
+                        (cfg.set_control)(cfg.cs, sample.slot_name, 1.0);
+                    } else {
+                        (cfg.set_control)(cfg.cs, sample.slot_name, 0.0);
+                        if (cfg.score_event)(cfg.cs, b'i' as c_char, sample.fields, 11) != 0 {
+                            return 7;
+                        }
+                    }
                 }
                 for index in 0..step.control_count {
                     let control = &*step.controls.add(index);

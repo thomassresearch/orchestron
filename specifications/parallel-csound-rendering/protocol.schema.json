@@ -439,6 +439,15 @@
           "title": "Type",
           "type": "string"
         },
+        "samples": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SampleDelivery"
+          },
+          "maxItems": 512,
+          "title": "Samples",
+          "type": "array"
+        },
         "midi": {
           "default": [],
           "items": {
@@ -555,6 +564,44 @@
         "blocks"
       ],
       "title": "RenderBatch",
+      "type": "object"
+    },
+    "SampleDelivery": {
+      "additionalProperties": false,
+      "description": "A mapped attack, or a forced cut (velocity zero), at this k-block boundary.",
+      "properties": {
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "note": {
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Note",
+          "type": "integer"
+        },
+        "velocity": {
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Velocity",
+          "type": "integer"
+        },
+        "slot": {
+          "exclusiveMaximum": 256,
+          "minimum": 0,
+          "title": "Slot",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "channel",
+        "note",
+        "velocity",
+        "slot"
+      ],
+      "title": "SampleDelivery",
       "type": "object"
     },
     "Stop": {

@@ -17,8 +17,9 @@ from backend.app.services.compiler_mixer import OUTPUT, lower_mixer_bundle, toke
 from backend.app.services.compiler_orchestra import OrchestraEmitter
 from backend.app.services.compiler_render_resources import stable_hash
 from backend.app.services.compiler_private_tables import AUTO_TABLE_BASE, TABLE_CACHE_ENTRIES
+from backend.app.services.compiler_sample_player import setup_sample_tables
 from backend.app.services.compiler_stage_lowering import (
-    AlwaysOn, ControlInit, MidiAssignment, ScopedSetup, header_lines,
+    AlwaysOn, ControlInit, MidiAssignment, SampleTableSetup, ScopedSetup, header_lines,
 )
 from backend.app.services.render_partition_plan import validate_partition_plan
 
@@ -97,7 +98,10 @@ def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: Rend
         count = sum(r.resource.startswith("private-table:") and r.memory_bytes > 0
                     for r in actual.resources if r.stage in partition.stages)
         if count:
-            table_limits.update({stage: AUTO_TABLE_BASE + count * TABLE_CACHE_ENTRIES for stage in partition.stages})
+            sample_tables = {r.resource for r in actual.resources
+                             if r.stage in partition.stages and r.resource.startswith("sample-table:")}
+            limit = AUTO_TABLE_BASE + len(sample_tables) + count * TABLE_CACHE_ENTRIES
+            table_limits.update({stage: limit for stage in partition.stages})
     lowered = lower_mixer_bundle(service, targets, audio_graph, mixer,
                                 midi_input="internal:loopback", rtmidi_module="null", private_table_limits=table_limits)
     if tuple(s.id for s in lowered.stages) != tuple(s.id for s in actual.stages):
@@ -137,6 +141,11 @@ def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: Rend
                     lines.append(f"connect {quote(names[entry.source])}, {quote(entry.outlet)}, {quote(egress)}, {quote(bus.id)}")
                 elif bus.consumer == partition.id:
                     lines.append(f"connect {quote(ingress)}, {quote(bus.id)}, {quote(names[entry.target])}, {quote(entry.inlet)}")
+            elif isinstance(entry, SampleTableSetup):
+                local = [t for t in targets if "patch:" + t.assignment_id in names]
+                setup, _ = setup_sample_tables(local, [refs["patch:" + t.assignment_id] for t in local],
+                                               stored_filecode=service.sample_filecode)
+                lines.extend(setup)
             elif isinstance(entry, ScopedSetup):
                 if set(entry.stages).issubset(partition.stages):
                     lines.extend(entry.lines)

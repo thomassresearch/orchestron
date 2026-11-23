@@ -11065,6 +11065,85 @@ def _sample_player_api_payload(client, filename="mono.wav"):
     return payload, sample
 
 
+def test_parallel_sampler_preview_panic_and_replicated_table_fallback(tmp_path, monkeypatch):
+    from dataclasses import replace
+    import numpy as np
+
+    from backend.app.engine.sample_voices import parse_bindings
+    from backend.tests.session_parallel_support import options, unpinned_test_workers
+    from backend.tests.test_sample_player import SAMPLES, render
+
+    unpinned_test_workers(monkeypatch)
+    settings = replace(options(), costs=None, graph_selection=True, allow_unqualified=False)
+    with _client(tmp_path, renderer_options=settings) as client:
+        monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+        payload, mono = _sample_player_api_payload(client, "long.wav")
+        patch_id = payload["performanceExport"]["performance"]["config"]["instruments"][0]["patchId"]
+        response = client.post("/api/assets/samples", content=(SAMPLES / "stereo.wav").read_bytes(),
+                               headers={"X-File-Name": "stereo.wav"})
+        assert response.status_code == 201, response.text
+        stereo = response.json()
+        assets = {s["asset_id"]: s["asset"] for s in (mono, stereo)}
+        maps = {"first": {60: mono}, "second": {60: stereo, 61: mono}, "empty": {}}
+        rack = [dict(id=name, patch_id=patch_id, midi_channel=channel, sample_map={"version": 1,
+                     "entries": [{"note": note, "assetId": sample["asset_id"]} for note, sample in notes.items()]})
+                for channel, (name, notes) in enumerate(maps.items(), 1)]
+        routes = [dict(id=f"{name}-{side}", sourceId=name, sourcePort=f"$direct.{side}",
+                       targetId="$master", targetPort=side) for name in maps for side in ("left", "right")]
+        created = client.post("/api/sessions", json=dict(instruments=rack, sample_assets=assets,
+                              audio_graph={"masterId": "$master", "routes": routes}, renderer_mode="auto"))
+        assert created.status_code == 201, created.text
+        identity = created.json()["session_id"]
+        url = f"/api/sessions/{identity}"
+        worker = client.app.state.container.session_service._sessions[identity].worker
+
+        def preview(name, action):
+            response = client.post(f"{url}/instruments/{name}/sample-preview",
+                                   json={"action": action, "gesture": "press", "note": 60})
+            assert response.status_code == 204, response.text
+
+        def capture():
+            block = worker.runtime_ksmps
+            preview("first", "start")
+            mono_pcm = render(worker, 4096, block=block)
+            assert np.max(abs(mono_pcm)) > .01 and np.array_equal(mono_pcm[:, 0], mono_pcm[:, 1])
+            preview("second", "start")
+            preview("first", "stop")
+            stereo_pcm = render(worker, 4096, block=block)
+            assert not np.array_equal(stereo_pcm[:, 0], stereo_pcm[:, 1])
+            assert {v.channel for v in worker._sample_voices.active.values()} == {2}
+            assert client.post(url + "/panic").status_code == 200
+            faded = render(worker, 4096, block=block)
+            assert not np.any(faded[-block:]) and not worker._sample_voices.active
+            return np.concatenate([mono_pcm, stereo_pcm, faded])
+
+        started = client.post(url + "/start")
+        assert started.status_code == 200, started.text
+        assert worker.renderer_diagnostics["selected"] == "parallel", worker.renderer_diagnostics
+        compilation, _ = worker._candidate
+        owners = {channel: p for p in compilation.programs for channel in parse_bindings(p.csd)}
+        assert owners[1] != owners[2]
+        assert not parse_bindings(owners[3].csd)[3][1]
+        assert owners[1].csd.count("ftgen 0, 0, 0, -1") == 1
+        assert owners[2].csd.count("ftgen 0, 0, 0, -1") == 2
+        parallel = capture()
+        assert client.post(url + "/stop").status_code == 200
+        assert not settings.admission.leases and not worker._coordinator.process_ids
+
+        # The shared long sample fits once, but the second process needs its own copy.
+        unique_bytes = sum((s["playback"]["frameCount"] + 2) * s["playback"]["channels"] * 8
+                           for s in assets.values())
+        monkeypatch.setattr("backend.app.engine.session_parallel_renderer.MAX_SAMPLE_TABLE_BYTES", unique_bytes)
+        started = client.post(url + "/start")
+        assert started.status_code == 200, started.text
+        diagnostics = worker.renderer_diagnostics
+        assert diagnostics["selected"] == "single" and diagnostics["fallback_reason"] == "sample_table_capacity_exceeded"
+        assert not worker._coordinator.process_ids
+        np.testing.assert_allclose(capture(), parallel, rtol=1e-5, atol=1e-7)
+        assert client.delete(url).status_code == 204
+        assert not settings.admission.leases
+
+
 def test_sample_opcode_and_audio_upload_validation(tmp_path):
     from backend.tests.test_sample_player import SAMPLES
 

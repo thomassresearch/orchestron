@@ -56,6 +56,31 @@ class SampleVoice:
                 self.note, self.velocity, self.channel, self.table, self.channels, self.frames, slot, cut)
 
 
+def boundary_length(frames: int, source_rate: int, rate: int, block: int) -> int:
+    stride = block * source_rate
+    return ((frames * rate + stride - 1) // stride) * block
+
+
+class LocalSampleCommands:
+    """Resolve only this native owner's notes to immutable local score-event fields."""
+
+    def __init__(self, csd, rate, block):
+        self.notes = {}
+        for channel, (instrument, notes) in parse_bindings(csd).items():
+            for note, (table, channels, frames) in notes.items():
+                duration = boundary_length(frames, SAMPLE_RATE, rate, block) / rate
+                self.notes[channel, note] = (instrument, duration, table, channels, frames)
+
+    def resolve(self, event):
+        instrument, duration, table, channels, frames = self.notes[event.channel, event.note]
+        channel = SLOT_CHANNELS[event.slot]
+        if not event.velocity:
+            return channel, None
+        fields = (instrument, 0, duration, event.note, event.velocity, event.channel, table,
+                  channels, frames, event.slot, -1)
+        return channel, fields
+
+
 class SampleVoices:
     def __init__(self, bindings, rate: int, block: int):
         self.bindings = bindings
@@ -66,8 +91,7 @@ class SampleVoices:
         self._first_end: int | None = None
 
     def _boundary_length(self, frames: int, source_rate: int) -> int:
-        stride = self.block * source_rate
-        return ((frames * self.rate + stride - 1) // stride) * self.block
+        return boundary_length(frames, source_rate, self.rate, self.block)
 
     def expire(self, sample: int) -> None:
         if self._first_end is None or sample < self._first_end:
@@ -112,3 +136,25 @@ class SampleVoices:
             self._first_end = voice.end if self._first_end is None else min(self._first_end, voice.end)
             canceled.append(voice)
         return canceled
+
+    def dispatch(self, events, sample, start, cut):
+        passthrough = []
+        for event in events:
+            if event.sample_panic or event.sample_cancel is not None:
+                for voice in self.cancel(sample, sources=event.sample_cancel):
+                    cut(voice)
+                continue
+            status, cc, _ = event.message
+            channel = (status & 15) + 1
+            if channel in self.bindings:
+                kind = status & 0xf0
+                if kind in (0x80, 0x90):
+                    voice = self.attack(event.message, event.sample_source or event.source, sample)
+                    if voice is not None:
+                        start(voice)
+                    continue
+                if kind == 0xb0 and cc == 120:
+                    for voice in self.cancel(sample, sources=frozenset((event.sample_source or event.source,)), channel=channel):
+                        cut(voice)
+            passthrough.append(event)
+        return passthrough

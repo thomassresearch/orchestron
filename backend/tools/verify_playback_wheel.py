@@ -56,7 +56,7 @@ if bridge.worker_implementation() == 'python':
 else:
     library = build.default_library()
     assert str(library).startswith(sys.argv[1]), library
-    assert ctypes.CDLL(str(library)).worker_abi() == 1
+    assert ctypes.CDLL(str(library)).worker_abi() == bridge.WORKER_ABI
 """
 
         def run_worker(mode, *, success):

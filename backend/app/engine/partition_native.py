@@ -31,7 +31,7 @@ class NativePartitionError(RuntimeError):
 
 
 class NativeCsoundPartition:
-    def __init__(self, module, csd, engine, sample_bytes):
+    def __init__(self, module, csd, engine, sample_bytes, *, sample_asset_dir=None):
         self.cs = module.Csound()
         self.pending = bytearray()
         self.callbacks = []
@@ -50,6 +50,8 @@ class NativeCsoundPartition:
             configure_audio_abi(module.libcsound, width)
             self._library = module.libcsound
             self._midi_callbacks(module)
+            if sample_asset_dir:
+                self.cs.setOption(f"--env:SSDIR={sample_asset_dir}")
             csd = CsoundWorker._apply_headless_runtime_options(csd, "internal:loopback", "null", suppress_messages=True)
             if self.cs.compileCsdText(csd) != 0:
                 raise NativePartitionError("compile", "Native partition failed to compile.")

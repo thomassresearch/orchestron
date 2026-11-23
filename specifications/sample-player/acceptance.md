@@ -78,7 +78,7 @@ Use native Csound PCM plus runtime event/lifecycle observations. Run core cases 
 | P15 | Near/over polyphony cap, equal-time attacks/cancels | Deterministic newest-attack rejection and bounded diagnostics |
 | P16 | Fixed fades and forced cancellation on tiny/nonzero-edge samples | No invalid envelope duration; measured ramps follow contract |
 | P17 | Downstream patch processing, Master/inserts, direct routing | Entire sample follows normal processing and mixer behavior |
-| P18 | Parallel requested with unqualified sample resources | Explicit conservative single-renderer fallback; correct PCM |
+| P18 | Parallel playback with mapped samples, including a routed Vocoder | Eligible racks start in parallel and match single-renderer PCM. Auto falls back with a diagnostic when table copies exceed capacity or table ownership is uncertain. |
 | P19 | Thousands of retriggers and repeated session starts/stops | Stable table/voice memory; no per-note load/allocation leak |
 | P20 | External input and internal sequencers | Same lookup/lifetime semantics; stable source ownership and timestamping |
 

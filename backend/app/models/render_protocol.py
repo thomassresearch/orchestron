@@ -5,6 +5,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.app.models.sample_player import MAX_SAMPLE_VOICES
+
 Identity = Annotated[str, Field(min_length=1, max_length=128)]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Nonnegative = Annotated[int, Field(ge=0)]
@@ -57,6 +59,18 @@ class MidiDelivery(Contract):
         return value
 
 
+class SampleDelivery(Contract):
+    """A mapped attack, or a forced cut (velocity zero), at this k-block boundary."""
+    channel: Annotated[int, Field(ge=1, le=16)]
+    note: Annotated[int, Field(ge=0, le=127)]
+    velocity: Annotated[int, Field(ge=0, le=127)]
+    slot: Annotated[int, Field(ge=0, lt=MAX_SAMPLE_VOICES)]
+
+
+# One attack and one forced cut per global slot can fall in the same block.
+SampleDeliveries = Annotated[tuple[SampleDelivery, ...], Field(max_length=2 * MAX_SAMPLE_VOICES)]
+
+
 class ControlWrite(Contract):
     channel: Annotated[str, Field(min_length=1, max_length=256)]
     value: float
@@ -99,6 +113,7 @@ class Block(Envelope):
 
 class Render(Block):
     type: Literal["RENDER"] = "RENDER"
+    samples: SampleDeliveries = ()
     midi: tuple[MidiDelivery, ...] = Field(default=(), max_length=16384)
     controls: tuple[ControlWrite, ...] = Field(default=(), max_length=16384)
 

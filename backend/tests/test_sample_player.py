@@ -351,3 +351,115 @@ def test_tiny_sample_onsets_and_repeated_native_engine_starts(media, monkeypatch
             worker.stop()
     finally:
         worker.stop()
+
+
+@pytest.mark.parametrize("implementation,rate,block", [
+    ("rust", 48000, 32), ("python", 44100, 1), ("rust", 48000, 1), ("python", 44100, 32),
+])
+def test_partitioned_sample_vocoder_pcm_and_source_cancellation(media, monkeypatch, implementation, rate, block):
+    from dataclasses import replace
+
+    from backend.app.engine.session_parallel_renderer import ParallelCsoundRenderer
+    from backend.app.engine.sample_voices import parse_bindings
+    from backend.tests.session_parallel_support import options, unpinned_test_workers
+
+    monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+    monkeypatch.setenv("VISUALCSOUND_PARALLEL_WORKER", implementation)
+    unpinned_test_workers(monkeypatch)
+    player = load_patch_fixture("sample_player")
+    carrier = load_patch_fixture("almost_dx7")
+    vocoder = load_patch_fixture("vocoder")
+    mono = upload(media, "mono.wav").asset.playback
+    stereo = upload(media, "stereo.wav").asset.playback
+    for patch in (player, carrier, vocoder):
+        patch.graph.engine_config.ksmps = block
+        patch.graph.engine_config.sr = rate
+    targets = [
+        PatchInstrumentTarget(player, 1, "speech", samples={36: mono, 37: stereo, 38: mono}),
+        PatchInstrumentTarget(carrier, 2, "carrier"),
+        PatchInstrumentTarget(vocoder, 0, "voc", always_on=True),
+    ]
+    graph = AudioGraph(masterId="$master", routes=[
+        dict(id=f"{source}-{side}", sourceId=source, sourcePort=port+side, targetId=target,
+             targetPort=inlet+side, kind="main")
+        for source, port, target, inlet in [
+            ("speech", "$direct.", "voc", "speech_"), ("carrier", "", "voc", "sound_"), ("voc", "", "$master", "")]
+        for side in ("left", "right")])
+    compiler = CompilerService(OpcodeService("/icons"), media)
+    mixer = MixerState()
+    artifact = compiler.compile_patch_bundle(targets, "internal:loopback", "null", audio_graph=graph, mixer=mixer)
+    settings = replace(options("parallel"), costs=None)
+    single = CsoundWorker(gen_audio_assets_dir=str(media.audio_dir))
+    parallel = ParallelCsoundRenderer(gen_audio_assets_dir=str(media.audio_dir), options=settings)
+    parallel.prepare(compiler, targets, graph, mixer, artifact)
+    compilation, _ = parallel._candidate
+    owners = [p for p in compilation.programs if parse_bindings(p.csd)]
+    assert len(owners) == 1
+    assert owners[0].csd.count("ftgen 0, 0, 0, -1") == 2
+    assert all("gi_vcs_sample_tables[]" not in p.csd for p in compilation.programs if p != owners[0])
+
+    def capture(worker):
+        worker.start(artifact.csd, "internal:loopback", "null")
+        try:
+            send(worker, "keys", 0, channel=2, note=55)
+            send(worker, "first", 0)
+            assert worker.enqueue_timestamped_midi([144, 36, 90], source="arp", sample_source="second",
+                                                   target_engine_sample=block)
+            send(worker, "first", block * 2, velocity=0)
+            # Remove a queued attack, then admit a retrigger after that cancellation
+            # at the same boundary. The other source survives its ordinary note-off.
+            send(worker, "second", 4128, note=37)
+            worker.cancel_sample_sources({"second"}, 4128)
+            send(worker, "third", 4128, note=37)
+            result = render(worker, 8192, block=block, rate=rate)
+            assert {v.source for v in worker._sample_voices.active.values()} == {"first", "third"}
+            return result
+        finally:
+            worker.stop()
+
+    expected = capture(single)
+    actual = capture(parallel)
+    assert np.max(abs(expected)) > 1e-6
+    np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=1e-7)
+    assert not settings.admission.leases
+
+
+def test_sample_polyphony_is_shared_across_instance_owners():
+    bindings = {channel: (channel, {60: (0, 1, 4800)}) for channel in range(1, 6)}
+    voices = SampleVoices(bindings, 48000, 32)
+
+    def attack(channel, at=0):
+        return voices.attack(bytes([0x90 + channel - 1, 60, 100]), f"lane:{channel}", at)
+
+    for channel in range(1, 5):
+        assert all(attack(channel) for _ in range(64))
+        assert attack(channel) is None
+    assert attack(5) is None and voices.dropped == 5
+    canceled = voices.cancel(32, sources=frozenset({"lane:2"}))
+    assert len(canceled) == 64
+    assert attack(5, 256) is None
+    reused = attack(5, 288)
+    assert reused.slot == canceled[0].slot
+    assert {v.channel for v in voices.active.values()} == {1, 3, 4, 5}
+
+
+def test_partition_plan_tracks_note_maps_and_blocks_ambiguous_sample_tables(media):
+    from backend.tests.render_plan_support import planner_inputs
+
+    compiler = CompilerService(OpcodeService("/icons"), media)
+    targets, graph, _ = planner_inputs("tables")
+    sample = upload(media, "mono.wav").asset.playback
+    sampler = PatchInstrumentTarget(load_patch_fixture("sample_player"), 16, "sampler", samples={42: sample})
+    targets.append(sampler)
+    safe = compiler.analyze_realtime_graph(targets, graph)
+    assert not safe.blockers
+    sampler.samples = {43: sample}
+    assert compiler.analyze_realtime_graph(targets, graph).input_hash != safe.input_hash
+    target = next(t for t in targets if t.assignment_id == "source0")
+    target.patch.graph.ui_layout["gen_nodes"]["table"]["tableNumber"] = 101
+    blocked = compiler.analyze_realtime_graph(targets, graph)
+    assert "sample_table_alias_unknown" in {reason.code for reason in blocked.blockers}
+
+    sampler.patch.graph.nodes.append(NodeInstance(id="native_table_id", opcode="const_i", params={"value": "p7"}))
+    blocked = compiler.analyze_realtime_graph(targets, graph)
+    assert "sample_local_score_reference" in {reason.code for reason in blocked.blockers}

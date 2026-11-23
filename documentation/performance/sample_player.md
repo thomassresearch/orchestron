@@ -63,7 +63,6 @@ Keep the extracted files together and run the command in the included README fro
 extracted folder. Renders include sample tails that extend beyond the song range.
 
 Use mono or stereo WAV, MP3 or M4A (AAC or Apple Lossless) files of up to two minutes each, subject to the audio storage
-limit. Use the regular mixer controls for volume, balance and effects. Sample Player uses
-single renderer playback if **Parallel playback** is enabled.
+limit. Use the regular mixer controls for volume, balance and effects. With **Parallel playback** enabled, a Sample Player can run alongside other instruments on separate workers, including when it supplies speech to a Vocoder. The engine uses single playback when the routing or available memory requires it.
 
 **Navigation:** [Up](performance.md) | [Previous](instrument_rack_and_engine_transport.md) | [Next](audio_mixer_and_routing.md)
