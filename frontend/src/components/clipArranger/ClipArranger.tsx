@@ -458,8 +458,8 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
           const timing = timings[lane.id], localBeat = localBeatTicks(timing);
           const localGrid = detailed && timing && (localBeat !== Q || timing.meterNumerator !== beatsPerBar || timing.meterDenominator !== sequencer.timing.meterDenominator || timing.beatRateNumerator !== timing.beatRateDenominator)
             ? timelineGrid(localBeat, timing.meterNumerator, zoom, fromTick, toTick, timing.stepsPerBeat) : null;
-          return <div key={lane.id}><div className="relative flex border-b border-slate-800" data-clip-lane={lane.id} data-expanded={detailed} style={{ height: detailed ? expandedHeight + (localGrid ? 18 : 0) : undefined, minHeight: shell && fitTracks && !detailed ? undefined : 48 }}>
-            <div style={{ width: laneHeaderWidth }} className="sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r border-slate-700 bg-slate-950 px-2 py-1">
+          return <div key={lane.id}><div className="relative flex border-b border-slate-800 data-[expanded=true]:bg-cyan-400/15" data-clip-lane={lane.id} data-expanded={detailed} style={{ height: detailed ? expandedHeight + (localGrid ? 18 : 0) : undefined, minHeight: shell && fitTracks && !detailed ? undefined : 48 }}>
+            <div style={{ width: laneHeaderWidth }} className={`sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r border-slate-700 px-2 py-1 ${detailed ? "bg-cyan-950" : "bg-slate-950"}`}>
               <button className="truncate text-left text-xs font-semibold text-slate-200" aria-expanded={detailed} aria-description={instrument} onClick={() => { structure.cancelDrag(); setExpanded(detailed ? null : lane.id); if (shell) { structure.clearSelection(); select({ laneId: lane.id }); } }}>{detailed ? "▾" : "▸"} {track?.name ?? lane.id}{impact?.has(lane.id) && <span className="text-amber-300" aria-label={c.unsaved}> ✎</span>}</button>
               <div data-track-routing className="flex min-w-0 items-center gap-1">
                 <ArrangeTrackRouting id={lane.id} kind={lane.source} language={language} />

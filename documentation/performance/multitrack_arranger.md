@@ -10,6 +10,10 @@ Each lane header shows the assigned rack instrument beside its channel, such as 
 
 ![Track channel dropdowns, named patterns and the Add track control below the lanes](../../screenshots/arranger-track-channels.png)
 
+Click a track name to see the patterns and groups inside its clips. A faint cyan band extends from the track name across the timeline. Click another track name to move the highlight there, or click the expanded track name again to collapse it and clear the highlight.
+
+![A faint cyan band across the expanded track header and timeline](../../screenshots/arranger-expanded-track.png)
+
 Click **Controllers** beside a lane’s **Mute** and **Solo** to adjust its instrument and insert effects in the lower panel. The button is available when at least one destination instrument publishes a usable performance control. An automation lane opens its bound instrument. Choose **Back to editor** to resume your open clip or pad, or **Close** if you opened controls from the timeline. On a very short screen the panel can occupy the working area.
 
 ![Arrange with the rack instrument, MIDI channel, Mute, Solo and Controllers in each lane header and the selected instrument’s controls below the timeline](../../screenshots/perform-arrange-instrument-controls.png)

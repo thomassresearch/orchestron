@@ -133,7 +133,7 @@ Toggle [Audition](documentation/instrument_design/runtime_panel_and_compilation.
 
 ## Build patterns and arrangements
 
-Build a song in the default **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Expand a track to work with the patterns, groups and supergroups inside its clips. Center a passage in the timeline and use **Zoom** to inspect it, or move the slider all the way left to see the whole song, including trailing silence.
+Build a song in the default **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Click a track name to expand its clips and see their patterns, groups and supergroups. A faint cyan highlight runs across the expanded track. Center a passage in the timeline and use **Zoom** to inspect it, or move the slider all the way left to see the whole song, including trailing silence.
 
 Enable **Follow playhead** beside **Zoom** to scroll the tracks beneath the playhead during playback. When the song end comes into view, the tracks stay still and the playhead moves to the end.
 
