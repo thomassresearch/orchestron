@@ -64,7 +64,7 @@ export function previewPattern(edits: SongPatternEdit[], target: OccurrenceTarge
 
 // Stable temporary IDs keep unrelated clips and cached preparation usable across curve drags.
 const previewIds = new WeakMap<OccurrenceTarget, string>();
-function previewIdFactory(target: OccurrenceTarget) {
+export function previewIdFactory(target: OccurrenceTarget) {
   const prefix = previewIds.get(target) ?? crypto.randomUUID();
   previewIds.set(target, prefix);
   let index = 0;
@@ -100,8 +100,8 @@ export function songDraftPlayback(state: SequencerState, drafts: Record<string, 
 }
 
 /** Reserve audition slots after all arranged patterns, including temporary local variations. */
-export function clipSongPlayback(state: SequencerState, drafts: Record<string, DefinitionDraft>, audition: DefinitionDraft | null, structure: StructureDraft | null = null): ReturnType<typeof clipAuditionState> {
-  const song = songDraftPlayback(state, drafts, structure);
+export function clipSongPlayback(state: SequencerState, drafts: Record<string, DefinitionDraft>, audition: DefinitionDraft | null, structure: StructureDraft | null = null, projected?: SequencerState): ReturnType<typeof clipAuditionState> {
+  const song = projected ?? songDraftPlayback(state, drafts, structure);
   if (audition?.provisionalDuplicate) {
     if (!structure || !state.clipArrangement || !duplicatePattern(structure, audition.target)) return { state: song, sequence: [] };
     const source = { ...state, clipArrangement: structurePreview(state.clipArrangement, structure, arrangementTimings(state)) };

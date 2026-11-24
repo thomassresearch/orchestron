@@ -1,3 +1,5 @@
+import { arrangementHistoryStep, saveArrangementEdits } from "../../store/arrangementEdits";
+import { workingArrangement } from "../../lib/clipArranger/editSession";
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -58,6 +60,8 @@ it.each(["clip", "pattern"] as const)("cancels the Inspector %s name on Escape a
   expect(model()).toBe(before);
   fireEvent.blur(input());
   expect(pencil().textContent).toContain("Bridge");
+  expect(model()).toBe(before);
+  act(() => saveArrangementEdits());
   expect(model().lanes[0].clips[0].name).toBe(kind === "clip" ? "Bridge" : "Verse");
   expect(model().lanes[0].definitions[0].name).toBe(kind === "pattern" ? "Bridge" : "Phrase");
   expect(useAppStore.getState().clipEditingKey).toBeNull();
@@ -76,7 +80,7 @@ it("distinguishes an inherited pattern title from an explicitly numbered clip na
   fireEvent.blur(input);
   expect(pencil().textContent).toContain("#2");
   expect(model().lanes[0].definitions[0].name).toBe("Phrase");
-  act(() => clipHistoryStep(false));
+  act(() => arrangementHistoryStep(false));
   expect(pencil().textContent).toContain("Phrase");
 });
 
@@ -98,13 +102,13 @@ it.each([false, true])("keeps a local Inspector rename on its loop pass with an 
   const input = inspector.getByRole("textbox", { name: "Pattern name" });
   fireEvent.change(input, { target: { value: "Turnaround" } });
   fireEvent.blur(input);
-  const saved = model().lanes[0], variation = saved.definitions.find(d => d.name === "Turnaround");
+  const saved = workingArrangement(useAppStore.getState().sequencer)!.lanes[0], variation = saved.definitions.find(d => d.name === "Turnaround");
   expect(saved.clips.find(c => c.start === 4 * Q)?.children[0]).toMatchObject({ definitionId: variation?.id });
   expect(variation?.kind === "pattern" && variation.source === "sequencer" && variation.payload.steps[0].note).not.toBe(79);
   expect(saved.definitions[0].name).toBe("Phrase");
   expect(inspector.getByRole("button", { name: "Rename pattern" }).textContent).toContain("Turnaround");
   if (hasDraft) {
-    act(() => saveClipDraftWithIntent());
+    act(() => saveArrangementEdits());
     const edited = model().lanes[0].definitions.find(d => d.id === variation?.id);
     expect(edited?.kind === "pattern" && edited.source === "sequencer" && edited.payload.steps[0].note).toBe(79);
     expect(model().lanes[0].definitions).toHaveLength(saved.definitions.length);
@@ -124,7 +128,7 @@ it('opens the original loop pass directly and saves its edit to the linked defin
   show();
   fireEvent.doubleClick(patterns()[0]);
   fireEvent.click(editor().getByRole('button', { name: 'Change note' }));
-  await act(async () => fireEvent.click(editor().getByRole('button', { name: 'Save to linked occurrences (5)' })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
   const lane = model().lanes[0], phrase = lane.definitions[0];
   expect(phrase.kind === 'pattern' && phrase.source === 'sequencer' && phrase.payload.steps[0].note).toBe(73);
   expect(lane.clips.map(c => c.id)).toEqual(['loop', 'other']);
@@ -147,14 +151,14 @@ it.each(['doubleClick','keyboard'] as const)('asks before editing shared content
   expect(editor().getByText(/isolated into before/)).toBeTruthy();
   fireEvent.click(editor().getByRole('button', { name: 'Create variation here' }));
   expect(editor().getByRole('button', { name: 'Change note' })).toBeTruthy();
-  expect(editor().getByRole('button', { name: 'Save variation here' }).hasAttribute('disabled')).toBe(true);
+  expect(screen.getByRole("button", { name: "Save" }).hasAttribute('disabled')).toBe(true);
   expect(model()).toBe(before);
 });
 it.each(['local','all'] as const)('saves the established %s scope without another dialog and undoes atomically', async scope => {
   show(); const before = structuredClone(model()); fireEvent.doubleClick(patterns()[1]);
   fireEvent.click(editor().getByRole('button', { name: scope === 'local' ? 'Create variation here' : 'Edit linked pattern (5)' }));
   fireEvent.click(editor().getByRole('button', { name: 'Change note' }));
-  await act(async () => fireEvent.click(editor().getByRole('button', { name: scope === 'local' ? 'Save variation here' : 'Save to linked occurrences (5)' })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(model().lanes[0].clips).toHaveLength(scope === 'local' ? 4 : 2);
   expect(model().lanes[0].definitions.length).toBe(before.lanes[0].definitions.length + (scope === 'local' ? 1 : 0));
@@ -167,7 +171,7 @@ it('keeps note edits and scope when continuing from Close, and does not apply a 
   fireEvent.change(editor().getByRole('textbox', { name: 'Variation name' }), { target: { value: 'Fill' } });
   fireEvent.click(editor().getByRole('button', { name: 'Change note' }));
   fireEvent.click(editor().getByRole('button', { name: 'Close editor' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Keep editing' }));
+  fireEvent.doubleClick(screen.getByTitle('pattern: Fill'));
   expect((editor().getByRole('textbox', { name: 'Variation name' }) as HTMLInputElement).value).toBe('Fill');
   fireEvent.click(editor().getByRole('button', { name: 'Change scope' })); fireEvent.click(editor().getByRole('button', { name: 'Edit linked pattern (5)' }));
   act(() => saveClipDraftWithIntent()); expect(model().lanes[0].definitions[0].name).toBe('Phrase');
@@ -192,7 +196,7 @@ it.each(['toolbar','context menu'] as const)('opens a named local variation dire
   fireEvent.click(screen.getByRole(entry==='context menu'?'menuitem':'button',{name:'Create variation here'}));
   expect((editor().getByRole('textbox',{name:'Variation name'}) as HTMLInputElement).value).toBe('Phrase variation 1');
   fireEvent.click(editor().getByRole('button',{name:'Change note'}));
-  await act(async()=>fireEvent.click(editor().getByRole('button',{name:'Save variation here'})));
+  await act(async()=>fireEvent.click(screen.getByRole("button", { name: "Save" })));
   expect(model().lanes[0].definitions.some(d=>d.name==='Phrase variation 1')).toBe(true);
 });
 it('updates independent content in place and rejects stale inferred scope', () => {
@@ -231,8 +235,8 @@ it('holds an incompatible later command until the whole draft is explicitly swit
   fireEvent.click(screen.getByRole('button',{name:'Remove selected'}));dialog=within(screen.getByRole('dialog',{name:'Choose editing scope'}));
   fireEvent.click(dialog.getByRole('button',{name:'Only this occurrence'}));
   expect(useStructureDraft.getState().draft?.cursor).toBe(2);expect(useStructureDraft.getState().draft?.editIntent?.scope).toBe('local');
-  fireEvent.click(screen.getAllByRole('button',{name:'Undo'})[1]);
-  expect(useStructureDraft.getState().draft?.editIntent?.scope).toBe('local');
+  fireEvent.click(screen.getByRole('button',{name:'Undo'}));
+  expect(useStructureDraft.getState().draft?.editIntent?.scope).toBe('all');
 });
 
 it("saves a linked name-only edit and restores its previous name through Undo", () => {
@@ -250,13 +254,14 @@ it("saves a linked name-only edit and restores its previous name through Undo", 
 it("renames a later occurrence from its menu using the chosen local scope", async () => {
   show();
   const lane = model().lanes[0], trackName = useAppStore.getState().sequencer.tracks[0].name;
+  fireEvent.click(patterns()[2]);
   fireEvent.contextMenu(patterns()[2]);
   fireEvent.click(screen.getByRole("menuitem", { name: "Rename pattern" }));
   fireEvent.click(editor().getByRole("button", { name: "Create variation here" }));
   const input = editor().getByRole("textbox", { name: "Variation name" });
   expect(document.activeElement).toBe(input);
   fireEvent.change(input, { target: { value: "Bridge" } });
-  await act(async () => fireEvent.click(editor().getByRole("button", { name: "Save variation here" })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
   const saved = model().lanes[0];
   expect(saved.clips.find(c => c.start === 8 * Q)?.children[0]).toMatchObject({
     definitionId: saved.definitions.find(d => d.name === "Bridge")?.id
@@ -265,22 +270,20 @@ it("renames a later occurrence from its menu using the chosen local scope", asyn
   expect(useAppStore.getState().sequencer.tracks[0].name).toBe(trackName);
 });
 
-it("cancels only the active occurrence's draft", async () => {
+it("cancels all pending occurrence edits", async () => {
   const lane = model().lanes[0], clip = lane.clips[0];
   const target = { laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 0 };
   const original = model();
   openClipEditor(target, "all");
   renameClipPattern("Unfinished linked name");
-  const otherKey = useAppStore.getState().clipEditingKey!;
   openClipEditor({ ...target, pass: 1 }, "local");
   renameClipPattern("Unfinished variation");
   useAppStore.getState().setSequencerTrackStepNote(lane.id, 0, 79);
   render(<ClipPerformance language="english" renderEditor={() => null} />);
-  await act(async () => fireEvent.click(editor().getByRole("button", { name: "Cancel edits" })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
   const state = useAppStore.getState();
   expect(state.clipEditingKey).toBeNull();
-  expect(Object.keys(state.clipDrafts)).toEqual([otherKey]);
-  expect(state.clipDrafts[otherKey].definition.name).toBe("Unfinished linked name");
+  expect(state.clipDrafts).toEqual({});
   expect(model()).toBe(original);
 });
 
@@ -289,12 +292,11 @@ it("resolves an overlapping linked edit before opening another occurrence", asyn
   fireEvent.doubleClick(patterns()[1]);
   fireEvent.click(editor().getByRole('button', { name: 'Create variation here' }));
   fireEvent.click(editor().getByRole('button', { name: 'Change note' }));
-  const localKey = useAppStore.getState().clipEditingKey;
+  const original = model();
   fireEvent.doubleClick(patterns()[0]);
-  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
-  expect(useAppStore.getState().clipEditingKey).toBe(localKey);
-  fireEvent.doubleClick(patterns()[0]);
-  await act(async () => fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /save/i })));
+  expect(model()).toBe(original);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  act(() => saveArrangementEdits());
   const state = useAppStore.getState();
   const target = state.clipDrafts[state.clipEditingKey!].target;
   const reopened = model().lanes[0].clips.find(c => c.id === target.clipId)!;

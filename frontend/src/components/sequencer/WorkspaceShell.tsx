@@ -1,3 +1,4 @@
+import { sameArrangement, useArrangementEdits, workingSequencer } from "../../lib/clipArranger/editSession";
 import { clipLoopTarget, type ClipSelection } from "../../lib/clipArranger/loopTarget";
 import type { StructureFocus, StructureSelection } from "../../lib/clipArranger/structure";
 import { useRackSelection } from "./useRackSelection";
@@ -32,7 +33,8 @@ function SongPositionControls({ language, onSeek, onTempo }: {
   const selected = useStore(store, s => s.entries[editorKey("arranger", "clipSelection", "arrange")]?.value as ClipSelection | undefined);
   const focus = useStore(store, s => s.entries[editorKey("arranger", "structureFocus", "arrange")]?.value as StructureFocus | undefined);
   const selection = useStore(store, s => s.entries[editorKey("arranger", "structureSelection", "arrange")]?.value as StructureSelection | undefined);
-  const sequencer = useAppStore(s => s.sequencer);
+  const authored = useAppStore(s => s.sequencer), edits = useArrangementEdits(s => s.session);
+  const sequencer = useMemo(() => workingSequencer(authored, edits), [authored, edits]);
   const target = useMemo(() => clipLoopTarget(sequencer, selected, focus, selection), [sequencer, selected, focus, selection]);
   const range = sequencer.arrangerLoopSelection;
   const songLoop = useAppStore(s => s.sequencer.arrangerSongLoopEnabled);
@@ -73,7 +75,10 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const [mixSurface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
   const [remembered, remember] = usePerformanceEditorState<string | null>("page", "closedEditor", null);
   const clipKey = useAppStore(s => s.clipEditingKey);
-  const model = useAppStore(s => s.sequencer.clipArrangement);
+  const staged = useArrangementEdits(s => s.session);
+  const stagedChanges = useMemo(() => !!staged && !sameArrangement(staged.basis, staged.model), [staged?.basis, staged?.model]);
+  const committed = useAppStore(s => s.sequencer.clipArrangement);
+  const model = staged?.model ?? committed;
   const [controlsTarget, setControlsTarget] = usePerformanceEditorState<{ laneId: string } | "rack" | null>("arranger", "controlsTarget", null);
   const routes = useArrangeControlRoutes(view === "arrange");
   const controlsLaneId = typeof controlsTarget === "object" ? controlsTarget?.laneId : undefined;
@@ -305,7 +310,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
       <PerformViewContext.Provider value={null}>{keyboard}</PerformViewContext.Provider>
     </section>}
     <footer className="ws-status" aria-label={c.status}><span className="ws-session">{session}</span><span>{midi}</span>
-      {(musicalChanges || structuralChanges) && <span className="text-amber-200">{clip.unsaved}</span>}
+      {(musicalChanges || structuralChanges || stagedChanges) && <span className="text-amber-200">{clip.unsaved}</span>}
       <EngineStatusLine embedded diagnostics={diagnostics} />
       {issue && <details className="ws-error" ref={errorDetails}>
         <summary title={c.errorDetails}><span role="alert">{issue}</span></summary>

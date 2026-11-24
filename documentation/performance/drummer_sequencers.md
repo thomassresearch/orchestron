@@ -98,7 +98,7 @@ In the pattern editor, open **Settings → Markov Generator**. The first graph c
 
 On an existing groove, **Keep pitches** learns which drum hits and combinations follow each other in the participating rows. Simultaneous hits count as one combination. **Keep durations** learns how often one hit spacing follows another, including the spacing across the end of the loop. Each switch initializes its own graph. Click an edge percentage to edit the learned probability.
 
-Adding a Drummer track in Arrange opens its first clip. After **Use pattern**, choose **Save pattern here** in that editor, then **Save Performance**. If the pending-drafts dialog is already open, choose **Cancel** to go back and save the pattern. **Use saved definitions** saves the previous groove and keeps the generated edit in the current session.
+After **Use pattern**, choose the arranger **Save** to keep the generated groove together with other pending edits. **Save Performance** then writes the result to the library.
 
 ## Early and Late Notes
 

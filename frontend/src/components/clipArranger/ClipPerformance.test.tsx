@@ -1,3 +1,5 @@
+import { saveArrangementEdits } from "../../store/arrangementEdits";
+import { workingArrangement } from "../../lib/clipArranger/editSession";
 import { chooseStructureScope } from './scope.testHelpers';
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -190,6 +192,7 @@ it("exposes retained trailing silence and fits the finite song end explicitly wi
   render(<ClipPerformance language="english" renderEditor={() => null} />);
   expect((screen.getByRole("spinbutton", { name: "Song end" }) as HTMLInputElement).value).toBe("19.25");
   fireEvent.click(screen.getByRole("button", { name: "Fit song to clips" }));
+  act(() => saveArrangementEdits());
   const state = useAppStore.getState().sequencer;
   expect(state.clipArrangement!.end).toBe(20160 * 16);
   expect(buildSequencerPlaybackRange(state, "runtime", true).playback_end_step).toBe(128);
@@ -335,7 +338,7 @@ it("keeps the whole song in view at minimum zoom as the timeline or song length 
     fireEvent.blur(screen.getByRole("spinbutton", { name: "Song end" }), { target: { value: "16000" } });
     expect(parseFloat(canvas.style.width)).toBe(viewportWidth);
     expect(parseFloat(songEnd.style.left)).toBeCloseTo(timelineWidth() - 2, 1);
-    expect(useAppStore.getState().sequencer.clipArrangement!.end).toBe(16000 * QUARTER_TICKS);
+    expect(workingArrangement(useAppStore.getState().sequencer)!.end).toBe(16000 * QUARTER_TICKS);
   } finally {
     width.mockRestore();
   }
@@ -407,9 +410,9 @@ it("expands the nested boxes, opens a container, establishes local scope upfront
   chooseStructureScope('local');
   fireEvent.click(within(screen.getByRole("region", { name: "Editing" })).getByRole("button", { name: "Rest +1" }));
   expect(within(screen.getByRole("region", {name:"Editing"})).getByText("Unsaved draft")).toBeTruthy();
-  await act(async () => fireEvent.click(within(screen.getByRole("region", {name:"Editing"})).getByRole("button", { name: "Save structure · local" })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
   expect(screen.queryByRole('dialog',{name:'Save changes'})).toBeNull();
-  expect(useAppStore.getState().clipEditingKey).toBeNull();
+  expect(useAppStore.getState().clipEditingKey).toBeTruthy();
   expect(useAppStore.getState().sequencer.clipHistory?.cursor).toBe(1);
 });
 
@@ -417,7 +420,7 @@ it('creates a silent four-beat clip immediately and opens its inline content pic
  render(<ClipPerformance language="english" renderEditor={()=>null}/>);
  const old=useAppStore.getState().sequencer.clipArrangement!.lanes[0];
  fireEvent.click(screen.getAllByRole('button',{name:/Add clip:/})[0]);
- const lane=useAppStore.getState().sequencer.clipArrangement!.lanes[0],clip=lane.clips[lane.clips.length-1];
+ const lane=workingArrangement(useAppStore.getState().sequencer)!.lanes[0],clip=lane.clips[lane.clips.length-1];
  expect(clip).toMatchObject({start:Math.max(...old.clips.map(c=>c.start+c.length)),length:4*20160,mode:'once'});
  expect(clip.children[0]).toMatchObject({restTicks:4*20160});
  expect(screen.queryByRole('dialog',{name:'Add clip'})).toBeNull();

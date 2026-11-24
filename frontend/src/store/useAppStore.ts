@@ -1,3 +1,5 @@
+import { observeMusicalEdit, observeStructuralEdit } from "./arrangementEdits";
+import { useArrangementEdits, workingArrangement, workingSequencer } from "../lib/clipArranger/editSession";
 import { sameSongEdits, songPatternEdits } from "../lib/clipArranger/songDrafts";
 import { automationRouting, mappedControls, reconcileAutomation } from "../lib/clipArranger/automation";
 import { isClipArrangerEnabled } from "../lib/clipArranger/feature";
@@ -630,7 +632,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     newPerformanceWorkspace: async () => {
-      if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts, true)) return;
+      if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts)) return;
       if (get().activeSessionState === "running") { set({ error: "Stop to edit routing" }); return; }
       const nextSequencer = newPerformanceSequencerState();
       set({
@@ -762,8 +764,6 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     saveCurrentPerformance: async () => {
-      if (get().sampleUploads) { set({ error: sampleCopy(get().guiLanguage).wait }); return; }
-      if (!await resolveClipDrafts(get().sequencer.clipArrangement, get().clipDrafts)) return;
       const state = get();
       if (state.sampleUploads) { set({ error: sampleCopy(state.guiLanguage).wait }); return; }
       const name = state.performanceName.trim();
@@ -1260,20 +1260,29 @@ function schedulePersistedAppState(snapshot: PersistedAppState): void {
   }, APP_STATE_PERSIST_DEBOUNCE_MS);
 }
 
+useAppStore.subscribe((state, previous) => {
+  if (state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration || !state.sequencer.clipArrangement && previous.sequencer.clipArrangement) {
+    useArrangementEdits.setState({ session: null });
+    return;
+  }
+  observeMusicalEdit(state, previous);
+});
+
 // Draft edits use the normal audio preparation revision. Opening an editor or updating
 // its selection leaves the audio revision alone. Drafts never enter the authored sequencer.
 useAppStore.subscribe((state, previous) => {
   if (state.clipDrafts === previous.clipDrafts || state.sequencerEditRevision !== previous.sequencerEditRevision ||
       state.performanceWorkspaceGeneration !== previous.performanceWorkspaceGeneration) return;
-  if (!sameSongEdits(songPatternEdits(previous.sequencer, previous.clipDrafts), songPatternEdits(state.sequencer, state.clipDrafts))) {
+  if (Object.keys(state.clipDrafts).some(key => state.clipDrafts[key].transposeEdits !== previous.clipDrafts[key]?.transposeEdits) || !sameSongEdits(songPatternEdits(workingSequencer(previous.sequencer), previous.clipDrafts), songPatternEdits(workingSequencer(state.sequencer), state.clipDrafts))) {
     useAppStore.setState({ sequencerEditRevision: state.sequencerEditRevision + 1 });
   }
 });
 
 useStructureDraft.subscribe(({ draft }, previous) => {
+  observeStructuralEdit(draft, previous.draft);
   if (draft?.roots === previous.draft?.roots && draft?.editIntent?.scope === previous.draft?.editIntent?.scope) return;
   const state = useAppStore.getState();
-  const model = state.sequencer.clipArrangement;
+  const model = workingArrangement(state.sequencer);
   if (!model || (!draft?.cursor && !previous.draft?.cursor)) return;
   const timings = arrangementTimings(state.sequencer);
   const changed = reviewStructureDraft(model, previous.draft, timings).result !== reviewStructureDraft(model, draft, timings).result;

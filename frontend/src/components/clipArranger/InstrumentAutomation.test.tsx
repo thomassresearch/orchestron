@@ -63,7 +63,7 @@ it.each(["local", "all"] as const)("edits points inside the clip, saves %s scope
     return pattern?.kind === "pattern" && pattern.source === "controller" && pattern.payload.keypoints.length;
   });
   expect(projectedPoints).toEqual(scope === "all" ? [3, 3] : [3, 2]);
-  await act(async () => fireEvent.click(within(screen.getByRole("region", { name: "Editing" })).getByRole("button", { name: scope === 'local' ? 'Save variation here' : /^Save to linked/ })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
   const saved = useAppStore.getState().sequencer.clipArrangement!;
   const savedLane = saved.lanes[1];
   expect(shouldDeferSequencerPersistence(capturePersistWatchState(useAppStore.getState()), watch, true)).toBe(false);
@@ -79,7 +79,7 @@ it.each(["local", "all"] as const)("edits points inside the clip, saves %s scope
   act(() => openClipEditor({ ...target, path: [currentClip.children[0].id] }, "all"));
   fireEvent.change(screen.getByRole("spinbutton", { name: "Curve duration · master beats" }), { target: { value: "128" } });
   const committed = useAppStore.getState().sequencer;
-  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel edits" })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
   expect(useAppStore.getState().sequencer).toBe(committed);
   expect(useAppStore.getState().clipEditingKey).toBeNull();
   expect(Object.keys(useAppStore.getState().clipDrafts)).toHaveLength(0);
@@ -115,7 +115,7 @@ it("keeps an edited curve visible on the collapsed controller lane until Cancel 
   fireEvent.click(within(track(source.id)).getByRole("button", { name: /[▾▸] / }));
   expect(displayedPath()).not.toBe(savedPath);
   expect(useAppStore.getState().sequencerEditRevision).toBe(revision);
-  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel edits" })));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
   expect(displayedPath()).toBe(savedPath);
   expect(useAppStore.getState().sequencerEditRevision).toBeGreaterThan(revision);
   expect(useAppStore.getState().sequencer.clipArrangement).toBe(seq.clipArrangement);

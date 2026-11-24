@@ -1,6 +1,7 @@
 // Isolated English workspace, empty arrangement, stopped engine and two library patches
 // named Electric Piano and Finger Bass. Captures the manual screenshots.
 async page => {
+  await page.setViewportSize({width:1440,height:840});
   const button = (name, area = page) => area.getByRole("button", { name, exact: true });
   const state = fn => page.evaluate(fn);
   const check = (ok, message) => { if (!ok) throw Error(message); };
@@ -35,7 +36,7 @@ async page => {
       const lane = s.clipDrafts[s.clipEditingKey].target.laneId;
       pitches.forEach((pitch, index) => s.setSequencerTrackStepNote(lane, index * 2, pitch));
     }, pattern === "Verse chords" ? [60, 64, 67, 72, 67, 64, 62, 67] : [36, 43, 40, 43, 41, 45, 43, 47]);
-    await button("Save pattern here", editor).click();
+    await button("Save").click();
     await page.locator("[data-arranger-clip]").last().getByText(pattern, { exact: false }).first().waitFor();
   };
   await addTrack("Electric Piano", "Verse chords");
@@ -59,17 +60,14 @@ async page => {
   // Verify both menu entry points and clear the warning before capturing the overview.
   const last = page.locator("[data-arranger-clip]").last();
   await last.locator("button").first().click();
-  await button("Editor").click();
-  await button("Settings", editor).click();
+  if (!await editor.count()) await button("Editor").click();
+  if (!await editorName.isVisible()) await button("Settings", editor).click();
   await editorName.fill("Discard this");
   await page.locator(".ws-dock").getByRole("button", { name: "Close", exact: true }).click();
-  await button("Keep editing", page.getByRole("dialog")).click();
-  await button("Cancel edits", editor).click();
-  await button("Editor").click();
-  await button("Settings", editor).click();
-  await editorName.fill("Discard on close");
-  await page.locator(".ws-dock").getByRole("button", { name: "Close", exact: true }).click();
-  await button("Discard edits", page.getByRole("dialog")).click();
+  if (!await editor.count()) await button("Editor").click();
+  if (!await editorName.isVisible()) await button("Settings", editor).click();
+  check(await editorName.inputValue() === "Discard this", "Closing the editor lost the staged name");
+  await button("Cancel").click();
   await patternPencil.click();
   await name.fill("Canceled name");
   await name.press("Escape");
@@ -77,6 +75,7 @@ async page => {
   await patternPencil.click();
   await name.fill("Walking bassline");
   await name.press("Tab");
+  await button("Save").click();
   await button("Save Performance").click();
   await page.waitForFunction(() => !!window.__workspaceTest.store.getState().currentPerformanceId && !window.__workspaceTest.store.getState().loading);
   await state(async () => {
@@ -102,8 +101,9 @@ async page => {
   await button("Settings", editor).click();
   const variation = editor.getByRole("textbox", { name: "Variation name" });
   await variation.fill("Bass turnaround");
-  await button("Save variation here", editor).click();
+  await button("Save").click();
   check(await state(() => window.__workspaceTest.store.getState().sequencer.clipArrangement.lanes[1].definitions.some(d=>d.name==="Bass turnaround")), "Rename-only local variation was not saved");
+  await page.getByRole("button",{name:"Back to overview",exact:true}).click();
   const destination = page.locator("select[data-track-channel]").last();
   await destination.selectOption("1");
   check(await state(() => window.__workspaceTest.store.getState().sequencerInstruments.length === 2), "Choosing an existing instrument duplicated it");

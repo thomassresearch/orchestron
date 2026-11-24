@@ -13,5 +13,5 @@ export function chooseStructureScope(scope: string = 'local') {
 }
 
 export function structureSaveButton() {
-  return screen.getAllByRole('button', { name: /^Save structure ·/ })[0];
+  return screen.getByRole('button', { name: 'Save' });
 }

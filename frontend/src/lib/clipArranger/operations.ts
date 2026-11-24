@@ -79,6 +79,18 @@ export function deleteClip(model: ClipArrangement, laneId: string, clipId: strin
 }
 const freshChildren = (items: ContentItem[], id: IdFactory) => items.map(item => ({ ...clone(item), id: id() }));
 const freshClip = (clip: Clip, id: IdFactory) => remapPlacementChildren(clone(clip), freshChildren(clip.children, id));
+/** A whole-window copy shares definitions and owns its placement paths. */
+export function duplicateClip(model: ClipArrangement, laneId: string, clipId: string, timings: LaneTiming = {}, id: IdFactory = newClipId) {
+  const lane = laneFor(model, laneId), source = clipFor(lane, clipId);
+  let start = source.start + source.length;
+  for (const other of [...lane.clips].sort((a, b) => a.start - b.start)) {
+    if (other.start + other.length <= start) continue;
+    if (other.start >= start + source.length) break;
+    start = other.start + other.length;
+  }
+  const copy = { ...freshClip(source, id), id: id(), start };
+  return { model: addClip(model, laneId, copy, timings), clip: copy };
+}
 export function directLinks(lane: ClipLane, definitionId: string): number {
   return [...lane.clips.flatMap(c => c.children), ...lane.definitions.flatMap(d => d.kind === "pattern" ? [] : d.children)]
     .filter(item => "definitionId" in item && item.definitionId === definitionId).length;

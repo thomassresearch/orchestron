@@ -1,3 +1,5 @@
+import { workingArrangement } from "../lib/clipArranger/editSession";
+import { stageArrangement, withTrackSetup } from "./arrangementEdits";
 import { definitionRelationships, effectiveScope, uniqueVariationName, type EditScope } from "../lib/clipArranger/relationships";
 import { scopeCopy } from "../lib/clipArranger/scopeCopy";
 import { hasChangedClipDrafts, occurrenceEditIntent } from "../lib/clipArranger/draftResolution";
@@ -30,7 +32,7 @@ export function saveClipTransposition(resolvingKey?: string) {
 
 /** Share the transposition draft without selecting or opening a musical editor. */
 export function openClipTransposition(target: OccurrenceTarget) {
-  const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
+  const state = useAppStore.getState(), model = workingArrangement(state.sequencer);
   if (!model) return;
   const key = draftKey({ target });
   const existing = state.clipDrafts[key];
@@ -50,7 +52,7 @@ export function commitClipArrangement(next: ClipArrangement, label: string) {
     clipHistory: before ? recordClipEdit(state.sequencer.clipHistory ?? emptyClipHistory(), before, next, label, arrangementTimings(state.sequencer)) : emptyClipHistory() }, sequencerEditRevision: state.sequencerEditRevision + 1 });
 }
 export function openClipEditor(target: OccurrenceTarget, scope?: EditScope) {
-  const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
+  const state = useAppStore.getState(), model = workingArrangement(state.sequencer);
   if (!model) return;
   const key = draftKey({ target });
   const copy = duplicatePattern(useStructureDraft.getState().draft, target);
@@ -82,7 +84,7 @@ export function setClipEditIntent(scope: EditScope, variationName?: string, reso
   const state = useAppStore.getState(), key = resolvingKey ?? state.clipEditingKey;
   if (!key || !state.clipDrafts[key]) return;
   const draft = state.clipDrafts[key];
-  const lane = state.sequencer.clipArrangement?.lanes.find(l => l.id === draft.target.laneId);
+  const lane = workingArrangement(state.sequencer)?.lanes.find(l => l.id === draft.target.laneId);
   const name = variationName ?? draft.editIntent?.variationName ?? (lane ? uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix) : undefined);
   useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...draft, editIntent: { ...draft.editIntent, scope, explicit: true, variationName: name } } } });
 }
@@ -92,7 +94,7 @@ export function renameClipPattern(name: string) {
   const draft = key && state.clipDrafts[key];
   if (!key || !draft || draft.definition.kind !== "pattern" || !draft.editIntent?.scope) return;
   if (draft.editIntent.scope === "local") {
-    const lane = state.sequencer.clipArrangement?.lanes.find(l => l.id === draft.target.laneId);
+    const lane = workingArrangement(state.sequencer)?.lanes.find(l => l.id === draft.target.laneId);
     if (!lane) return;
     const suggested = uniqueVariationName(lane, draft.definition.name, scopeCopy(state.guiLanguage).variationSuffix);
     const editIntent = { ...draft.editIntent, variationName: name, variationNameEdited: !!name.trim() && name.trim() !== suggested };
@@ -146,7 +148,7 @@ export function saveClipDraft(scope: "local" | "all", name: string, resolvingKey
 
 export function saveInspectorPatternName(target: OccurrenceTarget, name: string, scope: EditScope) {
   const { sequencer } = useAppStore.getState();
-  const model = sequencer.clipArrangement;
+  const model = workingArrangement(sequencer);
   if (!model) return;
   const draft = beginDraft(model, target);
   if (draft.definition.kind !== "pattern") return;
@@ -163,7 +165,8 @@ function commitPatternEdit(model: ClipArrangement, next: ClipArrangement, key: s
   if (structural && JSON.stringify(structural.basis) !== JSON.stringify(model.lanes.find(l => l.id === structural.laneId))) throw Error("The track changed. Resolve the structure draft before saving.");
   const rebased = structural ? rebaseStructure(structural, next, timings) : null;
   const retained = retainMusicalDrafts(model, next, state.clipDrafts, key, timings, nameOnly);
-  commitClipArrangement(next, name);
+  if (nameOnly) stageArrangement(next);
+  else commitClipArrangement(next, name);
   useStructureDraft.setState({ draft: rebased });
   useAppStore.setState({ clipDrafts: retained.drafts, clipEditingKey: state.clipEditingKey ? retained.keys.get(state.clipEditingKey) ?? null : null });
 }
@@ -178,6 +181,9 @@ export function clipHistoryStep(forward: boolean) {
 
 /** Keep source creation atomic with its first clip; existing factories own musical defaults. */
 export function addClipLane(source: import("../lib/clipArranger/model").SourceKind, create: () => void) {
+  return withTrackSetup([], () => createClipLane(source, create));
+}
+function createClipLane(source: import("../lib/clipArranger/model").SourceKind, create: () => void) {
   const before = useAppStore.getState();
   if (!before.sequencer.clipArrangement) return;
   try {
@@ -207,6 +213,9 @@ export function addClipLane(source: import("../lib/clipArranger/model").SourceKi
 
 /** Device topology sits outside clip history, as with the compatibility arranger. */
 export function removeClipLane(laneId: string) {
+  withTrackSetup([laneId], () => removeClipSource(laneId));
+}
+function removeClipSource(laneId: string) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
   const lane = model?.lanes.find(l => l.id === laneId);
   if (!model || !lane) return;

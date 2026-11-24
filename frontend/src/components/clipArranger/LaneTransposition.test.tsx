@@ -38,7 +38,8 @@ it('shows inherited totals on patterns, groups and supergroups and opens directl
 it('saves the chosen shared repetition, updates both clips and supports one undo/redo',async()=>{
  show();const before=structuredClone(useAppStore.getState().sequencer.clipArrangement);
  fireEvent.click(badge(target()));fireEvent.change(panel().getByRole('spinbutton'),{target:{value:'5'}});
- await act(async()=>fireEvent.click(panel().getByRole('button',{name:'Save transposition'})));
+ fireEvent.click(panel().getByRole('button',{name:'Close'}));
+ await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Save'})));
  expect(screen.queryByRole('dialog',{name:'Transpose in arranger'})).toBeNull();
  expect(badge(target()).getAttribute('aria-label')).toContain('+6 Diatonic steps');expect(badge(target(['bs','sg','gp'],1,'b')).getAttribute('aria-label')).toContain('+6 Diatonic steps');
  const after=useAppStore.getState().sequencer.clipArrangement!;expect(after.lanes[0].clips).toEqual(before!.lanes[0].clips);
@@ -50,23 +51,25 @@ it.each([{path:['as']},{path:['as','sg']}])('edits a container placement directl
  fireEvent.change(panel().getByRole('combobox',{name:'Transposition scope'}),{target:{value:'placement'}});
  fireEvent.change(panel().getByRole('combobox',{name:'Transposition component'}),{target:{value:'chromaticSemitones'}});
  fireEvent.change(panel().getByRole('spinbutton'),{target:{value:'7'}});
- await act(async()=>fireEvent.click(panel().getByRole('button',{name:'Save transposition'})));
+ fireEvent.click(panel().getByRole('button',{name:'Close'}));
+ await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Save'})));
  expect(badge(target()).getAttribute('aria-label')).toContain('+31 Semitones');
  expect(badge(target(['bs','sg','gp'],1,'b')).getAttribute('aria-label')).toContain('+12 Semitones');
 });
-it('compact lanes allow editing, closing retains the draft, and discard leaves music unchanged',()=>{
+it('compact lanes allow editing, closing retains the draft, and discard leaves music unchanged',async()=>{
  show(false);const before=useAppStore.getState().sequencer;
  const b=badge(target());fireEvent.click(b);fireEvent.change(panel().getByRole('spinbutton'),{target:{value:'6'}});
  fireEvent(screen.getByRole('dialog',{name:'Transpose in arranger'}),new Event('cancel',{cancelable:true}));
  expect(useAppStore.getState().sequencer).toBe(before);expect(badge(target()).textContent).toContain('*');expect(document.activeElement).toBe(b);
  fireEvent.click(badge(target()));expect(panel().getByRole('spinbutton')).toHaveProperty('value','6');
- fireEvent.click(panel().getByRole('button',{name:'Discard transposition'}));expect(badge(target()).textContent).not.toContain('*');expect(useAppStore.getState().sequencer).toBe(before);
+ fireEvent.click(panel().getByRole('button',{name:'Close'}));await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Cancel'})));expect(badge(target()).textContent).not.toContain('*');expect(useAppStore.getState().sequencer).toBe(before);
 });
 it('editing another lane occurrence preserves the open musical editor and its notes draft',async()=>{
  openClipEditor(target(['bs','sg','gp'],0,'b'));
  const key=useAppStore.getState().clipEditingKey!;const draft=useAppStore.getState().clipDrafts[key];updateClipDraft({...draft.definition,name:'Unfinished music'});
  show(false);fireEvent.click(badge(target()));fireEvent.change(panel().getByRole('spinbutton'),{target:{value:'4'}});
- await act(async()=>fireEvent.click(panel().getByRole('button',{name:'Save transposition'})));
+ fireEvent.click(panel().getByRole('button',{name:'Close'}));
+ await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Save'})));
  expect(useAppStore.getState().clipEditingKey).toBe(key);expect(useAppStore.getState().clipDrafts[key].definition.name).toBe('Unfinished music');
 });
 it('refreshes a closed clean inspector after a shared musical edit',async()=>{
@@ -78,7 +81,8 @@ it('refreshes a closed clean inspector after a shared musical edit',async()=>{
    useAppStore.setState({sequencer:{...state.sequencer,clipArrangement:model}});
  });
  fireEvent.click(badge(target()));fireEvent.change(panel().getByRole('spinbutton'),{target:{value:'3'}});
- await act(async()=>fireEvent.click(panel().getByRole('button',{name:'Save transposition'})));
+ fireEvent.click(panel().getByRole('button',{name:'Close'}));
+ await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Save'})));
  expect(screen.queryByRole('dialog',{name:'Transpose in arranger'})).toBeNull();
  expect(badge(target()).getAttribute('aria-label')).toContain('Updated motif');
 });

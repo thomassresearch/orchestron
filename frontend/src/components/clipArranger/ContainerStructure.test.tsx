@@ -32,7 +32,7 @@ const open=(t:OccurrenceTarget,scope:'local'|'all'='local')=>act(()=>openClipEdi
 const editNote=(note:number)=>act(()=>{const state=useAppStore.getState(),d=state.clipDrafts[state.clipEditingKey!].definition;if(d.kind!=='pattern'||d.source!=='sequencer')throw Error('Expected melodic pattern');updateClipDraft({...d,payload:{...d.payload,steps:d.payload.steps.map((s,i)=>i? s:{...s,note})}});});
 const structureSave=async(scope:'local'|'all')=>{
  chooseStructureScope(scope);
- fireEvent.click(editor().getByRole('button',{name:/^Save structure ·/}));
+ fireEvent.click(screen.getByRole("button", { name: "Save" }));
  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
 };
 
@@ -45,7 +45,7 @@ it('retains a container draft and its scope on reopen, then clears intent on dis
  fireEvent.click(editor().getByRole('button',{name:'Close editor'}));
  act(()=>openClipEditor(repetition));expect(useStructureDraft.getState().draft?.roots).toEqual(draft?.roots);
  expect(useStructureDraft.getState().draft?.editIntent).toEqual(draft?.editIntent);
- fireEvent.click(screen.getByRole('button',{name:'Discard'}));expect(screen.queryByRole('region',{name:'Editing'})).toBeNull();
+ fireEvent.click(screen.getByRole("button", { name: "Cancel" }));expect(screen.queryByRole('region',{name:'Editing'})).toBeNull();
  act(()=>openClipEditor(repetition));expect(useStructureDraft.getState().draft?.editIntent?.scope).toBeNull();
  expect(editor().queryByRole('button',{name:'Rest +1'})).toBeNull();
 });
@@ -75,7 +75,7 @@ it('rejects inspector growth atomically and retains its draft when another clip 
  model().lanes[0].clips[1].start=16*20160;reload();render(<ClipPerformance language="english" renderEditor={()=>null}/>);open(target());
  fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));const before=useAppStore.getState().sequencer;
  expect(screen.getAllByRole('alert').some(n=>n.textContent?.includes('Linked'))).toBe(true);
- expect(editor().getByRole('button',{name:/^Save structure ·/}).hasAttribute('disabled')).toBe(true);
+ expect(screen.getByRole("button", { name: "Save" }).hasAttribute('disabled')).toBe(true);
  expect(useAppStore.getState().sequencer).toBe(before);expect(useStructureDraft.getState().draft?.cursor).toBe(1);
 });
 
@@ -93,32 +93,27 @@ it.each(['local','all'] as const)('resolves a musical %s save before resuming a 
  reload();render(<ClipPerformance language="english" renderEditor={()=>null}/>);
  open(target('linked','b'));editNote(90);open(target('first','a'),scope);editNote(73);open(target());
  const before=useAppStore.getState().sequencer;
- fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));let conflict=within(screen.getByRole('dialog',{name:'Unsaved musical draft'}));
- fireEvent.click(conflict.getByRole('button',{name:'Cancel'}));expect(useStructureDraft.getState().draft?.cursor??0).toBe(0);expect(useAppStore.getState().sequencer).toBe(before);
- fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));conflict=within(screen.getByRole('dialog',{name:'Unsaved musical draft'}));fireEvent.click(conflict.getByRole('button',{name:/^Save (variation|to linked)/}));
- await waitFor(()=>expect(useStructureDraft.getState().draft?.cursor).toBe(1));
- expect(Object.values(useAppStore.getState().clipDrafts).some(d=>d.definition.kind==='pattern'&&d.definition.source==='sequencer'&&d.definition.payload.steps[0].note===90)).toBe(true);
- await structureSave('local');
- // Preserve the unrelated dirty draft through the structural save, then explicitly clear it for a saved-state reload.
- expect(Object.values(useAppStore.getState().clipDrafts)).toHaveLength(1);act(()=>useAppStore.setState({clipDrafts:{}}));reload();
+ fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));
+ expect(useAppStore.getState().sequencer).toBe(before);
+ expect(useStructureDraft.getState().draft?.cursor).toBe(1);
+ await structureSave('local');reload();
+ expect(model().lanes[0].definitions.some(d=>d.kind==='pattern'&&d.source==='sequencer'&&d.payload.steps[0].note===90)).toBe(true);
  const lane=model().lanes[0];const notes=(id:string)=>{const clip=lane.clips.find(c=>c.id===id)!,g=definitionAt(lane,{laneId:lane.id,clipId:id,pass:0,path:[clip.children[0].id]});if(g.kind==='pattern')throw Error();const p=lane.definitions.find(d=>'definitionId' in g.children[0]&&d.id===g.children[0].definitionId)!;return p.kind==='pattern'&&p.source==='sequencer'?p.payload.steps[0].note:0;};
  expect(notes('first')).toBe(73);expect(notes('linked')===73).toBe(scope==='all');
 });
 
-it('discards only the conflicting musical draft and resumes the pending operation',async()=>{
+it('cancels notes on both clips and their structural edit together',async()=>{
  render(<ClipPerformance language="english" renderEditor={()=>null}/>);open(target('linked','b'));editNote(90);open(target('first','a'));editNote(73);open(target());
  const before=useAppStore.getState().sequencer;fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));
- fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved musical draft'})).getByRole('button',{name:'Discard'}));
- await waitFor(()=>expect(useStructureDraft.getState().draft?.cursor).toBe(1));expect(useAppStore.getState().sequencer).toBe(before);
- expect(Object.values(useAppStore.getState().clipDrafts).filter(d=>d.definition.kind==='pattern')).toHaveLength(1);
+ expect(useStructureDraft.getState().draft?.cursor).toBe(1);
+ fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+ expect(useStructureDraft.getState().draft).toBeNull();expect(useAppStore.getState().sequencer).toBe(before);
+ expect(useAppStore.getState().clipDrafts).toEqual({});
 });
 
 it.each(['local','all'] as const)('resolves a linked musical %s save before structural all-save and retains draft history',async scope=>{
  reload();render(<ClipPerformance language="english" renderEditor={()=>null}/>);open(target('linked','b'),scope);editNote(88);open(target(),'all');
- fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));fireEvent.click(editor().getByRole('button',{name:'Save structure · all linked'}));
- const conflict=within(screen.getByRole('dialog',{name:'Unsaved musical draft'}));fireEvent.click(conflict.getByRole('button',{name:/^Save (variation|to linked)/}));
- await waitFor(()=>expect(screen.queryByRole('dialog',{name:'Unsaved musical draft'})).toBeNull());
- await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
+ fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));await structureSave('all');
  const saved=structuredClone(model());reload();expect(model()).toEqual(saved);
  expect(model().lanes[0].clips.find(c=>c.id==='first')!.length/20160).toBe(18);
 });
@@ -143,7 +138,7 @@ it.each(['local','all'] as const)('opens the requested musical editor after savi
  fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));
  chooseStructureScope(scope);
  const pattern=screen.getAllByTitle('pattern: A')[0];fireEvent.doubleClick(pattern);
- const dialog=within(screen.getByRole('dialog',{name:'Unsaved structure'}));fireEvent.click(dialog.getByRole('button',{name:'Save structure'}));
+ expect(screen.queryByRole('dialog',{name:'Unsaved structure'})).toBeNull();
  await waitFor(()=>expect(useAppStore.getState().clipDrafts[useAppStore.getState().clipEditingKey!]?.definition.kind).toBe('pattern'));
  const choice=editor().queryByRole('button',{name:/^Edit linked pattern/});if(choice)fireEvent.click(choice);
  expect(editor().getByText('Musical controls')).toBeTruthy();
@@ -154,10 +149,9 @@ it('retains the pending operation and musical draft when its save is stale',asyn
  fireEvent.click(editor().getByRole('button',{name:'Rest +1'}));
  act(()=>{const s=structuredClone(useAppStore.getState().sequencer);s.clipArrangement!.lanes[0].definitions[0].revision++;s.clipArrangement!.revision++;useAppStore.setState({sequencer:s});});
  const before=useAppStore.getState().sequencer;
- fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved musical draft'})).getByRole('button',{name:/^Save (variation|to linked)/}));
- await waitFor(()=>expect(within(screen.getByRole('dialog',{name:'Unsaved musical draft'})).getByRole('alert').textContent).toContain('changed'));
- expect(useAppStore.getState().sequencer).toBe(before);expect(useStructureDraft.getState().draft?.cursor??0).toBe(0);expect(Object.values(useAppStore.getState().clipDrafts)).toHaveLength(2);
- fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved musical draft'})).getByRole('button',{name:'Cancel'}));
+ expect(screen.getByRole('button',{name:'Save'}).hasAttribute('disabled')).toBe(true);
+ expect(useStructureDraft.getState().draft?.cursor).toBe(1);
+ fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
  expect(useAppStore.getState().sequencer).toBe(before);
 });
 it('keeps Stop edit available when the auditioned container becomes empty',async()=>{

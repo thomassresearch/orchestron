@@ -31,7 +31,7 @@ export function transposeFingerprint(model: ClipArrangement, target: OccurrenceT
   }), transposePlans(lane, clip, target.path)]);
 }
 /** One validated transaction, no split or musical copy-on-write for transpose-only edits. */
-export function saveTransposeEdits(model: ClipArrangement, target: OccurrenceTarget, edits: TransposeEdit[], timings: LaneTiming = {}, id = newClipId): ClipArrangement {
+export function saveTransposeEdits(model: ClipArrangement, target: OccurrenceTarget, edits: TransposeEdit[], timings: LaneTiming = {}, id: () => string = newClipId): ClipArrangement {
   if (!edits.length) return model;
   const fingerprint = transposeFingerprint(model, target);
   for (const edit of edits) { validateOffsetPlan(edit.plan); if (edit.fingerprint !== fingerprint) throw Error('Transposition dependencies changed. Reopen the draft before saving.'); }

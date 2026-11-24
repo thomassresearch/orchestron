@@ -1,3 +1,4 @@
+import { cancelArrangementEdits, saveArrangementEdits } from "../../store/arrangementEdits";
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -30,15 +31,15 @@ it('U06–U08 mode selection is inert, preserves both components, and zero diffe
  expect(draft.transposeEdits?.[0].plan.repetitions[1].offset).toEqual({diatonicSteps:0,chromaticSemitones:0});
  fireEvent.click(screen.getByRole('button',{name:'Inherit default'}));
  expect(Object.values(useAppStore.getState().clipDrafts)[0].transposeEdits?.[0].plan.repetitions.some(r=>r.index===1)).toBe(false);
- await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Save transposition'})));
- expect(stop).toHaveBeenCalledOnce();expect(useAppStore.getState().sequencer.clipArrangement?.lanes[0].clips).toHaveLength(2);
+ act(() => saveArrangementEdits());
+ expect(stop).not.toHaveBeenCalled();expect(useAppStore.getState().sequencer.clipArrangement?.lanes[0].clips).toHaveLength(2);
  expect(Object.values(useAppStore.getState().clipDrafts)[0].transposeEdits).toBeUndefined();
 });
 it('U08 discard retains authored configuration and combined musical Save commits one history action',()=>{
  render(<TransposeInspector language="english" stopAudition={async()=>{}}/>);
  const before=useAppStore.getState().sequencer;
  fireEvent.change(screen.getByRole('spinbutton'),{target:{value:'5'}});
- fireEvent.click(screen.getByRole('button',{name:'Discard transposition'}));expect(useAppStore.getState().sequencer).toBe(before);
+ act(() => cancelArrangementEdits());act(() => openClipEditor({laneId:'transpose-score',clipId:'a',pass:1,path:['as','sg','gp']}));expect(useAppStore.getState().sequencer).toBe(before);
  fireEvent.change(screen.getByRole('spinbutton'),{target:{value:'4'}});
  act(()=>saveClipDraft('all','Renamed motif'));
  const state=useAppStore.getState();expect(state.sequencer.clipArrangement?.lanes[0].definitions.find(d=>d.id==='p')?.name).toBe('Renamed motif');

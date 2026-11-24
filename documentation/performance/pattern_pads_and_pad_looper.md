@@ -27,17 +27,17 @@ Groups and supergroups are reusable definitions. **Ungroup** opens one level and
 
 ## Edit and save
 
-Double-click a pattern, group or supergroup to edit it. The breadcrumb identifies the selected occurrence. Musical edits and structural edits have separate drafts.
+Double-click a pattern, group or supergroup to edit it. The breadcrumb identifies the selected occurrence. Musical and structural edits share one arrangement-wide Save and Cancel.
 
-Double-click the original loop pass to edit the linked pattern, group or supergroup directly. On a later pass, choose **Edit linked** to update every use or **Create variation here** to change only that occurrence. Separate placements of a shared definition also offer this choice. **Change scope** keeps the current draft, and Save applies the selected scope. The first structural action that changes shared definitions also waits for a scope choice. Cancel keeps the draft and selection. Save/Discard/Cancel resolves conflicting drafts before another operation proceeds.
+Double-click the original loop pass to edit the linked pattern, group or supergroup directly. On a later pass, choose **Edit linked** to update every use or **Create variation here** to change only that occurrence. Separate placements of a shared definition also offer this choice. **Change scope** keeps the current draft, and Save applies the selected scope. The first structural action that changes shared definitions also waits for a scope choice. Cancel keeps the draft and selection.
 
 ![Choosing linked or local scope for a repeated pattern](../../screenshots/arranger-pattern-scope.png)
 
 Press **Play** to hear your pattern at its place in the song. If the song is already playing, edit notes, drum hits, arpeggiator settings or controller values as it runs. You can select another track or edit a second pattern and still hear both drafts. A local variation sounds only at the chosen occurrence. A linked edit sounds at every use.
 
-**Cancel edits** restores the saved pattern at the current playhead. Saving the pattern commits the change to the arrangement as one undoable edit. If you close a changed pattern, choose its Save action, **Discard edits**, or **Keep editing**. After saving or discarding the last draft, choose **Save Performance**.
+**Cancel** restores all pending arrangement edits at the current playhead. Closing an editor keeps its changes available. Use **Save** to commit the batch, then **Save Performance** to write the library copy.
 
-Performance save, autosave and exports use saved definitions. Resolve changed drafts before saving the performance, or explicitly choose the saved definitions. Drafts survive view switches until you reload the browser. **Cancel** keeps you in the current view with your edits. If loading a replacement performance fails, your drafts are still available.
+Performance save, autosave and exports use saved definitions. Use the arranger **Save** first to include pending changes. Drafts survive view switches until you reload the browser. **Cancel** keeps you in the current view with your edits. If loading a replacement performance fails, your drafts are still available.
 
 ## Audition a phrase
 

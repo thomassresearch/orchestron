@@ -1,7 +1,7 @@
+import { workingArrangement, useArrangementEdits } from "../../lib/clipArranger/editSession";
 import { useState } from 'react';
 import type { GuiLanguage } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { saveClipTransposition } from '../../store/clipActions';
 import { directLinks } from '../../lib/clipArranger/operations';
 import { readTransposePlan, transposeFingerprint, saveTransposeEdits, type TransposeScope } from '../../lib/clipArranger/transposeEdits';
 import { addOffsets, offsetAt, emptyOffsetPlan, type PitchOffset, type OffsetPlan } from '../../lib/clipArranger/transposition';
@@ -20,27 +20,27 @@ function PendingTranspose({laneId,language}:{laneId:string;language:GuiLanguage}
   const pending=useTransposeStatus(s=>s.byLane[laneId]);
   const at=useAppStore(s=>s.sequencerRuntime.transportSubunit),running=useAppStore(s=>s.sequencerRuntime.isPlaying);
   const c=transposeCopy(language);
-  const sequencer=useAppStore(s=>s.sequencer),model=sequencer.clipArrangement;
+  const sequencer=useAppStore(s=>s.sequencer),model=useArrangementEdits(s=>s.session?.model) ?? sequencer.clipArrangement;
   const lane=model?.lanes.find(l=>l.id===laneId),clip=lane?.clips.find(clip=>clip.id===pending?.clip_id);
   const leaf=lane&&clip&&pending?resolveContent(lane,clip.children,arrangementTimings(sequencer)[lane.id])[pending.leaf_index]:undefined;
   const index=lane&&clip&&leaf?.definition&&pending?logicalRepeatIndex(lane,clip,leaf.path,pending.logical_pass-(clip.repeatIndexBase??0)):pending?.logical_pass??0;
   return pending&&running&&at<pending.at_subunit?<p role="status" className="text-amber-200">{c.pending}: {clip?.name??''} · {c.repeat} {index+1} · #{pending.leaf_index+1}</p>:null;
 }
 
-export function TransposeInspector({ language, stopAudition, target, onSaved }: { language: GuiLanguage; stopAudition: () => Promise<void>; target?: OccurrenceTarget; onSaved?: () => void }) {
+export function TransposeInspector({ language, target }: { language: GuiLanguage; stopAudition: () => Promise<void>; target?: OccurrenceTarget; onSaved?: () => void }) {
   const sequencer = useAppStore(s => s.sequencer), clipDrafts = useAppStore(s => s.clipDrafts), editingKey = useAppStore(s => s.clipEditingKey);
   const key = target ? draftKey({target}) : editingKey;
-  const state = { sequencer, clipDrafts }, model = sequencer.clipArrangement;
+  const state = { sequencer, clipDrafts }, model = useArrangementEdits(s=>s.session?.model) ?? workingArrangement(sequencer);
   const draft = key ? state.clipDrafts[key] : undefined, lane = model?.lanes.find(l => l.id === draft?.target.laneId);
   const [scope, setScope] = useState<TransposeScope>('shared'), [base, setBase] = useState(false);
   const [component, setComponent] = useState<keyof PitchOffset>('diatonicSteps'), [error, setError] = useState('');
   if (!draft || !key || !lane || !model || !['sequencer','score','arpeggiator'].includes(lane.source)) return null;
   const clip = lane.clips.find(c => c.id === draft.target.clipId);
   if (!clip) return null;
-  const c = transposeCopy(language), index = logicalRepeatIndex(lane,clip,draft.target.path,draft.target.pass);
+  const c = transposeCopy(language);
   const sourceIndex=(clip.repeatIndexBase??0)+draft.target.pass;
-  let plan: OffsetPlan;
-  try { plan = draft.transposeEdits?.find(e => e.scope === scope)?.plan ?? readTransposePlan(model,draft.target,scope); } catch { return null; }
+  let plan: OffsetPlan, index: number;
+  try { index = logicalRepeatIndex(lane,clip,draft.target.path,draft.target.pass); plan = draft.transposeEdits?.find(e => e.scope === scope)?.plan ?? readTransposePlan(model,draft.target,scope); } catch { return null; }
   const amount = base ? plan.base : offsetAt(plan,index);
   let contributions = transposeContributions(lane,clip,draft.target.path);
   const savedEffective=addOffsets(contributions.map(p=>offsetAt(p.plan,p.repeatIndex??sourceIndex)));
@@ -59,9 +59,11 @@ export function TransposeInspector({ language, stopAudition, target, onSaved }: 
   const linkedClips=scope==='shared'?lane.clips.filter(window=>contains(window.children)).map(window=>window.name):[];
   const write = (next: OffsetPlan) => {
     const existing = draft.transposeEdits?.find(e => e.scope === scope);
-    useAppStore.setState({ clipDrafts: { ...state.clipDrafts, [key]: { ...draft, transposeEdits: [
-      ...(draft.transposeEdits ?? []).filter(e => e.scope !== scope), { scope, plan: next, fingerprint: existing?.fingerprint ?? transposeFingerprint(model,draft.target) }
-    ] } } }); setError('');
+    const edits = (draft.transposeEdits ?? []).filter(e => e.scope !== scope);
+    if (JSON.stringify(next) !== JSON.stringify(readTransposePlan(model, draft.target, scope))) {
+      edits.push({scope, plan: next, fingerprint: existing?.fingerprint ?? transposeFingerprint(model, draft.target)});
+    }
+    useAppStore.setState({clipDrafts: {...state.clipDrafts, [key]: {...draft, transposeEdits: edits}}}); setError('');
   };
   const setPair = (pair: PitchOffset) => write(base ? { ...plan, base: pair } : { ...plan, repetitions: [...plan.repetitions.filter(e => e.index !== index), {index,offset:pair}].sort((a,b)=>a.index-b.index) });
   const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`;
@@ -84,8 +86,6 @@ export function TransposeInspector({ language, stopAudition, target, onSaved }: 
       <button type="button" className={clipButtonClass("edit")} onClick={()=>setPair({...amount,[component]:0})}>{c.resetComponent}</button>
       {!base && <><button type="button" className={clipButtonClass("edit")} onClick={()=>write({...plan,repetitions:plan.repetitions.filter(e=>e.index!==index)})}>{c.inherit}</button><button type="button" className={clipButtonClass("edit")} onClick={()=>setPair({diatonicSteps:0,chromaticSemitones:0})}>{c.zero}</button></>}
       <button type="button" className={clipButtonClass("edit")} onClick={()=>write(emptyOffsetPlan())}>{c.reset}</button>
-      <button type="button" className={clipButtonClass("save")} disabled={!draft.transposeEdits?.length} onClick={()=>{void stopAudition().then(()=>{saveClipTransposition(key);setError('');onSaved?.();}).catch(e=>setError(String(e)));}}>{c.save}</button>
-      <button type="button" className={clipButtonClass("remove")} disabled={!draft.transposeEdits?.length} onClick={()=>useAppStore.setState({clipDrafts:{...state.clipDrafts,[key]:{...draft,transposeEdits:undefined}}})}>{c.discard}</button>
       {!!draft.transposeEdits?.length && <span className="text-amber-200">{c.draft}</span>}
     </div>
     <p className="text-slate-400">{c.help} {lane.source==='arpeggiator'?c.arp:''} {c.live}</p>

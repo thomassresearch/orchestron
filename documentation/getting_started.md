@@ -29,7 +29,7 @@ The [draft audition guide](instrument_design/runtime_panel_and_compilation.md#au
 3. Choose **Mixer** in Mix. Check that First Sound reaches **Master**, with both strips unmuted. The built-in starter receives this route automatically.
 4. Return to **Arrange**. Choose **Add track → Melodic** below the tracks. In the new track header, choose **CH01 · First Sound**, then double-click its first clip to open the pattern editor.
 5. Check that the track sends to MIDI channel **1**. Leave the default 4/4 meter, sixteenth-note subdivision and octave **4**. In the first three step positions, replace **Rest** with **C**, **D**, and **G**; leave the remaining steps as rests.
-6. Choose **Play edit** to hear the draft, then **Stop edit** and **Save pattern here**.
+6. Choose **Play edit** to hear the draft, then **Stop edit** and the arranger **Save**.
 7. Choose **Play** in the arranger. It starts stopped instruments automatically and plays the saved pattern inside its clip.
 8. Choose **Stop** to finish. Instruments that Play started are stopped again; an engine that was already running stays running.
 

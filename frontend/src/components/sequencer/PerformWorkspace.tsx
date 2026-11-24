@@ -1,3 +1,4 @@
+import { workingSequencer } from "../../lib/clipArranger/editSession";
 import type { StructureFocus } from "../../lib/clipArranger/structure";
 import { useLayoutEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { useStore } from "zustand";
@@ -38,7 +39,7 @@ export function survivingClipKey(key: string | null) {
   const draft = key ? clipDrafts[key] : undefined;
   if (!draft) return null;
   if (draft.provisionalDuplicate) return duplicatePattern(useStructureDraft.getState().draft, draft.target) ? key : null;
-  const lane = laneForPass(sequencer, draft.target);
+  const lane = laneForPass(workingSequencer(sequencer), draft.target);
   if (!lane) return null;
   try { return definitionAt(lane, draft.target).id === draft.definition.id ? key : null; }
   catch { return null; }
@@ -90,7 +91,8 @@ function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged =
     const layout = value<PerformViewLayout>("page", "layout", view);
     if (view === "mix" && layout?.dock) clear("page", "layout", view, { ...layout, dock: null, dockExpanded: false });
   }
-  const lanes = state.sequencer.clipArrangement?.lanes;
+  const working = workingSequencer(state.sequencer);
+  const lanes = working.clipArrangement?.lanes;
   const selected = value<{ laneId: string; clipId?: string }>("arranger", "clipSelection", "arrange");
   if (selected) {
     const lane = lanes?.find(l => l.id === selected.laneId);
@@ -101,7 +103,7 @@ function pruneViewSelections(store: PerformanceEditorStore, arrangementChanged =
   const expanded = value<string>("arranger", "clipExpandedLane", "arrange");
   if (expanded && !lanes?.some(l => l.id === expanded)) clear("arranger", "clipExpandedLane", "arrange", null);
   const focus = value<StructureFocus>("arranger", "structureFocus", "arrange");
-  if (arrangementChanged && focus && !survivingStructureFocus(state.sequencer, focus)) {
+  if (arrangementChanged && focus && !survivingStructureFocus(working, focus)) {
     clear("arranger", "structureFocus", "arrange", null);
     clear("arranger", "structureSelection", "arrange", null);
   }

@@ -1,8 +1,8 @@
-import { clipSongPlayback } from "./lib/clipArranger/songDrafts";
+import { arrangementPlayback } from "./store/arrangementEdits";
 import { useStructureDraft } from "./lib/clipArranger/structureStore";
 import { DraftResolutionDialog } from "./components/clipArranger/DraftResolutionDialog";
 import { registerAutomationRuntime } from "./lib/clipArranger/automationRuntime";
-import { confirmReplacement, resolveClipDrafts } from "./lib/clipArranger/draftResolution";
+import { confirmReplacement } from "./lib/clipArranger/draftResolution";
 import { withPadAudition, clipRuntimeView, attachClipSchedules } from "./lib/clipArranger/runtime";
 import { ScoreTransportContext } from "./components/sequencer/ScoreTransportContext";
 import { scoreTrackConfig } from "./lib/scoreSequencer";
@@ -384,7 +384,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
       const authored = state ?? useAppStore.getState().sequencer;
       const { clipDrafts, clipAuditionDraft } = useAppStore.getState();
       const compilation = mode === "runtime" && !("clipAuditionContext" in authored)
-        ? clipSongPlayback(authored, clipDrafts, clipAuditionDraft, useStructureDraft.getState().draft).state : authored;
+        ? arrangementPlayback(authored, clipDrafts, clipAuditionDraft, useStructureDraft.getState().draft).state : authored;
       const previews = mode === "runtime" ? previewGestures.current : undefined;
       const resolvedState = withPadAudition(clipRuntimeView(compilation, previews), mode === "runtime" ? useAppStore.getState().padAudition : null);
       const transportStepCount = transportStepCountFromPerformanceSequencers(
@@ -563,7 +563,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   const buildBackendArpeggiatorConfig = useCallback((state?: SequencerState): SessionArpeggiatorConfigRequest => {
     const authored = state ?? useAppStore.getState().sequencer;
     const { clipDrafts, clipAuditionDraft } = useAppStore.getState();
-    const resolvedState = clipSongPlayback(authored, clipDrafts, clipAuditionDraft, useStructureDraft.getState().draft).state;
+    const resolvedState = arrangementPlayback(authored, clipDrafts, clipAuditionDraft, useStructureDraft.getState().draft).state;
     return {
       tempo_bpm: resolvedState.timing.tempoBPM,
       arpeggiators: buildBackendArpeggiatorConfigs(resolvedState, previewGestures.current)
@@ -1185,7 +1185,6 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   }, [buildSequencerConfigSnapshot, performanceDescription, performanceName]);
 
   const onExportSequencerConfig = useCallback(async () => {
-    if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts)) return;
     try {
       const { exportedPerformanceName, payload } = await buildCurrentPerformanceExport();
       const { blob, headers } = await api.exportPerformanceBundle(payload as unknown as Record<string, unknown>);
@@ -1209,7 +1208,6 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
 
   const onExportPerformanceCsd = useCallback(async (eventSource: "midiFile" | "score" = "midiFile") => {
     if (csdExportInProgress.current) return;
-    if (!await resolveClipDrafts(useAppStore.getState().sequencer.clipArrangement, useAppStore.getState().clipDrafts)) return;
     csdExportInProgress.current = true;
     try {
       const { exportedPerformanceName, payload, exportState } = await buildCurrentPerformanceExport("csd");

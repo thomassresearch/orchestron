@@ -54,7 +54,7 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 2. Open **Mix → Rack**, add instruments and assign channels.
 3. Open **Mixer**, check the destination of each strip, and connect effects/returns. Guided instruments get a neutral Master automatically; existing direct routes stay direct.
 4. Use Routing diagnostics → Check routing, then Start Instruments. Adjust existing mixer controls during playback.
-5. Choose **Add track**, add clips and patterns, then edit their musical content. Save each draft with the desired occurrence scope.
+5. Choose **Add track**, add clips and patterns, then edit their musical content. Choose the scope for shared content, then save the arrangement edits together.
 6. Save the performance to retain the rack, routes and current mix.
 7. Export the performance bundle for backup/sharing, or use `Export CSD (MIDI)` / `Export CSD (SCORE)` when you need an offline Csound render package.
 
@@ -64,9 +64,9 @@ Tracks start compact. Expand a track to work with nested patterns, groups and su
 
 ## Arrange
 
-In **Arrange**, click a clip or one of its patterns to see its properties in the right-hand **Inspector**. Double-click a pattern or select it and choose **Editor** to open it below the timeline. The toolbar names the track, clip, pattern and loop pass. Once you choose an edit scope, the first note, drum cell or curve point is ready to edit. Open **Settings** for naming, routing and timing. Press Escape or select **Settings** again to return to the grid. **Cancel edits** discards the current pattern draft. Closing a changed pattern lets you save, discard, or keep editing.
+In **Arrange**, click a clip or one of its patterns to see its properties in the right-hand **Inspector**. Double-click a pattern or select it and choose **Editor** to open it below the timeline. The toolbar names the track, clip, pattern and loop pass. Once you choose an edit scope, the first note, drum cell or curve point is ready to edit. Open **Settings** for naming, routing and timing. Press Escape or select **Settings** again to return to the grid. Closing the editor keeps your work available. The arranger **Cancel** restores the committed arrangement at the current playhead.
 
-For a fill on just one chorus repeat, choose **Create variation here**, edit the notes, then choose **Save variation here**. To change the phrase everywhere it plays, choose the linked scope. Its Save button shows how many uses will change. You can switch to Live to edit a physical pad and return to the same unfinished clip. **Save Performance** stores the song.
+For a fill on just one chorus repeat, choose **Create variation here**, edit the notes, then choose the arranger **Save**. To change the phrase everywhere it plays, choose the linked scope. Open the change summary to see affected clips across tracks. You can switch to Live to edit a physical pad and return to the same unfinished clip. **Save Performance** stores the song.
 
 ![The first melodic step and its note, chord, octave and velocity controls below the Arrange toolbar](../../screenshots/perform-arrange-pattern-editor.png)
 

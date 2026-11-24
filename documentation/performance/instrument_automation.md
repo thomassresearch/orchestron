@@ -20,7 +20,7 @@ Shared curves follow the same [editing scope and saving rules](pattern_pads_and_
 
 ![The Synth Bass Tone knob following an unsaved automation curve during song playback](../../screenshots/arranger-live-curve-preview.png)
 
-**Cancel edits** restores the saved curve during playback. Save the pattern to keep the curve in the arrangement. **Play edit** loops the selected draft independently of the song position. Performance save, autosave and native/CSD export retain committed definitions; unsaved curves remain session-only. Committed edits use arranger Undo/Redo. Adding, splitting or merging source lanes clears clip history, following the existing topology rules.
+The arranger **Cancel** restores the committed curve and other pending edits during playback. Use the shared **Save** to keep them together. **Play edit** loops the selected draft independently of the song position. Performance save, autosave and native/CSD export retain committed definitions; unsaved curves remain session-only. Committed edits use arranger Undo/Redo. Adding, splitting or merging source lanes clears clip history, following the existing topology rules.
 
 ![Editing an instrument's CC curve directly inside a song-length clip](../../screenshots/clip-arranger-instrument-automation.png)
 

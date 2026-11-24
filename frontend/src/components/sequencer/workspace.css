@@ -70,8 +70,7 @@
 [data-workspace-arranger] > div { flex: none; }
 [data-workspace-arranger] > [data-arranger-viewport] {
   flex: 1 1 auto; min-height: 75px; overflow: auto; container-type: size;
-  background: repeating-linear-gradient(to right, transparent 0 calc(var(--beat-width) - 1px), #243248 var(--beat-width));
-  background-position: var(--header-width) 0;
+
 }
 [data-workspace-arranger] > [data-arranger-viewport] > div > div:first-child { position: sticky; top: 0; z-index: 25; background-color: #121d2d; }
 .ws-panes[data-compact-controllers] [data-arranger-viewport] { order: -1; min-height: 100%; }
@@ -428,3 +427,22 @@
   .ws-controller-steps [data-beat-group] { display: none; }
   .ws-controller-steps .grid { row-gap: 1px; }
 }
+
+
+.arranger-grid-lines { position: absolute; inset: 24px 0 0; pointer-events: none; overflow: hidden; }
+.arranger-grid-lines i, .arranger-local-grid i { position: absolute; inset-block: 0; border-left: 1px solid #263246; }
+.arranger-grid-lines [data-level=beat], .arranger-local-grid [data-level=beat] { border-color: #36485d; }
+.arranger-grid-lines [data-level=bar], .arranger-local-grid [data-level=bar] { border-color: #526b83; }
+.arranger-grid-lines [data-level=phrase], .arranger-local-grid [data-level=phrase] { border-left: 2px solid #7293ac; }
+.arranger-grid-label { position: absolute; color: #94a3b8; font: 10px/1.6 monospace; padding-left: 3px; }
+.arranger-grid-label.phrase { color: #d0e2f2; font-weight: 700; }
+.arranger-local-grid { position: absolute; inset: auto 0 0; height: 18px; background: #152331; overflow: hidden; pointer-events: none; }
+.arranger-local-grid i, .arranger-local-grid span { position: absolute; font: 10px/18px monospace; color: #a7c7cc; padding-inline: 3px; }
+.arranger-local-grid span { background: #152331; }
+.arranger-clip-menu { position: fixed; z-index: 60; display: grid; gap: 4px; min-width: 170px; max-width: 260px; padding: 7px; font-size: 12px; background: #111e30; border: 1px solid #64748b; border-radius: 5px; color: #d8e9ef; }
+
+
+.arranger-edit-controls { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.arranger-edit-controls .arranger-change-summary { color: #f8c76e; }
+[data-arrangement-edited=true] { box-shadow: inset 0 -2px #edb65c; }
+.arranger-old-window { position: absolute; top: 4px; pointer-events: none; border: 1px dashed #aa814c; border-radius: 4px; background: repeating-linear-gradient(135deg,transparent 0 6px,#bc914524 6px 8px); }

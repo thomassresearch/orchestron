@@ -124,9 +124,9 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   of arranger playback; retain the documented seek/reset behavior.
 - Device editors select stopped/Arrangement pads for editing. Running Manual pads queue at pattern boundaries (orange queued, cyan playing). In Live, each arranger lane launches its saved patterns by definition ID through a session-only workspace. Arrangement devices share a song-position mapping. Manual pads retain phase through song seeks, loops, endings and arranger controls. Runtime intent and signed phase anchors never enter saved configuration. See backend independent-device transport.
 - Musical and structural clip drafts retain upfront local/all-linked editing scope in session-only metadata.
-  Arrange Play previews scoped musical edits and valid structural drafts, including duplicates and timed moves. Note edits on provisional duplicates fork the copy within the structural draft. Discard restores saved playback and Save commits one undoable edit. Scope changes never commit content; ordinary Save consumes established intent. Relationship highlights
+  Arrange Play previews scoped musical edits and valid structural drafts, including duplicates and timed moves. Note edits on provisional duplicates fork the copy within the structural draft. Cancel restores committed playback. One arranger Save commits the session-wide batch. Draft Undo/Redo follows gestures across tracks and editors. Scope changes never commit content; ordinary Save consumes established intent. Relationship highlights
   are not multi-selection. See the arranger guide for pending gestures and local-only operations.
-- Arranger Undo/Redo stores 25 atomic actions and a cursor in optional `arrangerHistory` metadata;
+- Committed arranger Undo/Redo stores 25 atomic batches and a cursor in optional `arrangerHistory` metadata;
   preserve it through save/load/autosave/native bundles. External conflicting edits clear it; runtime
   data and unrelated edits do not. See the arranger reference for scope and history controls.
 - Arranger lane Mute/Solo gates source-tagged MIDI without stopping its clock; controls are

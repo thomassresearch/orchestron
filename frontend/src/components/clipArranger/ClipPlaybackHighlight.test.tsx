@@ -218,7 +218,7 @@ it.each(editorCases.flatMap(editor => (["local", "all"] as const).map(scope => (
       expect(useAppStore.getState().sequencerEditRevision).toBe(revision);
     };
     await checkPlayback();
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: scope === 'local' ? 'Save variation here' : /^Save to linked/ })));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
     act(open);
     await checkPlayback();
     const snapshot = useAppStore.getState().buildSequencerConfigSnapshot();

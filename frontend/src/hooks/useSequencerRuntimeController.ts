@@ -1,4 +1,4 @@
-import { clipSongPlayback } from "../lib/clipArranger/songDrafts";
+import { arrangementPlayback } from "../store/arrangementEdits";
 import { useStructureDraft } from "../lib/clipArranger/structureStore";
 import { syncTransposeStatus } from "../lib/clipArranger/transposeStatus";
 import type { LiveInputAction } from "../audio/browserPlaybackPolicy";
@@ -1151,7 +1151,7 @@ export function useSequencerRuntimeController({
         const initial = useAppStore.getState();
         const device = [...initial.sequencer.tracks, ...initial.sequencer.scoreTracks, ...initial.sequencer.drummerTracks, ...initial.sequencer.controllerSequencers, ...initial.sequencer.arpeggiators].find(d => d.id === deviceId);
         if (!device) return;
-        const clipAudition = command.action === "workspace_start" && command.clipDraft ? clipSongPlayback(initial.sequencer, initial.clipDrafts, command.clipDraft, useStructureDraft.getState().draft) : null;
+        const clipAudition = command.action === "workspace_start" && command.clipDraft ? arrangementPlayback(initial.sequencer, initial.clipDrafts, command.clipDraft, useStructureDraft.getState().draft) : null;
         const sequence = command.patternId !== undefined ? livePatternSequence(initial.sequencer, deviceId, command.patternId) : clipAudition?.sequence ?? (command.action === "workspace_start" ? compilePadLoopPattern({ ...device.padLoopPattern, rootSequence: command.items ?? [] }).sequence : []);
         if (command.action === "workspace_start" && !command.padPreview && !sequence.length) throw new Error("An audition requires a playable sequence.");
         if (command.action === "workspace_start" && initial.activeSessionState !== "running") {

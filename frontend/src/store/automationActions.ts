@@ -1,3 +1,4 @@
+import { withTrackSetup } from "./arrangementEdits";
 import { useAppStore } from "./useAppStore";
 import { defaultControllerSequencer, defaultControllerSequencerPad } from "./appStoreModel";
 import { mappedControls, automationCandidates, controllerToMidi, readAutomationTarget } from "../lib/clipArranger/automation";
@@ -6,6 +7,10 @@ import { validateArrangement, type ClipLane, type PatternDefinition } from "../l
 import { updateClipDraft, commitClipArrangement } from "./clipActions";
 
 export function generateAutomation(laneId: string, clipId: string, instrumentId: string) {
+  const lanes = useAppStore.getState().sequencer.controllerSequencers.filter(t => t.automationTarget?.instrumentId === instrumentId).map(t => t.id);
+  return withTrackSetup([laneId, ...lanes], () => generateAutomationTracks(laneId, clipId, instrumentId));
+}
+function generateAutomationTracks(laneId: string, clipId: string, instrumentId: string) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
   const source = model?.lanes.find(l => l.id === laneId), clip = source?.clips.find(c => c.id === clipId);
   const binding = automationCandidates(state.sequencer, laneId, state.sequencerInstruments, state.patches).find(b => b.id === instrumentId);

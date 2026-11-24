@@ -66,7 +66,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
   const changePad = (next: ScorePadState) => attempt(() => {
     if (next === pad) return;
     updateScoreTrack(track.id, t => ({ ...t, pads: t.pads.map((p, i) => i === padIndex ? next : p) }));
-    setHistory(h => ({ past: [...h.past, pad].slice(-25), future: [], basis: signature(next) }));
+    if (!clipEditing) setHistory(h => ({ past: [...h.past, pad].slice(-25), future: [], basis: signature(next) }));
   });
   const historyStep = (redo = false) => attempt(() => {
     const source = redo ? history.future : history.past, next = source[source.length - 1]; if (!next) return;
@@ -89,7 +89,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
   }) });
   return <article className="mb-3 space-y-3 rounded-lg border border-slate-700 bg-slate-900/60 p-3" data-score-track={track.id}
     onKeyDown={e => { if ((e.target as Element).closest("input,select,textarea")) return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.stopPropagation(); historyStep(e.shiftKey); }
+      if (!clipEditing && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.stopPropagation(); historyStep(e.shiftKey); }
     }}>
     <PatternSettings>
     <div className="flex flex-wrap items-center gap-3">
@@ -119,7 +119,7 @@ const ScoreCard = memo(function ScoreCard({ track, language, readPosition, sound
       })}>{c.match}</button>
       <MarkovGenerator id={track.id} name={track.name} language={language} timing={track.timing} padIndex={padIndex}
         pattern={{source: "score", payload: pad}} onScoreApply={changePad} />
-      <button className={button} onClick={() => historyStep()} disabled={!history.past.length}>{c.undo}</button><button className={button} onClick={() => historyStep(true)} disabled={!history.future.length}>{c.redo}</button>
+      {!clipEditing && <><button className={button} onClick={() => historyStep()} disabled={!history.past.length}>{c.undo}</button><button className={button} onClick={() => historyStep(true)} disabled={!history.future.length}>{c.redo}</button></>}
       <button className={button} onClick={() => changePad({ ...pad, notes: [] })}>{c.clear}</button>
       <button className={button} onClick={e => transpose(-1, e.shiftKey)} title={`${c.transpose} − / Shift: −12`}>− ♪</button><button className={button} onClick={e => transpose(1, e.shiftKey)} title={`${c.transpose} + / Shift: +12`}>+ ♪</button>
       {hidden > 0 && <><span className="text-xs text-amber-300">{c.hidden}: {hidden}</span><button className={button} onClick={() => changePad({ ...pad, notes: pad.notes.filter(n => n.startTicks < duration).map(n => ({ ...n, durationTicks: Math.min(n.durationTicks, duration - n.startTicks) })) })}>{c.trim}</button></>}

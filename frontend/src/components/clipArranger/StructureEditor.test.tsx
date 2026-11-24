@@ -228,22 +228,11 @@ it.each(['discard','save'])('resolves a dirty single-pass structure and revalida
  const buttons=()=>screen.getAllByRole('button').filter(b=>b.title.startsWith('pattern:'));
  fireEvent.click(buttons()[1]);fireEvent.click(screen.getByRole('button',{name:'Add content'}));
  fireEvent.click(within(screen.getByRole('dialog',{name:'Add content'})).getByRole('button',{name:'Rest +1'}));
- const draft=useStructureDraft.getState().draft;fireEvent.click(buttons()[1]);fireEvent.click(buttons()[2],{shiftKey:true});
- fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved structure'})).getByRole('button',{name:'Cancel'}));
- expect(useStructureDraft.getState().draft).toBe(draft);
- fireEvent.click(buttons()[2],{shiftKey:true});
- if(choice==='save'){
-  fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved structure'})).getByRole('button',{name:'Save structure'}));
-  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
-  expect(screen.getByRole('alert').textContent).toContain('Select the range again');
-  expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips).toHaveLength(3);
-  expect(screen.getByRole('button',{name:'Group'}).hasAttribute('disabled')).toBe(true);
-  return;
- }
- fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved structure'})).getByRole('button',{name:'Discard'}));
- expect(useStructureDraft.getState().draft).toBeNull();expect(useAppStore.getState().sequencer).toBe(state);
- // The original occurrence IDs survive discard; grouping now uses that original range.
- fireEvent.click(screen.getByRole('button',{name:'Group'}));expect(useStructureDraft.getState().draft?.roots).toHaveLength(3);
+ fireEvent.click(buttons()[1]);fireEvent.click(buttons()[2],{shiftKey:true});
+ expect(screen.getByRole('alert').textContent).toContain('Select the range again');
+ expect(useAppStore.getState().sequencer).toBe(state);
+ fireEvent.click(screen.getByRole('button',{name:choice==='save'?'Save':'Cancel'}));
+ expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips).toHaveLength(choice==='save'?3:1);
 });
 
 
@@ -251,7 +240,7 @@ it('extends and contracts across unmounted repetitions without changing authored
  const state=structuredClone(useAppStore.getState().sequencer),model=state.clipArrangement!,lane=model.lanes[0],clip=lane.clips[0];
  clip.children=clip.children.slice(0,1);clip.mode='loop';clip.length=20160*4*80;model.end=clip.length;
  useAppStore.setState({sequencer:state});
- const {result}=renderHook(()=>useStructureEditor(model,state,{},'english',undefined,40/20160,vi.fn()));
+ const {result}=renderHook(()=>useStructureEditor(model,state,{},'english',40/20160,vi.fn()));
  const at=(pass:number)=>({laneId:lane.id,clipId:clip.id,pass,parent:[]});
  act(()=>result.current.select(at(0),clip.children[0].id,false));
  for(let pass=0;pass<60;pass++)act(()=>{result.current.extendSelection(at(pass),clip.children[0].id,1);});
@@ -317,7 +306,7 @@ it('resizes the visible trailing rest after trimming, then saves without losing 
  await waitFor(()=>expect(useStructureDraft.getState().draft).toBeNull());
  const saved=useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0];
  expect(saved.length).toBe(20160*7);expect(saved.children.slice(-1)[0]).toMatchObject({restTicks:20160*3.75});
- act(()=>clipHistoryStep(false));expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0].length).toBe(20160*7);
+ act(()=>clipHistoryStep(false));expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0].length).toBe(clip.length);
  act(()=>clipHistoryStep(true));expect(useAppStore.getState().sequencer.clipArrangement!.lanes[0].clips[0]).toEqual(saved);
 });
 

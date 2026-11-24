@@ -1,0 +1,63 @@
+async page => {
+  const assert = (state, message) => { if (!state) throw Error(message); };
+  const url = new URL(page.url());
+  url.search = "?workspace";
+  await page.goto(url.href);
+  await page.waitForFunction(() => window.__clipTest);
+  await page.setViewportSize({width: 1480, height: 900});
+  await page.evaluate(() => {
+    const app = window.__clipTest.store;
+    const sequencer = structuredClone(app.getState().sequencer);
+    sequencer.drummerTracks[0].timing = { ...sequencer.drummerTracks[0].timing, meterNumerator: 6, meterDenominator: 8, beatRateNumerator: 1, beatRateDenominator: 1 };
+    sequencer.clipArrangement.end = 64 * 20160;
+    sequencer.clipArrangement.lanes[0].clips[0].name = 'Verse';
+    sequencer.clipArrangement.lanes[0].clips[0].nameIsExplicit = true;
+    app.setState({sequencer});
+  });
+  const tracks = page.locator('[data-clip-lane]');
+  const clips = i => tracks.nth(i).locator('[data-arranger-clip]');
+  const button = name => page.getByRole('button', {name, exact:true});
+  const counts = () => page.evaluate(() => window.__clipTest.store.getState().buildSequencerConfigSnapshot().sequencer.clipArrangement.lanes.map(l => l.clips.length));
+  const header = clips(0).first().locator('[data-clip-header]');
+  await header.click();
+  await clips(0).first().locator('[data-clip-content]').click({button:'right',position:{x:58,y:8}});
+  await page.getByRole('menu',{name:'Clip · Verse'}).waitFor();
+  await page.getByRole('menuitem',{name:'Duplicate clip'}).click();
+  await clips(0).nth(1).waitFor();
+  const copyId = await clips(0).nth(1).getAttribute('data-arranger-clip');
+  await button('Undo').click();
+  assert(await clips(0).count() === 1, 'Draft Undo kept the duplicate');
+  await button('Redo').click();
+  assert(await clips(0).nth(1).getAttribute('data-arranger-clip') === copyId, 'Redo changed placement identity');
+  await tracks.nth(1).getByRole('button',{name:/Broken Beat/}).first().click();
+  await clips(1).first().locator('[data-clip-header]').click();
+  await clips(1).first().locator('[data-clip-content]').click({button:'right',position:{x:58,y:44}});
+  await page.getByRole('menuitem',{name:'Delete clip'}).waitFor();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Shift+F10');
+  await page.getByRole('menuitem',{name:'Delete clip'}).waitFor();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Delete');
+  await tracks.nth(1).locator('.arranger-old-window').waitFor();
+  assert((await counts()).slice(0,2).join() === '1,1','Unsaved edits leaked into performance');
+  await page.locator('[data-arranger-viewport]').evaluate(el=>{el.scrollLeft=0});
+  await page.getByRole('slider',{name:'Zoom'}).focus();
+  await page.keyboard.press('Home');
+  await page.locator(".ws-shell").screenshot({path:'screenshots/arranger-edit-session.png'});
+  await button('Cancel').click();
+  assert(await clips(0).count()===1 && await clips(1).count()===1,'Cancel did not restore both lanes');
+  const local=page.locator('.arranger-local-grid');
+  await local.waitFor();
+  assert((await local.textContent()).includes('6/8'),'Missing local meter');
+  const zoom=page.getByRole('slider',{name:'Zoom'});
+  await zoom.focus(); await page.keyboard.press('End');
+  await page.locator('[data-arranger-viewport]').evaluate(el=>{el.scrollLeft=600});
+  await page.waitForFunction(() => {
+    const marks = s => [...document.querySelectorAll(s+' [data-level=bar], '+s+' [data-level=phrase]')].map(el=>parseFloat(el.style.left));
+    const master=marks('.arranger-grid-lines'), local=marks('.arranger-local-grid');
+    return master.includes(1200) && local.includes(1200) && master.includes(800) && local.includes(900);
+  });
+
+  await page.locator(".ws-shell").screenshot({path:'screenshots/arranger-musical-grid.png'});
+  return { compactMenu:true, expandedMenu:true, keyboard:true, copyUndoRedo:true, batchCancel:true, mixedMeter:true };
+}

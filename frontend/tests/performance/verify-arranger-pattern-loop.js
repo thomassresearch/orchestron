@@ -54,7 +54,7 @@ async page => {
   await name.waitFor();
   if (!await name.evaluate(el => el === document.activeElement)) throw Error("Rename did not focus the pattern name");
   await name.fill("Refrain");
-  await editor.getByRole("button", { name: /Save linked pattern/ }).click();
+  await page.getByRole("button", { name: "Save", exact:true }).click();
   await lane.getByTitle("pattern: Refrain", { exact: true }).nth(1).waitFor();
   if (await lane.getByTitle("pattern: Answer", { exact: true }).count()) throw Error("Linked name was not updated");
   await page.getByRole("button", { name: "Reload saved performance" }).click();
@@ -64,6 +64,7 @@ async page => {
   const previewBox = await clip.getByRole("img", { name: "Refrain", exact: true }).first().boundingBox();
   const headerBox = await header.boundingBox();
   await header.click({ button: "right", position: { x: previewBox.x - headerBox.x + 12, y: 7 } });
-  await rename.click();
-  if (await name.inputValue() !== "Refrain") throw Error("Clip header targeted a different pattern");
+  await page.getByRole("menuitem", {name:"Duplicate clip"}).waitFor();
+  if (await rename.count()) throw Error("The clip menu unexpectedly targeted a pattern");
+  await page.keyboard.press("Escape");
 }

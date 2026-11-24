@@ -51,7 +51,7 @@ it('plays Duplicate and a timed nudge immediately, follows draft undo/redo and r
   fireEvent.click(draftControls.getByRole('button', { name: 'Redo' }));
   expect(playback()).toEqual(moved);
   const beforeDiscard = useAppStore.getState().sequencerEditRevision;
-  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(useAppStore.getState().sequencerEditRevision).toBeGreaterThan(beforeDiscard);
   expect(playback()).toEqual(original);
   expect(useAppStore.getState().sequencer).toBe(before.sequencer);
@@ -87,14 +87,15 @@ it.each(['save', 'discard'])('edits a provisional duplicate through the note edi
   expect(state.buildSequencerConfigSnapshot().sequencer.clipArrangement!.lanes[0]).toEqual(savedLane);
   const controls = within(structureSaveButton().parentElement!);
   fireEvent.click(controls.getByRole('button', { name: 'Undo' }));
-  expect(playback().clips[0].content.map(leaf => leaf.pad)).toEqual([0, 0, null]);
+  expect(editor().definition).not.toEqual(edited);
+  expect(playback().clips[0].content.map(leaf => leaf.pad)).toEqual(slots);
   fireEvent.click(controls.getByRole('button', { name: 'Redo' }));
   expect(editor().definition).toEqual(edited);
-  const panel = within(screen.getByRole('region', { name: 'Editing' }));
+
   if (choice === 'save') {
     const restored = useAppStore.getState();
     const expected = songDraftPlayback(restored.sequencer, restored.clipDrafts, useStructureDraft.getState().draft).clipArrangement!.lanes[0];
-    fireEvent.click(panel.getByRole('button', { name: /^Save structure/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(useStructureDraft.getState().draft).toBeNull());
     expect(lane()).toEqual(expected);
     act(() => clipHistoryStep(false));
@@ -102,12 +103,12 @@ it.each(['save', 'discard'])('edits a provisional duplicate through the note edi
     act(() => clipHistoryStep(true));
     expect(lane()).toEqual(expected);
   } else {
-    fireEvent.click(panel.getByRole('button', { name: 'Discard' }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(lane()).toEqual(savedLane);
     expect(playback().clips[0].content.map(leaf => leaf.pad)).toEqual([0, null]);
     expect(useAppStore.getState().sequencer.clipHistory).toBe(before.sequencer.clipHistory);
   }
-  expect(useAppStore.getState().clipEditingKey).toBeNull();
+  if (choice === 'discard') expect(useAppStore.getState().clipEditingKey).toBeNull();
 });
 
 it('keeps notes on the appended copy of a loop after closing its editor and moving it', async () => {
@@ -167,13 +168,15 @@ it('appends once after the final loop repetition and saves as one clip',async()=
   expect(lane().clips).toHaveLength(1);expect(lane().clips[0]).toMatchObject({mode:'once',length:20*Q});
 });
 
-it.each(['cancel','discard'] as const)('resolves a dirty musical draft before duplication: %s',async choice=>{
-  const l=lane(),clip=l.clips[0];openClipEditor({laneId:l.id,clipId:clip.id,pass:0,path:[clip.children[0].id]});
-  const state=useAppStore.getState(),key=state.clipEditingKey!;useAppStore.setState({clipDrafts:{...state.clipDrafts,[key]:{...state.clipDrafts[key],definition:{...state.clipDrafts[key].definition,name:'Unsaved'}}}});
-  show();fireEvent.click(context(patterns()[0]).getByRole('menuitem',{name:'Duplicate'}));
-  fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved musical draft'})).getByRole('button',{name:choice==='cancel'?'Cancel':'Discard'}));
-  if(choice==='cancel'){expect(useStructureDraft.getState().draft).toBeNull();expect(useAppStore.getState().clipDrafts[key]).toBeTruthy();}
-  else await waitFor(()=>expect(useStructureDraft.getState().draft?.roots.filter(n=>n.definition)).toHaveLength(2));
+it('duplicates after a musical edit and cancels both gestures together',()=>{
+  const l=lane(),clip=l.clips[0];openClipEditor({laneId:l.id,clipId:clip.id,pass:0,path:[clip.children[0].id]},'all');
+  const state=useAppStore.getState(),key=state.clipEditingKey!;
+  useAppStore.setState({clipDrafts:{...state.clipDrafts,[key]:{...state.clipDrafts[key],definition:{...state.clipDrafts[key].definition,name:'Unsaved'}}}});
+  show();fireEvent.click(patterns()[0]);fireEvent.click(context(patterns()[0]).getByRole('menuitem',{name:'Duplicate'}));
+  expect(useStructureDraft.getState().draft?.roots.filter(n=>n.definition)).toHaveLength(2);
+  expect(lane()).toBe(l);
+  fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+  expect(useStructureDraft.getState().draft).toBeNull();expect(lane()).toBe(l);
 });
 
 it.each([false,true])('opens Add content at the snapped position with expanded=%s',expanded=>{
@@ -200,7 +203,7 @@ it('targets nested silence while retaining content-header double-click editing',
   const l=lane(),clip=l.clips[0];l.definitions.push({id:'g',name:'Group',kind:'group',revision:0,children:clip.children});clip.children=[{id:'group-use',definitionId:'g'}];
   show();fireEvent.doubleClick(document.querySelector('[data-clip-content]')!,{clientX:240,clientY:70});fireEvent.click(within(screen.getByRole('dialog',{name:'Add content'})).getByRole('button',{name:'New pattern'}));
   expect(useStructureDraft.getState().draft?.roots).toHaveLength(1);expect(useStructureDraft.getState().draft?.roots[0].children?.filter(n=>n.definition)).toHaveLength(2);
-  fireEvent.click(screen.getByRole('button',{name:'Discard'}));fireEvent.doubleClick(patterns()[0]);expect(screen.queryByRole('dialog',{name:'Add content'})).toBeNull();expect(useAppStore.getState().clipEditingKey).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));fireEvent.doubleClick(patterns()[0]);expect(screen.queryByRole('dialog',{name:'Add content'})).toBeNull();expect(useAppStore.getState().clipEditingKey).toBeTruthy();
 });
 
 it('adds content in the clicked loop repetition without moving other content',()=>{
@@ -214,9 +217,9 @@ it('adds content in the clicked loop repetition without moving other content',()
 it('requires resolving pending structure before appending to a whole loop',()=>{
   const clip=lane().clips[0];clip.mode='loop';clip.length=24*Q;useAppStore.getState().sequencer.clipArrangement!.end=clip.length;
   show();fireEvent.doubleClick(document.querySelector('[data-clip-content]')!,{clientX:240,clientY:70});fireEvent.click(within(screen.getByRole('dialog',{name:'Add content'})).getByRole('button',{name:'New pattern'}));
-  const original=useStructureDraft.getState().draft;
-  fireEvent.click(context(patterns()[0]).getByRole('menuitem',{name:'Duplicate'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved structure'})).getByRole('button',{name:'Cancel'}));expect(useStructureDraft.getState().draft).toBe(original);
-  fireEvent.click(context(patterns()[0]).getByRole('menuitem',{name:'Duplicate'}));fireEvent.click(within(screen.getByRole('dialog',{name:'Unsaved structure'})).getByRole('button',{name:'Discard'}));
+  fireEvent.click(context(patterns()[0]).getByRole('menuitem',{name:'Duplicate'}));
   expect(useStructureDraft.getState().draft).toBeNull();expect(screen.getByRole('alert').textContent).toContain('Select the range again');
-  fireEvent.click(context(patterns()[0]).getByRole('menuitem',{name:'Duplicate'}));expect(useStructureDraft.getState().draft?.expanded).toBeTruthy();
+  expect(lane().clips[0]).toBe(clip);
+  fireEvent.click(screen.getByRole('button',{name:'Cancel'}));
+  fireEvent.click(patterns()[0]);fireEvent.click(context(patterns()[0]).getByRole('menuitem',{name:'Duplicate'}));expect(useStructureDraft.getState().draft?.expanded).toBeTruthy();
 });
