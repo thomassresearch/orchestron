@@ -103,6 +103,67 @@ function routingFixture() {
     menu: (id: string) => {action(`[data-insert-id="${id}"] .rc-insert-name`); return dialog();} };
 }
 
+it.each([
+  ["Add insert", '[data-routing-node="$master"] .rc-add-insert'],
+  ["an existing insert", '[data-insert-id="insert"] .rc-insert-name'],
+  ["an output jack", '[data-routing-node="source"] .rc-socket.out']
+])("dismisses %s on Escape, an outside pointer or focus loss", (_name, selector) => {
+  const graph = wireInsertChain(emptyAudioGraph(), bindings, [source, effect], "source", ["insert"]);
+  useAppStore.setState({ audioGraph: graph });
+  const { container, action } = routingFixture();
+  const trigger = container.querySelector<HTMLElement>(selector)!;
+  const outside = container.querySelector<HTMLButtonElement>('[data-routing-node="insert"] .rc-title')!;
+  action(selector);
+  expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+
+  action(selector);
+  fireEvent.pointerDown(outside);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  action(selector);
+  act(() => outside.focus());
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.activeElement).toBe(outside);
+  expect(useAppStore.getState().audioGraph).toBe(graph);
+});
+
+it("discards unfinished routes when the destination or effect picker is dismissed", async () => {
+  const { container, action, dialog } = routingFixture();
+  const { audioGraph, sequencerInstruments } = useAppStore.getState();
+  const open = () => {
+    action('[data-routing-node="source"] .rc-socket.out');
+    fireEvent.click(dialog().getByText("Send"));
+    expect(container.querySelector(".rc-preview")).toBeTruthy();
+  };
+  const dismissed = () => {
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(container.querySelector(".rc-preview")).toBeNull();
+    expect(useAppStore.getState().audioGraph).toBe(audioGraph);
+    expect(useAppStore.getState().sequencerInstruments).toBe(sequencerInstruments);
+  };
+  open();
+  fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+  dismissed();
+  open();
+  fireEvent.pointerDown(container.querySelector('[data-routing-node="source"]')!);
+  dismissed();
+  open();
+  act(() => container.querySelector<HTMLButtonElement>('.rc-socket[data-compatible]')!.focus());
+  dismissed();
+  open();
+  fireEvent.click(dialog().getByText("New effect from library…"));
+  const search = dialog().getByRole("searchbox");
+  act(() => search.focus());
+  expect(dialog().getByRole("searchbox")).toBe(search);
+  await act(async () => search.blur());
+  dismissed();
+  open();
+  fireEvent.blur(window);
+  dismissed();
+});
+
 it("adds an insert at the clicked cable, reorders and removes individual copies", () => {
   const graph = emptyAudioGraph();
   useAppStore.setState({audioGraph:graph, patches:[source, effect, {...effect,id:"template",name:"Template only",is_template:true}]});
@@ -235,7 +296,7 @@ it("opens the filtered routing diagram from a feedback warning on the preview mi
 });
 
 it("adds the chosen patch after browsing Rack and shows its channel only when it receives MIDI", () => {
-  render(<PerformanceEditorProvider><PerformViewContext.Provider value="mix">
+  const { container } = render(<PerformanceEditorProvider><PerformViewContext.Provider value="mix">
     <MixWorkspace language="english" running={false} onStop={vi.fn()} onAdd={useAppStore.getState().addSequencerInstrument}
       patches={[source, effect]} rack={null} />
   </PerformViewContext.Provider></PerformanceEditorProvider>);
@@ -252,11 +313,10 @@ it("adds the chosen patch after browsing Rack and shows its channel only when it
   expect(added).toMatchObject({ patchId: effect.id, midiChannel: 0 });
   expect(screen.queryByRole("button", { name: "Instrument controls" })).toBeNull();
   fireEvent.click(nav.getByRole("button", { name: "Routing" }));
-  expand("Advanced routing");
-  const sources = screen.getByRole("combobox", { name: "Source" }) as HTMLSelectElement;
-  expect(sources.value).toBe(added.id);
-  expect(sources.selectedOptions[0].text).not.toContain("MIDI");
-  expect(sources.querySelector('option[value="source"]')?.textContent).toContain("MIDI Ch. 1");
+  expect(screen.queryByText("Advanced routing")).toBeNull();
+  expect(screen.queryByText("Routing diagnostics", {selector: "summary"})).toBeNull();
+  expect(container.querySelector(`[data-routing-node="${added.id}"][data-selected] small`)?.textContent).toContain("Continuous");
+  expect(container.querySelector('[data-routing-node="source"] small')?.textContent).toContain("MIDI Ch. 1");
 });
 
 it.each([
@@ -316,14 +376,15 @@ it("projects every destination-matrix channel exactly once, including damaged ro
     { ...graph.routes[graph.routes.length - 1], id: "explicit-left", sourceId: "$master", sourcePort: "$direct.left", targetId: "$output" }
   );
   useAppStore.setState({ audioGraph: graph });
-  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()} /></PerformanceEditorProvider>);
-  expand("Advanced routing");
+  const classic = render(<PerformMixer onStop={vi.fn()}/>);
   const matrix = expand("Destination matrix");
   for (const details of matrix.querySelectorAll("details")) {
     details.open = true;
     fireEvent(details, new Event("toggle"));
   }
   const matrixIds = [...matrix.querySelectorAll<HTMLElement>("[data-matrix-route]")].map(el => el.dataset.matrixRoute).sort();
+  classic.unmount();
+  const { container } = routingFixture();
   const drawn = [...container.querySelectorAll("[data-route-ids]")].flatMap(el => JSON.parse(el.getAttribute("data-route-ids")!)).sort();
   expect(matrixIds).toEqual(graph.routes.map(r => r.id).sort());
   expect(drawn).toEqual(matrixIds);
@@ -340,6 +401,7 @@ it("previews stage feedback, cancels cleanly and preserves send identity and gai
     `[data-routing-node="${node}"] .rc-socket.${side}[data-stage="${stage}"]`)!;
   fireEvent.click(socket("source", "out", "strip"));
   fireEvent.click(within(screen.getByRole("dialog")).getByText("Send"));
+  fireEvent.click(within(screen.getByRole("dialog")).getByText("Choose on graph"));
   fireEvent.focus(socket("insert", "in", "input"));
   expect(container.querySelector('.rc-preview[data-status="error"]')).toBeTruthy();
   expect(container.querySelector('[data-routing-node="source"][data-status="error"]')).toBeTruthy();
@@ -348,6 +410,8 @@ it("previews stage feedback, cancels cleanly and preserves send identity and gai
   expect(useAppStore.getState().audioGraph).toBe(graph);
   fireEvent.click(socket("source", "out", "strip"));
   fireEvent.click(within(screen.getByRole("dialog")).getByText("Send"));
+  fireEvent.pointerDown(socket("$master", "in", "input"));
+  act(() => socket("$master", "in", "input").focus());
   fireEvent.click(socket("$master", "in", "input"));
   const added = useAppStore.getState().audioGraph.routes.filter(r => r.kind === "send");
   expect(added.map(r => r.sourcePort)).toEqual(["left", "right"]);
@@ -402,6 +466,42 @@ it("updates graph port warnings from automatic validation and ignores superseded
   expect(container.querySelectorAll('.rc-socket[data-status="warning"]')).toHaveLength(1);
 });
 
+it("checks routing from the graph, shows global failures and locates a damaged channel", async () => {
+  const graph = emptyAudioGraph();
+  graph.routes.push({ id: "lost-channel", sourceId: "source", sourcePort: "lost", sourceStage: "strip",
+    targetId: "$master", targetPort: "left", targetStage: "input", kind: "custom" });
+  useAppStore.setState({audioGraph: graph});
+  vi.spyOn(api, "validateAudio").mockRejectedValueOnce(new Error("Validation unavailable"))
+    .mockResolvedValue({diagnostics: [{code: "test", severity: "warning", message: "Whole-performance warning"}]});
+  const {container} = routingFixture();
+  const check = screen.getByRole("button", {name: "Check routing"});
+  fireEvent.click(check);
+  const report = within(screen.getByRole("region", {name:"Routing diagnostics"}));
+  expect((await report.findByRole("alert")).textContent).toBe("Validation unavailable");
+  fireEvent.click(check);
+  await report.findByText("Whole-performance warning");
+  fireEvent.click(report.getByRole("button", {name: /lost → left/}));
+  expect(container.querySelector('[data-route-ids=\'["lost-channel"]\']')?.getAttribute("data-selected")).toBe("true");
+  fireEvent.click(report.getByRole("button", {name:"Dismiss"}));
+  expect(screen.queryByRole("region", {name:"Routing diagnostics"})).toBeNull();
+  expect(document.activeElement).toBe(check);
+});
+
+it("offers the existing missing-Master repair in the graph, only while stopped", async () => {
+  const graph = {...emptyAudioGraph(), masterId:"lost-master"};
+  useAppStore.setState({ audioGraph:graph, activeSessionState:"running" });
+  const repair = vi.spyOn(api, "repairPerformanceMaster").mockImplementation(async config =>
+    ({...config, audioGraph:{...graph, masterId:"$master"}}));
+  routingFixture();
+  const button = screen.getByRole("button", {name:"Replace missing Master with internal output"}) as HTMLButtonElement;
+  expect(button.disabled).toBe(true);
+  act(() => useAppStore.setState({activeSessionState:"idle"}));
+  fireEvent.click(button);
+  await waitFor(() => expect(useAppStore.getState().audioGraph.masterId).toBe("$master"));
+  expect(repair).toHaveBeenCalledOnce();
+  expect(screen.queryByText("Replace missing Master with internal output")).toBeNull();
+});
+
 it("repairs a single send channel from the grouped cable and leaves the other channel and parallel send intact", () => {
   const graph = emptyAudioGraph();
   for (const port of ["right", "left"]) for (const pair of [1, 2]) {
@@ -412,14 +512,29 @@ it("repairs a single send channel from the grouped cable and leaves the other ch
   const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()} /></PerformanceEditorProvider>);
   const cables = container.querySelectorAll('[data-cable-kind="send"]');
   expect(cables).toHaveLength(2);
-  fireEvent.click(cables[0]);
+  fireEvent.click(container.querySelector('[data-routing-node="$master"] .rc-title')!);
+  const incoming = screen.getByRole("combobox", {name:"Incoming connections"}) as HTMLSelectElement;
+  expect([...incoming.options].filter(o => o.text.includes("Send"))).toHaveLength(2);
+  fireEvent.change(incoming, {target:{value:"1right"}});
   const inspector = within(container.querySelector(".rc-inspect") as HTMLElement);
+  expect(inspector.getByRole("button", {name:"Remove connection group (4)"})).toBeTruthy();
   fireEvent.change(inspector.getByLabelText("Exact channel mapping"), { target: { value: "1right" } });
   fireEvent.click(inspector.getByText("Reconnect destination"));
   expect((screen.getByLabelText("Individual ports") as HTMLInputElement).checked).toBe(true);
   fireEvent.click(container.querySelector('[data-routing-node="insert"] .rc-socket.in[data-ports=\'["left"]\']')!);
   expect(useAppStore.getState().audioGraph.routes).toEqual(graph.routes.map(r => r.id === "1right" ?
     { ...r, targetId: "insert", targetPort: "left" } : r));
+});
+
+it("removes a destination group of parallel sends in one graph edit and keeps other destinations", () => {
+  const graph = feedbackGraph();
+  const sends = graph.routes.filter(r => r.kind === "send");
+  graph.routes.push(...sends.map(r => ({...r, id:"parallel-" + r.id})));
+  useAppStore.setState({audioGraph:graph});
+  const {action} = routingFixture();
+  action('[data-cable-kind="send"]');
+  fireEvent.click(screen.getByRole("button", {name:"Remove connection group (4)"}));
+  expect(useAppStore.getState().audioGraph.routes).toEqual(graph.routes.filter(r => r.kind !== "send"));
 });
 
 it("connects custom before-insert and strip-return sockets without changing insert ownership", () => {

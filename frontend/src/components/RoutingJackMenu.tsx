@@ -15,7 +15,7 @@ type Subject = { mode: "kind"; socket: Socket } | DestinationMenu
 export type JackMenu = Subject & { target: ArrangerMenuTarget; graph: AudioGraph };
 type Props = {
   menu: JackMenu; nodes: Map<string, RoutingNode>; patches: PatchListItem[]; language: GuiLanguage; running: boolean;
-  exact: boolean; label: (id: string) => string; close: () => void; change: (menu: JackMenu) => void;
+  exact: boolean; label: (id: string) => string; close: () => void; dismiss: (outsidePointer?: EventTarget | null) => void; change: (menu: JackMenu) => void;
   begin: (s: Socket, kind: RouteKind) => void; connect: (s: Socket) => void; addedRoute: (id: string) => void;
   insert: (owner: string, patch: string, index: number) => void; move: (owner: string, chain: string[], from: number, to: number) => void;
   edit: (id: string) => void; error: (message: string) => void;
@@ -55,7 +55,7 @@ function createEffectDestination(
   return incoming[0].id;
 }
 
-export function RoutingJackMenu({ menu, nodes, patches, language, exact, running, label, close, change, begin, connect, addedRoute, insert, move, edit, error }: Props) {
+export function RoutingJackMenu({ menu, nodes, patches, language, exact, running, label, close, dismiss, change, begin, connect, addedRoute, insert, move, edit, error }: Props) {
   const t = audioCopy(language);
   const effects = patches.filter(p => !p.is_template && p.always_on && p.audio_inlet_names.length > 0 &&
     (menu.mode !== "insert" || p.audio_outlet_names.length > 0));
@@ -129,7 +129,7 @@ export function RoutingJackMenu({ menu, nodes, patches, language, exact, running
       </>;
     }
   }
-  return <ArrangerContextMenu target={menu.target} title={title} dialog onClose={close}>
+  return <ArrangerContextMenu target={menu.target} title={title} dialog dismissOnFocusLeave onClose={dismiss}>
     <div className="rc-menu"><strong>{title}</strong>{content}</div>
   </ArrangerContextMenu>;
 }

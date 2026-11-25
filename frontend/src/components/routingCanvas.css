@@ -1,6 +1,10 @@
-.rc-section { margin: 4px 0 12px; }
+.ws-routing-body, .rc-section[open], .routing-canvas { display: flex; flex-direction: column; }
+.ws-routing-body { height: 100%; min-height: 0; }
+.rc-section[open], .routing-canvas { flex: 1; min-height: 0; }
+.rc-section[open]::details-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.ws-routing-body > .ws-mix-notices { flex: none; }
 .rc-section > summary { width: fit-content; margin: 2px 0 8px; color: #d8e3ec; font-size: 13px; font-weight: 600; cursor: pointer; }
-.routing-canvas { overflow: hidden; border: 1px solid #35475b; border-radius: 7px; background: #101d2a; font-size: 12px; }
+.routing-canvas { overflow: auto; border: 1px solid #35475b; border-radius: 7px; background: #101d2a; font-size: 12px; }
 .rc-tools, .rc-status, .rc-inspect, .rc-navigation, .rc-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rc-tools { min-height: 42px; padding: 6px 10px; border-bottom: 1px solid #35475b; }
 .rc-tools button, .rc-inspect button, .rc-status button, .rc-inspect select { border: 1px solid #42566b; border-radius: 4px; padding: 3px 8px; color: #dae6ed; background: #172637; }
@@ -30,7 +34,17 @@
 .rc-menu-item:enabled:hover,.rc-menu-item:focus-visible { background: #324052; }
 .rc-menu-item:disabled { opacity: .5; }
 .rc-menu-search { border: 1px solid #526276; background: #12202d; color: #edf3f6; border-radius: 3px; padding: 5px 7px; }
-.rc-viewport { position: relative; isolation: isolate; width: 100%; height: clamp(250px, 46vh, 580px); overflow: hidden; background-color: #0b1420; background-image: radial-gradient(#2d4052 1px, transparent 1px); background-size: 18px 18px; touch-action: none; cursor: grab; }
+.rc-viewport { position: relative; isolation: isolate; width: 100%; flex: 1 0 96px; overflow: hidden; background-color: #0b1420; background-image: radial-gradient(#2d4052 1px, transparent 1px); background-size: 18px 18px; touch-action: none; cursor: grab; }
+.rc-tools, .rc-status { flex: none; }
+.rc-report, .rc-validation, .rc-inspect { flex: 0 0 auto; max-height: 35%; overflow: auto; }
+.rc-report { border-bottom: 1px solid #42566b; background: #152333; padding: 6px 10px; }
+.rc-report-heading { display: flex; align-items: center; justify-content: space-between; }
+.rc-report-heading button { padding: 3px 6px; }
+.rc-report .rc-issue { display: block; padding: 3px 0; text-align: left; overflow-wrap: anywhere; }
+.rc-report button.rc-issue:hover { text-decoration: underline; }
+.rc-issue-count { margin-left: 6px; color: #f0c173; font-weight: bold; }
+.rc-issue-count[data-status=error] { color: #ff9ba4; }
+.rc-inspect select { max-width: 100%; }
 .rc-viewport:active { cursor: grabbing; }
 .rc-wires { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; }
 .rc-wires g { --wire: #71cbd2; cursor: pointer; }
@@ -73,7 +87,11 @@
 .rc-inspect { border-top: 1px solid #35475b; padding: 8px 10px; }
 .rc-inspect small { color: #b9cedb; }
 .rc-inspect > details { width: 100%; }
-@media (max-width: 600px) { .rc-tools { gap: 5px; } .rc-navigation { margin-left: 0; } .rc-viewport { height: 43dvh; } }
+@media (max-width: 600px) { .rc-tools { gap: 5px; } .rc-navigation { margin-left: 0; } }
+@media (orientation: landscape) and (max-height: 520px) {
+  .rc-tools, .rc-status, .rc-inspect { min-height: 0; padding: 2px 6px; }
+  .rc-viewport { flex-basis: 48px; }
+}
 /* The highlighted cable itself is the keyboard focus indicator. */
 .ws-shell .rc-wires g[tabindex]:focus-visible { outline: none; }
 .rc-send-settings { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }

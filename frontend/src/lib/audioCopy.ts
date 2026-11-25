@@ -1,6 +1,9 @@
 import type { GuiLanguage } from "../types";
 const rows = {
-  advanced: ["Advanced routing", "Erweitertes Routing", "Routage avancé", "Rutas avanzadas"],
+  incoming: ["Incoming connections", "Eingehende Verbindungen", "Connexions entrantes", "Conexiones entrantes"],
+  removeGroup: ["Remove connection group", "Verbindungsgruppe entfernen", "Supprimer le groupe de connexions", "Eliminar el grupo de conexiones"],
+  checkingRouting: ["Checking routing…", "Routing wird geprüft…", "Vérification du routage…", "Comprobando rutas…"],
+  routingClear: ["No routing issues found.", "Keine Routing-Probleme gefunden.", "Aucun problème de routage détecté.", "No se han detectado problemas de rutas."],
   dragInsert: ["Drag to reorder insert", "Insert zum Umsortieren ziehen", "Faire glisser pour déplacer l’insert", "Arrastrar para reordenar la inserción"],
   chooseOnGraph: ["Choose on graph", "Im Graphen wählen", "Choisir sur le graphe", "Elegir en el grafo"],
   findEffect: ["Find effect", "Effekt suchen", "Rechercher un effet", "Buscar efecto"],

@@ -45,7 +45,7 @@ Open **Routing** while listening to inspect destinations, exact channel mappings
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
 2. In **Mix → Rack**, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
 3. Choose **Mixer**. Above each instrument name, a small label shows its rack patch number and MIDI channel, for example **Patch 2 · MIDI Ch. 3**. Continuous instruments and effects show **Patch 4 · Continuous**. Patch numbers match the rack even when insert processors have no separate mixer strip. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
-4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then open **Routing diagnostics → Check routing**.
+4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then click **Check routing** in the graph toolbar.
 5. Click **Start Instruments** and play via a piano roll, sequencer or MIDI input. Change gain, balance, mute/solo and existing send settings while listening. Watch strip meters and the final Audio Output meter.
 6. Use **Save Performance** to retain this mix. Stop the engine before adding/removing routes, replacing assignments or reordering inserts.
 
@@ -77,7 +77,9 @@ An **insert** processes one strip in series after its voices are summed. Stop th
 3. The numbered rows on the owning card show processing order from top to bottom. Drag a row’s grip and release at the highlighted line in the same list. You can also open the row menu and choose **Move earlier** or **Move later**.
 4. Open the row or the processor card’s **⋯** menu for **Bypass**, **Edit patch** or **Remove insert**. Removing an insert reconnects the remaining serial chain and removes its nested inserts. The library patch remains available.
 
-![A purple cable opens the effect picker at the selected position in the Glass Keys insert chain.](../../screenshots/perform-routing-insert-chain.png)
+Press **Escape** to close an insert menu and return to the control that opened it. Clicking elsewhere, tabbing out of the menu or switching windows also dismisses it.
+
+![The effect picker opened from a purple cable in the Glass Keys insert chain, with the search field focused.](../../screenshots/perform-routing-insert-chain.png)
 
 To nest an effect, click **＋ Add insert** on the processor’s own card. Rack patch numbers distinguish copies of the same effect. Bypass is also available during playback.
 
@@ -129,7 +131,7 @@ Meters show stereo peak and RMS. CLIP indicates a peak at or above 0 dBFS; no au
 Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI channel or **Continuous** label, and short ID distinguish copies of the same instrument. Master and the final **Audio Output** have separate cards. Drag a card by its heading to arrange it, then use **Save Performance**. Card positions survive reopening, autosave and native performance export/import. Performances without saved positions open with an automatic layout. Pan and zoom are local viewing controls. **Fit graph** brings the cards into view.
 
 1. With the instruments stopped, click an output jack and choose **Main output**, **Send** or **Custom routing**.
-2. Choose a destination by name or click a highlighted input. **New effect from library…** creates a dedicated return and shows its onward output. Choose Master for a compatible stereo output or connect the output manually. Press **Escape** to cancel. Tab and Enter also work on jacks and menu controls.
+2. Choose a destination by name or click a highlighted input. **New effect from library…** creates a dedicated return and shows its onward output. Choose Master for a compatible stereo output or connect the output manually. Press **Escape** to cancel a pending connection. Clicking away or moving focus out of an open port menu also discards the pending cable. Use **Choose on graph** to close the menu and place the cable with the mouse or keyboard.
 3. Stereo sockets connect both channels in their declared order. Turn on **Individual ports** to wire a single channel, cross left and right, or connect an auxiliary output to a particular inlet. **Custom routing** also exposes the **Before inserts** output and **Insert return** input.
 4. Select a cable to inspect its exact channels and processing stages. **Reconnect source** or **Reconnect destination** moves that end while retaining the send’s settings. **Remove** deletes the selected connection. For a single-channel repair, enable **Individual ports** first and select that channel’s cable.
 
@@ -139,7 +141,9 @@ A dashed cable shows an automatic direct output. A patch with a direct output ca
 
 Use the rows on each strip card to edit its [insert chain](#inserts-versus-shared-returns). Purple cables show the feed from **Before inserts** and the return to the processed strip. A shared return has its own strip and accepts sends from multiple instruments.
 
-Expand **Advanced routing** below the graph for the **Source** and **Destination** pickers and the **Destination matrix**. Expand a matrix row to edit its exact source port, destination or inlet. A missing instance or port stays visible in the graph so you can select and reconnect its cable. Select a processor with an invalid owner to remove that assignment.
+Select a destination card and choose **Incoming connections** to find a cable by its source and channel mapping, even when several cables overlap. In **Exact channel mapping**, choose one channel to reconnect or remove it individually. A missing instance or port stays visible in the graph so you can select and reconnect its cable. Select a processor with an invalid owner to remove that assignment.
+
+When parallel cables share a destination group, **Remove** deletes the selected cable or channel. **Remove connection group** deletes all the connections in that group together. The button shows how many channels it will remove.
 
 **Route through Master** replaces the selected strip's main routes with stereo connections to the designated Master in this performance. Sends and custom routes are retained. Master is a fixed internal stereo output with volume, balance, mute, meters and effect inserts. It is always available, has no editable patch and occupies no library entry or rack slot. Its controls and inserts belong to the performance. **Audio Output** remains available as an editable starter for custom output processors.
 
@@ -149,13 +153,13 @@ Topology changes require stopping the engine. **Stop to edit routing** makes tha
 
 ### Troubleshoot routing and silence
 
-Routing checks run automatically while the routing diagram or diagnostics are open in **Mix → Routing**. A red outline marks an error. Amber marks a warning, such as an unused port or a muted strip. Enable **Individual ports** to see which channel of a stereo pair needs attention. Select a diagnostic to bring its card or cable into view. **Check routing** repeats the backend check on demand. Meters show measured audio activity.
+Routing checks run automatically while the diagram is open in **Mix → Routing**. The number beside **Check routing** counts the reported issues. Click the button to repeat the check and open the full report inside the graph. A red outline marks an error. Amber marks a warning, such as an unused port or a muted strip. Enable **Individual ports** to see which channel of a stereo pair needs attention. Select a diagnostic to bring its card or cable into view. Meters show measured audio activity.
 
 Invalid insert assignments appear in red, including an insert whose processor or owning strip is missing, or which refers to itself. These errors are detected even when all visible connections to the deleted instance have already been removed. Backend validation failures appear directly beside **Check routing**. After an edit, the graph clears the previous check and displays results for the current mix.
 
 Feedback loops appear above the mixer strips as soon as their connections are present. Each path lists instrument and effect names, instance IDs (to distinguish repeated uses of a patch), MIDI channels, exact audio ports and processing stages. **Before inserts** is the instrument's raw output; **Processed strip** is its output after insert returns; **Input** feeds the effect's processing. Ordinary insert chains returning to their owner's strip are valid.
 
-Choose **Show offending connections** to open the routing diagram and enable **Only feedback connections**. Red borders and **Feedback loop** badges identify the affected strips, inserts, sends and route groups. The destination matrix highlights the same connections. Select a cable to inspect its exact channel mapping or remove an individual channel connection. Turn off the filter to inspect surrounding routes. Highlights update immediately after a routing edit, and all connections become visible again once the loop is gone.
+Choose **Show offending connections** to open the routing diagram and enable **Only feedback connections**. Red borders and **Feedback loop** badges identify the affected strips, inserts, sends and route groups. Select a cable to inspect its exact channel mapping or remove an individual channel connection. Turn off the filter to inspect surrounding routes. Highlights update immediately after a routing edit, and all connections become visible again once the loop is gone.
 
 The display shows one closed path for each connected group of feedback loops and highlights every cyclic connection in that group. A group may contain additional overlapping loops. Unrelated incoming routes and downstream output routes are not highlighted. Break every remaining loop, including both stereo channels; muting, bypassing or lowering a send does not remove its processing dependency.
 
@@ -171,7 +175,7 @@ For example, sending a lead's processed strip into its own Reverb insert closes 
 
 | Symptom or diagnostic | What to check |
 | --- | --- |
-| Repair route / Missing reference | Restore the referenced patch or repair the destination and exact port names in Destination matrix. |
+| Repair route / Missing reference | Restore the referenced patch or select the affected cable and reconnect its source or destination to the correct port. |
 | Invalid insert ownership | Repair the insert assignment that refers to a missing instance or to itself. Removing audio connections alone does not repair an invalid insert assignment. |
 | Feedback cycle | Follow the named path and choose **Show offending connections**. Remove or redirect a connection on every affected channel. Playback and CSD export remain blocked until all cycles are resolved. |
 | Connect an audio output / Select an audio source | Follow the source to an output sink; route audio into effects that require inputs. |
@@ -183,14 +187,14 @@ For example, sending a lead's processed strip into its own Reverb insert closes 
 The same routing diagnostics appear in CSD exports. A serial insert feeds back into its owner's strip before reaching Audio Output. A parallel-output warning means the other branch can reach Audio Output through a separate exit, such as a shared effect return or an additional output from an insert processor.
 
 <p align="center">
-  <img src="../../screenshots/perform_routing_diagnostics_silent_path.png" alt="Routing diagnostics identifying a muted Sine Lead path" width="760" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_routing_diagnostics_silent_path.png" alt="The graph report identifies the muted Glass Keys strip" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>A valid route can still be silent: here the Sine Lead strip is muted.</em></p>
+<p align="center"><em>Glass Keys has a valid route to Master. Selecting its mute warning brings the strip into view.</em></p>
 
 <p align="center">
   <img src="../../screenshots/perform_routing_invalid_insert.jpg" alt="Routing diagnostics showing an invalid insert assignment and its failed backend check beside Check routing" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>A diagnostic preview of the damaged Sunlit Strings performance: the missing insert assignment is flagged locally and the backend failure appears in the same section. The saved performance was repaired separately.</em></p>
+<p align="center"><em>Selecting the missing insert in the report reveals its card and the option to remove the invalid assignment.</em></p>
 
 ## Persistence and compatibility
 
@@ -200,7 +204,7 @@ Older performances are upgraded when opened. Older Level controls become audio g
 
 ## Upgrading existing Masters
 
-The current Master is a fixed output strip. Customized older Master instruments remain as processing instruments routed into it. If a legacy Master is missing, stop playback and use **Replace missing Master with internal output**. Check any unresolved channel mappings in the routing matrix, then save the performance.
+The current Master is a fixed output strip. Customized older Master instruments remain as processing instruments routed into it. If a legacy Master is missing, stop playback and use **Replace missing Master with internal output**. Select any flagged cable in the graph to check its channel mapping, then save the performance.
 
 Library migration and recovery procedures are in the [developer reference](../../specifications/manual-reference/audio_mixer_and_routing.md).
 
