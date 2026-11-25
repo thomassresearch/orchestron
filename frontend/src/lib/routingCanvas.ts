@@ -1,3 +1,4 @@
+import { editableInsertChain } from "./insertRouting";
 import { MASTER, masterEndpoint, outputPorts, suggestedInterface } from "./audioRouting";
 import type { AudioGraph, AudioRoute, MixerState, PatchListItem, SequencerInstrumentBinding } from "../types";
 
@@ -11,15 +12,15 @@ export type Socket = {
 };
 export type RoutingNode = Point & {
   id: string; patch?: PatchListItem; binding?: SequencerInstrumentBinding; number: number;
-  inputs: Socket[]; outputs: Socket[]; height: number;
+  inputs: Socket[]; outputs: Socket[]; height: number; inserts: string[]; serial: boolean;
 };
 export type Cable = { key: string; source: Socket; target: Socket; routes: AudioRoute[]; implicit: boolean; lane: number };
 
-export function routingCanvas(bindings: SequencerInstrumentBinding[], patches: PatchListItem[], graph: AudioGraph, sends: MixerState["sends"], exact: boolean, customStages: boolean) {
+export function routingCanvas(bindings: SequencerInstrumentBinding[], patches: PatchListItem[], graph: AudioGraph, sends: MixerState["sends"], exact: boolean, customStages: boolean, layout: Record<string, Point> = {}) {
   const library = new Map(patches.map(p => [p.id, p]));
   const nodes = new Map<string, RoutingNode>();
   function addNode(id: string, patch?: PatchListItem, binding?: SequencerInstrumentBinding, number = 0) {
-    if (!nodes.has(id)) nodes.set(id, { id, patch, binding, number, inputs: [], outputs: [], x: 0, y: 0, height: 0 });
+    if (!nodes.has(id)) nodes.set(id, { id, patch, binding, number, inputs: [], outputs: [], inserts: [], serial: true, x: 0, y: 0, height: 0 });
   }
   bindings.forEach((b, i) => addNode(b.id, library.get(b.patchId), b, i + 1));
   addNode(MASTER, masterEndpoint);
@@ -110,12 +111,27 @@ export function routingCanvas(bindings: SequencerInstrumentBinding[], patches: P
   for (const node of nodes.values()) {
     const column = node.id === OUTPUT ? 3 : node.id === MASTER ? 2 : node.inputs.some(s => s.stage === "input") ? 1 : 0;
     node.height = firstSocketY + 20 + (Math.max(1, node.inputs.length, node.outputs.length) - 1) * rowHeight;
+    if (node.binding || node.id === MASTER) {
+      const chain = editableInsertChain(graph, bindings, patches, node.id);
+      node.serial = chain !== null;
+      node.inserts = chain ?? Object.keys(graph.insertOwners).filter(id => graph.insertOwners[id] === node.id);
+      node.height += 28 + node.inserts.length * 26;
+    }
     columns[column].push(node);
   }
+  const pinned = [...nodes.values()].filter(n => Object.prototype.hasOwnProperty.call(layout, n.id));
+  for (const n of pinned) Object.assign(n, layout[n.id]);
+  pinned.sort((a, b) => a.y - b.y);
   columns.filter(col => col.length).forEach((column, i) => {
     let top = column === columns[1] && columns[0].length ? 170 : 24;
     for (const node of column) {
+      if (Object.prototype.hasOwnProperty.call(layout, node.id)) continue;
       node.x = 24 + i * (cardWidth + 86);
+      for (const obstacle of pinned) {
+        if (Math.abs(obstacle.x - node.x) < cardWidth + 12 && top < obstacle.y + obstacle.height + 12 && top + node.height + 12 > obstacle.y) {
+          top = obstacle.y + obstacle.height + 46;
+        }
+      }
       node.y = top;
       top += node.height + 46;
     }

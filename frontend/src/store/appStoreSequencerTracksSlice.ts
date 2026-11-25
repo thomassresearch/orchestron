@@ -1,3 +1,4 @@
+import { readRoutingLayout } from "../lib/routingLayout";
 import { sampleCopy } from "../lib/sampleCopy";
 import { audioCopy } from "../lib/audioCopy";
 import { validateArrangementEdit } from "../lib/arrangementEditing";
@@ -226,6 +227,7 @@ export function createSequencerTrackStoreActions(
       if (!state.sequencerInstruments.some(binding => binding.id === bindingId)) return;
       const next = removeRackInstrument(state.audioGraph, state.mixer, state.sequencerInstruments, state.patches, bindingId);
       set({
+        routingLayout: readRoutingLayout(state.routingLayout, next.bindings, next.audioGraph),
         audioGraph: next.audioGraph,
         mixer: next.mixer,
         sequencerInstruments: normalizeEffectRoutesForBindings(
@@ -325,7 +327,7 @@ export function createSequencerTrackStoreActions(
 
     buildSequencerConfigSnapshot: () => {
       const state = get();
-      return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory);
+      return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory, state.routingLayout);
     },
 
     applySequencerConfigSnapshot: (snapshot) => {
@@ -347,6 +349,7 @@ export function createSequencerTrackStoreActions(
           arrangerHistoryNotice: parsed.arrangerHistoryNotice,
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
+          routingLayout: parsed.routingLayout,
           audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
           error: null
         });

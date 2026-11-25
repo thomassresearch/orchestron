@@ -21,7 +21,7 @@ These supplied stereo effects can process individual instrument strips or the co
 
 ## Inserts and Sends
 
-An **insert** processes a strip's entire signal. Open **Mix → Routing → Inserts**, choose the strip or Master under **Insert on**, choose a **Continuous effect**, and click **Add insert**. The numbered list shows the order in which effects process the signal. Use the effect's own Mix control for dry/wet balance.
+An **insert** processes a strip's entire signal. Open **Mix → Routing**, click **＋ Add insert** on the strip or Master, and choose a saved continuous effect. The numbered list shows the order in which effects process the signal. Use the effect's own Mix control for dry/wet balance.
 
 An **effect send** adds a parallel path to a separate effect instrument, called a **return**. Several instruments can share it, each with its own send level. See [Audio Mixer and Routing](audio_mixer_and_routing.md) for the routing controls.
 
@@ -29,7 +29,7 @@ An **effect send** adds a parallel path to a separate effect instrument, called 
 
 1. Stop the instruments before changing the rack or routing. In **Perform → Add Instrument**, select the saved effect. It appears as a continuous instrument with its own mixer strip.
 2. Connect the effect's output to **Master**. Keep each source instrument's main output connected to Master as well, so its original signal remains audible.
-3. In **Mixer → Audio routing**, select the instrument under **Source** and the effect under **Destination**. Leave **Stereo** checked, verify the channel mapping, choose **Send** in the Route selector, and click **Add**.
+3. In **Mix → Routing**, click the source’s stereo output jack, choose **Send**, and click the return’s stereo input.
 4. On the source strip, adjust **Send → [effect name]** to control how much signal reaches the effect. New sends start at silence; try **−12 dB** initially. **Post-fader** follows the source's volume and balance; **Pre-fader** is independent of those controls. Repeat for other instruments that should share the effect.
 5. Start the instruments, balance the send levels and the return's fader while listening, then **Save Performance**. Existing send levels remain adjustable during playback.
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { audioCopy } from "../lib/audioCopy";
 import { MASTER, previewAudioFeedback } from "../lib/audioRouting";
@@ -12,25 +12,32 @@ import { Gain } from "./MixerStripControls";
 import { SEQUENCER_UI_COPY } from "./sequencer/sequencerUiCopy";
 import { usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 import { useRoutingViewport } from "./useRoutingViewport";
+import { RoutingInsertList } from "./RoutingInsertList";
+import { RoutingJackMenu, type JackMenu } from "./RoutingJackMenu";
 import "./routingCanvas.css";
 
 type Kind = Exclude<AudioRoute["kind"], "insert">;
 type Props = {
   bindings: SequencerInstrumentBinding[]; patches: PatchListItem[]; graph: AudioGraph; mixer: MixerState; language: GuiLanguage;
-  running: boolean; exact: boolean; setExact: (value: boolean) => void; purpose: Kind; setPurpose: (kind: Kind) => void;
+  running: boolean; exact: boolean; setExact: (value: boolean) => void; setPurpose: (kind: Kind) => void;
   selected: string; select: (id: string) => void; diagnostics: AudioDiagnostic[]; onlyFeedback: boolean;
   validationError: string | null; focus: AudioDiagnostic | null; onRemove: (rs: AudioRoute[]) => void; onError: (message: string | null) => void;
   nodeActions: (id: string) => ReactNode; diagnosticText: (d: AudioDiagnostic) => string;
-  insertPanel: (owner: string, chooseOwner: (id: string) => void) => ReactNode;
+  onInsert: (owner: string, patchId: string, index: number) => void;
+  onMove: (owner: string, chain: string[], from: number, to: number) => void; onEdit: (id: string) => void;
 };
 const kindLabel = (kind: AudioRoute["kind"]) => kind === "insert" ? "inserts" : kind;
 const stageLabel = (s: Socket) => s.stage === "raw" ? "rawStage" : s.stage === "input" ? "inputStage" : s.side === "in" ? "insertReturn" : "stripStage";
 
-export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact, setExact, purpose, setPurpose, running, selected, select,
-  diagnostics, onlyFeedback, validationError, focus, onRemove, onError, nodeActions, diagnosticText, insertPanel }: Props) {
+export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact, setExact, setPurpose, running, selected, select,
+  diagnostics, onlyFeedback, validationError, focus, onRemove, onError, nodeActions, diagnosticText, onInsert, onMove, onEdit }: Props) {
   const sends = mixer.sends;
-  const model = useMemo(() => routingCanvas(bindings, patches, graph, sends, exact, purpose === "custom"), [bindings, patches, graph, sends, exact, purpose]);
-  const [positions, setPositions] = usePerformanceEditorState<Record<string, Point>>("mixer", "routingPositions", {});
+  const [stages, setStages] = usePerformanceEditorState("mixer", "routingStages", false);
+  const layout = useAppStore(s => s.routingLayout);
+  const model = useMemo(() => routingCanvas(bindings, patches, graph, sends, exact, stages, layout), [bindings, patches, graph, sends, exact, stages, layout]);
+  const generation = useAppStore(s => s.performanceWorkspaceGeneration);
+  const [draft, setDraft] = useState<{id: string; point: Point; generation: number} | null>(null);
+  const positions = draft?.generation === generation ? {...layout, [draft.id]:draft.point} : layout;
   const loops = diagnostics.filter(d => d.code === "feedback");
   const loopRoutes = new Set(loops.flatMap(d => d.routeIds ?? []));
   const loopNodes = new Set(loops.flatMap(d => d.instanceIds ?? []));
@@ -42,23 +49,32 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
   useEffect(() => {
     if (filteredIds && viewport.plane) viewport.fit();
   }, [filteredIds, viewport.plane]);
-  const [pending, setGesture] = useState<{ gesture: CableGesture; model: typeof model } | null>(null);
-  const gesture = pending?.model === model && !running ? pending.gesture : null;
+  const [pending, setGesture] = useState<{gesture: CableGesture; graph: AudioGraph; exact: boolean} | null>(null);
+  const gesture = useMemo(() => {
+    if (!pending || pending.graph !== graph || pending.exact !== exact || running) return null;
+    const old = pending.gesture.socket;
+    const n = model.nodes.get(old.node);
+    const socket = (old.side === "out" ? n?.outputs : n?.inputs)?.find(s => s.stage === old.stage && s.ports.length === old.ports.length && s.ports.every((p,i) => p === old.ports[i]));
+    return socket ? {...pending.gesture, socket} : null;
+  }, [pending, graph, exact, running, model]);
   const [hover, setHover] = useState<Socket | null>(null);
   const [selection, choose] = usePerformanceEditorState<string | null>("mixer", "selectedCable", null);
   const [nodeId, showNode] = useState<string | null>(null);
-  const [insertsOpen, setInsertsOpen] = usePerformanceEditorState("mixer", "routingInsertsOpen", false);
-  const [chosenOwner, setChosenOwner] = usePerformanceEditorState<{ selected: string; owner: string } | null>("mixer", "routingInsertOwner", null);
-  const insertPanelId = useId();
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [menu, setMenu] = useState<JackMenu | null>(null);
   const hasStrip = (id: string) => id === MASTER || !!model.nodes.get(id)?.binding;
-  const selectedOwner = graph.insertOwners[selected] ?? selected;
-  const owner = chosenOwner?.selected === selected && hasStrip(chosenOwner.owner) ? chosenOwner.owner : hasStrip(selectedOwner) ? selectedOwner : "";
+  const menuTarget = (anchor: HTMLElement | SVGElement, point?: Point) => {
+    const rect = anchor.getBoundingClientRect();
+    return {anchor, x:point?.x ?? rect.left, y:point?.y ?? rect.bottom};
+  };
   const [channelId, setChannelId] = useState<string | null>(null);
-  const drag = useRef<{ id: string; pointer: number; start: Point; position: Point } | null>(null);
+  const drag = useRef<{ id: string; pointer: number; start: Point; position: Point; generation: number; moved?: Point } | null>(null);
   const wire = useRef<SVGPathElement>(null);
   const t = audioCopy(language);
   const name = (id: string) => id === OUTPUT ? t("audioOutput") : id === MASTER ? t("master") : model.nodes.get(id)?.patch?.name ?? id;
+  const label = (id: string) => {
+    const number = model.nodes.get(id)?.number;
+    return number ? name(id) + " · " + SEQUENCER_UI_COPY[language].patch(number) : name(id);
+  };
   const at = (s: Socket) => socketPoint(model.nodes.get(s.node)!, s, positions[s.node]);
   const selectedCable = model.cables.find(c => c.implicit ? c.key === selection : c.routes.some(r => r.id === selection));
   const inspected = model.nodes.get(nodeId && !model.nodes.get(nodeId)?.binding && nodeId !== MASTER ? nodeId : selected);
@@ -72,7 +88,7 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
     previousSelection.current = selected;
     showNode(null); choose(null); setChannelId(null);
   }, [selected, choose]);
-  useEffect(() => { cancel(); }, [graph, bindings, patches, running, exact, purpose]);
+  useEffect(() => { cancel(); setMenu(null); }, [graph, bindings, patches, running, exact, generation]);
   useEffect(() => {
     const request = exactReconnect.current;
     if (!request) return;
@@ -82,7 +98,7 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
     if (!cable) return;
     const socket = request.mode === "source" ? cable.target : cable.source;
     const routes = cable.routes.filter(r => r.id === request.id);
-    setGesture({ model, gesture: { mode: request.mode, routes, socket } });
+    setGesture({ graph, exact, gesture: { mode: request.mode, routes, socket } });
     choose(request.id);
   }, [exact, running, graph, model, choose]);
   useEffect(() => {
@@ -121,8 +137,8 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
     }
   }
   const broken = new Set(diagnostics.filter(d => d.code === "broken_route").map(d => d.routeId));
-  function start(g: CableGesture) { setGesture({ gesture: g, model }); setHover(null); onError(null); }
-  function activate(s: Socket) {
+  function start(g: CableGesture) { setGesture({ gesture: g, graph, exact }); setHover(null); onError(null); }
+  function activate(s: Socket, anchor?: HTMLButtonElement) {
     if (running || s.missing) return;
     if (gesture && acceptsSocket(gesture, s)) {
       const state = useAppStore.getState();
@@ -131,10 +147,10 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
       const next = withRoutingEdit(graph, changes, gesture.mode !== "add");
       if (next.routes.length > 1024) { onError(t("routeLimit")); cancel(); return; }
       state.setAudioGraph(next, gesture.mode === "add" && gesture.kind === "send" ? changes.map(r => r.id) : []);
-      choose(changes[0].id); setChannelId(null); onError(null); cancel();
-    } else if (s.side === "out" && (purpose === "custom" || s.stage === "strip") && (!gesture || gesture.mode === "add")) {
+      choose(changes[0].id); setChannelId(null); onError(null); setMenu(null); cancel();
+    } else if (anchor && s.side === "out" && (!gesture || gesture.mode === "add")) {
       if (graph.routes.length + s.ports.length > 1024) { onError(t("routeLimit")); cancel(); return; }
-      select(s.node); showNode(s.node); start({ mode: "add", socket: s, kind: purpose });
+      cancel(); select(s.node); showNode(s.node); setMenu({mode:"kind", socket:s, target:{...menuTarget(anchor), align:"end"}, graph});
     }
   }
   function reconnect(c: Cable, mode: "source" | "target") {
@@ -149,14 +165,35 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
     }
     start({ mode, socket: from, routes });
   }
-  function inspect(c: Cable) {
-    choose(c.implicit ? c.key : c.routes[0].id); setChannelId(null); cancel();
+  function inspect(c: Cable, anchor: SVGElement, point?: Point) {
+    choose(c.implicit ? c.key : c.routes[0].id); setChannelId(null); cancel(); setMenu(null);
+    const route = c.routes[0];
+    if (running || c.implicit || route.kind !== "insert") return;
+    const owner = route.sourceStage === "raw" ? route.sourceId : graph.insertOwners[route.sourceId];
+    const node = model.nodes.get(owner);
+    if (!node?.serial) return;
+    const index = route.targetStage === "strip" && route.targetId === owner ? node.inserts.length : node.inserts.indexOf(route.targetId);
+    if (index >= 0) setMenu({mode:"insert", owner, index, graph, target:menuTarget(anchor,point)});
+  }
+  function finishDrag(e: PointerEvent, commit: boolean) {
+    const d = drag.current;
+    if (!d || d.pointer !== e.pointerId) return;
+    drag.current = null; setDraft(null);
+    const state = useAppStore.getState();
+    if (commit && d.moved && d.generation === state.performanceWorkspaceGeneration && model.nodes.has(d.id)) {
+      const routingLayout = Object.fromEntries([...model.nodes].map(([id, node]) => [id, {x:node.x, y:node.y}]));
+      routingLayout[d.id] = d.moved;
+      useAppStore.setState({routingLayout});
+    }
   }
   function move(e: PointerEvent) {
     if (drag.current && e.pointerId === drag.current.pointer) {
       const { id, start, position } = drag.current;
       const k = viewport.view.current!.area.transform.k;
-      setPositions(p => ({ ...p, [id]: { x: position.x + (e.clientX - start.x) / k, y: position.y + (e.clientY - start.y) / k } }));
+      if (e.clientX === start.x && e.clientY === start.y && !drag.current.moved) return;
+      const point = {x:position.x + (e.clientX-start.x)/k, y:position.y + (e.clientY-start.y)/k};
+      drag.current.moved = point;
+      setDraft({id, point, generation:drag.current.generation});
     } else if (gesture && wire.current) {
       const a = at(gesture.socket), b = viewport.point({ x: e.clientX, y: e.clientY });
       wire.current.setAttribute("d", gesture.socket.side === "out" ? cablePath(a, b) : cablePath(b, a));
@@ -174,7 +211,7 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
     return <button key={JSON.stringify([s.stage, s.ports])} type="button" className={'rc-socket ' + s.side} data-stage={s.stage}
       data-ports={JSON.stringify(s.ports)} data-compatible={eligible || undefined} data-status={status} aria-label={full} title={full}
       disabled={running || s.missing} style={{ top: firstSocketY + i * rowHeight }}
-      onClick={() => activate(s)} onPointerEnter={() => { if (gesture && gesture.socket !== s) setHover(s); }} onPointerLeave={() => setHover(null)}
+      onClick={e => activate(s,e.currentTarget)} onPointerEnter={() => { if (gesture && gesture.socket !== s) setHover(s); }} onPointerLeave={() => setHover(null)}
       onFocus={() => { if (gesture) setHover(s); }} onBlur={() => setHover(null)}>{label}</button>;
   }
   const routeKind = selectedCable?.routes[0].kind;
@@ -187,20 +224,14 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
 
   return <section className="routing-canvas">
     <div className="rc-tools">
-      <div className="rc-kinds" role="group" aria-label={t("route")}>{(["main", "send", "custom"] as const).map(kind =>
-        <button key={kind} type="button" data-kind={kind} aria-pressed={purpose === kind} disabled={running} onClick={() => setPurpose(kind)}>{t(kind)}</button>)}</div>
-      <button className="rc-insert-toggle" type="button" aria-expanded={insertsOpen} aria-controls={insertPanelId}
-        onClick={() => { cancel(); setInsertsOpen(!insertsOpen); }}>{t("inserts")}</button>
       <label><input type="checkbox" checked={exact} onChange={e => setExact(e.target.checked)} /> {t("exactPorts")}</label>
+      <label><input type="checkbox" checked={stages} onChange={e => {cancel(); setStages(e.target.checked);}}/> {t("stages")}</label>
       <div className="rc-navigation"><button type="button" aria-label={t("zoomOut")} onClick={() => viewport.zoom(.8)}>−</button>
         <button type="button" aria-label={t("zoomIn")} onClick={() => viewport.zoom(1.25)}>+</button>
         <button type="button" onClick={() => viewport.fit()}>{t("fit")}</button></div>
     </div>
-    <div id={insertPanelId} ref={panelRef} hidden={!insertsOpen}>
-      {insertsOpen && insertPanel(owner, id => setChosenOwner({ selected, owner: id }))}
-    </div>
     <div className="rc-viewport" ref={viewport.host} aria-label={t("diagram")} onPointerMove={move}
-      onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; cancel(); }}>
+      onPointerUp={e => finishDrag(e,true)} onPointerCancel={e => {finishDrag(e,false); cancel();}}>
       {viewport.plane && createPortal(<>
         <svg className="rc-wires" aria-label={t("routing")}>{model.cables.map(c => {
           const kind = c.routes[0].kind, ids = c.routes.map(r => r.id), cyclic = ids.filter(id => loopRoutes.has(id));
@@ -212,7 +243,7 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
           return <g key={c.key} data-cable-kind={kind} data-implicit={c.implicit || undefined} data-route-ids={JSON.stringify(c.implicit ? [] : ids)}
             data-feedback-routes={cyclic.length ? cyclic.join(" ") : undefined} data-status={cyclic.length || ids.some(id => broken.has(id) || previewRoutes.has(id)) ? "error" : undefined}
             data-selected={selectedCable === c || undefined} role="button" tabIndex={0} aria-label={label} onPointerDown={e => e.stopPropagation()}
-            onClick={() => inspect(c)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inspect(c); } }}>
+            onClick={e => inspect(c, e.currentTarget, e.detail ? {x:e.clientX,y:e.clientY} : undefined)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inspect(c,e.currentTarget); } }}>
             <title>{label}</title><path className="rc-hit" d={d}/><path className="rc-line" d={d}/>
           </g>;
         })}{gesture && <path className="rc-preview" ref={wire} data-status={preview.length || (hover && !acceptsSocket(gesture, hover)) ? "error" : undefined}
@@ -226,12 +257,12 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
             style={{ left: p.x, top: p.y, width: cardWidth, height: n.height }} onPointerDown={e => e.stopPropagation()}>
             <button type="button" className="rc-title" title={[name(n.id), n.id, owner && t("inserts") + " · " + name(owner), ...messages.map(diagnosticText)].filter(Boolean).join("\n")}
               onClick={() => {
-                if (hasStrip(n.id)) { select(n.id); setChosenOwner(null); }
+                if (hasStrip(n.id)) select(n.id);
                 showNode(n.id); choose(null); cancel();
               }}
               onPointerDown={e => {
                 if (e.button !== 0) return;
-                drag.current = { id: n.id, pointer: e.pointerId, start: { x: e.clientX, y: e.clientY }, position: p };
+                drag.current = { id: n.id, pointer: e.pointerId, start: { x: e.clientX, y: e.clientY }, position: p, generation };
                 e.currentTarget.setPointerCapture?.(e.pointerId);
               }}>
               <small>{n.number ? SEQUENCER_UI_COPY[language].patch(n.number) + " · " + (n.patch?.always_on ? t("continuous") : t("midiChannelShort") + " " + n.binding?.midiChannel) :
@@ -240,7 +271,12 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
               <span>{owner ? t("inserts") + " · " + name(owner) : n.binding ? n.id.slice(0, 8) : n.id}</span>
               {status && <b aria-label={t("diagnostics")}>!</b>}
             </button>
+            {owner && n.binding && <button className="rc-fx-menu" aria-label={t("manageInserts")+" · "+label(n.id)} aria-haspopup="dialog"
+              onClick={e => {cancel(); setMenu({mode:"processor", id:n.id, graph, target:menuTarget(e.currentTarget)});}}>⋯</button>}
             {n.inputs.map(socket)}{n.outputs.map(socket)}
+            {hasStrip(n.id) && <RoutingInsertList node={n} graph={graph} language={language} running={running} label={label} move={onMove}
+              add={el => {cancel(); setMenu({mode:"insert", owner:n.id, index:n.inserts.length, graph, target:menuTarget(el)});}}
+              inspect={(el,id) => {cancel(); setMenu({mode:"processor",id,graph,target:menuTarget(el)});}}/>}
           </article>;
         })}
       </>, viewport.plane)}
@@ -262,10 +298,10 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
         <select aria-label={t("send")} value={control?.tap ?? "post"} onChange={e => { updateSend({ tap: e.target.value as "pre" | "post" }); flush(); }}>
           <option value="pre">{t("pre")}</option><option value="post">{t("post")}</option></select></div>}
     </div> : inspected && <div className="rc-inspect"><strong>{name(inspected.id)}</strong>{nodeActions(inspected.id)}
-      {hasStrip(inspected.id) && <button onClick={() => {
-        setChosenOwner({ selected, owner: graph.insertOwners[inspected.id] ?? inspected.id }); setInsertsOpen(true); cancel();
-        requestAnimationFrame(() => panelRef.current?.querySelector("select")?.focus());
-      }}>{t("manageInserts")}</button>}
       {(faults.get(inspected.id) ?? []).map((d, i) => <small key={i} className="rc-issue" data-status={d.severity}>{diagnosticText(d)}</small>)}</div>}
+    {menu && menu.graph === graph && (!running || menu.mode === "processor") && <RoutingJackMenu menu={menu} nodes={model.nodes}
+      {...{patches, language, exact, running, label}} close={() => setMenu(null)} change={setMenu} connect={s => activate(s)} insert={onInsert} move={onMove} edit={onEdit} error={onError}
+      begin={(s, kind) => {setPurpose(kind); if (kind === "custom") setStages(true); start({mode:"add",socket:s,kind});}}
+      addedRoute={id => {choose(id); setChannelId(null); onError(null); cancel(); setMenu(null);}}/>}
   </section>;
 }

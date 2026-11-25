@@ -92,6 +92,7 @@ export interface AudioRoute {
   id: string; sourceId: string; sourcePort: string; targetId: string; targetPort: string;
   kind: "main" | "send" | "insert" | "custom"; sourceStage: "raw" | "strip"; targetStage: "input" | "strip";
 }
+export type RoutingLayout = Record<string, { x: number; y: number }>;
 export interface AudioGraph { routes: AudioRoute[]; masterId: string | null; insertOwners: Record<string, string>; }
 export interface MixerStrip { gainDb: number | null; balance: number; mute: boolean; solo: boolean; bypass?: boolean; }
 export interface MixerSend { gainDb: number | null; tap: "pre" | "post"; }
@@ -623,6 +624,7 @@ export interface SequencerInstrumentBinding {
 
 export interface SequencerConfigSnapshot {
   sampleAssets?: SampleAssets;
+  routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
   version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27;
   audioGraph?: AudioGraph;
@@ -795,6 +797,7 @@ export interface BrowserClockLatencySettings {
 
 export interface PersistedAppState {
   sampleAssets?: SampleAssets;
+  routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
   version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   audioGraph?: AudioGraph;

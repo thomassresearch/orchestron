@@ -17,6 +17,7 @@ import { addBranchNode, branchOpcodeAllowed } from "../lib/branchTransfer";
 import { controlFlowCopy } from "../lib/controlFlowCopy";
 import { stereoOpcodeDirection } from "../lib/stereoCatalog";
 import { createPerformanceControllerActions } from "./appStorePerformanceControllers";
+import { readRoutingLayout } from "../lib/routingLayout";
 import { createMixerActions, initialMixerState } from "./appStoreMixer";
 import { hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest } from "../lib/samplePlayer";
 import { sampleCopy } from "../lib/sampleCopy";
@@ -151,7 +152,7 @@ export const useAppStore = create<AppStore>((set, get) => {
   };
 
   return {
-    ...initialMixerState(),
+    ...initialMixerState(), routingLayout: {},
     ...createArrangerHistoryActions(set, get),
     ...createMixerActions(set, get),
     ...createPerformanceControllerActions(set, get),
@@ -338,6 +339,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let parallelRenderBatchFrames = PARALLEL_BATCH_FRAMES_DEFAULT;
 
           const preferredMidi = normalizeMidiInputSelection(get().activeMidiInput, midiInputs);
+          let routingLayout: AppStore["routingLayout"] = {};
           let audioGraph = emptyAudioGraph();
           let mixer = emptyMixer();
           let migrationNotice = false;
@@ -380,6 +382,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
               ({ audioGraph, mixer, migrationNotice } = migrateAudio(sequencerInstruments, patches, (payload.version ?? 1) >= 2 ? payload.audioGraph : undefined, payload.mixer));
 
+              routingLayout = readRoutingLayout(payload.routingLayout, sequencerInstruments, audioGraph);
               currentPerformanceId =
                 typeof payload.currentPerformanceId === "string" &&
                 performances.some((performance) => performance.id === payload.currentPerformanceId)
@@ -431,6 +434,7 @@ export const useAppStore = create<AppStore>((set, get) => {
               }
             })),
             activeInstrumentTabId,
+            ...(Object.keys(routingLayout).length ? { routingLayout } : {}),
             sequencer: sequencerSnapshotForPersistence(sequencer),
             arrangerHistory: restoredHistory.arrangerHistory,
             sequencerInstruments: cleanBindings(sequencerInstruments),
@@ -449,7 +453,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             parallelRenderBatchFrames,
             instrumentTabs,
             activeInstrumentTabId,
-            sequencer,
+            sequencer, routingLayout,
             arrangerHistory: restoredHistory.arrangerHistory,
             sequencerInstruments,
             audioGraph, mixer,
@@ -473,6 +477,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activeInstrumentTabId,
             currentPatch,
             sequencer,
+            routingLayout,
             ...restoredHistory,
             sequencerRuntime,
             sequencerInstruments,
@@ -559,6 +564,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           arrangerHistoryNotice: parsed.arrangerHistoryNotice,
           sequencerRuntime: sequencerRuntimeStateFromSequencer(parsed.sequencer),
           sequencerInstruments: parsed.instruments,
+          routingLayout: parsed.routingLayout,
           audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
           performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
           sequencerEditingPads: {},
@@ -644,7 +650,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         arrangerHistoryNotice: false,
         sequencerRuntime: sequencerRuntimeStateFromSequencer(nextSequencer),
         sequencerInstruments: [],
-        ...initialMixerState(),
+        ...initialMixerState(), routingLayout: {},
         savedPerformanceSequencer: null,
         currentPerformanceId: null,
         performanceName: "new performance",
@@ -774,7 +780,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       set({ loading: true, error: null });
       try {
-        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory);
+        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory, state.routingLayout);
         const selectedPatchIds = [
           ...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0))
         ];

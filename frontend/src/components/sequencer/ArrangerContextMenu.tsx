@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-export type ArrangerMenuTarget = { x: number; y: number; anchor: HTMLElement };
+export type ArrangerMenuTarget = { x: number; y: number; anchor: HTMLElement | SVGElement; align?: "end" };
 
 export function ArrangerContextMenu({ target, title, dialog = false, onClose, children }: {
   target: ArrangerMenuTarget; title: string; dialog?: boolean; onClose: () => void; children: ReactNode;
@@ -14,9 +14,9 @@ export function ArrangerContextMenu({ target, title, dialog = false, onClose, ch
     const node = ref.current;
     if (!node) return;
     const bounds = node.getBoundingClientRect();
-    setPosition({ x: Math.max(8, Math.min(target.x, window.innerWidth - bounds.width - 8)), y: Math.max(8, Math.min(target.y, window.innerHeight - bounds.height - 8)) });
+    setPosition({ x: Math.max(8, Math.min(target.align === "end" ? target.x - bounds.width : target.x, window.innerWidth - bounds.width - 8)), y: Math.max(8, Math.min(target.y, window.innerHeight - bounds.height - 8)) });
     node.querySelector<HTMLElement>("button:not(:disabled), select, input")?.focus();
-  }, [target, dialog]);
+  }, [target, dialog, title]);
   useEffect(() => {
     const dismiss = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) close.current(); };
     const blur = () => close.current();

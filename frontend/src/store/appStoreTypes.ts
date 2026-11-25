@@ -54,6 +54,7 @@ export interface AppStore {
   clipEditingKey: string | null;
   padAudition: import("../lib/markovPattern").PadAudition | null;
   clipAuditionDraft: import("../lib/clipArranger/model").DefinitionDraft | null;
+  routingLayout: import("../types").RoutingLayout;
   arrangerHistory: import("./arrangerHistory").ArrangerHistory;
   arrangerHistoryNotice: boolean;
   arrangerHistoryRestoreRevision: number;

@@ -16,7 +16,8 @@ import { instrumentMetadata } from "../lib/instrumentTypes";
 import { normalizeControllerValues, normalizeControllerMidiCCs, performanceControllerDefaults, reconcileControllerValues } from "../lib/performanceControllers";
 import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
-import type { AudioGraph, MixerState } from "../types";
+import { readRoutingLayout } from "../lib/routingLayout";
+import type { AudioGraph, MixerState, RoutingLayout } from "../types";
 import { hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest, wireSampleMap, sampleMapSignature } from "../lib/samplePlayer";
 import { emptyAudioGraph, emptyMixer, cleanBindings, migrateAudio } from "../lib/audioRouting";
 import { api } from "../api/client";
@@ -260,6 +261,7 @@ export const BUILTIN_ARPEGGIATOR_PRESETS: ArpeggiatorPresetState[] = [
 ];
 
 export type PersistWatchState = {
+  routingLayout: RoutingLayout;
   arrangerHistory: ArrangerHistory;
   activePage: AppPage;
   guiLanguage: GuiLanguage;
@@ -2447,6 +2449,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
   return {
     ...(hasSampleMaps(state.sequencerInstruments) ? { sampleAssets: sampleManifest(state.sequencerInstruments) } : {}),
     version: hasSampleMaps(state.sequencerInstruments) ? 9 : state.sequencer.clipArrangement?.version === 4 ? 8 : state.sequencer.clipArrangement?.version === 3 ? 7 : state.sequencer.clipArrangement?.version === 2 ? 6 : state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+    ...(Object.keys(state.routingLayout).length ? { routingLayout: readRoutingLayout(state.routingLayout, state.sequencerInstruments, state.audioGraph) } : {}),
     arrangerHistory: structuredClone(state.arrangerHistory),
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
@@ -2481,6 +2484,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
 
 export function capturePersistWatchState(state: AppStore): PersistWatchState {
   return {
+    routingLayout: state.routingLayout,
     arrangerHistory: state.arrangerHistory,
     activePage: state.activePage,
     guiLanguage: state.guiLanguage,
@@ -2504,6 +2508,7 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
     return true;
   }
   return (
+    current.routingLayout !== previous.routingLayout ||
     current.arrangerHistory !== previous.arrangerHistory ||
     current.activePage !== previous.activePage ||
     current.guiLanguage !== previous.guiLanguage ||
@@ -2956,7 +2961,8 @@ export function buildSequencerConfigSnapshot(
   instruments: SequencerInstrumentBinding[],
   audioGraph: AudioGraph = emptyAudioGraph(),
   mixer: MixerState = emptyMixer(),
-  arrangerHistory: ArrangerHistory = emptyArrangerHistory()
+  arrangerHistory: ArrangerHistory = emptyArrangerHistory(),
+  routingLayout: RoutingLayout = {}
 ): SequencerConfigSnapshot {
   const clipLanes = new Set(sequencer.clipArrangement?.lanes.map(lane => lane.id));
   const timing = normalizeSequencerTiming(sequencer.timing);
@@ -2968,6 +2974,7 @@ export function buildSequencerConfigSnapshot(
   return {
     ...(hasSampleMaps(instruments) ? { sampleAssets: sampleManifest(instruments) } : {}),
     version: hasSampleMaps(instruments) ? 27 : sequencer.clipArrangement?.version === 4 ? 26 : sequencer.clipArrangement?.version === 3 ? 25 : sequencer.clipArrangement?.version === 2 ? 24 : sequencer.clipArrangement ? 23 : 22,
+    ...(Object.keys(routingLayout).length ? { routingLayout: readRoutingLayout(routingLayout, instruments, audioGraph) } : {}),
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
     mixer: structuredClone(mixer),
@@ -3171,7 +3178,7 @@ export function parseSequencerConfigSnapshot(
   snapshot: unknown,
   availablePatches: PatchListItem[],
   fallbackPatchId: string | null
-): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[]; audioGraph: AudioGraph; mixer: MixerState; migrationNotice: boolean; arrangerHistory: ArrangerHistory; arrangerHistoryNotice: boolean } {
+): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[]; audioGraph: AudioGraph; mixer: MixerState; migrationNotice: boolean; routingLayout: RoutingLayout; arrangerHistory: ArrangerHistory; arrangerHistoryNotice: boolean } {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
     throw new Error("Invalid sequencer config file.");
   }
@@ -3260,11 +3267,13 @@ export function parseSequencerConfigSnapshot(
     throw new Error("No valid instrument assignments found in config.");
   }
 
+  const audio = migrateAudio(instruments, availablePatches, Number(payload.version) >= 11 ? payload.audioGraph as AudioGraph : undefined, payload.mixer as MixerState | undefined);
   return {
     ...readArrangerHistory(payload.arrangerHistory, sequencer),
+    routingLayout: readRoutingLayout(payload.routingLayout, instruments, audio.audioGraph),
     sequencer,
     instruments: sequencerInstrumentsForPerformablePatches(instruments, availablePatches),
-    ...migrateAudio(instruments, availablePatches, Number(payload.version) >= 11 ? payload.audioGraph as AudioGraph : undefined, payload.mixer as MixerState | undefined)
+    ...audio
   };
 }
 

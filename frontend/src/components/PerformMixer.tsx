@@ -167,14 +167,16 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
   };
   const effects = patches.filter(p => !p.is_template && p.always_on && p.audio_inlet_names.length && p.audio_outlet_names.length);
   const chainFor = (owner: string) => editableInsertChain(graph, bindings, patches, owner);
-  const insert = (owner: string) => {
+  const insert = (owner: string, patchId = processor, index?: number) => {
     const chain = chainFor(owner);
-    if (running || !byId.get(owner) || !effects.some(p => p.id === processor) || !chain) return;
+    if (running || !byId.get(owner) || !effects.some(p => p.id === patchId) || !chain) return;
     if (bindings.length >= 64) { setError(t("instanceLimit")); return; }
     try {
       const id = crypto.randomUUID();
-      const next = [...bindings, { id, patchId: processor, midiChannel: 0, level: 10, effectRoutes: [], effectSourceIds: [] }];
-      const audioGraph = wireInsertChain(graph, next, patches, owner, [...chain, id]);
+      const next = [...bindings, { id, patchId, midiChannel: 0, level: 10, effectRoutes: [], effectSourceIds: [] }];
+      const order = [...chain];
+      order.splice(index ?? order.length, 0, id);
+      const audioGraph = wireInsertChain(graph, next, patches, owner, order);
       if (audioGraph.routes.length > 1024) { setError(t("routeLimit")); return; }
       useAppStore.setState({ sequencerInstruments: next, audioGraph });
       setError(null);
@@ -183,7 +185,7 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
   const moveInsert = (owner: string, chain: string[], from: number, to: number) => {
     if (running || to < 0 || to >= chain.length) return;
     const next = [...chain];
-    [next[from], next[to]] = [next[to], next[from]];
+    next.splice(to, 0, ...next.splice(from, 1));
     try {
       applyGraph(wireInsertChain(graph, bindings, patches, owner, next));
       setError(null);
@@ -282,34 +284,6 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
       <button className={button} disabled={running || !owner || !effect || !chain || !!mismatch} onClick={() => insert(owner)}>{t("addInsert")}</button>
       {!effects.length ? <p className="rc-insert-note">{t("noEffects")}</p> : mismatch && chain ? <p className="rc-insert-note">{t("insertChannels")}</p> : null}</>;
   };
-  const insertPanel = (owner: string, chooseOwner: (id: string) => void) => {
-    const chain = chainFor(owner);
-    const children = chain ?? Object.keys(graph.insertOwners).filter(id => graph.insertOwners[id] === owner);
-    const rackLabel = (id: string) => {
-      const index = bindings.findIndex(b => b.id === id);
-      return index < 0 ? name(id) : name(id) + " · " + SEQUENCER_UI_COPY[language].patch(index + 1);
-    };
-    return <section className="rc-inserts" aria-label={t("inserts")}>
-      <div className="rc-insert-fields">
-        <label>{t("insertOn")}<select className={field} value={owner} onChange={e => chooseOwner(e.target.value)}>
-          <option value="" disabled>{t("chooseStrip")}</option>
-          {endpoints.map(({id}) => <option key={id} value={id}>{rackLabel(id)}</option>)}</select></label>
-        {insertControls(owner, chain)}
-      </div>
-      {owner && <>{!chain && <p className="rc-insert-note">{t("customChain")}</p>}
-        {children.length ? <><h3>{t(chain ? "processOrder" : "inserts")}</h3>
-          <ul>{children.map((id, index) => <li key={id} data-insert-id={id}>
-            {chain && <span className="rc-position">{index + 1}</span>}
-            <button className="rc-effect-name" title={t("edit")} onClick={() => open(id)}>{rackLabel(id)}</button>
-            {byId.get(id)?.always_on && <InsertBypass id={id} name={name(id)} patch={byId.get(id)} language={language}/>}
-            <div className="rc-insert-actions">
-              <button disabled={running || !chain || !index} onClick={() => chain && moveInsert(owner, chain, index, index - 1)}>{t("earlier")}</button>
-              <button disabled={running || !chain || index === children.length - 1} onClick={() => chain && moveInsert(owner, chain, index, index + 1)}>{t("later")}</button>
-              <button disabled={running} onClick={() => useAppStore.getState().removeSequencerInstrument(id)}>{t("removeInsert")}</button>
-            </div>
-          </li>)}</ul></> : <p className="rc-insert-note">{t("noInserts")}</p>}</>}
-    </section>;
-  };
   const routes = () => <>{missingMaster && <button className={button} disabled={running} onClick={() => void repairMaster()}>{t("repairMaster")}</button>}<div className="my-2 flex flex-wrap items-end gap-2">
     <label className="flex min-w-0 max-w-full flex-col text-xs">{t("source")}<select className={field} value={selected} disabled={running} onChange={(e) => { select(e.target.value); setSourcePort(""); }}><option value="">—</option>{endpoints.map((b) => <option key={b.id} value={b.id}>{routingName(b.id)}</option>)}</select></label>
     <label className="flex min-w-0 max-w-full flex-col text-xs">{t("destination")}<select className={field} value={target} disabled={running} onChange={(e) => { setTarget(e.target.value); setTargetPort(""); }}><option value="">—</option><option value="$output">{t("audioOutput")}</option>{endpoints.filter((b) => b.id !== selected && byId.get(b.id)?.audio_inlet_names.length).map((b) => <option key={b.id} value={b.id}>{routingName(b.id)}</option>)}</select></label>
@@ -323,7 +297,7 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
     {warnings}{running && <button className={button} onClick={onStop}>{t("stop")}</button>}
     <EditorDetails owner="mixer" field="diagram" initiallyOpen className="rc-section" summary={t("diagram")}>{() => <div ref={diagramRef}>
       {feedback.length > 0 && <label className="my-2 block text-xs"><input type="checkbox" checked={onlyFeedback} onChange={e => setOnlyFeedback(e.target.checked)} /> {t("onlyFeedback")}</label>}
-      <RoutingCanvas {...{ bindings, patches, graph, mixer, language, running, purpose, setPurpose, selected, select, onlyFeedback, insertPanel }}
+      <RoutingCanvas {...{ bindings, patches, graph, mixer, language, running, setPurpose, selected, select, onlyFeedback }} onInsert={insert} onMove={moveInsert} onEdit={open}
         exact={!stereo} setExact={v => setStereo(!v)} focus={diagnosticFocus} validationError={currentValidation?.error ?? null} onRemove={removeRoutes} onError={setError}
         diagnostics={[...localDiagnostics.filter(d => d.code !== "feedback"), ...diagnostics.filter(d => d.code !== "feedback"), ...feedback,
           ...Object.entries(mixer.strips).filter(([, strip]) => strip.mute || strip.gainDb === null).map(([id]) => ({ code: "silent", severity: "warning" as const, instanceId: id, message: t("silent") }))]}
@@ -337,7 +311,7 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
           }}>{t("detachOwner")}</button>}
         </>} />
     </div>}</EditorDetails>
-    {routes()}{diagnosticsPanel}
+    <EditorDetails owner="mixer" field="advancedRouting" summary={t("advanced")}>{routes}</EditorDetails>{diagnosticsPanel}
   </div>;
   if (surface === "mixer") return <div className="ws-console">
     <div className="ws-mix-notices">{warnings}</div>

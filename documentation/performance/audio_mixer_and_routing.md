@@ -70,16 +70,16 @@ Additional output groups retain their own port names and mappings. They share th
 
 ### Inserts versus shared returns
 
-An **insert** processes one strip in series after its voices are summed. Stop the instruments, then open **Mix → Routing → Inserts** above the graph.
+An **insert** processes one strip in series after its voices are summed. Stop the instruments and open **Mix → Routing**.
 
-1. Under **Insert on**, choose the instrument, return or **Master** you want to process.
-2. Under **Continuous effect**, choose a saved continuous instrument with named audio inputs and outputs. Click **Add insert**. Repeat to append another effect. Each click creates a separate instance, even when you choose the same patch twice.
-3. Read **Processing order** from top to bottom. Use **Move earlier** or **Move later** on a row to change when that effect processes the signal. The purple cables update to show the new order.
-4. Choose **Remove insert** on a row to remove that instance and reconnect the remaining serial chain. Removing a processor also removes any inserts nested inside it. Its saved library patch remains available.
+1. Click **＋ Add insert** on an instrument, return or Master card. Choose a saved continuous effect with matching audio inputs and outputs. Repeat to append another instance.
+2. To insert at a particular position, click the purple cable between two stages and choose an effect. The menu names both ends. Clicking the first cable inserts before the first processor. Clicking the return cable appends after the last one.
+3. The numbered rows on the owning card show processing order from top to bottom. Drag a row’s grip and release at the highlighted line in the same list. You can also open the row menu and choose **Move earlier** or **Move later**.
+4. Open the row or the processor card’s **⋯** menu for **Bypass**, **Edit patch** or **Remove insert**. Removing an insert reconnects the remaining serial chain and removes its nested inserts. The library patch remains available.
 
-![The Inserts panel on Glass Keys shows Keys Insert followed by Stereo Delay, with controls to bypass, move or remove each effect.](../../screenshots/perform-routing-insert-chain.png)
+![A purple cable opens the effect picker at the selected position in the Glass Keys insert chain.](../../screenshots/perform-routing-insert-chain.png)
 
-Click an insert card’s title and choose **Manage inserts** to open its owning strip’s chain. To nest an effect inside that processor, choose the processor itself under **Insert on**. The rack patch number distinguishes repeated instances. Click a processor’s name in the list to open its patch in Instrument Design.
+To nest an effect, click **＋ Add insert** on the processor’s own card. Rack patch numbers distinguish copies of the same effect. Bypass is also available during playback.
 
 For a custom-wired chain, edit individual connections in the graph. Removing an insert from a custom chain preserves connections between the surviving instances. Removing an entire instrument from the rack also removes its dedicated inserts, their connections and their mixer settings.
 
@@ -105,8 +105,8 @@ Both **CSD (MIDI)** and **CSD (SCORE)** omit bypassed effect synthesis, initiali
 ### Add a stereo send
 
 1. Stop the engine. Add the saved effect as a rack instance and use its **Route through Master** button to connect its main output.
-2. Open **Mix → Routing**, choose **Send** above the graph and leave **Individual ports** off.
-3. Click the instrument’s stereo output socket, then the return’s stereo input socket. Select the new cable to inspect the exact mapping and set its gain.
+2. Open **Mix → Routing** and leave **Individual ports** off. Click the instrument’s stereo output socket and choose **Send**.
+3. Choose the return by name or click its highlighted input jack. **Choose on graph** dismisses the list while you place the cable. The new cable shows its channel mapping and gain.
 4. On the source strip, find **Send → [return name]**. New sends start at silence; enter a value such as -12 dB to hear the return.
 5. Choose **Post-fader** when the send should follow the source's fader/balance, or **Pre-fader** for an independent send amount. The source's Mute still silences either kind of send.
 
@@ -126,10 +126,10 @@ Meters show stereo peak and RMS. CLIP indicates a peak at or above 0 dBFS; no au
 
 ## Routing and repair
 
-Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI channel or **Continuous** label, and short ID distinguish copies of the same instrument. Master and the final **Audio Output** have separate cards. Drag a card by its heading to move it, drag the background to pan, or use the zoom buttons and **Fit graph**. Card positions and zoom belong to the current editing session.
+Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI channel or **Continuous** label, and short ID distinguish copies of the same instrument. Master and the final **Audio Output** have separate cards. Drag a card by its heading to arrange it, then use **Save Performance**. Card positions survive reopening, autosave and native performance export/import. Performances without saved positions open with an automatic layout. Pan and zoom are local viewing controls. **Fit graph** brings the cards into view.
 
-1. With the instruments stopped, choose **Main output**, **Send** or **Custom routing** above the graph.
-2. Click a socket on the right of the source. Move to a highlighted socket on the left of the destination to preview the mapping. Click to place the cable, or press **Escape** to cancel. You can also use Tab and Enter to select sockets.
+1. With the instruments stopped, click an output jack and choose **Main output**, **Send** or **Custom routing**.
+2. Choose a destination by name or click a highlighted input. **New effect from library…** creates a dedicated return and shows its onward output. Choose Master for a compatible stereo output or connect the output manually. Press **Escape** to cancel. Tab and Enter also work on jacks and menu controls.
 3. Stereo sockets connect both channels in their declared order. Turn on **Individual ports** to wire a single channel, cross left and right, or connect an auxiliary output to a particular inlet. **Custom routing** also exposes the **Before inserts** output and **Insert return** input.
 4. Select a cable to inspect its exact channels and processing stages. **Reconnect source** or **Reconnect destination** moves that end while retaining the send’s settings. **Remove** deletes the selected connection. For a single-channel repair, enable **Individual ports** first and select that channel’s cable.
 
@@ -137,9 +137,9 @@ Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI 
 
 A dashed cable shows an automatic direct output. A patch with a direct output can reach the speakers independently on each channel. An explicit main route redirects that channel. Sends and custom routes can run alongside the main route. Select a send to adjust its gain or pre/post tap while listening.
 
-Open **Inserts** above the graph to edit a strip’s [insert chain](#inserts-versus-shared-returns). Purple cables show the feed from **Before inserts** and the return to the processed strip. A shared return has its own strip and accepts sends from multiple instruments.
+Use the rows on each strip card to edit its [insert chain](#inserts-versus-shared-returns). Purple cables show the feed from **Before inserts** and the return to the processed strip. A shared return has its own strip and accepts sends from multiple instruments.
 
-The **Source** and **Destination** pickers and **Destination matrix** remain available below the graph. Expand a matrix row to edit its exact source port, destination or inlet. A missing instance or port stays visible in the graph so you can select and reconnect its cable. Select a processor with an invalid owner to remove that assignment.
+Expand **Advanced routing** below the graph for the **Source** and **Destination** pickers and the **Destination matrix**. Expand a matrix row to edit its exact source port, destination or inlet. A missing instance or port stays visible in the graph so you can select and reconnect its cable. Select a processor with an invalid owner to remove that assignment.
 
 **Route through Master** replaces the selected strip's main routes with stereo connections to the designated Master in this performance. Sends and custom routes are retained. Master is a fixed internal stereo output with volume, balance, mute, meters and effect inserts. It is always available, has no editable patch and occupies no library entry or rack slot. Its controls and inserts belong to the performance. **Audio Output** remains available as an editable starter for custom output processors.
 

@@ -38,7 +38,7 @@ export function useRoutingViewport(nodes: Map<string, RoutingNode>, positions: R
     const transform = initial.current;
     if (transform) {
       void viewport.area.zoom(transform.k).then(() => viewport.area.translate(transform.x, transform.y));
-    } else fit(true);
+    } else fit(!Object.keys(geometry.current.positions).length);
     return () => {
       save({ ...viewport.area.transform });
       view.current = undefined;

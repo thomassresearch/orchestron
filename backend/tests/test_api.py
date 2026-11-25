@@ -7671,6 +7671,33 @@ def test_definition_colours_survive_native_bundles_and_performance_storage(tmp_p
 
 
 @pytest.mark.parametrize("archive_format", ["json", "zip"])
+def test_routing_layout_survives_storage_app_state_and_native_bundles(tmp_path: Path, archive_format: str) -> None:
+    payload = _performance_csd_export_payload()["performanceExport"]
+    config = payload["performance"]["config"]
+    layout = {"$master": {"x": -120.5, "y": 82}, "$output": {"x": 900, "y": 40}}
+    config["routingLayout"] = layout
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json={"name": "Routing layout", "config": config})
+        assert saved.status_code == 201, saved.text
+        assert client.get(f'/api/performances/{saved.json()["id"]}').json()["config"]["routingLayout"] == layout
+        state = {"version": 4, "routingLayout": layout}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["routingLayout"] == layout
+        exported = client.post("/api/bundles/export/performance", json=payload)
+        assert exported.status_code == 200
+        data = exported.content
+        if archive_format == "zip":
+            buffer = BytesIO()
+            with zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("performance.orch.json", data)
+            data = buffer.getvalue()
+        expanded = client.post("/api/bundles/import/expand", content=data,
+            headers={"Content-Type": "application/octet-stream", "X-File-Name": f"routing.orch.{archive_format}"})
+        assert expanded.status_code == 200, expanded.text
+        assert expanded.json()["performance"]["config"]["routingLayout"] == layout
+
+
+@pytest.mark.parametrize("archive_format", ["json", "zip"])
 def test_arranger_history_survives_storage_app_state_and_native_bundles(tmp_path: Path, archive_format: str) -> None:
     payload = _performance_csd_export_payload()["performanceExport"]
     config = payload["performance"]["config"]
