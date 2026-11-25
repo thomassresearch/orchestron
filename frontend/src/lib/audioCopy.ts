@@ -1,5 +1,18 @@
 import type { GuiLanguage } from "../types";
 const rows = {
+  connectHint: ["Click an output, then a destination.", "Ausgang und dann Ziel anklicken.", "Cliquez sur une sortie puis sur une destination.", "Haz clic en una salida y luego en un destino."],
+  mismatch: ["Choose ports with matching channel counts", "Anschlüsse mit gleicher Kanalzahl wählen", "Choisissez des ports avec le même nombre de canaux", "Elige puertos con el mismo número de canales"],
+  placeCable: ["Choose a highlighted socket", "Markierten Anschluss wählen", "Choisir une prise éclairée", "Elige un puerto resaltado"],
+  cancel: ["Cancel", "Abbrechen", "Annuler", "Cancelar"],
+  exactPorts: ["Individual ports", "Einzelne Anschlüsse", "Ports individuels", "Puertos individuales"],
+  fit: ["Fit graph", "Graph einpassen", "Ajuster le graphe", "Ajustar grafo"],
+  zoomIn: ["Zoom in", "Vergrößern", "Agrandir", "Acercar"],
+  zoomOut: ["Zoom out", "Verkleinern", "Réduire", "Alejar"],
+  automatic: ["Automatic output", "Automatischer Ausgang", "Sortie automatique", "Salida automática"],
+  replaceSource: ["Reconnect source", "Quelle neu verbinden", "Reconnecter la source", "Reconectar origen"],
+  replaceTarget: ["Reconnect destination", "Ziel neu verbinden", "Reconnecter la destination", "Reconectar destino"],
+  insertReturn: ["Insert return", "Insert-Rückweg", "Retour d’insert", "Retorno de inserción"],
+  detachOwner: ["Remove invalid insert assignment", "Ungültige Insert-Zuordnung entfernen", "Supprimer l’attribution d’insert invalide", "Eliminar asignación de inserción no válida"],
   role: ["Role", "Rolle", "Rôle", "Función"],
   routeLimit: ["A performance supports up to 1,024 channel connections.", "Eine Performance unterstützt bis zu 1.024 Kanalverbindungen.", "Une performance accepte jusqu’à 1 024 connexions de canaux.", "Una interpretación admite hasta 1.024 conexiones de canales."],
   instanceLimit: ["A performance supports up to 64 patch instances, including processors.", "Eine Performance unterstützt bis zu 64 Patch-Instanzen einschließlich Prozessoren.", "Une performance accepte jusqu’à 64 instances de patch, processeurs compris.", "Una interpretación admite hasta 64 instancias de patch, incluidos los procesadores."],

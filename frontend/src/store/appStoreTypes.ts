@@ -98,7 +98,7 @@ export interface AppStore {
   activeSessionAudioSignature: string;
   activeSessionWorkspaceGeneration: number;
   mixerSyncError: string | null;
-  setAudioGraph: (graph: AudioGraph) => void;
+  setAudioGraph: (graph: AudioGraph, newSendIds?: string[]) => void;
   setMixerStrip: (id: string, update: Partial<MixerStrip>) => void;
   setMixerSend: (ids: string[], update: Partial<MixerSend>) => void;
   flushMixer: () => Promise<void>;

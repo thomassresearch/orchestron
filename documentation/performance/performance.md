@@ -52,8 +52,8 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 
 1. Save at least one patch in Instrument Design.
 2. Open **Mix → Rack**, add instruments and assign channels.
-3. Open **Mixer**, check the destination of each strip, and connect effects/returns. Guided instruments get a neutral Master automatically; existing direct routes stay direct.
-4. Use Routing diagnostics → Check routing, then Start Instruments. Adjust existing mixer controls during playback.
+3. Open **Mix → Routing**, click an output socket, then click the effect, Master or output destination. Guided instruments connect to Master automatically.
+4. Check the highlighted routes and ports, then choose **Start Instruments**. Adjust existing mixer controls during playback.
 5. Choose **Add track**, add clips and patterns, then edit their musical content. Choose the scope for shared content, then save the arrangement edits together.
 6. Save the performance to retain the rack, routes and current mix.
 7. Export the performance bundle for backup/sharing, or use `Export CSD (MIDI)` / `Export CSD (SCORE)` when you need an offline Csound render package.

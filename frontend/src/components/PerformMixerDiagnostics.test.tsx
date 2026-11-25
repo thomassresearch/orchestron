@@ -8,7 +8,7 @@ import { toPatchListItem } from "../lib/patchCatalog";
 import { wireInsertChain } from "../lib/insertRouting";
 import { useAppStore } from "../store/useAppStore";
 import type { AudioDiagnostic, GuiLanguage } from "../types";
-import { PerformMixer } from "./PerformMixer";
+import { MixerBody, PerformMixer } from "./PerformMixer";
 import { MixWorkspace } from "./sequencer/MixWorkspace";
 import { PerformanceEditorProvider, PerformViewContext } from "./sequencer/PerformanceEditorState";
 
@@ -210,4 +210,109 @@ it("uses structured backend feedback and discards it after routing changes", asy
   act(() => useAppStore.setState({ audioGraph: { ...graph, routes: graph.routes.filter(r => !r.id.startsWith("send-")) } }));
   expect(screen.queryByText("Backend instrument name")).toBeNull();
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it("projects every destination-matrix channel exactly once, including damaged routes and partial direct output", () => {
+  const graph = feedbackGraph();
+  graph.routes.push(
+    { ...graph.routes[graph.routes.length - 1], id: "orphan", sourceId: "lost", sourcePort: "old", targetId: "insert", targetPort: "aux", kind: "custom" },
+    { ...graph.routes[graph.routes.length - 1], id: "explicit-left", sourceId: "$master", sourcePort: "$direct.left", targetId: "$output" }
+  );
+  useAppStore.setState({ audioGraph: graph });
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()} /></PerformanceEditorProvider>);
+  const matrix = expand("Destination matrix");
+  for (const details of matrix.querySelectorAll("details")) {
+    details.open = true;
+    fireEvent(details, new Event("toggle"));
+  }
+  const matrixIds = [...matrix.querySelectorAll<HTMLElement>("[data-matrix-route]")].map(el => el.dataset.matrixRoute).sort();
+  const drawn = [...container.querySelectorAll("[data-route-ids]")].flatMap(el => JSON.parse(el.getAttribute("data-route-ids")!)).sort();
+  expect(matrixIds).toEqual(graph.routes.map(r => r.id).sort());
+  expect(drawn).toEqual(matrixIds);
+  expect(container.querySelectorAll("[data-implicit]")).toHaveLength(1);
+  expect(container.querySelector('[data-routing-node="lost"]')).toBeTruthy();
+  expect(useAppStore.getState().audioGraph).toBe(graph);
+});
+
+it("previews stage feedback, cancels cleanly and preserves send identity and gain on reconnection", () => {
+  const graph = wireInsertChain(emptyAudioGraph(), bindings, [source, effect], "source", ["insert"]);
+  useAppStore.setState({ audioGraph: graph });
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()} /></PerformanceEditorProvider>);
+  const canvas = within(container.querySelector(".routing-canvas") as HTMLElement);
+  const socket = (node: string, side: string, stage: string) => container.querySelector<HTMLButtonElement>(
+    `[data-routing-node="${node}"] .rc-socket.${side}[data-stage="${stage}"]`)!;
+  fireEvent.click(canvas.getByRole("button", { name: "Send" }));
+  fireEvent.click(socket("source", "out", "strip"));
+  fireEvent.focus(socket("insert", "in", "input"));
+  expect(container.querySelector('.rc-preview[data-status="error"]')).toBeTruthy();
+  expect(container.querySelector('[data-routing-node="source"][data-status="error"]')).toBeTruthy();
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(container.querySelector(".rc-preview")).toBeNull();
+  expect(useAppStore.getState().audioGraph).toBe(graph);
+  fireEvent.click(socket("source", "out", "strip"));
+  fireEvent.click(socket("$master", "in", "input"));
+  const added = useAppStore.getState().audioGraph.routes.filter(r => r.kind === "send");
+  expect(added.map(r => r.sourcePort)).toEqual(["left", "right"]);
+  for (const r of added) expect(useAppStore.getState().mixer.sends[r.id]).toEqual({ gainDb: null, tap: "post" });
+  const inspector = within(container.querySelector(".rc-inspect") as HTMLElement);
+  fireEvent.change(inspector.getByRole("spinbutton", { name: "Gain dB" }), { target: { value: "-11" } });
+  fireEvent.change(inspector.getByRole("combobox", { name: "Send" }), { target: { value: "pre" } });
+  fireEvent.click(inspector.getByRole("button", { name: "Reconnect destination" }));
+  fireEvent.click(socket("$output", "in", "input"));
+  for (const r of added) {
+    expect(useAppStore.getState().audioGraph.routes).toContainEqual({ ...r, targetId: "$output" });
+    expect(useAppStore.getState().mixer.sends[r.id]).toEqual({ gainDb: -11, tap: "pre" });
+  }
+  act(() => useAppStore.setState({ activeSessionState: "running" }));
+  expect(socket("source", "out", "strip").disabled).toBe(true);
+  expect((inspector.getByRole("button", { name: "Remove" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((inspector.getByRole("spinbutton", { name: "Gain dB" }) as HTMLInputElement).disabled).toBe(false);
+});
+
+it("updates graph port warnings from automatic validation and ignores superseded results", async () => {
+  const finish: ((result: { diagnostics: AudioDiagnostic[] }) => void)[] = [];
+  vi.spyOn(api, "validateAudio").mockImplementation(() => new Promise(resolve => finish.push(resolve)));
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()} /></PerformanceEditorProvider>);
+  await waitFor(() => expect(finish.length).toBe(1));
+  act(() => useAppStore.setState({audioGraph: { ...emptyAudioGraph() }}));
+  await waitFor(() => expect(finish.length).toBe(2));
+  await act(async () => finish[1]({diagnostics: [{code: "incomplete_stereo", severity: "warning", message: "right",
+    direction: "output", ports: ["right"], instanceId: "source"}]}));
+  fireEvent.click(screen.getByRole("checkbox", {name: "Individual ports"}));
+  const sockets = container.querySelectorAll('.rc-socket[data-status="warning"]');
+  expect([...sockets].map(s => s.getAttribute("data-ports"))).toEqual(['["right"]']);
+  await act(async () => finish[0]({diagnostics: []}));
+  expect(container.querySelectorAll('.rc-socket[data-status="warning"]')).toHaveLength(1);
+});
+
+it("repairs a single send channel from the grouped cable and leaves the other channel and parallel send intact", () => {
+  const graph = emptyAudioGraph();
+  for (const port of ["right", "left"]) for (const pair of [1, 2]) {
+    graph.routes.push({ id: pair + port, sourceId: "source", targetId: "$master", kind: "send",
+      sourceStage: "strip", targetStage: "input", sourcePort: port, targetPort: port });
+  }
+  useAppStore.setState({ audioGraph: graph });
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()} /></PerformanceEditorProvider>);
+  const cables = container.querySelectorAll('[data-cable-kind="send"]');
+  expect(cables).toHaveLength(2);
+  fireEvent.click(cables[0]);
+  const inspector = within(container.querySelector(".rc-inspect") as HTMLElement);
+  fireEvent.change(inspector.getByLabelText("Exact channel mapping"), { target: { value: "1right" } });
+  fireEvent.click(inspector.getByText("Reconnect destination"));
+  expect((screen.getByLabelText("Individual ports") as HTMLInputElement).checked).toBe(true);
+  fireEvent.click(container.querySelector('[data-routing-node="insert"] .rc-socket.in[data-ports=\'["left"]\']')!);
+  expect(useAppStore.getState().audioGraph.routes).toEqual(graph.routes.map(r => r.id === "1right" ?
+    { ...r, targetId: "insert", targetPort: "left" } : r));
+});
+
+it("connects custom before-insert and strip-return sockets without changing insert ownership", () => {
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()} /></PerformanceEditorProvider>);
+  fireEvent.click(within(container.querySelector(".rc-kinds") as HTMLElement).getByText("Custom routing"));
+  fireEvent.click(container.querySelector('[data-routing-node="source"] .rc-socket.out[data-stage="raw"]')!);
+  fireEvent.click(container.querySelector('[data-routing-node="insert"] .rc-socket.in[data-stage="strip"]')!);
+  const graph = useAppStore.getState().audioGraph;
+  expect(graph.insertOwners).toEqual({});
+  expect(graph.routes.map(r => [r.kind, r.sourceStage, r.targetStage, r.sourcePort, r.targetPort])).toEqual([
+    ["custom", "raw", "strip", "left", "left"], ["custom", "raw", "strip", "right", "right"],
+  ]);
 });

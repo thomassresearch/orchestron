@@ -128,6 +128,8 @@ class AudioDiagnostic(AudioModel):
     route_id: str | None = Field(default=None, alias="routeId")
     route_ids: list[str] = Field(default_factory=list, alias="routeIds")
     instance_ids: list[str] = Field(default_factory=list, alias="instanceIds")
+    direction: Literal["input", "output"] | None = None
+    ports: list[str] = Field(default_factory=list)
     routing_path: list[AudioFeedbackStep] = Field(default_factory=list, alias="routingPath")
 
 

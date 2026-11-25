@@ -1,0 +1,66 @@
+.rc-section { margin: 4px 0 12px; }
+.rc-section > summary { width: fit-content; margin: 2px 0 8px; color: #d8e3ec; font-size: 13px; font-weight: 600; cursor: pointer; }
+.routing-canvas { overflow: hidden; border: 1px solid #35475b; border-radius: 7px; background: #101d2a; font-size: 12px; }
+.rc-tools, .rc-status, .rc-inspect, .rc-kinds, .rc-navigation, .rc-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rc-tools { min-height: 42px; padding: 6px 10px; border-bottom: 1px solid #35475b; }
+.rc-tools button, .rc-inspect button, .rc-status button, .rc-inspect select { border: 1px solid #42566b; border-radius: 4px; padding: 3px 8px; color: #dae6ed; background: #172637; }
+.rc-tools button:hover, .rc-inspect button:hover, .rc-status button:hover { border-color: #88aec1; }
+.routing-canvas button:disabled { opacity: .55; cursor: default; }
+.rc-kinds { gap: 3px; }
+.rc-kinds button::before { display: inline-block; width: 12px; height: 3px; margin: 0 5px 3px 0; border-radius: 2px; content: ''; background: #71cbd2; }
+.rc-kinds [data-kind=send]::before { background: #e5b566; }
+.rc-kinds [data-kind=custom]::before { background: #80c9a1; }
+.rc-kinds [aria-pressed=true] { color: #edfeff; border-color: #73afbd; background: #213f4c; }
+.rc-navigation, .rc-legend { margin-left: auto; }
+.rc-navigation { gap: 3px; }
+.rc-tools label { color: #c2d2de; }
+.rc-viewport { position: relative; isolation: isolate; width: 100%; height: clamp(250px, 46vh, 580px); overflow: hidden; background-color: #0b1420; background-image: radial-gradient(#2d4052 1px, transparent 1px); background-size: 18px 18px; touch-action: none; cursor: grab; }
+.rc-viewport:active { cursor: grabbing; }
+.rc-wires { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; }
+.rc-wires g { --wire: #71cbd2; cursor: pointer; }
+.rc-wires [data-cable-kind=send] { --wire: #e5b566; }
+.rc-wires [data-cable-kind=insert] { --wire: #af99e9; }
+.rc-wires [data-cable-kind=custom] { --wire: #80c9a1; }
+.rc-line, .rc-preview { fill: none; stroke: var(--wire, #e2f2fa); stroke-width: 3; pointer-events: none; }
+.rc-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
+.rc-wires [data-implicit] .rc-line, .rc-preview { stroke-dasharray: 6 5; }
+.rc-wires [data-status=error] { --wire: #ff7684; }
+.rc-wires g:is(:hover, :focus, [data-selected]) .rc-line { stroke-width: 5; filter: drop-shadow(0 0 3px var(--wire)); }
+.rc-node { position: absolute; background: #182737; border-radius: 6px; box-shadow: inset 0 0 0 1px #435a70, 0 4px 10px #040a1190; color: #edf3f8; }
+.rc-node[data-selected] { outline: 2px solid #73c9d6; }
+.rc-node[data-role=master] { background: #173039; }
+.rc-node[data-role=output] { background: #21303a; }
+.rc-node[data-role=insert] { background: #27273b; }
+.rc-node[data-status=error] { box-shadow: inset 0 0 0 2px #ff7684; }
+.rc-node[data-status=warning] { box-shadow: inset 0 0 0 1px #e6b258; }
+.rc-title { width: 100%; height: 65px; text-align: left; padding: 6px 12px; border-bottom: 1px solid #3b4b5a; cursor: grab; touch-action: none; }
+.rc-title small, .rc-title strong, .rc-title span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-title small { color: #abc0cf; font-size: 10px; }
+.rc-title strong { font-size: 15px; line-height: 22px; }
+.rc-title span { font-size: 10px; color: #9ab0c1; }
+.rc-title b { position: absolute; top: 7px; right: 7px; color: #f3c979; font-size: 12px; }
+[data-status=error] > .rc-title b { color: #ff99a3; }
+.rc-socket { position: absolute; width: max-content; max-width: 50%; transform: translateY(-50%); padding: 3px 10px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; font-size: 11px; line-height: 18px; color: #d2e2eb; }
+.rc-socket.in { left: -6px; padding-left: 17px; }
+.rc-socket.out { right: -6px; padding-right: 17px; }
+.rc-socket::before { position: absolute; top: calc(50% - 5px); width: 11px; height: 11px; content: ''; border: 2px solid #7ed0d9; border-radius: 50%; background: #183747; }
+.rc-socket.in::before { left: 0; } .rc-socket.out::before { right: 0; }
+.rc-socket[data-stage=raw]::before, .rc-socket.in[data-stage=strip]::before { border-color: #af99e9; }
+.rc-socket[data-status=warning]::before { border-color: #e6b258; }
+.rc-socket[data-status=error]::before { border-color: #ff7684; }
+.rc-socket[data-compatible], .rc-socket:focus-visible { background: #2d4758; color: white; border-radius: 5px; }
+.rc-socket[data-compatible]::before, .rc-socket:hover:not(:disabled)::before { background: #a6e7ed; }
+.rc-status { min-height: 32px; border-top: 1px solid #35475b; padding: 5px 10px; color: #b7c8d5; font-size: 11px; }
+.rc-legend { gap: 5px; }
+.rc-legend i { display: inline-block; width: 18px; border-top: 2px dashed #71cbd2; }
+.rc-legend .rc-insert-key { border-top: 3px solid #af99e9; margin-left: 8px; }
+.rc-inspect { border-top: 1px solid #35475b; padding: 8px 10px; }
+.rc-inspect small { color: #b9cedb; }
+.rc-inspect > details { width: 100%; }
+@media (max-width: 600px) { .rc-tools { gap: 5px; } .rc-navigation { margin-left: 0; } .rc-viewport { height: 43dvh; } }
+/* The highlighted cable itself is the keyboard focus indicator. */
+.ws-shell .rc-wires g[tabindex]:focus-visible { outline: none; }
+.rc-send-settings { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.rc-issue { width: 100%; color: #f0c173 !important; }
+.rc-issue[data-status=error] { color: #ff9ba4 !important; }
+.rc-validation { padding: 6px 10px; border-top: 1px solid #794756; color: #ffadba; overflow-wrap: anywhere; }

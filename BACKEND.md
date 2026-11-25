@@ -1379,7 +1379,7 @@ collector remains stranded. No phrase state enters saved performance data.
 
 `audio_feedback.py` finds strongly connected components in the resolved compiler stage graph after topological ordering fails. Only route nodes inside a cyclic component are reported, excluding downstream consumers left unresolved by the failed sort. Each component supplies all cyclic route/instance IDs and one deterministic closed path; parallel stereo routes are grouped by endpoints, stages and kind. Raw output and processed strip remain distinct, so ordinary insert returns are valid. Legacy effect routes use the same diagnostic builder with generated route IDs.
 
-`CompilationError.detail()` preserves the string `diagnostics` list and adds structured `audioDiagnostics` for feedback, consistently across session creation, validation, compilation and CSD export. The frontend preserves the structured body, renders a localized path, and recomputes visible mixer highlights after topology edits; stale backend results cannot reapply old highlights. See the [routing response contract](documentation/performance/audio_mixer_and_routing.md#control-api).
+`CompilationError.detail()` preserves the string `diagnostics` list and adds structured `audioDiagnostics` for feedback across session creation, validation, compilation and CSD export. Unused-port and incomplete-stereo warnings identify the instance, port direction and exact unconnected port names. Mix → Routing previews feedback locally while placing a cable and validates the edited graph after the gesture. Results apply only to the rack, patches, graph and mixer snapshot submitted. See [routing and repair](documentation/performance/audio_mixer_and_routing.md#routing-and-repair).
 
 ### Live insert bypass
 

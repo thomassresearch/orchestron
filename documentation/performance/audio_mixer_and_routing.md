@@ -96,8 +96,8 @@ Both **CSD (MIDI)** and **CSD (SCORE)** omit bypassed effect synthesis, initiali
 ### Add a stereo send
 
 1. Stop the engine. Add the saved effect as a rack instance and use its **Route through Master** button to connect its main output.
-2. In **Audio routing**, choose the instrument under **Source** and the return under **Destination**.
-3. Leave **Stereo** checked and verify **Exact channel mapping**, for example `left / right → left / right`. Choose **Send** in the Route selector and click the routing row's **Add**.
+2. Open **Mix → Routing**, choose **Send** above the graph and leave **Individual ports** off.
+3. Click the instrument’s stereo output socket, then the return’s stereo input socket. Select the new cable to inspect the exact mapping and set its gain.
 4. On the source strip, find **Send → [return name]**. New sends start at silence; enter a value such as -12 dB to hear the return.
 5. Choose **Post-fader** when the send should follow the source's fader/balance, or **Pre-fader** for an independent send amount. The source's Mute still silences either kind of send.
 
@@ -117,20 +117,20 @@ Meters show stereo peak and RMS. CLIP indicates a peak at or above 0 dBFS; no au
 
 ## Routing and repair
 
-In **Mix → Routing**, the **Source** and **Destination** pickers show each instrument’s assigned MIDI channel beside its name. Use the channel to tell two instances of the same patch apart. The short instance ID also distinguishes continuous processors, which run without a MIDI channel.
+Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI channel or **Continuous** label, and short ID distinguish copies of the same instrument. Master and the final **Audio Output** have separate cards. Drag a card by its heading to move it, drag the background to pan, or use the zoom buttons and **Fit graph**. Card positions and zoom belong to the current editing session.
 
-![Routing with a MIDI instrument selected as the source and Master as the destination](../../screenshots/perform-routing-midi-channel.png)
+1. With the instruments stopped, choose **Main output**, **Send** or **Custom routing** above the graph.
+2. Click a socket on the right of the source. Move to a highlighted socket on the left of the destination to preview the mapping. Click to place the cable, or press **Escape** to cancel. You can also use Tab and Enter to select sockets.
+3. Stereo sockets connect both channels in their declared order. Turn on **Individual ports** to wire a single channel, cross left and right, or connect an auxiliary output to a particular inlet. **Custom routing** also exposes the **Before inserts** output and **Insert return** input.
+4. Select a cable to inspect its exact channels and processing stages. **Reconnect source** or **Reconnect destination** moves that end while retaining the send’s settings. **Remove** deletes the selected connection. For a single-channel repair, enable **Individual ports** first and select that channel’s cable.
 
-Choose a source, destination and explicit channel mapping before adding a main route, send or custom connection. Stereo groups expand into their exact member ports. Uncheck **Stereo** to select one exact source port and destination inlet at a time, including custom or mono mappings. Group display names are not inlet names; legacy label suggestions never rename ports.
+![Routing diagram with an insert on Glass Keys, a shared Room Return, Master and Audio Output. The selected send shows its two channels, gain and tap.](../../screenshots/perform-routing-canvas.png)
 
-Open **Destination matrix** to inspect incoming routes grouped by destination. Expand a route row to change its source port, destination instance or destination port; **Remove** deletes that grouped connection. This is also where broken references can be repaired instead of discarding the performance.
+A dashed cable shows an automatic direct output. A patch with a direct output can reach the speakers independently on each channel. An explicit main route redirects that channel. Sends and custom routes can run alongside the main route. Select a send to adjust its gain or pre/post tap while listening.
 
-Open **Routing diagram** to follow the same connections as source → destination cards. Expand **Exact channel mapping** on a card to inspect port names and processing stages. Click source/destination names to select routing endpoints; use the strip's **Edit patch** action to open its instrument graph.
+Select a card to add an insert from the effect selector or open **Edit patch**. The owner’s **Inserts** list provides reorder, removal and bypass controls, including nested processors and Master inserts. Purple cables show the feed from **Before inserts** and the return to the processed strip. A shared return has its own strip and accepts sends from multiple instruments.
 
-<p align="center">
-  <img src="../../screenshots/perform_audio_routing_matrix_diagram.png" alt="Audio routing editor with stereo mapping, expanded send in the destination matrix and routing diagram" width="900" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>The send's left and right mappings expanded in Destination matrix. Matrix and diagram show the same routes, including the dedicated insert's input and return-to-strip connections.</em></p>
+The **Source** and **Destination** pickers and **Destination matrix** remain available below the graph. Expand a matrix row to edit its exact source port, destination or inlet. A missing instance or port stays visible in the graph so you can select and reconnect its cable. Select a processor with an invalid owner to remove that assignment.
 
 **Route through Master** replaces the selected strip's main routes with stereo connections to the designated Master in this performance. Sends and custom routes are retained. Master is a fixed internal stereo output with volume, balance, mute, meters and effect inserts. It is always available, has no editable patch and occupies no library entry or rack slot. Its controls and inserts belong to the performance. **Audio Output** remains available as an editable starter for custom output processors.
 
@@ -140,24 +140,24 @@ Topology changes require stopping the engine. **Stop to edit routing** makes tha
 
 ### Troubleshoot routing and silence
 
-Expand **Routing diagnostics** and click **Check routing** after editing connections. Diagnostics describe connectivity, while meters report measured sound. Clicking an instance-related diagnostic can open its patch for inspection. A **Muted or silent path** entry selects the corresponding strip.
+Routing checks run automatically while the routing diagram or diagnostics are open in **Mix → Routing**. A red outline marks an error. Amber marks a warning, such as an unused port or a muted strip. Enable **Individual ports** to see which channel of a stereo pair needs attention. Select a diagnostic to bring its card or cable into view. **Check routing** repeats the backend check on demand. Meters show measured audio activity.
 
-Invalid insert assignments appear in red, including an insert whose processor or owning strip is missing, or which refers to itself. These errors are detected even when all visible connections to the deleted instance have already been removed. Backend validation failures appear directly beside **Check routing**. Previous check results are discarded after changes to the rack, patch definitions, routing or mixer settings; check again after editing.
+Invalid insert assignments appear in red, including an insert whose processor or owning strip is missing, or which refers to itself. These errors are detected even when all visible connections to the deleted instance have already been removed. Backend validation failures appear directly beside **Check routing**. After an edit, the graph clears the previous check and displays results for the current mix.
 
 Feedback loops appear above the mixer strips as soon as their connections are present. Each path lists instrument and effect names, instance IDs (to distinguish repeated uses of a patch), MIDI channels, exact audio ports and processing stages. **Before inserts** is the instrument's raw output; **Processed strip** is its output after insert returns; **Input** feeds the effect's processing. Ordinary insert chains returning to their owner's strip are valid.
 
-Choose **Show offending connections** to open the routing diagram and enable **Only feedback connections**. Red borders and **Feedback loop** badges identify the affected strips, inserts, sends and route groups; the Destination matrix highlights the same connections. Expand **Exact channel mapping** to inspect or remove individual channel connections. Turn off the filter to inspect surrounding routes. Highlights update immediately after a routing edit, and all connections become visible again once the loop is gone.
+Choose **Show offending connections** to open the routing diagram and enable **Only feedback connections**. Red borders and **Feedback loop** badges identify the affected strips, inserts, sends and route groups. The destination matrix highlights the same connections. Select a cable to inspect its exact channel mapping or remove an individual channel connection. Turn off the filter to inspect surrounding routes. Highlights update immediately after a routing edit, and all connections become visible again once the loop is gone.
 
 The display shows one closed path for each connected group of feedback loops and highlights every cyclic connection in that group. A group may contain additional overlapping loops. Unrelated incoming routes and downstream output routes are not highlighted. Break every remaining loop, including both stereo channels; muting, bypassing or lowering a send does not remove its processing dependency.
 
-For example, sending a lead's processed strip into its own Reverb insert closes **Lead → Reverb → Stereo Widener → Lead**. Use a separate shared Reverb instance with its own output return if that is the intended effect. The screenshot below uses a temporary copy of Effectomania's earlier routing.
+For example, sending a lead's processed strip into its own Reverb insert closes **Lead → Reverb → Stereo Widener → Lead**. Use a separate shared Reverb instance with its own output return if that is the intended effect. The first example below shows that three-instrument path. The second isolates a shorter loop between Glass Keys and its insert.
 
 <p align="center">
   <img src="../../screenshots/perform_feedback_loop_diagnostics.png" alt="Effectomania feedback path showing the channel 7 PWM Lead, Reverb and Stereo Widener with stereo port mappings" width="1000" style="max-width: 100%; height: auto;" />
 </p>
 
 <p align="center">
-  <img src="../../screenshots/perform_feedback_loop_connections.png" alt="Filtered routing diagram highlighting the six stereo connections in the feedback loop and the detailed backend error" width="1000" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform-routing-canvas-feedback.png" alt="Filtered routing canvas with the processed Glass Keys send and its insert return highlighted in red" width="1000" style="max-width: 100%; height: auto;" />
 </p>
 
 | Symptom or diagnostic | What to check |

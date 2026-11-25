@@ -345,6 +345,7 @@ class ResolvedMixerGraph:
                     self.diagnostics.append(
                         AudioDiagnostic(
                             code="unconnected_" + direction,
+                            direction=direction, ports=sorted(unused),
                             instanceId=identity,
                             message=f"{target.patch.name}: unconnected {direction} ports: {', '.join(sorted(unused))}.",
                         )
@@ -361,6 +362,7 @@ class ResolvedMixerGraph:
                         self.diagnostics.append(
                             AudioDiagnostic(
                                 code="incomplete_stereo",
+                                direction=direction, ports=[p for p in pair if p not in connected],
                                 instanceId=identity,
                                 message=f"{target.patch.name}: incomplete stereo {direction}: {' / '.join(pair)}.",
                             )

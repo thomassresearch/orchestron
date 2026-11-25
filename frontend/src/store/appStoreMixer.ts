@@ -51,12 +51,14 @@ export function createMixerActions(set: StoreApi<AppStore>["setState"], get: Sto
   };
   onMixerConnected((id) => { if (get().activeSessionId === id) { sessionRevision = undefined; schedule(); } });
   return {
-    setAudioGraph: (audioGraph) => {
+    setAudioGraph: (audioGraph, newSendIds = []) => {
       if (get().activeSessionState === "running") return;
       if (audioGraph.routes.length > 1024) { set({ error: audioCopy(get().guiLanguage)("routeLimit") }); return; }
       const mixer = get().mixer;
       const ids = new Set(audioGraph.routes.map((r) => r.id));
-      set({ audioGraph: { ...audioGraph, masterId: audioGraph.masterId ?? MASTER }, mixer: { ...mixer, sends: Object.fromEntries(Object.entries(mixer.sends).filter(([id]) => ids.has(id))) }, error: null });
+      const sends = Object.fromEntries(Object.entries(mixer.sends).filter(([id]) => ids.has(id)));
+      for (const id of newSendIds) if (ids.has(id)) sends[id] = { gainDb: null, tap: "post" };
+      set({ audioGraph: { ...audioGraph, masterId: audioGraph.masterId ?? MASTER }, mixer: { ...mixer, sends }, error: null });
     },
     setMixerStrip: (id, update) => {
       const state = get();

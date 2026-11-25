@@ -107,6 +107,7 @@ export interface AudioFeedbackStep {
 export interface AudioDiagnostic {
   code: string; message: string; severity: "warning" | "error"; instanceId?: string; routeId?: string;
   routeIds?: string[]; instanceIds?: string[]; routingPath?: AudioFeedbackStep[];
+  direction?: "input" | "output" | null; ports?: string[];
 }
 
 export interface PatchGraph {

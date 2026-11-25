@@ -108,7 +108,7 @@ export function audioGraphDiagnostics(bindings: SequencerInstrumentBinding[], pa
     if (!exists(processor) || !exists(owner) || processor === owner) {
       result.push({
         code: "invalid_insert_owner", severity: "error",
-        instanceId: byId.get(processor) ? processor : byId.get(owner) ? owner : undefined,
+        instanceId: processor, instanceIds: [processor, owner],
         message: `${byId.get(processor)?.name ?? processor} → ${byId.get(owner)?.name ?? owner}`
       });
     }
@@ -121,7 +121,7 @@ export function audioGraphDiagnostics(bindings: SequencerInstrumentBinding[], pa
   for (const route of graph.routes) {
     const source = byId.get(route.sourceId), target = byId.get(route.targetId);
     if (!source || !outputPorts(source).includes(route.sourcePort) || (route.targetId === "$output" ? !["left","right"].includes(route.targetPort) : !target || !(route.targetStage === "strip" ? outputPorts(target) : target.audio_inlet_names).includes(route.targetPort))) {
-      result.push({code:"broken_route",severity:"error",instanceId:route.sourceId,routeId:route.id,message:`${route.sourcePort} → ${route.targetPort}`});
+      result.push({code:"broken_route",severity:"error",instanceId:route.sourceId,instanceIds:[route.sourceId,route.targetId],routeId:route.id,message:`${route.sourcePort} → ${route.targetPort}`});
     }
   }
   result.push(...previewAudioFeedback(bindings, patches, graph));

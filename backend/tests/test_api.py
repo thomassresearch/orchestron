@@ -11444,3 +11444,19 @@ def test_physical_pattern_workspace_slot_is_session_only(tmp_path):
         response = client.post(base + "/audition", json={**command, "action": "workspace_end", "revision": 2})
         assert response.status_code == 200
         assert not response.json()["auditions"]
+
+
+def test_routing_validation_identifies_missing_stereo_channel(tmp_path: Path) -> None:
+    with _client(tmp_path) as client:
+        patch = client.post("/api/patches", json=_audio_outlet_only_source_patch_payload()).json()
+        response = client.post("/api/sessions/validate-instruments", json={
+            "instruments": [{"id": "lead", "patch_id": patch["id"], "midi_channel": 1}],
+            "audio_graph": {"masterId": "$master", "routes": [
+                {"id": "left", "sourceId": "lead", "sourcePort": "left", "targetId": "$master", "targetPort": "left"},
+            ]},
+        })
+        assert response.status_code == 200, response.text
+        warnings = [d for d in response.json()["diagnostics"] if d["code"] == "incomplete_stereo"]
+        assert {(d["instanceId"], d["direction"], tuple(d["ports"])) for d in warnings} == {
+            ("lead", "output", ("right",)), ("$master", "input", ("right",)),
+        }

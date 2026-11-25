@@ -566,3 +566,10 @@ def test_feedback_component_detection_handles_maximum_route_depth():
     component, = cyclic_components(edges)
     assert len(component) == 2101
     assert "downstream" not in component
+
+
+def test_unconnected_port_diagnostic_identifies_socket():
+    resolved = ResolvedMixerGraph([effect()], AudioGraph())
+    assert {(d.direction, tuple(d.ports)) for d in resolved.diagnostics if d.code.startswith("unconnected_")} == {
+        ("input", ("left",)), ("output", ("left",)),
+    }
