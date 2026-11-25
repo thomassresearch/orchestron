@@ -14,6 +14,24 @@
 .rc-navigation, .rc-legend { margin-left: auto; }
 .rc-navigation { gap: 3px; }
 .rc-tools label { color: #c2d2de; }
+.rc-insert-toggle::after { content: "▾"; margin-left: 6px; color: #c0afe9; }
+.rc-insert-toggle[aria-expanded=true] { background: #302c43; border-color: #ae98d5; }
+.rc-inserts { padding: 12px; border-bottom: 1px solid #465066; background: #182332; }
+.rc-insert-fields, .rc-insert-actions, .rc-inserts li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rc-insert-fields { align-items: end; gap: 8px; }
+.rc-insert-fields label { display: grid; gap: 3px; min-width: 0; max-width: 100%; color: #c1cfdf; font-size: 12px; }
+.rc-insert-fields select { max-width: 100%; min-width: min(11rem, 100%); }
+.rc-insert-fields > button, .rc-insert-actions button { padding: 4px 8px; border: 1px solid #4c5b70; border-radius: 4px; }
+.rc-insert-fields > button { background: #38304d; border-color: #8b78ab; color: #f0e8ff; }
+.rc-insert-note { flex-basis: 100%; margin-top: 5px; color: #b7c6d4; font-size: 12px; }
+.rc-inserts h3 { margin: 12px 0 4px; font-size: 12px; font-weight: 600; }
+.rc-inserts ul { display: grid; gap: 2px; }
+.rc-inserts li { padding: 5px 7px; border-left: 2px solid #a796ce; background: #202b3b; }
+.rc-position { min-width: 2ch; color: #ccbae9; font-variant-numeric: tabular-nums; }
+.rc-effect-name { color: #e4edf5; overflow-wrap: anywhere; text-align: left; }
+.rc-effect-name:hover { text-decoration: underline; }
+.rc-insert-actions { margin-left: auto; }
+.rc-insert-actions button:enabled:hover { border-color: #a99ac4; background: #30374a; }
 .rc-viewport { position: relative; isolation: isolate; width: 100%; height: clamp(250px, 46vh, 580px); overflow: hidden; background-color: #0b1420; background-image: radial-gradient(#2d4052 1px, transparent 1px); background-size: 18px 18px; touch-action: none; cursor: grab; }
 .rc-viewport:active { cursor: grabbing; }
 .rc-wires { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; }

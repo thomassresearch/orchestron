@@ -70,9 +70,18 @@ Additional output groups retain their own port names and mappings. They share th
 
 ### Inserts versus shared returns
 
-An **insert** processes one strip in series after its voices are summed. Select that strip, choose a saved continuous patch with audio inputs and outputs in the **Inserts…** selector below the routing controls, then click the adjacent **Add**. Open **Inserts** on the strip to inspect its chain. Click a processor name to edit its patch, **↑** to move it earlier, or **×** to remove that insert instance. Reusing one saved effect creates separate processing instances; an insert does not appear as a separate mixer strip.
+An **insert** processes one strip in series after its voices are summed. Stop the instruments, then open **Mix → Routing → Inserts** above the graph.
 
-Removing an instrument from the rack also removes its dedicated inserts, including any inserts on those processors, plus their connections and mixer settings. Removing a single insert through the rack or its **×** button reconnects the remaining simple chain. Custom connections between surviving instances are preserved for inspection and repair; unrelated returns, sends and Master controls remain unchanged.
+1. Under **Insert on**, choose the instrument, return or **Master** you want to process.
+2. Under **Continuous effect**, choose a saved continuous instrument with named audio inputs and outputs. Click **Add insert**. Repeat to append another effect. Each click creates a separate instance, even when you choose the same patch twice.
+3. Read **Processing order** from top to bottom. Use **Move earlier** or **Move later** on a row to change when that effect processes the signal. The purple cables update to show the new order.
+4. Choose **Remove insert** on a row to remove that instance and reconnect the remaining serial chain. Removing a processor also removes any inserts nested inside it. Its saved library patch remains available.
+
+![The Inserts panel on Glass Keys shows Keys Insert followed by Stereo Delay, with controls to bypass, move or remove each effect.](../../screenshots/perform-routing-insert-chain.png)
+
+Click an insert card’s title and choose **Manage inserts** to open its owning strip’s chain. To nest an effect inside that processor, choose the processor itself under **Insert on**. The rack patch number distinguishes repeated instances. Click a processor’s name in the list to open its patch in Instrument Design.
+
+For a custom-wired chain, edit individual connections in the graph. Removing an insert from a custom chain preserves connections between the surviving instances. Removing an entire instrument from the rack also removes its dedicated inserts, their connections and their mixer settings.
 
 A **return** is a continuous rack instance that can receive sends from several sources and has its own mixer strip. Add it with **Add Instrument**, connect its output to Master, then add sends from the source strips. For a parallel reverb/delay arrangement, design the return patch to output the desired wet signal; the starter pass-through would merely add another copy of the dry signal.
 
@@ -128,7 +137,7 @@ Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI 
 
 A dashed cable shows an automatic direct output. A patch with a direct output can reach the speakers independently on each channel. An explicit main route redirects that channel. Sends and custom routes can run alongside the main route. Select a send to adjust its gain or pre/post tap while listening.
 
-Select a card to add an insert from the effect selector or open **Edit patch**. The owner’s **Inserts** list provides reorder, removal and bypass controls, including nested processors and Master inserts. Purple cables show the feed from **Before inserts** and the return to the processed strip. A shared return has its own strip and accepts sends from multiple instruments.
+Open **Inserts** above the graph to edit a strip’s [insert chain](#inserts-versus-shared-returns). Purple cables show the feed from **Before inserts** and the return to the processed strip. A shared return has its own strip and accepts sends from multiple instruments.
 
 The **Source** and **Destination** pickers and **Destination matrix** remain available below the graph. Expand a matrix row to edit its exact source port, destination or inlet. A missing instance or port stays visible in the graph so you can select and reconnect its cable. Select a processor with an invalid owner to remove that assignment.
 

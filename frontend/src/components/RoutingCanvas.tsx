@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { audioCopy } from "../lib/audioCopy";
 import { MASTER, previewAudioFeedback } from "../lib/audioRouting";
@@ -21,12 +21,13 @@ type Props = {
   selected: string; select: (id: string) => void; diagnostics: AudioDiagnostic[]; onlyFeedback: boolean;
   validationError: string | null; focus: AudioDiagnostic | null; onRemove: (rs: AudioRoute[]) => void; onError: (message: string | null) => void;
   nodeActions: (id: string) => ReactNode; diagnosticText: (d: AudioDiagnostic) => string;
+  insertPanel: (owner: string, chooseOwner: (id: string) => void) => ReactNode;
 };
 const kindLabel = (kind: AudioRoute["kind"]) => kind === "insert" ? "inserts" : kind;
 const stageLabel = (s: Socket) => s.stage === "raw" ? "rawStage" : s.stage === "input" ? "inputStage" : s.side === "in" ? "insertReturn" : "stripStage";
 
 export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact, setExact, purpose, setPurpose, running, selected, select,
-  diagnostics, onlyFeedback, validationError, focus, onRemove, onError, nodeActions, diagnosticText }: Props) {
+  diagnostics, onlyFeedback, validationError, focus, onRemove, onError, nodeActions, diagnosticText, insertPanel }: Props) {
   const sends = mixer.sends;
   const model = useMemo(() => routingCanvas(bindings, patches, graph, sends, exact, purpose === "custom"), [bindings, patches, graph, sends, exact, purpose]);
   const [positions, setPositions] = usePerformanceEditorState<Record<string, Point>>("mixer", "routingPositions", {});
@@ -46,6 +47,13 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
   const [hover, setHover] = useState<Socket | null>(null);
   const [selection, choose] = usePerformanceEditorState<string | null>("mixer", "selectedCable", null);
   const [nodeId, showNode] = useState<string | null>(null);
+  const [insertsOpen, setInsertsOpen] = usePerformanceEditorState("mixer", "routingInsertsOpen", false);
+  const [chosenOwner, setChosenOwner] = usePerformanceEditorState<{ selected: string; owner: string } | null>("mixer", "routingInsertOwner", null);
+  const insertPanelId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const hasStrip = (id: string) => id === MASTER || !!model.nodes.get(id)?.binding;
+  const selectedOwner = graph.insertOwners[selected] ?? selected;
+  const owner = chosenOwner?.selected === selected && hasStrip(chosenOwner.owner) ? chosenOwner.owner : hasStrip(selectedOwner) ? selectedOwner : "";
   const [channelId, setChannelId] = useState<string | null>(null);
   const drag = useRef<{ id: string; pointer: number; start: Point; position: Point } | null>(null);
   const wire = useRef<SVGPathElement>(null);
@@ -181,10 +189,15 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
     <div className="rc-tools">
       <div className="rc-kinds" role="group" aria-label={t("route")}>{(["main", "send", "custom"] as const).map(kind =>
         <button key={kind} type="button" data-kind={kind} aria-pressed={purpose === kind} disabled={running} onClick={() => setPurpose(kind)}>{t(kind)}</button>)}</div>
+      <button className="rc-insert-toggle" type="button" aria-expanded={insertsOpen} aria-controls={insertPanelId}
+        onClick={() => { cancel(); setInsertsOpen(!insertsOpen); }}>{t("inserts")}</button>
       <label><input type="checkbox" checked={exact} onChange={e => setExact(e.target.checked)} /> {t("exactPorts")}</label>
       <div className="rc-navigation"><button type="button" aria-label={t("zoomOut")} onClick={() => viewport.zoom(.8)}>−</button>
         <button type="button" aria-label={t("zoomIn")} onClick={() => viewport.zoom(1.25)}>+</button>
         <button type="button" onClick={() => viewport.fit()}>{t("fit")}</button></div>
+    </div>
+    <div id={insertPanelId} ref={panelRef} hidden={!insertsOpen}>
+      {insertsOpen && insertPanel(owner, id => setChosenOwner({ selected, owner: id }))}
     </div>
     <div className="rc-viewport" ref={viewport.host} aria-label={t("diagram")} onPointerMove={move}
       onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; cancel(); }}>
@@ -212,7 +225,10 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
             data-role={n.id === MASTER ? "master" : n.id === OUTPUT ? "output" : owner ? "insert" : n.patch?.always_on ? "return" : "instrument"}
             style={{ left: p.x, top: p.y, width: cardWidth, height: n.height }} onPointerDown={e => e.stopPropagation()}>
             <button type="button" className="rc-title" title={[name(n.id), n.id, owner && t("inserts") + " · " + name(owner), ...messages.map(diagnosticText)].filter(Boolean).join("\n")}
-              onClick={() => { if (n.binding || n.id === MASTER) select(n.id); showNode(n.id); choose(null); cancel(); }}
+              onClick={() => {
+                if (hasStrip(n.id)) { select(n.id); setChosenOwner(null); }
+                showNode(n.id); choose(null); cancel();
+              }}
               onPointerDown={e => {
                 if (e.button !== 0) return;
                 drag.current = { id: n.id, pointer: e.pointerId, start: { x: e.clientX, y: e.clientY }, position: p };
@@ -246,6 +262,10 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
         <select aria-label={t("send")} value={control?.tap ?? "post"} onChange={e => { updateSend({ tap: e.target.value as "pre" | "post" }); flush(); }}>
           <option value="pre">{t("pre")}</option><option value="post">{t("post")}</option></select></div>}
     </div> : inspected && <div className="rc-inspect"><strong>{name(inspected.id)}</strong>{nodeActions(inspected.id)}
+      {hasStrip(inspected.id) && <button onClick={() => {
+        setChosenOwner({ selected, owner: graph.insertOwners[inspected.id] ?? inspected.id }); setInsertsOpen(true); cancel();
+        requestAnimationFrame(() => panelRef.current?.querySelector("select")?.focus());
+      }}>{t("manageInserts")}</button>}
       {(faults.get(inspected.id) ?? []).map((d, i) => <small key={i} className="rc-issue" data-status={d.severity}>{diagnosticText(d)}</small>)}</div>}
   </section>;
 }

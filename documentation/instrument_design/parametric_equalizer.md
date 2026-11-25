@@ -5,7 +5,7 @@
 [Download Parametric Equalizer](../../examples/instruments/Parametric_Equalizer.orch.instrument.json)
 and import it using **Instrument Design → Import**. This continuous stereo effect
 has seven peaking bands, with independent left/right signal paths and linked gain
-settings. Add it to a source strip or Master using **Perform → Mixer → Inserts…**.
+settings. In **Perform → Mix → Routing → Inserts**, choose a source strip or Master, select **Parametric Equalizer** under **Continuous effect**, and click **Add insert**.
 
 ## Controls
 

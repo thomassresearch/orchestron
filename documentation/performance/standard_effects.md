@@ -21,7 +21,7 @@ These supplied stereo effects can process individual instrument strips or the co
 
 ## Inserts and Sends
 
-An **insert** processes a strip's entire signal. Select the instrument strip or Master, choose an effect under **Inserts…**, and click **Add**. Use the effect's own Mix control for dry/wet balance.
+An **insert** processes a strip's entire signal. Open **Mix → Routing → Inserts**, choose the strip or Master under **Insert on**, choose a **Continuous effect**, and click **Add insert**. The numbered list shows the order in which effects process the signal. Use the effect's own Mix control for dry/wet balance.
 
 An **effect send** adds a parallel path to a separate effect instrument, called a **return**. Several instruments can share it, each with its own send level. See [Audio Mixer and Routing](audio_mixer_and_routing.md) for the routing controls.
 

@@ -9,8 +9,8 @@ unity gain.
 
 ## Use as an insert
 
-1. With instruments stopped, open **Perform → Mixer**.
-2. On a source strip or Master, open **Inserts…**, select **Stereo Delay**, and click **Add**.
+1. With instruments stopped, open **Perform → Mix → Routing → Inserts**.
+2. Choose a source strip or Master under **Insert on**, select **Stereo Delay** under **Continuous effect**, and click **Add insert**.
 3. Set Tempo to your performance's BPM and Beats to the desired echo interval.
 4. Start the instruments. Controls marked **Live** respond during playback; restart the rack for settings marked **Requires restart**.
 5. Save Performance to retain that instance's settings.

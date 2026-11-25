@@ -1,5 +1,5 @@
 import { MASTER, masterEndpoint, mainPorts, newRoute } from "./audioRouting";
-import type { AudioGraph, MixerState, PatchListItem, SequencerInstrumentBinding } from "../types";
+import type { AudioGraph, AudioRoute, MixerState, PatchListItem, SequencerInstrumentBinding } from "../types";
 
 export function canBypassInsert(graph: AudioGraph, id: string, patch?: PatchListItem): boolean {
   return !!graph.insertOwners[id] && !!patch?.always_on && mainPorts(patch, "input").length > 0 &&
@@ -43,6 +43,42 @@ export function instrumentsWithInserts(graph: AudioGraph, selected: string[]): s
   return [...result];
 }
 
+type Connection = Omit<AudioRoute, "id">;
+
+function chainConnections(bindings: SequencerInstrumentBinding[], patches: PatchListItem[], owner: string, chain: string[]) {
+  const connections: Connection[] = [];
+  const patch = (id: string) => id === MASTER ? masterEndpoint : patches.find(p => p.id === bindings.find(b => b.id === id)?.patchId);
+  for (let i = 0; chain.length && i <= chain.length; i++) {
+    const sourceId = i === 0 ? owner : chain[i - 1];
+    const targetId = i === chain.length ? owner : chain[i];
+    const outputs = mainPorts(patch(sourceId), "output");
+    const inputs = mainPorts(patch(targetId), i === chain.length ? "output" : "input");
+    if (!outputs.length || inputs.length !== outputs.length) return null;
+    outputs.forEach((sourcePort, index) => connections.push({ sourceId, sourcePort, targetId, targetPort: inputs[index],
+      kind: "insert", sourceStage: i === 0 ? "raw" : "strip", targetStage: i === chain.length ? "strip" : "input" }));
+  }
+  return connections;
+}
+
+/** Rewiring a serial chain must preserve custom channel mappings, including edits to an insert cable. */
+export function editableInsertChain(graph: AudioGraph, bindings: SequencerInstrumentBinding[], patches: PatchListItem[], owner: string) {
+  const chain = insertChain(graph, owner);
+  if (!chain?.length) return chain;
+  const expected = chainConnections(bindings, patches, owner, chain);
+  if (!expected) return null;
+  const children = new Set(chain);
+  const routes = graph.routes.filter(r => {
+    if (!children.has(r.sourceId) && !children.has(r.targetId)) return false;
+    // Nested inserts keep their own feed and return when a parent moves.
+    if (children.has(r.sourceId) && r.sourceStage === "raw" && graph.insertOwners[r.targetId] === r.sourceId) return false;
+    if (children.has(r.targetId) && r.targetStage === "strip" && graph.insertOwners[r.sourceId] === r.targetId) return false;
+    return true;
+  });
+  const key = (r: Connection) => JSON.stringify([r.sourceId, r.sourceStage, r.sourcePort, r.targetId, r.targetStage, r.targetPort, r.kind]);
+  const remaining = new Set(expected.map(key));
+  return routes.length === expected.length && routes.every(r => remaining.delete(key(r))) ? chain : null;
+}
+
 export function wireInsertChain(graph: AudioGraph, bindings: SequencerInstrumentBinding[], patches: PatchListItem[], owner: string, chain: string[]): AudioGraph {
   const owned = Object.keys(graph.insertOwners).filter((id) => graph.insertOwners[id] === owner);
   const involved = new Set([...owned, ...chain]);
@@ -53,15 +89,9 @@ export function wireInsertChain(graph: AudioGraph, bindings: SequencerInstrument
       (involved.has(r.targetId) && r.targetStage === "input") || (r.targetId === owner && r.targetStage === "strip")
     ))
   )));
-  const patch = (id: string) => id === MASTER ? masterEndpoint : patches.find((p) => p.id === bindings.find((b) => b.id === id)?.patchId);
-  for (let i = 0; i <= chain.length && chain.length > 0; i++) {
-    const sourceId = i === 0 ? owner : chain[i - 1];
-    const targetId = i === chain.length ? owner : chain[i];
-    const outputs = mainPorts(patch(sourceId), "output");
-    const inputs = mainPorts(patch(targetId), i === chain.length ? "output" : "input");
-    if (outputs.length !== inputs.length || !outputs.length) throw new Error("Insert requires explicit, matching main input and output groups.");
-    outputs.forEach((sourcePort, index) => routes.push(newRoute({ sourceId, sourcePort, targetId, targetPort: inputs[index], kind: "insert", sourceStage: i === 0 ? "raw" : "strip", targetStage: i === chain.length ? "strip" : "input" })));
-  }
+  const connections = chainConnections(bindings, patches, owner, chain);
+  if (!connections) throw new Error("Insert requires explicit, matching main input and output groups.");
+  routes.push(...connections.map(newRoute));
   const insertOwners = { ...graph.insertOwners };
   for (const id of owned) delete insertOwners[id];
   for (const id of chain) insertOwners[id] = owner;
@@ -86,7 +116,7 @@ export function removeRackInstrument(
   let audioGraph = graph;
   const owner = graph.insertOwners[id];
   if (owner && !removed.has(owner)) {
-    const chain = insertChain(graph, owner);
+    const chain = editableInsertChain(graph, bindings, patches, owner);
     if (chain) {
       try {
         audioGraph = wireInsertChain(graph, bindings, patches, owner, chain.filter(processor => !removed.has(processor)));

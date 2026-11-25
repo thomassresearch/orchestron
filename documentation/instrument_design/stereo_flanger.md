@@ -9,8 +9,8 @@ Left and right retain separate audio paths; Stereo Phase offsets their sweeps.
 
 ## Use in a performance
 
-1. With instruments stopped, open **Perform → Mixer**.
-2. On an instrument strip or Master, open **Inserts…**, select **Stereo Flanger**, and click **Add**.
+1. With instruments stopped, open **Perform → Mix → Routing → Inserts**.
+2. Choose an instrument strip or Master under **Insert on**, select **Stereo Flanger** under **Continuous effect**, and click **Add insert**.
 3. Start with the defaults, then adjust the six performance controllers.
 4. Controls marked **Live** respond during playback. Restart the rack for settings marked **Requires restart**.
 5. Save Performance to retain that instance's settings.

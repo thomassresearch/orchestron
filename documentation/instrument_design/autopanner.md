@@ -9,8 +9,8 @@ stays in its original channel; the effect never sums or cross-feeds them.
 
 ## Use as an insert
 
-1. With instruments stopped, open **Perform → Mixer**.
-2. On a source strip or Master, open **Inserts…**, select **Autopanner**, and click **Add**.
+1. With instruments stopped, open **Perform → Mix → Routing → Inserts**.
+2. Choose a source strip or Master under **Insert on**, select **Autopanner** under **Continuous effect**, and click **Add insert**.
 3. Enter your performance's tempo and the number of quarter-note beats per full cycle.
 4. Start the instruments. Controls marked **Live** respond during playback. Restart the rack for settings marked **Requires restart**.
 5. Save Performance to retain that instance's values.

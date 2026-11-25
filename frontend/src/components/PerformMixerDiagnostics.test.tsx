@@ -5,7 +5,7 @@ import { api } from "../api/client";
 import { emptyAudioGraph } from "../lib/audioRouting";
 import { audioTemplate } from "../lib/audioTemplates";
 import { toPatchListItem } from "../lib/patchCatalog";
-import { wireInsertChain } from "../lib/insertRouting";
+import { insertChain, wireInsertChain } from "../lib/insertRouting";
 import { useAppStore } from "../store/useAppStore";
 import type { AudioDiagnostic, GuiLanguage } from "../types";
 import { MixerBody, PerformMixer } from "./PerformMixer";
@@ -92,6 +92,96 @@ it("uses the shared removal action for the insert × button", () => {
   const state = useAppStore.getState();
   expect(state.sequencerInstruments.map(b => b.id)).toEqual(["source"]);
   expect(state.audioGraph).toEqual(emptyAudioGraph());
+});
+
+it("adds dedicated effects, edits their signal order and removes them from the graph toolbar", () => {
+  const template = { ...effect, id: "template", name: "Template only", is_template: true };
+  const graph = emptyAudioGraph();
+  graph.routes.push({ id: "main", sourceId: "source", sourcePort: "left", targetId: "$master", targetPort: "left",
+    kind: "main", sourceStage: "strip", targetStage: "input" });
+  useAppStore.setState({ audioGraph: graph, patches: [source, effect, template] });
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()}/></PerformanceEditorProvider>);
+  fireEvent.click(container.querySelector('[data-cable-kind="main"]')!);
+  fireEvent.click(screen.getByRole("button", { name: "Inserts" }));
+  const panel = within(screen.getByRole("region", { name: "Inserts" }));
+  const add = panel.getByRole("button", { name: "Add insert" }) as HTMLButtonElement;
+  expect(add.disabled).toBe(true);
+  fireEvent.change(panel.getByLabelText("Insert on"), { target: { value: "source" } });
+  const effects = panel.getByLabelText("Continuous effect") as HTMLSelectElement;
+  expect([...effects.options].map(o => o.value)).toEqual(["", effect.id]);
+  fireEvent.change(effects, { target: { value: effect.id } });
+  const chain = () => insertChain(useAppStore.getState().audioGraph, "source")!;
+  fireEvent.click(add); fireEvent.click(add); fireEvent.click(add);
+  const [first, second, third] = chain();
+  expect(new Set(chain()).size).toBe(3);
+  expect(useAppStore.getState().sequencerInstruments.slice(-3).map(b => b.patchId)).toEqual(Array(3).fill(effect.id));
+  const row = (id: string) => within(container.querySelector<HTMLElement>(`[data-insert-id="${id}"]`)!);
+  expect((row(first).getByText("Move earlier") as HTMLButtonElement).disabled).toBe(true);
+  expect((row(third).getByText("Move later") as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(row(third).getByText("Move earlier"));
+  expect(chain()).toEqual([first, third, second]);
+  fireEvent.click(row(first).getByText("Move later"));
+  expect(chain()).toEqual([third, first, second]);
+  fireEvent.click(row(first).getByText("Remove insert"));
+  expect(chain()).toEqual([third, second]);
+  expect(useAppStore.getState().audioGraph.routes.filter(r => r.sourceId === third).map(r => [r.targetId, r.targetPort])).toEqual([[second, "left"], [second, "right"]]);
+  fireEvent.click(row(second).getByText("Remove insert"));
+  fireEvent.click(row(third).getByText("Remove insert"));
+  expect(useAppStore.getState().audioGraph).toEqual(graph);
+  expect(useAppStore.getState().sequencerInstruments).toEqual(bindings);
+  expect(panel.getByText("No inserts on this strip.")).toBeTruthy();
+});
+
+it("opens a selected processor’s owning chain, allows deliberate nesting and locks structural edits while running", () => {
+  const graph = wireInsertChain(emptyAudioGraph(), bindings, [source, effect], "$master", ["insert"]);
+  useAppStore.setState({ audioGraph: graph, activeSessionState: "running" });
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()}/></PerformanceEditorProvider>);
+  fireEvent.click(container.querySelector('[data-routing-node="insert"] .rc-title')!);
+  fireEvent.click(screen.getByText("Manage inserts"));
+  const panel = within(screen.getByRole("region", { name: "Inserts" }));
+  const owner = panel.getByLabelText("Insert on") as HTMLSelectElement;
+  expect(owner.value).toBe("$master");
+  expect((panel.getByText("Remove insert") as HTMLButtonElement).disabled).toBe(true);
+  expect((panel.getByRole("button", { name: /Bypass/ }) as HTMLButtonElement).disabled).toBe(false);
+  act(() => useAppStore.setState({ activeSessionState: "idle" }));
+  fireEvent.change(owner, { target: { value: "insert" } });
+  fireEvent.change(panel.getByLabelText("Continuous effect"), { target: { value: effect.id } });
+  fireEvent.click(panel.getByText("Add insert"));
+  const state = useAppStore.getState();
+  expect(insertChain(state.audioGraph, "insert")).toHaveLength(1);
+  expect(insertChain(state.audioGraph, "$master")).toEqual(["insert"]);
+});
+
+it("explains an empty effect library and an incompatible channel count without adding a rack instance", () => {
+  useAppStore.setState({ patches: [source] });
+  render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()}/></PerformanceEditorProvider>);
+  fireEvent.click(screen.getByRole("button", { name: "Inserts" }));
+  const panel = within(screen.getByRole("region", { name: "Inserts" }));
+  fireEvent.change(panel.getByLabelText("Insert on"), { target: { value: "source" } });
+  expect(panel.getByText(/save a continuous instrument/)).toBeTruthy();
+  const mono = { ...effect, audio_interface: undefined, audio_inlet_names: ["mono"], audio_outlet_names: ["mono"] };
+  act(() => useAppStore.setState({ patches: [source, mono] }));
+  fireEvent.change(panel.getByLabelText("Continuous effect"), { target: { value: mono.id } });
+  expect(panel.getByText(/main channels must match/)).toBeTruthy();
+  expect((panel.getByText("Add insert") as HTMLButtonElement).disabled).toBe(true);
+  expect(useAppStore.getState().sequencerInstruments).toBe(bindings);
+});
+
+it("preserves a custom insert channel mapping when removing a different processor", () => {
+  const rack = [...bindings, { ...bindings[1], id: "last" }];
+  const graph = wireInsertChain(emptyAudioGraph(), rack, [source, effect], "source", ["insert", "last"]);
+  for (const route of graph.routes.filter(r => r.targetId === "source")) route.targetPort = route.sourcePort === "left" ? "right" : "left";
+  useAppStore.setState({ audioGraph: graph, sequencerInstruments: rack });
+  const { container } = render(<PerformanceEditorProvider><MixerBody surface="routing" onStop={vi.fn()}/></PerformanceEditorProvider>);
+  fireEvent.click(container.querySelector('[data-routing-node="source"] .rc-title')!);
+  fireEvent.click(screen.getByRole("button", { name: "Inserts" }));
+  const panel = within(screen.getByRole("region", { name: "Inserts" }));
+  fireEvent.change(panel.getByLabelText("Continuous effect"), { target: { value: effect.id } });
+  expect(panel.getByText(/custom wiring/)).toBeTruthy();
+  expect((panel.getByText("Add insert") as HTMLButtonElement).disabled).toBe(true);
+  expect((panel.getAllByText("Move later")[0] as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(panel.getAllByText("Remove insert")[0]);
+  expect(useAppStore.getState().audioGraph.routes).toEqual(graph.routes.filter(r => r.targetId !== "insert" && r.sourceId !== "insert"));
 });
 
 it("offers live bypass only on continuous inserts and preserves the routing graph", async () => {
