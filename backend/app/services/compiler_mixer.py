@@ -528,6 +528,7 @@ def lower_mixer_bundle(
     performance_input_mode="midi",
     profile: CompilationProfile = CompilationProfile.LIVE,
     private_table_limits=None,
+    engine_config=None,
 ):
     validate_target_channels(targets)
     live_mixer = profile == CompilationProfile.LIVE
@@ -551,7 +552,7 @@ def lower_mixer_bundle(
         raise CompilationError(["Mixer controls reference an unknown instance or route."])
     controls = mixer_control_values(manifest, mixer)
     manifest["initialControls"] = controls
-    engine = resolve_shared_engine(targets)
+    engine = engine_config or resolve_shared_engine(targets)
     emitter = service._orchestra_emitter
     quote = emitter._format_csound_string
     names = {stage: "vcs_mix_" + token(stage) for stage in resolved.order}

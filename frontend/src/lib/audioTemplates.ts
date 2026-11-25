@@ -1,10 +1,13 @@
-import { defaultGraph } from "./defaultPatch";
+import { defaultGraph, withoutPatchEngine } from "./defaultPatch";
 import type { Patch, NodeInstance, Connection, AudioPortGroup } from "../types";
 import drumset from "../../../examples/instruments/template/analog_drumkit.patch.json";
 
 export type BuiltinTemplate = "instrument" | "effect" | "output" | "empty" | "drumset";
 export function audioTemplate(kind: BuiltinTemplate): Patch {
-  if (kind === "drumset") return { ...structuredClone(drumset), instrument_type: "percussion", always_on: false } as unknown as Patch;
+  if (kind === "drumset") {
+    const patch = structuredClone(drumset) as unknown as Patch;
+    return { ...patch, instrument_type: "percussion", always_on: false, graph: withoutPatchEngine(patch.graph) };
+  }
   const graph = defaultGraph();
   const node = (id: string, opcode: string, params: NodeInstance["params"], x: number, y: number) => graph.nodes.push({ id, opcode, params, position: { x, y } });
   const wire = (from: string, fromPort: string, to: string, toPort: string) => graph.connections.push({ from_node_id: from, from_port_id: fromPort, to_node_id: to, to_port_id: toPort } as Connection);

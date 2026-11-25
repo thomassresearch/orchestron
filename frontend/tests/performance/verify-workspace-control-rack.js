@@ -95,8 +95,8 @@ async page => {
   await button("Mixer", page.getByRole("navigation", { name: "Mix pages" })).click();
   await button("Instrument controls", tools).click();
   await verifyCards([bass, chorus, drive, lead]);
-  for (const name of ["Instrument Design", "Config", "Perform"]) {
-    await button(name, page.locator("[data-app-pages]")).click();
+  for (const name of ["Instrument Design", "Audio settings", "Perform"]) {
+    await button(name, page.locator(".app-header")).click();
     const header = page.locator(".app-header");
     check(await header.getByText("Visual opcode patching with realtime CSound performance sessions").isVisible(), "Missing shared description");
     check(await button(name,header).getAttribute("aria-current") === "page", "Wrong active page");

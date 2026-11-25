@@ -1,10 +1,10 @@
 import type { GuiLanguage } from "../types";
 
-export const GUI_LANGUAGE_OPTIONS: Array<{ value: GuiLanguage; label: string }> = [
-  { value: "english", label: "English" },
-  { value: "german", label: "German" },
-  { value: "french", label: "French" },
-  { value: "spanish", label: "Spanish" }
+export const GUI_LANGUAGE_OPTIONS: Array<{ value: GuiLanguage; label: string; lang: string }> = [
+  { value: "german", label: "Deutsch", lang: "de" },
+  { value: "english", label: "English", lang: "en" },
+  { value: "spanish", label: "Español", lang: "es" },
+  { value: "french", label: "Français", lang: "fr" }
 ];
 
 export const GUI_LANGUAGE_LABELS: Record<GuiLanguage, Record<GuiLanguage, string>> = {

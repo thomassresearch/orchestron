@@ -161,11 +161,12 @@ def test_instances_share_commands_but_have_independent_phase_and_settings(mode):
     from backend.app.services.compiler_service import CompilerService
     from backend.app.services.opcode_service import OpcodeService
     from backend.tools.stereo_delay_audio import probe_source, render_probe
+    from backend.app.models.patch import EngineConfig
 
     patch = load_patch_fixture("trance_gate")
     settings = [{"tg_lfo_start": 3, "tg_lfo_end": 9, "tg_lfo_time": .25},
                 {"tg_lfo_start": 13, "tg_lfo_end": 5, "tg_lfo_time": .5}]
-    targets = [PatchInstrumentTarget(probe_source(1), 0, assignment_id="source", always_on=True)]
+    targets = [PatchInstrumentTarget(probe_source(), 0, assignment_id="source", always_on=True)]
     routes = []
     for index, side in enumerate(("left", "right")):
         identity = f"gate{index}"
@@ -179,6 +180,7 @@ def test_instances_share_commands_but_have_independent_phase_and_settings(mode):
         ])
     artifact = CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
         targets, midi_input="0", rtmidi_module="none", performance_input_mode=mode,
+        engine_config=EngineConfig(ksmps=1),
         audio_graph=AudioGraph(routes=routes, masterId="$master"), mixer=MixerState())
     # Initial shared command predates both effect instances; no instance may reset it.
     if mode == "midi":

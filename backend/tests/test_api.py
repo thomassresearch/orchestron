@@ -1541,7 +1541,7 @@ def test_patch_update_rejects_control_characters_in_patch_name(tmp_path: Path) -
         assert "control characters" in response.text
 
 
-def test_engine_rates_drive_compiled_sr_and_ksmps(tmp_path: Path) -> None:
+def test_legacy_patch_engine_rates_are_ignored(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         patch_payload = {
             "name": "Engine Rate Patch",
@@ -1573,8 +1573,8 @@ def test_engine_rates_drive_compiled_sr_and_ksmps(tmp_path: Path) -> None:
         assert compile_response.status_code == 200
         orc = compile_response.json()["orc"]
 
-        assert "sr = 44100" in orc
-        assert "ksmps = 10" in orc
+        assert "sr = 48000" in orc
+        assert "ksmps = 32" in orc
 
 
 def test_patch_defaults_compile_to_48khz_and_32_ksmps(tmp_path: Path) -> None:
@@ -1599,15 +1599,7 @@ def test_patch_defaults_compile_to_48khz_and_32_ksmps(tmp_path: Path) -> None:
         create_patch = client.post("/api/patches", json=patch_payload)
         assert create_patch.status_code == 201
         created_graph = create_patch.json()["graph"]
-        assert created_graph["engine_config"] == {
-            "sr": 48_000,
-            "control_rate": 1_500,
-            "ksmps": 32,
-            "nchnls": 2,
-            "software_buffer": 128,
-            "hardware_buffer": 512,
-            "0dbfs": 1.0,
-        }
+        assert "engine_config" not in created_graph
         patch_id = create_patch.json()["id"]
 
         create_session = client.post("/api/sessions", json={"patch_id": patch_id})
@@ -2825,6 +2817,7 @@ def test_patch_bundle_export_uses_zip_when_gen_audio_is_referenced(tmp_path: Pat
             assert f"audio/{stored_name}" in entries
             exported_json = json.loads(archive.read("instrument.orch.instrument.json").decode("utf-8"))
             assert exported_json["name"] == "Bundled Patch"
+            assert "engine_config" not in exported_json["graph"]
             assert archive.read(f"audio/{stored_name}") == audio_bytes
 
 
@@ -2893,6 +2886,14 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
     if legacy:
         for kind, name in fixture["legacyNames"].items():
             payload["performance"]["config"]["sequencer"][kind][0]["name"] = name
+    else:
+        payload["performance"]["config"]["engineConfig"] = {"sr": 44100, "control_rate": 2205}
+    expected_config = migrate_sequencer_timing(migrate_arpeggiators(payload["performance"]["config"]))
+    if not legacy:
+        expected_config = {**expected_config, "engineConfig": {
+            "sr": 44100, "control_rate": 2205, "ksmps": 20, "nchnls": 2, "software_buffer": 128,
+            "hardware_buffer": 512, "0dbfs": 1.0,
+        }}
 
     with _client(tmp_path) as client:
         response = client.post("/api/bundles/export/performance", json=payload)
@@ -2904,11 +2905,12 @@ def test_performance_bundle_export_uses_zip_when_patch_definitions_reference_gen
             assert f"audio/{stored_name}" in entries
             exported_json = json.loads(archive.read("performance.orch.json").decode("utf-8"))
             assert exported_json["format"] == "orchestron.performance"
-            assert exported_json["performance"]["config"] == migrate_sequencer_timing(migrate_arpeggiators(payload["performance"]["config"]))
+            assert "engine_config" not in exported_json["patch_definitions"][0]["graph"]
+            assert exported_json["performance"]["config"] == expected_config
         imported = client.post("/api/bundles/import/expand", content=response.content,
                                headers={"X-File-Name": "names.orch.zip", "Content-Type": "application/zip"})
         assert imported.status_code == 200
-        assert imported.json()["performance"]["config"] == migrate_sequencer_timing(migrate_arpeggiators(payload["performance"]["config"]))
+        assert imported.json()["performance"]["config"] == expected_config
 
 
 def test_patch_bundle_export_uses_zip_when_sfload_asset_is_referenced(tmp_path: Path) -> None:
@@ -3093,6 +3095,7 @@ def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event
     payload["eventSource"] = event_source
     config = payload["performanceExport"]["performance"]["config"]
     config.update(version=18, instruments=[{"id": "source", "patchId": "patch-1", "midiChannel": 1}],
+                  engineConfig={"sr": 44100, "control_rate": 2205},
                   audioGraph={"routes": [], "masterId": "$master", "insertOwners": {}},
                   mixer={"strips": {"source": {"gainDb": -6.020599913279624}}, "sends": {}})
     with _client(tmp_path) as client:
@@ -7109,11 +7112,13 @@ def test_multi_instrument_compile_deduplicates_sfload_for_same_file(tmp_path: Pa
         assert "opcode:sfload (alias)" in compiled_orc
 
 
-def test_multi_instrument_compile_uses_first_instrument_engine_config(tmp_path: Path) -> None:
+def test_multi_instrument_compile_uses_project_engine_config(tmp_path: Path) -> None:
+    from backend.app.storage.db import PatchRecord
+
     with _client(tmp_path) as client:
         patch_payload = {
             "name": "Control Rate Variant",
-            "description": "first engine config should drive bundle header",
+            "description": "legacy instrument timing",
             "schema_version": 1,
             "graph": {
                 "nodes": [
@@ -7152,13 +7157,24 @@ def test_multi_instrument_compile_uses_first_instrument_engine_config(tmp_path: 
         patch_a_id = patch_a.json()["id"]
         patch_b_id = patch_b.json()["id"]
 
+        # Older library rows can still carry obsolete timing values.
+        with client.app.state.container.database.session() as db:
+            record = db.get(PatchRecord, patch_a_id)
+            graph = json.loads(record.graph_json)
+            graph["engine_config"] = {"sr": "obsolete"}
+            record.graph_json = json.dumps(graph)
+        restored_patch = client.get(f"/api/patches/{patch_a_id}")
+        assert restored_patch.status_code == 200, restored_patch.text
+        assert "engine_config" not in restored_patch.json()["graph"]
+
         create_session = client.post(
             "/api/sessions",
             json={
                 "instruments": [
                     {"patch_id": patch_a_id, "midi_channel": 1},
                     {"patch_id": patch_b_id, "midi_channel": 2},
-                ]
+                ],
+                "engine_config": {"sr": 32000, "control_rate": 2000},
             },
         )
         assert create_session.status_code == 201
@@ -7168,8 +7184,8 @@ def test_multi_instrument_compile_uses_first_instrument_engine_config(tmp_path: 
         assert compile_response.status_code == 200
 
         compiled_orc = compile_response.json()["orc"]
-        assert "sr = 44100" in compiled_orc
-        assert "ksmps = 10" in compiled_orc
+        assert "sr = 32000" in compiled_orc
+        assert "ksmps = 16" in compiled_orc
         assert "nchnls = 2" in compiled_orc
         assert "0dbfs = 1.0" in compiled_orc
         assert "instr 1" in compiled_orc
@@ -8232,11 +8248,9 @@ def test_native_ksmps_one_live_edit_arriving_during_render_keeps_next_sample_bou
     with _client(tmp_path) as client:
         monkeypatch.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
         patch = load_patch_fixture("midi_legato")
-        patch.graph.engine_config.ksmps = 1
-        patch.graph.engine_config.control_rate = 48000
         saved = client.post("/api/patches", json=patch.model_dump(mode="json"))
         assert saved.status_code == 201, saved.text
-        created = client.post("/api/sessions", json={"patch_id": saved.json()["id"]})
+        created = client.post("/api/sessions", json={"patch_id": saved.json()["id"], "engine_config": {"ksmps": 1}})
         assert created.status_code == 201, created.text
         base = f"/api/sessions/{created.json()['session_id']}"
         assert client.post(base + "/compile").status_code == 200
@@ -11090,7 +11104,7 @@ def test_grain_of_salt_public_parallel_selection_and_default(tmp_path, monkeypat
             assert socket.receive_json()['type'] == 'stream_config'
             socket.send_json({'type': 'request_render', 'block_count': 16})
             assert socket.receive_json()['type'] == 'render_chunk'
-            assert len(socket.receive_bytes()) == 16 * targets[0].patch.graph.engine_config.ksmps * 2 * 4
+            assert len(socket.receive_bytes()) == 16 * service._sessions[identity].engine_config.ksmps * 2 * 4
         assert client.post(f'/api/sessions/{identity}/stop').status_code == 200
         worker = service._sessions[identity].worker
         assert not worker._coordinator.process_ids and not admission.leases

@@ -32,7 +32,7 @@ def create_session(client, *, case="two", ksmps=32, start=True):
         assert response.status_code == 201, response.text
         assignments.append({"id": target.assignment_id, "patch_id": response.json()["id"],
                             "midi_channel": target.midi_channel})
-    response = client.post("/api/sessions", json={"instruments": assignments,
+    response = client.post("/api/sessions", json={"instruments": assignments, "engine_config": {"ksmps": ksmps},
         "audio_graph": graph.model_dump(mode="json", by_alias=True) if graph else None,
         "mixer": mixer.model_dump(mode="json", by_alias=True) if graph else {}})
     assert response.status_code == 201, response.text

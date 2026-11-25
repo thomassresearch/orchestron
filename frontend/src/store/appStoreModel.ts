@@ -29,7 +29,7 @@ import {
   normalizeBrowserClockLatencySettings,
   resolveDefaultBrowserClockLatencySettings
 } from "../lib/browserClockLatencyConfig";
-import { createUntitledPatch } from "../lib/defaultPatch";
+import { createUntitledPatch, withoutPatchEngine } from "../lib/defaultPatch";
 import { effectRouteKey, effectRouteWouldCreateLoop } from "../lib/effectRouting";
 import { normalizeGuiLanguage } from "../lib/guiLanguage";
 import {
@@ -275,6 +275,7 @@ export type PersistWatchState = {
   activePage: AppPage;
   guiLanguage: GuiLanguage;
   browserClockLatencySettings: BrowserClockLatencySettings;
+  engineConfig: EngineConfig;
   parallelRenderBatchFrames: number;
   instrumentTabs: InstrumentTabState[];
   activeInstrumentTabId: string;
@@ -2248,10 +2249,7 @@ export function normalizeEngineConfig(raw: Partial<EngineConfig> | undefined): E
 export function normalizePatchGraph(graph: PatchGraph): PatchGraph {
   const issues = controlFlowIssues(graph, false);
   if (issues.length) throw new Error(issues.join("\n"));
-  return {
-    ...normalizeStereoChannelNames(graph),
-    engine_config: normalizeEngineConfig(graph.engine_config)
-  };
+  return withoutPatchEngine(normalizeStereoChannelNames(graph));
 }
 
 export function defaultEditablePatch(): EditablePatch {
@@ -2463,6 +2461,7 @@ export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppSta
     activePage: normalizeAppPage(state.activePage),
     guiLanguage: normalizeGuiLanguage(state.guiLanguage),
     browserClockLatencySettings: normalizeBrowserClockLatencySettings(state.browserClockLatencySettings),
+    engineConfig: state.engineConfig,
     parallelRenderBatchFrames: state.parallelRenderBatchFrames,
     instrumentTabs: state.instrumentTabs.map((tab) => ({
       id: tab.id,
@@ -2498,6 +2497,7 @@ export function capturePersistWatchState(state: AppStore): PersistWatchState {
     activePage: state.activePage,
     guiLanguage: state.guiLanguage,
     browserClockLatencySettings: state.browserClockLatencySettings,
+    engineConfig: state.engineConfig,
     parallelRenderBatchFrames: state.parallelRenderBatchFrames,
     instrumentTabs: state.instrumentTabs,
     activeInstrumentTabId: state.activeInstrumentTabId,
@@ -2522,6 +2522,7 @@ export function hasPersistableStateChange(current: PersistWatchState, previous: 
     current.activePage !== previous.activePage ||
     current.guiLanguage !== previous.guiLanguage ||
     current.browserClockLatencySettings !== previous.browserClockLatencySettings ||
+    current.engineConfig !== previous.engineConfig ||
     current.parallelRenderBatchFrames !== previous.parallelRenderBatchFrames ||
     current.instrumentTabs !== previous.instrumentTabs ||
     current.activeInstrumentTabId !== previous.activeInstrumentTabId ||
@@ -2971,7 +2972,8 @@ export function buildSequencerConfigSnapshot(
   audioGraph: AudioGraph = emptyAudioGraph(),
   mixer: MixerState = emptyMixer(),
   arrangerHistory: ArrangerHistory = emptyArrangerHistory(),
-  routingLayout: RoutingLayout = {}
+  routingLayout: RoutingLayout = {},
+  engineConfig: EngineConfig = normalizeEngineConfig(undefined)
 ): SequencerConfigSnapshot {
   const clipLanes = new Set(sequencer.clipArrangement?.lanes.map(lane => lane.id));
   const timing = normalizeSequencerTiming(sequencer.timing);
@@ -2983,6 +2985,7 @@ export function buildSequencerConfigSnapshot(
   return {
     ...(hasSampleMaps(instruments) ? { sampleAssets: sampleManifest(instruments) } : {}),
     version: authoredFormatVersions(sequencer, instruments).performance,
+    engineConfig: { ...engineConfig },
     ...(Object.keys(routingLayout).length ? { routingLayout: readRoutingLayout(routingLayout, instruments, audioGraph) } : {}),
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
@@ -3187,7 +3190,7 @@ export function parseSequencerConfigSnapshot(
   snapshot: unknown,
   availablePatches: PatchListItem[],
   fallbackPatchId: string | null
-): { sequencer: SequencerState; instruments: SequencerInstrumentBinding[]; audioGraph: AudioGraph; mixer: MixerState; migrationNotice: boolean; routingLayout: RoutingLayout; arrangerHistory: ArrangerHistory; arrangerHistoryNotice: boolean } {
+): { engineConfig: EngineConfig; sequencer: SequencerState; instruments: SequencerInstrumentBinding[]; audioGraph: AudioGraph; mixer: MixerState; migrationNotice: boolean; routingLayout: RoutingLayout; arrangerHistory: ArrangerHistory; arrangerHistoryNotice: boolean } {
   if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
     throw new Error("Invalid sequencer config file.");
   }
@@ -3278,6 +3281,7 @@ export function parseSequencerConfigSnapshot(
 
   const audio = migrateAudio(instruments, availablePatches, Number(payload.version) >= 11 ? payload.audioGraph as AudioGraph : undefined, payload.mixer as MixerState | undefined);
   return {
+    engineConfig: normalizeEngineConfig(payload.engineConfig as Partial<EngineConfig> | undefined),
     ...readArrangerHistory(payload.arrangerHistory, sequencer),
     routingLayout: readRoutingLayout(payload.routingLayout, instruments, audio.audioGraph),
     sequencer,

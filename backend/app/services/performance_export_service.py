@@ -237,6 +237,7 @@ class PerformanceExportService:
             packaged_asset_paths=frozenset(asset.archive_path for asset in bundle_index.assets),
             performance_input_mode="score" if request.event_source == "score" else "midi",
             profile=CompilationProfile.OFFLINE,
+            engine_config=self._offline_engine_config(config.engine_config),
             audio_graph=config.audio_graph,
             mixer=config.mixer,
         )
@@ -440,7 +441,6 @@ class PerformanceExportService:
         rewritten: list[ExportedPatchDefinition] = []
         for definition in patch_definitions:
             graph = definition.graph.model_copy(deep=True)
-            graph.engine_config = self._offline_engine_config(graph.engine_config)
             self._rewrite_graph_asset_paths(graph, bundle_index)
             rewritten.append(
                 definition.model_copy(

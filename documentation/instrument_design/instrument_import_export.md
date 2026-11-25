@@ -36,7 +36,7 @@ An instrument bundle contains:
 - patch description
 - template flag
 - instrument type (Percussion, Melody, Bass, Effects / Noise, or Continuous)
-- complete editable graph, layout and engine settings
+- complete editable graph and layout. Imported instruments use the current project’s engine settings
 
 If a ZIP bundle is required, it also contains referenced uploaded audio/SoundFont/analysis assets under an `audio/` folder in the archive.
 

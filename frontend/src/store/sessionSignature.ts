@@ -2,7 +2,7 @@ import type { SessionRendererRequest } from "../types";
 import type { AppStore } from "./appStoreTypes";
 
 type RendererState = Pick<AppStore, "parallelPlaybackEnabled" | "browserClockLatencySettings" | "parallelRenderBatchFrames">;
-type SessionSignatureState = RendererState & Pick<AppStore, "audioGraph" | "patches">;
+type SessionSignatureState = RendererState & Pick<AppStore, "audioGraph" | "patches" | "engineConfig">;
 
 export function sessionRendererRequest(state: RendererState): SessionRendererRequest | undefined {
   return state.parallelPlaybackEnabled ? {
@@ -17,6 +17,7 @@ export function sessionAudioSignature(state: SessionSignatureState): string {
   const renderer = sessionRendererRequest(state);
   return JSON.stringify({
     graph: state.audioGraph,
+    engineConfig: state.engineConfig,
     patches: state.patches.map(patch => [patch.id, patch.updated_at]),
     ...(renderer ? { renderer } : {})
   });

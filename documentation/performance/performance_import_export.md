@@ -56,7 +56,7 @@ Save open musical and structural drafts before exporting. Temporary auditions ar
 
 ## Native performance export
 
-Choose **Project → Export** in any Perform view. The bundle preserves the whole rack, instrument definitions, routes, Master and inserts, mixer settings, device names and channels, saved patterns, arrangement, transposition, instrument settings and MIDI mappings. Arranger Undo/Redo history is also retained when compatible.
+Choose **Project → Export** in any Perform view. The bundle preserves the project’s audio engine settings, the whole rack, instrument definitions, routes, Master and inserts, mixer settings, device names and channels, saved patterns, arrangement, transposition, instrument settings and MIDI mappings. Arranger Undo/Redo history is also retained when compatible.
 
 When instruments use uploaded audio samples, SoundFonts or analysis files, Orchestron creates a ZIP containing the required assets. Otherwise it can use JSON. Keep the downloaded bundle intact for importing on another machine.
 

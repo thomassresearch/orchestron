@@ -155,7 +155,7 @@ it("creates a fresh session for a loaded performance even when its rack IDs matc
   const create = vi.spyOn(api, "createSession").mockResolvedValue({ session_id: "fresh", instruments: assignments, state: "idle", patch_id: "patch" });
   expect(await useAppStore.getState().ensureSession()).toBe("fresh");
   expect(remove).toHaveBeenCalledWith("previous");
-  expect(create).toHaveBeenCalledWith(assignments, state.audioGraph, state.mixer, { renderer_mode: "auto", browser_settings: state.browserClockLatencySettings, parallel_batch_frames: 256 });
+  expect(create).toHaveBeenCalledWith({ instruments: assignments, audio_graph: state.audioGraph, mixer: state.mixer, engine_config: state.engineConfig, renderer_mode: "auto", browser_settings: state.browserClockLatencySettings, parallel_batch_frames: 256 });
   expect(useAppStore.getState().activeSessionWorkspaceGeneration).toBe(1);
 });
 
@@ -189,12 +189,12 @@ it("keeps the renderer choice out of saved state and recreates a stopped session
   vi.spyOn(api, "stopSession").mockResolvedValue({ session_id: "single", state: "compiled", detail: "stopped" });
   const remove = vi.spyOn(api, "deleteSession").mockResolvedValue(undefined);
   await useAppStore.getState().ensureSession();
-  expect(create.mock.calls[0]).toHaveLength(3);
+  expect(create.mock.calls[0][0].renderer_mode).toBeUndefined();
   useAppStore.getState().setParallelPlaybackEnabled(true);
   expect(JSON.stringify(buildPersistedAppStateSnapshot(useAppStore.getState()))).not.toContain("parallelPlaybackEnabled");
   await useAppStore.getState().ensureSession();
   expect(remove).toHaveBeenCalledWith("single");
-  expect(create.mock.calls[1][3]).toEqual({ renderer_mode: "auto", browser_settings: useAppStore.getState().browserClockLatencySettings, parallel_batch_frames: 256 });
+  expect(create.mock.calls[1][0]).toMatchObject({ renderer_mode: "auto", browser_settings: useAppStore.getState().browserClockLatencySettings, parallel_batch_frames: 256 });
   useAppStore.setState({ activeSessionState: "running" });
   useAppStore.getState().setParallelPlaybackEnabled(false);
   expect(useAppStore.getState().parallelPlaybackEnabled).toBe(true);
@@ -231,7 +231,7 @@ it("saves batch size separately from opt-in and replaces a stopped parallel sess
   expect(buildPersistedAppStateSnapshot(useAppStore.getState()).parallelRenderBatchFrames).toBe(1024);
   await useAppStore.getState().ensureSession();
   expect(remove).toHaveBeenCalledWith("first");
-  expect(create.mock.calls[1][3]).toMatchObject({ renderer_mode: "auto", parallel_batch_frames: 1024 });
+  expect(create.mock.calls[1][0]).toMatchObject({ renderer_mode: "auto", parallel_batch_frames: 1024 });
 });
 
 it.each([undefined, 32, 255, 1024, 31, 1025, 128.5, "512"])("restores batch preference safely (%s)", async value => {
@@ -248,4 +248,34 @@ it.each([undefined, 32, 255, 1024, 31, 1025, 128.5, "512"])("restores batch pref
   expect(useAppStore.getState().parallelPlaybackEnabled).toBe(true);
   expect(useAppStore.getState().error).toBeNull();
   useAppStore.setState({ hasLoadedBootstrap: false });
+});
+
+it("keeps engine settings with the project across instrument edits, recovery and project replacement", async () => {
+  const state = useAppStore.getState();
+  const defaults = state.engineConfig;
+  const patch = savedPatch();
+  patch.graph = { ...patch.graph, engine_config: { ...defaults, sr: 32000 } };
+  vi.spyOn(api, "getPatch").mockResolvedValue(patch);
+  const createPatch = vi.spyOn(api, "createPatch");
+  const updatePatch = vi.spyOn(api, "updatePatch");
+
+  state.applyEngineConfig({ sr: 44100, controlRate: 2205, softwareBuffer: 256, hardwareBuffer: 1024 });
+  const project = { ...defaults, sr: 44100, control_rate: 2205, ksmps: 20, software_buffer: 256, hardware_buffer: 1024 };
+  expect(useAppStore.getState().currentPatch).toBe(state.currentPatch);
+  await state.loadPatch(patch.id);
+  state.addInstrumentTab();
+  expect(useAppStore.getState().engineConfig).toEqual(project);
+  expect(createPatch).not.toHaveBeenCalled();
+  expect(updatePatch).not.toHaveBeenCalled();
+
+  const snapshot = state.buildSequencerConfigSnapshot();
+  expect(snapshot.engineConfig).toEqual(project);
+  expect(buildPersistedAppStateSnapshot(useAppStore.getState()).engineConfig).toEqual(project);
+  await state.newPerformanceWorkspace();
+  expect(useAppStore.getState().engineConfig).toEqual(defaults);
+  state.applySequencerConfigSnapshot(snapshot);
+  expect(useAppStore.getState().engineConfig).toEqual(project);
+  delete snapshot.engineConfig;
+  state.applySequencerConfigSnapshot(snapshot);
+  expect(useAppStore.getState().engineConfig).toEqual(defaults);
 });

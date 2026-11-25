@@ -6,10 +6,10 @@ from backend.app.models.audio import AudioInterface
 
 from datetime import datetime, timezone
 import re
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 from backend.app.models.instrument_type import InstrumentType, infer_instrument_type
 from backend.app.models.opcode import SignalType
@@ -423,11 +423,11 @@ class EngineConfig(BaseModel):
     def sync_rates(self) -> "EngineConfig":
         fields = self.model_fields_set
         if "control_rate" not in fields and "ksmps" in fields and self.ksmps > 0:
-            derived_control_rate = round(self.sr / self.ksmps)
+            derived_control_rate = (2 * self.sr + self.ksmps) // (2 * self.ksmps)
             if CONTROL_RATE_MIN <= derived_control_rate <= CONTROL_RATE_MAX:
                 self.control_rate = derived_control_rate
 
-        self.ksmps = max(1, round(self.sr / self.control_rate))
+        self.ksmps = max(1, (2 * self.sr + self.control_rate) // (2 * self.control_rate))
         return self
 
 
@@ -437,7 +437,8 @@ class PatchGraph(BaseModel):
     nodes: list[NodeInstance] = Field(default_factory=list)
     connections: list[Connection] = Field(default_factory=list)
     ui_layout: dict[str, JsonValue] = Field(default_factory=dict)
-    engine_config: EngineConfig = Field(default_factory=EngineConfig)
+    # Internal compile helpers can still construct standalone graphs with explicit timing.
+    engine_config: EngineConfig = Field(default_factory=EngineConfig, exclude=True)
     audio_interface: AudioInterface | None = None
     control_flow: dict[str, ControlFlowBlock] = Field(default_factory=dict)
 
@@ -465,6 +466,22 @@ class PatchGraph(BaseModel):
         return self
 
 
+def _discard_patch_engine(graph):
+    if isinstance(graph, dict) and "engine_config" in graph:
+        return {key: value for key, value in graph.items() if key != "engine_config"}
+    return graph
+
+
+AuthoredPatchGraph = Annotated[PatchGraph, BeforeValidator(_discard_patch_engine)]
+
+
+def normalize_project_engine(config):
+    if isinstance(config, dict) and "engineConfig" in config:
+        engine = EngineConfig.model_validate(config["engineConfig"])
+        return {**config, "engineConfig": engine.model_dump(by_alias=True)}
+    return config
+
+
 class PatchBase(BaseModel):
     name: str = Field(min_length=1, max_length=128)
     description: str = Field(default="", max_length=2_048)
@@ -472,7 +489,7 @@ class PatchBase(BaseModel):
     always_on: bool = False
     instrument_type: InstrumentType = "melody"
     schema_version: Literal[1, 2] = 1
-    graph: PatchGraph
+    graph: AuthoredPatchGraph
 
     @model_validator(mode="after")
     def promote_control_flow_schema(self) -> "PatchBase":
@@ -499,7 +516,7 @@ class PatchUpdateRequest(BaseModel):
     is_template: bool | None = None
     always_on: bool | None = None
     instrument_type: InstrumentType | None = None
-    graph: PatchGraph | None = None
+    graph: AuthoredPatchGraph | None = None
     schema_version: Literal[1, 2] | None = None
 
     @field_validator("name")

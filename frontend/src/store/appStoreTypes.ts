@@ -69,6 +69,7 @@ export interface AppStore {
 
   activePage: AppPage;
   guiLanguage: GuiLanguage;
+  engineConfig: import("../types").EngineConfig;
   browserClockLatencySettings: BrowserClockLatencySettings;
   parallelRenderBatchFrames: number;
   setParallelRenderBatchFrames: (frames: number) => void;
@@ -419,7 +420,7 @@ export interface AppStore {
     controlRate: number;
     softwareBuffer: number;
     hardwareBuffer: number;
-  }) => Promise<void>;
+  }) => void;
 
   ensureSession: () => Promise<string>;
   compileSession: () => Promise<CompileResponse | null>;

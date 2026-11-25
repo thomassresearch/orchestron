@@ -1517,6 +1517,7 @@ def empty_performance_config(*, tempo: int = 120) -> dict[str, Any]:
     timing = default_timing(tempo)
     return {
         "version": CURRENT_CONFIG_VERSION,
+        "engineConfig": {},
         "audioGraph": {"routes": [], "masterId": "$master", "insertOwners": {}},
         "mixer": {"strips": {}, "sends": {}},
         "instruments": [],
@@ -1945,6 +1946,7 @@ def normalize_performance_config(
     if migrated is not config:
         config.clear()
         config.update(migrated)
+    config.setdefault("engineConfig", {})
     if not normalize_samples(config):
         clips = config.get("sequencer", {}).get("clipArrangement")
         config["version"] = CURRENT_CONFIG_VERSION if clips is None else {2: 24, 3: 25, 4: 26, 5: 28}.get(clips.get("version"), 23)
@@ -2063,6 +2065,8 @@ def legacy_audio_inlet(source: str, outlets: list[str], inlets: list[str]) -> st
 
 def session_audio_request(config: dict[str, Any]) -> dict[str, Any]:
     body = {"instruments": session_assignments_from_config(config)}
+    if "engineConfig" in config:
+        body["engine_config"] = config["engineConfig"]
     if "sampleAssets" in config:
         body["sample_assets"] = config["sampleAssets"]
     if "audioGraph" in config:

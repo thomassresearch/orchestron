@@ -7,6 +7,7 @@ import numpy as np
 
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.models.audio import AudioGraph, AudioRoute, MixerState
+from backend.app.models.patch import EngineConfig
 from backend.app.services.compiler_common import CompilationProfile, PatchInstrumentTarget
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
@@ -17,7 +18,7 @@ from backend.tools.tube_overdrive_audio import SAMPLE_RATE, write_float_wav
 def render(patch, speech, sound, *, values=None, ksmps=32, mode='midi'):
     targets, routes = [], []
     for name in ('speech', 'sound'):
-        source = probe_source(ksmps)
+        source = probe_source()
         source.id = name
         for node in source.graph.nodes:
             node.id = name + '_' + node.id
@@ -31,12 +32,11 @@ def render(patch, speech, sound, *, values=None, ksmps=32, mode='midi'):
     for side in ('left', 'right'):
         routes.append(AudioRoute(id=f'out-{side}', sourceId='vocoder', sourcePort=side,
                                  targetId='$master', targetPort=side, kind='main'))
-    patch = patch.model_copy(deep=True)
-    patch.graph.engine_config.ksmps = ksmps
     targets.append(PatchInstrumentTarget(patch, 0, assignment_id='vocoder', always_on=True,
                                         performance_controller_values=values or {}))
     artifact = CompilerService(OpcodeService('/static/icons')).compile_patch_bundle(
         targets, midi_input='0', rtmidi_module='none', performance_input_mode=mode,
+        engine_config=EngineConfig(sr=SAMPLE_RATE, ksmps=ksmps),
         profile=CompilationProfile.OFFLINE if ksmps == 1 else CompilationProfile.LIVE,
         audio_graph=AudioGraph(routes=routes, masterId='$master'), mixer=MixerState())
     with TemporaryDirectory(prefix='vocoder-audio-') as directory:

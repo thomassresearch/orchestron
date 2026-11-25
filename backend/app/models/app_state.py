@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field, JsonValue, field_validator
 
 
+from backend.app.models.patch import normalize_project_engine
 from backend.app.models.score_validation import validate_authored_scores
 from backend.app.models.sample_player import validate_authored_samples
 from backend.app.models.clip_validation import validate_authored_clips
@@ -17,7 +18,7 @@ class AppStateUpdateRequest(BaseModel):
     @field_validator("state")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_samples(validate_authored_clips(validate_authored_scores(value)), recovery=True)
+        return validate_authored_samples(validate_authored_clips(validate_authored_scores(normalize_project_engine(value))), recovery=True)
 
 
 class AppStateResponse(BaseModel):

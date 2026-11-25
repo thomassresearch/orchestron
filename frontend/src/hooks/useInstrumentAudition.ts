@@ -108,7 +108,7 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
         run.midi = built.midi;
         await primed;
         if (run.cancelled) return;
-        const response = await api.createPreview(built.payload);
+        const response = await api.createPreview({ ...built.payload, session: { ...built.payload.session, engine_config: useAppStore.getState().engineConfig } });
         run.id = response.session_id;
         if (run.cancelled) return;
         const compiled = await api.compileSession(run.id);

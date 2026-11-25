@@ -179,6 +179,7 @@ class SessionService:
                     request.browser_settings, parallel_batch_frames=request.parallel_batch_frames)
             runtime = RuntimeSession(
                 session_id=str(uuid4()),
+                engine_config=request.engine_config,
                 instruments=instruments,
                 sample_assets=assets,
                 audio_graph=request.audio_graph,
@@ -537,6 +538,7 @@ class SessionService:
                     target.fm6_preview = preview_values(target.patch)
             artifact = self._compiler_service.compile_patch_bundle(
                 targets=targets,
+                engine_config=runtime.engine_config,
                 midi_input=self._resolve_runtime_midi_backend_selector(runtime),
                 rtmidi_module=self._settings.default_rtmidi_module,
                 audio_graph=runtime.audio_graph,
@@ -546,7 +548,7 @@ class SessionService:
             if fm6:
                 artifact.manifest["fm6Preview"] = fm6
             if runtime.renderer_controller is not None:
-                runtime.renderer_controller.prepare(self._compiler_service, targets, runtime.audio_graph, runtime.mixer, artifact)
+                runtime.renderer_controller.prepare(self._compiler_service, targets, runtime.audio_graph, runtime.mixer, artifact, engine_config=runtime.engine_config)
             return artifact
 
         try:

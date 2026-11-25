@@ -15,14 +15,14 @@ import numpy as np
 
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.models.audio import AudioGraph, AudioRoute, MixerState
-from backend.app.models.patch import PatchDocument
+from backend.app.models.patch import EngineConfig, PatchDocument
 from backend.app.services.compiler_common import CompilationProfile, PatchInstrumentTarget
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 from backend.tools.tube_overdrive_audio import SAMPLE_RATE, load_patch, metrics, write_float_wav
 
 
-def probe_source(ksmps=32):
+def probe_source():
     nodes, connections = [], []
     for side in ("left", "right"):
         nodes.extend([dict(id=f"probe_{side}", opcode="const_a", params=dict(value=0)),
@@ -31,8 +31,7 @@ def probe_source(ksmps=32):
                                 to_node_id=f"out_{side}", to_port_id="asignal"))
     return PatchDocument.model_validate(dict(
         id="stereo-delay-probe", name="Delay probe source", instrument_type="continuous",
-        graph=dict(nodes=nodes, connections=connections,
-                   engine_config=dict(sr=SAMPLE_RATE, ksmps=ksmps)),
+        graph=dict(nodes=nodes, connections=connections),
     ))
 
 
@@ -51,12 +50,11 @@ def insert_graph():
 
 
 def compile_probe(patch, *, values=None, ksmps=32, mode="midi"):
-    effect = patch.model_copy(deep=True)
-    effect.graph.engine_config.ksmps = ksmps
     return CompilerService(OpcodeService("/static/icons")).compile_patch_bundle(
-        [PatchInstrumentTarget(probe_source(ksmps), 0, assignment_id="source", always_on=True),
-         PatchInstrumentTarget(effect, 0, assignment_id="delay", always_on=True,
+        [PatchInstrumentTarget(probe_source(), 0, assignment_id="source", always_on=True),
+         PatchInstrumentTarget(patch, 0, assignment_id="delay", always_on=True,
                                performance_controller_values=values or {})],
+        engine_config=EngineConfig(sr=SAMPLE_RATE, ksmps=ksmps),
         midi_input="0", rtmidi_module="none", performance_input_mode=mode,
         profile=CompilationProfile.OFFLINE if ksmps == 1 else CompilationProfile.LIVE,
         audio_graph=insert_graph(), mixer=MixerState(),

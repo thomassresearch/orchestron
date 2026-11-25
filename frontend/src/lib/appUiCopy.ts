@@ -58,13 +58,6 @@ export type AppCopy = {
   };
 };
 
-export const GUI_LANGUAGE_SHORT_LABELS: Record<GuiLanguage, string> = {
-  english: "EN",
-  german: "DE",
-  french: "FR",
-  spanish: "ES"
-};
-
 export const APP_COPY: Record<GuiLanguage, AppCopy> = {
   english: {
     appIconAlt: "Orchestron icon",
@@ -73,7 +66,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
     guiLanguage: "GUI Language",
     instrumentDesign: "Instrument Design",
     perform: "Perform",
-    config: "Config",
+    config: "Audio settings",
     graphEditor: "Graph Editor",
     graphStats: (nodes, connections) => `Graph Editor (${nodes} nodes, ${connections} connections)`,
     selectedSummary: (nodes, connections) => `Selected: ${nodes} opcode(s), ${connections} connection(s)`,
@@ -131,7 +124,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
     guiLanguage: "GUI-Sprache",
     instrumentDesign: "Instrument-Design",
     perform: "Performance",
-    config: "Konfig",
+    config: "Audioeinstellungen",
     graphEditor: "Graph-Editor",
     graphStats: (nodes, connections) => `Graph-Editor (${nodes} Nodes, ${connections} Verbindungen)`,
     selectedSummary: (nodes, connections) => `Ausgewaehlt: ${nodes} Opcode(s), ${connections} Verbindung(en)`,
@@ -190,7 +183,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
     guiLanguage: "Langue GUI",
     instrumentDesign: "Design instrument",
     perform: "Performance",
-    config: "Config",
+    config: "Réglages audio",
     graphEditor: "Editeur de graphe",
     graphStats: (nodes, connections) => `Editeur de graphe (${nodes} noeuds, ${connections} connexions)`,
     selectedSummary: (nodes, connections) => `Selection: ${nodes} opcode(s), ${connections} connexion(s)`,
@@ -251,7 +244,7 @@ export const APP_COPY: Record<GuiLanguage, AppCopy> = {
     guiLanguage: "Idioma de GUI",
     instrumentDesign: "Diseno de instrumento",
     perform: "Performance",
-    config: "Config",
+    config: "Ajustes de audio",
     graphEditor: "Editor de grafos",
     graphStats: (nodes, connections) => `Editor de grafos (${nodes} nodos, ${connections} conexiones)`,
     selectedSummary: (nodes, connections) => `Seleccionado: ${nodes} opcode(s), ${connections} conexion(es)`,

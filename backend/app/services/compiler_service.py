@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 
-from backend.app.models.patch import PatchDocument
+from backend.app.models.patch import EngineConfig, PatchDocument
 from backend.app.models.audio import AudioGraph
 from backend.app.models.render_plan import RenderDependencyGraph
 from backend.app.models.session import CompileArtifact
@@ -39,16 +39,16 @@ class CompilerService:
         self._orchestra_emitter = OrchestraEmitter(gen_asset_service=gen_asset_service)
 
     def analyze_realtime_graph(
-        self, targets: list[PatchInstrumentTarget], audio_graph: AudioGraph | None = None,
+        self, targets: list[PatchInstrumentTarget], audio_graph: AudioGraph | None = None, *, engine_config: EngineConfig | None = None,
     ) -> RenderDependencyGraph:
         """Optional LIVE/MIDI analysis; never selects rendering or replaces compile validation."""
         from backend.app.services.compiler_render_graph import analyze_render_graph
-        return analyze_render_graph(targets, audio_graph, self._opcode_service)
+        return analyze_render_graph(targets, audio_graph, self._opcode_service, engine_config=engine_config)
 
-    def compile_realtime_partitions(self, targets, audio_graph, mixer, plan):
+    def compile_realtime_partitions(self, targets, audio_graph, mixer, plan, *, engine_config=None):
         """Internal qualification artifacts only; never used by sessions or CSD exports."""
         from backend.app.services.compiler_partitioned import compile_realtime_partitions
-        return compile_realtime_partitions(self, targets, audio_graph, mixer, plan)
+        return compile_realtime_partitions(self, targets, audio_graph, mixer, plan, engine_config=engine_config)
 
     def compile_patch(
         self,
@@ -74,6 +74,7 @@ class CompilerService:
         midi_input: str,
         rtmidi_module: str,
         *,
+        engine_config: EngineConfig | None = None,
         packaged_asset_paths: frozenset[str] = frozenset(),
         performance_input_mode: str = "midi",
         profile: CompilationProfile = CompilationProfile.LIVE,
@@ -106,13 +107,13 @@ class CompilerService:
             artifact = compile_mixer_bundle(self, targets, audio_graph, mixer or MixerState(),
                 midi_input=midi_input, rtmidi_module=rtmidi_module,
                 packaged_asset_paths=packaged_asset_paths,
-                performance_input_mode=performance_input_mode, profile=profile)
+                performance_input_mode=performance_input_mode, profile=profile, engine_config=engine_config)
             if controller_manifest:
                 artifact.manifest["performanceControllers"] = controller_manifest
             return artifact
 
         validate_target_channels(targets)
-        engine = resolve_shared_engine(targets)
+        engine = engine_config or resolve_shared_engine(targets)
 
         instrument_names = self._instrument_names(targets)
         legato_targets = {index: target for index, target in enumerate(targets, 1) if has_legato(target.patch)}

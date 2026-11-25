@@ -8,13 +8,13 @@ export const configHelpDocuments: HelpDocumentSet<ConfigHelpDocId> = {
       title: "Audio Engine Configuration",
       markdown: `## Audio Engine Configuration
 
-Configure patch-level Csound engine timing plus browser-clock latency controls when browser-clock audio is active.
+Configure project-wide Csound engine timing plus browser-clock latency controls when browser-clock audio is active.
 
 - \`sr\`: audio sample rate.
 - target control rate: used to derive \`ksmps\`.
 - software buffer (\`-b\`) and hardware buffer (\`-B\`).
 - in browser-clock mode, additional browser PCM queue, render burst, and request parallelism settings appear.
-- apply validated values to the current patch.
+- apply validated values to every instrument in the project.
 - browser-clock latency settings are stored in app state, not in the patch.
 
 ${PARALLEL_PLAYBACK_COPY.english.title}: ${PARALLEL_PLAYBACK_COPY.english.description}
@@ -26,13 +26,13 @@ The GUI language setting controls integrated help and opcode docs language.`
       title: "Audio Engine Konfiguration",
       markdown: `## Audio Engine Konfiguration
 
-Konfiguriert Patch-Timing der Csound-Engine plus Browser-Clock-Latenzwerte, wenn Browser-Clock-Audio aktiv ist.
+Konfiguriert das projektweite Timing der Csound-Engine plus Browser-Clock-Latenzwerte, wenn Browser-Clock-Audio aktiv ist.
 
 - \`sr\`: Audio-Sample-Rate.
 - Ziel-Control-Rate: daraus wird \`ksmps\` abgeleitet.
 - ${BROWSER_PLAYBACK_COPY.german.buffers}
 - im Browser-Clock-Modus erscheinen zusaetzliche Werte fuer PCM-Warteschlange, Render-Burst und Anfrage-Parallelitaet.
-- Gültige Werte auf den aktuellen Patch anwenden.
+- Gültige Werte auf alle Instrumente im Projekt anwenden.
 - Browser-Clock-Latenzwerte werden im App-State gespeichert, nicht im Patch.
 
 ${PARALLEL_PLAYBACK_COPY.german.title}: ${PARALLEL_PLAYBACK_COPY.german.description}
@@ -44,13 +44,13 @@ Die GUI-Sprache steuert integrierte Hilfe und Opcode-Dokumentation.`
       title: "Configuration du moteur audio",
       markdown: `## Configuration du moteur audio
 
-Configure le timing Csound du patch ainsi que les reglages de latence browser-clock quand l'audio browser-clock est actif.
+Configure le timing Csound du projet ainsi que les reglages de latence browser-clock quand l'audio browser-clock est actif.
 
 - \`sr\` : fréquence d'échantillonnage audio.
 - fréquence de contrôle cible : dérive \`ksmps\`.
 - buffer logiciel (\`-b\`) et buffer matériel (\`-B\`).
 - en mode browser-clock, des reglages supplementaires apparaissent pour la file PCM, les bursts de rendu et le parallelisme des requetes.
-- appliquer les valeurs validées au patch courant.
+- appliquer les valeurs validées à tous les instruments du projet.
 - les reglages de latence browser-clock sont stockes dans l'etat applicatif, pas dans le patch.
 
 ${PARALLEL_PLAYBACK_COPY.french.title}: ${PARALLEL_PLAYBACK_COPY.french.description}
@@ -62,13 +62,13 @@ La langue GUI contrôle l'aide intégrée et la doc opcode.`
       title: "Configuración del motor de audio",
       markdown: `## Configuración del motor de audio
 
-Configura tiempos de Csound del patch y tambien ajustes de latencia browser-clock cuando el audio browser-clock esta activo.
+Configura tiempos de Csound del proyecto y tambien ajustes de latencia browser-clock cuando el audio browser-clock esta activo.
 
 - \`sr\`: frecuencia de muestreo de audio.
 - tasa de control objetivo: deriva \`ksmps\`.
 - buffer software (\`-b\`) y hardware (\`-B\`).
 - en modo browser-clock aparecen ajustes adicionales para la cola PCM, los bursts de render y el paralelismo de solicitudes.
-- aplicar valores validados al patch actual.
+- aplicar valores validados a todos los instrumentos del proyecto.
 - los ajustes de latencia browser-clock se guardan en el estado de la app, no en el patch.
 
 ${PARALLEL_PLAYBACK_COPY.spanish.title}: ${PARALLEL_PLAYBACK_COPY.spanish.description}
@@ -197,10 +197,10 @@ Estos valores se guardan en el estado de la app para el workspace y la ruta runt
   },
   config_engine_values: {
     english: {
-      title: "Current Patch Engine Values",
-      markdown: `## Current Patch Engine Values
+      title: "Current project engine values",
+      markdown: `## Current project engine values
 
-Read-only view of normalized engine values currently stored in the patch:
+Read-only view of normalized engine values currently applied to the project:
 
 - \`sr\`
 - \`control_rate\`
@@ -211,10 +211,10 @@ Read-only view of normalized engine values currently stored in the patch:
 Use this panel to verify what will be used during compile/start.`
     },
     german: {
-      title: "Aktuelle Patch Engine Werte",
-      markdown: `## Aktuelle Patch Engine Werte
+      title: "Aktuelle Engine-Werte des Projekts",
+      markdown: `## Aktuelle Engine-Werte des Projekts
 
-Nur-Lese Ansicht der normalisierten Engine-Werte im Patch:
+Nur-Lese Ansicht der normalisierten Engine-Werte des Projekts:
 
 - \`sr\`
 - \`control_rate\`
@@ -225,10 +225,10 @@ Nur-Lese Ansicht der normalisierten Engine-Werte im Patch:
 Dieses Panel zeigt die Werte für Compile/Start.`
     },
     french: {
-      title: "Valeurs moteur du patch courant",
-      markdown: `## Valeurs moteur du patch courant
+      title: "Valeurs du moteur du projet",
+      markdown: `## Valeurs du moteur du projet
 
-Vue en lecture seule des valeurs moteur normalisées stockées dans le patch :
+Vue en lecture seule des valeurs moteur normalisées appliquées au projet :
 
 - \`sr\`
 - \`control_rate\`
@@ -239,10 +239,10 @@ Vue en lecture seule des valeurs moteur normalisées stockées dans le patch :
 Ce panneau confirme les valeurs utilisées en compile/start.`
     },
     spanish: {
-      title: "Valores del motor en el patch actual",
-      markdown: `## Valores del motor en el patch actual
+      title: "Valores del motor del proyecto",
+      markdown: `## Valores del motor del proyecto
 
-Vista de solo lectura de valores normalizados del motor en el patch:
+Vista de solo lectura de valores del motor aplicados al proyecto:
 
 - \`sr\`
 - \`control_rate\`
@@ -269,7 +269,7 @@ export const configHelpAppendices: HelpDocumentAppendixSet<ConfigHelpDocId> = {
 - Lower browser queue targets reduce latency but glitch sooner on heavy patches or slower machines.
 - Higher browser queue targets are safer for complex patches but feel less immediate when playing live.
 - Browser-clock latency settings apply to the current workspace/runtime path and are stored in app state, not in the patch.
-- Applying the engine form only updates the current patch state. Save the patch as well if these settings should persist in the patch library.`,
+- Stop the instruments before applying engine changes. Save or export the performance to keep the settings with the project.`,
     german: `### Wie jedes Feld die Runtime beeinflusst
 
 - \`sr\` setzt die Audio-Sample-Rate fuer Compile/Start des Patches. Hoehere Werte erweitern die Bandbreite, kosten aber mehr CPU.
@@ -282,7 +282,7 @@ export const configHelpAppendices: HelpDocumentAppendixSet<ConfigHelpDocId> = {
 - Niedrige Browser-Queue-Ziele reduzieren Latenz, erzeugen bei schweren Patches oder langsameren Rechnern aber frueher Aussetzer.
 - Hoehere Browser-Queue-Ziele sind fuer komplexe Patches sicherer, fuehlen sich live jedoch weniger direkt an.
 - Browser-Clock-Latenzwerte gelten fuer aktuellen Workspace und Runtime-Pfad und werden im App-State gespeichert, nicht im Patch.
-- Das Anwenden des Engine-Formulars aktualisiert nur den Zustand des aktuellen Patches. Den Patch zusaetzlich speichern, wenn die Werte in der Patch-Bibliothek erhalten bleiben sollen.`,
+- Stoppe die Instrumente vor dem Anwenden. Speichere oder exportiere die Performance, um die Einstellungen mit dem Projekt zu sichern.`,
     french: `### Effet de chaque champ sur la runtime
 
 - \`sr\` fixe le taux d'echantillonnage audio utilise au compile/start du patch. Des valeurs plus hautes etendent la bande passante mais coutent plus de CPU.
@@ -295,7 +295,7 @@ export const configHelpAppendices: HelpDocumentAppendixSet<ConfigHelpDocId> = {
 - Des cibles de file navigateur plus faibles reduisent la latence mais provoquent plus vite des glitches sur des patches lourds ou des machines lentes.
 - Des cibles de file navigateur plus elevees sont plus surs pour les patches complexes, mais donnent une sensation moins immediate en jeu live.
 - Les reglages de latence browser-clock s'appliquent au workspace/runtime courant et sont stockes dans l'etat applicatif, pas dans le patch.
-- Appliquer le formulaire moteur met uniquement a jour l'etat du patch courant. Enregistrez aussi le patch si ces reglages doivent rester dans la bibliotheque.`,
+- Arrêtez les instruments avant d’appliquer les réglages. Enregistrez ou exportez la performance pour les conserver avec le projet.`,
     spanish: `### Como afecta cada campo al runtime
 
 - \`sr\` fija la frecuencia de muestreo de audio usada al compilar/iniciar el patch. Valores mas altos amplian el ancho de banda pero consumen mas CPU.
@@ -308,7 +308,7 @@ export const configHelpAppendices: HelpDocumentAppendixSet<ConfigHelpDocId> = {
 - Objetivos bajos de cola del navegador reducen la latencia, pero producen fallos antes en patches pesados o maquinas lentas.
 - Objetivos altos de cola del navegador son mas seguros para patches complejos, aunque se sienten menos inmediatos en interpretacion en vivo.
 - Los ajustes de latencia browser-clock se aplican al workspace/runtime actual y se guardan en el estado de la app, no en el patch.
-- Aplicar el formulario del motor solo actualiza el estado del patch actual. Guarda tambien el patch si quieres conservar estos valores en la biblioteca.`
+- Detén los instrumentos antes de aplicar los ajustes. Guarda o exporta la interpretación para conservarlos con el proyecto.`
   },
   config_browser_clock_latency: {
     english: `### Practical Tuning Order
@@ -363,47 +363,47 @@ export const configHelpAppendices: HelpDocumentAppendixSet<ConfigHelpDocId> = {
   config_engine_values: {
     english: `### What This Panel Shows
 
-- The values here are the normalized numbers already stored in the patch, not the raw text currently typed into the editable form.
-- \`control_rate\` is the target value saved with the patch, while \`ksmps\` is the derived block size the engine will actually use.
+- The values here are the normalized numbers already applied to the project, not the raw text currently typed into the editable form.
+- \`control_rate\` is the target value saved with the project, while \`ksmps\` is the derived block size the engine will actually use.
 - \`software_buffer\` and \`hardware_buffer\` are the exact values passed to Csound during compile/start.
-- If the editable form contains invalid input, this read-only panel still shows the last valid patch configuration.
+- If the editable form contains invalid input, this read-only panel still shows the last applied project configuration.
 
 ### When To Use It
 
 - Compare this panel with the preview badges on the left before applying changes.
-- Reopen the Config page after loading another patch to confirm which engine settings belong to that patch.`,
+- Each performance restores its own settings. Older projects start with the defaults.`,
     german: `### Was dieses Panel zeigt
 
-- Die Werte hier sind die normalisierten Zahlen, die bereits im Patch gespeichert sind, nicht der rohe Text aus dem editierbaren Formular.
-- \`control_rate\` ist der im Patch gespeicherte Zielwert, waehrend \`ksmps\` die daraus abgeleitete Blockgroesse ist, die die Engine tatsaechlich benutzt.
+- Die Werte hier sind die normalisierten Zahlen, die bereits im Projekt gespeichert sind, nicht der rohe Text aus dem editierbaren Formular.
+- \`control_rate\` ist der im Projekt gespeicherte Zielwert, waehrend \`ksmps\` die daraus abgeleitete Blockgroesse ist, die die Engine tatsaechlich benutzt.
 - \`software_buffer\` und \`hardware_buffer\` sind die exakten Werte, die beim Compile/Start an Csound uebergeben werden.
-- Enthält das editierbare Formular ungueltige Eingaben, zeigt dieses Nur-Lese-Panel weiterhin die letzte gueltige Patch-Konfiguration.
+- Enthält das editierbare Formular ungueltige Eingaben, zeigt dieses Nur-Lese-Panel weiterhin die letzte gueltige Projektkonfiguration.
 
 ### Wann es hilfreich ist
 
 - Dieses Panel vor dem Anwenden mit den Vorschau-Badges links vergleichen.
-- Nach dem Laden eines anderen Patches die Config-Seite erneut pruefen, um die zu diesem Patch gehoerenden Engine-Werte zu bestaetigen.`,
+- Jede Performance lädt ihre eigenen Einstellungen. Ältere Projekte starten mit den Standardwerten.`,
     french: `### Ce que montre ce panneau
 
-- Les valeurs affichees ici sont les nombres normalises deja stockes dans le patch, pas le texte brut actuellement saisi dans le formulaire editable.
-- \`control_rate\` est la valeur cible sauvegardee avec le patch, tandis que \`ksmps\` est la taille de bloc derivee que le moteur utilisera reellement.
+- Les valeurs affichees ici sont les nombres normalises déjà appliqués au projet, pas le texte brut actuellement saisi dans le formulaire editable.
+- \`control_rate\` est la valeur cible enregistrée avec le projet, tandis que \`ksmps\` est la taille de bloc derivee que le moteur utilisera reellement.
 - \`software_buffer\` et \`hardware_buffer\` sont les valeurs exactes transmises a Csound pendant compile/start.
-- Si le formulaire editable contient une entree invalide, ce panneau en lecture seule continue d'afficher la derniere configuration valide du patch.
+- Si le formulaire editable contient une entree invalide, ce panneau en lecture seule continue d'afficher la derniere configuration valide du projet.
 
 ### Quand l'utiliser
 
 - Comparez ce panneau avec les badges de previsualisation a gauche avant d'appliquer des changements.
-- Rouvrez la page Config apres avoir charge un autre patch pour confirmer quels reglages moteur appartiennent a ce patch.`,
+- Chaque performance retrouve ses réglages. Les anciens projets utilisent les valeurs par défaut.`,
     spanish: `### Que muestra este panel
 
-- Los valores de aqui son los numeros normalizados ya guardados en el patch, no el texto bruto que este escrito en el formulario editable.
-- \`control_rate\` es el valor objetivo guardado con el patch, mientras que \`ksmps\` es el tamano de bloque derivado que el motor usara realmente.
+- Los valores de aqui son los numeros normalizados ya aplicados al proyecto, no el texto bruto que este escrito en el formulario editable.
+- \`control_rate\` es el valor objetivo guardado con el proyecto, mientras que \`ksmps\` es el tamano de bloque derivado que el motor usara realmente.
 - \`software_buffer\` y \`hardware_buffer\` son los valores exactos que se pasan a Csound durante compilar/iniciar.
-- Si el formulario editable contiene una entrada invalida, este panel de solo lectura sigue mostrando la ultima configuracion valida del patch.
+- Si el formulario editable contiene una entrada invalida, este panel de solo lectura sigue mostrando la ultima configuración válida del proyecto.
 
 ### Cuando usarlo
 
 - Compara este panel con las insignias de vista previa de la izquierda antes de aplicar cambios.
-- Vuelve a abrir la pagina Config despues de cargar otro patch para confirmar que ajustes del motor pertenecen a ese patch.`
+- Cada interpretación recupera sus ajustes. Los proyectos antiguos usan los valores predeterminados.`
   }
 };

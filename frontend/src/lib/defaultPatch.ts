@@ -1,19 +1,17 @@
 import type { PatchGraph } from "../types";
 
+export function withoutPatchEngine(graph: PatchGraph): PatchGraph {
+  if (!("engine_config" in graph)) return graph;
+  const result = { ...graph };
+  delete result.engine_config;
+  return result;
+}
+
 export function defaultGraph(): PatchGraph {
   return {
     nodes: [],
     connections: [],
-    ui_layout: {},
-    engine_config: {
-      sr: 48000,
-      control_rate: 1500,
-      ksmps: 32,
-      nchnls: 2,
-      software_buffer: 128,
-      hardware_buffer: 512,
-      "0dbfs": 1
-    }
+    ui_layout: {}
   };
 }
 

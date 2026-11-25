@@ -29,8 +29,8 @@ Save library entries to keep and share your work. Workspace recovery helps you r
 | Action | What it keeps |
 | --- | --- |
 | Save in Instrument Design | The named instrument graph and its settings in the library |
-| Save Performance | The rack, routes, mixer, instance settings and authored musical content |
-| Automatic workspace recovery | Working context such as open instrument tabs, selected view, language and browser-clock preferences |
+| Save Performance | The project audio engine settings, rack, routes, mixer, instance settings and authored musical content |
+| Automatic workspace recovery | Working context such as open instrument tabs, selected view, project engine settings, language and browser-clock preferences |
 | Native Export | A portable editable instrument or performance bundle |
 
 ## Before leaving a session
@@ -52,7 +52,7 @@ Compile checks a graph without saving it. Normal Save compiles first; templates 
 
 ## New instrument defaults
 
-New opens the starter chooser; Empty patch supplies a blank graph. Defaults are 48 kHz audio, a target control rate of 1,500 Hz and a 32-sample synthesis block. See [Audio Engine Settings](audio_engine_settings.md) before changing them.
+New opens the starter chooser; Empty patch supplies a blank graph. Each instrument uses the current project’s engine settings. A new project starts at 48 kHz audio, a target control rate of 1,500 Hz and a 32-sample synthesis block. See [Audio Engine Settings](audio_engine_settings.md) before changing them.
 
 Internal MIDI works without a keyboard. Select external MIDI explicitly when needed.
 

@@ -1,6 +1,6 @@
 // Start with UX Baseline Clip on the disposable workspace page.
 async page => {
-  const pages = page.locator("[data-app-pages]");
+  const pages = page.locator(".app-header");
   const choose = name => pages.getByRole("button", { name, exact: true }).click();
   const geometry = () => page.evaluate(() => {
     const box = el => {
@@ -8,8 +8,8 @@ async page => {
       return [x, y, width, height];
     };
     const header = document.querySelector(".app-header");
-    const language = [...header.querySelectorAll(".app-languages, .app-language-select")].find(el => el.clientWidth);
-    return [header, language, ...header.querySelectorAll("[data-app-pages] button")].map(box);
+    const language = header.querySelector(".app-language-select");
+    return [header, language, ...header.querySelectorAll("button")].map(box);
   });
   await page.evaluate(async () => {
     const s = window.__workspaceTest.store.getState();
@@ -33,7 +33,7 @@ async page => {
       return [css.fontFamily, css.fontSize, css.borderTopWidth];
     };
     const referenceStyle = await page.locator("[data-workspace-arranger]").evaluate(style);
-    for (const [name, selector] of [["Instrument Design", ".studio-panel"], ["Config", ".studio-panel"], ["Perform", "[data-workspace-arranger]"]]) {
+    for (const [name, selector] of [["Instrument Design", ".studio-panel"], ["Audio settings", ".studio-panel"], ["Perform", "[data-workspace-arranger]"]]) {
       await choose(name);
       const panel = page.locator(selector).first();
       await panel.waitFor();
@@ -44,7 +44,7 @@ async page => {
         await page.waitForFunction(() => [...document.querySelectorAll(".studio-panel img")].every(img => img.complete && img.naturalWidth));
         await page.screenshot({ path: "screenshots/instrument_toolbar_current.jpg", quality: 92 });
       }
-      if (width === 1440 && name === "Config") await page.screenshot({ path: "screenshots/config.png" });
+      if (width === 1440 && name === "Audio settings") await page.screenshot({ path: "screenshots/config.png" });
       if (name !== "Perform") await page.locator(".app-page-scroll").evaluate(el => { el.scrollTop = el.scrollHeight; });
       const actual = await geometry();
       if (JSON.stringify(actual) !== JSON.stringify(reference)) throw Error(`Header moved on ${name} at ${width} × ${height}: ${JSON.stringify(actual)}`);

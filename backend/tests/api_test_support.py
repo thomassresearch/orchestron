@@ -420,7 +420,7 @@ def _create_running_session(client: TestClient, *, patch_name: str = "Browser Cl
     assert patch_response.status_code == 201
     patch_id = patch_response.json()["id"]
 
-    session_response = client.post("/api/sessions", json={"patch_id": patch_id})
+    session_response = client.post("/api/sessions", json={"patch_id": patch_id, "engine_config": {"ksmps": 64}})
     assert session_response.status_code == 201
     session_id = session_response.json()["session_id"]
 

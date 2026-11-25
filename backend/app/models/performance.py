@@ -6,6 +6,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, JsonValue, field_validator
 
 
+from backend.app.models.patch import normalize_project_engine
 from backend.app.models.score_validation import validate_authored_scores
 from backend.app.models.sample_player import validate_authored_samples
 from backend.app.models.clip_validation import validate_authored_clips
@@ -20,7 +21,7 @@ class PerformanceBase(BaseModel):
     @field_validator("config")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_samples(validate_authored_clips(validate_authored_scores(value)))
+        return validate_authored_samples(validate_authored_clips(validate_authored_scores(normalize_project_engine(value))))
 
 
 class PerformanceCreateRequest(PerformanceBase):
@@ -37,7 +38,7 @@ class PerformanceUpdateRequest(BaseModel):
     @field_validator("config")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_samples(validate_authored_clips(validate_authored_scores(value)))
+        return validate_authored_samples(validate_authored_clips(validate_authored_scores(normalize_project_engine(value))))
 
 
 class MasterRepairRequest(BaseModel):
@@ -47,7 +48,7 @@ class MasterRepairRequest(BaseModel):
     @field_validator("config")
     @classmethod
     def validate_scores(cls, value):
-        return validate_authored_samples(validate_authored_clips(validate_authored_scores(value)))
+        return validate_authored_samples(validate_authored_clips(validate_authored_scores(normalize_project_engine(value))))
 
 
 class PerformanceResponse(PerformanceBase):

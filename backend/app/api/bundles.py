@@ -21,6 +21,7 @@ from backend.app.services.bundle_import_service import BundleImportPlan, apply_i
 from backend.app.api.deps import get_container
 from backend.app.core.container import AppContainer
 from backend.app.models.export import PerformanceCsdExportRequest, PerformanceExportPayload
+from backend.app.models.patch import normalize_project_engine
 from backend.app.services.compiler_service import CompilationError
 from backend.app.services.gen_asset_references import (
     sample_manifest_from_payload,
@@ -45,17 +46,32 @@ class ImportBundleTooLargeError(ValueError):
     pass
 
 
+def _strip_patch_engine_settings(payload: dict) -> None:
+    """Remove obsolete instrument timing while preserving other native bundle fields."""
+    graph = payload.get("graph")
+    if isinstance(graph, dict):
+        graph.pop("engine_config", None)
+    for key in ("patch_definitions", "patchDefinitions"):
+        definitions = payload.get(key)
+        if isinstance(definitions, list):
+            for definition in definitions:
+                if isinstance(definition, dict) and isinstance(definition.get("graph"), dict):
+                    definition["graph"].pop("engine_config", None)
+
+
 def _normalize_import_payload(parsed: object, container: AppContainer) -> object:
     # Validate every definition before migrations or asset writes. Never silently
     # drop malformed or duplicate entries and then remap the wrong instrument.
     import_definitions(parsed)
     if isinstance(parsed, dict):
+        _strip_patch_engine_settings(parsed)
         if parsed.get("format") == "orchestron.performance":
             parsed = normalize_master_bundle(parsed, repository_lookup(container.patch_repository))
             performance = parsed.get("performance")
             if not isinstance(performance, dict) or not isinstance(performance.get("config"), dict):
                 raise ValueError("Native performance bundle has no configuration.")
-            config = validate_authored_samples(performance["config"])
+            _strip_patch_engine_settings(performance["config"])
+            config = validate_authored_samples(normalize_project_engine(performance["config"]))
             parsed = {**parsed, "performance": {**performance, "config": config}}
         elif "sampleAssets" in parsed or parsed.get("version") == 27:
             parsed = validate_authored_samples(parsed)
@@ -131,6 +147,7 @@ def export_patch_bundle(
     payload: dict[str, object],
     container: AppContainer = Depends(get_container),
 ) -> Response:
+    _strip_patch_engine_settings(payload)
     return _build_export_response(
         payload=payload,
         json_entry_name="instrument.orch.instrument.json",

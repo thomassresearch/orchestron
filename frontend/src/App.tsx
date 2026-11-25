@@ -49,9 +49,9 @@ import { findPatchByName, findPerformanceByName } from "./lib/patchCatalog";
 import { documentationUiCopy } from "./lib/documentationUi";
 import {
   APP_COPY,
-  GUI_LANGUAGE_SHORT_LABELS,
   IMPORT_DIALOG_COPY
 } from "./lib/appUiCopy";
+import { CircuitBoard, Music, Settings } from "lucide-react";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
 import { validateImportConflictItems } from "./lib/importDialogs";
 import { mergedSequencerState } from "./lib/mergedSequencerState";
@@ -129,6 +129,9 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   const setBrowserClockLatencySettings = useAppStore((state) => state.setBrowserClockLatencySettings);
   const parallelRenderBatchFrames = useAppStore(state => state.parallelRenderBatchFrames);
   const setParallelRenderBatchFrames = useAppStore(state => state.setParallelRenderBatchFrames);
+  useEffect(() => {
+    document.documentElement.lang = GUI_LANGUAGE_OPTIONS.find(option => option.value === guiLanguage)!.lang;
+  }, [guiLanguage]);
   const appCopy = useMemo(() => APP_COPY[guiLanguage], [guiLanguage]);
   const importDialogCopy = useMemo(() => IMPORT_DIALOG_COPY[guiLanguage], [guiLanguage]);
 
@@ -295,6 +298,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   const syncSequencerTransportRuntime = useAppStore((state) => state.syncSequencerTransportRuntime);
   const setSequencerPlayhead = useAppStore((state) => state.setSequencerPlayhead);
   const setSequencerTransportAbsoluteStep = useAppStore((state) => state.setSequencerTransportAbsoluteStep);
+  const engineConfig = useAppStore((state) => state.engineConfig);
   const applyEngineConfig = useAppStore((state) => state.applyEngineConfig);
 
   useEffect(() => {
@@ -621,8 +625,8 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   });
 
   const currentPatchCompileSignature = useMemo(
-    () => patchCompileSignatureFor(currentPatch, activeInstrumentTabId),
-    [activeInstrumentTabId, currentPatch]
+    () => patchCompileSignatureFor(currentPatch, activeInstrumentTabId, engineConfig),
+    [activeInstrumentTabId, currentPatch, engineConfig]
   );
   const patchCompileBadge = useMemo<"compiled" | "pending" | "errors">(() => {
     if (lastFailedPatchSignature === currentPatchCompileSignature) {
@@ -653,8 +657,6 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
 
   const onSavePatchWithCompileValidation = useCallback(() => {
     void (async () => {
-
-
       if (currentPatch.is_template) {
         await saveCurrentPatch();
         return;
@@ -673,10 +675,10 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
 
       setLastFailedPatchSignature(null);
       setLastCompiledPatchSignature(
-        patchCompileSignatureFor(latestState.currentPatch, latestState.activeInstrumentTabId)
+        patchCompileSignatureFor(latestState.currentPatch, latestState.activeInstrumentTabId, engineConfig)
       );
     })();
-  }, [compileCurrentPatchWithStatus, currentPatch.always_on, currentPatch.graph, currentPatch.is_template, saveCurrentPatch]);
+  }, [compileCurrentPatchWithStatus, currentPatch.is_template, engineConfig, saveCurrentPatch]);
 
   const onCloneCurrentPatch = useCallback(() => {
     void (async () => {
@@ -1743,22 +1745,23 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
             <h1>{appCopy.appTitle}</h1>
             <p>{appCopy.appDescription}</p>
           </div>
-          <div className="app-languages" role="group" aria-label={appCopy.guiLanguage}>
-            {GUI_LANGUAGE_OPTIONS.map(({ value }) => <button key={value} type="button"
-              aria-pressed={value === guiLanguage} onClick={() => setGuiLanguage(value)}>
-              {GUI_LANGUAGE_SHORT_LABELS[value]}
-            </button>)}
-          </div>
-          <select className="app-language-select" aria-label={appCopy.guiLanguage} value={guiLanguage}
-            onChange={event => setGuiLanguage(event.target.value as typeof guiLanguage)}>
-            {GUI_LANGUAGE_OPTIONS.map(({ value }) => <option key={value} value={value}>{GUI_LANGUAGE_SHORT_LABELS[value].toUpperCase()}</option>)}
-          </select>
           <nav data-app-pages aria-label={appCopy.appTitle}>
-            {(["instrument", "sequencer", "config"] as const).map(page => <button key={page} type="button"
-              aria-current={page === activePage ? "page" : undefined} onClick={() => setActivePage(page)}>
-              {{ instrument: appCopy.instrumentDesign, sequencer: appCopy.perform, config: appCopy.config }[page]}
-            </button>)}
+            <button type="button" aria-current={activePage === "instrument" ? "page" : undefined} onClick={() => setActivePage("instrument")}>
+              <CircuitBoard aria-hidden="true" />{appCopy.instrumentDesign}
+            </button>
+            <button type="button" aria-current={activePage === "sequencer" ? "page" : undefined} onClick={() => setActivePage("sequencer")}>
+              <Music aria-hidden="true" />{appCopy.perform}
+            </button>
           </nav>
+          <div className="app-utilities">
+            <button type="button" aria-current={activePage === "config" ? "page" : undefined} onClick={() => setActivePage("config")}>
+              <Settings aria-hidden="true" />{appCopy.config}
+            </button>
+            <select className="app-language-select" aria-label={appCopy.guiLanguage} value={guiLanguage}
+              onChange={event => setGuiLanguage(event.target.value as typeof guiLanguage)}>
+              {GUI_LANGUAGE_OPTIONS.map(({ value, lang, label }) => <option key={value} value={value} lang={lang}>{label}</option>)}
+            </select>
+          </div>
         </header>
         <div key={activePage} className={bounded ? "app-perform-content" : "app-page-scroll space-y-2"} data-app-content={activePage}>
         {error && !bounded && (
@@ -1953,21 +1956,19 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
           <Suspense fallback={<DeferredPageFallback />}>
             <LazyConfigPage
               guiLanguage={guiLanguage}
-              audioRate={currentPatch.graph.engine_config.sr}
-              controlRate={currentPatch.graph.engine_config.control_rate}
-              ksmps={currentPatch.graph.engine_config.ksmps}
-              softwareBuffer={currentPatch.graph.engine_config.software_buffer}
-              hardwareBuffer={currentPatch.graph.engine_config.hardware_buffer}
+              audioRate={engineConfig.sr}
+              controlRate={engineConfig.control_rate}
+              ksmps={engineConfig.ksmps}
+              softwareBuffer={engineConfig.software_buffer}
+              hardwareBuffer={engineConfig.hardware_buffer}
               showBrowserClockLatencyConfig={runtimeAudioOutputMode === "browser_clock"}
               browserClockLatencySettings={browserClockLatencySettings}
               parallelRenderBatchFrames={parallelRenderBatchFrames}
-              parallelSettingsLocked={instrumentsRunning || loading}
+              settingsLocked={instrumentsRunning || loading}
               onApplyParallelRenderBatchFrames={setParallelRenderBatchFrames}
               browserAudioDiagnostics={browserAudioDiagnostics}
               onHelpRequest={onHelpRequest}
-              onApplyEngineConfig={(config) => {
-                void applyEngineConfig(config);
-              }}
+              onApplyEngineConfig={applyEngineConfig}
               onApplyBrowserClockLatencySettings={onApplyBrowserClockLatencySettings}
             />
           </Suspense>

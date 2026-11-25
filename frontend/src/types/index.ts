@@ -117,7 +117,8 @@ export interface PatchGraph {
   nodes: NodeInstance[];
   connections: Connection[];
   ui_layout: JsonObject;
-  engine_config: EngineConfig;
+  /** Legacy input only. Engine settings belong to the project. */
+  engine_config?: EngineConfig;
 }
 
 export interface ControlFlowCase {
@@ -623,6 +624,7 @@ export interface SequencerInstrumentBinding {
 }
 
 export interface SequencerConfigSnapshot {
+  engineConfig?: EngineConfig;
   sampleAssets?: SampleAssets;
   routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
@@ -796,6 +798,7 @@ export interface BrowserClockLatencySettings {
 }
 
 export interface PersistedAppState {
+  engineConfig?: EngineConfig;
   sampleAssets?: SampleAssets;
   routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;

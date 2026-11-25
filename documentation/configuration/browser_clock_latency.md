@@ -6,7 +6,7 @@
 
 <a id="session-resource-limits"></a>
 
-Orchestron plays sound through your browser on every supported platform. **Config → Browser-Clock Latency** controls the balance between responsive playing and enough buffered audio to withstand brief interruptions.
+Orchestron plays sound through your browser on every supported platform. **Audio settings → Browser-Clock Latency** controls the balance between responsive playing and enough buffered audio to withstand brief interruptions.
 
 ## Playback Mode
 
@@ -14,7 +14,7 @@ Choose **Auto**, **Live**, or **Listening**, then select **Apply Browser-Clock S
 Auto is the default, including when restoring a workspace saved before these modes existed.
 The mode and **Auto inactivity timeout (seconds)** are workspace preferences, stored in app state.
 The timeout defaults to **10 seconds** and accepts integer values from **1 to 300 seconds**.
-The current state appears in Config and in the Runtime panel; it is not saved with performances.
+The current state appears in Audio settings and in the Runtime panel; it is not saved with performances.
 
 | Mode | Behavior |
 | --- | --- |
@@ -110,10 +110,10 @@ These are the most direct controls for making manual keyboard or MIDI playing fe
 
 Keep in mind that these settings are stored in app state for the current workspace. They are not saved into the patch itself.
 
-They also work together with the engine settings from the patch:
+They also work together with the project engine settings:
 
 - browser-clock settings tune queueing and request behavior
-- patch engine `sr` and `ksmps` determine synthesis timing and the audio duration of a render request
+- project engine `sr` and `ksmps` determine synthesis timing and the audio duration of a render request
 - Csound I/O buffers `-b` and `-B` do not control browser queue depth or the browser device buffer on this headless path
 
 **Navigation:** [Up](configuration.md) | [Previous](audio_engine_settings.md) | [Next](persistence_and_defaults.md)

@@ -119,8 +119,10 @@ export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (
           await state.flushPerformanceControllers();
           if (run.canceled) return;
           const rack = useAppStore.getState();
-          const session = await api.createSession(normalizeSessionInstrumentAssignments(rack.sequencerInstruments),
-            rack.audioGraph, rack.mixer, undefined, sampleManifest(rack.sequencerInstruments));
+          const session = await api.createSession({
+            instruments: normalizeSessionInstrumentAssignments(rack.sequencerInstruments), audio_graph: rack.audioGraph,
+            mixer: rack.mixer, sample_assets: sampleManifest(rack.sequencerInstruments), engine_config: rack.engineConfig
+          });
           run.session = session.session_id;
           if (run.canceled) return;
           await api.startSession(run.session);

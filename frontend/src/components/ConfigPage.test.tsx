@@ -14,7 +14,7 @@ it.each(["english", "german", "french", "spanish"] as GuiLanguage[])("offers tra
   const copy = BROWSER_PLAYBACK_COPY[language];
   render(<ConfigPage guiLanguage={language} audioRate={48000} controlRate={1500} ksmps={32} softwareBuffer={128}
     hardwareBuffer={512} showBrowserClockLatencyConfig browserClockLatencySettings={settings}
-    parallelRenderBatchFrames={256} parallelSettingsLocked={false} onApplyParallelRenderBatchFrames={vi.fn()}
+    parallelRenderBatchFrames={256} settingsLocked={false} onApplyParallelRenderBatchFrames={vi.fn()}
     onApplyEngineConfig={vi.fn()} onApplyBrowserClockLatencySettings={apply} />);
   const mode = screen.getByRole("combobox", { name: copy.mode }) as HTMLSelectElement;
   expect(mode.value).toBe("auto");
@@ -38,7 +38,7 @@ it.each(["english", "german", "french", "spanish"] as GuiLanguage[])("validates 
   const copy = PARALLEL_PLAYBACK_COPY[language];
   const props = { guiLanguage: language, audioRate: 48000, controlRate: 1500, ksmps: 32,
     softwareBuffer: 128, hardwareBuffer: 512, showBrowserClockLatencyConfig: true,
-    browserClockLatencySettings: settings, parallelRenderBatchFrames: 256, parallelSettingsLocked: false,
+    browserClockLatencySettings: settings, parallelRenderBatchFrames: 256, settingsLocked: false,
     onApplyParallelRenderBatchFrames: apply, onApplyEngineConfig: vi.fn(), onApplyBrowserClockLatencySettings: vi.fn() };
   const { rerender } = render(<ConfigPage {...props} />);
   const input = screen.getByRole("spinbutton", { name: copy.frames }) as HTMLInputElement;
@@ -55,7 +55,7 @@ it.each(["english", "german", "french", "spanish"] as GuiLanguage[])("validates 
     fireEvent.click(button);
     expect(apply).toHaveBeenLastCalledWith(value);
   }
-  rerender(<ConfigPage {...props} parallelRenderBatchFrames={1024} parallelSettingsLocked />);
+  rerender(<ConfigPage {...props} parallelRenderBatchFrames={1024} settingsLocked />);
   expect(input.value).toBe("1024");
   expect(input.disabled).toBe(true);
   expect(button.disabled).toBe(true);

@@ -367,3 +367,19 @@ def test_matching_nonfinite_audio_is_not_parity(compiler, native_module, monkeyp
     monkeypatch.setattr(probe.NativeProbe, 'perform', corrupt)
     with pytest.raises(RuntimeError, match='nonfinite'):
         probe.compare_sequential(compilation, plan, frames=32, module=native_module)
+
+
+def test_project_engine_is_shared_by_canonical_and_partition_programs(compiler):
+    from backend.app.models.patch import EngineConfig
+
+    targets, graph, mixer = planner_inputs("two", ksmps=32)
+    engine = EngineConfig(sr=44100, control_rate=2205, software_buffer=256)
+    dependency = compiler.analyze_realtime_graph(targets, graph, engine_config=engine)
+    assert (dependency.engine.sample_rate, dependency.engine.ksmps) == (44100, 20)
+    plan = plan_render_partitions(dependency, policy=RendererPolicy(mode="parallel", max_workers=4),
+                                  costs=synthetic_costs(dependency))
+    compilation = compiler.compile_realtime_partitions(targets, graph, mixer, plan, engine_config=engine)
+    assert compilation.programs
+    for csd in [compilation.canonical.csd, *(p.csd for p in compilation.programs)]:
+        assert "sr = 44100" in csd
+        assert "ksmps = 20" in csd

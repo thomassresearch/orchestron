@@ -6,7 +6,7 @@ This page covers practical MIDI setup and how external MIDI binding works in Orc
 
 ## External MIDI Input Binding In Orchestron
 
-External MIDI input is bound in the **Instrument Design Runtime panel** (not on the Config page).
+External MIDI input is bound in the **Instrument Design Runtime panel**.
 
 Workflow:
 

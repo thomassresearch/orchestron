@@ -7,7 +7,7 @@ Use YAML or JSON. YAML is easier for authoring; JSON works without PyYAML. The C
 - `name`: Patch name used when creating a patch unless `--name` overrides it.
 - `description`: Patch description.
 - `family`: One of `simple_osc`, `subtractive`, `fm_pad`, `noise_texture`.
-- `engine`: Optional Csound engine config. Defaults are 48 kHz, stereo, `ksmps=64`.
+- Legacy `engine` values are ignored. Set project synthesis timing in **Audio settings** and save the performance.
 - `envelope`: Main `madsr` envelope.
 - `layers`: Source layers. Omit to use family defaults.
 - `effects`: Optional mono effect chain.

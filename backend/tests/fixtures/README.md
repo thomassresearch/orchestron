@@ -51,8 +51,9 @@ small and oversized workloads are retained. Names describe diagnostic intent, no
 promise of realtime qualification. Thresholds, K=32 and 512-frame requests stay fixed.
 
 `parallel_render/planner_cases.json` defines T03 graph/resource variants and explicitly
-synthetic cost inputs; `planner_snapshots.json` freezes 34 plans at K=1/32. The snapshots
-include ordered owners/buses and hashes of all immutable metadata. The builder in
+synthetic cost inputs; `planner_snapshots.json` freezes 36 plans at K=1/32. The snapshots
+include ordered owners/buses and hashes of all immutable metadata. Each input hash includes
+the project engine settings once. The builder in
 `backend/tests/render_plan_support.py` reuses the baseline inputs without native execution.
 It covers private/shared/sidechain processing, bypass and Master inserts, custom ports,
 disconnected work, legato/allocation helpers, MIDI initialization, unknown opcodes,

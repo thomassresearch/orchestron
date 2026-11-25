@@ -1,3 +1,4 @@
+import { withoutPatchEngine } from "./defaultPatch";
 import { instrumentMetadata } from "./instrumentTypes";
 import { patchSchemaVersion, controlFlowIssues } from "./controlFlow";
 import type {
@@ -166,7 +167,7 @@ export function parseExportedPatchDefinition(raw: unknown): ExportedPatchDefinit
     alwaysOn: metadata.always_on,
     instrumentType: metadata.instrument_type,
     schema_version: patchSchemaVersion(schemaVersion, raw.graph as unknown as PatchGraph),
-    graph: raw.graph as unknown as PatchGraph
+    graph: withoutPatchEngine(raw.graph as unknown as PatchGraph)
   };
 }
 
@@ -238,7 +239,7 @@ export function buildPerformanceExportPayload(params: {
     alwaysOn: patch.always_on,
     instrumentType: patch.instrument_type,
     schema_version: patch.schema_version,
-    graph: patch.graph
+    graph: withoutPatchEngine(patch.graph)
   }));
 
   const patchNameById = new Map(patchDefinitions.map((patch) => [patch.sourcePatchId, patch.name]));

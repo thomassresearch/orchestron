@@ -1,5 +1,5 @@
 import { withLaneOutput } from "../lib/laneOutput";
-import type { InstrumentType } from "../types";
+import type { EngineConfig, InstrumentType, SessionRendererRequest } from "../types";
 import type { SampleAsset, SampleAssets, SessionInstrumentAssignment } from "../types";
 import type { AudioDiagnostic, AudioGraph, MixerState, MixerResponse } from "../types";
 import type {
@@ -31,6 +31,14 @@ import type {
 } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
+
+type SessionSetup = Partial<SessionRendererRequest> & {
+  instruments: SessionInstrumentAssignment[];
+  engine_config: EngineConfig;
+  audio_graph?: AudioGraph;
+  mixer?: MixerState;
+  sample_assets?: SampleAssets;
+};
 
 export class ApiError extends Error {
   status: number;
@@ -208,15 +216,9 @@ export const api = {
   }),
   previewSample: (id: string, assignment: string, payload: {action: "start" | "stop"; gesture: string; note: number}) =>
     request<void>(`/sessions/${id}/instruments/${encodeURIComponent(assignment)}/sample-preview`, { method: "POST", body: JSON.stringify(payload) }),
-  createSession: (
-    instruments: SessionInstrumentAssignment[], audio_graph?: AudioGraph, mixer?: MixerState, renderer?: import("../types").SessionRendererRequest,
-    sample_assets?: SampleAssets
-  ) =>
-    request<SessionCreateResponse>("/sessions", {
-      method: "POST",
-      body: JSON.stringify({ instruments, audio_graph, mixer, ...renderer, sample_assets })
-    }),
-  createPreview: (payload: { patches: Patch[]; session: { instruments: SessionInstrumentAssignment[]; audio_graph: AudioGraph; mixer: MixerState } }) => request<SessionCreateResponse>("/sessions/preview", { method: "POST", body: JSON.stringify(payload) }),
+  createSession: (setup: SessionSetup) =>
+    request<SessionCreateResponse>("/sessions", { method: "POST", body: JSON.stringify(setup) }),
+  createPreview: (payload: { patches: Patch[]; session: SessionSetup }) => request<SessionCreateResponse>("/sessions/preview", { method: "POST", body: JSON.stringify(payload) }),
   updateFm6Preview: (sessionId: string, nodeId: string, values: Record<string, number>) =>
     request<void>(`/sessions/${encodeURIComponent(sessionId)}/instruments/preview/fm6-preview`,
       { method: "PATCH", body: JSON.stringify({ node_id: nodeId, values }) }),

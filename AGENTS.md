@@ -62,6 +62,7 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 
 ### Audio runtime and live edits
 
+- Synthesis settings belong to the performance (optional `engineConfig`) and workspace recovery. Ignore legacy instrument timing. Missing project values use engine defaults. Browser buffering and parallel batch size remain workspace preferences.
 - All runtimes use `browser_clock`. A dedicated browser worker owns PCM WebSocket refills and
   SharedArrayBuffer writes; AudioContext/AudioWorklet own playback. Csound renders on demand
   with `performKsmps()`; React observes PCM-timed audible markers outside the refill path.

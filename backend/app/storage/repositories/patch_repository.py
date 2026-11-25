@@ -6,7 +6,7 @@ from typing import Sequence
 from sqlalchemy import desc, select
 
 from backend.app.models.instrument_type import infer_instrument_type
-from backend.app.models.patch import PatchDocument, PatchGraph
+from backend.app.models.patch import PatchDocument
 from backend.app.services.persisted_json_limits import dump_compact_json
 from backend.app.storage.db import PatchRecord
 from backend.app.storage.repositories.contracts import DbSessionFactory, ensure_utc
@@ -83,7 +83,7 @@ class PatchRepository:
                 record.name, record.description, bool(record.always_on)
             ),
             schema_version=record.schema_version,
-            graph=PatchGraph.model_validate(json.loads(record.graph_json)),
+            graph=json.loads(record.graph_json),
             created_at=ensure_utc(record.created_at),
             updated_at=ensure_utc(record.updated_at),
         )

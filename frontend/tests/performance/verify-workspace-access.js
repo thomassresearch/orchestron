@@ -9,8 +9,7 @@ async page => {
     await page.setViewportSize(size);
     for (const language of languages) {
       const picker = page.locator(".app-language-select");
-      if (await picker.isVisible()) await picker.selectOption(language);
-      else await button({ german: "DE", french: "FR", spanish: "ES", english: "EN" }[language]).click();
+      await picker.selectOption(language);
       await page.waitForFunction(language => window.__workspaceTest.store.getState().guiLanguage === language, language);
       const views = page.locator("[data-perform-view]");
       for (const index of [1, 2, 0]) {

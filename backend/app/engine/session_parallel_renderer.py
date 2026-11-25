@@ -48,7 +48,7 @@ class ParallelCsoundRenderer(CsoundWorker):
         self._render_requests = self._slow_requests = self._consecutive_slow = 0
         self._max_render_audio_ratio = 0.
 
-    def prepare(self, compiler, targets, graph, mixer, canonical):
+    def prepare(self, compiler, targets, graph, mixer, canonical, *, engine_config=None):
         """Called after canonical validation, outside rendering, under session lifecycle ownership."""
         if self.is_running:
             raise RuntimeError("Stop before preparing a renderer.")
@@ -68,7 +68,7 @@ class ParallelCsoundRenderer(CsoundWorker):
             self._fallback_reason = "parallel_not_qualified"
         else:
             try:
-                self._prepare_candidate(compiler, targets, graph, mixer, canonical)
+                self._prepare_candidate(compiler, targets, graph, mixer, canonical, engine_config)
             except Exception as exc:
                 # Canonical validation has already succeeded. Only optional
                 # partition preparation can be abandoned in favour of that CSD.
@@ -76,7 +76,7 @@ class ParallelCsoundRenderer(CsoundWorker):
                 if self.options.policy.mode == "parallel":
                     raise CompilationError([self._fallback_reason]) from exc
 
-    def _prepare_candidate(self, compiler, targets, graph, mixer, canonical):
+    def _prepare_candidate(self, compiler, targets, graph, mixer, canonical, engine_config):
         try:
             limit = self.options.admission.planning_limit(self, self.options.policy.max_workers)
         except RenderAdmissionError as exc:
@@ -84,13 +84,13 @@ class ParallelCsoundRenderer(CsoundWorker):
             return
         finally:
             self._capacity = self.options.admission.last_capacity
-        dependency = compiler.analyze_realtime_graph(targets, graph)
+        dependency = compiler.analyze_realtime_graph(targets, graph, engine_config=engine_config)
         costs = self.options.costs(dependency) if self.options.costs is not None else None
         plan = plan_render_partitions(dependency, policy=self.options.policy.model_copy(update={"max_workers": limit}), costs=costs)
         if plan.layout != "coarse":
             self._fallback_reason = ",".join(d.code for d in plan.diagnostics)
         else:
-            compilation = compiler.compile_realtime_partitions(targets, graph, mixer, plan)
+            compilation = compiler.compile_realtime_partitions(targets, graph, mixer, plan, engine_config=engine_config)
             if compilation.canonical.orc != canonical.orc or compilation.canonical.manifest != canonical.manifest:
                 raise ValueError("Parallel compilation does not match the canonical session artifact.")
             if self.options.qualifications:

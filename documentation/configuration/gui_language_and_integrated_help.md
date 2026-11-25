@@ -6,22 +6,22 @@ Orchestron includes multilingual UI labels and integrated documentation so you c
 
 ## GUI Language Selector
 
-Instrument Design, Perform and Config share the same header. Choose a language beside the page buttons. On a narrow screen, open the language menu to make your choice.
+Use the circuit board for **Instrument Design** and the beamed notes for **Perform**. The gear opens **Audio settings**. The adjacent menu shows the current language. Open it and choose your language by name.
 
 Supported languages:
 
+- Deutsch
 - English
-- German
-- French
-- Spanish
+- Español
+- Français
 
-![Orchestron header with the language selector and the three workspaces](../../screenshots/workspace-header.png)
+![Orchestron header with the language selector and the two workspaces and Audio settings](../../screenshots/workspace-header.png)
 
 ## What Changes When You Switch Language
 
 Language switching affects user-facing text such as:
 
-- Page labels (`Instrument Design`, `Perform`, `Config`)
+- Page labels (`Instrument Design`, `Perform`, `Audio settings`)
 - Toolbar/button labels
 - Context help pages (integrated help modals)
 - Opcode documentation modal content (localized generated markdown)
@@ -43,7 +43,7 @@ Examples include:
 - Graph editor header/area
 - Runtime panel
 - Sequencer sections (rack, Mixer, tracks, Score Sequencers, both multitrack arrangers, piano rolls, MIDI controllers)
-- Config page sections
+- Audio settings sections
 
 Clicking a context `?` opens a markdown help modal tailored to that UI area.
 
@@ -54,7 +54,7 @@ editor, including while collapsed. Its help explains keyboard auditioning,
 double-click quarter-note insertion, drawing, editing and playback in all four
 GUI languages.
 
-On the Instrument Design, Perform, and Config pages, these help modals focus on the current tool, device, transport section, or engine setting panel instead of repeating generic UI conventions.
+On the Instrument Design, Perform, and Audio settings pages, these help modals focus on the current tool, device, transport section, or engine setting panel instead of repeating generic UI conventions.
 
 ![Mixer and clip arranger help buttons](../../screenshots/performance-help-buttons.png)
 

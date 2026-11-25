@@ -18,6 +18,7 @@ import type {
   Connection,
   GuiLanguage,
   DrummerSequencerTrackState,
+  EngineConfig,
   OpcodeSpec,
   PatchGraph,
   SequencerState,
@@ -271,7 +272,8 @@ export function patchCompileSignatureFor(
     schema_version: number;
     graph: PatchGraph;
   },
-  tabId: string
+  tabId: string,
+  engineConfig: EngineConfig
 ): string {
   return JSON.stringify({
     patchKey: patch.id ?? `draft:${tabId}`,
@@ -280,7 +282,8 @@ export function patchCompileSignatureFor(
     is_template: patch.is_template,
     always_on: patch.always_on,
     schema_version: patch.schema_version,
-    graph: patch.graph
+    graph: patch.graph,
+    engineConfig
   });
 }
 

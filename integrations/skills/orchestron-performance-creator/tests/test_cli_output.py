@@ -65,6 +65,13 @@ def test_controller_values_survive_normalization_runtime_and_patch_id_remap(vers
     assert [(a["patchId"], a["performanceControllerValues"]) for a in remapped["instruments"]] == [("copy", {"attack": 0.04}), ("copy", {"attack": 1.2})]
 
 
+def test_project_engine_settings_reach_the_audio_session():
+    config, patches = _controller_fixture()
+    config["engineConfig"] = {"sr": 44100, "control_rate": 2205}
+    normalized = normalize_performance_config(config, patches)
+    assert orchestron_cli.session_audio_request(normalized)["engine_config"] == {"sr": 44100, "control_rate": 2205}
+
+
 def test_controller_midi_assignments_round_trip_and_reconcile():
     config, patches = _controller_fixture()
     config["instruments"][0]["performanceControllerMidiCCs"] = {"attack": 21, "deleted": 22}

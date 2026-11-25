@@ -16,7 +16,7 @@ import numpy as np
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.models.audio import AudioGraph, AudioRoute, MixerState
 from backend.app.models.export import ExportedPatchDefinition
-from backend.app.models.patch import PatchDocument
+from backend.app.models.patch import EngineConfig, PatchDocument
 from backend.app.services.compiler_common import CompilationProfile, PatchInstrumentTarget
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
@@ -53,11 +53,8 @@ def compile_probe(patch, *, values=None, scenario="sine", amplitude=None, right=
     source = PatchDocument.model_validate(dict(
         id="tube-probe-source", name="Tube probe source", graph=dict(
             nodes=nodes, connections=connections, ui_layout=dict(input_formulas=formulas),
-            engine_config=dict(sr=SAMPLE_RATE, ksmps=ksmps),
         ),
     ))
-    effect = patch.model_copy(deep=True)
-    effect.graph.engine_config.ksmps = ksmps
     routes = []
     for side in ("left", "right"):
         routes.extend([
@@ -70,7 +67,8 @@ def compile_probe(patch, *, values=None, scenario="sine", amplitude=None, right=
         ])
     return CompilerService(OpcodeService(icon_prefix="/static/icons")).compile_patch_bundle(
         [PatchInstrumentTarget(source, 1, assignment_id="source"),
-         PatchInstrumentTarget(effect, 0, assignment_id="tube", always_on=True, performance_controller_values=values or {})],
+         PatchInstrumentTarget(patch, 0, assignment_id="tube", always_on=True, performance_controller_values=values or {})],
+        engine_config=EngineConfig(sr=SAMPLE_RATE, ksmps=ksmps),
         midi_input="0", rtmidi_module="none", performance_input_mode=mode,
         profile=CompilationProfile.OFFLINE if ksmps == 1 else CompilationProfile.LIVE,
         audio_graph=AudioGraph(routes=routes, masterId="$master", insertOwners={"tube": "source"}), mixer=MixerState(),

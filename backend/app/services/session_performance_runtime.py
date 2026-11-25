@@ -65,7 +65,7 @@ class SessionPerformanceRuntimeCoordinator:
         return router
 
     def manual_midi_max_future_samples(self, runtime: RuntimeSession) -> int:
-        sample_rate = max(1, int(runtime.worker.runtime_sample_rate or self._settings.default_sr))
+        sample_rate = max(1, int(runtime.worker.runtime_sample_rate or runtime.engine_config.sr))
         return browser_clock_manual_midi_max_future_samples(
             sample_rate=sample_rate,
             max_future_ms=self._settings.browser_clock_manual_midi_max_future_ms,

@@ -80,13 +80,13 @@ def validate_realtime_partition_compilation(compilation, plan):
             raise ValueError("Partition artifact ownership mismatch.")
 
 
-def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: RenderPartitionPlan):
+def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: RenderPartitionPlan, *, engine_config=None):
     """Validate original input first; never turn invalid patches/assets into fallback success."""
     mixer = mixer if mixer is not None else MixerState()
     canonical = service.compile_patch_bundle(targets, midi_input="internal:loopback", rtmidi_module="null",
-                                              audio_graph=audio_graph, mixer=mixer)
+                                              audio_graph=audio_graph, mixer=mixer, engine_config=engine_config)
     validate_partition_plan(plan)
-    actual = service.analyze_realtime_graph(targets, audio_graph)
+    actual = service.analyze_realtime_graph(targets, audio_graph, engine_config=engine_config)
     if actual != plan.graph:
         raise CompilationError(["Partition plan does not match the current full-performance graph."])
     if plan.layout != "coarse":
@@ -103,7 +103,7 @@ def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: Rend
             limit = AUTO_TABLE_BASE + len(sample_tables) + count * TABLE_CACHE_ENTRIES
             table_limits.update({stage: limit for stage in partition.stages})
     lowered = lower_mixer_bundle(service, targets, audio_graph, mixer,
-                                midi_input="internal:loopback", rtmidi_module="null", private_table_limits=table_limits)
+                                midi_input="internal:loopback", rtmidi_module="null", private_table_limits=table_limits, engine_config=engine_config)
     if tuple(s.id for s in lowered.stages) != tuple(s.id for s in actual.stages):
         raise CompilationError(["Partition lowering disagrees with canonical stage order."])
     connections = tuple(e for e in lowered.header if isinstance(e, RenderConnection))

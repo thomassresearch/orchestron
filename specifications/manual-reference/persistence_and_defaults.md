@@ -23,7 +23,7 @@ Orchestron also persists a workspace/app-state snapshot in the backend to restor
 
 Persisted app state includes (current implementation):
 
-- active page (`Instrument Design` / `Perform` / `Config`)
+- active page (`Instrument Design` / `Perform` / `Audio settings`)
 - GUI language
 - instrument tabs (including editable patch snapshots)
 - active instrument tab
@@ -32,6 +32,7 @@ Persisted app state includes (current implementation):
 - sequencer instrument bindings (stable rack instance IDs)
 - explicit audio routes, Master selection, insert ownership and mixer strip/send values (app-state version 2)
 - active MIDI input selection reference
+- project synthesis settings
 - browser-clock latency settings for the current workspace/runtime path
 
 New sessions default that MIDI input reference to `internal:loopback` unless a different external input is explicitly bound.
@@ -47,7 +48,9 @@ Always use explicit save actions when you want stable, shareable library entries
 
 ## Default New Patch Values
 
-New opens the [built-in/template chooser](../../documentation/instrument_design/patch_toolbar_and_tabs.md#built-in-creation-choices). The selected starter supplies its name, graph, Activation and audio interface. Choose Empty patch for an empty graph (`nodes = []`, `connections = []`). All starters use these default engine settings:
+New opens the [built-in/template chooser](../../documentation/instrument_design/patch_toolbar_and_tabs.md#built-in-creation-choices). The selected starter supplies its name, graph, Activation and audio interface. Choose Empty patch for an empty graph (`nodes = []`, `connections = []`).
+
+New projects and older performances without saved synthesis settings use these defaults. All instruments use the current project's settings.
 
 - `sr = 48000`
 - `control_rate = 1500`

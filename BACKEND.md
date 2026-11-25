@@ -344,7 +344,7 @@ The backend uses both SQLite and in-memory process state.
 
 | Storage | Backing implementation | Contents |
 | --- | --- | --- |
-| SQLite table `patches` | `PatchRepository` | Saved patch graphs and engine config. |
+| SQLite table `patches` | `PatchRepository` | Saved instrument graphs. |
 | SQLite table `performances` | `PerformanceRepository` | Saved performance configs. |
 | SQLite table `app_state` | `AppStateRepository` | The last persisted frontend/application state under the fixed key `last`. |
 | Filesystem `backend/data/assets/audio` | `GenAssetService` | Uploaded/imported audio files referenced by GEN or `sfload` nodes. |
@@ -417,7 +417,7 @@ app state and active sessions protect both files from collection.
 - Requires GEN01 and `sfload` runtime sample loading to use uploaded/imported assets. Raw `samplePath` values and legacy `sfload` `filename` parameters are rejected for live session compile/start.
 - Offline performance CSD export may compile only relative paths on the export service’s list of bundled assets. The `samplesInSubfolder` request option defaults to true and places files under `assets/`. A false value places files beside the CSD.
 
-Implementation note: when compiling a multi-instrument bundle, the engine settings are taken from the first target patch in the session.
+Session creation accepts project-wide `engine_config`. Every target, preview and parallel worker uses the same settings. Missing settings use the engine defaults. Saved performances, native bundles and workspace recovery use `engineConfig`. Legacy patch values are ignored.
 
 `compile_patch_bundle()` accepts an internal `CompilationProfile` (`LIVE` by default, or `OFFLINE`), independently of MIDI/score note delivery. Both performance CSD export modes select `OFFLINE`. Mixer compilation reuses `mixer_control_values()` and the same routing stages and instrument references, but emits fixed audio coefficients instead of mixer control-channel reads and ramps, and omits mixer metering. Offline manifests retain `initialControls` as parameter metadata and have an empty `meters` map. Legacy bundles without a mixer graph, standalone patch compilation, patch-authored channel operations, musical controllers and instance settings retain their existing paths. No request or persistence schema changes are needed.
 
@@ -727,7 +727,6 @@ Schemas:
 | `connections` | Up to 2000 `Connection` entries. |
 | `control_flow` | Typed If/Switch map keyed by structural node ID; ordered cases own flat nodes and managed CaseResult boundaries. |
 | `ui_layout` | Arbitrary JSON used by the frontend for layout and editor-side metadata. |
-| `engine_config` | Audio/runtime parameters used during compilation. |
 
 See [the EN/DE/FR/ES branching format](documentation/instrument_design/control_flow.md#patchapi-format) for exact fields, ports, ownership, Silence and schema validation. Existing create/update/compile endpoints and bundle formats retain the field; no additional endpoints or storage tables are needed.
 
@@ -740,7 +739,7 @@ See [the EN/DE/FR/ES branching format](documentation/instrument_design/control_f
 - `to_node_id`
 - `to_port_id`
 
-`engine_config` fields:
+Session `engine_config` fields:
 
 | Field | Meaning |
 | --- | --- |

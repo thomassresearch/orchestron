@@ -47,18 +47,11 @@ import type { AppStore, EditablePatch, InstrumentTabState } from "./appStoreType
 import {
   APP_STATE_PERSIST_DEBOUNCE_MS,
   APP_STATE_VERSION,
-  AUDIO_RATE_MAX,
-  AUDIO_RATE_MIN,
-  CONTROL_RATE_MAX,
-  CONTROL_RATE_MIN,
-  ENGINE_BUFFER_MAX,
-  ENGINE_BUFFER_MIN,
   type PersistWatchState,
   authoredFormatVersions,
   buildPersistedAppStateSnapshot,
   buildSequencerConfigSnapshot,
   capturePersistWatchState,
-  clampInt,
   createInstrumentTab,
   defaultEditablePatch,
   defaultParams,
@@ -165,6 +158,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     activePage: "instrument",
     guiLanguage: "english",
+    engineConfig: normalizeEngineConfig(undefined),
     browserClockLatencySettings: initialBrowserClockLatencySettings,
     parallelRenderBatchFrames: PARALLEL_BATCH_FRAMES_DEFAULT,
     setParallelRenderBatchFrames: (frames) => {
@@ -337,6 +331,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           let performanceDescription = "";
           let guiLanguage: GuiLanguage = "english";
           let browserClockLatencySettings = resolveDefaultBrowserClockLatencySettings();
+          let engineConfig = normalizeEngineConfig(undefined);
           let parallelRenderBatchFrames = PARALLEL_BATCH_FRAMES_DEFAULT;
 
           const preferredMidi = normalizeMidiInputSelection(get().activeMidiInput, midiInputs);
@@ -363,6 +358,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
               activePage = normalizeAppPage(payload.activePage);
               guiLanguage = normalizeGuiLanguage(payload.guiLanguage);
+              engineConfig = normalizeEngineConfig(payload.engineConfig);
               parallelRenderBatchFrames = normalizeParallelBatchFrames(payload.parallelRenderBatchFrames);
               browserClockLatencySettings = normalizeBrowserClockLatencySettings(
                 payload.browserClockLatencySettings,
@@ -418,6 +414,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            engineConfig,
             parallelRenderBatchFrames,
             instrumentTabs: instrumentTabs.map((tab) => ({
               id: tab.id,
@@ -451,6 +448,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            engineConfig,
             parallelRenderBatchFrames,
             instrumentTabs,
             activeInstrumentTabId,
@@ -473,6 +471,7 @@ export const useAppStore = create<AppStore>((set, get) => {
             activePage: resolvedActivePage,
             guiLanguage: resolvedGuiLanguage,
             browserClockLatencySettings,
+            engineConfig,
             parallelRenderBatchFrames,
             instrumentTabs,
             activeInstrumentTabId,
@@ -560,6 +559,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
         set({
           patches: hydrated.patches,
+          engineConfig: parsed.engineConfig,
           sequencer: parsed.sequencer,
           arrangerHistory: parsed.arrangerHistory,
           arrangerHistoryNotice: parsed.arrangerHistoryNotice,
@@ -646,6 +646,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
         sequencerEditingPads: {},
         performanceAuditions: {},
+        engineConfig: normalizeEngineConfig(undefined),
         sequencer: nextSequencer,
         arrangerHistory: emptyArrangerHistory(),
         arrangerHistoryNotice: false,
@@ -781,7 +782,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
       set({ loading: true, error: null });
       try {
-        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory, state.routingLayout);
+        const snapshot = buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory, state.routingLayout, state.engineConfig);
         const selectedPatchIds = [
           ...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter((patchId) => patchId.length > 0))
         ];
@@ -838,78 +839,12 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     ...createSequencerStoreActions(set, get),
-    applyEngineConfig: async ({ sr, controlRate, softwareBuffer, hardwareBuffer }) => {
-      const currentPatch = get().currentPatch;
-      const currentEngine = normalizeEngineConfig(currentPatch.graph.engine_config);
-      const nextSr = clampInt(sr, AUDIO_RATE_MIN, AUDIO_RATE_MAX);
-      const nextControlRate = clampInt(controlRate, CONTROL_RATE_MIN, CONTROL_RATE_MAX);
-      const nextSoftwareBuffer = clampInt(softwareBuffer, ENGINE_BUFFER_MIN, ENGINE_BUFFER_MAX);
-      const nextHardwareBuffer = clampInt(hardwareBuffer, ENGINE_BUFFER_MIN, ENGINE_BUFFER_MAX);
-      const nextKsmps = Math.max(1, Math.round(nextSr / nextControlRate));
-
-      const nextPatch: EditablePatch = {
-        ...currentPatch,
-        graph: {
-          ...currentPatch.graph,
-          engine_config: {
-            ...currentEngine,
-            sr: nextSr,
-            control_rate: nextControlRate,
-            ksmps: nextKsmps,
-            software_buffer: nextSoftwareBuffer,
-            hardware_buffer: nextHardwareBuffer
-          }
-        }
-      };
-
-      commitCurrentPatch(nextPatch, { error: null });
-      const request = beginPatchRequest();
-
-      const normalizedGraph = normalizePatchGraph(nextPatch.graph);
-
-      try {
-        let persisted: Patch;
-        if (nextPatch.id) {
-          persisted = await api.updatePatch(nextPatch.id, { graph: normalizedGraph });
-        } else {
-          persisted = await api.createPatch({
-            name: nextPatch.name,
-            description: nextPatch.description,
-            is_template: nextPatch.is_template,
-            always_on: nextPatch.always_on,
-            instrument_type: nextPatch.instrument_type,
-            schema_version: nextPatch.schema_version,
-            graph: normalizedGraph
-          });
-        }
-
-        const patches = await api.listPatches();
-        const persistedNormalized = normalizePatch(persisted);
-        const resolvedPatch: EditablePatch = nextPatch.id
-          ? {
-              ...nextPatch,
-              graph: normalizedGraph,
-              created_at: persistedNormalized.created_at,
-              updated_at: persistedNormalized.updated_at
-            }
-          : persistedNormalized;
-
-        const state = get();
-        const hasKnownBindings = state.sequencerInstruments.length > 0;
-        const sequencerInstruments = hasKnownBindings
-          ? sequencerInstrumentsForPerformablePatches(state.sequencerInstruments, patches)
-          : defaultSequencerInstruments(patches, resolvedPatch);
-
-        finishPatchRequest(request, resolvedPatch, true, {
-          patches,
-          sequencerInstruments,
-          error: null
-        });
-      } catch (error) {
-        set({
-          error: error instanceof Error ? error.message : "Failed to persist engine configuration."
-        });
-      }
+    applyEngineConfig: ({ sr, controlRate, softwareBuffer, hardwareBuffer }) => {
+      if (get().activeSessionState === "running" || get().loading) return;
+      set({ engineConfig: normalizeEngineConfig({
+        ...get().engineConfig, sr, control_rate: controlRate,
+        software_buffer: softwareBuffer, hardware_buffer: hardwareBuffer
+      }) });
     },
 
     applySampleMap: (original, generation, map, assets) => {
@@ -992,9 +927,10 @@ export const useAppStore = create<AppStore>((set, get) => {
         }
 
         const assets = hasSampleMaps(requestedBindings) ? sampleManifest(requestedBindings) : undefined;
-        const session = assets ? await api.createSession(requestedAssignments, get().audioGraph, get().mixer, rendererRequest, assets) : rendererRequest
-          ? await api.createSession(requestedAssignments, get().audioGraph, get().mixer, rendererRequest)
-          : await api.createSession(requestedAssignments, get().audioGraph, get().mixer);
+        const session = await api.createSession({
+          instruments: requestedAssignments, audio_graph: get().audioGraph, mixer: get().mixer,
+          ...rendererRequest, sample_assets: assets, engine_config: get().engineConfig
+        });
         if (!setupIsCurrent()) {
           await api.deleteSession(session.session_id);
           throw new Error("Instrument session creation was cancelled because the setup changed.");
@@ -1056,12 +992,10 @@ export const useAppStore = create<AppStore>((set, get) => {
 
         let compileOutput = null as CompileResponse | null;
         try {
-          const compileSession = await api.createSession([
-            {
-              patch_id: temporaryPatch.id,
-              midi_channel: 1
-            }
-          ]);
+          const compileSession = await api.createSession({
+            instruments: [{ patch_id: temporaryPatch.id, midi_channel: 1 }],
+            engine_config: get().engineConfig
+          });
 
           const sessionId = compileSession.session_id;
           try {

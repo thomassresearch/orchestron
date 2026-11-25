@@ -7,6 +7,7 @@ from backend.app.models.clip_arrangement import ClipSchedule, MAX_AUTHORED_CLIP_
 
 from backend.app.models.performance_controller import ControllerNumber, PerformanceMidiCC
 
+from backend.app.models.patch import EngineConfig
 from backend.app.models.audio import AudioGraph, MixerState, AudioDiagnostic
 
 from dataclasses import dataclass, field
@@ -116,6 +117,7 @@ class SessionInstrumentAssignment(BaseModel):
 
 
 class SessionCreateRequest(BaseModel):
+    engine_config: EngineConfig = Field(default_factory=EngineConfig)
     sample_assets: SampleAssets = Field(default_factory=dict)
     renderer_mode: Literal["single", "auto"] = "single"
     parallel_batch_frames: int | None = Field(default=None, ge=32, le=1024, strict=True)

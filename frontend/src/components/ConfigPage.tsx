@@ -38,6 +38,7 @@ type EngineInputState = Record<EngineInputFieldKey, string>;
 type ConfigPageCopy = {
   audioEngineConfiguration: string;
   audioEngineDescription: string;
+  engineLocked: string;
   audioSampleRateHz: string;
   controlSampleRateHz: string;
   softwareBuffer: string;
@@ -45,7 +46,7 @@ type ConfigPageCopy = {
   applyConfiguration: string;
   derivedKsmps: string;
   actualControlRate: string;
-  currentPatchEngineValues: string;
+  projectEngineValues: string;
   controlRateTarget: string;
   softwareBufferMetric: string;
   hardwareBufferMetric: string;
@@ -63,8 +64,9 @@ type ConfigPageCopy = {
 const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
   english: {
     audioEngineConfiguration: "Audio Engine Configuration",
+    engineLocked: "Stop the instruments to apply engine settings.",
     audioEngineDescription:
-      "Configure audio-rate (`sr`), target control-rate sampling, and runtime buffer sizes. VisualCSound derives `ksmps` from sample rate and control rate.",
+      "Set the sample rate, control rate and buffers for every instrument in this project. Apply changes for the next engine start. Save Performance keeps them with the project.",
     audioSampleRateHz: "Audio Sample Rate (Hz)",
     controlSampleRateHz: "Control Sample Rate (Hz)",
     softwareBuffer: "Software Buffer (`-b`)",
@@ -72,7 +74,7 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     applyConfiguration: "Apply Configuration",
     derivedKsmps: "Derived `ksmps`",
     actualControlRate: "Actual control rate (`sr/ksmps`)",
-    currentPatchEngineValues: "Current Patch Engine Values",
+    projectEngineValues: "Current project engine values",
     controlRateTarget: "control_rate (target)",
     softwareBufferMetric: "software_buffer (-b)",
     hardwareBufferMetric: "hardware_buffer (-B)",
@@ -102,8 +104,9 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
   },
   german: {
     audioEngineConfiguration: "Audio Engine Konfiguration",
+    engineLocked: "Stoppe die Instrumente, um die Engine-Einstellungen anzuwenden.",
     audioEngineDescription:
-      "Konfiguriere Audio-Rate (`sr`), Ziel-Control-Rate und Runtime-Buffergroessen. VisualCSound berechnet `ksmps` aus Sample-Rate und Control-Rate.",
+      "Abtastrate, Kontrollrate und Puffer gelten für alle Instrumente im Projekt. Änderungen gelten ab dem nächsten Engine-Start. Speichere die Performance, um sie mit dem Projekt zu sichern.",
     audioSampleRateHz: "Audio-Sample-Rate (Hz)",
     controlSampleRateHz: "Control-Sample-Rate (Hz)",
     softwareBuffer: "Software-Buffer (`-b`)",
@@ -111,7 +114,7 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     applyConfiguration: "Konfiguration anwenden",
     derivedKsmps: "Abgeleitetes `ksmps`",
     actualControlRate: "Tatsaechliche Control-Rate (`sr/ksmps`)",
-    currentPatchEngineValues: "Aktuelle Patch-Engine-Werte",
+    projectEngineValues: "Aktuelle Engine-Werte des Projekts",
     controlRateTarget: "control_rate (ziel)",
     softwareBufferMetric: "software_buffer (-b)",
     hardwareBufferMetric: "hardware_buffer (-B)",
@@ -141,8 +144,9 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
   },
   french: {
     audioEngineConfiguration: "Configuration du moteur audio",
+    engineLocked: "Arrêtez les instruments pour appliquer les réglages du moteur.",
     audioEngineDescription:
-      "Configurez le taux audio (`sr`), le taux de controle cible et les tailles de buffer runtime. VisualCSound derive `ksmps` depuis `sr` et le taux de controle.",
+      "Réglez les fréquences et les tampons de tous les instruments du projet. Les changements prennent effet au prochain démarrage du moteur. Enregistrez la performance pour les conserver.",
     audioSampleRateHz: "Frequence d'echantillonnage audio (Hz)",
     controlSampleRateHz: "Frequence d'echantillonnage controle (Hz)",
     softwareBuffer: "Buffer logiciel (`-b`)",
@@ -150,7 +154,7 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     applyConfiguration: "Appliquer configuration",
     derivedKsmps: "`ksmps` derive",
     actualControlRate: "Taux de controle reel (`sr/ksmps`)",
-    currentPatchEngineValues: "Valeurs moteur du patch courant",
+    projectEngineValues: "Valeurs du moteur du projet",
     controlRateTarget: "control_rate (cible)",
     softwareBufferMetric: "software_buffer (-b)",
     hardwareBufferMetric: "hardware_buffer (-B)",
@@ -180,8 +184,9 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
   },
   spanish: {
     audioEngineConfiguration: "Configuracion del motor de audio",
+    engineLocked: "Detén los instrumentos para aplicar los ajustes del motor.",
     audioEngineDescription:
-      "Configura la tasa de audio (`sr`), la tasa de control objetivo y los tamanos de buffer runtime. VisualCSound deriva `ksmps` desde sample rate y control rate.",
+      "Ajusta las frecuencias y los búferes de todos los instrumentos del proyecto. Los cambios se aplican al reiniciar el motor. Guarda la interpretación para conservarlos.",
     audioSampleRateHz: "Frecuencia de muestreo de audio (Hz)",
     controlSampleRateHz: "Frecuencia de muestreo de control (Hz)",
     softwareBuffer: "Buffer de software (`-b`)",
@@ -189,7 +194,7 @@ const CONFIG_PAGE_COPY: Record<GuiLanguage, ConfigPageCopy> = {
     applyConfiguration: "Aplicar configuracion",
     derivedKsmps: "`ksmps` derivado",
     actualControlRate: "Tasa de control real (`sr/ksmps`)",
-    currentPatchEngineValues: "Valores del motor en el patch actual",
+    projectEngineValues: "Valores del motor del proyecto",
     controlRateTarget: "control_rate (objetivo)",
     softwareBufferMetric: "software_buffer (-b)",
     hardwareBufferMetric: "hardware_buffer (-B)",
@@ -253,7 +258,7 @@ interface ConfigPageProps {
   showBrowserClockLatencyConfig: boolean;
   browserClockLatencySettings: BrowserClockLatencySettings;
   parallelRenderBatchFrames: number;
-  parallelSettingsLocked: boolean;
+  settingsLocked: boolean;
   onApplyParallelRenderBatchFrames: (frames: number) => void;
   browserAudioDiagnostics?: BrowserClockWorkerDiagnostics | null;
   onHelpRequest?: (helpDocId: HelpDocId) => void;
@@ -333,7 +338,7 @@ export function ConfigPage({
   showBrowserClockLatencyConfig,
   browserClockLatencySettings,
   parallelRenderBatchFrames,
-  parallelSettingsLocked,
+  settingsLocked,
   onApplyParallelRenderBatchFrames,
   browserAudioDiagnostics,
   onHelpRequest,
@@ -483,7 +488,7 @@ export function ConfigPage({
 
   const onApply = () => {
     if (
-      !canApply ||
+      settingsLocked || !canApply ||
       parsedAudioRate === null ||
       parsedControlRate === null ||
       parsedSoftwareBuffer === null ||
@@ -623,11 +628,12 @@ export function ConfigPage({
             <button
               type="button"
               onClick={onApply}
-              disabled={!canApply}
+              disabled={settingsLocked || !canApply}
               className="rounded-lg border border-accent/60 bg-accent/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent transition enabled:hover:bg-accent/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {copy.applyConfiguration}
             </button>
+            {settingsLocked && <span className="text-xs text-amber-200/90">{copy.engineLocked}</span>}
             <span className="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 font-mono text-xs text-slate-300">
               {copy.derivedKsmps}: {previewKsmps}
             </span>
@@ -646,12 +652,12 @@ export function ConfigPage({
               {parallelCopy.frames}
               <input aria-label={parallelCopy.frames} type="number" inputMode="numeric"
                 min={PARALLEL_BATCH_FRAMES_MIN} max={PARALLEL_BATCH_FRAMES_MAX} step={1}
-                value={batchInput} disabled={parallelSettingsLocked} onChange={event => setBatchInput(event.target.value)}
+                value={batchInput} disabled={settingsLocked} onChange={event => setBatchInput(event.target.value)}
                 aria-invalid={batchError !== null} aria-describedby="parallel-batch-validation"
                 className="w-44 rounded-lg border border-slate-600 bg-slate-950 px-3 py-2 font-mono disabled:opacity-50" />
             </label>
-            <button type="button" disabled={parallelSettingsLocked || batchError !== null || batchFrames === parallelRenderBatchFrames}
-              onClick={() => { if (!parallelSettingsLocked && !batchError && batchFrames !== null) onApplyParallelRenderBatchFrames(batchFrames); }}
+            <button type="button" disabled={settingsLocked || batchError !== null || batchFrames === parallelRenderBatchFrames}
+              onClick={() => { if (!settingsLocked && !batchError && batchFrames !== null) onApplyParallelRenderBatchFrames(batchFrames); }}
               className="rounded-lg border border-accent/60 bg-accent/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent enabled:hover:bg-accent/30 disabled:cursor-not-allowed disabled:opacity-50">
               {parallelCopy.apply}
             </button>
@@ -661,7 +667,7 @@ export function ConfigPage({
             {batchError ?? copy.allowedRange(PARALLEL_BATCH_FRAMES_MIN, PARALLEL_BATCH_FRAMES_MAX)}
           </p>
           <p className="mt-2 text-xs text-slate-400">{parallelCopy.storage}</p>
-          {parallelSettingsLocked && <p className="mt-2 text-xs text-amber-200/90">{parallelCopy.locked}</p>}
+          {settingsLocked && <p className="mt-2 text-xs text-amber-200/90">{parallelCopy.locked}</p>}
         </section>
 
         {showBrowserClockLatencyConfig ? (
@@ -750,7 +756,7 @@ export function ConfigPage({
         {onHelpRequest ? (
           <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("config_engine_values")} />
         ) : null}
-        <h3 className="font-display text-base font-semibold text-slate-100">{copy.currentPatchEngineValues}</h3>
+        <h3 className="font-display text-base font-semibold text-slate-100">{copy.projectEngineValues}</h3>
         <dl className="mt-4 space-y-2 text-sm text-slate-300">
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2">
             <dt>sr</dt>

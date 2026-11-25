@@ -327,7 +327,7 @@ export function createSequencerTrackStoreActions(
 
     buildSequencerConfigSnapshot: () => {
       const state = get();
-      return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory, state.routingLayout);
+      return buildSequencerConfigSnapshot(state.sequencer, state.sequencerInstruments, state.audioGraph, state.mixer, state.arrangerHistory, state.routingLayout, state.engineConfig);
     },
 
     applySequencerConfigSnapshot: (snapshot) => {
@@ -344,6 +344,7 @@ export function createSequencerTrackStoreActions(
           savedPerformanceSequencer: null,
           sequencerEditingPads: {},
           performanceAuditions: {},
+          engineConfig: parsed.engineConfig,
           sequencer: parsed.sequencer,
           arrangerHistory: parsed.arrangerHistory,
           arrangerHistoryNotice: parsed.arrangerHistoryNotice,

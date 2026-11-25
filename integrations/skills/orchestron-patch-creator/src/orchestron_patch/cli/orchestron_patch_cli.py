@@ -20,15 +20,6 @@ except ImportError:  # pragma: no cover - exercised only in minimal environments
 
 
 DEFAULT_API_URL = os.environ.get("ORCHESTRON_API_URL", "http://localhost:8000/api")
-DEFAULT_ENGINE_CONFIG = {
-    "sr": 48000,
-    "control_rate": 750,
-    "ksmps": 64,
-    "nchnls": 2,
-    "software_buffer": 128,
-    "hardware_buffer": 512,
-    "0dbfs": 1.0,
-}
 SUPPORTED_FAMILIES = {"simple_osc", "subtractive", "fm_pad", "noise_texture"}
 SOURCE_OPCODES = {"oscili", "vco2", "foscili", "noise", "pinker"}
 INPUT_FORMULAS_LAYOUT_KEY = "input_formulas"
@@ -256,12 +247,11 @@ class GraphBuilder:
             }
         )
 
-    def graph(self, *, engine_config: dict[str, Any] | None = None) -> dict[str, Any]:
+    def graph(self) -> dict[str, Any]:
         return {
             "nodes": self.nodes,
             "connections": self.connections,
             "ui_layout": {},
-            "engine_config": {**DEFAULT_ENGINE_CONFIG, **(engine_config or {})},
         }
 
 
@@ -848,7 +838,7 @@ def build_patch_payload(
         outlet = builder.add("outleta", node_id=f"output_{side}", params={"sname": side}, x=1500, y=130 + index * 180)
         builder.connect(pan, f"a{side}", outlet, "asignal")
 
-    graph = builder.graph(engine_config=spec.get("engine") if isinstance(spec.get("engine"), dict) else None)
+    graph = builder.graph()
     # Stereo Output is an editor block backed by ordinary named outlet nodes.
     # The catalog's __stereo_output creation command must never be serialized.
     graph["audio_interface"] = {

@@ -46,7 +46,7 @@ def test_lake_has_whole_instrument_owners_and_shared_effect_suffix_without_catal
     assert ownership['patch:space'] == ownership['patch:0442aeda-2002-410e-a689-9d4bf3438b0c'] == 'downstream'
     assert ownership['$output'] == 'downstream'
     assert plan.graph.engine.sample_rate == 48000 and plan.graph.engine.ksmps == 32
-    assert (plan.graph.engine.software_buffer, plan.graph.engine.hardware_buffer) == (1024, 512)
+    assert (plan.graph.engine.software_buffer, plan.graph.engine.hardware_buffer) == (128, 512)
     assert (plan, compilation) == prepare(inputs)
     validate_partition_plan(plan)
     limited, _ = prepare(inputs, workers=3)

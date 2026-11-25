@@ -1,23 +1,16 @@
-# Audio Engine Settings (Config Page)
+# Audio Engine Settings
 
 **Navigation:** [Up](configuration.md) | [Previous](gui_language_and_integrated_help.md) | [Next](browser_clock_latency.md)
 
-The Config page controls patch-level Csound engine settings, parallel playback batch size and browser-clock latency settings for the current workspace.
+<a id="audio-engine-settings-config-page"></a>
+
+Open **Audio settings** with the gear in the header.
 
 ## Where These Settings Are Stored
 
-The Audio Engine Configuration section is stored in the current patch's `graph.engine_config`.
+Sample rate, target control rate and the Csound buffers apply to every instrument in the project. **Save Performance** stores the settings with the performance. Native performance exports include them, and workspace recovery restores applied settings after a reload.
 
-That means:
-
-- different patches can use different engine settings
-- switching patches can change the visible Config page values
-
-Browser-clock latency settings are different:
-
-- they apply to the active browser-clock session runtime
-- they are stored in app state, not in the patch
-- applying them updates the active browser-clock controller without changing patch data
+New projects and older projects without saved engine settings use the defaults. Opening, importing or reordering instruments keeps the project's settings. Browser latency and parallel batch size are playback preferences saved in workspace recovery.
 
 ## Parallel Playback
 
@@ -28,12 +21,12 @@ The choice does not change engine timing, browser buffering or CSD exports. See
 [Engine Stats and Parallel Playback](../performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
 
 Parallel playback normally exchanges **256 samples** between workers at a time. This reduces
-communication overhead while each instrument keeps its existing synthesis block size and
+communication overhead while all instruments share the project’s synthesis block size and
 scheduled note/controller timing. A live action received after a batch has begun takes effect
 at the next available batch; 256 samples span about **5.3 ms at 48 kHz**. This is separate from
 the browser's playback queue and does not change exported CSDs.
 
-In **Config → Parallel Playback**, enter a **Batch size (samples)** from **32 to 1024**
+In **Audio settings → Parallel Playback**, enter a **Batch size (samples)** from **32 to 1024**
 and click **Apply Batch Size**. The default is **256**. Stop playback before applying;
 the choice takes effect on the next start with **Parallel playback** enabled in Perform.
 It is saved in app state across reloads, separately from the parallel playback checkbox,
@@ -44,11 +37,15 @@ For example, with a 32-sample synthesis block, entering 255 uses 224 samples. Tr
 shorter batches or 32 to compare with one handoff per synthesis block. Larger batches reduce
 handoffs but can delay newly arriving live actions; 1024 samples span about 21.3 ms at 48 kHz.
 
-![Parallel playback batch size in Config](../../screenshots/config_parallel_batch.png)
+![Parallel playback batch size in Audio settings](../../screenshots/config_parallel_batch.png)
 
-## Editable Settings (Config Page)
+<a id="editable-settings-config-page"></a>
 
-### Patch Engine Section
+## Editable Settings
+
+<a id="patch-engine-section"></a>
+
+### Project Engine Section
 
 ### Audio Sample Rate (`sr`)
 
@@ -79,20 +76,22 @@ This is the target control-rate value used to derive `ksmps`.
 <p align="center">
   <img src="../../screenshots/config.png" alt="Audio engine settings normal state" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Config page audio engine settings in a valid state.</em></p>
+<p align="center"><em>Audio settings page audio engine settings in a valid state.</em></p>
 
 ## Derived Values Shown In The UI
 
-The Config page previews derived values before applying:
+The Audio settings page previews derived values before applying:
 
 - Derived `ksmps`
 - Actual control rate (`sr / ksmps`)
 
 This helps you see the real runtime effect of your target control-rate choice.
 
-## Current Patch Engine Values (Read-Only Panel)
+<a id="current-patch-engine-values-read-only-panel"></a>
 
-The right-side panel shows the normalized engine values stored in the patch:
+## Current Project Engine Values
+
+The right-side panel shows the normalized engine values applied to the project:
 
 - `sr`
 - `control_rate`
@@ -100,11 +99,11 @@ The right-side panel shows the normalized engine values stored in the patch:
 - `software_buffer`
 - `hardware_buffer`
 
-These are the current patch’s values. A multi-instrument performance takes its shared engine configuration from its first compiled instrument target; this panel is not a global performance playback configuration.
+These values apply to both workspaces, including instrument auditions.
 
 ## Browser-Clock Latency Section
 
-The Config page shows an additional section for browser-owned audio latency tuning whenever a browser-clock session is active.
+The Audio settings page shows an additional section for browser-owned audio latency tuning whenever a browser-clock session is active.
 
 See [Browser-Clock Latency](browser_clock_latency.md) for the unified browser-clock workflow explanation and the full UI screenshot of this section.
 
@@ -120,9 +119,9 @@ Playback mode and inactivity timeout are shown above the expandable **Live buffe
 
 These values control the browser PCM queue depth and render request behavior, which are the dominant latency/stability knobs on the unified browser-clock path.
 
-The patch engine sample rate and `ksmps` still determine synthesis timing. The Software/Hardware Buffer fields do not control browser playback buffering. Changing them does not enlarge the browser queue; use Browser-Clock Latency for that.
+The project engine sample rate and `ksmps` still determine synthesis timing. The Software/Hardware Buffer fields do not control browser playback buffering. Changing them does not enlarge the browser queue; use Browser-Clock Latency for that.
 
-Choose **Auto / Live / Listening** in the Browser-Clock Latency section. Auto is the default, with a configurable 10-second inactivity timeout (1–300 seconds). It detects manual piano/controller and selected external MIDI input, while ignoring sequencer automation and controller initialization. Held notes, sustain and controller gestures prevent the timeout. Queued audio is preserved on every switch, so the first note after Listening may still be delayed. The current state appears in Config and Runtime.
+Choose **Auto / Live / Listening** in the Browser-Clock Latency section. Auto is the default, with a configurable 10-second inactivity timeout (1–300 seconds). It detects manual piano/controller and selected external MIDI input, while ignoring sequencer automation and controller initialization. Held notes, sustain and controller gestures prevent the timeout. Queued audio is preserved on every switch, so the first note after Listening may still be delayed. The current state appears in Audio settings and Runtime.
 
 The advanced **Live buffering and recovery** controls retain your existing tuning. Listening adds minimum steady targets of 750/1500 ms and startup targets of 1000/1800 ms, retaining larger custom targets. See [Playback Mode](browser_clock_latency.md#playback-mode) for the complete behavior.
 
@@ -186,34 +185,29 @@ The page validates:
 <p align="center">
   <img src="../../screenshots/config_audio_engine_validation_state.png" alt="Audio engine settings validation state" width="760" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Config page validation messages with invalid values entered.</em></p>
+<p align="center"><em>Audio settings page validation messages with invalid values entered.</em></p>
 
 ## Apply Configuration
 
-`Apply Configuration` writes the new engine settings into the current patch state.
-
-Practical effect:
-
-- future compile/start operations for the patch use the updated engine config
-- the patch must still be saved if you want the change persisted in the patch library
+Stop the instruments and choose **Apply Configuration**. The next compilation, audition or engine start uses the project settings. Choose **Save Performance** to update the named project. Offline CSD exports use their dedicated 48 kHz, single-sample render settings.
 
 `Apply Browser-Clock Settings` writes the browser-clock latency settings into app state and refreshes the active browser-clock controller if one is connected.
 
 ## Other Engine Fields Present But Not Edited In UI
 
-The patch engine config also contains values such as:
+The project engine configuration also contains values such as:
 
 - `nchnls` (default `2`)
 - `0dbfs` (default `1`)
 
-These are part of the patch model, but the current Config page focuses on the user-facing timing and buffer controls listed above.
+These are part of the project settings, but the current Audio settings page focuses on the user-facing timing and buffer controls listed above.
 
 ## Tuning Tips
 
 - Lower buffers reduce latency but increase glitch risk.
 - Higher buffers improve stability but increase latency.
 - Use the Runtime panel and live testing to find a stable setting for your machine and patch complexity.
-- On the browser-clock path, start by adjusting browser-clock low/high water, render blocks, and parallel request limits before changing patch `-b/-B`.
+- On the browser-clock path, start by adjusting browser-clock low/high water, render blocks, and parallel request limits before changing the project’s `-b/-B`.
 - For live MIDI sessions, prefer `ksmps <= 32`. The runtime warns when a live session starts with a larger `ksmps` because MIDI execution is still quantized to the k-period.
 
 **Navigation:** [Up](configuration.md) | [Previous](gui_language_and_integrated_help.md) | [Next](browser_clock_latency.md)

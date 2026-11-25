@@ -21,15 +21,14 @@ from backend.app.services.compiler_render_costs import estimate_patch_work
 from backend.app.services.render_graph_order import topological_order
 
 
-def analyze_render_graph(targets, audio_graph, opcode_service) -> RenderDependencyGraph:
+def analyze_render_graph(targets, audio_graph, opcode_service, *, engine_config=None) -> RenderDependencyGraph:
     if not targets:
         raise CompilationError(["At least one patch must be provided for render analysis."])
     validate_target_channels(targets)
     identities = [t.assignment_id or f"instrument-{i}" for i, t in enumerate(targets, 1)]
     if len(set(identities)) != len(identities):
         raise CompilationError(["Render analysis requires unique instance IDs."])
-    # Preserve the full performance's first-target engine rule BEFORE any sorting.
-    config = resolve_shared_engine(targets)
+    config = engine_config or resolve_shared_engine(targets)
     engine = RenderEngineSettings(config.sr, config.ksmps, config.nchnls, config.zero_dbfs,
                                   config.software_buffer, config.hardware_buffer)
     resolved = ResolvedMixerGraph(targets, audio_graph) if audio_graph is not None else None

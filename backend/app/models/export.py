@@ -26,7 +26,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.app.models.instrument_type import InstrumentType, infer_instrument_type
-from backend.app.models.patch import PatchGraph
+from backend.app.models.patch import AuthoredPatchGraph, EngineConfig
 from backend.app.models.session import (
     SessionArpeggiatorConfig,
     SessionControllerSequencerPadConfig,
@@ -91,6 +91,7 @@ class ExportPerformanceConfig(BaseModel):
         from backend.app.models.clip_validation import validate_authored_clips
         return validate_authored_samples(validate_authored_clips(validate_authored_scores(value)))
 
+    engine_config: EngineConfig = Field(default_factory=EngineConfig, alias="engineConfig")
     sample_assets: SampleAssets = Field(default_factory=dict, alias="sampleAssets", exclude_if=lambda value: not value)
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
@@ -114,7 +115,7 @@ class ExportedPatchDefinition(BaseModel):
     always_on: bool = Field(default=False, alias="alwaysOn")
     instrument_type: InstrumentType = Field(default="melody", alias="instrumentType")
     schema_version: Literal[1, 2] = 1
-    graph: PatchGraph
+    graph: AuthoredPatchGraph
 
     model_config = ConfigDict(populate_by_name=True)
 
