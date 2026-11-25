@@ -137,7 +137,9 @@ Three pairs suit layered electric pianos and bells; two stacks allow separately 
 | Sustain | 0–100% | Level after attack and decay while held. |
 | Release | 0.001–20 s | Fade from the current level after note-off. |
 
-The envelope drawing shows attack, decay, a short held period and release. Actual sustain duration follows the MIDI note. A modulator's envelope changes timbre; a carrier's envelope changes audible level. Short modulator decays create bright attacks with softer bodies.
+Each operator’s envelope redraws as you drag a slider or type a value. Dots mark the attack peak, the start of sustain, note-off and the end of release. The horizontal scale is logarithmic so you can see short stages alongside long ones. Sustain height shows the selected percentage. The drawing uses a short hold for illustration. When playing, the note holds until you release the key.
+
+A modulator's envelope changes timbre; a carrier's envelope changes audible level. Short modulator decays create bright attacks with softer bodies.
 
 ## Opcode inputs and output
 

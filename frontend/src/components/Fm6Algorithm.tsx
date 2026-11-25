@@ -11,14 +11,30 @@ type Props = {
   releaseScale: number;
 };
 
-function envelope(voice: Props["voice"], op: number, attackScale: number, releaseScale: number) {
-  const prefix = `op${op}_`;
-  const a = voice[prefix + "attack"] * attackScale;
-  const d = voice[prefix + "decay"];
-  const r = voice[prefix + "release"] * releaseScale;
-  const x = (t: number) => 100 * t / (a + d + .5 + r);
-  const y = 20 - .2 * voice[prefix + "sustain"];
-  return `M0 20 L${x(a)} 0 L${x(a + d)} ${y} L${x(a + d + .5)} ${y} L100 20`;
+// A common scale lets operators be compared and keeps millisecond stages visible.
+// Each timed stage occupies up to 28 units, including the longest scaled release.
+const maxSeconds = FM6.fields.release[1] * FM6.globals.irelease_scale[1];
+const logRange = Math.log1p(maxSeconds * 1000);
+const stageWidth = (seconds: number) => 3 + 25 * Math.log1p(seconds * 1000) / logRange;
+
+function OperatorEnvelope({ attack, decay, sustain, release, ink, width }: {
+  attack: number; decay: number; sustain: number; release: number; ink: string; width: number;
+}) {
+  const peak = stageWidth(attack);
+  const held = peak + stageWidth(decay);
+  const noteOff = held + 14;
+  const end = noteOff + stageWidth(release);
+  const sustainY = 20 * (1 - sustain / 100);
+  const points = `0,20 ${peak},0 ${held},${sustainY} ${noteOff},${sustainY} ${end},20`;
+  return <svg x="11" y="52" width={width} height="23" viewBox="-2 -3 104 26" preserveAspectRatio="none">
+    <line x1="0" x2="100" y1="20" y2="20" stroke={ink} strokeOpacity=".22" />
+    <polygon points={points} fill={ink} fillOpacity=".14" />
+    <polyline points={points} fill="none" stroke={ink} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+    <g fill={ink}>
+      <circle cx={peak} cy="0" r="1.8" /><circle cx={held} cy={sustainY} r="1.8" />
+      <circle cx={noteOff} cy={sustainY} r="1.8" /><circle cx={end} cy="20" r="1.8" />
+    </g>
+  </svg>;
 }
 
 export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, releaseScale }: Props) {
@@ -114,10 +130,8 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
           <text x={w - 10} y="20" textAnchor="end" fill="#d5deea" fontSize="12">{enabled ? role : copy.off}</text>
           <text x="11" y="43" fill="#f1f5f9" fontFamily="monospace" fontSize="15">{voice[prefix + "ratio"]}×</text>
           <text x={w - 10} y="43" textAnchor="end" fill="#acb9c9" fontSize="11">{detune > 0 ? "+" : ""}{detune} ¢</text>
-          <svg x="11" y="53" width={w * .41} height="20" viewBox="-1 -2 102 25" preserveAspectRatio="none">
-            <path d={envelope(voice, op, attackScale, releaseScale) + " Z"} fill={ink} fillOpacity=".14" />
-            <path d={envelope(voice, op, attackScale, releaseScale)} fill="none" stroke={ink} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
-          </svg>
+          <OperatorEnvelope attack={voice[prefix + "attack"] * attackScale} decay={voice[prefix + "decay"]}
+            sustain={voice[prefix + "sustain"]} release={voice[prefix + "release"] * releaseScale} ink={ink} width={w * .41} />
           <text x={w - 10} y="62" textAnchor="end" fontFamily="monospace" fontSize="12" fill={ink}>{level}%</text>
           <rect x={barX} y="68" width={barWidth} height="4" rx="2" fill="#526071" />
           <rect x={barX} y="68" width={levelWidth} height="4" rx="2" fill={ink} />

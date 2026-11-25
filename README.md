@@ -23,7 +23,7 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ## What you can create
 
-[Almost DX7](documentation/instrument_design/fm6_voice.md) supplies 32 dry FM sounds, from electric pianos and basses to wind, metallic hits and sci-fi effects. Its integer preset selector, Brightness, Attack, Release, Vibrato and Output controls are available in Perform. In the `fm6_voice` editor, click an operator in any of the eight routing diagrams to adjust its sound. Each operator shows its tuning, level and envelope. During audition, play another note to hear an edit.
+[Almost DX7](documentation/instrument_design/fm6_voice.md) supplies 32 dry FM sounds, from electric pianos and basses to wind, metallic hits and sci-fi effects. Its integer preset selector, Brightness, Attack, Release, Vibrato and Output controls are available in Perform. In the `fm6_voice` editor, click an operator in any of the eight routing diagrams to adjust its sound. Its envelope redraws as you adjust attack, decay, sustain and release. During audition, play another note to hear an edit.
 
 ![FM6 voice editor](screenshots/fm6_voice_editor.png)
 

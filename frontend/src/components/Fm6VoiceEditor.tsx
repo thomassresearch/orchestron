@@ -29,6 +29,10 @@ export function Fm6VoiceEditor({ node, language, drivenInputs, onChange, onClose
   const voice = fm6Voice(voiceParams);
   const algorithm = FM6.algorithms[voice.algorithm - 1];
   const scalar = (key: string, fallback: number) => Number.isFinite(Number(params[key])) ? Number(params[key]) : fallback;
+  const envelopeScale = (key: "iattack_scale" | "irelease_scale") => {
+    const [min, max, fallback] = FM6_GLOBALS[key];
+    return Math.min(max, Math.max(min, scalar(key, fallback)));
+  };
   const invalid = Object.entries(drafts).some(([key, text]) => !valid(key, text));
   const publish = (next: NodeInstance["params"]) => { setParams(next); onChange(next); };
   const cancel = () => { if (params !== original.current) onChange(original.current); onClose(); };
@@ -98,7 +102,7 @@ export function Fm6VoiceEditor({ node, language, drivenInputs, onChange, onClose
       </div>
       {drivenInputs.ipreset && <p className="rounded border-l-2 border-amber-600 bg-amber-950/30 px-3 py-2 text-xs text-amber-100" title={drivenInputs.ipreset}>{copy.presetDriven}</p>}
       <Fm6Algorithm voice={voice} copy={copy} selected={selected} onSelect={selectOperator}
-        attackScale={scalar("iattack_scale", 1)} releaseScale={scalar("irelease_scale", 1)} />
+        attackScale={envelopeScale("iattack_scale")} releaseScale={envelopeScale("irelease_scale")} />
       {selected === null ? <p className="text-xs text-slate-300">{copy.selectOperator}</p> :
         <section ref={inspector} className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

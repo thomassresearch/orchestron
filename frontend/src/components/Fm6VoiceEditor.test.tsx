@@ -60,6 +60,34 @@ describe("FM6 voice editor", () => {
     fireEvent.change(screen.getByLabelText("Algorithm"), { target: { value: "4" } });
     expect(screen.getByRole("button", { name: "Operator 6 Modulator" })).toBeTruthy();
   });
+  it("redraws the edited operator's envelope during slider and numeric input", () => {
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={vi.fn()} onClose={vi.fn()} />);
+    const tile = screen.getByRole("button", { name: "Operator 2 Modulator" });
+    const other = screen.getByRole("button", { name: "Operator 1 Carrier" }).querySelector("polyline")!;
+    const originalOther = other.getAttribute("points");
+    const points = () => tile.querySelector("polyline")!.getAttribute("points")!.split(" ").map(p => p.split(",").map(Number));
+    const slideTime = (label: RegExp, seconds: number) => fireEvent.input(screen.getByRole("slider", { name: label }),
+      { target: { value: String(Math.log(seconds)) } });
+    fireEvent.click(tile);
+    const initial = points();
+    slideTime(/^Attack \(s\)/, .05);
+    const attack = points();
+    expect(attack[1][0]).toBeGreaterThan(initial[1][0] + 3);
+    slideTime(/^Decay/, 4);
+    const decay = points();
+    expect(decay[1]).toEqual(attack[1]);
+    expect(decay[2][0]).toBeGreaterThan(attack[2][0]);
+    fireEvent.change(screen.getByLabelText("Sustain (%)"), { target: { value: "75" } });
+    expect(points()[2]).toEqual([decay[2][0], 5]);
+    expect(points()[3]).toEqual([decay[3][0], 5]);
+    fireEvent.input(screen.getByRole("slider", { name: /^Sustain/ }), { target: { value: "0" } });
+    const silentTail = points();
+    slideTime(/^Release \(s\)/, 6);
+    expect(points().slice(0, 4)).toEqual(silentTail.slice(0, 4));
+    expect(points()[4][0]).toBeGreaterThan(silentTail[4][0]);
+    expect(points()[4][1]).toBe(20);
+    expect(other.getAttribute("points")).toBe(originalOther);
+  });
   it("blocks invalid input and allows cancellation without saving", () => {
     const onChange = vi.fn(), onClose = vi.fn();
     render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={onChange} onClose={onClose} />);
