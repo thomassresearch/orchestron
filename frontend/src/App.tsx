@@ -12,7 +12,7 @@ import { useMidiControllerRouting } from "./hooks/useMidiControllerRouting";
 import { normalizeControllerTargetChannels } from "./lib/midiControllerChannels";
 import { INITIAL_PANEL_COLLAPSE_STATE, type PanelId } from "./components/CollapsiblePanel";
 import { stereoCatalogEntries } from "./lib/stereoCatalog";
-import { AuditionPanel } from "./components/AuditionPanel";
+import { AuditionPanel, AuditionKeyboardProvider } from "./components/AuditionPanel";
 import { wireSampleMap } from "./lib/samplePlayer";
 import { sampleCopy } from "./lib/sampleCopy";
 import { audioTemplate, type BuiltinTemplate } from "./lib/audioTemplates";
@@ -1847,6 +1847,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
               </div>
 
               <section className="relative flex h-full min-h-[440px] flex-col gap-2">
+                <AuditionKeyboardProvider>
                 <div className="studio-panel">
                   <AuditionPanel key={`${activeInstrumentTabId}:${currentPatch.id}`} stopPerformance={() => stopPerformance(false)}>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -1899,6 +1900,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
                     />
                   </Suspense>
                 </div>
+                </AuditionKeyboardProvider>
               </section>
 
               {!runtimePanelCollapsed ? (

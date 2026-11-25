@@ -17749,7 +17749,7 @@
     "category": "fm",
     "description": "Dry six-operator FM voice with eight algorithms, independent ADSRs, operator-6 feedback and 32 starter presets. Open FM6 to edit the custom voice.",
     "documentation_url": "https://csound.com/docs/manual/opcode.html",
-    "documentation_markdown": "### FM6\n\nOrchestron embedded UDO: six sine operators, eight routings, 32 starter presets and a dry mono output. Use the FM6 editor to design a voice. Preset 0 selects your custom voice. Note settings apply to new notes; draft audition requires restart after editing.",
+    "documentation_markdown": "### FM6\n\nOrchestron embedded UDO: six sine operators, eight routings, 32 starter presets and a dry mono output. Use the FM6 editor to design a voice. Preset 0 selects your custom voice. Select an operator in the diagram to edit its controls. Each new audition note uses the current settings. Cancel restores the opening voice.",
     "inputs": [
       {
         "id": "kfreq",

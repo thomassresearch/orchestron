@@ -9,7 +9,7 @@ from backend.app.core.container import AppContainer
 from backend.app.models.audio import MixerUpdate
 from backend.app.models.performance_controller import PerformanceControllerUpdate, PerformanceControllerDelta
 from backend.app.models.patch import PatchDocument
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, FiniteFloat, model_validator
 from backend.app.models.session import (
     BindMidiInputRequest,
     CompileResponse,
@@ -55,6 +55,18 @@ async def preview_session(request_body: PreviewSessionRequest, request: Request,
     return await container.session_service.create_session(request_body.session,
         client_key=request.client.host if request.client else "unknown",
         preview_patches={p.id: p for p in request_body.patches})
+
+
+class Fm6PreviewUpdate(BaseModel):
+    node_id: str
+    values: dict[str, FiniteFloat] = Field(min_length=1, max_length=64)
+
+
+@router.patch("/{session_id}/instruments/{assignment_id}/fm6-preview", status_code=204)
+async def update_fm6_preview(session_id: str, assignment_id: str, body: Fm6PreviewUpdate,
+                             container: AppContainer = Depends(get_container)):
+    await container.session_service.update_fm6_preview(session_id, assignment_id, body.node_id, body.values)
+    return Response(status_code=204)
 
 
 @router.get("/{session_id}/mixer")

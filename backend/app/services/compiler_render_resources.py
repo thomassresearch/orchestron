@@ -20,6 +20,7 @@ from backend.app.models.render_plan import (
 )
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_formula import lookup_input_formula_config, resolve_input_expression
+from backend.app.services.compiler_fm6 import preview_channel
 from backend.app.services.compiler_graph import compile_graph_context
 from backend.app.services.compiler_legato import has_legato, validate_legato
 from backend.app.services.performance_controller_service import controller_bindings
@@ -274,6 +275,9 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                     resource("legato:" + identity, node, "instance", "read_write")
             elif name not in {"outs", "inleta", "outleta", "const_a", "const_i", "const_k", "const_s"}:
                 resource("voice:" + identity + ":" + node.id, node, "voice", "read_write")
+
+            for key in target.fm6_preview.get(node.id, ()):
+                resource("channel:" + preview_channel(identity, node.id, key), node, "host", "read")
 
             if name == "instance_noise":
                 resource("note-random:" + identity, node, "instance", "read_write")

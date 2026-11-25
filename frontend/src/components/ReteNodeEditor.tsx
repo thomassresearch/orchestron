@@ -1767,7 +1767,7 @@ export function ReteNodeEditor({
           return ["connections", "formula"].includes(state.source) || (state.source === "parameter" && numericInputLiteral(state.expression) === null)
             ? [[port.id, [describeInputValue(state, guiLanguage), ...sources].join(" · ")]] : [];
         }))}
-        onClose={() => setFm6EditorId(null)} onSave={params => updateGraph(current => ({ ...current, nodes: current.nodes.map(node =>
+        onClose={() => setFm6EditorId(null)} onChange={params => updateGraph(current => ({ ...current, nodes: current.nodes.map(node =>
           node.id === fm6EditorNode.id ? { ...node, params } : node) }))} />}
 
       {genEditor && (

@@ -86,9 +86,11 @@ it("opens FM6, preserves formulas and connections, and keeps connected controls 
   expect(await screen.findByText("Vibrato rate")).toBeTruthy();
   fireEvent.click(edit);
   await screen.findByRole("dialog", { name: "FM6 Voice Editor" });
+  fireEvent.click(screen.getByRole("button", { name: "Operator 1 Carrier" }));
   fireEvent.change(screen.getByLabelText("Ratio ×"), { target: { value: "2.25" } });
-  fireEvent.click(screen.getByRole("button", { name: "Apply to draft" }));
   expect(change.mock.lastCall?.[0].nodes[0].params).toMatchObject({ ipreset: 0, op1_ratio: 2.25 });
   expect(change.mock.lastCall?.[0].connections).toEqual(graph.connections);
   expect(change.mock.lastCall?.[0].ui_layout).toEqual(graph.ui_layout);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(change.mock.lastCall?.[0].nodes[0].params).toEqual({ ipreset: 1 });
 });

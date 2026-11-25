@@ -66,7 +66,7 @@ percussion: their pitch follows the played note, so try different octaves. Space
 Chime uses inharmonic ratios and slower modulation for a ringing effect. All remain
 dry. Existing presets **1–12** retain their original sounds and numbers.
 
-![FM6 voice editor displaying the new Growl Bass preset](../../screenshots/fm6_bass_presets.png)
+![FM6 routing overview for the Growl Bass preset](../../screenshots/fm6_bass_presets.png)
 
 Preset numbers are also listed in the instrument description and opcode **?** help.
 
@@ -96,10 +96,11 @@ Add `fm6_voice` from the **fm** category and click its **FM6** button. The node 
 ![FM6 editor with routing, operators and envelopes](../../screenshots/fm6_voice_editor.png)
 
 1. Choose a starter or **Custom voice (0)**.
-2. Choose an algorithm. The diagram shows modulation arrows, audible carriers and operator-6 feedback.
-3. Select an operator button and edit its controls. **Copy operator** and **Paste operator** transfer its tuning, level, velocity and envelope together.
-4. Set voice feedback and the performance input defaults.
-5. Choose **Apply to draft**, then restart draft audition. **Cancel** discards dialog edits. Save the instrument to keep applied changes.
+2. Choose an algorithm and follow the arrows from modulators (amber) to carriers (cyan). The loop on operator 6 shows voice feedback.
+3. Click an operator in the diagram, or focus it and press **Enter** or **Space**. Drag a slider or type an exact value. Each operator shows its frequency ratio, detune in cents, envelope and level. The white tick on the level bar marks its level at minimum velocity. Hover over an operator for exact values. **Copy operator** and **Paste operator** transfer all its settings.
+4. Adjust voice feedback above the diagram. Expand **Performance inputs** for brightness, envelope scaling, vibrato, feedback override and output gain.
+5. To listen while editing, start **Audition** before opening **FM6**. Play the keyboard inside the editor. Each new note takes the current voice, including its algorithm. Held notes and release tails finish with their original settings.
+6. **Apply to draft** keeps your edits. **Cancel**, **Close**, **Escape** or clicking the backdrop restores the settings from when you opened the editor. Save the instrument to keep the voice in your library.
 
 Editing an operator, voice feedback or algorithm copies the starter into **Custom (0)**. Browsing starter presets preserves custom settings. The starter bank itself is unchanged by edits.
 

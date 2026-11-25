@@ -10,6 +10,7 @@ type NodeEditorModalFrameProps = {
   closeLabel: string;
   onClose: () => void;
   children: ReactNode;
+  closeOnEscape?: boolean;
   footer?: ReactNode;
   bodyClassName?: string;
   maxHeightClassName?: string;
@@ -24,6 +25,7 @@ export function NodeEditorModalFrame({
   closeLabel,
   onClose,
   children,
+  closeOnEscape,
   footer,
   bodyClassName = "overflow-y-auto p-4",
   maxHeightClassName = "max-h-[90vh]",
@@ -31,6 +33,7 @@ export function NodeEditorModalFrame({
 }: NodeEditorModalFrameProps): JSX.Element {
   return (
     <ModalFrame
+      closeOnEscape={closeOnEscape}
       ariaLabel={ariaLabel}
       title={title}
       subtitle={

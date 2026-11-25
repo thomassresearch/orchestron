@@ -30,7 +30,7 @@ def note_events(notes, channel=0):
     return sorted(events, key=lambda e: (e[0], bool(e[1][0] & 0x10)))
 
 
-def compile_guitars(patches, *, mode="score", settings=None, ksmps=None):
+def compile_guitars(patches, *, mode="score", settings=None, ksmps=None, fm6_preview=False):
     settings = settings or [{} for _ in patches]
     targets, routes = [], []
     for index, (patch, values) in enumerate(zip(patches, settings, strict=True)):
@@ -41,6 +41,9 @@ def compile_guitars(patches, *, mode="score", settings=None, ksmps=None):
         identity = f"guitar{index}"
         targets.append(PatchInstrumentTarget(patch=patch, midi_channel=index + 1, assignment_id=identity,
                                              performance_controller_values=values))
+        if fm6_preview:
+            from backend.app.services.compiler_fm6 import preview_values
+            targets[-1].fm6_preview = preview_values(patch)
         for side in ("left", "right"):
             routes.append(AudioRoute(id=f"{identity}_{side}", sourceId=identity, sourcePort=side,
                                      targetId="$output", targetPort=side))

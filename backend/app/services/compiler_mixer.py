@@ -666,6 +666,7 @@ def lower_mixer_bundle(
                 legato_identity=identity if identity in legato_refs else None,
                 private_table_limit=(private_table_limits or {}).get(stage),
                 sampler_mapped=bool(target.samples),
+                fm6_preview=target.fm6_preview,
             )
             bodies[stage] = compiled.instrument_lines
             header.append(ScopedSetup(tuple(compiled.global_header_lines), (stage,)))

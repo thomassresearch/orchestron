@@ -228,3 +228,24 @@ def test_bass_bank_has_tuned_low_end_velocity_response_and_short_release(preset)
     hard = audition(settings={'fm6_preset': preset}, notes=[(.08, 36, 110, .65)])
     assert rms(hard) > rms(soft) * 1.05
     assert abs(audio[-2400:]).max() < 1e-9
+
+
+def test_preview_edits_and_rollback_latch_at_note_start():
+    from backend.app.services.compiler_fm6 import preview_channel
+
+    before = steady_voice(8)
+    changes = {"algorithm": 1, "op3_ratio": 2.5, "igain": -12}
+    p = patch(before)
+    artifact, targets = compile_guitars([p], mode="host", fm6_preview=True)
+    resources = analyze_render_resources(targets, OpcodeService("/static/icons"))
+    channels = {r.resource for r in resources.accesses if r.stage == "patch:guitar0" and r.scope == "host"}
+    assert {"channel:" + preview_channel("guitar0", "fm6", k) for k in changes} <= channels
+    # Edit during the first held note and cancel during the second.
+    notes = [(.08, 60, 96, .45), (.25, 66, 105, .45), (.49, 71, 90, .28)]
+    updates = [(t, preview_channel("guitar0", "fm6", k), v)
+               for t, values in [(.16, changes), (.38, {k: before[k] for k in changes})]
+               for k, v in values.items()]
+    actual, _ = render(artifact, targets, note_events(notes), 1, mode="host", controller_updates=updates)
+    expected = (audition(p, notes=[notes[0], notes[2]], seconds=1) +
+                audition(patch(before | changes), notes=[notes[1]], seconds=1))
+    np.testing.assert_allclose(actual, expected, atol=1e-10)

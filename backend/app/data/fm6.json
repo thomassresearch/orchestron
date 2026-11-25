@@ -1,5 +1,14 @@
 {
   "version": 1,
+  "globals": {
+    "ibrightness": [0, 200, 100],
+    "ifeedback": [-1, 100, -1],
+    "iattack_scale": [0.25, 4, 1],
+    "irelease_scale": [0.25, 4, 1],
+    "ivibrato_rate": [0.1, 12, 5],
+    "ivibrato_depth": [0, 100, 0],
+    "igain": [-36, 0, -12]
+  },
   "fields": {
     "enabled": [
       0,

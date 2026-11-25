@@ -12,8 +12,9 @@ const value = (label: string) => (screen.getByLabelText(label) as HTMLInputEleme
 
 describe("FM6 voice editor", () => {
   it("offers all 32 presets and copies a browsed effects voice into Custom", () => {
-    const onSave = vi.fn();
-    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onSave={onSave} onClose={vi.fn()} />);
+    const onChange = vi.fn();
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={onChange} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Operator 1 Carrier" }));
     const selector = screen.getByLabelText("Preset") as HTMLSelectElement;
     expect(selector.options).toHaveLength(33);
     expect(selector.options[13].text).toBe("13 · Solid Sub Bass");
@@ -27,22 +28,25 @@ describe("FM6 voice editor", () => {
     }
     fireEvent.change(screen.getByLabelText("Ratio ×"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply to draft" }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ ...FM6.presets[31].voice, ipreset: 0, op1_ratio: 2 }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ...FM6.presets[31].voice, ipreset: 0, op1_ratio: 2 }));
   });
   it.each(["english", "german", "french", "spanish"] as const)("edits a preset as Custom with all six operators in %s", language => {
-    const copy = fm6Copy(language), onSave = vi.fn();
-    render(<Fm6VoiceEditor node={node} language={language} drivenInputs={{}} onSave={onSave} onClose={vi.fn()} />);
+    const copy = fm6Copy(language), onChange = vi.fn();
+    render(<Fm6VoiceEditor node={node} language={language} drivenInputs={{}} onChange={onChange} onClose={vi.fn()} />);
     expect(screen.getByRole("dialog", { name: copy.title })).toBeTruthy();
-    expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(5);
+    expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(6);
+    expect(screen.queryByLabelText(copy.ratio)).toBeNull();
+    fireEvent.keyDown(screen.getByRole("button", { name: `${copy.operator} 1 ${copy.carrier}` }), { key: "Enter" });
     fireEvent.change(screen.getByLabelText(copy.ratio), { target: { value: "2.5" } });
     expect(value(copy.preset)).toBe("0");
     fireEvent.click(screen.getByRole("button", { name: copy.apply }));
-    const saved = onSave.mock.calls[0][0];
+    const saved = onChange.mock.calls[0][0];
     expect(saved).toMatchObject({ ...FM6.presets[0].voice, op1_ratio: 2.5, ipreset: 0, ibrightness: 83 });
     expect(node.params.op1_ratio).toBe(7);
   });
   it("preserves custom edits while browsing presets, changes roles, and copies operators", () => {
-    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onSave={vi.fn()} onClose={vi.fn()} />);
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Operator 1 Carrier" }));
     fireEvent.change(screen.getByLabelText("Preset"), { target: { value: "0" } });
     expect(value("Ratio ×")).toBe("7");
     fireEvent.change(screen.getByLabelText("Preset"), { target: { value: "12" } });
@@ -57,8 +61,9 @@ describe("FM6 voice editor", () => {
     expect(screen.getByRole("button", { name: "Operator 6 Modulator" })).toBeTruthy();
   });
   it("blocks invalid input and allows cancellation without saving", () => {
-    const onSave = vi.fn(), onClose = vi.fn();
-    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onSave={onSave} onClose={onClose} />);
+    const onChange = vi.fn(), onClose = vi.fn();
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={onChange} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Operator 1 Carrier" }));
     for (const invalid of ["", "0", "NaN", "Infinity", "11"]) {
       fireEvent.change(screen.getByLabelText("Attack (s)"), { target: { value: invalid } });
       expect((screen.getByRole("button", { name: "Apply to draft" }) as HTMLButtonElement).disabled).toBe(true);
@@ -66,14 +71,32 @@ describe("FM6 voice editor", () => {
     fireEvent.change(screen.getByLabelText("Attack (s)"), { target: { value: ".1" } });
     expect((screen.getByRole("button", { name: "Apply to draft" }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(onClose).toHaveBeenCalledOnce(); expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onChange.mock.calls.map(call => call[0])).toEqual([expect.objectContaining({ op1_attack: .1, ipreset: 0 }), node.params]);
+  });
+  it.each(["Cancel", "Close", "Escape", "backdrop"])("rolls back live changes through %s after parent rerenders", exit => {
+    const onChange = vi.fn(), onClose = vi.fn();
+    const editor = (params: NodeInstance["params"]) => <Fm6VoiceEditor node={{ ...node, params }} language="english" drivenInputs={{}} onChange={onChange} onClose={onClose} />;
+    const view = render(editor(node.params));
+    fireEvent.change(screen.getByLabelText("Algorithm"), { target: { value: "8" } });
+    view.rerender(editor(onChange.mock.calls[0][0]));
+    const tile = screen.getByRole("button", { name: "Operator 6 Carrier" });
+    fireEvent.click(tile);
+    fireEvent.change(screen.getByRole("slider", { name: /Level/ }), { target: { value: "34" } });
+    expect(tile.textContent).toContain("34%");
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ algorithm: 8, op6_level: 34 }));
+    if (exit === "Escape") fireEvent.keyDown(window, { key: "Escape" });
+    else if (exit === "backdrop") fireEvent.mouseDown(screen.getByRole("dialog").parentElement!);
+    else fireEvent.click(screen.getByRole("button", { name: exit }));
+    expect(onChange).toHaveBeenLastCalledWith(node.params);
+    expect(onClose).toHaveBeenCalledOnce();
   });
   it("shows graph-driven controls without replacing their stored values", () => {
-    const onSave = vi.fn();
-    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{ ipreset: "preset controller", ibrightness: "brightness controller" }} onSave={onSave} onClose={vi.fn()} />);
+    const onChange = vi.fn();
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{ ipreset: "preset controller", ibrightness: "brightness controller" }} onChange={onChange} onClose={vi.fn()} />);
     expect(screen.queryByRole("textbox", { name: "Brightness (%)" })).toBeNull();
     expect(screen.getByText(/Custom edits are heard/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Apply to draft" }));
-    expect(onSave).toHaveBeenCalledWith(node.params);
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

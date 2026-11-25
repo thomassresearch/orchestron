@@ -122,7 +122,9 @@ Continuous generators start immediately. If there is no note-triggered instrumen
 
 Stopping audition releases held notes, removes the temporary session and restores the original performance playhead with transport stopped. Restart that performance explicitly when ready. Switching instruments or leaving Instrument Design also ends audition. Temporary patches, test sources and routes are never saved into the library.
 
-If you edit the graph during audition, a **Draft changed** message reminds you to stop and restart audition to hear the updated draft. Performance controls continue to address the running snapshot until then.
+The [FM6 voice editor](fm6_voice.md#design-a-voice) shows the audition keyboard while open. Play a new note to hear the current operator settings and algorithm. Cancel restores the opening voice for subsequent notes.
+
+For other graph edits during audition, a **Draft changed** message reminds you to stop and restart audition to hear the updated draft. Performance controls continue to address the running snapshot until then.
 
 ### Audition notes for branching instruments
 

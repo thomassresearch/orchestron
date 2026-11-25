@@ -98,7 +98,8 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
 - Draft audition is an isolated start/stop toggle: compile before stopping the original performance.
   Stop restores its playhead with transport stopped. Compact controls and keyboard exist only while
   running; effects use the built-in source. Temporary values start from defaults and survive audition
-  restarts for the same draft; switching instruments/view clears them. Graph edits require restart.
+  restarts for the same draft; switching instruments/view clears them. FM6 editor values latch
+  per note and Cancel restores the opening voice. Other graph edits require restart.
 
 ### Performance and persistence
 

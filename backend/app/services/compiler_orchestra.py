@@ -70,6 +70,7 @@ class OrchestraEmitter:
         legato_identity: str | None = None,
         private_table_limit: int | None = None,
         sampler_mapped: bool = False,
+        fm6_preview: dict | None = None,
     ) -> CompiledInstrumentLines:
         deferred_audio_outlet_inputs: list[str] = []
         deferred_audio_outlets: list[str] = []
@@ -230,7 +231,8 @@ class OrchestraEmitter:
                 continue
 
             if compiled.spec.name == "fm6_voice":
-                instrument_lines.extend(fm6_node_lines(compiled.node, env))
+                instrument_lines.extend(fm6_node_lines(compiled.node, env, (fm6_preview or {}).get(node_id),
+                                                      instance_id, global_header_lines))
                 continue
 
             if compiled.spec.name == "instance_noise":

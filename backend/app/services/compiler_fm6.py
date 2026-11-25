@@ -1,6 +1,12 @@
 """Dry six-operator PM synthesis, with private sample-local phase and feedback."""
 
-from backend.app.models.fm6 import FM6_DATA, FM6_FIELDS, FM6_PRESETS, fm6_voice, packed_voice
+from hashlib import sha256
+from math import isfinite
+
+from backend.app.services.compiler_formula import formula_target_key, lookup_input_formula_config
+from backend.app.models.fm6 import (
+    FM6_DATA, FM6_FIELDS, FM6_INPUT_RANGES, FM6_KEYS, FM6_PRESETS, fm6_voice, packed_voice, validate_fm6_value,
+)
 from backend.app.services.compiler_common import CompilationError
 
 
@@ -13,14 +19,63 @@ def validate_fm6_target(target):
         raise CompilationError(["FM6 currently supports polyphonic notes, not midi_legato phrases."])
 
 
-def fm6_node_lines(node, env):
+def preview_values(patch):
+    """Only literal socket defaults can be changed independently of their graph."""
+    connected = {(link.to_node_id, link.to_port_id) for link in patch.graph.connections}
+    nodes = {}
+    for node in patch.graph.nodes:
+        if node.opcode != "fm6_voice":
+            continue
+        values = fm6_voice(node.params)
+        for key, (_, _, default) in FM6_INPUT_RANGES.items():
+            if ((node.id, key) in connected or lookup_input_formula_config(
+                    patch.graph.ui_layout, formula_target_key(node.id, key)) is not None):
+                continue
+            try:
+                value = float(node.params.get(key, default))
+            except (TypeError, ValueError):
+                continue
+            if isfinite(value):
+                values[key] = value
+        nodes[node.id] = values
+    return nodes
+
+
+def preview_channel(assignment, node, key):
+    identity = sha256(f"{len(assignment)}:{assignment}{node}".encode()).hexdigest()[:24]
+    return f"fm6_{identity}_{key}"
+
+
+def preview_writes(assignment, node, initial, changes):
+    writes = {}
+    for key, value in changes.items():
+        if key not in initial:
+            raise ValueError(f"FM6 field {key} is not editable in this preview.")
+        # Old scalar defaults can lie outside the editor range. Allow an exact restoration.
+        if value != initial[key]:
+            validate_fm6_value(key, value)
+        writes[preview_channel(assignment, node, key)] = value
+    return writes
+
+
+def fm6_node_lines(node, env, preview, assignment, header):
     try:
         voice = fm6_voice(node.params)
     except ValueError as exc:
         raise CompilationError([str(exc)]) from exc
     custom = "i" + env["aout"][1:] + "_voice"
+    packed = packed_voice(voice)
+    if preview:
+        # Each note takes one init-rate snapshot. Existing voices own their array and envelopes.
+        inputs = {}
+        for key, value in preview.items():
+            channel = preview_channel(assignment, node.id, key)
+            header.append(f'chnset {value:.17g}, "{channel}"')
+            inputs[key] = f'chnget:i("{channel}")'
+        packed = ", ".join(inputs[key] for key in FM6_KEYS)
+        env = env | {key: inputs[key] for key in FM6_INPUT_RANGES if key in inputs}
     return [
-        f"{custom}[] fillarray {packed_voice(voice)}",
+        f"{custom}[] fillarray {packed}",
         f"{env['aout']} vcs_fm6_voice " + ", ".join(env[key] for key in (
             "kfreq", "ivelocity", "ipreset", "ibrightness", "ifeedback", "iattack_scale",
             "irelease_scale", "ivibrato_rate", "ivibrato_depth", "igain",

@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useAppStore } from "../store/useAppStore";
 import { useInstrumentAudition } from "../hooks/useInstrumentAudition";
 import { sampleCopy } from "../lib/sampleCopy";
@@ -7,12 +8,29 @@ import { defaultAuditionNote } from "../lib/controlFlow";
 import { AuditionControl } from "./audition/AuditionControl";
 import { AuditionKeyboard } from "./audition/AuditionKeyboard";
 
+const KeyboardHost = createContext<{
+  host: HTMLDivElement | null; setHost: (element: HTMLDivElement | null) => void;
+} | null>(null);
+
+export function AuditionKeyboardProvider({ children }: { children: ReactNode }) {
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
+  return <KeyboardHost.Provider value={{ host, setHost }}>{children}</KeyboardHost.Provider>;
+}
+
+export function InstrumentAuditionKeyboard() {
+  const target = useContext(KeyboardHost);
+  return target && <div ref={target.setHost} className="empty:hidden" />;
+}
+
 export function AuditionPanel({ stopPerformance, children }: { stopPerformance: () => Promise<void>; children?: ReactNode }) {
   const draft = useAppStore(s => s.currentPatch);
   const language = useAppStore(s => s.guiLanguage);
   const copy = auditionCopy(language);
   const audition = useInstrumentAudition(draft, stopPerformance, copy);
+  const keyboardHost = useContext(KeyboardHost)?.host;
   const running = audition.phase === "running";
+  const keyboard = running && audition.snapshot && <AuditionKeyboard initialNote={defaultAuditionNote(draft.graph)}
+    disabled={!audition.snapshot.midi.length} language={language} pressNote={audition.pressNote} />;
   const emptySampler = draft.graph.nodes.some(node => node.opcode === "sample_player");
   return <div className="min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -28,7 +46,7 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
           value={audition.values[d.node_id] ?? d.default} alwaysOn={audition.snapshot!.alwaysOn} language={language}
           onChange={value => audition.changeValue(d, value)} />)}
       </div>}
-      <AuditionKeyboard initialNote={defaultAuditionNote(draft.graph)} disabled={!audition.snapshot.midi.length} language={language} pressNote={audition.pressNote} />
+      {keyboardHost ? createPortal(keyboard, keyboardHost) : keyboard}
       {audition.stale && <p role="status" className="text-xs text-amber-200">{copy.stale}</p>}
     </div>}
     {emptySampler && <p className="mt-2 text-xs text-slate-300">{sampleCopy(language).emptyAudition}</p>}

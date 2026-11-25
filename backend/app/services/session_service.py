@@ -67,6 +67,7 @@ from backend.app.models.session import (
     SessionResolvedEffectRoute,
     SessionState,
 )
+from backend.app.services.compiler_fm6 import preview_values, preview_writes
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.event_bus import SessionEventBus
@@ -501,6 +502,21 @@ class SessionService:
             state.update(assignment_id, normalized, replace=True)
         return {"values": normalized}
 
+    async def update_fm6_preview(self, session_id, assignment_id, node_id, values):
+        runtime = await self._get_session(session_id)
+        async with runtime.lifecycle_lock:
+            self._assert_session_open(runtime)
+            if runtime.state != SessionState.RUNNING:
+                raise HTTPException(status_code=409, detail="Start audition to edit the sounding FM6 voice.")
+            nodes = runtime.compile_artifact.manifest.get("fm6Preview", {}).get(assignment_id, {})
+            if node_id not in nodes:
+                raise HTTPException(status_code=404, detail="Unknown FM6 preview node.")
+            try:
+                writes = preview_writes(assignment_id, node_id, nodes[node_id], values)
+            except ValueError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
+            runtime.worker.queue_control_channels(writes)
+
     async def compile_session(self, session_id: str) -> CompileResponse:
         self._remember_running_loop()
         runtime = await self._get_session(session_id)
@@ -516,6 +532,9 @@ class SessionService:
             resolver = self._resolver_for_patches(runtime.preview_patches)
             assets = self._verify_sample_assets(runtime.instruments, runtime.sample_assets)
             targets = [resolver.compile_target(assignment, assets) for assignment in runtime.instruments]
+            for target in targets:
+                if target.patch.id in runtime.preview_patches:
+                    target.fm6_preview = preview_values(target.patch)
             artifact = self._compiler_service.compile_patch_bundle(
                 targets=targets,
                 midi_input=self._resolve_runtime_midi_backend_selector(runtime),
@@ -523,6 +542,9 @@ class SessionService:
                 audio_graph=runtime.audio_graph,
                 mixer=runtime.mixer,
             )
+            fm6 = {target.assignment_id: target.fm6_preview for target in targets if target.fm6_preview}
+            if fm6:
+                artifact.manifest["fm6Preview"] = fm6
             if runtime.renderer_controller is not None:
                 runtime.renderer_controller.prepare(self._compiler_service, targets, runtime.audio_graph, runtime.mixer, artifact)
             return artifact

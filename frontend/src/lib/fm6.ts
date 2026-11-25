@@ -3,10 +3,7 @@ import type { NodeInstance } from "../types";
 
 export const FM6 = data;
 export const FM6_FIELDS = Object.keys(data.fields) as Array<keyof typeof data.fields>;
-export const FM6_GLOBALS: Record<string, [number, number, number]> = {
-  ibrightness: [0, 200, 100], ifeedback: [-1, 100, -1], iattack_scale: [.25, 4, 1],
-  irelease_scale: [.25, 4, 1], ivibrato_rate: [.1, 12, 5], ivibrato_depth: [0, 100, 0], igain: [-36, 0, -12]
-};
+export const FM6_GLOBALS = data.globals as Record<keyof typeof data.globals, [number, number, number]>;
 export type Fm6Params = NodeInstance["params"];
 export function fm6Voice(params: Fm6Params): Record<string, number> {
   const preset = data.presets.find(p => p.id === Number(params.ipreset ?? 0));

@@ -4,7 +4,15 @@ import { audioPorts } from "./audioBlocks";
 import { emptyAudioGraph, emptyMixer, newRoute } from "./audioRouting";
 import { audioTemplate } from "./audioTemplates";
 
-export const auditionSignature = (patch: EditablePatch) => JSON.stringify({ graph: patch.graph, always_on: patch.always_on });
+export function auditionSignature(patch: EditablePatch, live?: import("./fm6Audition").Fm6PreviewValues) {
+  const graph = live ? { ...patch.graph, nodes: patch.graph.nodes.map(node => {
+    if (!Object.prototype.hasOwnProperty.call(live, node.id) || node.opcode !== "fm6_voice") return node;
+    const params = Object.fromEntries(Object.entries(node.params).filter(([key, value]) =>
+      !Object.prototype.hasOwnProperty.call(live[node.id], key) || !Number.isFinite(Number(value))));
+    return { ...node, params };
+  }) } : patch.graph;
+  return JSON.stringify({ graph, always_on: patch.always_on });
+}
 
 /** A private snapshot: no library writes, performance bindings or MIDI mappings. */
 export function isolatedAudition(draft: EditablePatch, values: Record<string, number>, mappingError: string) {

@@ -9,6 +9,20 @@ FM6_FIELDS = FM6_DATA["fields"]
 FM6_DEFAULT = FM6_DATA["default"]
 FM6_PRESETS = FM6_DATA["presets"]
 FM6_KEYS = ["algorithm", "feedback", *[f"op{i}_{key}" for i in range(1, 7) for key in FM6_FIELDS]]
+FM6_INPUT_RANGES = {"ipreset": (0, len(FM6_PRESETS), 0), **FM6_DATA["globals"]}
+
+
+def validate_fm6_value(key: str, value: float) -> None:
+    if key in FM6_INPUT_RANGES:
+        low, high, _ = FM6_INPUT_RANGES[key]
+    elif key in ("algorithm", "feedback"):
+        low, high = (1, 8) if key == "algorithm" else (0, 100)
+    else:
+        low, high, _ = FM6_FIELDS[key.split("_", 1)[1]]
+    integer = key in ("algorithm", "ipreset") or key.endswith("_enabled")
+    if (isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value)
+            or not low <= value <= high or integer and int(value) != value):
+        raise ValueError(f"FM6 {key} must be a number in {low}..{high}" + (" (whole number)." if integer else "."))
 
 
 def fm6_voice(params: dict) -> dict[str, float]:
@@ -20,13 +34,7 @@ def fm6_voice(params: dict) -> dict[str, float]:
         raise ValueError(f"FM6 ipreset must be a whole number in 0..{len(FM6_PRESETS)}.")
     voice = FM6_DEFAULT | {key: value for key, value in params.items() if key in FM6_DEFAULT}
     for key, value in voice.items():
-        low, high = ((1, 8) if key == "algorithm" else (0, 100) if key == "feedback"
-                     else FM6_FIELDS[key.split("_", 1)[1]][:2])
-        if (isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value)
-                or not low <= value <= high
-                or (key == "algorithm" or key.endswith("_enabled")) and int(value) != value):
-            raise ValueError(f"FM6 {key} must be a number in {low}..{high}"
-                             + (" (whole number)." if key == "algorithm" or key.endswith("_enabled") else "."))
+        validate_fm6_value(key, value)
     return voice
 
 

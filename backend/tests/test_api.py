@@ -11381,6 +11381,30 @@ def test_fm6_opcode_catalog_and_invalid_custom_voice(tmp_path):
         assert rejected.status_code == 422 and 'op6_attack' in rejected.text
 
 
+def test_fm6_editable_values_only_in_running_draft_audition(tmp_path):
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture("almost_dx7")
+    with _client(tmp_path) as client:
+        session = {"instruments": [{"id": "fm", "patch_id": patch.id, "midi_channel": 1}]}
+        response = client.post("/api/sessions/preview", json={"session": session, "patches": [patch.model_dump(mode="json", by_alias=True)]})
+        assert response.status_code == 201, response.text
+        base = "/api/sessions/" + response.json()["session_id"]
+        edit = base + "/instruments/fm/fm6-preview"
+        values = {"node_id": "fm6", "values": {"algorithm": 4, "op3_ratio": 1.414}}
+        assert client.patch(edit, json=values).status_code == 409
+        compiled = client.post(base + "/compile")
+        assert compiled.status_code == 200, compiled.text
+        fields = compiled.json()["manifest"]["fm6Preview"]["fm"]["fm6"]
+        assert "op3_ratio" in fields and "ipreset" not in fields
+        assert client.post(base + "/start").status_code == 200
+        assert client.patch(edit, json=values).status_code == 204
+        for invalid in [{"op3_ratio": 0}, {"algorithm": 2.5}, {"op6_enabled": .5}, {"ipreset": 0}, {"typo": 1}]:
+            assert client.patch(edit, json={**values, "values": invalid}).status_code == 422
+        assert client.patch(edit, json={**values, "node_id": "other"}).status_code == 404
+        assert client.get("/api/patches/" + patch.id).status_code == 404
+
+
 @pytest.mark.parametrize('event_source', ['midiFile', 'score'])
 def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path, event_source):
     from backend.app.models.export import ExportedPatchDefinition

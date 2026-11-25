@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
+import { Fm6Audition, type Fm6PreviewValues } from "../lib/fm6Audition";
 import { BrowserClockAudioClient } from "../lib/browserClockAudio";
 import { auditionSignature, isolatedAudition } from "../lib/instrumentAudition";
 import { normalizeControllerValue, performanceControllersForGraph } from "../lib/performanceControllers";
@@ -12,6 +13,7 @@ type Run = {
   client: BrowserClockAudioClient; cancelled: boolean; id?: string; connected: boolean;
   startup: Promise<void>; cleanup?: Promise<void>; midiWork: Promise<void>; controlWork?: Promise<void>;
   timer?: ReturnType<typeof setTimeout>; pendingValues?: Record<string, number>;
+  fm6?: Fm6Audition;
   midi: number[]; notes: Map<number, { count: number; release: () => void }>;
   original?: { runtime: SequencerRuntimeState; generation: number; session: string | null };
 };
@@ -20,7 +22,7 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
   const [phase, setPhase] = useState<Phase>("off");
   const [error, setError] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, number>>({});
-  const [snapshot, setSnapshot] = useState<{ signature: string; definitions: PerformanceControllerDefinition[]; midi: number[]; alwaysOn: boolean } | null>(null);
+  const [snapshot, setSnapshot] = useState<{ signature: string; fm6?: Fm6PreviewValues; definitions: PerformanceControllerDefinition[]; midi: number[]; alwaysOn: boolean } | null>(null);
   const overrides = useRef<Record<string, number>>({});
   const active = useRef<Run | null>(null);
   const mounted = useRef(true);
@@ -37,6 +39,7 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
       run.notes.clear();
       try {
         await run.midiWork;
+        await run.fm6?.flush().catch(() => undefined);
         await run.controlWork?.catch(() => undefined);
       } finally {
         try { await run.client.disconnect(); }
@@ -123,7 +126,9 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
         if (run.cancelled) return;
         run.connected = true;
         const controllers = compiled.manifest?.performanceControllers as Record<string, Record<string, PerformanceControllerDefinition>> | undefined;
-        setSnapshot({ signature, midi: run.midi, alwaysOn: current.draft.always_on,
+        const fm6 = (compiled.manifest?.fm6Preview as Record<string, Fm6PreviewValues> | undefined)?.preview;
+        if (fm6) run.fm6 = new Fm6Audition(run.id, fm6);
+        setSnapshot({ signature: auditionSignature(current.draft, fm6), fm6, midi: run.midi, alwaysOn: current.draft.always_on,
           definitions: definitions.map(d => ({ ...d, update_mode: controllers?.preview?.[d.node_id]?.update_mode })) });
         setPhase("running");
       } catch (e) {
@@ -172,7 +177,10 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
       const id = run.id;
       const midi = (type: "note_on" | "note_off") => {
         run.midiWork = run.midiWork.then(async () => {
-          if (type === "note_on") { await flush(run); if (run.cancelled) return; }
+          if (type === "note_on") {
+            await Promise.all([flush(run), run.fm6?.flush()]);
+            if (run.cancelled) return;
+          }
           for (const channel of run.midi) await run.client.sendManualMidi(id,
             { type, channel, note, ...(type === "note_on" ? { velocity: 96 } : {}), source_id: "instrument-audition" },
             { source: "instrument-audition" });
@@ -191,6 +199,14 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
     };
   }
 
-  return { phase, error, values, snapshot, stale: !!snapshot && snapshot.signature !== auditionSignature(draft),
+  const stale = !!snapshot && snapshot.signature !== auditionSignature(draft, snapshot.fm6);
+  useEffect(() => {
+    const run = active.current;
+    if (!run?.fm6 || !run.connected || run.cancelled || stale) return;
+    run.fm6.read(draft.graph);
+    void run.fm6.flush().catch(reason => { if (active.current === run && !run.cancelled) report(reason); });
+  }, [draft.graph, snapshot, stale]);
+
+  return { phase, error, values, snapshot, stale,
     toggle: () => { if (active.current) void stop(); else start(); }, changeValue, pressNote };
 }
