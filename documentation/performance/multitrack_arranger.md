@@ -128,7 +128,11 @@ Check **Follow playhead** beside **Zoom** to scroll the tracks during song playb
 
 Uncheck **Follow playhead** to browse another passage while the song plays. Check it again to return to the current position. The arranger remembers your choice when you pause or switch views. It starts unchecked when you create, load or import a performance or reload the page.
 
-Scroll until the passage you want to inspect is in the middle of the tracks. **Zoom** keeps that beat centered until the view reaches either end. At close zoom the ruler and track backgrounds show subdivisions, beats, bar lines and stronger accents at bars 1, 5, 9 and 13. Zoom out to see intervals of four, sixteen or sixty-four bars.
+Point at a beat on the ruler or in a track. On a Mac trackpad, spread two fingers to zoom in or pinch them together to zoom out. On Windows or Linux, roll the mouse wheel up to zoom in or down to zoom out. The beat stays under the pointer until the view reaches either end. On Mac, sliding two fingers still scrolls the tracks.
+
+![Two views of the arranger with the pointer on the same bar line before and after zooming in](../../screenshots/arranger-pointer-zoom.png)
+
+To zoom around the middle of the tracks, use the **Zoom** slider. At close zoom the ruler and track backgrounds show subdivisions, beats, bar lines and stronger accents at bars 1, 5, 9 and 13. Zoom out to see intervals of four, sixteen or sixty-four bars.
 
 Expand a track with different timing to see its local meter and speed below the clip. In a 4/4 song, a 6/8 track at normal speed starts a new bar every three quarter notes. Its fifth bar meets master bar four, twelve quarter notes from song start. Collapsed tracks share the master ruler.
 

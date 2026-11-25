@@ -253,6 +253,23 @@ it.each([320, 1000])("follows song playback between the center and the authored 
     viewportWidth += 100;
     act(() => resize());
     expect(viewport.scrollLeft).toBeCloseTo(40 * 100 - visible() / 2);
+    // Follow yields to the pointer throughout the gesture, then resumes on a playback tick.
+    const now = vi.spyOn(performance, "now").mockReturnValue(1000);
+    try {
+      const offset = visible() / 4;
+      const beat = (viewport.scrollLeft + offset) / 100;
+      const ruler = container.querySelector<HTMLElement>("[data-arranger-ruler]")!;
+      fireEvent.wheel(ruler, { ctrlKey: true, deltaY: 20, clientX: viewportWidth - visible() + offset });
+      const beatWidth = parseFloat(container.querySelector<HTMLElement>('[title="Song end"]')!.style.left) / 80;
+      expect(beatWidth).toBeLessThan(100);
+      tick(41);
+      expect(viewport.scrollLeft).toBeCloseTo(beat * beatWidth - offset);
+      now.mockReturnValue(2000);
+      tick(42);
+      expect(viewport.scrollLeft).toBeCloseTo(42 * beatWidth - visible() / 2);
+    } finally {
+      now.mockRestore();
+    }
     fireEvent.click(follow);
     const parked = viewport.scrollLeft;
     tick(25);
@@ -307,6 +324,65 @@ it.each([320, 1000])("zooms around the visible timeline center at a viewport wid
       expect(Math.abs(centerBeat() - overviewCenter) * scale()).toBeLessThanOrEqual(0.501);
     }
   } finally {
+    width.mockRestore();
+  }
+});
+
+it.each(["MacIntel", "Win32", "Linux x86_64"])("anchors timeline input to the pointer on %s", platform => {
+  const os = vi.spyOn(navigator, "platform", "get").mockReturnValue(platform);
+  const width = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1000);
+  try {
+    const songBeats = 256;
+    useAppStore.setState(state => ({ sequencer: { ...state.sequencer,
+      clipArrangement: { ...state.sequencer.clipArrangement!, end: songBeats * QUARTER_TICKS } } }));
+    const { container } = render(<ClipPerformance language="english" renderEditor={() => null} />);
+    const viewport = container.querySelector<HTMLElement>("[data-arranger-viewport]")!;
+    const ruler = container.querySelector<HTMLElement>("[data-arranger-ruler]")!;
+    const clip = container.querySelector<HTMLElement>("[data-arranger-clip]")!;
+    const header = container.querySelector<HTMLElement>("[data-clip-lane] > div")!;
+    const songEnd = container.querySelector<HTMLElement>('[title="Song end"]')!;
+    const slider = screen.getByRole("slider", { name: "Zoom" }) as HTMLInputElement;
+    const scale = () => parseFloat(songEnd.style.left) / songBeats;
+    const beatAt = (offset: number) => (viewport.scrollLeft + offset) / scale();
+    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ x: 80, width: 1000 }));
+    const mac = platform === "MacIntel";
+    const wheel = (target: HTMLElement, offset: number, init: WheelEventInit = {}) =>
+      fireEvent.wheel(target, { clientX: 80 + parseFloat(header.style.width) + offset,
+        ctrlKey: mac, deltaY: -3, deltaMode: WheelEvent.DOM_DELTA_LINE, ...init });
+
+    viewport.scrollLeft = 1200;
+    const originalScale = scale(), originalSlider = slider.value;
+    const leftBeat = beatAt(90);
+    expect(wheel(clip, 90)).toBe(false);
+    expect(scale()).toBeGreaterThan(originalScale);
+    expect(Number(slider.value)).toBeGreaterThan(Number(originalSlider));
+    expect(beatAt(90)).toBeCloseTo(leftBeat);
+    const rightBeat = beatAt(620);
+    expect(wheel(ruler, 620, { deltaY: 3 })).toBe(false);
+    expect(scale()).toBeCloseTo(originalScale);
+    expect(beatAt(620)).toBeCloseTo(rightBeat);
+
+    expect(wheel(header, 90)).toBe(true);
+    expect(wheel(ruler, -10)).toBe(true);
+    expect(wheel(ruler, 90, { deltaX: 40, deltaY: 1, ctrlKey: false })).toBe(true);
+    expect(wheel(ruler, 90, { shiftKey: true })).toBe(true);
+    if (mac) expect(wheel(clip, 90, { ctrlKey: false })).toBe(true);
+    expect(scale()).toBeCloseTo(originalScale);
+
+    const center = (1000 - parseFloat(header.style.width)) / 2;
+    const centerBeat = beatAt(center);
+    fireEvent.change(slider, { target: { value: "100" } });
+    expect(beatAt(center)).toBeCloseTo(centerBeat);
+    expect(wheel(ruler, 620)).toBe(false);
+    expect(scale()).toBe(100);
+    wheel(ruler, 620, { deltaY: 10000 });
+    expect(slider.value).toBe("0");
+    expect(viewport.scrollLeft).toBe(0);
+    const overviewBeat = beatAt(620);
+    wheel(ruler, 620);
+    expect(beatAt(620)).toBeCloseTo(overviewBeat);
+  } finally {
+    os.mockRestore();
     width.mockRestore();
   }
 });

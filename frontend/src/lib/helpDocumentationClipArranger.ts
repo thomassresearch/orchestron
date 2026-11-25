@@ -14,6 +14,8 @@ Click the clip header to select the whole window. Right-click anywhere inside it
 
 Shift-click another clip header on the same track, then right-click a selected header and choose **Merge clips**. Gaps become rests. For one clip, choose **Split clip…**, drag the scissors or press Left/Right, then choose **Cut** or **Cancel**. Each confirmed edit supports Undo.
 
+Point at a beat on the ruler or in a track. Pinch the trackpad on Mac or turn the mouse wheel on Windows or Linux to zoom around that beat. The **Zoom** slider keeps the middle of the visible timeline centered.
+
 The ruler and tracks share subdivisions, beats, bars and four-bar accents. Zoom out for longer intervals. Expand a track to see its own meter and speed when its timing differs.
 
 ### Edit and save
@@ -48,6 +50,8 @@ Den Clip-Kopf ziehen, um sein Fenster zu verschieben; die Ränder ziehen, um es 
 Klicke auf den Clip-Kopf, um das ganze Fenster auszuwählen. Ein Rechtsklick im Fenster öffnet **Clip duplizieren** und **Clip löschen**. Die Kopie kommt in die nächste passende Lücke derselben Spur. Klicke auf ein Pattern oder eine Gruppe, um den Inhalt auszuwählen. Ein Rechtsklick im markierten Bereich behält die Auswahl bei.
 
 Klicke mit Umschalt auf einen weiteren Clip-Kopf derselben Spur. Wähle per Rechtsklick **Clips zusammenführen**. Lücken werden zu Pausen. Wähle für einen einzelnen Clip **Clip teilen…**, ziehe die Schere oder verwende die Pfeiltasten und wähle **Teilen** oder **Abbrechen**. Jeder bestätigte Schritt lässt sich rückgängig machen.
+
+Zeige auf einen Schlag im Lineal oder in einer Spur. Ziehe auf dem Mac zwei Finger auf dem Trackpad auseinander oder zusammen. Unter Windows oder Linux drehe das Mausrad. Der Schlag bleibt beim Zoomen unter dem Mauszeiger. Der Zoomregler zoomt um die Mitte des sichtbaren Zeitbereichs.
 
 Lineal und Spuren teilen Unterteilungen, Schläge, Takte und Viertaktmarken. Beim Herauszoomen werden größere Abstände sichtbar. Eine aufgeklappte Spur mit anderem Takt oder Tempoverhältnis zeigt zusätzlich ihr eigenes Raster.
 
@@ -84,6 +88,8 @@ Cliquez sur l’en-tête du clip pour sélectionner toute la fenêtre. Un clic d
 
 Avec Maj, cliquez sur un autre en-tête de la même piste. Faites un clic droit sur la sélection et choisissez **Fusionner les clips**. Les intervalles deviennent des silences. Pour un clip, choisissez **Scinder le clip…**, déplacez les ciseaux à la souris ou avec les flèches, puis choisissez **Couper** ou **Annuler**. Chaque modification confirmée peut être annulée.
 
+Placez le pointeur sur un temps de la règle ou d’une piste. Sur Mac, écartez ou rapprochez deux doigts sur le pavé tactile. Sous Windows ou Linux, tournez la molette. Le temps reste sous le pointeur pendant le zoom. Le curseur de zoom garde le milieu de la zone visible au centre.
+
 La règle et les pistes partagent subdivisions, temps, mesures et accents toutes les quatre mesures. Un zoom arrière espace les repères. Dépliez une piste dont la mesure ou la vitesse diffère pour voir sa grille locale.
 
 ### Modifier et enregistrer
@@ -118,6 +124,8 @@ Arrastra la cabecera de un clip para mover su ventana y sus bordes para recortar
 Haz clic en la cabecera del clip para seleccionar toda la ventana. Un clic derecho dentro de ella ofrece **Duplicar clip** y **Eliminar clip**. La copia ocupa el siguiente hueco suficiente en la misma pista. Haz clic en un patrón o grupo para seleccionar su contenido. Un clic derecho dentro de un rango seleccionado conserva el rango.
 
 Con Mayús, haz clic en otra cabecera de la misma pista. Haz clic derecho en la selección y elige **Fusionar clips**. Los huecos se convierten en silencios. Para un clip, elige **Dividir clip…**, mueve las tijeras con el ratón o las flechas y elige **Cortar** o **Cancelar**. Puedes deshacer cada edición confirmada.
+
+Sitúa el puntero sobre un pulso en la regla o en una pista. En Mac, separa o junta dos dedos sobre el panel táctil. En Windows o Linux, gira la rueda del ratón. El pulso permanece bajo el puntero al cambiar el zoom. El control de zoom mantiene centrado el punto medio de la zona visible.
 
 La regla y las pistas comparten subdivisiones, pulsos, compases y acentos cada cuatro compases. Al alejar la vista, aumenta la distancia musical entre las marcas. Expande una pista con otro compás o velocidad para ver su cuadrícula local.
 

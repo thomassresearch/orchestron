@@ -31,7 +31,7 @@ import { AutomationGenerator } from "./AutomationControls";
 import { automationCopy } from "./automationCopy";
 import type { useStructureEditor } from "./StructureEditor";
 import { beginStructure, structurePreview, structureClip, isExpandedStructure, structureDisplayGeometry } from "../../lib/clipArranger/structure";
-import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
 import { clipWindows, windowRange, resolveClip, localBeatTicks, patternDuration, contentLength, definitionMap, newClipId, QUARTER_TICKS as Q, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type OccurrenceTarget, type PatternTiming } from "../../lib/clipArranger/model";
 import { definitionAt, clipDisplayName, addClip, convertLaneCycle, deleteClip, duplicateClip, fitClip, trimClip, updateClip } from "../../lib/clipArranger/operations";
@@ -47,6 +47,7 @@ import "./ClipArranger.css";
 
 // Two 8px trim handles still need to leave a usable grab target between them.
 const MIN_CLIP_CONTROL_WIDTH = 48;
+const MAX_ZOOM = 100;
 
 export const clipInput = "w-24 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100";
 export type ClipArrangerProps = {
@@ -145,34 +146,68 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
   const songEnd = projected?.end ?? model.end;
   const unit = zoom / Q, width = Math.max(timelineWidth, (songEnd / Q + 4) * zoom);
   const renderAhead = Math.max(1800, timelineWidth);
-  const zoomRatio = 100 / minZoom;
+  const zoomRatio = MAX_ZOOM / minZoom;
   const sliderValue = Math.round(100 * Math.log(zoom / minZoom) / Math.log(zoomRatio));
-  const pendingZoomBeat = useRef<number | null>(null);
-  const lastZoomAnchor = useRef<{ beat: number; centerPixel: number; zoom: number } | null>(null);
-  const changeZoom = (value: number) => {
-    if (viewport.current && !following) {
-      const centerPixel = viewport.current.scrollLeft + timelineWidth / 2;
+  const pendingZoom = useRef<{ beat: number; offset: number; scale: number } | null>(null);
+  const lastZoomAnchor = useRef<{ beat: number; pixel: number; zoom: number } | null>(null);
+  const resumeFollowAt = useRef(0);
+  const zoomAt = useCallback((scale: number, offset: number | null) => {
+    const node = viewport.current;
+    pendingZoom.current = null;
+    if (node && offset !== null && scale !== zoom) {
+      const pixel = node.scrollLeft + offset;
       const last = lastZoomAnchor.current;
-      // Reuse the exact beat across slider steps. Rounded scroll pixels accumulate drift on long songs.
-      pendingZoomBeat.current = last?.centerPixel === centerPixel && last.zoom === zoom ? last.beat : centerPixel / zoom;
+      // Retain the precise beat across zoom steps even if the browser rounds scrollLeft.
+      const beat = last?.pixel === pixel && last.zoom === zoom ? last.beat : pixel / zoom;
+      pendingZoom.current = { beat, offset, scale };
     }
-    setZoom(value === 0 ? null : minZoom * zoomRatio ** (value / 100));
+    setZoom(scale === minZoom ? null : scale);
+  }, [minZoom, setZoom, viewport, zoom]);
+  const changeZoom = (value: number) => {
+    resumeFollowAt.current = 0;
+    zoomAt(minZoom * zoomRatio ** (value / 100), following ? null : timelineWidth / 2);
   };
   useLayoutEffect(() => {
-    const node = viewport.current, beat = pendingZoomBeat.current;
-    if (!node || beat === null) return;
-    pendingZoomBeat.current = null;
+    const node = viewport.current;
+    if (!node) return;
+    const mac = /Mac/.test(navigator.platform);
+    const wheel = (event: WheelEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest("[data-arranger-ruler], [data-clip-timeline]") ||
+          target.closest("input, select, textarea") || event.defaultPrevented || event.shiftKey || event.altKey || event.metaKey) return;
+      const mode = event.deltaMode;
+      // Browsers send a Ctrl+wheel for trackpad pinches. Leave ordinary Mac swipes and horizontal scrolling native.
+      if (!event.ctrlKey && (mac || !event.deltaY || Math.abs(event.deltaX) >= Math.abs(event.deltaY))) return;
+      const offset = event.clientX - node.getBoundingClientRect().left - node.clientLeft - laneHeaderWidth;
+      if (offset < 0 || offset >= timelineWidth) return;
+      event.preventDefault();
+      if (!event.deltaY) return;
+      const unit = mode === WheelEvent.DOM_DELTA_LINE ? 16 : mode === WheelEvent.DOM_DELTA_PAGE ? node.clientHeight : 1;
+      const factor = Math.exp(-event.deltaY * unit / (event.ctrlKey ? 100 : 500));
+      const scale = Math.max(minZoom, Math.min(MAX_ZOOM, (pendingZoom.current?.scale ?? zoom) * factor));
+      // Let the pointer own the view through a burst of wheel events, including during playback.
+      if (following) resumeFollowAt.current = performance.now() + 180;
+      zoomAt(scale, offset);
+    };
+    node.addEventListener("wheel", wheel, { passive: false });
+    return () => node.removeEventListener("wheel", wheel);
+  }, [viewport, laneHeaderWidth, timelineWidth, minZoom, zoom, zoomAt, following]);
+  useLayoutEffect(() => {
+    const node = viewport.current, anchor = pendingZoom.current;
+    if (!node || !anchor) return;
+    pendingZoom.current = null;
     // The new canvas width must be in the DOM before assigning its scroll offset.
-    const target = beat * zoom - timelineWidth / 2;
+    const { beat, offset } = anchor;
+    const target = beat * zoom - offset;
     const left = Math.max(0, Math.min(width - timelineWidth, target));
     node.scrollLeft = left;
-    lastZoomAnchor.current = left === target ? { beat, centerPixel: node.scrollLeft + timelineWidth / 2, zoom } : null;
+    lastZoomAnchor.current = left === target ? { beat, pixel: node.scrollLeft + offset, zoom } : null;
     setScroll(node.scrollLeft);
     retainScroll();
   }, [zoom, width, timelineWidth, viewport, retainScroll]);
   useLayoutEffect(() => {
     const node = viewport.current;
-    if (!following || !node?.clientWidth) return;
+    if (!following || !node?.clientWidth || performance.now() < resumeFollowAt.current) return;
     const left = followPlayheadOffset(position * unit, songEnd * unit, timelineWidth);
     if (Math.abs(node.scrollLeft - left) < 0.5) return;
     node.scrollLeft = left;
@@ -515,7 +550,7 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
       if (destination) setExpanded(destination);
     }} onPointerUp={structure.pointerUp} onPointerCancel={structure.cancelDrag} onLostPointerCapture={e => { if (e.target === e.currentTarget) structure.lostCapture(); }} ref={viewport} className="overflow-x-auto" onScroll={e => { retainScroll(); setScroll(e.currentTarget.scrollLeft); }}>
       <div style={{ position: "relative", width: width + laneHeaderWidth, minWidth: "100%", paddingBottom: 16 }}>
-        <div style={{ marginLeft: laneHeaderWidth }} className="relative h-6 cursor-crosshair overflow-hidden border-b border-slate-800" aria-hidden onClick={e => onSeek?.(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * 2))}>{sequencer.arrangerLoopSelection && <span className="pointer-events-none absolute inset-y-0 border-x border-amber-300 bg-amber-400/20" style={{ left: sequencer.arrangerLoopSelection.startStep * 2520 * unit, width: (sequencer.arrangerLoopSelection.endStep - sequencer.arrangerLoopSelection.startStep) * 2520 * unit }} />}{grid.filter(mark => mark.label).map(mark => <span key={mark.tick} className={"arranger-grid-label " + mark.level} style={{ left: mark.tick * unit }}>{mark.label}</span>)}</div>
+        <div data-arranger-ruler style={{ marginLeft: laneHeaderWidth }} className="relative h-6 cursor-crosshair overflow-hidden border-b border-slate-800" aria-hidden onClick={e => onSeek?.(Math.max(0, Math.round((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom * 4) * 2))}>{sequencer.arrangerLoopSelection && <span className="pointer-events-none absolute inset-y-0 border-x border-amber-300 bg-amber-400/20" style={{ left: sequencer.arrangerLoopSelection.startStep * 2520 * unit, width: (sequencer.arrangerLoopSelection.endStep - sequencer.arrangerLoopSelection.startStep) * 2520 * unit }} />}{grid.filter(mark => mark.label).map(mark => <span key={mark.tick} className={"arranger-grid-label " + mark.level} style={{ left: mark.tick * unit }}>{mark.label}</span>)}</div>
         <div aria-hidden className="arranger-grid-lines" style={{ left: laneHeaderWidth }}>{grid.map(mark => <i key={mark.tick} data-level={mark.level} style={{ left: mark.tick * unit }} />)}</div>
         {displayModel.lanes.map(trackLane => {
           const lane = trackLane;
