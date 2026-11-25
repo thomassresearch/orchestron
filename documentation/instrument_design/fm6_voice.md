@@ -93,10 +93,10 @@ come from the six operators and their envelopes. Their tails are part of the dry
 
 Add `fm6_voice` from the **fm** category and click its **FM6** button. The node initially shows frequency, velocity and preset sockets. Expand **Performance inputs** for the others; connected sockets stay visible when collapsed. Double-click a socket to edit its value or formula with the Input Formula Assistant.
 
-![FM6 editor with routing, operators and envelopes](../../screenshots/fm6_voice_editor.png)
+![FM6 editor showing five modulators feeding one carrier, with line thickness indicating each source level](../../screenshots/fm6_voice_editor.png)
 
 1. Choose a starter or **Custom voice (0)**.
-2. Choose an algorithm and follow the arrows from modulators (amber) to carriers (cyan). The loop on operator 6 shows voice feedback.
+2. Choose an algorithm and follow the amber arrows from modulators or the cyan lines from carriers to **Dry output**. A thicker line means a higher **Level** on the operator it leaves. A thin dashed line marks a disabled operator or a level of zero. The loop on operator 6 shows voice feedback.
 3. Click an operator in the diagram, or focus it and press **Enter** or **Space**. Drag a slider or type an exact value. Each operator shows its frequency ratio, detune in cents, envelope and level. The white tick on the level bar marks its level at minimum velocity. Hover over an operator for exact values. **Copy operator** and **Paste operator** transfer all its settings.
 4. Adjust voice feedback above the diagram. Expand **Performance inputs** for brightness, envelope scaling, vibrato, feedback override and output gain.
 5. To listen while editing, start **Audition** before opening **FM6**. Play the keyboard inside the editor or enable **Autoplay** to repeat the last note or chord while adjusting operators. Each new note takes the current voice, including its algorithm. Held notes and release tails finish with their original settings.
@@ -128,14 +128,16 @@ Three pairs suit layered electric pianos and bells; two stacks allow separately 
 | Control | Range | Meaning |
 | --- | --- | --- |
 | Enabled | On/off | Silence this operator and its modulation contribution. |
-| Ratio | 0.25–32× | Frequency relative to the played note. Fractional ratios support inharmonic sounds. |
-| Detune | −100–100 cents | Fine tuning relative to the ratio. |
+| Ratio | 0.25–32× | Frequency relative to the played note. Fractional ratios support inharmonic sounds. Each tick on the left scale is an octave. The tall tick marks 1×. |
+| Detune | −100–100 cents | Fine tuning relative to the ratio. The right scale centers on zero, with flat to the left and sharp to the right. The first 10 cents occupy half of each side so small offsets are visible. |
 | Level | 0–100% | Volume for a carrier; modulation depth for a modulator. |
 | Velocity sensitivity | 0–100% | At 0, velocity has no effect. At 100, level follows normalized velocity. |
 | Attack | 0.001–10 s | Rise from zero to full level. |
 | Decay | 0.001–20 s | Fall from full level to sustain. |
 | Sustain | 0–100% | Level after attack and decay while held. |
 | Release | 0.001–20 s | Fade from the current level after note-off. |
+
+As you drag either tuning slider or type a value, the dot beneath its exact readout moves. For example, a ratio of **3×** falls between the **2×** and **4×** ticks, and a detune of **+6 cents** sits just to the right of center.
 
 Each operator’s envelope redraws as you drag a slider or type a value. Dots mark the attack peak, the start of sustain, note-off and the end of release. The horizontal scale is logarithmic so you can see short stages alongside long ones. Sustain height shows the selected percentage. The drawing uses a short hold for illustration. When playing, the note holds until you release the key.
 

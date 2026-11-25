@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Fm6VoiceEditor } from "./Fm6VoiceEditor";
 import { fm6Copy } from "../lib/fm6Copy";
@@ -60,6 +60,45 @@ describe("FM6 voice editor", () => {
     fireEvent.change(screen.getByLabelText("Algorithm"), { target: { value: "4" } });
     expect(screen.getByRole("button", { name: "Operator 6 Modulator" })).toBeTruthy();
   });
+  it("moves the tuning markers and their exact readouts with each slider input", () => {
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={vi.fn()} onClose={vi.fn()} />);
+    const tile = screen.getByRole("button", { name: "Operator 2 Modulator" });
+    const other = screen.getByRole("button", { name: "Operator 1 Carrier" });
+    const copy = fm6Copy("english");
+    const markerX = (box: HTMLElement, title: string) => {
+      const scale = within(box).getByText(title, { selector: "title" }).parentElement!;
+      return Number(scale.querySelector("circle")!.getAttribute("cx"));
+    };
+    const others = () => [markerX(other, copy.ratioScale), markerX(other, copy.detuneScale)];
+    const originalOthers = others();
+    fireEvent.click(tile);
+    const slide = (label: string, value: number) =>
+      fireEvent.input(screen.getByRole("slider", { name: name => name.startsWith(label) }), { target: { value: String(value) } });
+    const ratio = (value: number) => {
+      slide(copy.ratio, value);
+      expect(within(tile).getByText(`${value}×`, { selector: "text" })).toBeTruthy();
+      return markerX(tile, copy.ratioScale);
+    };
+    const min = ratio(.25), max = ratio(32), octave = (max - min) / 7;
+    expect(octave).toBeGreaterThan(0);
+    expect(ratio(1)).toBeCloseTo(min + 2 * octave);
+    expect(ratio(3)).toBeCloseTo(min + Math.log2(3 / .25) * octave);
+    const ratioAtThree = markerX(tile, copy.ratioScale);
+    const detune = (value: number) => {
+      slide(copy.detune, value);
+      expect(within(tile).getByText(`${value > 0 ? "+" : ""}${value} ¢`, { selector: "text" })).toBeTruthy();
+      return markerX(tile, copy.detuneScale);
+    };
+    const flat = detune(-100), center = detune(0), sharp = detune(100);
+    expect(sharp).toBeGreaterThan(flat);
+    expect(center).toBeCloseTo((flat + sharp) / 2);
+    expect(detune(-10)).toBeCloseTo((flat + center) / 2);
+    expect(detune(10)).toBeCloseTo((sharp + center) / 2);
+    expect(detune(6)).toBeCloseTo(center + .3 * (sharp - center));
+    expect(detune(-55)).toBeCloseTo(center - .75 * (sharp - center));
+    expect(markerX(tile, copy.ratioScale)).toBe(ratioAtThree);
+    expect(others()).toEqual(originalOthers);
+  });
   it("redraws the edited operator's envelope during slider and numeric input", () => {
     render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={vi.fn()} onClose={vi.fn()} />);
     const tile = screen.getByRole("button", { name: "Operator 2 Modulator" });
@@ -87,6 +126,36 @@ describe("FM6 voice editor", () => {
     expect(points()[4][0]).toBeGreaterThan(silentTail[4][0]);
     expect(points()[4][1]).toBe(20);
     expect(other.getAttribute("points")).toBe(originalOther);
+  });
+  it("shows each source level on all of its outgoing connections as it is edited", () => {
+    render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Algorithm"), { target: { value: "6" } });
+    const route = (from: number, target: string) => screen.getByText(new RegExp(`^Operator ${from} → ${target} ·`), { selector: "path > title" }).parentElement!;
+    const branches = [1, 2, 3, 4].map(op => route(5, `Operator ${op}`));
+    const width = (path: Element) => Number(path.getAttribute("stroke-width"));
+    const incoming = route(6, "Operator 5"), output = route(1, "Dry output");
+    const incomingWidth = width(incoming), outputWidth = width(output);
+    fireEvent.click(screen.getByRole("button", { name: "Operator 5 Modulator" }));
+    const slide = (level: number) => fireEvent.input(screen.getByRole("slider", { name: /^Level/ }), { target: { value: String(level) } });
+    slide(10);
+    const quiet = width(branches[0]);
+    slide(85);
+    const loud = width(branches[0]);
+    expect(loud).toBeGreaterThan(quiet);
+    expect(branches.map(width)).toEqual([loud, loud, loud, loud]);
+    expect(width(incoming)).toBe(incomingWidth);
+    expect(width(output)).toBe(outputWidth);
+    fireEvent.click(screen.getByLabelText("Enabled"));
+    expect(branches.every(p => width(p) < quiet && p.hasAttribute("stroke-dasharray"))).toBe(true);
+    fireEvent.click(screen.getByLabelText("Enabled"));
+    expect(branches.map(width)).toEqual([loud, loud, loud, loud]);
+    fireEvent.click(screen.getByRole("button", { name: "Operator 1 Carrier" }));
+    slide(0);
+    expect(output.hasAttribute("stroke-dasharray")).toBe(true);
+    slide(85);
+    expect(width(output)).toBe(loud);
+    expect(output.hasAttribute("stroke-dasharray")).toBe(false);
+    expect(width(incoming)).toBe(incomingWidth);
   });
   it("blocks invalid input and allows cancellation without saving", () => {
     const onChange = vi.fn(), onClose = vi.fn();

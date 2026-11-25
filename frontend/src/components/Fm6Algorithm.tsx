@@ -17,6 +17,45 @@ const maxSeconds = FM6.fields.release[1] * FM6.globals.irelease_scale[1];
 const logRange = Math.log1p(maxSeconds * 1000);
 const stageWidth = (seconds: number) => 3 + 25 * Math.log1p(seconds * 1000) / logRange;
 
+const [minRatio, maxRatio] = FM6.fields.ratio;
+const octaveCount = Math.log2(maxRatio / minRatio);
+const octaveTicks = Array.from({ length: octaveCount + 1 }, (_, i) => minRatio * 2 ** i);
+const fineCents = 10;
+const maxCents = FM6.fields.detune[1];
+
+function OperatorTuning({ ratio, detune, ink, width, copy }: {
+  ratio: number; detune: number; ink: string; width: number; copy: Props["copy"];
+}) {
+  const octaveStep = width * .36 / octaveCount;
+  const ratioX = (value: number) => 12 + Math.log2(Math.min(maxRatio, Math.max(minRatio, value)) / minRatio) * octaveStep;
+  const detuneHalf = width * .15;
+  const center = width - 12 - detuneHalf;
+  const cents = Math.min(Math.abs(detune), maxCents);
+  // Reserve the inner half of each side for offsets of up to ten cents.
+  const distance = cents <= fineCents ? cents / fineCents : 1 + (cents - fineCents) / (maxCents - fineCents);
+  const detuneX = center + Math.sign(detune) * distance * detuneHalf / 2;
+  const ratioLabel = `${ratio}×`, detuneLabel = `${detune > 0 ? "+" : ""}${detune} ¢`;
+  const textScale = Math.min(1, (width - 28) / (.61 * (15 * ratioLabel.length + 12 * detuneLabel.length)));
+  return <g fontFamily="monospace">
+    <g>
+      <title>{copy.ratioScale}</title>
+      <text x="11" y="39" fontSize={15 * textScale} fill="#f1f5f9">{ratioLabel}</text>
+      <line x1={ratioX(minRatio)} x2={ratioX(maxRatio)} y1="46" y2="46" stroke="#688691" />
+      {octaveTicks.map(tick => <line key={tick} x1={ratioX(tick)} x2={ratioX(tick)} y1="46"
+        y2={tick === 1 ? 52 : 49} stroke={tick === 1 ? "#d1e6eb" : "#688691"} />)}
+      <circle cx={ratioX(ratio)} cy="46" r="2.6" fill={ink} />
+    </g>
+    <g>
+      <title>{copy.detuneScale}</title>
+      <text x={width - 10} y="39" textAnchor="end" fontSize={12 * textScale} fill="#ced9e5">{detuneLabel}</text>
+      <line x1={center - detuneHalf} x2={center + detuneHalf} y1="47" y2="47" stroke="#688691" />
+      <path d={`M${center - detuneHalf} 45v4 M${center - detuneHalf / 2} 46v2 M${center} 43v8 M${center + detuneHalf / 2} 46v2 M${center + detuneHalf} 45v4`} stroke="#9caebc" />
+      <line x1={center} x2={detuneX} y1="47" y2="47" stroke={ink} strokeWidth="3" />
+      <circle cx={detuneX} cy="47" r="2.4" fill={ink} />
+    </g>
+  </g>;
+}
+
 function OperatorEnvelope({ attack, decay, sustain, release, ink, width }: {
   attack: number; decay: number; sustain: number; release: number; ink: string; width: number;
 }) {
@@ -60,7 +99,8 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
   const desktopCardWidth = horizontal ? (rows === 6 ? 132 : 160) : across === 6 ? 140 : across === 5 ? 155 : 176;
   const cardWidth = compact ? Math.min(154, (width - 50) / across - 15) : desktopCardWidth;
   const cardHeight = 86;
-  const height = horizontal && !compact ? 268 : Math.max(215, down * 116 + 65);
+  const rowSpacing = !horizontal && columns > 3 ? 156 : 116;
+  const height = horizontal && !compact ? 268 : Math.max(215, (down - 1) * rowSpacing + 181);
   const xMargin = cardWidth / 2 + (compact ? 14 : 23);
   const ys = algorithm.positions.map(([x]) => x);
   const min = Math.min(...ys), max = Math.max(...ys);
@@ -68,7 +108,7 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
     const fraction = min === max ? .5 : (x - min) / (max - min);
     if (!horizontal) return {
       x: compact ? xMargin + (width - 2 * xMargin) * fraction : 28 + x * (width - 56),
-      y: down === 1 ? 97 : 66 + row * 116
+      y: down === 1 ? 97 : 66 + row * rowSpacing
     };
     return {
       x: xMargin + (width - 2 * xMargin - 26) * (rows === 1 ? .5 : row / (rows - 1)),
@@ -78,31 +118,57 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
   const bus = horizontal ? width - 22 : height - 36;
   const arrow = `url(#${id}-arrow)`;
   const feedback = points[5];
+  const singleOutput = algorithm.outputs.length === 1;
+  const portOffset = (peers: number[], peer: number) => {
+    if (peers.length === 1) return 0;
+    // Give each branch its own attachment point, ordered like the operators facing it.
+    peers.sort((a, b) => algorithm.positions[a - 1][0] - algorithm.positions[b - 1][0]);
+    return (peers.indexOf(peer) / (peers.length - 1) - .5) * (horizontal ? cardHeight : cardWidth) * .7;
+  };
+  const modulationPath = (from: number, to: number) => {
+    const a = points[from - 1], b = points[to - 1];
+    const out = portOffset(algorithm.edges.filter(([source]) => source === from).map(([, target]) => target), to);
+    const into = portOffset(algorithm.edges.filter(([, target]) => target === to).map(([source]) => source), from);
+    const startX = a.x + (horizontal ? cardWidth / 2 : out), startY = a.y + (horizontal ? out : cardHeight / 2);
+    const endX = b.x + (horizontal ? -cardWidth / 2 - 8 : into), endY = b.y + (horizontal ? into : -cardHeight / 2 - 8);
+    const midX = (startX + endX) / 2, midY = (startY + endY) / 2;
+    const controls = horizontal ? `${midX} ${startY} ${midX} ${endY}` : `${startX} ${midY} ${endX} ${midY}`;
+    return `M${startX} ${startY} C${controls} ${endX} ${endY}`;
+  };
+  const connection = (from: number, to: number | "output", path: string) => {
+    const level = voice[`op${from}_level`], enabled = Boolean(voice[`op${from}_enabled`]);
+    const active = enabled && level > 0;
+    const output = to === "output";
+    const target = output ? copy.output : `${copy.operator} ${to}`;
+    return <path key={`${from}-${to}`} d={path} stroke={output ? "#63bdc4" : "#d0ac7a"}
+      strokeWidth={active ? 1 + 6 * level / 100 : 1} strokeDasharray={active ? undefined : "3 3"}
+      opacity={active ? 1 : .55} markerEnd={output ? undefined : arrow} strokeLinejoin="round">
+      <title>{`${copy.operator} ${from} → ${target} · ${copy.level} ${level}%${enabled ? "" : ` · ${copy.off}`}`}</title>
+    </path>;
+  };
   return <div ref={container} className="rounded-lg border border-slate-700 bg-[#0a1321]">
     <svg role="group" aria-label={`${copy.algorithm} · ${copy.algorithms[voice.algorithm - 1]}`}
       viewBox={`0 0 ${width} ${height}`} className="block w-full select-none">
       <defs>
         <pattern id={`${id}-dots`} width="15" height="15" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="#28364a" /></pattern>
-        <marker id={`${id}-arrow`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="m0 0 5 3-5 3" fill="none" stroke="#a1b2c7" strokeWidth="1.2" /></marker>
+        <marker id={`${id}-arrow`} markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="1" refY="5" orient="auto">
+          <path d="M0 0 L9 5 L0 10 Z" fill="#bbc5d1" />
+        </marker>
       </defs>
       <rect width={width} height={height} fill={`url(#${id}-dots)`} />
       <g fill="none" stroke="#7a8fa7" strokeWidth="1.7">
-        {algorithm.edges.map(([from, to]) => {
-          const a = points[from - 1], b = points[to - 1];
-          const mid = (a.y + b.y) / 2;
-          const path = horizontal ? `M${a.x + cardWidth / 2} ${a.y} H${(a.x + b.x) / 2} V${b.y} H${b.x - cardWidth / 2 - 4}`
-            : `M${a.x} ${a.y + cardHeight / 2} V${mid} H${b.x} V${b.y - cardHeight / 2 - 4}`;
-          return <path key={`${from}-${to}`} d={path} markerEnd={arrow} opacity={voice[`op${from}_enabled`] ? 1 : .35} />;
-        })}
+        {algorithm.edges.map(([from, to]) => connection(from, to, modulationPath(from, to)))}
         {algorithm.outputs.map(op => {
           const { x, y } = points[op - 1];
-          return <path key={op} d={horizontal ? `M${x + cardWidth / 2} ${y} H${bus}` : `M${x} ${y + cardHeight / 2} V${bus}`} stroke="#53959f" />;
+          const lead = horizontal ? `M${x + cardWidth / 2} ${y} H${bus}` : `M${x} ${y + cardHeight / 2} V${bus}`;
+          const tail = horizontal ? ` V${height - 33}` : " v9";
+          return connection(op, "output", singleOutput ? lead + tail : lead);
         })}
-        {horizontal ? <path d={`M${bus} ${Math.min(...algorithm.outputs.map(op => points[op - 1].y))} V${height - 33}`} stroke="#53959f" /> : <>
+        {!singleOutput && (horizontal ? <path d={`M${bus} ${Math.min(...algorithm.outputs.map(op => points[op - 1].y))} V${height - 33}`} stroke="#53959f" /> : <>
           <path d={`M${Math.min(...algorithm.outputs.map(op => points[op - 1].x))} ${bus} H${Math.max(...algorithm.outputs.map(op => points[op - 1].x))}`} stroke="#53959f" />
           <path d={`M${width / 2} ${bus} v9`} stroke="#53959f" />
-        </>}
-        <path d={`M${feedback.x + 24} ${feedback.y - cardHeight / 2} v-16 h-48 v13`}
+        </>)}
+        <path d={`M${feedback.x + 24} ${feedback.y - cardHeight / 2} v-16 h-48 v8`}
           strokeDasharray={voice.feedback ? undefined : "3 3"} markerEnd={arrow} />
       </g>
       <text x={feedback.x + 32} y={feedback.y - cardHeight / 2 - 10} fontSize="11" fill="#b7c4d5">↻ {voice.feedback}%</text>
@@ -113,7 +179,7 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
         const enabled = Boolean(voice[prefix + "enabled"]);
         const ink = !enabled ? "#91a0b4" : carrier ? "#71e3e0" : "#f4bf77";
         const w = cardWidth, active = op === selected;
-        const level = voice[prefix + "level"], detune = voice[prefix + "detune"];
+        const level = voice[prefix + "level"];
         const barX = w * .57, barWidth = w - barX - 10;
         const levelWidth = barWidth * level / 100;
         const softLevelX = barX + levelWidth * (1 - voice[prefix + "velocity"] / 100);
@@ -128,8 +194,7 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
             className="group-hover:brightness-125 group-focus-visible:stroke-white group-focus-visible:stroke-[3px]" />
           <text x="11" y="20" fill={ink} fontSize="14" fontWeight="700">{compact ? op : `OP ${op}`}</text>
           <text x={w - 10} y="20" textAnchor="end" fill="#d5deea" fontSize="12">{enabled ? role : copy.off}</text>
-          <text x="11" y="43" fill="#f1f5f9" fontFamily="monospace" fontSize="15">{voice[prefix + "ratio"]}×</text>
-          <text x={w - 10} y="43" textAnchor="end" fill="#acb9c9" fontSize="11">{detune > 0 ? "+" : ""}{detune} ¢</text>
+          <OperatorTuning ratio={voice[prefix + "ratio"]} detune={voice[prefix + "detune"]} ink={ink} width={w} copy={copy} />
           <OperatorEnvelope attack={voice[prefix + "attack"] * attackScale} decay={voice[prefix + "decay"]}
             sustain={voice[prefix + "sustain"]} release={voice[prefix + "release"] * releaseScale} ink={ink} width={w * .41} />
           <text x={w - 10} y="62" textAnchor="end" fontFamily="monospace" fontSize="12" fill={ink}>{level}%</text>
