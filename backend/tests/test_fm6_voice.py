@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from backend.app.models.fm6 import FM6_DATA, FM6_PRESETS, fm6_voice
+from backend.app.models.fm6 import FM6_DATA, FM6_PRESETS, FM6_WEIGHTS, fm6_voice
 from backend.app.models.patch import NodeInstance
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_render_resources import analyze_render_resources
@@ -33,7 +33,8 @@ def audition(p=None, settings=None, notes=None, seconds=1.2, mode='host', ksmps=
 
 @pytest.mark.parametrize('key,value', [('algorithm', 0), ('algorithm', 1.5), ('feedback', 101),
     ('op1_ratio', 0), ('op6_level', float('inf')), ('op3_attack', 0), ('op2_enabled', 2),
-    ('op4_sustain', 'hello'), ('op5_detune', -101), ('ipreset', 1.5), ('ipreset', len(FM6_PRESETS) + 1)])
+    ('op4_sustain', 'hello'), ('op5_detune', -101), ('ipreset', 1.5), ('ipreset', len(FM6_PRESETS) + 1),
+    ('weight_5_1', -.01), ('weight_6_5', 1.01), ('weight_2_1', float('nan'))])
 def test_invalid_voice_rejected_at_model_boundary(key, value):
     with pytest.raises(ValidationError, match='FM6'):
         NodeInstance(id='fm', opcode='fm6_voice', params={key: value}, position={'x': 0, 'y': 0})
@@ -48,8 +49,9 @@ def test_bank_is_stable_and_routing_is_acyclic():
     effects_digest = hashlib.sha256(json.dumps(FM6_PRESETS[24:32], sort_keys=True).encode()).hexdigest()
     assert effects_digest == '4ed5f2d5301cd75b78334ae1c886a93c25c5ae71e7e1d536c24a0ac8fa57ea65'
     assert [p['id'] for p in FM6_PRESETS] == list(range(1, 33))
+    assert set(FM6_WEIGHTS) == {f'weight_{a}_{b}' for alg in FM6_DATA['algorithms'] for a, b in alg['edges']}
     for preset in FM6_PRESETS:
-        assert fm6_voice(preset['voice']) == preset['voice']
+        assert fm6_voice(preset['voice']) == preset['voice'] | dict.fromkeys(FM6_WEIGHTS, 1)
     for algorithm in FM6_DATA['algorithms']:
         assert all(1 <= target < source <= 6 for source, target in algorithm['edges'])
         assert set(algorithm['outputs']) == set(range(1, 7)) - {s for s, _ in algorithm['edges']}
@@ -109,19 +111,21 @@ def steady_voice(algorithm=8):
     return values
 
 
-@pytest.mark.parametrize('algorithm', range(1, 9))
-def test_algorithm_matches_independent_phase_modulation_reference(algorithm):
+@pytest.mark.parametrize('algorithm,weighted', [(i, False) for i in range(1, 9)] + [(i, True) for i in range(1, 8)])
+def test_algorithm_matches_independent_phase_modulation_reference(algorithm, weighted):
     values = steady_voice(algorithm)
+    edges, carriers = ROUTES[algorithm - 1]
+    if weighted:
+        values.update({f'weight_{source}_{target}': index / len(edges) for index, (source, target) in enumerate(edges)})
     audio = audition(patch(values), notes=[(.08, 69, 127, .24)], seconds=.5, mode='score')[:, 0]
     start, end = 6000, 12000
     actual = audio[start:end]
     errors = []
     for offset in range(-4, 5):
         time = (np.arange(start, end) - 3840 + offset) / 48000
-        edges, carriers = ROUTES[algorithm - 1]
         ops = {}
         for op in range(6, 0, -1):
-            modulation = sum(ops[source] for source, target in edges if target == op)
+            modulation = sum(ops[source] * values.get(f'weight_{source}_{target}', 1) for source, target in edges if target == op)
             ops[op] = np.sin(2 * np.pi * 440 * op * time + 8 * modulation) * values[f'op{op}_level'] / 100
         expected = sum(ops[op] for op in carriers) / 6 / np.sqrt(2)
         errors.append(rms(expected - actual))
@@ -230,11 +234,13 @@ def test_bass_bank_has_tuned_low_end_velocity_response_and_short_release(preset)
     assert abs(audio[-2400:]).max() < 1e-9
 
 
-def test_preview_edits_and_rollback_latch_at_note_start():
+@pytest.mark.parametrize("before,changes", [
+    (steady_voice(8), {"algorithm": 1, "op3_ratio": 2.5, "igain": -12}),
+    (steady_voice(6) | {"weight_5_1": .8, "weight_5_2": 1}, {"weight_5_1": 0, "weight_5_2": .35}),
+])
+def test_preview_edits_and_rollback_latch_at_note_start(before, changes):
     from backend.app.services.compiler_fm6 import preview_channel
 
-    before = steady_voice(8)
-    changes = {"algorithm": 1, "op3_ratio": 2.5, "igain": -12}
     p = patch(before)
     artifact, targets = compile_guitars([p], mode="host", fm6_preview=True)
     resources = analyze_render_resources(targets, OpcodeService("/static/icons"))

@@ -122,7 +122,8 @@ def _build_opcode():
     for alg in FM6_DATA["algorithms"]:
         lines.append(f" {'if' if alg['id'] == 1 else 'elseif'} iAlgorithm == {alg['id']} then")
         for op in range(6, 0, -1):
-            upstream = [f"kOp{source}" for source, dest in alg["edges"] if dest == op]
+            upstream = [f"kOp{source} * iVoice[{FM6_KEYS.index(f'weight_{source}_{dest}')}]"
+                        for source, dest in alg["edges"] if dest == op]
             modulation = f"8 * iBrightness * ({' + '.join(upstream)})" if upstream else "0"
             if op == 6:
                 modulation += " + 4 * iFeedback * (kLast + kPrevious) / 2"

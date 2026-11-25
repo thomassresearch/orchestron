@@ -14,6 +14,7 @@ than changing the sounds of saved performances. The regression test pins the
 bank digest. Intentional future bank expansion must retain existing entries.
 
 Node parameters store `algorithm`, `feedback` and `op1_…` through `op6_…` fields.
+Modulation weights use `weight_<source>_<destination>` for each routed operator pair. They range from 0 to 1 and default to 1 in legacy patches and starter voices. They persist across algorithm changes and join the per-note preview snapshot.
 The input `ipreset` selects custom parameters at 0 and bank entries at 1–32.
 Selecting a bank entry preserves custom parameters. Editing a bank voice copies
 its full effective definition to custom and selects 0. Graph connections/formulas
@@ -30,7 +31,7 @@ performance settings initialize once per note. Operator frequency is base pitch
 times ratio times cent detuning. Enabled operator level is
 `level/100 * (1 - sensitivity/100 * (1 - velocity))`.
 
-An edge carries `8 * brightness/100 * source_output` radians of phase modulation.
+An edge carries `8 * brightness/100 * branch_weight * source_output` radians of phase modulation.
 Parallel edges sum. Operator 6 alone adds self-feedback, using four radians times
 the feedback fraction times the mean of its preceding two output samples. UDO
 `setksmps 1` makes this independent of the enclosing engine block size. Operators
@@ -50,11 +51,13 @@ Muted operators contribute neither audio nor modulation. Phase resets at note-on
 ## Editor and supplied instrument
 
 `Fm6VoiceEditor` uses the existing modal frame and localized EN/DE/FR/ES copy.
-It edits a local draft, validates fields, previews routing and ADSR, and supports
-operator copy/paste. Apply preserves graph wiring, formulas and other metadata.
-Cancel does not mutate the graph. Performance inputs driven by the graph show
-their sources. The graph node folds unconnected optional controls; connected
-controls stay visible. Applied graph edits follow existing audition-restart rules.
+It publishes valid voice edits to the instrument draft, previews routing and ADSR,
+and supports operator copy/paste. Dragging a modulation arrow changes that pair’s
+weight. Its displayed depth is the enabled source level times the weight.
+Apply keeps the draft and Cancel restores the opening parameters. A running audition
+samples those edits or restorations on the next note. Performance inputs driven by
+the graph show their sources. The graph node folds unconnected optional controls
+and keeps connected controls visible.
 
 Almost DX7 is a separate additive example with six stable performance controller
 IDs: `fm6_preset`, `fm6_brightness`, `fm6_attack`, `fm6_release`, `fm6_vibrato`,

@@ -11391,15 +11391,16 @@ def test_fm6_editable_values_only_in_running_draft_audition(tmp_path):
         assert response.status_code == 201, response.text
         base = "/api/sessions/" + response.json()["session_id"]
         edit = base + "/instruments/fm/fm6-preview"
-        values = {"node_id": "fm6", "values": {"algorithm": 4, "op3_ratio": 1.414}}
+        values = {"node_id": "fm6", "values": {"algorithm": 4, "op3_ratio": 1.414, "weight_6_5": .45}}
         assert client.patch(edit, json=values).status_code == 409
         compiled = client.post(base + "/compile")
         assert compiled.status_code == 200, compiled.text
         fields = compiled.json()["manifest"]["fm6Preview"]["fm"]["fm6"]
         assert "op3_ratio" in fields and "ipreset" not in fields
+        assert fields["weight_6_5"] == 1
         assert client.post(base + "/start").status_code == 200
-        assert client.patch(edit, json=values).status_code == 204
-        for invalid in [{"op3_ratio": 0}, {"algorithm": 2.5}, {"op6_enabled": .5}, {"ipreset": 0}, {"typo": 1}]:
+        assert client.patch(edit, json={**values, "values": fields | values["values"]}).status_code == 204
+        for invalid in [{"op3_ratio": 0}, {"algorithm": 2.5}, {"op6_enabled": .5}, {"weight_6_5": 1.2}, {"ipreset": 0}, {"typo": 1}]:
             assert client.patch(edit, json={**values, "values": invalid}).status_code == 422
         assert client.patch(edit, json={**values, "node_id": "other"}).status_code == 404
         assert client.get("/api/patches/" + patch.id).status_code == 404
@@ -11408,10 +11409,12 @@ def test_fm6_editable_values_only_in_running_draft_audition(tmp_path):
 @pytest.mark.parametrize('event_source', ['midiFile', 'score'])
 def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path, event_source):
     from backend.app.models.export import ExportedPatchDefinition
+    from backend.app.models.fm6 import fm6_voice, packed_voice
     from backend.tests.csound_test_support import load_patch_fixture
 
     patch = load_patch_fixture('almost_dx7')
-    next(n for n in patch.graph.nodes if n.id == 'fm6').params.update({'algorithm': 6, 'op3_ratio': 1.414, 'feedback': 37})
+    fm6 = next(n for n in patch.graph.nodes if n.id == 'fm6')
+    fm6.params.update({'algorithm': 6, 'op3_ratio': 1.414, 'feedback': 37, 'weight_5_2': .372})
     bundle = ExportedPatchDefinition(sourcePatchId=patch.id, **patch.model_dump(exclude={'id'})).model_dump(mode='json', by_alias=True)
     values = {'fm6_preset': 32, 'fm6_brightness': 68, 'fm6_release': 2}
     config = dict(version=22, instruments=[dict(id='fm', patchId=patch.id, midiChannel=1, performanceControllerValues=values)],
@@ -11449,6 +11452,7 @@ def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path,
             csd = archive.read('Offline_Export/Offline_Export.csd').decode()
         assert 'ksmps = 1' in csd and csd.count('opcode vcs_fm6_voice,') == 1
         assert 'aOutput = kSum * iGain' in csd
+        assert f'fillarray {packed_voice(fm6_voice(fm6.params))}' in csd
 
 
 def test_live_physical_pad_preview_has_a_separate_slot_at_clip_capacity(tmp_path):

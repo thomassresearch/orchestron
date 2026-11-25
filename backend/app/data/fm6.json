@@ -523,7 +523,18 @@
     "op6_attack": 0.005,
     "op6_decay": 0.8,
     "op6_sustain": 60,
-    "op6_release": 0.3
+    "op6_release": 0.3,
+    "weight_2_1": 1,
+    "weight_3_1": 1,
+    "weight_3_2": 1,
+    "weight_4_1": 1,
+    "weight_4_3": 1,
+    "weight_5_1": 1,
+    "weight_5_2": 1,
+    "weight_5_3": 1,
+    "weight_5_4": 1,
+    "weight_6_1": 1,
+    "weight_6_5": 1
   },
   "presets": [
     {

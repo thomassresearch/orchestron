@@ -1,12 +1,17 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { FM6, FM6_FIELDS } from "../lib/fm6";
+import { FM6, FM6_FIELDS, fm6WeightKey } from "../lib/fm6";
 import type { fm6Copy } from "../lib/fm6Copy";
+import { Fm6ModulationBranch } from "./Fm6ModulationBranch";
 
 type Props = {
   voice: Record<string, number>;
   copy: ReturnType<typeof fm6Copy>;
   selected: number | null;
   onSelect: (op: number) => void;
+  selectedWeight: string | null;
+  onSelectBranch: (from: number, to: number) => void;
+  onWeight: (key: string, weight: number) => void;
+  percent: Intl.NumberFormat;
   attackScale: number;
   releaseScale: number;
 };
@@ -76,7 +81,8 @@ function OperatorEnvelope({ attack, decay, sustain, release, ink, width }: {
   </svg>;
 }
 
-export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, releaseScale }: Props) {
+export function Fm6Algorithm({ voice, copy, selected, onSelect, selectedWeight, onSelectBranch, onWeight,
+  percent, attackScale, releaseScale }: Props) {
   const id = useId().replace(/:/g, "");
   const algorithm = FM6.algorithms[voice.algorithm - 1];
   const rows = 1 + Math.max(...algorithm.positions.map(([, row]) => row));
@@ -93,11 +99,13 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
   const columns = new Set(algorithm.positions.map(([x]) => x)).size;
   // Fit the shorter dimension across narrow screens; wide screens can show long chains sideways.
   const horizontal = compact ? columns > rows : rows >= 4;
-  const width = compact ? 420 : 1000;
+  const baseWidth = compact ? 420 : 1000;
   const across = horizontal ? rows : columns;
   const down = horizontal ? columns : rows;
   const desktopCardWidth = horizontal ? (rows === 6 ? 132 : 160) : across === 6 ? 140 : across === 5 ? 155 : 176;
-  const cardWidth = compact ? Math.min(154, (width - 50) / across - 15) : desktopCardWidth;
+  const cardWidth = compact ? Math.min(154, (baseWidth - 50) / across - 15) : desktopCardWidth;
+  // Leave a readable percentage between adjacent cards in horizontal chains.
+  const width = horizontal ? Math.max(baseWidth, across * cardWidth + (across - 1) * 58 + (compact ? 54 : 72)) : baseWidth;
   const cardHeight = 86;
   const rowSpacing = !horizontal && columns > 3 ? 156 : 116;
   const height = horizontal && !compact ? 268 : Math.max(215, (down - 1) * rowSpacing + 181);
@@ -119,32 +127,40 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
   const arrow = `url(#${id}-arrow)`;
   const feedback = points[5];
   const singleOutput = algorithm.outputs.length === 1;
+  // Paint the long outer curves first so their wide hit areas stay behind the inner branches.
+  const lateralSpan = ([from, to]: number[]) => Math.abs(algorithm.positions[from - 1][0] - algorithm.positions[to - 1][0]);
+  const branches = [...algorithm.edges].sort((a, b) => lateralSpan(b) - lateralSpan(a));
   const portOffset = (peers: number[], peer: number) => {
     if (peers.length === 1) return 0;
     // Give each branch its own attachment point, ordered like the operators facing it.
     peers.sort((a, b) => algorithm.positions[a - 1][0] - algorithm.positions[b - 1][0]);
     return (peers.indexOf(peer) / (peers.length - 1) - .5) * (horizontal ? cardHeight : cardWidth) * .7;
   };
-  const modulationPath = (from: number, to: number) => {
+  const modulationBranch = ([from, to]: number[]) => {
     const a = points[from - 1], b = points[to - 1];
-    const out = portOffset(algorithm.edges.filter(([source]) => source === from).map(([, target]) => target), to);
-    const into = portOffset(algorithm.edges.filter(([, target]) => target === to).map(([source]) => source), from);
+    const targets = algorithm.edges.filter(([source]) => source === from).map(([, target]) => target);
+    const sources = algorithm.edges.filter(([, target]) => target === to).map(([source]) => source);
+    const out = portOffset(targets, to), into = portOffset(sources, from);
     const startX = a.x + (horizontal ? cardWidth / 2 : out), startY = a.y + (horizontal ? out : cardHeight / 2);
     const endX = b.x + (horizontal ? -cardWidth / 2 - 8 : into), endY = b.y + (horizontal ? into : -cardHeight / 2 - 8);
     const midX = (startX + endX) / 2, midY = (startY + endY) / 2;
     const controls = horizontal ? `${midX} ${startY} ${midX} ${endY}` : `${startX} ${midY} ${endX} ${midY}`;
-    return `M${startX} ${startY} C${controls} ${endX} ${endY}`;
-  };
-  const connection = (from: number, to: number | "output", path: string) => {
-    const level = voice[`op${from}_level`], enabled = Boolean(voice[`op${from}_enabled`]);
-    const active = enabled && level > 0;
-    const output = to === "output";
-    const target = output ? copy.output : `${copy.operator} ${to}`;
-    return <path key={`${from}-${to}`} d={path} stroke={output ? "#63bdc4" : "#d0ac7a"}
-      strokeWidth={active ? 1 + 6 * level / 100 : 1} strokeDasharray={active ? undefined : "3 3"}
-      opacity={active ? 1 : .55} markerEnd={output ? undefined : arrow} strokeLinejoin="round">
-      <title>{`${copy.operator} ${from} → ${target} · ${copy.level} ${level}%${enabled ? "" : ` · ${copy.off}`}`}</title>
-    </path>;
+    // Label the separate ends of a fan, where both the cable and its drag target are unambiguous.
+    let labelX = horizontal ? midX : midX + 27;
+    let labelY = horizontal ? midY - 6 : midY + 4;
+    if (targets.length > 1) {
+      if (!horizontal) labelX = endX + (endX < startX ? -26 : 26);
+      labelY = endY - 5;
+    } else if (sources.length > 1) {
+      if (!horizontal) labelX = startX + (startX < endX ? -26 : 26);
+      labelY = startY + (horizontal ? -5 : 17);
+    }
+    const key = fm6WeightKey(from, to);
+    return <Fm6ModulationBranch key={key} path={`M${startX} ${startY} C${controls} ${endX} ${endY}`} arrow={arrow}
+      labelX={labelX} labelY={labelY}
+      name={`${copy.branchWeight} · ${copy.operator} ${from} → ${copy.operator} ${to}`} help={copy.branchHelp} percent={percent}
+      level={voice[`op${from}_enabled`] ? voice[`op${from}_level`] : 0} weight={voice[key]} selected={selectedWeight === key}
+      onSelect={() => onSelectBranch(from, to)} onChange={value => onWeight(key, value)} />;
   };
   return <div ref={container} className="rounded-lg border border-slate-700 bg-[#0a1321]">
     <svg role="group" aria-label={`${copy.algorithm} · ${copy.algorithms[voice.algorithm - 1]}`}
@@ -157,12 +173,17 @@ export function Fm6Algorithm({ voice, copy, selected, onSelect, attackScale, rel
       </defs>
       <rect width={width} height={height} fill={`url(#${id}-dots)`} />
       <g fill="none" stroke="#7a8fa7" strokeWidth="1.7">
-        {algorithm.edges.map(([from, to]) => connection(from, to, modulationPath(from, to)))}
+        {branches.map(modulationBranch)}
         {algorithm.outputs.map(op => {
           const { x, y } = points[op - 1];
           const lead = horizontal ? `M${x + cardWidth / 2} ${y} H${bus}` : `M${x} ${y + cardHeight / 2} V${bus}`;
           const tail = horizontal ? ` V${height - 33}` : " v9";
-          return connection(op, "output", singleOutput ? lead + tail : lead);
+          const level = voice[`op${op}_level`], enabled = Boolean(voice[`op${op}_enabled`]);
+          const active = enabled && level > 0;
+          return <path key={op} d={singleOutput ? lead + tail : lead} stroke="#63bdc4" strokeLinejoin="round"
+            strokeWidth={active ? 1 + 6 * level / 100 : 1} strokeDasharray={active ? undefined : "3 3"} opacity={active ? 1 : .55}>
+            <title>{`${copy.operator} ${op} → ${copy.output} · ${copy.level} ${level}%${enabled ? "" : ` · ${copy.off}`}`}</title>
+          </path>;
         })}
         {!singleOutput && (horizontal ? <path d={`M${bus} ${Math.min(...algorithm.outputs.map(op => points[op - 1].y))} V${height - 33}`} stroke="#53959f" /> : <>
           <path d={`M${Math.min(...algorithm.outputs.map(op => points[op - 1].x))} ${bus} H${Math.max(...algorithm.outputs.map(op => points[op - 1].x))}`} stroke="#53959f" />

@@ -8,7 +8,8 @@ FM6_DATA = json.loads((Path(__file__).resolve().parents[1] / "data/fm6.json").re
 FM6_FIELDS = FM6_DATA["fields"]
 FM6_DEFAULT = FM6_DATA["default"]
 FM6_PRESETS = FM6_DATA["presets"]
-FM6_KEYS = ["algorithm", "feedback", *[f"op{i}_{key}" for i in range(1, 7) for key in FM6_FIELDS]]
+FM6_WEIGHTS = [key for key in FM6_DEFAULT if key.startswith("weight_")]
+FM6_KEYS = ["algorithm", "feedback", *[f"op{i}_{key}" for i in range(1, 7) for key in FM6_FIELDS], *FM6_WEIGHTS]
 FM6_INPUT_RANGES = {"ipreset": (0, len(FM6_PRESETS), 0), **FM6_DATA["globals"]}
 
 
@@ -17,6 +18,8 @@ def validate_fm6_value(key: str, value: float) -> None:
         low, high, _ = FM6_INPUT_RANGES[key]
     elif key in ("algorithm", "feedback"):
         low, high = (1, 8) if key == "algorithm" else (0, 100)
+    elif key in FM6_WEIGHTS:
+        low, high = 0, 1
     else:
         low, high, _ = FM6_FIELDS[key.split("_", 1)[1]]
     integer = key in ("algorithm", "ipreset") or key.endswith("_enabled")
@@ -39,4 +42,4 @@ def fm6_voice(params: dict) -> dict[str, float]:
 
 
 def packed_voice(voice: dict) -> str:
-    return ", ".join(format(float(voice[key]), ".12g") for key in FM6_KEYS)
+    return ", ".join(format(float(voice.get(key, FM6_DEFAULT[key])), ".12g") for key in FM6_KEYS)

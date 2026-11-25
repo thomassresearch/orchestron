@@ -9,6 +9,7 @@ import type { NodeInstance } from "../types";
 afterEach(cleanup);
 const node: NodeInstance = { id: "fm", opcode: "fm6_voice", params: { ipreset: 1, op1_ratio: 7, ibrightness: 83 }, position: { x: 0, y: 0 } };
 const value = (label: string) => (screen.getByLabelText(label) as HTMLInputElement).value;
+const branch = (from: number, to: number) => screen.getByRole("slider", { name: `Branch weight · Operator ${from} → Operator ${to}` });
 
 describe("FM6 voice editor", () => {
   it("offers all 32 presets and copies a browsed effects voice into Custom", () => {
@@ -34,6 +35,8 @@ describe("FM6 voice editor", () => {
     const copy = fm6Copy(language), onChange = vi.fn();
     render(<Fm6VoiceEditor node={node} language={language} drivenInputs={{}} onChange={onChange} onClose={vi.fn()} />);
     expect(screen.getByRole("dialog", { name: copy.title })).toBeTruthy();
+    const arrow = screen.getByRole("slider", { name: `${copy.branchWeight} · ${copy.operator} 2 → ${copy.operator} 1` });
+    expect(arrow.querySelector("text")!.textContent?.replace(/\s/g, "")).toBe(language === "english" ? "22.0%" : "22,0%");
     expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(6);
     expect(screen.queryByLabelText(copy.ratio)).toBeNull();
     fireEvent.keyDown(screen.getByRole("button", { name: `${copy.operator} 1 ${copy.carrier}` }), { key: "Enter" });
@@ -130,10 +133,10 @@ describe("FM6 voice editor", () => {
   it("shows each source level on all of its outgoing connections as it is edited", () => {
     render(<Fm6VoiceEditor node={node} language="english" drivenInputs={{}} onChange={vi.fn()} onClose={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("Algorithm"), { target: { value: "6" } });
-    const route = (from: number, target: string) => screen.getByText(new RegExp(`^Operator ${from} → ${target} ·`), { selector: "path > title" }).parentElement!;
-    const branches = [1, 2, 3, 4].map(op => route(5, `Operator ${op}`));
+    const route = (from: number, to: number) => branch(from, to).querySelector("path[marker-end]")!;
+    const branches = [1, 2, 3, 4].map(op => route(5, op));
     const width = (path: Element) => Number(path.getAttribute("stroke-width"));
-    const incoming = route(6, "Operator 5"), output = route(1, "Dry output");
+    const incoming = route(6, 5), output = screen.getByText(/^Operator 1 → Dry output ·/, { selector: "path > title" }).parentElement!;
     const incomingWidth = width(incoming), outputWidth = width(output);
     fireEvent.click(screen.getByRole("button", { name: "Operator 5 Modulator" }));
     const slide = (level: number) => fireEvent.input(screen.getByRole("slider", { name: /^Level/ }), { target: { value: String(level) } });
@@ -156,6 +159,34 @@ describe("FM6 voice editor", () => {
     expect(width(output)).toBe(loud);
     expect(output.hasAttribute("stroke-dasharray")).toBe(false);
     expect(width(incoming)).toBe(incomingWidth);
+  });
+  it("drags a single branch from a preset, preserves its weight across algorithms and restores the opening patch", () => {
+    const onChange = vi.fn(), original = { ...node, params: { ipreset: 12, weight_5_1: .25 } };
+    render(<Fm6VoiceEditor node={original} language="english" drivenInputs={{}} onChange={onChange} onClose={vi.fn()} />);
+    const sourceLevel = FM6.presets[11].voice.op5_level;
+    const route = branch(5, 1);
+    expect(route.getAttribute("aria-valuenow")).toBe("1");
+    Object.assign(route, { setPointerCapture: vi.fn() });
+    fireEvent.pointerDown(route, { pointerId: 1, button: 0, clientY: 100 });
+    expect(value("Branch weight")).toBe("1");
+    fireEvent.pointerMove(route, { pointerId: 1, clientY: 180 });
+    expect(value("Branch weight")).toBe("0.5");
+    expect(route.querySelector("text")!.textContent).toBe(`${(sourceLevel * .5).toFixed(1)}%`);
+    expect(branch(5, 2).getAttribute("aria-valuenow")).toBe("1");
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ ipreset: 0, weight_5_1: .5 }));
+    fireEvent.pointerMove(route, { pointerId: 1, clientY: 500 });
+    expect(value("Branch weight")).toBe("0");
+    fireEvent.lostPointerCapture(route);
+    fireEvent.keyDown(route, { key: "ArrowUp" });
+    expect(value("Branch weight")).toBe("0.01");
+    fireEvent.change(screen.getByLabelText("Branch weight", { selector: "input" }), { target: { value: ".373" } });
+    expect(route.querySelector("text")!.textContent).toBe("5.2%");
+    fireEvent.change(screen.getByLabelText("Algorithm"), { target: { value: "8" } });
+    expect(screen.queryByRole("slider", { name: /^Branch weight/ })).toBeNull();
+    fireEvent.change(screen.getByLabelText("Algorithm"), { target: { value: "6" } });
+    expect(branch(5, 1).getAttribute("aria-valuenow")).toBe("0.373");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onChange).toHaveBeenLastCalledWith(original.params);
   });
   it("blocks invalid input and allows cancellation without saving", () => {
     const onChange = vi.fn(), onClose = vi.fn();

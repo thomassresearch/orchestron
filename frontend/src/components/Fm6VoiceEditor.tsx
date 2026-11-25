@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { GuiLanguage, NodeInstance } from "../types";
-import { FM6, FM6_FIELDS, FM6_GLOBALS, fm6Custom, fm6Ranges, fm6Voice } from "../lib/fm6";
+import { FM6, FM6_FIELDS, FM6_GLOBALS, fm6Custom, fm6Ranges, fm6Voice, fm6WeightKey } from "../lib/fm6";
 import { fm6Copy } from "../lib/fm6Copy";
 import { Fm6Algorithm } from "./Fm6Algorithm";
 import { NodeEditorModalFrame } from "./NodeEditorModalFrame";
@@ -20,7 +20,12 @@ export function Fm6VoiceEditor({ node, language, drivenInputs, onChange, onClose
   const original = useRef(node.params);
   const [params, setParams] = useState(node.params);
   const inspector = useRef<HTMLElement>(null);
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selection, setSelection] = useState<number | [number, number] | null>(null);
+  const selected = typeof selection === "number" ? selection : null;
+  const branch = Array.isArray(selection) ? selection : null;
+  const weightKey = branch && fm6WeightKey(...branch);
+  const percent = useMemo(() => new Intl.NumberFormat({ english: "en", german: "de", french: "fr", spanish: "es" }[language],
+    { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 }), [language]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [clipboard, setClipboard] = useState<Record<string, number> | null>(null);
   const [browse, setBrowse] = useState(Number(node.params.ipreset) || 0);
@@ -45,13 +50,13 @@ export function Fm6VoiceEditor({ node, language, drivenInputs, onChange, onClose
     }
     publish(next);
   };
-  const selectOperator = (op: number | null) => {
-    setSelected(op);
-    if (op !== null && window.matchMedia?.("(max-width: 639px)").matches) {
+  const select = (next: typeof selection) => {
+    setSelection(next);
+    if (typeof next === "number" && window.matchMedia?.("(max-width: 639px)").matches) {
       requestAnimationFrame(() => inspector.current?.scrollIntoView({ block: "nearest" }));
     }
     // Incomplete text belongs to the inspector being left. The graph holds its last valid value.
-    setDrafts(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => !key.startsWith("op"))));
+    setDrafts(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => !key.startsWith("op") && !key.startsWith("weight_"))));
   };
   const numeric = (key: string, label: string, value: number, custom = false) => {
     const [min, max] = ranges[key];
@@ -91,26 +96,32 @@ export function Fm6VoiceEditor({ node, language, drivenInputs, onChange, onClose
       <div className="grid items-end gap-4 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-xs text-slate-300">{copy.preset}
           <select aria-label={copy.preset} className={fieldStyle} value={preset} onChange={e => { const id = Number(e.target.value);
-            if (drivenInputs.ipreset) setBrowse(id); else publish({ ...params, ipreset: id }); setDrafts({}); }}>
+            if (drivenInputs.ipreset) setBrowse(id); else publish({ ...params, ipreset: id });
+            if (branch) setSelection(null); setDrafts({}); }}>
             <option value={0}>0 · {copy.custom}</option>{FM6.presets.map(p => <option key={p.id} value={p.id}>{p.id} · {p.name}</option>)}
           </select></label>
         <label className="flex flex-col gap-1 text-xs text-slate-300">{copy.algorithm}
-          <select aria-label={copy.algorithm} className={fieldStyle} value={voice.algorithm} onChange={e => { updateVoice({ algorithm: Number(e.target.value) }); setDrafts({}); }}>
+          <select aria-label={copy.algorithm} className={fieldStyle} value={voice.algorithm} onChange={e => { updateVoice({ algorithm: Number(e.target.value) }); if (branch) setSelection(null); setDrafts({}); }}>
             {FM6.algorithms.map(a => <option key={a.id} value={a.id}>{a.id} · {copy.algorithms[a.id - 1]}</option>)}
           </select></label>
         {numeric("feedback", copy.feedback, voice.feedback, true)}
       </div>
       {drivenInputs.ipreset && <p className="rounded border-l-2 border-amber-600 bg-amber-950/30 px-3 py-2 text-xs text-amber-100" title={drivenInputs.ipreset}>{copy.presetDriven}</p>}
-      <Fm6Algorithm voice={voice} copy={copy} selected={selected} onSelect={selectOperator}
+      <Fm6Algorithm voice={voice} copy={copy} selected={selected} onSelect={select} selectedWeight={weightKey} percent={percent}
+        onSelectBranch={(from, to) => select([from, to])} onWeight={(key, value) => updateVoice({ [key]: value })}
         attackScale={envelopeScale("iattack_scale")} releaseScale={envelopeScale("irelease_scale")} />
-      {selected === null ? <p className="text-xs text-slate-300">{copy.selectOperator}</p> :
+      {branch && weightKey ? <section className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
+        <h3 className="mb-2 text-sm font-semibold">{copy.operator} {branch[0]} → {copy.operator} {branch[1]}</h3>
+        <div className="max-w-sm">{numeric(weightKey, copy.branchWeight, voice[weightKey], true)}</div>
+        <p className="mt-2 text-xs text-slate-300">{copy.branchHelp}</p>
+      </section> : selected === null ? <p className="text-xs text-slate-300">{copy.selectOperator}</p> :
         <section ref={inspector} className="rounded-lg border border-slate-700 bg-slate-800/50 p-3">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">{copy.operator} {selected} · {algorithm.outputs.includes(selected) ? copy.carrier : copy.modulator}</h3>
             <div className="flex flex-wrap items-center gap-2"><label className="mr-2 flex items-center gap-2 text-xs"><input type="checkbox" className="accent-cyan-300" checked={Boolean(voice[prefix + "enabled"])} onChange={e => updateVoice({ [prefix + "enabled"]: e.target.checked ? 1 : 0 })} />{copy.enabled}</label>
               <button className={buttonStyle} onClick={() => setClipboard(Object.fromEntries(FM6_FIELDS.map(k => [k, voice[prefix + k]])))}>{copy.copy}</button>
               <button className={buttonStyle} disabled={!clipboard} onClick={() => { if (clipboard) { updateVoice(Object.fromEntries(Object.entries(clipboard).map(([k, v]) => [prefix + k, v]))); setDrafts({}); } }}>{copy.paste}</button>
-              <button className={buttonStyle} aria-label={copy.hideOperator} title={copy.hideOperator} onClick={() => selectOperator(null)}>×</button>
+              <button className={buttonStyle} aria-label={copy.hideOperator} title={copy.hideOperator} onClick={() => select(null)}>×</button>
             </div>
           </div>
           <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">{FM6_FIELDS.filter(k => k !== "enabled").map(k => numeric(prefix + k, copy[k], voice[prefix + k], true))}</div>

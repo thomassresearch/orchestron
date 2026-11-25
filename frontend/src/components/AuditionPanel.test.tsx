@@ -353,21 +353,21 @@ it("orders live FM6 edits and rollback before the next note without restarting a
   base.graph.nodes.push(fm);
   useAppStore.setState({ currentPatch: base });
   vi.mocked(api.compileSession).mockResolvedValue({ session_id: "preview-session", state: "compiled", orc: "", csd: "", diagnostics: [],
-    manifest: { instrumentReferences: { preview: "1" }, fm6Preview: { preview: { fm: fm.params } } } });
+    manifest: { instrumentReferences: { preview: "1" }, fm6Preview: { preview: { fm: { ...fm.params, weight_6_5: 1 } } } } });
   const pending = deferred();
   const write = vi.spyOn(api, "updateFm6Preview").mockResolvedValue(undefined).mockImplementationOnce(() => pending.promise);
   mount(); await start();
-  const change = (params: typeof fm.params) => act(() => useAppStore.setState({ currentPatch: {
+  const change = (params: typeof fm.params & { weight_6_5?: number }) => act(() => useAppStore.setState({ currentPatch: {
     ...base, graph: { ...base.graph, nodes: base.graph.nodes.map(n => n.id === "fm" ? { ...fm, params } : n) }
   } }));
-  change({ algorithm: 4, op1_ratio: 5 });
-  expect(write).toHaveBeenCalledWith("preview-session", "fm", { algorithm: 4, op1_ratio: 5 });
+  change({ algorithm: 4, op1_ratio: 5, weight_6_5: .4 });
+  expect(write).toHaveBeenCalledWith("preview-session", "fm", { algorithm: 4, op1_ratio: 5, weight_6_5: .4 });
   change(fm.params);
   fireEvent.keyDown(screen.getByRole("button", { name: "C4 (60)" }), { key: "Enter" });
   expect(audio.midi).not.toHaveBeenCalled();
   await act(async () => pending.resolve());
   await waitFor(() => expect(audio.midi).toHaveBeenCalledOnce());
-  expect(write).toHaveBeenLastCalledWith("preview-session", "fm", fm.params);
+  expect(write).toHaveBeenLastCalledWith("preview-session", "fm", { ...fm.params, weight_6_5: 1 });
   expect(write.mock.invocationCallOrder[1]).toBeLessThan(audio.midi.mock.invocationCallOrder[0]);
   expect(screen.queryByRole("status")).toBeNull();
   expect(api.compileSession).toHaveBeenCalledOnce();

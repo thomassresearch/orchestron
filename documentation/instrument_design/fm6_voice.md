@@ -93,18 +93,26 @@ come from the six operators and their envelopes. Their tails are part of the dry
 
 Add `fm6_voice` from the **fm** category and click its **FM6** button. The node initially shows frequency, velocity and preset sockets. Expand **Performance inputs** for the others; connected sockets stay visible when collapsed. Double-click a socket to edit its value or formula with the Input Formula Assistant.
 
-![FM6 editor showing five modulators feeding one carrier, with line thickness indicating each source level](../../screenshots/fm6_voice_editor.png)
+![FM6 editor showing five modulators feeding one carrier, with percentage labels on the modulation arrows](../../screenshots/fm6_voice_editor.png)
 
 1. Choose a starter or **Custom voice (0)**.
-2. Choose an algorithm and follow the amber arrows from modulators or the cyan lines from carriers to **Dry output**. A thicker line means a higher **Level** on the operator it leaves. A thin dashed line marks a disabled operator or a level of zero. The loop on operator 6 shows voice feedback.
+2. Choose an algorithm and follow the amber arrows from modulators or the cyan lines from carriers to **Dry output**. Thicker amber arrows carry more modulation. Thicker cyan lines indicate higher carrier levels. The loop on operator 6 shows voice feedback.
 3. Click an operator in the diagram, or focus it and press **Enter** or **Space**. Drag a slider or type an exact value. Each operator shows its frequency ratio, detune in cents, envelope and level. The white tick on the level bar marks its level at minimum velocity. Hover over an operator for exact values. **Copy operator** and **Paste operator** transfer all its settings.
 4. Adjust voice feedback above the diagram. Expand **Performance inputs** for brightness, envelope scaling, vibrato, feedback override and output gain.
 5. To listen while editing, start **Audition** before opening **FM6**. Play the keyboard inside the editor or enable **Autoplay** to repeat the last note or chord while adjusting operators. Each new note takes the current voice, including its algorithm. Held notes and release tails finish with their original settings.
 6. **Apply to draft** keeps your edits. **Cancel**, **Close**, **Escape** or clicking the backdrop restores the settings from when you opened the editor. Save the instrument to keep the voice in your library.
 
-Editing an operator, voice feedback or algorithm copies the starter into **Custom (0)**. Browsing starter presets preserves custom settings. The starter bank itself is unchanged by edits.
+Editing an operator, a branch weight, voice feedback or the algorithm copies the starter into **Custom (0)**. Browsing starter presets preserves custom settings. The starter bank itself is unchanged by edits.
 
 Graph-driven fields identify their source and preserve their connections and formulas. The corresponding performance fields are read-only. A connected preset input takes priority over the dialog selection: the dialog then browses voices while the graph decides which sounds. To hear custom edits in Almost DX7, disconnect the preset controller or extend its minimum to **0** and select **0**.
+
+### Adjust a modulation branch
+
+Drag an amber arrow or its percentage **up** to send more modulation to that destination, or **down** to send less. Click the arrow to enter an exact **Branch weight** from **0** to **1**. You can also focus it with **Tab** and use the arrow keys. The other branches keep their weights.
+
+The arrow’s thickness and percentage show the source operator’s **Level × Branch weight**. For example, a level of **80%** and weight of **0.625** give **50.0%**. A weight of **0** leaves a dashed, silent route you can still select. A disabled source also sends **0.0%**. All branches start at **1** in starter voices and older patches. Weights follow their operator pair when you change algorithms. During audition each new note picks up your edits, and **Cancel** restores the opening weights.
+
+![Shared modulation with four independent branches and the selected branch weight](../../screenshots/fm6_branch_weights.png)
 
 ## Eight algorithms
 
