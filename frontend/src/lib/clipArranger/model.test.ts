@@ -1,9 +1,11 @@
+import { mergeClips, splitClip } from "./clipWindows";
+import { runtimeSchedule } from "./runtime";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SEQUENCER_TIMING_CONFIG, SEQUENCER_BEAT_RATE_OPTIONS } from "../sequencer";
 import { defaultSequencerState } from "../../store/appStoreModel";
-import { beginDraft, copyClipRange, pasteClipRange, convertLaneCycle, deleteClip, editTime, emptyClipHistory, fitClip, recordClipEdit, replayClipEdit, saveDraft, trimClip, updateClip } from "./operations";
+import { beginDraft, duplicateClip, copyClipRange, pasteClipRange, convertLaneCycle, deleteClip, editTime, emptyClipHistory, fitClip, recordClipEdit, replayClipEdit, saveDraft, trimClip, updateClip } from "./operations";
 import { migrateClipArrangement } from "./migration";
-import { QUARTER_TICKS as Q, contentLength, localBeatTicks, resolveClip, validateArrangement, type ClipArrangement, type PatternDefinition } from "./model";
+import { QUARTER_TICKS as Q, CLIP_LIMITS, clipWindows, contentLength, localBeatTicks, resolveClip, validateArrangement, type ClipArrangement, type PatternDefinition } from "./model";
 
 function fixture(): ClipArrangement {
   const payload = defaultSequencerState().tracks[0].pads[0];
@@ -155,4 +157,64 @@ it("rejects a draft when undo and a new branch reuse a revision number", () => {
   const changed = structuredClone(model);
   changed.lanes[0].definitions[0].name = "A different branch";
   expect(() => saveDraft(changed, draft, "all")).toThrow(/changed after editing/);
+});
+
+describe("arranger clip merge and split", () => {
+  it("joins whole linked content and intervening rests in one normal clip", () => {
+    const model = fixture();
+    Object.assign(model.lanes[0].clips[0], { mode: "once", offset: 0, length: 8 * Q });
+    const merged = mergeClips(model, "lane", ["c", "c2"]).model;
+    expect(merged.lanes[0].clips).toHaveLength(1);
+    expect(merged.lanes[0].clips[0]).toMatchObject({start: 0, length: 32 * Q, children: [
+      {definitionId:"s"}, {restTicks:16 * Q}, {definitionId:"s"}]});
+    expect(merged.lanes[0].definitions).toEqual(model.lanes[0].definitions);
+    expect(merged.end).toBe(model.end);
+  });
+
+  it("preserves cropped loops, nested content, real rests and window ownership through section copies", () => {
+    const model = fixture(), merged = mergeClips(model, "lane", ["c", "c2"]).model;
+    const windows = clipWindows(merged.lanes[0]);
+    expect(windows).toHaveLength(1);
+    const [a, gap, b] = windows[0].parts;
+    expect(a).toMatchObject({start:0, offset:2*Q, mode:"loop", length:20*Q});
+    expect(gap).toMatchObject({start:20*Q, length:4*Q, children:[{restTicks:4*Q}]});
+    expect(b).toMatchObject({start:24*Q, length:8*Q});
+    const section = copyClipRange(merged, ["lane"], 0, 32*Q);
+    const repeated = pasteClipRange(merged, section, 32*Q, "overwrite", {});
+    expect(clipWindows(repeated.lanes[0]).map(w=>[w.clip.start,w.end,w.parts.length])).toEqual([[0,32*Q,3],[32*Q,64*Q,3]]);
+    const cut = splitClip(merged, "lane", "c", 21*Q);
+    expect(clipWindows(cut.model.lanes[0]).map(w=>[w.clip.start,w.end])).toEqual([[0,21*Q],[21*Q,32*Q]]);
+    const copied = duplicateClip(merged, "lane", "c");
+    const removed = deleteClip(copied.model, "lane", "c");
+    expect(clipWindows(removed.lanes[0])).toHaveLength(1);
+    expect(clipWindows(removed.lanes[0])[0].parts.map(c => c.start / Q)).toEqual([32,52,56]);
+  });
+
+  it("cuts a loop near the source-offset limit without overflowing or changing its logical pass", () => {
+    const model = fixture();
+    model.version = 3;
+    model.lanes[0].clips[0].offset = CLIP_LIMITS.ticks;
+    const state = defaultSequencerState();
+    const before = runtimeSchedule({...state, clipArrangement: model}, model.lanes[0]);
+    const {model: split} = splitClip(model, "lane", "c", 2*Q);
+    expect(runtimeSchedule({...state, clipArrangement: split}, split.lanes[0])).toEqual(before);
+  });
+
+  it("keeps a split transparent to the scheduler, including transposed loop passes, then separates moved halves", () => {
+    const model = fixture(), lane = model.lanes[0];
+    model.version = 3;
+    lane.clips[0].transposePlacements = [{path:["cs","sg","gp2"],plan:{base:{diatonicSteps:0,chromaticSemitones:0},repetitions:[{index:1,offset:{diatonicSteps:0,chromaticSemitones:7}}]}}];
+    const state = defaultSequencerState();
+    const schedule = (m: ClipArrangement) => runtimeSchedule({...state,clipArrangement:m}, m.lanes[0]);
+    const first = splitClip(model,"lane","c",3*Q), second = splitClip(first.model,"lane",first.selected,7*Q+1);
+    expect(schedule(second.model)).toEqual(schedule(model));
+    expect(clipWindows(second.model.lanes[0])).toHaveLength(4);
+    const rejoined = mergeClips(second.model,"lane",["c",first.selected,second.selected]);
+    expect(rejoined.model.lanes[0].clips).toHaveLength(2);
+    expect(schedule(rejoined.model)).toEqual(schedule(model));
+    const moved = updateClip(second.model,"lane",second.selected,{start:8*Q});
+    expect(schedule(moved).clips).toHaveLength(3);
+    for (const beat of [0,20]) expect(()=>splitClip(model,"lane","c",beat*Q)).toThrow(/inside/);
+    expect(()=>mergeClips(second.model,"lane",["c",second.selected])).toThrow(/consecutive/);
+  });
 });

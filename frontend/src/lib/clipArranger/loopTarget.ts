@@ -1,3 +1,4 @@
+import { clipWindows } from "./model";
 import type { SequencerState } from "../../types";
 import { sequencerTransportSubunitsPerStep } from "../sequencer";
 import { arrangementTimings } from "./migration";
@@ -36,5 +37,6 @@ export function clipLoopTarget(sequencer: SequencerState, selected?: ClipSelecti
       if (end > start) return range("loopPatterns", start, end);
     }
   }
-  return range("loopClip", clip.start, clip.start + clip.length);
+  const window = clipWindows(lane).find(w => w.parts.some(part => part.id === clip.id))!;
+  return range("loopClip", window.clip.start, window.end);
 }

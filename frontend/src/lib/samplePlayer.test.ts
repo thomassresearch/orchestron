@@ -1,9 +1,11 @@
 import { expect, it } from "vitest";
+import score from "../../../backend/tests/fixtures/clip_transposition/repetition_grouping.json";
+import { splitClip } from "./clipArranger/clipWindows";
 import golden from "../../../backend/tests/fixtures/sample_player/performance.json";
 import { createSamplePlayerPatch } from "./samplePlayer";
 import { toPatchListItem } from "./patchCatalog";
 import {
-  buildSequencerConfigSnapshot, normalizeSessionInstrumentAssignments, parseSequencerConfigSnapshot
+  authoredFormatVersions, buildSequencerConfigSnapshot, normalizeSessionInstrumentAssignments, parseSequencerConfigSnapshot
 } from "../store/appStoreModel";
 
 it.each(["mp3", "m4a"])("retains %s independent maps and the newest clip feature through native and runtime serialization", format => {
@@ -27,4 +29,18 @@ it.each(["mp3", "m4a"])("retains %s independent maps and the newest clip feature
   expect(lookup(first)).not.toEqual(lookup(second));
   expect(() => parseSequencerConfigSnapshot({ ...golden, version: 26 }, [patch], null)).toThrow(/format 27/);
   expect(() => parseSequencerConfigSnapshot({ ...golden, sampleAssets: {} }, [patch], null)).toThrow(/unresolved/);
+});
+
+it("retains sample maps alongside a seamless clip cut in performance and recovery formats", () => {
+  const patch = toPatchListItem({ ...createSamplePlayerPatch(), id: "sample-player-test", created_at: "", updated_at: "" });
+  const fixture = { ...golden, sequencer: { ...golden.sequencer, ...score.before.sequencer } };
+  const {sequencer, instruments, audioGraph, mixer} = parseSequencerConfigSnapshot(structuredClone(fixture), [patch], null);
+  const model = sequencer.clipArrangement!, lane = model.lanes[0], clip = lane.clips[0];
+  sequencer.clipArrangement = splitClip(model, lane.id, clip.id, clip.start + 5040).model;
+  expect(authoredFormatVersions(sequencer, instruments)).toEqual({performance: 28, recovery: 10});
+  const saved = buildSequencerConfigSnapshot(sequencer, instruments, audioGraph, mixer);
+  const restored = parseSequencerConfigSnapshot(saved, [patch], null);
+  expect(saved.sampleAssets).toEqual(golden.sampleAssets);
+  expect(restored.sequencer.clipArrangement).toEqual(sequencer.clipArrangement);
+  expect(restored.instruments.map(b => b.sampleMap)).toEqual(instruments.map(b => b.sampleMap));
 });

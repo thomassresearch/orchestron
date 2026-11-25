@@ -18,17 +18,19 @@ def validate_authored_clips(document):
         if isinstance(sequencer, dict) and any(isinstance(t, dict) and t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])):
             raise ValueError("Instrument automation requires a clip arrangement.")
         return document
-    if document.get("version") not in (5, 6, 7, 8, 9, 23, 24, 25, 26, 27):
-        raise ValueError("Clip arrangements require performance v23–27 or app state v5–9.")
+    if document.get("version") not in (5, 6, 7, 8, 9, 10, 23, 24, 25, 26, 27, 28):
+        raise ValueError("Clip arrangements require performance v23–28 or app state v5–10.")
     model = sequencer["clipArrangement"]
-    if not isinstance(model, dict) or model.get("version") not in (1, 2, 3, 4):
+    if not isinstance(model, dict) or model.get("version") not in (1, 2, 3, 4, 5):
         raise ValueError("Unsupported clip arrangement version.")
-    if model["version"] >= 2 and document.get("version") not in (6, 7, 8, 9, 24, 25, 26, 27):
+    if model["version"] >= 2 and document.get("version") not in (6, 7, 8, 9, 10, 24, 25, 26, 27, 28):
         raise ValueError("Instrument automation requires performance v24 or app state v6.")
-    if model["version"] >= 3 and document.get("version") not in (7, 8, 9, 25, 26, 27):
+    if model["version"] >= 3 and document.get("version") not in (7, 8, 9, 10, 25, 26, 27, 28):
         raise ValueError("Clip transposition requires performance v25 or app state v7.")
-    if model["version"] == 4 and document.get("version") not in (8, 9, 26, 27):
+    if model["version"] == 4 and document.get("version") not in (8, 9, 10, 26, 27, 28):
         raise ValueError("Content repetition indices require performance v26 or app state v8.")
+    if model["version"] == 5 and document.get("version") not in (10, 28):
+        raise ValueError("Clip joins and cuts require performance v28 or app state v10.")
     _integer(model.get("revision"))
     end = _integer(model.get("end"), 1)
     lanes = model.get("lanes")
@@ -159,6 +161,9 @@ def validate_authored_clips(document):
         previous_end = 0
         for clip in sorted(clips, key=lambda c: _integer(c.get("start"))):
             identity(clip.get("id"))
+            for key in ("windowGroupId", "continuityId"):
+                if key in clip and (model["version"] < 5 or not isinstance(clip[key], str) or not 1 <= len(clip[key]) <= 128):
+                    raise ValueError("Invalid clip window link.")
             start = _integer(clip.get("start"))
             finish = start + _integer(clip.get("length"), 1)
             _integer(clip.get("offset"))

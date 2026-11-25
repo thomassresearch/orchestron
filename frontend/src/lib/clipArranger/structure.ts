@@ -368,6 +368,12 @@ function resolveContentCount(lane: ClipLane, items: ContentItem[]): number {
   }, 0);
 }
 
+function structureVersion(model: ClipArrangement, draft: StructureDraft, timed: boolean): ClipArrangement["version"] {
+  if (model.version >= 4) return model.version;
+  const duplicated = draft.commands.slice(0, draft.cursor).some(command => command.kind === "duplicate");
+  return isExpandedStructure(draft) || duplicated || (timed && model.version >= 3) ? 4 : model.version;
+}
+
 /** Materialize occurrence changes without mutating the shared baseline. */
 function materialize(draft: StructureDraft, scope: 'local'|'all', preview = false): { lane: ClipLane; children: ContentItem[]; shared: boolean; placements: NonNullable<Clip['transposePlacements']>; pathRules: Map<string, {before:string[];after:string[]}[]>; occurrences: {from:OccurrenceTarget;to:OccurrenceTarget}[]; previewPaths: {before:string[];after:string[]}[] } {
   const lane = copy(draft.basis), changes = new Map<string,string>(); let shared=false;
@@ -566,7 +572,7 @@ export function prepareStructure(model: ClipArrangement, draft: StructureDraft, 
   lane.clips=lane.clips.filter(c=>c.children.length);
   const sorted=[...lane.clips].sort((a,b)=>a.start-b.start);
   for(let i=1;i<sorted.length;i++) if(sorted[i].start<sorted[i-1].start+sorted[i-1].length) throw new ClipError('collision',`Growth overlaps “${sorted[i-1].name}” and “${sorted[i].name}”. Make room before saving.`);
-  const next:ClipArrangement={...copy(model),version:isExpandedStructure(draft)||draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate')||timed&&model.version>=3?4:model.version,revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
+  const next:ClipArrangement={...copy(model),version:structureVersion(model, draft, timed),revision:model.revision+1,lanes:model.lanes.map(l=>l.id===lane.id?lane:copy(l)),end:Math.max(model.end,...lane.clips.map(c=>c.start+c.length))};
   validateArrangement(next,timings);
   return {model:next,shared,occurrences:materialized.occurrences,previewPaths:materialized.previewPaths};
 }
@@ -579,5 +585,5 @@ export function structurePreview(model:ClipArrangement,draft:StructureDraft,timi
   const before=isExpandedStructure(draft)?draft.expanded!.contentTicks:contentLength(draft.basis,original.children,timings[lane.id]),after=contentLength(lane,children,timings[lane.id]);
   const growth=original.mode==='once'&&after>before?Math.max(0,after-original.offset-original.length):0;
   lane.clips=lane.clips.map(c=>c.id===draft.clipId?{...c,...(isExpandedStructure(draft)?original:{}),children,...(c.transposePlacements||placements.length?{transposePlacements:placements}:{})}:draft.followingPassClipIds?.includes(c.id)?{...c,start:c.start+growth}:c);
-  return {...model,version:isExpandedStructure(draft)||draft.commands.slice(0,draft.cursor).some(c=>c.kind==='duplicate')||timed&&model.version>=3?4:model.version,lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
+  return {...model,version:structureVersion(model, draft, timed),lanes:model.lanes.map(l=>l.id===lane.id?lane:l)};
 }

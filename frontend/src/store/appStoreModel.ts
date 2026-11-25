@@ -125,6 +125,15 @@ export const MAX_MIDI_CONTROLLERS = 6;
 export const MAX_ARPEGGIATORS = 8;
 export const DEFAULT_DRUMMER_ROW_KEYS = [36, 38, 42, 46] as const;
 export const APP_STATE_VERSION = 4 as const;
+
+export function authoredFormatVersions(sequencer: SequencerState, instruments: SequencerInstrumentBinding[]) {
+  const clipVersion = sequencer.clipArrangement?.version ?? 0;
+  if (clipVersion === 5) return { performance: 28, recovery: 10 } as const;
+  if (hasSampleMaps(instruments)) return { performance: 27, recovery: 9 } as const;
+  const performance = ([22, 23, 24, 25, 26] as const)[clipVersion];
+  const recovery = ([APP_STATE_VERSION, 5, 6, 7, 8] as const)[clipVersion];
+  return { performance, recovery };
+}
 export const APP_STATE_PERSIST_DEBOUNCE_MS = 400;
 export const AUDIO_RATE_MIN = 22000;
 export const AUDIO_RATE_MAX = 48000;
@@ -2448,7 +2457,7 @@ export function sequencerSnapshotForPersistence(sequencer: SequencerState): Sequ
 export function buildPersistedAppStateSnapshot(state: AppStore): PersistedAppState {
   return {
     ...(hasSampleMaps(state.sequencerInstruments) ? { sampleAssets: sampleManifest(state.sequencerInstruments) } : {}),
-    version: hasSampleMaps(state.sequencerInstruments) ? 9 : state.sequencer.clipArrangement?.version === 4 ? 8 : state.sequencer.clipArrangement?.version === 3 ? 7 : state.sequencer.clipArrangement?.version === 2 ? 6 : state.sequencer.clipArrangement ? 5 : APP_STATE_VERSION,
+    version: authoredFormatVersions(state.sequencer, state.sequencerInstruments).recovery,
     ...(Object.keys(state.routingLayout).length ? { routingLayout: readRoutingLayout(state.routingLayout, state.sequencerInstruments, state.audioGraph) } : {}),
     arrangerHistory: structuredClone(state.arrangerHistory),
     activePage: normalizeAppPage(state.activePage),
@@ -2973,7 +2982,7 @@ export function buildSequencerConfigSnapshot(
   );
   return {
     ...(hasSampleMaps(instruments) ? { sampleAssets: sampleManifest(instruments) } : {}),
-    version: hasSampleMaps(instruments) ? 27 : sequencer.clipArrangement?.version === 4 ? 26 : sequencer.clipArrangement?.version === 3 ? 25 : sequencer.clipArrangement?.version === 2 ? 24 : sequencer.clipArrangement ? 23 : 22,
+    version: authoredFormatVersions(sequencer, instruments).performance,
     ...(Object.keys(routingLayout).length ? { routingLayout: readRoutingLayout(routingLayout, instruments, audioGraph) } : {}),
     arrangerHistory: structuredClone(arrangerHistory),
     audioGraph: structuredClone(audioGraph),
@@ -3207,17 +3216,17 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 20 &&
     payload.version !== 21 &&
     payload.version !== 22 &&
-    payload.version !== 23 && payload.version !== 24 && payload.version !== 25 && payload.version !== 26 && payload.version !== 27
+    payload.version !== 23 && payload.version !== 24 && payload.version !== 25 && payload.version !== 26 && payload.version !== 27 && payload.version !== 28
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
 
   const clipVersion = ((payload.sequencer as Record<string, unknown>)?.clipArrangement as {version?:number}|undefined)?.version;
-  if (clipVersion && (payload.version < 23 || clipVersion === 2 && payload.version < 24 || clipVersion === 3 && payload.version < 25 || clipVersion === 4 && payload.version < 26)) throw new Error("This clip arrangement requires a newer performance format.");
+  if (clipVersion && (payload.version < 23 || clipVersion === 2 && payload.version < 24 || clipVersion === 3 && payload.version < 25 || clipVersion === 4 && payload.version < 26 || clipVersion === 5 && payload.version < 28)) throw new Error("This clip arrangement requires a newer performance format.");
   const sequencer = normalizeSequencerState(payload.sequencer);
   const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
-  if (payload.version !== 27 && (payload.sampleAssets !== undefined || instrumentsRaw.some(entry => entry?.sampleMap !== undefined))) {
-    throw new Error("Sample maps require performance format 27.");
+  if (payload.version < 27 && (payload.sampleAssets !== undefined || instrumentsRaw.some(entry => entry?.sampleMap !== undefined))) {
+    throw new Error("Sample maps require performance format 27 or later.");
   }
   const assets = parseSampleAssets(payload.sampleAssets);
   const patchById = new Map(availablePatches.map((patch) => [patch.id, patch]));

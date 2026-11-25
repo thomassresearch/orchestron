@@ -11515,3 +11515,26 @@ def test_routing_validation_identifies_missing_stereo_channel(tmp_path: Path) ->
         assert {(d["instanceId"], d["direction"], tuple(d["ports"])) for d in warnings} == {
             ("lead", "output", ("right",)), ("$master", "input", ("right",)),
         }
+
+
+def test_joined_and_split_clip_windows_round_trip_and_validate_before_replacing_performance(tmp_path):
+    from copy import deepcopy
+    config = _clip_score_config()
+    config["version"] = 28
+    model = config["sequencer"]["clipArrangement"]
+    model["version"] = 5
+    clips = model["lanes"][0]["clips"]
+    clips[0].update(continuityId="original", windowGroupId="merged")
+    clips.append({**clips[0], "id": "right", "start": 20160, "offset": 20160,
+                  "children": [{"id": "right-use", "definitionId": "clip-pattern"}]})
+    with _client(tmp_path) as client:
+        response = client.post("/api/performances", json={"name": "Cut", "config": config})
+        assert response.status_code == 201, response.text
+        url = f'/api/performances/{response.json()["id"]}'
+        assert client.get(url).json()["config"] == config
+        for key, value in (("windowGroupId", {}), ("continuityId", "")):
+            bad = deepcopy(config)
+            bad["sequencer"]["clipArrangement"]["lanes"][0]["clips"][1][key] = value
+            assert client.put(url, json={"config": bad}).status_code == 422
+        assert client.put(url, json={"config": {**config, "version": 27}}).status_code == 422
+        assert client.get(url).json()["config"] == config

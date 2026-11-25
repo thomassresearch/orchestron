@@ -161,6 +161,22 @@ export function flushArrangementEditors() {
   });
   return resolved;
 }
+/** Resolve pending editors and the window operation as one reversible gesture. */
+export function stageClipWindowEdit(action: (model: ClipArrangement) => { model: ClipArrangement; selected: string }) {
+  const state = useAppStore.getState(), current = frame(state);
+  assertCurrentBasis(state);
+  const resolved = resolveArrangement(current, state);
+  const result = action(resolved.model);
+  validateArrangement(result.model, arrangementTimings(state.sequencer));
+  record(current, result.model);
+  atomic(() => {
+    useStructureDraft.setState({ draft: null });
+    useAppStore.setState({ ...cleanEditors(current, result.model, resolved.targets),
+      sequencerEditRevision: state.sequencerEditRevision + 1 });
+  });
+  return result.selected;
+}
+
 export function saveArrangementEdits() {
   const state = useAppStore.getState();
   const basis = state.sequencer.clipArrangement!;

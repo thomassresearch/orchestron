@@ -28,20 +28,48 @@ export function playingClipPattern(lane: ClipLane, end: number, runtime: Sequenc
   return clip ? resolveClip(lane, clip, at, at + 1, timing)[0]?.definition ?? null : null;
 }
 
+type ScheduledWindow = RuntimeClipSchedule["clips"][number];
+
+function continuousSource(left: ScheduledWindow, right: ScheduledWindow) {
+  const offset = left.offset + left.length;
+  if (offset === right.offset && left.repeat_index_base === right.repeat_index_base) return true;
+  const duration = left.content.reduce((sum, span) => sum + span.length, 0);
+  if (left.mode === "once") return offset >= duration && right.offset >= duration;
+  return offset % duration === right.offset % duration &&
+    (left.repeat_index_base ?? 0) + Math.floor(offset / duration) ===
+    (right.repeat_index_base ?? 0) + Math.floor(right.offset / duration);
+}
+
 export function runtimeSchedule(state: SequencerState, lane: ClipLane): RuntimeClipSchedule {
   const patterns = lane.definitions.filter((d): d is PatternDefinition => d.kind === "pattern");
   const slots = new Map(patterns.map((p, i) => [p.id, i]));
   const version = state.clipArrangement!.version >= 3 ? 2 : 1;
   const plans: OffsetPlan[] = [], indices = new Map<string, number>();
   const intern = (plan: OffsetPlan) => { const key = JSON.stringify(plan); if (!indices.has(key)) { indices.set(key, plans.length); plans.push(plan); } return indices.get(key)!; };
-  const clips = [...lane.clips].sort((a,b) => a.start-b.start).map(clip => ({
-    id: clip.id, start: clip.start, length: clip.length, offset: clip.offset, mode: clip.mode,
-    ...(version === 2 ? { repeat_index_base: clip.repeatIndexBase ?? 0 } : {}),
-    content: resolveContent(lane, clip.children, arrangementTimings(state)[lane.id]).map(leaf => ({
-      pad: leaf.definition ? slots.get(leaf.definition.id)! : null, length: leaf.length,
-      ...(version === 2 ? { transpose_refs: leaf.definition ? transposePlans(lane, clip, leaf.path).map(intern) : [] } : {})
-    }))
-  }));
+  const clips: RuntimeClipSchedule["clips"] = [];
+  let previousSource: string | undefined;
+  const timing = arrangementTimings(state)[lane.id];
+  for (const clip of [...lane.clips].sort((a, b) => a.start - b.start)) {
+    const window: RuntimeClipSchedule["clips"][number] = {
+      id: clip.id, start: clip.start, length: clip.length, offset: clip.offset, mode: clip.mode,
+      ...(version === 2 ? { repeat_index_base: clip.repeatIndexBase ?? 0 } : {}),
+      content: resolveContent(lane, clip.children, timing).map(leaf => ({
+        pad: leaf.definition ? slots.get(leaf.definition.id)! : null, length: leaf.length,
+        ...(version === 2 ? { transpose_refs: leaf.definition ? transposePlans(lane, clip, leaf.path).map(intern) : [] } : {})
+      }))
+    };
+    const previous = clips[clips.length - 1];
+    // A visual cut inside a note must never become a playback boundary.
+    if (previous && clip.continuityId && previousSource === clip.continuityId &&
+        previous.start + previous.length === window.start && previous.mode === window.mode &&
+        JSON.stringify(previous.content) === JSON.stringify(window.content) &&
+        continuousSource(previous, window)) {
+      previous.length += window.length;
+    } else {
+      clips.push(window);
+    }
+    previousSource = clip.continuityId;
+  }
   return { version, end: state.clipArrangement!.end, cycle_ticks: lane.cycleTicks, clips, ...(version === 2 ? { transpose_plans: plans } : {}) };
 }
 
@@ -139,7 +167,7 @@ export function clipAuditionState(state: SequencerState, draft: DefinitionDraft,
   const patterns = lane.definitions.filter(d => d.kind === "pattern"), slots = new Map(patterns.map((p, i) => [p.id, i]));
   const timing = arrangementTimings(next)[lane.id];
   // Use the exact schedule for every saved format. This view is session-only.
-  next.clipArrangement!.version = next.clipArrangement!.version === 4 ? 4 : 3;
+  if (next.clipArrangement!.version < 3) next.clipArrangement!.version = 3;
   const preview = saveTransposeEdits(state.clipArrangement, draft.target, draft.transposeEdits ?? [], arrangementTimings(state));
   const snapshot = draft.auditionContext;
   const sourceLane = snapshot?.lane ?? preview.lanes.find(l => l.id === lane.id)!;

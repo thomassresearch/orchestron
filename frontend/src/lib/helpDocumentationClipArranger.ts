@@ -12,6 +12,8 @@ Drag a clip header to move its window and its edges to trim it. When a clip look
 
 Click the clip header to select the whole window. Right-click anywhere inside it for **Duplicate clip** or **Delete clip**. Duplicate uses the next gap that fits on the same track. Click a pattern or group to select its contents. Right-click within a selected range to keep the range.
 
+Shift-click another clip header on the same track, then right-click a selected header and choose **Merge clips**. Gaps become rests. For one clip, choose **Split clip…**, drag the scissors or press Left/Right, then choose **Cut** or **Cancel**. Each confirmed edit supports Undo.
+
 The ruler and tracks share subdivisions, beats, bars and four-bar accents. Zoom out for longer intervals. Expand a track to see its own meter and speed when its timing differs.
 
 ### Edit and save
@@ -44,6 +46,8 @@ Mit **Spur hinzufügen** eine Melodie-, Score-, Drummer-, Controller- oder Arpeg
 Den Clip-Kopf ziehen, um sein Fenster zu verschieben; die Ränder ziehen, um es zu beschneiden. Schmale Clips lassen sich an jeder Stelle als Ganzes verschieben. Zoome hinein, um die Griffe an den Rändern und die Schaltflächen **+** und **↕** einzublenden. Mit der Tabulatortaste erreichst du auch ausgeblendete Bedienelemente. Start, Länge und Quellversatz verwenden Master-Schläge. **Einmal** spielt den Inhalt einmal und lässt danach Stille; **Schleife** wiederholt ihn im festen Fenster. Beschneiden erhält verborgene Inhalte. **Clip an Inhalt anpassen** ändert das Fenster ausdrücklich. Verschieben oder Löschen lässt andere Clips an ihrer Position; Clips derselben Spur dürfen sich nicht überlappen.
 
 Klicke auf den Clip-Kopf, um das ganze Fenster auszuwählen. Ein Rechtsklick im Fenster öffnet **Clip duplizieren** und **Clip löschen**. Die Kopie kommt in die nächste passende Lücke derselben Spur. Klicke auf ein Pattern oder eine Gruppe, um den Inhalt auszuwählen. Ein Rechtsklick im markierten Bereich behält die Auswahl bei.
+
+Klicke mit Umschalt auf einen weiteren Clip-Kopf derselben Spur. Wähle per Rechtsklick **Clips zusammenführen**. Lücken werden zu Pausen. Wähle für einen einzelnen Clip **Clip teilen…**, ziehe die Schere oder verwende die Pfeiltasten und wähle **Teilen** oder **Abbrechen**. Jeder bestätigte Schritt lässt sich rückgängig machen.
 
 Lineal und Spuren teilen Unterteilungen, Schläge, Takte und Viertaktmarken. Beim Herauszoomen werden größere Abstände sichtbar. Eine aufgeklappte Spur mit anderem Takt oder Tempoverhältnis zeigt zusätzlich ihr eigenes Raster.
 
@@ -78,6 +82,8 @@ Glissez l’en-tête d’un clip pour déplacer sa fenêtre et ses bords pour la
 
 Cliquez sur l’en-tête du clip pour sélectionner toute la fenêtre. Un clic droit dans celle-ci propose **Dupliquer le clip** et **Supprimer le clip**. La copie occupe le prochain espace libre assez grand sur la piste. Cliquez sur un motif ou un groupe pour sélectionner son contenu. Un clic droit dans une plage sélectionnée conserve cette plage.
 
+Avec Maj, cliquez sur un autre en-tête de la même piste. Faites un clic droit sur la sélection et choisissez **Fusionner les clips**. Les intervalles deviennent des silences. Pour un clip, choisissez **Scinder le clip…**, déplacez les ciseaux à la souris ou avec les flèches, puis choisissez **Couper** ou **Annuler**. Chaque modification confirmée peut être annulée.
+
 La règle et les pistes partagent subdivisions, temps, mesures et accents toutes les quatre mesures. Un zoom arrière espace les repères. Dépliez une piste dont la mesure ou la vitesse diffère pour voir sa grille locale.
 
 ### Modifier et enregistrer
@@ -110,6 +116,8 @@ Elige **Añadir pista** melódica, de partitura, batería, controlador o arpegia
 Arrastra la cabecera de un clip para mover su ventana y sus bordes para recortarla. Cuando un clip se ve estrecho, arrástralo desde cualquier punto para moverlo entero. Acerca el zoom para mostrar los tiradores y los botones **+** y **↕**. También puedes pulsar Tab para acceder a un control oculto. Inicio, duración y desplazamiento de origen usan pulsos maestros. **Una vez** reproduce el contenido una vez y después deja silencio; **Bucle** lo repite dentro de la ventana fija. Recortar conserva el contenido oculto. **Ajustar clip al contenido** cambia la ventana explícitamente. Mover o eliminar un clip deja los demás en su sitio; los clips de una misma pista no pueden solaparse.
 
 Haz clic en la cabecera del clip para seleccionar toda la ventana. Un clic derecho dentro de ella ofrece **Duplicar clip** y **Eliminar clip**. La copia ocupa el siguiente hueco suficiente en la misma pista. Haz clic en un patrón o grupo para seleccionar su contenido. Un clic derecho dentro de un rango seleccionado conserva el rango.
+
+Con Mayús, haz clic en otra cabecera de la misma pista. Haz clic derecho en la selección y elige **Fusionar clips**. Los huecos se convierten en silencios. Para un clip, elige **Dividir clip…**, mueve las tijeras con el ratón o las flechas y elige **Cortar** o **Cancelar**. Puedes deshacer cada edición confirmada.
 
 La regla y las pistas comparten subdivisiones, pulsos, compases y acentos cada cuatro compases. Al alejar la vista, aumenta la distancia musical entre las marcas. Expande una pista con otro compás o velocidad para ver su cuadrícula local.
 

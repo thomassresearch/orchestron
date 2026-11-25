@@ -19,13 +19,13 @@ export type DefinitionIdentity = { id: string; name: string; revision: number; c
 export type ContentItem = { id: string; definitionId: string; repeatIndex?: number; transpose?: OffsetPlan } | { id: string; restTicks: number };
 export type ContainerDefinition = DefinitionIdentity & { kind: "group" | "supergroup"; children: ContentItem[] };
 export type Definition = PatternDefinition | ContainerDefinition;
-export type Clip = { id: string; name: string; nameIsExplicit?: true; start: number; length: number; offset: number; mode: "once" | "loop"; children: ContentItem[]; repeatIndexBase?: number; transposePlacements?: { path: string[]; plan: OffsetPlan }[] };
+export type Clip = { id: string; name: string; nameIsExplicit?: true; windowGroupId?: string; continuityId?: string; start: number; length: number; offset: number; mode: "once" | "loop"; children: ContentItem[]; repeatIndexBase?: number; transposePlacements?: { path: string[]; plan: OffsetPlan }[] };
 export type ClipLane = {
   id: string; source: SourceKind; transposeProfiles?: TransposeProfile[]; definitions: Definition[]; clips: Clip[];
   /** Legacy repeating lanes repeat their authored cycle, independently of song looping. */
   cycleTicks: number | null;
 };
-export type ClipArrangement = { version: 1 | 2 | 3 | 4; revision: number; end: number; lanes: ClipLane[] };
+export type ClipArrangement = { version: 1 | 2 | 3 | 4 | 5; revision: number; end: number; lanes: ClipLane[] };
 export type OccurrenceTarget = { laneId: string; clipId: string; path: string[]; pass: number };
 export type DefinitionDraft = { provisionalDuplicate?: boolean; editIntent?: EditIntent; target: OccurrenceTarget; baseRevision: number; baseFingerprint?: string; definition: Definition; additions?: Definition[]; transposeEdits?: import("./transposeEdits").TransposeEdit[]; auditionContext?: { lane: ClipLane; patterns: Record<string, PatternDefinition> } };
 export type ClipHistoryChange =
@@ -104,7 +104,7 @@ export function resolveClip(lane: ClipLane, clip: Clip, from: number, to: number
 
 /** No JSON normalization here: malformed authored content must not be silently discarded. */
 export function validateArrangement(arrangement: ClipArrangement, timings: LaneTiming = {}, auditionLaneId?: string): void {
-  if (![1, 2, 3, 4].includes(arrangement.version) || !Number.isSafeInteger(arrangement.revision) || arrangement.revision < 0) throw new ClipError("invalid", "Unsupported clip arrangement version or revision.");
+  if (![1, 2, 3, 4, 5].includes(arrangement.version) || !Number.isSafeInteger(arrangement.revision) || arrangement.revision < 0) throw new ClipError("invalid", "Unsupported clip arrangement version or revision.");
   exactTick(arrangement.end, true);
   if (arrangement.lanes.length > CLIP_LIMITS.lanes) throw new ClipError("limit", "Too many lanes.");
   const identities = new Set<string>();
@@ -151,7 +151,11 @@ export function validateArrangement(arrangement: ClipArrangement, timings: LaneT
     }
     let previousEnd = 0;
     for (const clip of [...lane.clips].sort((a, b) => a.start - b.start)) {
-      identity(clip.id); exactTick(clip.start); exactTick(clip.length, true); exactTick(clip.offset);
+      identity(clip.id);
+      for (const link of [clip.windowGroupId, clip.continuityId]) {
+        if (link !== undefined && (arrangement.version < 5 || typeof link !== "string" || !link.length || link.length > 128)) throw new ClipError("invalid", "Invalid clip window link.");
+      }
+      exactTick(clip.start); exactTick(clip.length, true); exactTick(clip.offset);
       if (typeof clip.name !== "string" || !clip.name.trim() || clip.name.length > 128 || !["once", "loop"].includes(clip.mode)) throw new ClipError("invalid", "Invalid clip name or mode.");
       if (clip.start < previousEnd) throw new ClipError("collision", "Clips on the same lane cannot overlap.");
       previousEnd = exactTick(clip.start + clip.length);
@@ -162,4 +166,26 @@ export function validateArrangement(arrangement: ClipArrangement, timings: LaneT
       if (last > 40320000000) throw new ClipError("limit", "Logical repetition extent exceeded.");
     }
   }
+}
+
+export type ClipWindow = { clip: Clip; parts: Clip[]; end: number };
+
+/** Adjacent source windows keep their own crops, loop phase and placement paths. */
+export function clipWindows(lane: ClipLane): ClipWindow[] {
+  const windows: ClipWindow[] = [];
+  for (const part of [...lane.clips].sort((a, b) => a.start - b.start)) {
+    const previous = windows[windows.length - 1];
+    if (previous && previous.end === part.start && part.windowGroupId && part.windowGroupId === previous.clip.windowGroupId) {
+      previous.parts.push(part);
+      previous.end += part.length;
+    } else {
+      windows.push({ clip: part, parts: [part], end: part.start + part.length });
+    }
+  }
+  return windows;
+}
+
+export function windowRange(windows: ClipWindow[], first: string, last: string): ClipWindow[] {
+  const a = windows.findIndex(w => w.clip.id === first), b = windows.findIndex(w => w.clip.id === last);
+  return a < 0 || b < 0 ? [] : windows.slice(Math.min(a, b), Math.max(a, b) + 1);
 }

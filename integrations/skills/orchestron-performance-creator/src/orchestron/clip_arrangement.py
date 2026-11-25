@@ -1,4 +1,4 @@
-"""Project version-23–27 clip definitions into the existing musical wire serializers.
+"""Project version-23–28 clip definitions into the existing musical wire serializers.
 
 The authored document is never rewritten into numeric slots. This module has no
 backend dependency so the installed CLI uses the same compact schedule protocol.
@@ -9,19 +9,32 @@ from fractions import Fraction
 KEYS = {"sequencer": "tracks", "score": "scoreTracks", "drummer": "drummerTracks", "controller": "controllerSequencers", "arpeggiator": "arpeggiators"}
 
 
+def _continuous_source(left, right, duration):
+    offset = left["offset"] + left["length"]
+    if offset == right["offset"] and left.get("repeat_index_base") == right.get("repeat_index_base"):
+        return True
+    if left["mode"] == "once":
+        return offset >= duration and right["offset"] >= duration
+    return (offset % duration == right["offset"] % duration
+            and left.get("repeat_index_base", 0) + offset // duration
+            == right.get("repeat_index_base", 0) + right["offset"] // duration)
+
+
 def project_clips(config):
     result = deepcopy(config)
     sequencer = result["sequencer"]
     model = sequencer.pop("clipArrangement")
-    if config.get("version") not in (23, 24, 25, 26, 27) or model.get("version") not in (1, 2, 3, 4):
+    if config.get("version") not in (23, 24, 25, 26, 27, 28) or model.get("version") not in (1, 2, 3, 4, 5):
         raise ValueError("Unsupported clip arrangement version.")
-    if model["version"] == 4 and config["version"] not in (26, 27):
+    if model["version"] == 5 and config["version"] != 28:
+        raise ValueError("Clip joins and cuts require performance v28.")
+    if model["version"] == 4 and config["version"] not in (26, 27, 28):
         raise ValueError("Content repetition indices require performance v26.")
-    if model["version"] >= 2 and config["version"] not in (24, 25, 26, 27):
+    if model["version"] >= 2 and config["version"] not in (24, 25, 26, 27, 28):
         raise ValueError("Clip model v2 requires performance v24.")
     if sum(not t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])) > 16:
         raise ValueError("At most 16 generic controller sequencers are allowed.")
-    if model["version"] >= 3 and config["version"] not in (25, 26, 27):
+    if model["version"] >= 3 and config["version"] not in (25, 26, 27, 28):
         raise ValueError("Clip transposition requires performance v25.")
     from .clip_transposition import validate_transpositions
     identities = set()
@@ -37,6 +50,9 @@ def project_clips(config):
                 identity(item["id"])
         for clip in lane["clips"]:
             identity(clip["id"])
+            for key in ("windowGroupId", "continuityId"):
+                if key in clip and (model["version"] < 5 or not isinstance(clip[key], str) or not 1 <= len(clip[key]) <= 128):
+                    raise ValueError("Invalid clip window link.")
             for item in clip["children"]:
                 identity(item["id"])
     validate_transpositions(model, identity)
@@ -48,7 +64,7 @@ def project_clips(config):
         track = next(t for t in tracks if t["id"] == lane["id"])
         target = track.get("automationTarget")
         if target:
-            if model["version"] < 2 or config["version"] not in (24, 25, 26, 27) or lane["source"] != "controller":
+            if model["version"] < 2 or config["version"] not in (24, 25, 26, 27, 28) or lane["source"] != "controller":
                 raise ValueError("Instrument automation requires clip model v2 and performance v24.")
             nodes = target.get("controllerNodeIds")
             if (not isinstance(target.get("instrumentId"), str) or not 1 <= len(target["instrumentId"]) <= 128
@@ -136,11 +152,21 @@ def project_clips(config):
                 raise ValueError("Invalid clip duration.")
             return spans
         clips = []
+        previous_source = None
         for clip in sorted(lane["clips"], key=lambda c: c["start"]):
             clips.append({**{k: clip[k] for k in ("id", "start", "length", "offset", "mode")}, "content": leaves(clip["children"], placements={tuple(p["path"]):p["plan"] for p in clip.get("transposePlacements", [])}), **({"repeat_index_base": clip.get("repeatIndexBase", 0)} if model["version"] >= 3 else {})})
             duration = sum(s["length"] for s in clips[-1]["content"])
             if clip.get("repeatIndexBase", 0) + ((clip["offset"] + clip["length"] - 1) // duration if clip["mode"] == "loop" else 0) > 40320000000:
                 raise ValueError("Logical repetition extent exceeded.")
+            source = clip.get("continuityId")
+            if source and source == previous_source and len(clips) > 1:
+                left, right = clips[-2:]
+                if (left["start"] + left["length"] == right["start"]
+                        and left["mode"] == right["mode"] and left["content"] == right["content"]
+                        and _continuous_source(left, right, duration)):
+                    left["length"] += right["length"]
+                    clips.pop()
+            previous_source = source
         schedules[lane["id"]] = {"version": 2 if model["version"] >= 3 else 1, **({"transpose_plans": plans} if model["version"] >= 3 else {}), "end": model["end"], "cycle_ticks": lane["cycleTicks"], "clips": clips}
         # A newly created empty lane still owns a silent source clock. Its empty
         # schedule prevents the fallback shadow pad from emitting notes.

@@ -22,8 +22,8 @@ def canonicalize(config, *, enforce_version=True):
     maps = [row for row in instruments if isinstance(row, dict) and "sampleMap" in row]
     if not maps and "sampleAssets" not in config:
         return False
-    if enforce_version and config.get("version") != VERSION:
-        raise ValueError("Sample maps require performance version 27.")
+    if enforce_version and config.get("version") not in (VERSION, 28):
+        raise ValueError("Sample maps require performance version 27 or later.")
     assets = config.get("sampleAssets", {})
     if not isinstance(assets, dict) or len(assets) > 2048:
         raise ValueError("Invalid Sample Player manifest.")
@@ -65,7 +65,7 @@ def canonicalize(config, *, enforce_version=True):
         config.pop("sampleAssets", None)
         return False
     config["sampleAssets"] = {identity: assets[identity] for identity in sorted(used)}
-    config["version"] = VERSION
+    config["version"] = 28 if (config.get("sequencer", {}).get("clipArrangement") or {}).get("version") == 5 else VERSION
     return True
 
 

@@ -1938,7 +1938,7 @@ def normalize_performance_config(
     config: dict[str, Any],
     patches: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    if config.get("version", 1) not in range(1, 28):
+    if config.get("version", 1) not in range(1, 29):
         raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
     from orchestron.timing_migration import migrate_sequencer_timing
     migrated = migrate_sequencer_timing(config)
@@ -1946,7 +1946,8 @@ def normalize_performance_config(
         config.clear()
         config.update(migrated)
     if not normalize_samples(config):
-        config["version"] = (26 if config["sequencer"]["clipArrangement"].get("version") == 4 else 25 if config["sequencer"]["clipArrangement"].get("version") == 3 else 24 if config["sequencer"]["clipArrangement"].get("version") == 2 else 23) if config.get("sequencer", {}).get("clipArrangement") is not None else CURRENT_CONFIG_VERSION
+        clips = config.get("sequencer", {}).get("clipArrangement")
+        config["version"] = CURRENT_CONFIG_VERSION if clips is None else {2: 24, 3: 25, 4: 26, 5: 28}.get(clips.get("version"), 23)
     graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
     graph["masterId"] = graph.get("masterId") or "$master"
     mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})

@@ -120,7 +120,8 @@ def validate_authored_samples(value, *, recovery: bool = False):
     if not isinstance(value, dict):
         return value
     version = value.get("version")
-    maximum = 9 if recovery else 27
+    minimum_sample_version = 9 if recovery else 27
+    maximum = minimum_sample_version + 1
     if version is not None and (type(version) is not int or not 1 <= version <= maximum):
         raise ValueError("Unsupported application state or performance version.")
     # Recovery flattens the current rack into the app-state snapshot.
@@ -130,8 +131,8 @@ def validate_authored_samples(value, *, recovery: bool = False):
     has_sample_data = "sampleAssets" in value or any(isinstance(i, dict) and "sampleMap" in i for i in raw_instruments)
     if not has_sample_data:
         return value
-    if version != maximum:
-        raise ValueError(f"Sample maps require format version {maximum}.")
+    if version not in (minimum_sample_version, maximum):
+        raise ValueError(f"Sample maps require format version {minimum_sample_version} or later.")
     from pydantic import TypeAdapter
     if len(raw_instruments) > 64:
         raise ValueError("Too many instrument assignments.")

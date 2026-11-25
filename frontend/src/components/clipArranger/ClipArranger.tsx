@@ -1,6 +1,8 @@
+import { mergeClips, splitClip } from "../../lib/clipArranger/clipWindows";
+import { ClipCutSelector } from "./ClipCutSelector";
 import { remapMusicalTarget } from "../../lib/clipArranger/structuralDraftResolution";
 import { workingArrangement } from "../../lib/clipArranger/editSession";
-import { flushArrangementEditors } from "../../store/arrangementEdits";
+import { flushArrangementEditors, stageClipWindowEdit } from "../../store/arrangementEdits";
 import type { LaneChanges } from "../../lib/clipArranger/editImpact";
 import { timelineGrid } from "../../lib/clipArranger/timelineGrid";
 import { editCopy } from "../../lib/clipArranger/editCopy";
@@ -31,7 +33,7 @@ import type { useStructureEditor } from "./StructureEditor";
 import { beginStructure, structurePreview, structureClip, isExpandedStructure, structureDisplayGeometry } from "../../lib/clipArranger/structure";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
-import { localBeatTicks, patternDuration, contentLength, definitionMap, newClipId, QUARTER_TICKS as Q, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type OccurrenceTarget, type PatternTiming } from "../../lib/clipArranger/model";
+import { clipWindows, windowRange, resolveClip, localBeatTicks, patternDuration, contentLength, definitionMap, newClipId, QUARTER_TICKS as Q, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type OccurrenceTarget, type PatternTiming } from "../../lib/clipArranger/model";
 import { definitionAt, clipDisplayName, addClip, convertLaneCycle, deleteClip, duplicateClip, fitClip, trimClip, updateClip } from "../../lib/clipArranger/operations";
 import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration";
 import { SectionTools } from "./SectionTools";
@@ -124,7 +126,7 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
   const [transposing,setTransposing] = useState<{target:OccurrenceTarget;trigger:HTMLButtonElement}|null>(null);
   const generation = useAppStore(s=>s.performanceWorkspaceGeneration);
   useEffect(()=>setTransposing(null),[generation,expanded]);
-  const [selected, select] = usePerformanceEditorState<{ laneId: string; clipId?: string } | null | undefined>("arranger", "clipSelection", undefined);
+  const [selected, select] = usePerformanceEditorState<{ laneId: string; clipId?: string; anchor?: string } | null | undefined>("arranger", "clipSelection", undefined);
   const editingLane = editingTarget?.laneId, editingClip = editingTarget?.clipId;
   const [lastEditor, rememberEditor] = usePerformanceEditorState<string | null>("arranger", "lastClipEditor", null);
   useEffect(() => {
@@ -182,6 +184,9 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
   const grid = useMemo(() => timelineGrid(Q, beatsPerBar, zoom, fromTick, toTick), [beatsPerBar, zoom, fromTick, toTick]);
   const labelsEdit = editCopy(language);
   const [clipMenu, setClipMenu] = useState<{ laneId: string; clipId: string; x: number; y: number } | null>(null);
+  const [cut, setCut] = useState<{ laneId: string; clipId: string; initial: number; revision: number } | null>(null);
+  useEffect(() => { setCut(null); setClipMenu(null); }, [generation, model.revision]);
+  useEffect(() => { setCut(null); }, [selected?.clipId, selected?.laneId]);
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!clipMenu) return;
@@ -228,6 +233,13 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
     try { onChange(addClip(saved??model,lane.id,clip,timings),c.add); select({laneId:lane.id,clipId:clip.id});structure.setFocus({laneId:lane.id,clipId:clip.id,pass:0,parent:[]});setError(null); } catch(e){setError(String(e));}
   });
   const selectedLane = model.lanes.find(l => l.id === selected?.laneId), selectedClip = selectedLane?.clips.find(cl => cl.id === selected?.clipId);
+  const windowsByLane = useMemo(() => new Map(displayModel.lanes.map(l => [l.id, clipWindows(l)])), [displayModel]);
+  const windows = selectedLane ? windowsByLane.get(selectedLane.id) ?? [] : [];
+  const selectedWindow = windows.find(w => w.parts.some(p => p.id === selected?.clipId));
+  const compoundSelected = selectedWindow && selectedWindow.parts.length > 1;
+  const range = selectedWindow && selected?.anchor
+    ? windowRange(windows, selected.anchor, selectedWindow.clip.id) : [];
+  const rangeIds = new Set(range.map(w => w.clip.id));
   const selectedTrack = selectedLane && sequencer[sourceKeys[selectedLane.source]].find(track => track.id === selectedLane.id);
   const loopStart = sequencer.arrangerLoopSelection?.startStep, loopEnd = sequencer.arrangerLoopSelection?.endStep;
   useEffect(() => {
@@ -276,9 +288,36 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
     const focus = { laneId: lane.id, clipId: clip.id, pass, parent: path.slice(0, -1) };
     structure.contextMenu(focus, path[path.length - 1], x, y, () => select({ laneId: lane.id, clipId: clip.id }));
   };
-  const selectHeader = (lane: ClipLane, clip: Clip) => { structure.clearSelection(); pick(lane, clip); };
+  const selectHeader = (lane: ClipLane, clip: Clip, extend = false) => {
+    const anchor = extend && selected?.laneId === lane.id ? selected.anchor ?? selectedWindow?.clip.id : undefined;
+    structure.clearSelection();
+    pick(lane, clip);
+    if (anchor) select({ laneId: lane.id, clipId: clip.id, anchor });
+    setCut(null);
+  };
+  const focusHeader = (id: string) => requestAnimationFrame(() =>
+    viewport.current?.querySelector<HTMLButtonElement>(`[data-arranger-clip="${CSS.escape(id)}"] > [data-clip-header]`)?.focus({ preventScroll: true }));
+  const extendHeader = (e: React.KeyboardEvent, lane: ClipLane, clip: Clip) => {
+    if (!e.shiftKey || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+    e.preventDefault(); e.stopPropagation();
+    const windows = windowsByLane.get(lane.id) ?? [];
+    const adjacent = windows[windows.findIndex(w => w.clip.id === clip.id) + (e.key === "ArrowLeft" ? -1 : 1)];
+    if (adjacent) {
+      const anchor = selected?.laneId === lane.id ? selected.anchor ?? clip.id : clip.id;
+      structure.clearSelection();
+      select({ laneId: lane.id, clipId: adjacent.clip.id, anchor });
+      focusHeader(adjacent.clip.id);
+    }
+  };
+  const finishWindowEdit = (lane: ClipLane, action: Parameters<typeof stageClipWindowEdit>[0]) => {
+    try {
+      const id = stageClipWindowEdit(action);
+      structure.clearSelection(); select({ laneId: lane.id, clipId: id });
+      setClipMenu(null); setCut(null); setError(null); focusHeader(id);
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+  };
   const showClipMenu = (lane: ClipLane, clip: Clip, x: number, y: number) => {
-    selectHeader(lane, clip);
+    if (!rangeIds.has(clip.id) || selectedLane?.id !== lane.id) selectHeader(lane, clip);
     setClipMenu({ laneId: lane.id, clipId: clip.id, x, y });
   };
   const clipAction = (lane: ClipLane, clip: Clip, copy: boolean) => {
@@ -337,7 +376,7 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
     event.stopPropagation();
     // Capture on the original hit so a plain click or double-click still reaches its content.
     (event.target as Element).setPointerCapture(event.pointerId);
-    if (!shell) pick(lane, clip);
+    if (!shell && !event.shiftKey) pick(lane, clip);
     setDrag({ laneId: lane.id, clipId: clip.id, mode, pointerId: event.pointerId, x: event.clientX, delta: 0 });
   };
   const moveDrag = (event: React.PointerEvent) => {
@@ -469,7 +508,7 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
       suppressClipClick.current = false;
       if(dragged || structure.consumeGestureClick()){e.stopPropagation();return;}
       const target = e.target as Element;
-      if (!target.closest("[data-arranger-clip], [data-clip-inline-editor], [data-lane-controllers], [data-track-routing]")) { select(null); structure.clearSelection(); }
+      if (!target.closest("[data-arranger-cut], [data-arranger-clip], [data-clip-inline-editor], [data-lane-controllers], [data-track-routing]")) { select(null); structure.clearSelection(); }
     }} onPointerMove={event => {
       structure.pointerMove(event);
       const destination = structure.dragDestinationLane(event);
@@ -511,7 +550,38 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
               </div>}
               <div className="pointer-events-none absolute inset-y-0 z-10 border-l border-dashed border-amber-400/80" title={c.songEnd} style={{ left: songEnd * unit }} />
               {position * unit + 1 <= width && <div className="pointer-events-none absolute inset-y-0 z-10 w-px bg-cyan-300" style={{ left: position * unit }} />}
-              {lane.clips.map(sourceClip => {
+              {(windowsByLane.get(lane.id) ?? []).map(window => {
+                if (window.end * unit <= scroll - laneHeaderWidth || window.clip.start * unit >= scroll + renderAhead) return null;
+                const compound = window.parts.length > 1;
+                const whole = window.clip;
+                const highlighted = !hasContentSelection && (selected?.clipId === whole.id || rangeIds.has(whole.id));
+                const groupDelta = compound && drag?.clipId === whole.id && drag.mode === "move" ? drag.delta : 0;
+                return <div key={whole.id} className={compound ? "arranger-compound" : "contents"}
+                  data-arranger-clip={compound ? whole.id : undefined} data-selected-window={compound && highlighted || undefined}
+                  style={compound ? {left: (whole.start + groupDelta) * unit, width: (window.end - whole.start) * unit,
+                    height: detailed ? expandedHeight - 14 : 40} : undefined}
+                  onContextMenuCapture={compound ? e => {
+                    if (highlighted || (e.target as Element).closest("[data-clip-header]")) {
+                      e.preventDefault(); e.stopPropagation(); showClipMenu(lane, whole, e.clientX, e.clientY);
+                    }
+                  } : undefined}>
+                {compound && <button data-clip-header aria-pressed={highlighted} className="arranger-compound-header" {...dragHandlers}
+                  onClick={e => selectHeader(lane, whole, e.shiftKey)} onPointerDown={e => startDrag(e, lane, whole, "move")}
+                  onDoubleClick={e => {
+                    const tick = whole.start + (e.clientX - e.currentTarget.getBoundingClientRect().left) / unit;
+                    const part = window.parts.find(p => p.start + p.length > tick) ?? whole;
+                    const at = Math.floor(tick);
+                    const hit = resolveClip(lane, part, at, at + 1, timing)[0];
+                    const target = hit?.definition ? { path: hit.path.slice(0, 1), pass: hit.pass } : firstVisibleTarget(lane, part, timing);
+                    if (target) open(lane, part, target.path, target.pass);
+                  }}
+                  onKeyDown={e => {
+                    extendHeader(e, lane, whole);
+                    if (e.key === "ContextMenu" || e.shiftKey && e.key === "F10") {
+                      e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); showClipMenu(lane, whole, r.left, r.bottom);
+                    } else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); if (range.length < 2) clipAction(lane, whole, false); }
+                  }}>{clipDisplayName(lane, whole)}</button>}
+                {window.parts.map(sourceClip => {
                 // The active tree retains its editable placement IDs. Other windows of a
                 // linked structural edit can draw their validated content and geometry directly.
                 const linkedLane = displayDraft?.cursor && displayDraft.editIntent?.scope === "all" &&
@@ -530,11 +600,11 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
                 const lastPass = clip.mode === "loop" ? duration * unit < 1 ? firstPass
                   : Math.min(Math.ceil((clip.offset + clip.length) / duration), firstPass + Math.ceil(renderAhead / unit / duration) + 1) : 1;
                 const title = clipDisplayName(lane, clip);
-                const moving = drag?.clipId === clip.id ? drag : null;
+                const moving = !compound && drag?.clipId === clip.id ? drag : null;
                 const left = clip.start + (moving && moving.mode !== "right" ? moving.delta : 0);
                 const length = geometry.length + (moving ? moving.mode === "right" ? moving.delta : moving.mode === "left" ? -moving.delta : 0 : 0);
                 // Use the window before the current trim gesture so its captured handle stays active.
-                const grabClip = geometry.length * unit < MIN_CLIP_CONTROL_WIDTH;
+                const grabClip = !compound && geometry.length * unit < MIN_CLIP_CONTROL_WIDTH;
                 const contentAt = (clientX: number, timeline: Element, row: number) => {
                   const tick = (clientX - timeline.getBoundingClientRect().left) / unit;
                   if (tick < clip.start || tick >= clip.start + length) return;
@@ -559,9 +629,9 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
                   if (at && !("index" in at.hit)) return { laneId: lane.id, clipId: clip.id, pass: at.pass, path: at.hit.path };
                   return firstVisibleTarget(lane, clip, timings[lane.id]);
                 };
-                return <div key={clip.id} data-arranger-clip={clip.id} data-arranger-grab-body={grabClip || undefined} {...dragHandlers} data-arrangement-edited={impact?.get(lane.id)?.clips.has(clip.id) || undefined}
+                return <div key={clip.id} data-arranger-clip={compound ? undefined : clip.id} data-window-part={compound ? clip.id : undefined} data-selected-window={!compound && highlighted || undefined} data-arranger-grab-body={grabClip || undefined} {...dragHandlers} data-arrangement-edited={impact?.get(lane.id)?.clips.has(clip.id) || undefined}
                   onContextMenuCapture={e => {
-                    if (selected?.clipId === clip.id && !hasContentSelection || e.target === e.currentTarget || (e.target as Element).closest('[data-clip-header]')) {
+                    if (!compound && (highlighted || e.target === e.currentTarget || (e.target as Element).closest('[data-clip-header]'))) {
                       e.preventDefault(); e.stopPropagation(); showClipMenu(lane, clip, e.clientX, e.clientY);
                     }
                   }}
@@ -585,13 +655,13 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
                       e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect();
                       showClipMenu(lane, clip, rect.left, rect.top + 16);
                     } else if (e.key === "Delete" || e.key === "Backspace") {
-                      e.preventDefault(); e.stopPropagation(); clipAction(lane, clip, false);
+                      e.preventDefault(); e.stopPropagation(); if (range.length < 2) clipAction(lane, clip, false);
                     }
                   }} onPointerDownCapture={event => {
-                    if (!shell) select({ laneId: lane.id, clipId: clip.id });
+                    if (!shell && !event.shiftKey && event.button === 0) select({ laneId: lane.id, clipId: clip.id });
                     if (grabClip) startDrag(event, lane, clip, "move");
-                  }} onClickCapture={e => { if (!shell || !(e.target as Element).closest("button, [role=separator]")) select({ laneId: lane.id, clipId: clip.id }); }} className={`absolute isolate top-1 overflow-hidden rounded border ${selected?.clipId === clip.id && !hasContentSelection ? "border-cyan-300 ring-1 ring-cyan-900" : "border-slate-500"} bg-slate-900/90`} style={{ left: left * unit, width: Math.max(2, length * unit), height: detailed ? expandedHeight - 14 : 40 }}>
-                  <button className="relative z-10 block h-4 w-full cursor-grab active:cursor-grabbing truncate bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 touch-none" title={`${title} · ${grabClip ? c.grabClip : c.boundary}`} data-clip-header onClick={() => selectHeader(lane, clip)}
+                  }} onClickCapture={e => { if (!e.shiftKey && (!shell || !(e.target as Element).closest("button, [role=separator]"))) select({ laneId: lane.id, clipId: clip.id }); }} className={`absolute isolate top-1 overflow-hidden rounded border ${selected?.clipId === clip.id && !hasContentSelection ? "border-cyan-300 ring-1 ring-cyan-900" : "border-slate-500"} bg-slate-900/90`} style={{ left: (left - (compound ? whole.start : 0)) * unit, width: Math.max(2, length * unit), height: detailed ? expandedHeight - 14 : 40 }}>
+                  <button className="relative z-10 block h-4 w-full cursor-grab active:cursor-grabbing truncate bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 touch-none" title={`${title} · ${grabClip ? c.grabClip : c.boundary}`} data-clip-header={!compound || undefined} aria-pressed={highlighted} onKeyDown={e => extendHeader(e, lane, whole)} tabIndex={compound ? -1 : undefined} aria-hidden={compound || undefined} onClick={e => selectHeader(lane, clip, e.shiftKey)}
                     onDoubleClick={event => {
                       const target = headerTarget(event);
                       if (target) open(lane, clip, target.path, target.pass);
@@ -616,27 +686,42 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
                           isSelected={path => structure.isSelected({ laneId: lane.id, clipId: clip.id, pass, parent: path.slice(0,-1) }, path[path.length-1])} />}
                     </div>)}
                   </div>
-                  {(["left", "right"] as const).map(edge => <div key={edge} role="separator" aria-label={`${c.length}: ${edge==='left'?t.leftEdge:t.rightEdge}`} aria-orientation="vertical" tabIndex={0}
+                  {!compound && (["left", "right"] as const).map(edge => <div key={edge} role="separator" aria-label={`${c.length}: ${edge==='left'?t.leftEdge:t.rightEdge}`} aria-orientation="vertical" tabIndex={0}
                     className={`absolute inset-y-0 z-10 w-2 cursor-ew-resize touch-none hover:bg-cyan-300/30 focus-visible:bg-cyan-300/30 ${edge === "left" ? "left-0" : "right-0"}`} onPointerDown={e => startDrag(e, lane, clip, edge)}
                     onKeyDown={e => { if (["ArrowLeft", "ArrowRight"].includes(e.key)) { e.preventDefault(); attempt(() => trimClip(model, lane.id, clip.id, edge, clip.start + (edge === "right" ? clip.length : 0) + (e.key === "ArrowLeft" ? -Q / 4 : Q / 4), timings), c.edit); } }} />)}
                 </div>;
+              })}</div>;
               })}
+              {cut && cut.revision === model.revision && selectedWindow && selectedLane?.id === lane.id && cut.laneId === lane.id && cut.clipId === selectedWindow.clip.id &&
+                <ClipCutSelector key={cut.clipId} start={selectedWindow.clip.start} end={selectedWindow.end} unit={unit} initial={cut.initial} language={language}
+                  onCancel={() => { setCut(null); focusHeader(cut.clipId); }}
+                  onCut={at => finishWindowEdit(lane, base => splitClip(base, lane.id, cut.clipId, at, timings))} />}
             </div>
           </div>{detailed && inlineEditor?.laneId === lane.id && <div data-clip-inline-editor className="sticky left-0 p-2" style={{ width: Math.min(viewportWidth, 1200) }}>{inlineEditor.content}</div>}</div>;
         })}
         {onAddLane && <div className="sticky left-0 w-fit px-2 pt-2"><AddArrangeTrack language={language} add={addTrack} /></div>}
       </div>
     </div>
-    {clipMenu && selectedClip && selectedLane && clipMenu.clipId === selectedClip.id && <div ref={menuRef} role="menu" aria-label={labelsEdit.clip + " · " + clipDisplayName(selectedLane, selectedClip)} className="arranger-clip-menu" onKeyDown={e => {
+    {clipMenu && selectedClip && selectedLane && (clipMenu.clipId === selectedClip.id || rangeIds.has(clipMenu.clipId)) && <div ref={menuRef} role="menu" aria-label={range.length > 1 ? labelsEdit.merge : labelsEdit.clip + " · " + clipDisplayName(selectedLane, selectedClip)} className="arranger-clip-menu" onKeyDown={e => {
       const items = Array.from(e.currentTarget.querySelectorAll("button"));
       const index = items.indexOf(document.activeElement as HTMLButtonElement);
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();items[(index + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
       }
-    }} style={{ left: Math.max(4, Math.min(clipMenu.x, window.innerWidth - 188)), top: Math.max(4, Math.min(clipMenu.y, window.innerHeight - 110)) }}>
-      <strong>{labelsEdit.clip} · {clipDisplayName(selectedLane, selectedClip)}</strong>
+    }} style={{ left: Math.max(4, Math.min(clipMenu.x, window.innerWidth - 188)), top: Math.max(4, Math.min(clipMenu.y, window.innerHeight - 160)) }}>
+      <strong>{range.length > 1 ? range.length + " · " + range.map(w => clipDisplayName(selectedLane, w.clip)).filter((_, i) => i === 0 || i === range.length - 1).join(" – ") : labelsEdit.clip + " · " + clipDisplayName(selectedLane, selectedClip)}</strong>
+      {range.length > 1 ? <button role="menuitem" className={clipButtonClass("edit")}
+        onClick={() => finishWindowEdit(selectedLane, base => mergeClips(base, selectedLane.id, range.map(w => w.clip.id), timings))}>{labelsEdit.merge}</button> : <>
       <button role="menuitem" className={clipButtonClass("add")} onClick={() => clipAction(selectedLane, selectedClip, true)}>{labelsEdit.duplicate}</button>
       <button role="menuitem" className={clipButtonClass("remove")} onClick={() => clipAction(selectedLane, selectedClip, false)}>{labelsEdit.remove}</button>
+      <button role="menuitem" className={clipButtonClass("edit")} disabled={!selectedWindow || selectedWindow.end - selectedWindow.clip.start <= 1}
+        onClick={() => {
+          if (!selectedWindow) return;
+          const timeline = viewport.current?.querySelector(`[data-clip-lane="${CSS.escape(selectedLane.id)}"] [data-clip-timeline]`);
+          const tick = timeline ? (clipMenu.x - timeline.getBoundingClientRect().left) / unit : NaN;
+          const initial = tick > selectedWindow.clip.start && tick < selectedWindow.end ? tick : (selectedWindow.clip.start + selectedWindow.end) / 2;
+          setClipMenu(null); setCut({ laneId: selectedLane.id, clipId: selectedWindow.clip.id, initial, revision: model.revision });
+        }}>{labelsEdit.split}</button></>}
     </div>}
     {!shell && structure.toolbar}
     <WorkspacePanel name="inspector">
@@ -665,14 +750,21 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
           }
         })} />}
       {laneActions}
-      {(["start", "length", "offset"] as const).map(field => <label key={`${selectedClip.id}:${field}:${selectedClip[field]}`} className="flex flex-col gap-1">{field === "offset" ? c.offset : c[field]} · {c.beats}
+      {compoundSelected && !hasContentSelection ? <>
+        <label className="flex flex-col gap-1">{c.start} · {c.beats}
+          <input key={selectedWindow.clip.start} className={clipInput} type="number" step=".25" min={0} defaultValue={selectedWindow.clip.start / Q}
+            onBlur={e => { const delta = Number(e.target.value) * Q - selectedWindow.clip.start;
+              if (delta) attempt(() => updateClip(model, selectedLane.id, selectedWindow.clip.id, {start: selectedWindow.clip.start + delta}, timings), c.edit); }} />
+        </label>
+        <span>{c.length} · {(selectedWindow.end - selectedWindow.clip.start) / Q} {c.beats}</span>
+      </> : <>{(["start", "length", "offset"] as const).map(field => <label key={`${selectedClip.id}:${field}:${selectedClip[field]}`} className="flex flex-col gap-1">{field === "offset" ? c.offset : c[field]} · {c.beats}
         <input className={clipInput} type="number" step="0.25" min={field === "length" ? .25 : 0} defaultValue={selectedClip[field] / Q} onBlur={e => { const value = Number(e.target.value) * Q; if (value !== selectedClip[field]) attempt(() => updateClip(model, selectedLane.id, selectedClip.id, { [field]: value }, timings), c.edit); }} /></label>)}
       <span className="self-center">{c.content}: {contentLength(selectedLane, selectedClip.children, timings[selectedLane.id]) / Q} {c.beats}</span>
       <select className={clipInput} aria-label={c.loop} value={selectedClip.mode} onChange={e => attempt(() => updateClip(model, selectedLane.id, selectedClip.id, { mode: e.target.value as Clip["mode"] }, timings), c.edit)}><option value="once">{c.once}</option><option value="loop">{c.loop}</option></select>
-      <button className={clipButtonClass("edit")} onClick={() => attempt(() => fitClip(flushArrangementEditors().model, selectedLane.id, selectedClip.id, timings), c.fit)}>{c.fit}</button>
+      <button className={clipButtonClass("edit")} onClick={() => attempt(() => fitClip(flushArrangementEditors().model, selectedLane.id, selectedClip.id, timings), c.fit)}>{c.fit}</button></>}
       <button className={clipButtonClass("remove")} onClick={() => clipAction(selectedLane, selectedClip, false)}>{c.remove}</button>
       {selectedLane.cycleTicks !== null && <span>{c.localLoop}: {selectedLane.cycleTicks / Q} {c.beats} <button className={clipButtonClass("edit")} onClick={() => attempt(() => convertLaneCycle(flushArrangementEditors().model, selectedLane.id, timings), c.convertCycle)}>{c.convertCycle}</button></span>}
-      <EditorDetails owner="arranger" field="clipContents" className="w-full" summary={c.content}>{() => <div className="flex flex-wrap gap-2">{selectedClip.children.map(item => <button key={item.id} className={clipButton} onClick={e => selectContent(selectedLane, selectedClip, selectedOccurrence?.pass ?? firstTarget?.pass ?? 0, [], item.id, e.shiftKey)}>{"definitionId" in item ? selectedLane.definitions.find(d => d.id === item.definitionId)?.name : c.rest}</button>)}</div>}</EditorDetails>
+      <EditorDetails owner="arranger" field="clipContents" className="w-full" summary={c.content}>{() => <div className="flex flex-wrap gap-2">{(selectedWindow?.parts ?? [selectedClip]).flatMap(part => part.children.map(item => <button key={item.id} className={clipButton} onClick={e => selectContent(selectedLane, part, selectedOccurrence?.clipId === part.id ? selectedOccurrence.pass : firstVisibleTarget(selectedLane, part, selectedTiming)?.pass ?? 0, [], item.id, e.shiftKey)}>{"definitionId" in item ? selectedLane.definitions.find(d => d.id === item.definitionId)?.name : c.rest}</button>))}</div>}</EditorDetails>
     </div>}</WorkspacePanel>
     {shell && structure.toolbar}
     <SectionTools model={model} timings={timings} selectedLane={selectedLane?.id} language={language} onChange={onChange} />

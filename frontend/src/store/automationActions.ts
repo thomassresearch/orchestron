@@ -1,3 +1,4 @@
+import { clipWindows } from "../lib/clipArranger/model";
 import { withTrackSetup } from "./arrangementEdits";
 import { useAppStore } from "./useAppStore";
 import { defaultControllerSequencer, defaultControllerSequencerPad } from "./appStoreModel";
@@ -12,7 +13,9 @@ export function generateAutomation(laneId: string, clipId: string, instrumentId:
 }
 function generateAutomationTracks(laneId: string, clipId: string, instrumentId: string) {
   const state = useAppStore.getState(), model = state.sequencer.clipArrangement;
-  const source = model?.lanes.find(l => l.id === laneId), clip = source?.clips.find(c => c.id === clipId);
+  const source = model?.lanes.find(l => l.id === laneId);
+  const window = source && clipWindows(source).find(w => w.parts.some(c => c.id === clipId));
+  const clip = window && { start: window.clip.start, length: window.end - window.clip.start };
   const binding = automationCandidates(state.sequencer, laneId, state.sequencerInstruments, state.patches).find(b => b.id === instrumentId);
   if (!model || !clip || !binding) throw new Error("No mapped instrument for this clip.");
   const next = structuredClone(state.sequencer), arrangement = next.clipArrangement!;
@@ -41,7 +44,7 @@ function generateAutomationTracks(laneId: string, clipId: string, instrumentId: 
       topology = true;
     } else { const id = track.id; lane = arrangement.lanes.find(l => l.id === id); }
     if (!lane) throw new Error("Missing automation lane.");
-    if (lane.clips.some(c => c.start === clip.start && c.length === clip.length)) continue;
+    if (clipWindows(lane).some(w => w.clip.start === clip.start && w.end === clip.start + clip.length)) continue;
     if (track.controllerMode !== "curve") throw new Error("Switch this automation lane to Curve Mode before generating another curve.");
     if (lane.clips.some(c => c.start < clip.start + clip.length && c.start + c.length > clip.start)) throw new Error("Automation overlaps an existing clip. Move or trim it before generating.");
     const first = controls[0], value = controllerToMidi(binding.performanceControllerValues?.[first.node_id] ?? first.default, first);

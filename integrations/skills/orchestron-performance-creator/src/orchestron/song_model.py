@@ -411,9 +411,10 @@ def validate_source(track, source):
 def validate(config):
     m = model(config)
     if (
-        config.get("version") not in (23, 24, 25, 26, 27)
+        config.get("version") not in (23, 24, 25, 26, 27, 28)
         or type(m.get("version")) is not int
-        or m["version"] not in (1, 2, 3, 4)
+        or m["version"] not in (1, 2, 3, 4, 5)
+        or m["version"] == 5 and config["version"] != 28
         or config["version"] < m["version"] + 22
     ):
         fail("Unsupported or incompatible performance/clip version.", "version")
@@ -536,7 +537,7 @@ def validate(config):
 def upgrade(config, version=1):
     m = model(config)
     m["version"] = max(m["version"], version)
-    config["version"] = max(config.get("version", 22), 22 + m["version"])
+    config["version"] = max(config.get("version", 22), 28 if m["version"] == 5 else 22 + m["version"])
 
 
 def empty_clip_config(tempo=120):

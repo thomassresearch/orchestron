@@ -626,7 +626,7 @@ export interface SequencerConfigSnapshot {
   sampleAssets?: SampleAssets;
   routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
@@ -799,7 +799,7 @@ export interface PersistedAppState {
   sampleAssets?: SampleAssets;
   routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;

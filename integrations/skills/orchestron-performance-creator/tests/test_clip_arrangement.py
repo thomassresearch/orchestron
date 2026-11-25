@@ -91,3 +91,34 @@ def test_grouped_repetitions_keep_v26_and_project_fixed_indices():
         bad["sequencer"]["clipArrangement"]["lanes"][0]["clips"][0]["children"][0]["repeatIndex"] = invalid
         with pytest.raises(ValueError, match="repetition index"):
             project_clips(bad)
+
+
+def test_adjacent_cuts_compile_to_original_schedule_for_export_and_live_playback():
+    from orchestron.clip_arrangement import project_clips
+    root = Path(__file__).resolve().parents[4]
+    config = json.loads((root / "backend/tests/fixtures/clip_transposition/repetition_grouping.json").read_text())["before"]
+    _, before, _ = project_clips(config)
+    config["version"] = 28
+    model = config["sequencer"]["clipArrangement"]
+    model["version"] = 5
+    lane = model["lanes"][0]
+    left = lane["clips"][0]
+    right = copy.deepcopy(left)
+    left["continuityId"] = right["continuityId"] = left["id"]
+    delta = 10080
+    right.update(id="cut-right", start=left["start"] + delta, offset=left["offset"] + delta, length=left["length"] - delta)
+    left["length"] = delta
+    names = {item["id"]: "right-" + item["id"] for item in right["children"]}
+    for item in right["children"]:
+        item["id"] = names[item["id"]]
+    for plan in right.get("transposePlacements", []):
+        plan["path"][0] = names[plan["path"][0]]
+    lane["clips"].append(right)
+    restored = cli.normalize_performance_config(copy.deepcopy(config), [])
+    assert restored["version"] == 28
+    _, after, _ = project_clips(restored)
+    assert after == before
+    right["start"] += 1
+    model["end"] += 1
+    _, moved, _ = project_clips(config)
+    assert len(moved[lane["id"]]["clips"]) == len(before[lane["id"]]["clips"]) + 1

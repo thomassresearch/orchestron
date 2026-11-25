@@ -26,6 +26,14 @@ The top-right **?** opens help specifically for this clip workflow in the select
 
 Click or right-click a clip header to select its whole window. The continuous outer outline shows the target. Right-click anywhere inside the window and choose **Duplicate clip** or **Delete clip**. The copy takes the first later gap on the same track that fits its length, extending Song end when needed. Its crop, loop settings and transposition travel with it, and its patterns stay linked. Deleting a window leaves a gap and preserves trailing silence.
 
+To **merge clips**, click the first clip header, then Shift-click the last header on the same track. Every clip between the two is selected, in either direction. Right-click any selected header and choose **Merge clips**. The merged window takes the first clip’s name and spans the entire selection. Gaps become rests. Patterns keep their links, and cropped or looping passages keep their source timing and transposition.
+
+![Three clip headers selected on the Warm Lead track, with Merge clips open](../../screenshots/arranger-merge-clips.png)
+
+To **split a clip**, right-click its header and choose **Split clip…**. Click inside the clip or drag the scissors to place the vertical line. Left and Right move it by a quarter of a master beat. Choose **Cut** or press Enter to create two clips. **Cancel** or Escape dismisses the scissors. A held note plays through the cut while the halves remain adjacent and their source timing and content match. Undo reverses a confirmed merge or cut. After arranger **Save**, Undo restores the complete saved batch.
+
+![A vertical cut marker with its scissors handle, beat position, Cut and Cancel controls](../../screenshots/arranger-split-clip.png)
+
 Click a pattern or group to select its content. Shift-click extends the selection. Right-click within that range to act on those items together. With the target focused, Shift+F10 opens its menu and Delete removes it. Drag the header to move the window, drag its edges to trim it, or enter precise values in the Inspector. Double-click the header to edit the content at that position. Double-click empty lane space to create a four-beat clip on the quarter-beat snap. The track **+** appends one.
 
 When a clip looks narrow at your current zoom, the hand cursor covers the whole window. Drag from either edge, the header or the preview to move the clip. Inside a wider clip, you can grab a narrow pattern to move that occurrence. Zoom in to reveal the trim handles, **+** and **↕** as each item gains enough room. You can also press Tab to reveal a control, then use Enter or Space for a button or Left/Right for a resize handle.

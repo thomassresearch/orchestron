@@ -46,8 +46,8 @@ def capabilities(args, ctx):
             "songSchema": {"schema": "orchestron-song", "version": 1},
             "client": {
                 "version": "0.3.0",
-                "performanceVersions": list(range(1, 28)),
-                "clipVersions": [1, 2, 3, 4],
+                "performanceVersions": list(range(1, 29)),
+                "clipVersions": [1, 2, 3, 4, 5],
                 "historyVersion": 2,
                 "quarterTicks": QUARTER,
                 "commands": [

@@ -135,8 +135,8 @@ it measures cold, cached, and one-pad preparation using the versioned TB303 test
   references for dependency, revision, and note-release contracts.
 - Rack/topology changes lock while instruments run; mixer controls remain live. Direct output
   bypasses Master but retains strip controls. Legacy Level migrates to dB audio gain, not velocity.
-- Mixer persistence arrived in performance config v11; serializers/CLI write v27 for sample maps, v26 for fixed repetition references, v25 for transposition, v24 for instrument automation, v23 for other clips, otherwise v22; readers accept v1–27.
-  App state writes v9 for sample maps, v8 for fixed repetition references, v7 for transposition, v6 for automation, v5 for other clips, otherwise v4; readers accept v1–9. These are independent of the native bundle envelope version.
+- Mixer persistence arrived in performance config v11; serializers/CLI write v28 for clip joins/cuts, v27 for sample maps, v26 for fixed repetition references, v25 for transposition, v24 for instrument automation, v23 for other clips, otherwise v22; readers accept v1–28.
+  App state writes v10 for clip joins/cuts, v9 for sample maps, v8 for fixed repetition references, v7 for transposition, v6 for automation, v5 for other clips, otherwise v4; readers accept v1–10. These are independent of the native bundle envelope version.
   Sample Player maps belong to rack instances. Ordinary MIDI release leaves one-shots playing; source cancellation uses separate ownership. See the [Sample Player contract](specifications/sample-player/implementation-record.md).
   Preserve types, device names, routing, mixer state, instance overrides and optional
   `padLoopPattern.definitionColors` display metadata across round trips. Colours never trigger audio preparation.

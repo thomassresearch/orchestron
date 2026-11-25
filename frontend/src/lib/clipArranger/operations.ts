@@ -1,4 +1,4 @@
-import { ClipError, contentLength, definitionMap, exactTick, newClipId, validateArrangement, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type Definition, type DefinitionDraft, type LaneTiming, type OccurrenceTarget } from "./model";
+import { ClipError, clipWindows, contentLength, definitionMap, exactTick, newClipId, validateArrangement, type Clip, type ClipArrangement, type ClipLane, type ContentItem, type Definition, type DefinitionDraft, type LaneTiming, type OccurrenceTarget } from "./model";
 import { remapPlacementChildren } from './transposeEdits';
 
 type IdFactory = () => string;
@@ -48,6 +48,14 @@ function finish(next: ClipArrangement, timings: LaneTiming): ClipArrangement {
 }
 export function updateClip(model: ClipArrangement, laneId: string, clipId: string, patch: Partial<Omit<Clip, "id" | "children">>, timings: LaneTiming = {}): ClipArrangement {
   const next = clone(model), lane = laneFor(next, laneId), clip = clipFor(lane, clipId);
+  if (patch.start !== undefined && Object.keys(patch).length === 1 && clip.windowGroupId) {
+    const window = clipWindows(lane).find(w => w.clip.id === clipId);
+    if (window) {
+      const delta = patch.start - clip.start;
+      for (const part of window.parts.slice(1)) part.start += delta;
+      next.end = Math.max(next.end, window.end + delta);
+    }
+  }
   Object.assign(clip, patch);
   next.end = Math.max(next.end, clip.start + clip.length);
   return finish(next, timings);
@@ -74,22 +82,53 @@ export function addClip(model: ClipArrangement, laneId: string, clip: Clip, timi
 export function deleteClip(model: ClipArrangement, laneId: string, clipId: string, timings: LaneTiming = {}): ClipArrangement {
   const next = clone(model), lane = laneFor(next, laneId);
   clipFor(lane, clipId);
-  lane.clips = lane.clips.filter(c => c.id !== clipId);
+  const window = clipWindows(lane).find(w => w.parts.some(p => p.id === clipId))!;
+  const removed = new Set(window.parts.map(p => p.id));
+  lane.clips = lane.clips.filter(c => !removed.has(c.id));
   return finish(next, timings); // preserve trailing space and all definitions
 }
 const freshChildren = (items: ContentItem[], id: IdFactory) => items.map(item => ({ ...clone(item), id: id() }));
-const freshClip = (clip: Clip, id: IdFactory) => remapPlacementChildren(clone(clip), freshChildren(clip.children, id));
+export function freshClip(clip: Clip, id: IdFactory) {
+  const copy = remapPlacementChildren(clone(clip), freshChildren(clip.children, id));
+  delete copy.windowGroupId;
+  delete copy.continuityId;
+  return copy;
+}
+/** New copies form an independent set of joins and seamless cuts. */
+export function copyClipWindows(parts: Clip[], id: () => string): Clip[] {
+  const groups = new Map<string, string>();
+  const sources = new Map<string, string>();
+  const copyId = (keys: Map<string, string>, key: string) => {
+    if (!keys.has(key)) keys.set(key, id());
+    return keys.get(key)!;
+  };
+  return parts.map(part => {
+    const copy = freshClip(part, id);
+    copy.id = id();
+    if (part.windowGroupId) copy.windowGroupId = copyId(groups, part.windowGroupId);
+    if (part.continuityId) copy.continuityId = copyId(sources, part.continuityId);
+    return copy;
+  });
+}
+
 /** A whole-window copy shares definitions and owns its placement paths. */
 export function duplicateClip(model: ClipArrangement, laneId: string, clipId: string, timings: LaneTiming = {}, id: IdFactory = newClipId) {
-  const lane = laneFor(model, laneId), source = clipFor(lane, clipId);
-  let start = source.start + source.length;
-  for (const other of [...lane.clips].sort((a, b) => a.start - b.start)) {
-    if (other.start + other.length <= start) continue;
-    if (other.start >= start + source.length) break;
-    start = other.start + other.length;
+  const next = clone(model), lane = laneFor(next, laneId);
+  const windows = clipWindows(lane);
+  const source = windows.find(w => w.parts.some(p => p.id === clipId));
+  if (!source) throw new ClipError("missing", "The clip no longer exists.");
+  const length = source.end - source.clip.start;
+  let start = source.end;
+  for (const other of windows) {
+    if (other.end <= start) continue;
+    if (other.clip.start >= start + length) break;
+    start = other.end;
   }
-  const copy = { ...freshClip(source, id), id: id(), start };
-  return { model: addClip(model, laneId, copy, timings), clip: copy };
+  const copies = copyClipWindows(source.parts, id);
+  for (const part of copies) part.start += start - source.clip.start;
+  lane.clips.push(...copies);
+  next.end = Math.max(next.end, start + length);
+  return { model: finish(next, timings), clip: copies[0] };
 }
 export function directLinks(lane: ClipLane, definitionId: string): number {
   return [...lane.clips.flatMap(c => c.children), ...lane.definitions.flatMap(d => d.kind === "pattern" ? [] : d.children)]
@@ -108,11 +147,11 @@ function isolatePass(lane: ClipLane, clip: Clip, pass: number, timing: LaneTimin
   const end = Math.min(clip.start + clip.length, clip.start - clip.offset + (pass + 1) * duration);
   if (end <= start) throw new ClipError("missing", "That pass is not present.");
   const parts: Clip[] = [];
-  if (start > clip.start) parts.push({ ...freshClip(clip, id), id: id(), length: start - clip.start });
+  if (start > clip.start) parts.push({ ...freshClip(clip, id), ...(clip.windowGroupId && {windowGroupId: clip.windowGroupId}), id: id(), length: start - clip.start });
   const selected = { ...clip, start, length: end - start, offset: (clip.offset + start - clip.start) % duration, mode: "once" as const,
     ...(lane.transposeProfiles || clip.repeatIndexBase !== undefined || clip.transposePlacements ? { repeatIndexBase: (clip.repeatIndexBase ?? 0) + pass } : {}) };
   parts.push(selected);
-  if (end < clip.start + clip.length) parts.push({ ...freshClip(clip, id), id: id(), start: end, length: clip.start + clip.length - end,
+  if (end < clip.start + clip.length) parts.push({ ...freshClip(clip, id), ...(clip.windowGroupId && {windowGroupId: clip.windowGroupId}), id: id(), start: end, length: clip.start + clip.length - end,
     offset: clip.offset + end - clip.start });
   lane.clips.splice(lane.clips.indexOf(clip), 1, ...parts);
   return selected;
@@ -203,7 +242,7 @@ export function editTime(model: ClipArrangement, laneIds: string[], start: numbe
       if (clip.start < start) pieces.push({ ...clip, length: start - clip.start });
       if (end > cutEnd) {
         const from = Math.max(clip.start, cutEnd);
-        pieces.push({ ...(pieces.length ? freshClip(clip, id) : clip), id: pieces.length ? id() : clip.id, start: from + (operation === "insert" ? length : -length),
+        pieces.push({ ...(pieces.length ? remapPlacementChildren(clone(clip), freshChildren(clip.children, id)) : clip), id: pieces.length ? id() : clip.id, start: from + (operation === "insert" ? length : -length),
           offset: clip.offset + from - clip.start, length: end - from });
       }
       return pieces;
@@ -218,7 +257,7 @@ export { emptyClipHistory, recordClipEdit, replayClipEdit, readClipHistory } fro
 export type ClipSection = { length: number; lanes: { id: string; clips: Clip[] }[] };
 function sliceWindow(clip: Clip, start: number, end: number, id: IdFactory): Clip | null {
   const left = Math.max(start, clip.start), right = Math.min(end, clip.start + clip.length);
-  return right <= left ? null : { ...freshClip(clip, id), id: id(), start: left, length: right - left,
+  return right <= left ? null : { ...remapPlacementChildren(clone(clip), freshChildren(clip.children, id)), id: id(), start: left, length: right - left,
     offset: clip.offset + left - clip.start };
 }
 export function copyClipRange(model: ClipArrangement, laneIds: string[], start: number, length: number, id: IdFactory = newClipId): ClipSection {
@@ -226,10 +265,11 @@ export function copyClipRange(model: ClipArrangement, laneIds: string[], start: 
   return { length, lanes: laneIds.map(identity => {
     const lane = laneFor(model, identity);
     if (lane.cycleTicks !== null) throw new ClipError("invalid", "Convert the repeating legacy cycle before copying song time.");
-    return { id: identity, clips: lane.clips.flatMap(clip => {
-      const sliced = sliceWindow(clip, start, start + length, id);
-      return sliced ? [{ ...sliced, start: sliced.start - start }] : [];
-    }) };
+    const slices = lane.clips.flatMap(clip => {
+      const left = Math.max(start, clip.start), right = Math.min(start + length, clip.start + clip.length);
+      return right > left ? [{ ...clip, start: left - start, length: right - left, offset: clip.offset + left - clip.start }] : [];
+    });
+    return { id: identity, clips: copyClipWindows(slices, id) };
   }) };
 }
 export function pasteClipRange(model: ClipArrangement, section: ClipSection, at: number, mode: "overwrite" | "insert", timings: LaneTiming, id: IdFactory = newClipId): ClipArrangement {
@@ -242,7 +282,7 @@ export function pasteClipRange(model: ClipArrangement, section: ClipSection, at:
       if (clip.start + clip.length <= at || clip.start >= at + section.length) return [clip];
       return [sliceWindow(clip, 0, at, id), sliceWindow(clip, at + section.length, next.end, id)].filter((c): c is Clip => c !== null);
     });
-    lane.clips.push(...copied.clips.map(clip => ({ ...freshClip(clip, id), id: id(), start: at + clip.start })));
+    lane.clips.push(...copyClipWindows(copied.clips, id).map(clip => ({ ...clip, start: at + clip.start })));
     lane.clips.sort((a, b) => a.start - b.start);
   }
   next.end = Math.max(next.end, at + section.length);
@@ -255,9 +295,9 @@ export function convertLaneCycle(model: ClipArrangement, laneId: string, timings
   if (cycle === null) return model;
   const repeats = Math.ceil(model.end / cycle);
   if (repeats * lane.clips.length > 2048) throw new ClipError("limit", "The repeating lane exceeds the clip limit. Shorten the song before converting.");
-  lane.clips = Array.from({ length: repeats }, (_, pass) => lane.clips.flatMap(clip => {
+  lane.clips = Array.from({ length: repeats }, (_, pass) => copyClipWindows(lane.clips, id).flatMap(clip => {
     const start = clip.start + pass * cycle;
-    return start >= model.end ? [] : [{ ...freshClip(clip, id), id: id(), start, length: Math.min(clip.length, model.end - start) }];
+    return start >= model.end ? [] : [{ ...clip, start, length: Math.min(clip.length, model.end - start) }];
   })).flat();
   lane.cycleTicks = null;
   return finish(next, timings);
