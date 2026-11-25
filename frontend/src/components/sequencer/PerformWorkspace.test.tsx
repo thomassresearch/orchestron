@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { migrateClipArrangement } from "../../lib/clipArranger/migration";
 import { QUARTER_TICKS } from "../../lib/clipArranger/model";
 import { beginStructure, applyStructure } from "../../lib/clipArranger/structure";
@@ -11,7 +11,7 @@ import { openClipEditor, saveClipDraftWithIntent } from "../../store/clipActions
 import { useAppStore } from "../../store/useAppStore";
 import { api } from "../../api/client";
 import { DraftResolutionDialog } from "../clipArranger/DraftResolutionDialog";
-import { PerformWorkspace } from "./PerformWorkspace";
+import { PerformNavigation, PerformWorkspace, type ViewNavigation } from "./PerformWorkspace";
 import { PerformanceEditorProvider, createPerformanceEditorStore, usePerformanceEditorState, useRetainedScroll, type PerformViewLayout } from "./PerformanceEditorState";
 
 const state = useAppStore.getState;
@@ -33,6 +33,12 @@ function fixture() {
   return { id: track.id, target: { laneId: lane.id, clipId: clip.id, path: [clip.children[0].id], pass: 1 } };
 }
 
+function Workspace({ children }: { children: (navigate: ViewNavigation) => ReactNode }) {
+  return <PerformWorkspace language="english">{(view, navigate) =>
+    <><PerformNavigation view={view} language="english" navigate={navigate} />{children(navigate)}</>
+  }</PerformWorkspace>;
+}
+
 function Controls({ id }: { id: string }) {
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
   return <><button aria-expanded={layout.inspectorOpen ?? false} onClick={() => setLayout(previous => ({ ...previous, inspectorOpen: !previous.inspectorOpen }))}>Details</button>
@@ -48,7 +54,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 it("restores view-local panels and offsets and edits a Live pad independently of a dirty repeat on the same device", () => {
   const { id, target } = fixture(), store = createPerformanceEditorStore();
-  const page = <PerformanceEditorProvider retainedStore={store}><PerformWorkspace language="english">{() => <Controls id={id} />}</PerformWorkspace></PerformanceEditorProvider>;
+  const page = <PerformanceEditorProvider retainedStore={store}><Workspace>{() => <Controls id={id} />}</Workspace></PerformanceEditorProvider>;
   const mounted = render(page);
   act(() => { state().selectSequencerEditingPad(id, 3); openClipEditor(target, "local"); });
   click("Change note");
@@ -87,7 +93,7 @@ it("restores view-local panels and offsets and edits a Live pad independently of
 
 it("drops a remembered editor when its repeat disappears, even if undo later restores the repeat", () => {
   const { id, target } = fixture();
-  render(<PerformanceEditorProvider><PerformWorkspace language="english">{() => <Controls id={id} />}</PerformWorkspace></PerformanceEditorProvider>);
+  render(<PerformanceEditorProvider><Workspace>{() => <Controls id={id} />}</Workspace></PerformanceEditorProvider>);
   act(() => openClipEditor(target, "local")); click("Change note"); click("Mix");
   const saved = state().sequencer, model = saved.clipArrangement!, lane = model.lanes[0];
   act(() => useAppStore.setState({ sequencer: { ...saved, clipArrangement: { ...model, lanes: [
@@ -102,8 +108,8 @@ it("drops a remembered editor when its repeat disappears, even if undo later res
 it("discards a legacy handoff after replacement or lane removal, including IDs reused by a clip song", () => {
   const track = state().sequencer.tracks[0], store = createPerformanceEditorStore();
   const target = { generation: state().performanceWorkspaceGeneration, laneId: track.id, item: { type: "group" as const, groupId: "B" } };
-  render(<PerformanceEditorProvider retainedStore={store}><PerformWorkspace language="english">{(_, navigate) =>
-    <button onClick={() => navigate("arrange", target)}>Reveal phrase</button>}</PerformWorkspace></PerformanceEditorProvider>);
+  render(<PerformanceEditorProvider retainedStore={store}><Workspace>{navigate =>
+    <button onClick={() => navigate("arrange", target)}>Reveal phrase</button>}</Workspace></PerformanceEditorProvider>);
   click("Live"); click("Reveal phrase");
   expect(store.getState().legacyReveal).toBe(target);
   const original = state().sequencer;
@@ -126,7 +132,7 @@ it("keeps structural drafts and the initiating view after cancellation or a fail
   const start = beginStructure(model, id, target.clipId, 0);
   const draft = applyStructure(start, { kind: "rest", target: { path: [], index: 1 }, ticks: QUARTER_TICKS }, {}, model);
   useStructureDraft.setState({ draft });
-  render(<PerformanceEditorProvider><DraftResolutionDialog language="english" /><PerformWorkspace language="english">{() => <Controls id={id} />}</PerformWorkspace></PerformanceEditorProvider>);
+  render(<PerformanceEditorProvider><DraftResolutionDialog language="english" /><Workspace>{() => <Controls id={id} />}</Workspace></PerformanceEditorProvider>);
   click("Live");
   let operation: Promise<void>;
   act(() => { operation = state().newPerformanceWorkspace(); });

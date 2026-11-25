@@ -22,7 +22,7 @@ import { clampDock, DockDivider, maxDockHeight, MIN_DOCK, DIVIDER_HEIGHT } from 
 import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorState, usePerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
 import { shellCopy, WorkspacePanels } from "./WorkspacePanels";
 import { CompactRack } from "./CompactRack";
-import { survivingClipKey, type MixSurface, type ViewNavigation } from "./PerformWorkspace";
+import { PerformNavigation, survivingClipKey, type MixSurface, type ViewNavigation } from "./PerformWorkspace";
 import type { SequencerPageTransportActions } from "./sequencerPageContracts";
 import "./workspace.css";
 
@@ -49,13 +49,15 @@ function SongPositionControls({ language, onSeek, onTempo }: {
       if (!target) useAppStore.getState().setSequencerArrangerSongLoopEnabled(!songLoop);
       else onSeek(range ? null : target.range);
     }}>{c.loop}</button>
-    <span className="ws-bars" title={arrangeCopy(language).barBeat} aria-label={arrangeCopy(language).barBeat}>{Math.floor(beat / beatsPerBar) + 1}.{beat % beatsPerBar + 1}</span>
-    <label>{c.position} <PositionInput className="ws-number" beats={position / QUARTER_TICKS} onSeek={step => onSeek(range, step)} /></label>
-    <label>BPM <input className="ws-number" type="number" min={30} max={300} value={bpm} onChange={e => onTempo(Number(e.target.value))} /></label></>;
+    <span className="ws-song-position">
+      <span className="ws-bars" title={arrangeCopy(language).barBeat} aria-label={arrangeCopy(language).barBeat}>{Math.floor(beat / beatsPerBar) + 1}.{beat % beatsPerBar + 1}</span>
+      <label>{c.position} <PositionInput className="ws-number" beats={position / QUARTER_TICKS} onSeek={step => onSeek(range, step)} /></label>
+      <label>BPM <input className="ws-number" type="number" min={30} max={300} value={bpm} onChange={e => onTempo(Number(e.target.value))} /></label>
+    </span></>;
 }
 
 type Props = {
-  view: PerformView; navigate?: ViewNavigation; language: GuiLanguage; children: ReactNode; project: ReactNode; save: ReactNode; engine: ReactNode;
+  view: PerformView; navigate: ViewNavigation; language: GuiLanguage; children: ReactNode; project: ReactNode; save: ReactNode; engine: ReactNode;
   transport: ReactNode; keyboard: ReactNode; name: string; midi: string; session: string;
   onSeek: SequencerPageTransportActions["onSequencerArrangerLoopSelectionChange"]; onTempo: (bpm: number) => void;
   diagnostics?: import("../../audio/browserClockWorkerProtocol").BrowserClockWorkerDiagnostics | null;
@@ -126,7 +128,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
   const sidebarWidth = Math.max(230, Math.min(360, size.width * .23));
   const overviewMinimum = view === "arrange" && model ? (size.width - sidebarWidth < 780 ? 312 : 245) : view === "mix" ? 255 : 165;
   const grip = coarse ? 24 : DIVIDER_HEIGHT;
-  const narrow = size.width < 700 || window.innerHeight < 600 || size.height < MIN_DOCK + overviewMinimum + grip + 48;
+  const narrow = size.width < 700 || window.innerHeight < 600 || size.height < MIN_DOCK + overviewMinimum + grip;
   const floatingRack = (keyboardOpen || !!controlsIds || view === "mix" && !!dock) && window.innerHeight <= 460;
   const rackOpen = floatingRack ? rackMenuView === view : layout.compactRackOpen ?? view === "mix";
   useEffect(() => { setRackMenuView(null); }, [view, floatingRack]);
@@ -179,7 +181,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     setRackMenuView(null);
     if (view === "arrange") { setControlsTarget("rack"); change({ drawerOpen: false }); }
     else if (view === "mix") change({ dock: "instrument", drawerOpen: false });
-    else navigate?.("mix", { surface: "mixer", bindingIds, dock: "instrument" });
+    else navigate("mix", { surface: "mixer", bindingIds, dock: "instrument" });
   };
   const closeInspector = () => { change(narrow ? { drawerOpen: false } : { inspectorOpen: false }); trigger.current?.focus(); };
   useLayoutEffect(() => {
@@ -251,53 +253,56 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
     singlePane: single, editorHidden: showOverview || !!controlsIds,
     revealEditor: () => { setControlsTarget(null); setOverviewClipKey(null); }, closeDock };
   return <WorkspacePanels.Provider value={context}><section className="ws-shell" data-keys-open={keyboardOpen || undefined}>
-    <header className="ws-head"><div className="ws-commandbar">
-      <details className="ws-project" ref={projectMenu}><summary>{c.project}</summary>
-        <div className="ws-project-menu" onClick={e => { if ((e.target as Element).closest("button") && projectMenu.current) {
-          projectMenu.current.open = false; projectMenu.current.querySelector("summary")?.focus();
-        } }}
-          onChange={e => { if (e.target instanceof HTMLSelectElement && projectMenu.current) projectMenu.current.open = false; }}>{project}</div></details>
-      <strong className="ws-title" title={name}>{name}</strong>{save}
-      <span className="ws-command-spacer" />
-      <span className="ws-editor-command" ref={setCommandHost} />
-      <button data-keyboard-toggle aria-controls={keyboardId} aria-pressed={keyboardOpen}
-        onClick={() => editorStore.setState(s => ({ keyboardOpen: !s.keyboardOpen }))}>{c.keyboard}</button>
-      <button ref={rackTrigger} aria-expanded={rackOpen} onClick={() => {
-        if (floatingRack) setRackMenuView(rackOpen ? null : view);
-        else change({ compactRackOpen: !rackOpen });
-      }}>{mixCopy(language)("compact")}</button>
-      <button ref={trigger} aria-expanded={inspector} aria-controls={inspectorId} onClick={() => {
-        if (inspector) closeInspector();
-        else { focusDrawer.current = narrow; change(narrow ? { drawerOpen: true } : { inspectorOpen: true }); }
-      }}>{c.inspector}</button>{engine}
-      {onHelp && <button title={c.help} aria-label={c.help} onClick={onHelp}>?</button>}
-    </div>
-      {rackOpen && <div ref={rackMenu} className={floatingRack ? "ws-rack-menu" : undefined}><CompactRack language={language}
-        onOpenControls={view === "mix" && mixSurface === "rack" ? undefined : openInstrumentControls} onNavigate={view === "mix" ? undefined : navigate} /></div>}
-    </header>
-    <div className="ws-work" ref={work} style={{ "--transport-height": size.height - size.mainHeight + "px" } as CSSProperties} data-sidebar={!narrow && inspector || undefined}>
-      <div className="ws-column">
+    <header className="ws-head">
+      <div className="ws-control-band">
+        <div className="ws-project-controls">
+          <details className="ws-project" ref={projectMenu}><summary>{c.project}</summary>
+            <div className="ws-project-menu" onClick={e => { if ((e.target as Element).closest("button") && projectMenu.current) {
+              projectMenu.current.open = false; projectMenu.current.querySelector("summary")?.focus();
+            } }}
+              onChange={e => { if (e.target instanceof HTMLSelectElement && projectMenu.current) projectMenu.current.open = false; }}>{project}</div></details>
+          <strong className="ws-title" title={name}>{name}</strong>{save}
+        </div>
         <div className="ws-transport-row"><div className="ws-transport" role="group" aria-label={c.transport}>{transport}<SongPositionControls language={language} onSeek={onSeek} onTempo={onTempo} /></div>
           {compactArrangeEditor && <button className="ws-back" ref={back} onClick={returnToOverview}>{backLabel}</button>}
         </div>
-        <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined} data-scope-only={scopeOnly || undefined} data-compact-controllers={compactControls && !single || undefined}>
-          <RetainedScroll key={view} owner="page" field="overviewScroll" className="ws-overview" data-compact-launch={compactLauncher || undefined} hidden={single && !showOverview} role="region" aria-label={c.overview}>
-            {compactLauncher && !single && <div className="ws-compact-launch" ref={setLauncherHost} />}{children}
-          </RetainedScroll>
-          {dock && !single && !scopeOnly && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} min={dockMinimum} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
-          {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} data-inline-back={compactArrangeEditor || undefined} data-pattern-dock={patternDock || undefined} aria-label={dockLabel}>
-            {!compactArrangeEditor && !patternDock && <header><h2>{dockLabel}</h2>
-              {paneActions}</header>}
-            {showLauncherInEditor && <div className="ws-compact-launch" ref={setLauncherHost} />}
-            {view === "mix" && <div className="ws-dock-mix-controls" ref={setMixControls} />}
-            {editorDock === "editor" && view !== "mix" ? <div className="ws-clip-editor-host" hidden={!!controlsIds} ref={setEditorHost} /> : editorDock && <RetainedScroll key={view + editorDock + detailOwner} hidden={!!controlsIds} className="ws-dock-scroll" owner={detailOwner} field={editorDock + "Scroll"}>
-              <div ref={setEditorHost} />
-            </RetainedScroll>}
-            {controlsIds && <RetainedScroll key={controlsLaneId ?? "rackControls"} owner={controlsLaneId ? `device:${controlsLaneId}` : "rack"} field="instrumentControlsScroll" className="ws-dock-scroll">
-              <InstrumentControls ids={controlsIds} language={language} />
-            </RetainedScroll>}
-          </section>}
+        <div className="ws-commandbar">
+          <span className="ws-editor-command" ref={setCommandHost} />
+          <button data-keyboard-toggle aria-controls={keyboardId} aria-pressed={keyboardOpen}
+            onClick={() => editorStore.setState(s => ({ keyboardOpen: !s.keyboardOpen }))}>{c.keyboard}</button>
+          <button ref={rackTrigger} aria-expanded={rackOpen} onClick={() => {
+            if (floatingRack) setRackMenuView(rackOpen ? null : view);
+            else change({ compactRackOpen: !rackOpen });
+          }}>{mixCopy(language)("compact")}</button>
+          <button ref={trigger} aria-expanded={inspector} aria-controls={inspectorId} onClick={() => {
+            if (inspector) closeInspector();
+            else { focusDrawer.current = narrow; change(narrow ? { drawerOpen: true } : { inspectorOpen: true }); }
+          }}>{c.inspector}</button>{engine}
+          {onHelp && <button title={c.help} aria-label={c.help} onClick={onHelp}>?</button>}
         </div>
+      </div>
+      <PerformNavigation view={view} language={language} navigate={navigate} />
+      {rackOpen && <div ref={rackMenu} className={floatingRack ? "ws-rack-menu" : undefined}><CompactRack language={language}
+        onOpenControls={view === "mix" && mixSurface === "rack" ? undefined : openInstrumentControls} onNavigate={view === "mix" ? undefined : navigate} /></div>}
+    </header>
+    <div className="ws-work" ref={work} data-sidebar={!narrow && inspector || undefined}>
+      <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined} data-scope-only={scopeOnly || undefined} data-compact-controllers={compactControls && !single || undefined}>
+        <RetainedScroll key={view} owner="page" field="overviewScroll" className="ws-overview" data-compact-launch={compactLauncher || undefined} hidden={single && !showOverview} role="region" aria-label={c.overview}>
+          {compactLauncher && !single && <div className="ws-compact-launch" ref={setLauncherHost} />}{children}
+        </RetainedScroll>
+        {dock && !single && !scopeOnly && <DockDivider key={view + dock} label={c.divider} controls={dockId} height={height} max={max} min={dockMinimum} layoutWidth={size.mainWidth} layoutHeight={size.mainHeight} onCommit={preferredDockHeight => change({ preferredDockHeight })} />}
+        {dock && <section id={dockId} className="ws-dock" hidden={showOverview} data-compact-launch={showLauncherInEditor || undefined} data-inline-back={compactArrangeEditor || undefined} data-pattern-dock={patternDock || undefined} aria-label={dockLabel}>
+          {!compactArrangeEditor && !patternDock && <header><h2>{dockLabel}</h2>
+            {paneActions}</header>}
+          {showLauncherInEditor && <div className="ws-compact-launch" ref={setLauncherHost} />}
+          {view === "mix" && <div className="ws-dock-mix-controls" ref={setMixControls} />}
+          {editorDock === "editor" && view !== "mix" ? <div className="ws-clip-editor-host" hidden={!!controlsIds} ref={setEditorHost} /> : editorDock && <RetainedScroll key={view + editorDock + detailOwner} hidden={!!controlsIds} className="ws-dock-scroll" owner={detailOwner} field={editorDock + "Scroll"}>
+            <div ref={setEditorHost} />
+          </RetainedScroll>}
+          {controlsIds && <RetainedScroll key={controlsLaneId ?? "rackControls"} owner={controlsLaneId ? `device:${controlsLaneId}` : "rack"} field="instrumentControlsScroll" className="ws-dock-scroll">
+            <InstrumentControls ids={controlsIds} language={language} />
+          </RetainedScroll>}
+        </section>}
       </div>
       {inspector && <aside id={inspectorId} aria-label={c.inspector} className="ws-inspector" data-drawer={narrow || undefined}>
         <header><h2>{c.inspector}</h2><button ref={drawerClose} aria-label={c.close + " · " + c.inspector} onClick={closeInspector}>×</button></header>

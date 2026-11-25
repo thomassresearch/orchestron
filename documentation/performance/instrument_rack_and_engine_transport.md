@@ -30,7 +30,7 @@ map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
 ## Compact Rack
 
-Open **Compact rack** above the transport in Arrange, Live or Mix. Click one instrument. Hold **Shift** and click others to add or remove them. With the keyboard, focus an entry and press **Shift+Enter** or **Shift+Space**. The patch number and MIDI channel distinguish instances of the same instrument.
+Select **Compact rack** in the top band of Arrange, Live or Mix. The rack opens below the navigation tabs. Click one instrument. Hold **Shift** and click others to add or remove them. With the keyboard, focus an entry and press **Shift+Enter** or **Shift+Space**. The patch number and MIDI channel distinguish instances of the same instrument.
 
 With the instruments stopped, click the **+** at the right of the compact rack to browse instruments by category or search. To remove a rack instance, right-click it or focus it and press **Shift+F10**, then choose **Remove instrument**. If a track uses it, the warning lists the tracks to reassign first.
 
@@ -42,7 +42,7 @@ Choose **Instrument controls** beside the rack entries to open the selection and
 
 ## Performance Metadata and Library Actions
 
-Open **Project** for the name, description and library actions. **Save Performance** is also available directly above the transport.
+Open **Project** for the name, description and library actions. **Save Performance** sits beside the performance name in the top band.
 
 - `Performance Name`
 - `Description`

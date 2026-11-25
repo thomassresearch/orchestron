@@ -10,7 +10,8 @@ import { useAppStore } from "../store/useAppStore";
 import type { AudioDiagnostic, GuiLanguage } from "../types";
 import { MixerBody, PerformMixer } from "./PerformMixer";
 import { MixWorkspace } from "./sequencer/MixWorkspace";
-import { PerformanceEditorProvider, PerformViewContext } from "./sequencer/PerformanceEditorState";
+import { PerformNavigation, PerformWorkspace } from "./sequencer/PerformWorkspace";
+import { PerformanceEditorProvider } from "./sequencer/PerformanceEditorState";
 
 const source = toPatchListItem(audioTemplate("instrument"));
 const effect = toPatchListItem(audioTemplate("effect"));
@@ -282,11 +283,18 @@ function feedbackGraph() {
   return graph;
 }
 
+function renderMix() {
+  const result = render(<PerformanceEditorProvider><PerformWorkspace language="english">{(view, navigate) =>
+    <><PerformNavigation view={view} language="english" navigate={navigate} />{view === "mix" && <MixWorkspace navigate={navigate} language="english" running={false}
+      onStop={vi.fn()} onAdd={useAppStore.getState().addSequencerInstrument} patches={[source, effect]} rack={null} />}</>
+  }</PerformWorkspace></PerformanceEditorProvider>);
+  fireEvent.click(screen.getByRole("button", { name: "Mix" }));
+  return result;
+}
+
 it("opens the filtered routing diagram from a feedback warning on the preview mixer", () => {
   useAppStore.setState({ audioGraph: feedbackGraph() });
-  render(<PerformanceEditorProvider><PerformViewContext.Provider value="mix">
-    <MixWorkspace language="english" running={false} onStop={vi.fn()} onAdd={vi.fn()} patches={[source, effect]} rack={null} />
-  </PerformViewContext.Provider></PerformanceEditorProvider>);
+  renderMix();
   fireEvent.click(screen.getByRole("button", { name: "Show offending connections" }));
   const filter = screen.getByRole("checkbox", { name: "Only feedback connections" }) as HTMLInputElement;
   expect(filter.checked).toBe(true);
@@ -296,11 +304,8 @@ it("opens the filtered routing diagram from a feedback warning on the preview mi
 });
 
 it("adds the chosen patch after browsing Rack and shows its channel only when it receives MIDI", () => {
-  const { container } = render(<PerformanceEditorProvider><PerformViewContext.Provider value="mix">
-    <MixWorkspace language="english" running={false} onStop={vi.fn()} onAdd={useAppStore.getState().addSequencerInstrument}
-      patches={[source, effect]} rack={null} />
-  </PerformViewContext.Provider></PerformanceEditorProvider>);
-  const nav = within(screen.getByRole("navigation", { name: "Mixer" }));
+  const { container } = renderMix();
+  const nav = within(screen.getByRole("navigation", { name: "Mix pages" }));
   fireEvent.click(nav.getByRole("button", { name: "Rack" }));
   fireEvent.click(screen.getByRole("button", { name: "Add Instrument" }));
   const menu = within(screen.getByRole("dialog", { name: "Add Instrument" }));

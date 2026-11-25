@@ -4,7 +4,7 @@
 
 <a id="control-api"></a>
 
-Choose **Perform → Mix → Mixer**. Select a strip to edit its outputs and sends. The pinned Master controls audio routed into it. A **Direct Audio Output** badge identifies paths that bypass Master; these still respond to their own strip's fader, balance, mute and solo.
+Open **Perform**, then select **Mix** beneath the project and transport controls. In the row directly below **Mix**, choose **Mixer** for channel strips, **Rack** for instruments or **Routing** for audio connections. In **Mixer**, select a strip to edit its outputs and sends. The pinned Master controls audio routed into it. A **Direct Audio Output** badge identifies paths that bypass Master. These strips still respond to their own fader, balance, mute and solo.
 
 Leaving Mixer releases its visible meters. When you return, the channel bank recalls its scroll position and shows current levels. Audio keeps playing while you work in another view.
 

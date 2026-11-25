@@ -77,7 +77,7 @@ async page => {
     await laneHeader(arp.id).getByText(`CH${String(arp.input).padStart(2, "0")} → CH01 ▾`, { exact: true }).waitFor();
     await laneHeader(arp.id).getByText(instrument, { exact: true }).waitFor();
     await button("Mix").click();
-    const tools = page.locator(".ws-mix-tools"), nav = tools.getByRole("navigation");
+    const tools = page.locator(".ws-mix-tools"), nav = page.getByRole("navigation", { name: "Mix pages" });
     await button("Rack", nav).click();
     const add = button("Add Instrument", tools);
     const picker = page.getByRole("dialog", { name: "Add Instrument" });

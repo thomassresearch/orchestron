@@ -92,7 +92,7 @@ async page => {
     const [master, output] = await fixed();
     check(master.right <= 390 && output.right <= 390 && output.bottom <= 844 && master.height > 0, "pinned signals outside mobile viewport");
     await page.setViewportSize(viewport);
-    const nav = page.getByRole("navigation", { name: "Mixer" });
+    const nav = page.getByRole("navigation", { name: "Mix pages" });
     await button("Routing", nav).click();
     check(await page.getByRole("combobox", { name: "Source", exact: true }).first().isDisabled(), "topology unlocked during playback");
     await page.locator(".ws-routing-body summary").filter({hasText: /matrix/i}).click();

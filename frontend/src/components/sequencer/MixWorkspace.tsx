@@ -12,14 +12,14 @@ import { RetainedScroll, usePerformanceEditorState, type PerformViewLayout } fro
 import { SampleMapEditor } from "./SamplePlayerRack";
 import { SEQUENCER_UI_COPY } from "./sequencerUiCopy";
 import { WorkspacePanel, WorkspacePanels, shellCopy } from "./WorkspacePanels";
-import type { MixSurface } from "./PerformWorkspace";
+import type { MixSurface, ViewNavigation } from "./PerformWorkspace";
 import { mixCopy } from "./mixCopy";
 
-export function MixWorkspace({ language, running, onStop, onAdd, patches, rack }: {
-  language: GuiLanguage; running: boolean; onStop: () => void; onAdd: (patchId: string) => string | void; patches: PatchListItem[]; rack: ReactNode;
+export function MixWorkspace({ navigate, language, running, onStop, onAdd, patches, rack }: {
+  navigate: ViewNavigation; language: GuiLanguage; running: boolean; onStop: () => void; onAdd: (patchId: string) => string | void; patches: PatchListItem[]; rack: ReactNode;
 }) {
   const audio = audioCopy(language), copy = mixCopy(language), ui = SEQUENCER_UI_COPY[language];
-  const [surface, setSurface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
+  const [surface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
   const { ids, primary: selected, select } = useRackSelection();
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
   const bindings = useAppStore(s => s.sequencerInstruments);
@@ -67,10 +67,7 @@ export function MixWorkspace({ language, running, onStop, onAdd, patches, rack }
     const endpoint = bindings.find(row => row.id === id);
     return patches.find(p => p.id === endpoint?.patchId)?.name ?? id;
   };
-  const switchSurface = (next: MixSurface) => {
-    setSurface(next);
-    setLayout(previous => ({ ...previous, dock: null, dockExpanded: false, drawerOpen: false }));
-  };
+  const switchSurface = (surface: MixSurface) => navigate("mix", { surface });
   const open = (next: "instrument" | "samples") => setLayout(previous => ({ ...previous, dock: next, drawerOpen: false }));
   useLayoutEffect(() => {
     if (dock && (!canOpenControls || (dock === "samples" && !capable))) {
@@ -91,10 +88,6 @@ export function MixWorkspace({ language, running, onStop, onAdd, patches, rack }
   };
   return <div className="ws-mix" ref={overview}>
     <div className="ws-mix-tools">
-      <nav aria-label={audio("mixer")}>
-        {(["mixer", "rack", "routing"] as const).map(item => <button key={item} type="button" aria-pressed={surface === item}
-          onClick={() => { if (surface !== item) switchSurface(item); }}>{item === "mixer" ? audio("mixer") : copy(item)}</button>)}
-      </nav>
       {surface !== "rack" && <button type="button" onClick={() => switchSurface("rack")}>{copy("manage")}</button>}
       {details}
       {bindings.length > 1 && surface !== "routing" && <small className="text-slate-400">{copy("multi")}</small>}

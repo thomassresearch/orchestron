@@ -2,7 +2,9 @@
 
 **Navigation:** [Up](../user_documentation.md) | [Previous](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
 
-Open **Perform** to arrange a song, play it live or mix its instruments. Use **Arrange**, **Live** and **Mix** to switch tasks. Each view remembers its selection, scroll position and open panels. The song transport, **Save Performance**, instrument engine and playback status bar are available in all three.
+Open **Perform** to arrange a song, play it live or mix its instruments. The top band holds **Project**, **Save Performance** and the song transport, including **Loop**, **Position** and **BPM**. Directly below, choose **Arrange**, **Live** or **Mix**. Choosing **Mix** reveals a second row with **Mixer** for levels, **Rack** for instruments and **Routing** for connections. Each view remembers its selection, scroll position and open panels. The engine controls and playback status bar are available in all three.
+
+![The project and transport band above both navigation rows, with Mix and Mixer selected](../../screenshots/perform-navigation.png)
 
 In **Project**, the performance description field displays three lines with automatic text wrapping and preserves manual line breaks. Longer descriptions scroll vertically within the field. Hover over the description to see its full text in a tooltip.
 

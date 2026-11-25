@@ -10,8 +10,10 @@ import { useStructureDraft } from "../../lib/clipArranger/structureStore";
 import { definitionAt } from "../../lib/clipArranger/operations";
 import { localLoopWindows } from "../../lib/clipArranger/relationships";
 import { useAppStore } from "../../store/useAppStore";
+import { audioCopy } from "../../lib/audioCopy";
+import { mixCopy } from "./mixCopy";
 import type { PanelCollapseState } from "../CollapsiblePanel";
-import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorStore, type LegacyPhraseDestination, type PerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
+import { editorKey, PerformViewContext, RetainedScroll, usePerformanceEditorState, usePerformanceEditorStore, type LegacyPhraseDestination, type PerformanceEditorStore, type PerformView, type PerformViewLayout } from "./PerformanceEditorState";
 
 function hasLegacyLane(sequencer: SequencerState, id: string) {
   return !sequencer.clipArrangement && Object.values(sourceKeys).some(key => sequencer[key].some(track =>
@@ -19,10 +21,10 @@ function hasLegacyLane(sequencer: SequencerState, id: string) {
 }
 
 const copy = {
-  english: { arrange: "Arrange", live: "Live", mix: "Mix", views: "Perform views" },
-  german: { arrange: "Arrangement", live: "Live", mix: "Mix", views: "Performance-Ansichten" },
-  french: { arrange: "Arrangement", live: "Live", mix: "Mixage", views: "Vues de performance" },
-  spanish: { arrange: "Arreglo", live: "En vivo", mix: "Mezcla", views: "Vistas de interpretación" }
+  english: { arrange: "Arrange", live: "Live", mix: "Mix", views: "Perform views", mixPages: "Mix pages" },
+  german: { arrange: "Arrangement", live: "Live", mix: "Mix", views: "Performance-Ansichten", mixPages: "Mix-Seiten" },
+  french: { arrange: "Arrangement", live: "Live", mix: "Mixage", views: "Vues de performance", mixPages: "Pages de mixage" },
+  spanish: { arrange: "Arreglo", live: "En vivo", mix: "Mezcla", views: "Vistas de interpretación", mixPages: "Páginas de mezcla" }
 };
 const views: PerformView[] = ["arrange", "live", "mix"];
 
@@ -131,7 +133,7 @@ export type ViewNavigation = (view: PerformView, target?: { id: string; pad: num
 function useKeyboardCompanionTap(keyboardOpen: boolean) {
   const tap = useRef<{ id: number; button: HTMLButtonElement; x: number; y: number } | null>(null);
   const handled = useRef<HTMLButtonElement | null>(null);
-  const commands = "[data-perform-view], [data-rack-choice], [data-lane-controllers], [data-mix-detail], [data-mix-toggle], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button";
+  const commands = "[data-perform-view], [data-mix-page], [data-rack-choice], [data-lane-controllers], [data-mix-detail], [data-mix-toggle], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button, .ws-project-controls button";
   return {
     onPointerDownCapture(event: PointerEvent<HTMLElement>) {
       handled.current = null;
@@ -158,6 +160,23 @@ function useKeyboardCompanionTap(keyboardOpen: boolean) {
       }
     }
   };
+}
+
+export function PerformNavigation({ view, language, navigate }: { view: PerformView; language: GuiLanguage; navigate: ViewNavigation }) {
+  const labels = copy[language];
+  const [surface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
+  return <>
+    <nav aria-label={labels.views} className="ws-views">
+      {views.map(item => <button key={item} type="button" data-perform-view={item} aria-pressed={item === view}
+        onClick={() => navigate(item)}>{labels[item]}</button>)}
+    </nav>
+    {view === "mix" && <nav aria-label={labels.mixPages} className="ws-mix-pages">
+      {(["mixer", "rack", "routing"] as const).map(item => <button key={item} type="button" data-mix-page={item}
+        aria-pressed={item === surface} onClick={() => { if (item !== surface) navigate("mix", { surface: item }); }}>
+        {item === "mixer" ? audioCopy(language)("mixer") : mixCopy(language)(item)}
+      </button>)}
+    </nav>}
+  </>;
 }
 
 export function PerformWorkspace({ language, children }: { language: GuiLanguage; children: (view: PerformView, navigate: ViewNavigation) => ReactNode }) {
@@ -231,10 +250,6 @@ export function PerformWorkspace({ language, children }: { language: GuiLanguage
   };
   const labels = copy[language];
   return <main className="ws-workspace" {...companionTap}>
-    <nav aria-label={labels.views} className="mb-2 flex gap-1">
-      {views.map(item => <button key={item} type="button" data-perform-view={item} aria-pressed={item === view} onClick={() => change(item)}
-        className="rounded-md border border-slate-600 px-4 py-2 text-sm text-slate-200 aria-pressed:border-cyan-400 aria-pressed:text-cyan-200">{labels[item]}</button>)}
-    </nav>
     <PerformViewContext.Provider value={view}>
       <RetainedScroll owner="page" field="viewScroll" role="region" aria-label={labels[view]}
         className="ws-view">{children(view, change)}</RetainedScroll>

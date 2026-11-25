@@ -823,7 +823,9 @@ export function SequencerPage(props: SequencerPageProps) {
     </OpenArrangerContext.Provider>}
   </PerformanceEditorProvider>;
 }
-function WorkspacePage({ view, navigate, ...props }: SequencerPageProps & { view: PerformView; navigate: ViewNavigation }) {
+type WorkspaceLocation = { view: PerformView; navigate: ViewNavigation };
+
+function WorkspacePage({ view, navigate, ...props }: SequencerPageProps & WorkspaceLocation) {
   const [panels, setPanels] = usePerformanceEditorState<Partial<PanelCollapseState>>("page", "collapsedPanels", {});
   return <OpenArrangerContext.Provider value={destination => navigate("arrange", destination)}>
     <SequencerPageContent {...props} view={view} navigate={navigate} collapsedPanels={{ ...props.collapsedPanels, ...panels }}
@@ -831,7 +833,7 @@ function WorkspacePage({ view, navigate, ...props }: SequencerPageProps & { view
   </OpenArrangerContext.Provider>;
 }
 
-function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; navigate?: ViewNavigation }) {
+function SequencerPageContent(props: SequencerPageProps & (WorkspaceLocation | { view?: undefined; navigate?: undefined })) {
   const sampleUploads = useAppStore(state => state.sampleUploads);
   const context = useSequencerPageContext(props);
   const {
@@ -982,7 +984,7 @@ function SequencerPageContent(props: SequencerPageProps & { view?: PerformView; 
           <RackBody context={context} showProject={!view} />
         </CollapsiblePanel>}
 
-        {view === "mix" && <MixWorkspace language={guiLanguage} running={instrumentsRunning} onStop={onStopInstruments} onAdd={onAddInstrument} patches={patches}
+        {view === "mix" && <MixWorkspace navigate={props.navigate} language={guiLanguage} running={instrumentsRunning} onStop={onStopInstruments} onAdd={onAddInstrument} patches={patches}
           rack={<RackBody context={context} showProject={false} selectable />} />}
 
         {!view && <PerformMixer onStop={onStopInstruments} onHelpRequest={onHelpRequest} />}

@@ -82,7 +82,7 @@ async page => {
   await compact(lead).click();
   await verifyCards([lead]);
   await button("Back to overview", dock).click();
-  await button("Rack", tools).click();
+  await button("Rack", page.getByRole("navigation", { name: "Mix pages" })).click();
   const rack = page.locator(".ws-mix-page");
   for (const id of [bass, lead, chorus, drive]) {
     check(await rack.locator(`[data-rack-binding-id="${id}"]`).getByRole("spinbutton").count() > 0, "Full rack missing device controls");
@@ -92,7 +92,7 @@ async page => {
   await patchNumber(bass).click();
   await patchNumber(lead).press("Shift+Enter");
   check(!await page.locator('[data-mix-detail="instrument"]').count(), "Full Rack offers duplicate instrument controls");
-  await button("Mixer", tools).click();
+  await button("Mixer", page.getByRole("navigation", { name: "Mix pages" })).click();
   await button("Instrument controls", tools).click();
   await verifyCards([bass, chorus, drive, lead]);
   for (const name of ["Instrument Design", "Config", "Perform"]) {
