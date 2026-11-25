@@ -1,12 +1,11 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useAppStore } from "../store/useAppStore";
 import { useInstrumentAudition } from "../hooks/useInstrumentAudition";
 import { sampleCopy } from "../lib/sampleCopy";
 import { auditionCopy } from "../lib/auditionCopy";
 import { defaultAuditionNote } from "../lib/controlFlow";
 import { AuditionControl } from "./audition/AuditionControl";
-import { AuditionKeyboard } from "./audition/AuditionKeyboard";
+import { AuditionPlayer } from "./audition/AuditionPlayer";
 
 const KeyboardHost = createContext<{
   host: HTMLDivElement | null; setHost: (element: HTMLDivElement | null) => void;
@@ -29,8 +28,6 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
   const audition = useInstrumentAudition(draft, stopPerformance, copy);
   const keyboardHost = useContext(KeyboardHost)?.host;
   const running = audition.phase === "running";
-  const keyboard = running && audition.snapshot && <AuditionKeyboard initialNote={defaultAuditionNote(draft.graph)}
-    disabled={!audition.snapshot.midi.length} language={language} pressNote={audition.pressNote} />;
   const emptySampler = draft.graph.nodes.some(node => node.opcode === "sample_player");
   return <div className="min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -46,7 +43,8 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
           value={audition.values[d.node_id] ?? d.default} alwaysOn={audition.snapshot!.alwaysOn} language={language}
           onChange={value => audition.changeValue(d, value)} />)}
       </div>}
-      {keyboardHost ? createPortal(keyboard, keyboardHost) : keyboard}
+      <AuditionPlayer initialNote={defaultAuditionNote(draft.graph)} disabled={!audition.snapshot.midi.length}
+        language={language} pressNote={audition.pressNote} keyboardHost={keyboardHost} />
       {audition.stale && <p role="status" className="text-xs text-amber-200">{copy.stale}</p>}
     </div>}
     {emptySampler && <p className="mt-2 text-xs text-slate-300">{sampleCopy(language).emptyAudition}</p>}

@@ -129,7 +129,7 @@ Edit [constant values](documentation/instrument_design/graph_editor.md#constant-
 
 Bright-green input sockets reveal active stored values and formulas. Double-click any editable input—even without a cable—to inspect its value and source, edit it, or **Reset input** to the remaining connections or catalog default. See the [input value and formula guide](documentation/instrument_design/input_formula_assistant.md).
 
-Toggle [Audition](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to try an unfinished patch in isolation before saving it. A mini keyboard and compact performance controls appear while audition is running; effects use a built-in test instrument. Stop audition hides the controls and keyboard. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
+Toggle [Audition](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to try an unfinished patch in isolation before saving it. Play the mini keyboard, or use **Autoplay** to repeat the last note or Autochord while you adjust the sound. Set the note duration from 0.2–1 s and the interval between attacks from 0.5–5 s. Effects use a built-in test instrument. Stop audition hides the controls and keyboard. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
 
 ## Build patterns and arrangements
 

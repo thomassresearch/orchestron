@@ -6,7 +6,7 @@ import { api } from "../api/client";
 import { useAppStore } from "../store/useAppStore";
 import { audioTemplate } from "../lib/audioTemplates";
 import { controllerDefaults } from "../lib/performanceControllers";
-import { AuditionPanel } from "./AuditionPanel";
+import { AuditionKeyboardProvider, AuditionPanel, InstrumentAuditionKeyboard } from "./AuditionPanel";
 import { isolatedAudition } from "../lib/instrumentAudition";
 
 const audio = vi.hoisted(() => ({ prime: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), midi: vi.fn() }));
@@ -48,7 +48,7 @@ beforeEach(() => {
   vi.spyOn(api, "updatePerformanceControllers").mockImplementation(async (_id, _assignment, values) => ({ values }));
   Element.prototype.setPointerCapture = vi.fn();
 });
-afterEach(async () => { await act(async () => cleanup()); vi.restoreAllMocks(); });
+afterEach(async () => { await act(async () => cleanup()); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 it("toggles an inline isolated preview and exposes only minimal controls while running", async () => {
   mount();
@@ -184,6 +184,91 @@ it("orders a quick release after an in-flight note-on", async () => {
   expect(api.deleteSession).toHaveBeenCalledOnce();
 });
 
+const advance = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
+const midiNotes = () => audio.midi.mock.calls.map(([, event]) => [event.type, event.note]);
+async function tapKey(name: string) {
+  const key = screen.getByRole("button", { name });
+  fireEvent.keyDown(key, { key: "Enter" });
+  fireEvent.keyUp(key, { key: "Enter" });
+  await act(async () => {});
+}
+
+it("waits for a key, repeats the latest note at the selected timings and releases it when switched off", async () => {
+  mount(); await start();
+  vi.useFakeTimers();
+  const autoplay = screen.getByRole("checkbox", { name: "Autoplay" });
+  fireEvent.click(autoplay);
+  const duration = screen.getByRole("slider", { name: "Duration" });
+  const interval = screen.getByRole("slider", { name: "Interval" });
+  expect([duration.getAttribute("min"), duration.getAttribute("max")]).toEqual(["0.2", "1"]);
+  expect([interval.getAttribute("min"), interval.getAttribute("max")]).toEqual(["0.5", "5"]);
+  fireEvent.change(duration, { target: { value: "0.2" } });
+  fireEvent.change(interval, { target: { value: "5" } });
+  await advance(5000);
+  expect(audio.midi).not.toHaveBeenCalled();
+  await tapKey("C4 (60)");
+  audio.midi.mockClear();
+  await advance(4999);
+  expect(audio.midi).not.toHaveBeenCalled();
+  await advance(1);
+  await advance(199);
+  expect(midiNotes()).toEqual([["note_on", 60]]);
+  await advance(1);
+  expect(midiNotes()).toEqual([["note_on", 60], ["note_off", 60]]);
+
+  fireEvent.change(interval, { target: { value: "0.5" } });
+  await tapKey("D4 (62)");
+  audio.midi.mockClear();
+  await advance(500);
+  fireEvent.click(autoplay);
+  await advance(5000);
+  expect(midiNotes()).toEqual([["note_on", 62], ["note_off", 62]]);
+});
+
+it("retriggers the last autochord cleanly when duration exceeds interval and cancels on audition stop", async () => {
+  mount(); await start();
+  vi.useFakeTimers();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Autochord" }));
+  await tapKey("D4 (62)");
+  const on = [62, 65, 69].map(note => ["note_on", note]);
+  const off = [62, 65, 69].map(note => ["note_off", note]);
+  expect(midiNotes()).toEqual([...on, ...off]);
+  audio.midi.mockClear();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Autoplay" }));
+  fireEvent.change(screen.getByRole("slider", { name: "Duration" }), { target: { value: "1" } });
+  fireEvent.change(screen.getByRole("slider", { name: "Interval" }), { target: { value: "0.5" } });
+  await advance(500);
+  expect(midiNotes()).toEqual(on);
+  await advance(500);
+  expect(midiNotes()).toEqual([...on, ...off, ...on]);
+  fireEvent.click(screen.getByRole("button", { name: "Stop audition" }));
+  await advance(5000);
+  expect(midiNotes()).toEqual([...on, ...off, ...on, ...off]);
+  expect(api.deleteSession).toHaveBeenCalledOnce();
+});
+
+it("keeps the repeat in time when the FM6 editor takes the keyboard and releases it on focus loss", async () => {
+  const panel = (editorOpen: boolean) => <AuditionKeyboardProvider>
+    <AuditionPanel stopPerformance={stopPerformance} />
+    {editorOpen && <div role="dialog"><InstrumentAuditionKeyboard /></div>}
+  </AuditionKeyboardProvider>;
+  const view = render(panel(false));
+  await start();
+  vi.useFakeTimers();
+  await tapKey("C4 (60)");
+  fireEvent.click(screen.getByRole("checkbox", { name: "Autoplay" }));
+  audio.midi.mockClear();
+  await advance(800);
+  view.rerender(panel(true));
+  expect(screen.getByRole("dialog").contains(screen.getByRole("checkbox", { name: "Autoplay" }))).toBe(true);
+  await advance(200);
+  expect(midiNotes()).toEqual([["note_on", 60]]);
+  fireEvent.blur(window);
+  await advance(2000);
+  expect(midiNotes()).toEqual([["note_on", 60], ["note_off", 60]]);
+  expect((screen.getByRole("checkbox", { name: "Autoplay" }) as HTMLInputElement).checked).toBe(false);
+});
+
 it("preserves the original playhead with transport stopped", async () => {
   const runtime = { ...useAppStore.getState().sequencerRuntime, playhead: 12, isPlaying: true };
   useAppStore.setState({ sequencerRuntime: runtime });
@@ -203,6 +288,7 @@ it("plays the built-in source for an isolated effect and disables notes for a co
   useAppStore.setState({ currentPatch: { ...audioTemplate("instrument"), always_on: true } });
   mount(); await start();
   expect((screen.getByRole("button", { name: "C4 (60)" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("checkbox", { name: "Autoplay" }).matches(":disabled")).toBe(true);
 });
 
 it("handles direct output without doubling its route and rejects mismatched effect inputs", () => {

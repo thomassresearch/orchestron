@@ -104,11 +104,20 @@ Compilation finishes before any current performance is stopped. A compilation er
 - **Integer** controls have a label and number field. Type a whole number or use Up/Down; Home/End selects the limits. Enter or leaving the field applies an entry; Escape cancels. Fractional entries are rejected and whole numbers are clamped to the configured range.
 - **Bool** controls have a label and small on/off toggle.
 - Controls appear in one flat row that wraps as needed. There are no controller groups, MIDI assignments or automation controls in audition.
-- Hold a piano key to play, then release it to stop the note. Focused keys also respond to Space or Enter. The **−** and **+** buttons shift the two-octave keyboard. It uses fixed velocity, with no scale, mode or automatic chords. Starting audition does not hold a test note automatically.
+- Hold a piano key to play at fixed velocity, then release it. Focused keys also respond to Space or Enter. The **−** and **+** buttons shift the two-octave keyboard.
+- Enable **Autochord** to play three-note chords on the white keys. For example, C plays C–E–G and D plays D–F–A. Black keys play single notes.
 
 Controls start at the patch defaults. Changes are temporary and do not change the library patch or a performance. They survive stopping and restarting audition for the same instrument, and reset when you leave Instrument Design or switch instrument tabs. Changing a controller range or type reconciles its temporary value on the next start.
 
 Note instruments use changed values on the next note or phrase. Continuous instruments update live when all connected inputs support it; other settings require stopping and restarting audition. Hover over a control for its timing behavior. See [Using Performance Controls](../performance/performance_controllers.md).
+
+### Repeat a note or chord
+
+Play and release a key, then enable **Autoplay** to hear it repeat while you adjust the sound. You can also enable Autoplay first and then tap a key. Tap another key to change the repeated pitch. With **Autochord** on, each repeat plays the chord for that key.
+
+**Duration** sets how long each repeat is held (0.2–1 s, initially 0.5 s). **Interval** sets the time from one attack to the next (0.5–5 s, initially 1 s). If the duration reaches or exceeds the interval, the next attack releases and retriggers the notes. Turn off **Autoplay** to end the repeats and keep audition running. Leaving the browser window or stopping audition also ends repetition.
+
+![Audition keyboard repeating a C major chord with adjustable duration and interval](../../screenshots/instrument_audition_autoplay.png)
 
 ### Effects and continuous instruments
 

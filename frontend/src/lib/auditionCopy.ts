@@ -2,6 +2,9 @@ import type { GuiLanguage } from "../types";
 const english = {
   start: "Audition", stop: "Stop audition", preparing: "Preparing… · Cancel", stopping: "Stopping…",
   controls: "Audition controls", keyboard: "Audition keyboard", lower: "Octave down", higher: "Octave up",
+  autoChord: "Autochord", autoChordHint: "White keys play triads in C major. Black keys play single notes.",
+  autoplay: "Autoplay", autoplayHint: "Repeat the last key or chord.", playKey: "Play a key to start repeating.",
+  duration: "Duration", interval: "Interval", intervalHint: "Time between note starts.",
   mapping: "Audition needs a stereo main output. Effects need a stereo main input for the built-in test instrument.",
   stale: "Draft changed. Stop and restart audition to hear the changes.", stopFailed: "Could not stop the current performance.",
   noNotes: "This continuous instrument plays without MIDI notes.",
@@ -18,6 +21,9 @@ const copies: Record<GuiLanguage, Copy> = {
   german: {
     start: "Vorhören", stop: "Vorhören stoppen", preparing: "Vorbereiten… · Abbrechen", stopping: "Stoppen…",
     controls: "Vorhörregler", keyboard: "Vorhörtastatur", lower: "Oktave abwärts", higher: "Oktave aufwärts",
+    autoChord: "Autoakkord", autoChordHint: "Weiße Tasten spielen Dreiklänge in C-Dur. Schwarze Tasten spielen einzelne Töne.",
+    autoplay: "Automatisch spielen", autoplayHint: "Den letzten Ton oder Akkord wiederholen.", playKey: "Zum Wiederholen eine Taste spielen.",
+    duration: "Dauer", interval: "Intervall", intervalHint: "Zeit zwischen zwei Anschlägen.",
     mapping: "Vorhören benötigt einen Stereo-Hauptausgang. Effekte benötigen einen Stereo-Haupteingang für das integrierte Testinstrument.",
     stale: "Entwurf geändert. Vorhören stoppen und neu starten, um die Änderungen zu hören.", stopFailed: "Die aktuelle Performance konnte nicht gestoppt werden.",
     noNotes: "Dieses kontinuierliche Instrument spielt ohne MIDI-Noten.",
@@ -29,6 +35,9 @@ const copies: Record<GuiLanguage, Copy> = {
   french: {
     start: "Écouter", stop: "Arrêter l’écoute", preparing: "Préparation… · Annuler", stopping: "Arrêt…",
     controls: "Réglages d’écoute", keyboard: "Clavier d’écoute", lower: "Octave inférieure", higher: "Octave supérieure",
+    autoChord: "Accord automatique", autoChordHint: "Les touches blanches jouent des accords de trois notes en do majeur. Les touches noires jouent une seule note.",
+    autoplay: "Lecture automatique", autoplayHint: "Répéter la dernière note ou le dernier accord.", playKey: "Jouez une note pour lancer la répétition.",
+    duration: "Durée", interval: "Intervalle", intervalHint: "Temps entre deux attaques.",
     mapping: "L’écoute nécessite une sortie principale stéréo. Les effets nécessitent une entrée principale stéréo pour l’instrument de test intégré.",
     stale: "Brouillon modifié. Arrêtez et relancez l’écoute pour entendre les modifications.", stopFailed: "Impossible d’arrêter la performance actuelle.",
     noNotes: "Cet instrument continu joue sans notes MIDI.",
@@ -40,6 +49,9 @@ const copies: Record<GuiLanguage, Copy> = {
   spanish: {
     start: "Escuchar", stop: "Detener escucha", preparing: "Preparando… · Cancelar", stopping: "Deteniendo…",
     controls: "Controles de escucha", keyboard: "Teclado de escucha", lower: "Bajar octava", higher: "Subir octava",
+    autoChord: "Acorde automático", autoChordHint: "Las teclas blancas tocan tríadas en do mayor. Las teclas negras tocan notas sueltas.",
+    autoplay: "Reproducción automática", autoplayHint: "Repetir la última nota o el último acorde.", playKey: "Toque una tecla para iniciar la repetición.",
+    duration: "Duración", interval: "Intervalo", intervalHint: "Tiempo entre dos ataques.",
     mapping: "La escucha requiere una salida principal estéreo. Los efectos requieren una entrada principal estéreo para el instrumento de prueba integrado.",
     stale: "Borrador modificado. Detenga y reinicie la escucha para oír los cambios.", stopFailed: "No se pudo detener la interpretación actual.",
     noNotes: "Este instrumento continuo toca sin notas MIDI.",

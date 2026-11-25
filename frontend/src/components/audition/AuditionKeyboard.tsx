@@ -5,16 +5,18 @@ import type { GuiLanguage } from "../../types";
 const black = (note: number) => [1, 3, 6, 8, 10].includes(note % 12);
 const label = (note: number) => `${["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"][note % 12]}${Math.floor(note / 12) - 1} (${note})`;
 
-export function AuditionKeyboard({ initialNote, disabled, language, pressNote }: {
-  initialNote: number; disabled: boolean; language: GuiLanguage; pressNote: (note: number) => () => void;
+type KeyPress = { notes: number[]; release: () => void };
+
+export function AuditionKeyboard({ initialNote, disabled, language, playKey, repeatNotes }: {
+  initialNote: number; disabled: boolean; language: GuiLanguage; playKey: (note: number) => KeyPress; repeatNotes: number[];
 }) {
   const copy = auditionCopy(language);
   const [start, setStart] = useState(() => Math.min(108, Math.floor(initialNote / 12) * 12));
   const [held, setHeld] = useState<number[]>([]);
-  const presses = useRef(new Map<string, { note: number; release: () => void }>());
+  const presses = useRef(new Map<string, KeyPress>());
   const release = useCallback((id: string) => {
     presses.current.get(id)?.release(); presses.current.delete(id);
-    setHeld([...presses.current.values()].map(p => p.note));
+    setHeld([...presses.current.values()].flatMap(p => p.notes));
   }, []);
   const releaseAll = useCallback(() => {
     for (const press of presses.current.values()) press.release();
@@ -28,8 +30,8 @@ export function AuditionKeyboard({ initialNote, disabled, language, pressNote }:
   useEffect(() => { if (disabled) releaseAll(); }, [disabled, releaseAll]);
   const press = (id: string, note: number) => {
     if (disabled || presses.current.has(id)) return;
-    presses.current.set(id, { note, release: pressNote(note) });
-    setHeld([...presses.current.values()].map(p => p.note));
+    presses.current.set(id, playKey(note));
+    setHeld([...presses.current.values()].flatMap(p => p.notes));
   };
   const notes = Array.from({ length: Math.min(25, 128 - start) }, (_, i) => start + i);
   const whites = notes.filter(n => !black(n));
@@ -42,9 +44,10 @@ export function AuditionKeyboard({ initialNote, disabled, language, pressNote }:
     <div className="relative h-14 min-w-0 flex-1 overflow-hidden rounded border border-slate-700">
       {notes.map(note => {
         const isBlack = black(note), whiteIndex = whites.filter(n => n < note).length;
-        return <button type="button" key={note} aria-label={label(note)} aria-pressed={held.includes(note)} title={label(note)} disabled={disabled}
+        const active = held.includes(note) || repeatNotes.includes(note);
+        return <button type="button" key={note} aria-label={label(note)} aria-pressed={active} title={label(note)} disabled={disabled}
           style={{ left: `${(whiteIndex - (isBlack ? .31 : 0)) * keyWidth}%`, width: `${keyWidth * (isBlack ? .62 : 1)}%` }}
-          className={`absolute top-0 touch-none select-none rounded-b border-x border-b border-slate-500/50 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-500 ${isBlack ? "z-10 h-[62%]" : "h-full"} ${held.includes(note) ? "bg-cyan-400" : isBlack ? "bg-slate-900" : "bg-slate-200 hover:bg-slate-100"}`}
+          className={`absolute top-0 touch-none select-none rounded-b border-x border-b border-slate-500/50 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-500 ${isBlack ? "z-10 h-[62%]" : "h-full"} ${active ? "bg-cyan-400" : isBlack ? "bg-slate-900" : "bg-slate-200 hover:bg-slate-100"}`}
           onPointerDown={e => {
             if (e.button !== 0) return;
             e.preventDefault(); e.currentTarget.focus(); e.currentTarget.setPointerCapture(e.pointerId); press(`p:${e.pointerId}`, note);
