@@ -1,0 +1,14 @@
+[data-arranger-grab-body], [data-arranger-grab-body] * { cursor: grab; touch-action: none; }
+[data-arranger-grab-body]:active, [data-arranger-grab-body]:active * { cursor: grabbing; }
+/* At a wide window's edge, its header still trims and the narrow item below still moves. */
+:is([data-structure-node], [role=group])[data-arranger-grab-body] { z-index: 11; }
+
+/* Crowded controls leave the hit area and header layout. Tab can still reveal
+   and operate each one, even for a duration too short to fit at maximum zoom. */
+:is([data-arranger-grab-body], [data-arranger-crowded-header]) :is([data-structure-target], [data-transpose-target], [data-clip-add], [role=separator]) {
+  position: absolute;
+  pointer-events: none;
+}
+:is([data-arranger-grab-body], [data-arranger-crowded-header]) :is([data-structure-target], [data-transpose-target], [data-clip-add], [role=separator]):not(:focus-visible) {
+  opacity: 0;
+}

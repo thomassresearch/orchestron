@@ -50,7 +50,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
  const [error,setError]=useState<string|null>(null);
  const generation=useAppStore(s=>s.performanceWorkspaceGeneration);
  const suppressClick=useRef(false);
- const drag=useRef<{focus:StructureFocus;selection:StructureSelection;x:number;y:number;active:boolean;layout:StructureDropLayout;viewport:HTMLElement;lane:HTMLElement}|null>(null);
+ const drag=useRef<{focus:StructureFocus;selection:StructureSelection;x:number;y:number;active:boolean;sourceExpanded:boolean;layout:StructureDropLayout;viewport:HTMLElement;lane:HTMLElement}|null>(null);
  const scrollFrame=useRef<number|null>(null);
  const [drop,setDrop]=useState<{focus:StructureFocus;target:ContainerTarget;screenX?:number;screenY?:number}|null>(null);
  const dialog=useRef<HTMLDialogElement>(null);
@@ -210,9 +210,17 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
   if(!viewport||!lane)return;
   try {
    const layout=structureDropLayout(model,target(f),timings);
-   drag.current={focus:f,selection:focus&&equal(focus,f)&&selection?.ids.includes(id)?selection:{parent:f.parent,ids:[id],anchor:id},x:e.clientX,y:e.clientY,active:false,layout,viewport,lane};
-   e.currentTarget.setPointerCapture(e.pointerId);
+   drag.current={focus:f,selection:focus&&equal(focus,f)&&selection?.ids.includes(id)?selection:{parent:f.parent,ids:[id],anchor:id},x:e.clientX,y:e.clientY,active:false,sourceExpanded:lane.dataset.expanded==="true",layout,viewport,lane};
+   // Keep clicks on the original name or preview until a drag transfers capture to the viewport.
+   (e.target as Element).setPointerCapture(e.pointerId);
   } catch(e){setError(String(e));}
+ };
+ const dragDestinationLane = (event: PointerEvent) => {
+   const gesture = drag.current;
+   if (!gesture?.active) return;
+   const hovered = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-clip-lane]')?.dataset.clipLane;
+   // Keep a compact source lane stable under a horizontal drag. Other lanes expand for dropping.
+   if (gesture.sourceExpanded || hovered !== gesture.focus.laneId) return hovered;
  };
  const hitTarget=(x:number,y:number)=>{
   const d=drag.current;if(!d)return null;
@@ -427,7 +435,7 @@ export function useStructureEditor(model:ClipArrangement, sequencer:SequencerSta
    <button role="menuitem" className={clipButtonClass("add")} onClick={() => { setMenu(null); if (focus) add(focus,items.length); }}>{c.addContent}</button>
  </div>;
  const toolbar=<>{drop&&ghost&&<div aria-hidden className="pointer-events-none fixed z-50 h-16 border-l-2 border-cyan-300" style={{left:drop.screenX??ghost.x-12,top:drop.screenY??ghost.y-12}}/>}{resizeFeedback&&<p role="status" className="text-cyan-300">{resizeFeedback}</p>}{ghost&&<div className="pointer-events-none fixed z-50 rounded border border-cyan-300 bg-slate-900 px-3 py-2 text-xs text-cyan-100" style={{left:ghost.x,top:ghost.y}}>{ghost.count} · {c.content}</div>}{contextMenu}<WorkspacePanel name="inspector"><div className="my-2 flex flex-wrap items-center gap-2 text-xs text-slate-200">{focus&&<>{editButtons()}{selectedDefinition&&<span>{selectedDefinition.name} · <RelationshipSummary relationship={selectedRelationship} language={language}/></span>}<input aria-label={arrangeCopy(language).groupName} placeholder={arrangeCopy(language).groupName} value={groupName} onChange={e=>setGroupName(e.target.value)} className={clipInput}/><button className={clipButtonClass("add")} onClick={()=>add(focus,items.length)}>{t.add}</button><button disabled={!selection||spansPasses} className={clipButtonClass("remove")} onClick={()=>remove()}>{t.remove}</button><button disabled={!canGroup('group')} className={clipButtonClass("add")} onClick={()=>group('group')}>{c.group}</button><button disabled={!canGroup('supergroup')} className={clipButtonClass("add")} onClick={()=>group('supergroup')}>{c.supergroup}</button>{canUngroup&&<button className={clipButtonClass("edit")} onClick={()=>selection&&!spansPasses&&run({kind:'ungroup',parent:selection.parent,ids:selection.ids})}>{c.ungroup}</button>}<button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(-1)}>←</button><button disabled={!selection||spansPasses} className={clipButton} onClick={()=>moveBy(1)}>→</button><select disabled={spansPasses} aria-label={t.move} className={clipInput} value="" onChange={e=>{const dest=destinations[Number(e.target.value)];if(selection)run({kind:'move',parent:selection.parent,ids:selection.ids,target:{path:dest.path,index:dest.length}});}}><option value="">{t.move}</option>{destinations.map((d,i)=><option key={i} value={i}>{d.label}</option>)}</select></>}</div>{!containerEditing&&scopeControls}</WorkspacePanel>{error&&<p role="alert" className="text-rose-300">{error}</p>}{drop&&<p className="text-cyan-300">{t.insert} {drop.target.ticks!==undefined?`${drop.target.ticks/20160} ${c.beats}`:drop.target.index+1} · {containerLabel(drop.target.path)}</p>}{preview.error&&<p role="alert" className="text-rose-300">{preview.error}</p>}{preview.result&&draft&&<p className="text-xs text-slate-400">{sc.effects}: {preview.result.model.lanes.find(l=>l.id===draft.laneId)?.clips.filter(cl=>!equal(cl,draft.basis.clips.find(old=>old.id===cl.id))||scope==='all'&&affectedClipIds(relationships.get(draft.laneId),impact?.definitions??[]).includes(cl.id)).map(cl=>`${cl.name} (${cl.start/20160}–${(cl.start+cl.length)/20160})`).join(", ")}</p>}<WorkspacePanel name="dialogs">{modal}{scopeModal}</WorkspacePanel></>;
- return {scopeControls,selectedDefinition,selectedTarget,relationships,startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragging:()=>!!drag.current?.active,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,guardPattern,openEditor,remove,run,openSelectionMenu:(x:number,y:number)=>setMenu({x,y}),contextMenu:(f:StructureFocus,id:string,x:number,y:number,onSelected:()=>void)=>{
+ return {scopeControls,selectedDefinition,selectedTarget,relationships,startPointer:()=>{suppressClick.current=false;},consumeGestureClick:()=>{const suppressed=suppressClick.current;suppressClick.current=false;return suppressed;},add,nudge,resize,resizeDown,dragDestinationLane,draft,previewDraft,selection,focus,select,isSelected,extendSelection,clearSelection:()=>{setFocus(null);setSelection(null);cancelDrag();},guard,guardEdit,guardPattern,openEditor,remove,run,openSelectionMenu:(x:number,y:number)=>setMenu({x,y}),contextMenu:(f:StructureFocus,id:string,x:number,y:number,onSelected:()=>void)=>{
    const show=()=>{onSelected();setMenu({x,y});};
    const hit = [...f.parent, id];
    const depth = selection?.parent.length ?? hit.length;
