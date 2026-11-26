@@ -28,9 +28,9 @@ Language switching affects user-facing text such as:
 - Many labels inside advanced editors (including the GEN editor)
 
 <p align="center">
-  <img src="../../screenshots/integrated_help_pages_multilingual.png" alt="Integrated help pages in multiple languages" width="980" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/integrated_help_pages_multilingual.png" alt="Help dialog displayed in French" width="980" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Integrated help and UI localization in multiple supported languages.</em></p>
+<p align="center"><em>Choosing Français in the language menu also changes the text of the help dialog.</em></p>
 
 ## Integrated Help (`?` Buttons)
 
@@ -58,7 +58,7 @@ GUI languages.
 
 On the Instrument Design, Perform, and Audio settings pages, these help modals focus on the current tool, device, transport section, or engine setting panel instead of repeating generic UI conventions.
 
-![Mixer and clip arranger help buttons](../../screenshots/performance-help-buttons.png)
+![Project, view and Mixer help buttons in the current Perform navigation](../../screenshots/perform-navigation.png)
 
 <p align="center">
   <img src="../../screenshots/integrated_help_pages.png" alt="Integrated help pages" width="980" style="max-width: 100%; height: auto;" />

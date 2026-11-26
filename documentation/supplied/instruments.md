@@ -20,7 +20,7 @@ For processors that receive audio from another instrument, see [Standard Effects
 
 [Almost DX7](../instrument_design/fm6_voice.md) is a dry six-operator FM instrument with 32 starter sounds and an integer preset selector. Presets 13–20 add sub, rubber, fingered, picked, fretless, slap, hollow and growling basses. Presets 25–32 range from sustained wind to metallic strikes and sci-fi signals. Its FM6 editor provides eight algorithms, per-operator ADSRs and operator-6 feedback.
 
-The [Analog Drumkit](../../examples/instruments/analog_drumkit/README.md) has shared
+The [Analog Drumkit](../../examples/instruments/Analog_Drumkit.orch.instrument.json) has shared
 **BD snappiness** for notes 35/36, shared **Hi-hat tuning** for 42/46, and **Snare
 tuning** for 38. Each defaults to **1**, preserving the original sound. Side stick
 37, clap 39, electric snare 40, toms 41/43/45/47/48/50, crash 49, ride 51 and
@@ -42,8 +42,8 @@ Import its native bundle in Instrument Design, then add it to a performance to e
 
 ![Granular Synthesis controller groups](../../screenshots/granular_controller_groups.png)
 
-Minimoog Monophonic also groups its 40 controls by oscillator, modulation, noise,
-filter, envelopes and performance settings. Ambient Wavetable Cloud groups its
+[Minimoog Monophonic](../../examples/instruments/Minimoog_Monophonic.orch.instrument.json) also groups its 40 controls by oscillator, modulation, noise,
+filter, envelopes and performance settings. [Ambient Wavetable Cloud](../../examples/instruments/Ambient_Wavetable_Cloud.orch.instrument.json) groups its
 14 controls into Wavetable, Motion, Stereo, Envelope and Output & MIDI. These
 group names only organize the rack; sounds, controller IDs and saved settings
 remain unchanged.

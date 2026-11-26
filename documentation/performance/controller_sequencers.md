@@ -10,7 +10,7 @@ See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and edit
 
 ## Open and close the editor
 
-Double-click a pattern in the arranger to open its editor. **Cancel edits** discards this pattern draft. Closing a changed pattern lets you save, discard, or keep editing. Closing ends **Play edit** auditioning.
+Double-click a pattern in Arrange to open its editor. Closing the editor ends **Play edit** and keeps the draft. The arranger **Save** commits pending edits across tracks together. **Cancel** discards the pending batch.
 
 ## What A Controller Sequencer Does
 
@@ -25,7 +25,7 @@ Typical uses:
 
 ## Adding / Removing Controller Sequencers
 
-Choose **Add track → Controller** in the arranger, then add a clip and a pattern. Select a clip on the track to access **Remove track**. A performance can contain up to 16 controller sequencers.
+Choose **Add track → Controller** in the arranger, then open the new lane’s first clip to edit the pattern. Choose the target channels and CC number in the controller settings. Select a clip on the track to access **Remove track**. A performance can contain up to 16 controller sequencers.
 
 ## Per-Controller-Sequencer Controls
 

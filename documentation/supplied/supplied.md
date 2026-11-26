@@ -13,7 +13,7 @@ Use these guides to explore ready-made sounds and processors. Each guide links t
 
 ## Add an instrument to a performance
 
-A playable instrument creates sound from MIDI notes. Add it to the rack, assign an unused MIDI channel, and send notes from a piano roll or track on that channel. Route its Stereo Output to Master or through your chosen effects.
+A playable instrument creates sound from MIDI notes. With instruments stopped, choose **Compact rack → ＋** in Perform and select the saved patch. Use the MIDI channel on its rack entry for your piano roll or track. In **Mix → Routing**, check its Stereo Output connection to Master or an effect. In **Mix → Mixer**, balance the strip against the rest of the song.
 
 A continuous effect processes incoming audio while the instrument engine runs. It needs an audio source, not a note track. Use an insert to process one strip, or a send and return to share an effect across several sources. The Standard Effects guide explains both.
 

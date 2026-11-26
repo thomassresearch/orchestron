@@ -6,7 +6,7 @@
 
 ## Start with Almost DX7
 
-[Download Almost DX7](../../examples/instruments/fm/Almost_DX7.orch.instrument.json), import it in Instrument Design and save it. Add the instrument in Perform and route its Stereo Output to Master. Add reverb, chorus or delay as separate mixer effects if desired; the instrument itself contains none.
+[Download Almost DX7](../../examples/instruments/Almost_DX7.orch.instrument.json), import it in Instrument Design and save it. Add the instrument in Perform and route its Stereo Output to Master. Add reverb, chorus or delay as separate mixer effects if desired; the instrument itself contains none.
 
 Each new note reads the performance controls; held notes retain their original settings. Preset accepts whole numbers only. The instrument allows up to 16 simultaneous voices, including release tails.
 

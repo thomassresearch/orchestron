@@ -70,8 +70,7 @@ Select an instrument clip and use **Generate automation** to create one bound co
 
 ## Edit a pattern
 
-For a Score track, add a clip, use its inline **+** / **Add content → New pattern**,
-then double-click the nested pattern to open the **Score sequencer**. Hold its
+For a new Score track, double-click its first clip to open the **Score sequencer**. In a later empty clip, use its inline **+** and choose **New pattern**. Hold its
 piano keys to audition pitches or double-click them to append quarter notes.
 See the [Score pattern walkthrough](score_sequencers.md#create-a-score-pattern-in-the-clip-arranger).
 
@@ -98,9 +97,9 @@ To harmonize with an unsaved variation, start **Play edit**, then open **Keyboar
 
 ![The second Chorus pass auditioning a local variation with its editor and keyboard open](../../screenshots/perform-arrange-play-edit-keyboard.png)
 
-**Play** (triangle) and **Play edit** start instruments when needed. The tape controls provide rewind/forward by one beat, Play/resume, Pause, and Stop. Pause holds the song cursor; Stop returns to the selected loop start or song start. With the song stopped, Play edit auditions its target. With the song playing, the editor audition temporarily replaces its source lane while other lanes continue. Song start/stop/seek preserves the editor audition; Stop edit returns to the arrangement's current position or silence when the song is stopped. Audition state appears in the compact lane header. The open editor follows the audible pattern position with its existing step highlights, score playhead, controller cursor or arpeggiator status; standalone audition leaves the song cursor still. Closing the editor ends its audition. For a changed pattern, choose Save, **Discard edits**, or **Keep editing**. **Cancel edits** discards this pattern’s draft and closes it immediately. Leaving Perform ends the audition and keeps the draft for your return.
+**Play** (triangle) and **Play edit** start instruments when needed. The tape controls provide rewind/forward by one beat, Play/resume, Pause, and Stop. Pause holds the song cursor; Stop returns to the selected loop start or song start. With the song stopped, Play edit auditions its target. With the song playing, the editor audition temporarily replaces its source lane while other lanes continue. **Stop edit** returns the lane to the arrangement at its current position. Starting or stopping the song clears temporary auditions. Audition state appears in the compact lane header. The open editor follows the audible pattern position with its existing step highlights, score playhead, controller cursor or arpeggiator status; standalone audition leaves the song cursor still. Closing the editor ends its audition and keeps the pattern draft. Use the arranger **Save** to commit all pending edits or **Cancel** to discard the batch. Leaving Perform ends the audition and keeps the draft for your return.
 
-Arpeggiator **Play edit** waits for incoming notes or a chord on its input channel. Once notes arrive, its existing rhythm-step highlight and generated-note previews follow the audition. The source’s saved enable switch does not need to be on. Both save scopes preserve playback and its indicators when the saved performance is reloaded.
+Arpeggiator **Play edit** waits for incoming notes or a chord on its input channel. Once notes arrive, its existing rhythm-step highlight and generated-note previews follow the audition. The source’s saved enable switch does not need to be on. A reopened performance recalls the authored pattern. Start a new audition to preview it again.
 
 ![Arpeggiator audition with an input chord and current rhythm step](../../screenshots/clip-arranger-arpeggiator-playback.png)
 
@@ -112,15 +111,11 @@ Click a pattern, or click the first pattern and Shift-click the last, then turn 
 
 Select just the clip header before turning on **Loop** to repeat its full window. With no clip selected, it repeats the whole song from the start through **Song end**, including trailing silence. Click empty timeline space or the ruler outside a clip to deselect it; clicking a clip selects it again. Click **Loop** again to turn it off. This is separate from **Loop** in the clip inspector, which repeats its content only within the fixed clip window. The playhead and Position field follow song position through loops and remain stationary during standalone audition. Newly created clips are selected automatically.
 
-Loading selects a clip even when looping is off: a matching saved loop takes priority, then a clip at the cursor, then the earliest clip. Tracks stay compact and the editor stays closed. Explicitly clearing the selection stays cleared through Play, Stop and Rewind. You can toggle the loop without reopening its editor. See the [restored loop selection](../../screenshots/clip-arranger-restored-loop.png).
+Loading selects a clip even when looping is off: a matching saved loop takes priority, then a clip at the cursor, then the earliest clip. Tracks stay compact and the editor stays closed. Explicitly clearing the selection stays cleared through Play, Stop and Rewind. You can toggle the loop without reopening its editor.
 
 **Position** accepts a seek destination in master beats. While you edit it, playback continues without replacing your text or moving focus. Press Enter or leave the field to seek once; Escape cancels and resumes displaying the current song position. Empty or negative values are discarded. Loading or importing a performance clears an unfinished position edit.
 
-![Position draft retained while playback advances](../../screenshots/clip-arranger-position-edit.png)
-
 **Song end** shows the actual playback boundary in master beats, marked by a dashed amber line. Moving or shortening clips retains trailing silence. To stop at the last clip instead, press **Fit song to clips**, or enter a Song end at or beyond the final clip. This is an undoable arrangement edit, saved with the performance; it does not cut off clips. Position and Song end use master beats, while the ruler uses bar/beat labels.
-
-![Explicit song end and fitting to the last clip](../../screenshots/clip-arranger-song-end.png)
 
 Check **Follow playhead** beside **Zoom** to scroll the tracks during song playback. At first the vertical line moves across the tracks. When it reaches the middle, it stays there as the ruler and tracks scroll together. Once **Song end** is visible, scrolling stops and the line moves to the end. If the whole song fits on screen, the tracks stay still throughout playback.
 
@@ -142,17 +137,11 @@ Expand a track with different timing to see its local meter and speed below the 
 
 Move **Zoom** all the way left, or focus the slider and press **Home**, to see the entire song through **Song end**, including trailing silence. The overview adjusts when the song length or timeline width changes.
 
-![Full song at minimum zoom, including the trailing silence before the dashed Song end marker](../../screenshots/clip-arranger-full-song-zoom.png)
-
-![Loop enabled for the whole song with no clip selected](../../screenshots/clip-arranger-song-loop.png)
-
 Choose **Keyboard** to play below the timeline. For hands-on CC control, open **Live** and use the MIDI controller rows. Each device retains its Start/Stop and channel settings. Keyboard velocity, scale and Autochord are under **Keyboard settings**. The Auto/Live/Listening buffer policy applies as you play.
 
 Transport buttons wrap onto another row when the viewport or enlarged text leaves too little space. Track headers reserve less than half the viewport, leaving the timeline reachable at enlarged text sizes. Transposition controls wrap inside their dialog. The timeline keeps its own horizontal scrolling.
 
-![Upfront scope controls at a narrow viewport](../../screenshots/clip-arranger-scope-narrow.png)
-
-![Scope controls with enlarged text](../../screenshots/clip-arranger-scope-large-text.png)
+For the current scope controls, see [Edit and save](pattern_pads_and_pad_looper.md#edit-and-save).
 
 ## Assemble content directly on the timeline
 

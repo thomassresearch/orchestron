@@ -14,7 +14,7 @@ Import the [Goa Trance FM Lead instrument](../../examples/instruments/Goa_Trance
 
 ## Play and shape the sound
 
-The instrument combines cross-FM synthesis with two resonant high-pass filters. Start with its default performance settings and a modest mixer level. Try single notes before adding chords, then adjust the supplied controls while comparing the sound. Save Performance to keep the settings for that rack instance.
+The instrument combines cross-FM synthesis with two resonant high-pass filters. Start with its default performance settings and a modest mixer level. Play a short repeating note. Adjust **Modulation Index** and **Modulation Index 2** to hear each side of the cross-modulation, then change **Ratio** to alter their pitch relationship. **HP cutoff** and **Reson** shape the high-pass filters. Save Performance to keep the settings for that rack instance.
 
 The filters track pitch and velocity differently in the two channels. Resonance is limited automatically at settings that would otherwise make a filter unstable. The requested control value is retained, but effective resonance can stop increasing as you move higher in the register. The guard is evaluated for each new note.
 

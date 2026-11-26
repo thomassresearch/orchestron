@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](../supplied/supplied.md) | [Previous](../instrument_design/goa_trance_fm_lead.md) | [Next](../instrument_design/tube_overdrive.md)
 
-These supplied stereo effects can process individual instrument strips or the combined mix as Master inserts. They can also run as separate rack instruments receiving effect sends. Import and save an effect in Instrument Design to make it available in Perform.
+These supplied stereo effects can process individual instrument strips or the combined mix as Master inserts. They can also run as separate rack instruments receiving effect sends. Import and save an effect in Instrument Design to make it available in Perform. For a speech-shaped carrier, see the [Vocoder controls and wiring](../instrument_design/continuous_effects.md#vocoder).
 
 ## Effect Guides
 

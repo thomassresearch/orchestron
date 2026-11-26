@@ -12,9 +12,9 @@ See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and edit
 
 ## Open and close the editor
 
-Double-click a pattern in the arranger to open its editor. **Cancel edits** discards this pattern draft. Closing a changed pattern lets you save, discard, or keep editing. Closing ends **Play edit** auditioning.
+Double-click a pattern in Arrange to open its editor. Closing the editor ends **Play edit** and keeps the draft. The arranger **Save** commits pending edits across tracks together. **Cancel** discards the pending batch.
 
-![Melodic pattern editor with occurrence breadcrumb, draft controls and step grid](../../screenshots/melodic-pattern-editor.png)
+![A saved C–D–G pattern below the Arrange timeline, with the lane, editing scope and Play edit visible](../../screenshots/first-performance-pattern.png)
 
 ## Global Sequencer Clock
 
@@ -27,7 +27,7 @@ The backend runs the step timing (native runtime clock), which reduces browser t
 
 ## Adding / Removing Melodic Sequencers
 
-Choose **Add track → Melodic** in the arranger, then add a clip and a pattern. Select a clip on the track to access **Remove track**. A performance can contain up to 16 melodic sequencers.
+Choose **Add track → Melodic** in the arranger, choose the destination instrument in the new lane’s channel menu, then double-click the first clip to edit its pattern. Select a clip on the track to access **Remove track**. A performance can contain up to 16 melodic sequencers.
 
 ## Per-Sequencer Controls
 

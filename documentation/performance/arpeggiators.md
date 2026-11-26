@@ -26,7 +26,7 @@ Straight, triplet and dotted rates use musical beat positions. Swing alternates 
 
 ## Musical patterns
 
-Choose **Add track → Arpeggiator** in the arranger, add a clip and a pattern, then double-click the pattern to edit it. Each pattern stores its order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed.
+Choose **Add track → Arpeggiator** in the arranger, then double-click the first clip to edit its arpeggiator pattern. Each pattern stores its order, rate, octave range, transpose, expression, harmony, rhythm, rotation and random seed.
 
 Rhythm length and pattern duration are independent. A rhythm has 1–32 steps; pattern duration is 1–8 or 16 master beats. A five-step rhythm can continue through repeated four-beat occurrences of the same pattern. Changing patterns restarts the musical cursors. Arrangement rests silence output while incoming pitches continue to be tracked.
 

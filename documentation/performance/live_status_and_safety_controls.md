@@ -76,7 +76,7 @@ This helps you understand why a track button press did not take effect immediate
 
 ## Error Banner (Transport / Runtime Errors)
 
-The Perform page displays an error banner for problems such as:
+Select the error in the bottom status bar to see the full message. The message identifies problems such as the following.
 
 - no active instrument session when trying to start sequencers
 - trying to play piano roll notes before the instrument engine is ready
@@ -90,11 +90,11 @@ Notes, controller curves, tempo and arrangement edits keep the transport at its 
 
 Automatic pad changes, playhead movement and status updates do not resubmit the performance configuration. Queued pad launches still wait for their usual pad boundary. Stop cancels pending configuration application. Shortening a finite arrangement past the current position stops playback without rewinding.
 
-If preparation fails, the error banner reports it and the previous configuration continues playing. Your edit remains in the editor. Make another edit or explicitly restart to try again; the app does not continuously retry a failed update. Saving and exporting retain the existing file formats.
+If preparation fails, the status bar reports it and the previous configuration continues playing. Your edit remains in the editor. Make another edit or explicitly restart to try again; the app does not continuously retry a failed update. Saving and exporting retain the existing file formats.
 
 ## MIDI Input Reference
 
-The footer's MIDI input display reflects the session's bound external MIDI input (selected in the Instrument Design Runtime panel). If it shows `internal:loopback`, internal app MIDI is still active, but external hardware/DAW MIDI will not reach the session until a helper-provided input is bound.
+The footer's MIDI input display reflects the session's bound external MIDI input (selected in the Instrument Design Runtime panel). If it shows **Internal Loopback**, internal app MIDI is still active, but external hardware/DAW MIDI will not reach the session until a helper-provided input is bound.
 
 See [Runtime Panel and Compilation Workflow](../instrument_design/runtime_panel_and_compilation.md) and [MIDI Setup and Inputs](../configuration/midi_setup_and_inputs.md).
 

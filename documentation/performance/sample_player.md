@@ -8,7 +8,7 @@ pitch and speed. Notes with no assignment are silent.
 
 ## Assign and hear a sample
 
-1. In **Perform → Mix → Rack**, choose **Add instrument/effect**, search for **Sample Player** and select its name to create the slot.
+1. If Sample Player is missing from your library, import the [Sample Player instrument](../../examples/instruments/Sample_Player.orch.instrument.json) in Instrument Design. In **Perform → Mix → Rack**, choose **Add instrument/effect**, search for **Sample Player** and select its name to create the slot.
 2. Open **Samples**. Enter a MIDI note from **0 to 127** and choose **Assign file**.
 3. Select a row and choose **Preview** to hear it through the instance’s mixer routing.
 4. To change a note number, type in its number field and press Enter or leave the field.
@@ -29,8 +29,7 @@ canceled upload keeps the previous file. An occupied note number keeps its origi
 
 ![An occupied note keeps its existing assignment](../../screenshots/performance_sample_player_collision.png)
 
-Choose **Stop Instruments** to make changes. Stopping only the arranger leaves assignments
-locked. You can still inspect and preview mapped notes while the instrument engine runs.
+Choose **Stop Instruments** to make changes. Assignments stay locked while the instrument engine is running. You can still inspect and preview mapped notes while the instrument engine runs.
 
 ![The running engine locks changes to the sample map](../../screenshots/performance_sample_player_locked.png)
 

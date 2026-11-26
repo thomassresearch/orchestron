@@ -51,7 +51,7 @@ The toolbar includes:
 ### New
 
 - Opens the built-in creation chooser: Playable instrument, Drumset, Audio effect, Audio Output, or Empty patch.
-- Creates an unsaved draft with the selected starter graph and default engine settings.
+- Creates an unsaved draft from the selected starter graph. Compilation and audition use the current project’s engine settings.
 - This draft is not yet stored in the patch library until `Save` is used.
 
 ### New from Template
@@ -110,7 +110,7 @@ The toolbar includes:
 
 ## Built-in creation choices
 
-New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Audio effect (stereo pass-through), Audio Output (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to the fixed Master when added to a performance.
+New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Drumset, Audio effect (stereo pass-through), Audio Output (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to the fixed Master when added to a performance.
 
 ### Choose a starter
 
@@ -123,11 +123,6 @@ New and New from template offer Playable instrument (MIDI pitch/velocity, sine o
 | Empty patch | Melody; empty graph for custom design | Build and compile the required signal path. |
 
 Role describes the patch's audio interface; Instrument Type determines whether it runs continuously or on MIDI notes. Audio effect and Audio Output starters use Continuous; use Effects / Noise for MIDI-triggered sound effects. Every performance has a fixed internal Master. It has no editable patch or rack assignment; add processing through its mixer inserts.
-
-<p align="center">
-  <img src="../../screenshots/instrument_builtin_patch_chooser.png" alt="Built-in patch creation chooser" width="600" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>New opens the starter chooser even when no saved templates exist.</em></p>
 
 ## Older patches and saved metadata
 

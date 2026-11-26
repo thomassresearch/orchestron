@@ -39,7 +39,7 @@ Create or load an instrument, connect its graph, compile and audition it, then s
 <p align="center">
   <img src="../../screenshots/instrument_toolbar_current.jpg" alt="Instrument Design page overview" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Instrument Design with the First Sound starter. The page and language selectors stay above the graph. Open Show runtime to inspect compilation output.</em></p>
+<p align="center"><em>Instrument Design with the First Sound starter. The page and language selectors stay above the graph. Choose Show Runtime to inspect compilation output.</em></p>
 
 ## Recommended Workflow
 

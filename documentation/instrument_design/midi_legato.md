@@ -37,7 +37,7 @@ this default.
 
 ## Expressive tenor saxophone example
 
-[Tenor Saxophone — Expressive Legato](../../examples/instruments/tenor_saxophone/README.md)
+[Tenor Saxophone — Expressive Legato](../../examples/instruments/Tenor_Saxophone_Expressive_Legato.orch.instrument.json)
 uses one continuous STK reed model with velocity-sensitive breath, reed response,
 filtering and loudness. Play concert A♭2–E5 (MIDI 44–76); there is no automatic
 tenor transposition. Route **Stereo Output → Master** in Perform.
@@ -61,8 +61,7 @@ The native model fixes pitch at initialization, so period-synchronous delay
 readouts transpose the same reed signal for legato and overblowing. The readout
 can add up to two initial note periods of delay, and wide leaps can color the
 timbre. The graph stays editable using existing opcodes. Csound STK and its
-rawwave data are required and included in Orchestron's Docker image. The example
-guide includes native import instructions, control translations and WAV previews.
+rawwave data are required and included in Orchestron's Docker image. The [example guide](../../examples/instruments/tenor_saxophone/README.md) includes import instructions, control translations and WAV previews.
 
 ## Further reading
 

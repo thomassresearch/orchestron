@@ -14,7 +14,7 @@ The Runtime panel supports live testing of the current patch and exposes compile
 <p align="center">
   <img src="../../screenshots/instrument_runtime_panel_browser_clock_active.png" alt="Runtime panel with active browser-clock PCM status, queue diagnostics and session events" width="560" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Runtime panel showing MIDI input selection, generated ORC, active browser-owned PCM runtime, queue diagnostics and recent session events.</em></p>
+<p align="center"><em>Runtime shows the MIDI input, compilation output, browser audio status and recent session events.</em></p>
 
 ## MIDI Input Binding
 
@@ -113,7 +113,7 @@ Note instruments use changed values on the next note or phrase. Continuous instr
 
 ### Repeat a note or chord
 
-Play and release a key, then enable **Autoplay** to hear it repeat while you adjust the sound. You can also enable Autoplay first and then tap a key. Tap another key to change the repeated pitch. With **Autochord** on, each repeat plays the chord for that key.
+Play and release a key, then enable **Autoplay** to hear it repeat while you adjust the sound. You can also enable Autoplay first and then tap a key. Tap another key to change the repeated pitch. Switch **Autochord** on or off to change the repeated key between a triad and a single note. Black keys remain single notes.
 
 **Duration** sets how long each repeat is held (0.2–1 s, initially 0.5 s). **Interval** sets the time from one attack to the next (0.5–5 s, initially 1 s). If the duration reaches or exceeds the interval, the next attack releases and retriggers the notes. Turn off **Autoplay** to end the repeats and keep audition running. Leaving the browser window or stopping audition also ends repetition.
 

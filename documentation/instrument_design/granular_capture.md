@@ -5,7 +5,7 @@
 **Granular Capture** is one continuous stereo effect with Stutter and Granular playback and a shared Freeze control. Add it as a mixer insert, feed its grouped stereo input, and route its grouped output onward. It records incoming audio continuously, even while playing a frozen snapshot. The two channels keep separate samples and share capture timing and grain positions.
 
 <p align="center">
-  <img src="../../screenshots/granular_capture_library.png" alt="Granular Capture compiled in Instrument Design" width="560" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/granular_capture_library.png" alt="Granular Capture synthesis graph in Instrument Design" width="950" style="max-width: 100%; height: auto;" />
 </p>
 
 ## MIDI switches

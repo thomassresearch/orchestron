@@ -37,7 +37,7 @@ Press **Play** to hear your pattern at its place in the song. If the song is alr
 
 **Cancel** restores all pending arrangement edits at the current playhead. Closing an editor keeps its changes available. Use **Save** to commit the batch, then **Save Performance** to write the library copy.
 
-Performance save, autosave and exports use saved definitions. Use the arranger **Save** first to include pending changes. Drafts survive view switches until you reload the browser. **Cancel** keeps you in the current view with your edits. If loading a replacement performance fails, your drafts are still available.
+Performance save, autosave and exports use saved definitions. Use the arranger **Save** first to include pending changes. Drafts survive view switches until you reload the browser. If New, Load or Import asks about pending drafts, cancel that operation to keep editing the current performance. If loading a replacement performance fails, your drafts are still available.
 
 ## Audition a phrase
 

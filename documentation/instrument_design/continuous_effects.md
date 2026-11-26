@@ -4,8 +4,6 @@
 
 These three continuous instruments process incoming stereo audio without MIDI notes. Add an instrument to the rack and use its grouped Stereo Input and Stereo Output as a mixer insert. Each instance has its own performance settings; controls marked **Live** update during playback, while **Requires restart** identifies I-rate or mixed connections. The examples include editable graphs and native instrument files.
 
-![Three continuous effects loaded in Instrument Design](../../screenshots/continuous_effects_library.png)
-
 ## Stereo Widener
 
 | Controller | Range | Default |

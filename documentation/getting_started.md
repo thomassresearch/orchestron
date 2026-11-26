@@ -11,36 +11,51 @@ This walkthrough creates a playable instrument and a short song using only the b
 3. Enter **First Sound** as the patch name. Keep the default Melody instrument type.
 4. Choose **Compile**. A successful compile shows that the graph is valid; it does not save or start it.
 
+![First Sound in the patch controls, with Melody selected and Compile and Save available](../screenshots/first-sound-patch-controls.png)
+
 See [the patch toolbar](instrument_design/patch_toolbar_and_tabs.md) if you want to import an existing sound instead.
 
 ## Hear and save it
 
-1. Open **Audition** in the graph header.
-2. Choose **Isolated**, leave the test MIDI note at **60**, and choose **Prepare audition**. When preparation finishes, choose **Stop and audition**. The preview sends the test note automatically.
-3. Choose **Close audition · transport stays stopped** when finished. Audition restores the previous setup with transport stopped.
-4. Choose **Save** to add First Sound to your instrument library.
+1. Choose **Audition** above the graph. When the button changes to **Stop audition**, press and hold **C4** on the mini keyboard, then release it. Use **−** or **+** to move down or up an octave.
+2. Turn on **Autochord** and play C4 again to hear C–E–G together. White keys play triads in C major. Black keys play single notes.
+3. Turn on **Autoplay** to repeat the last note or chord. Tap a different key to change it. **Duration** sets how long the notes sound and **Interval** sets the time between attacks. Turn off Autoplay to go back to playing by hand.
+4. Choose **Stop audition**, then **Save** to add First Sound to your library. If a performance was open, audition restores its playhead with transport stopped.
 
-The [draft audition guide](instrument_design/runtime_panel_and_compilation.md#audition-a-draft) explains each preview control and how to audition a changed instrument in a performance.
+![First Sound repeating C4, E4 and G4 with Autochord and Autoplay enabled](../screenshots/first-sound-audition.png)
+
+See [Audition a draft](instrument_design/runtime_panel_and_compilation.md#audition-a-draft) for effect previews and temporary sound controls.
+
+<!-- pagebreak -->
 
 ## Build a short performance
 
 1. Open **Perform**, choose **Project → New**, then reopen **Project** and enter **First Performance** as the performance name.
-2. Close **Project** and open **Mix → Rack → Add Instrument**. With only one saved instrument, First Sound is selected automatically; otherwise select it in the patch picker. Set its MIDI channel to **1**.
-3. Choose **Mixer** in Mix. Check that First Sound reaches **Master**, with both strips unmuted. The built-in starter receives this route automatically.
-4. Return to **Arrange**. Choose **Add track → Melodic** below the tracks. In the new track header, choose **CH01 · First Sound**, then double-click its first clip to open the pattern editor.
-5. Check that the track sends to MIDI channel **1**. Leave the default 4/4 meter, sixteenth-note subdivision and octave **4**. In the first three step positions, replace **Rest** with **C**, **D**, and **G**; leave the remaining steps as rests.
-6. Choose **Play edit** to hear the draft, then **Stop edit** and the arranger **Save**.
-7. Choose **Play** in the arranger. It starts stopped instruments automatically and plays the saved pattern inside its clip.
-8. Choose **Stop** to finish. Instruments that Play started are stopped again; an engine that was already running stays running.
+2. Close **Project**. In **Arrange**, open **Compact rack** in the top bar. With the instruments stopped, choose **＋** at the right of the rack. Expand **Melody** and select **First Sound**. Its rack entry shows **Patch 1 · MIDI Ch. 1** in the new performance.
+3. Choose **Mix**, then **Routing** in the row below it. Follow the cable from First Sound’s **Stereo Output** to **Master**, then on to **Audio Output**. The playable starter gets this route automatically.
+4. In the same row, choose **Mixer**. Find the First Sound and Master strips, leave both at **0 dB** and make sure **Mute** is off on each. See the [channel strips in Mix → Mixer](performance/audio_mixer_and_routing.md#mix-a-performance).
 
-On a small screen, choose **Back to overview** to see the timeline after editing.
+![The compact rack in Arrange with First Sound on channel 1 and the add button at the far right](../screenshots/first-sound-compact-rack.png)
 
-Read [melodic step editing](performance/sequencer_tracks_and_steps.md) for note entry and [the arranger](performance/multitrack_arranger.md) for clip editing. Pattern length and the clip's window are separate: resizing a clip does not erase notes.
+![Mix → Routing showing the starter connected to Master and Audio Output](../screenshots/first-performance-routing.png)
+
+<!-- pagebreak -->
+
+### Enter and play three notes
+
+1. Return to **Arrange** and choose **Add track → Melodic** below the timeline. In the new lane’s channel menu select **CH01 · First Sound**. Double-click the first clip, **#1**, to open its pattern editor.
+2. Leave the default meter and subdivision. In steps **1**, **2** and **3**, change the pitch from **Rest** to **C**, **D** and **G** respectively. Keep the other steps as rests.
+3. Choose **Play edit** to preview the pattern, then **Stop edit**. Choose the arranger **Save** in the top bar to commit the notes.
+4. Choose transport **Play** to hear the pattern on the timeline, then **Stop**. If the instrument engine is still running, choose **Stop Instruments** before starting or loading another project.
+
+![The saved melodic pattern with C, D and G in the first three steps](../screenshots/first-pattern-steps.png)
+
+On a small screen, choose **Back to overview** to see the timeline. See [melodic step editing](performance/sequencer_tracks_and_steps.md) for note entry and [the arranger](performance/multitrack_arranger.md) for clip editing.
 
 ## Save and reopen
 
 1. Save any open pattern or structure draft. **Play edit** alone does not commit changes.
-2. Choose **Save Performance**.
+2. Choose **Save Performance** in the top bar to store the named project.
 3. Choose **Project → New**, then reopen **Project** and select **First Performance** under **Load Performance**. Confirm that First Sound and the melodic clip return, and choose arranger **Play** again.
 4. Use **Project → Export** for a portable, editable backup of the performance and its instruments.
 
@@ -48,11 +63,8 @@ Reload recovery is useful, but use explicit saves for work you intend to keep. S
 
 ## If you hear no sound
 
-- Check your device volume and browser audio permissions; interact with the page if the browser has not enabled audio yet.
-- Confirm that the instrument compiled and was saved as a normal instrument, not a template.
-- Check that the track or piano roll sends to the rack instrument's MIDI channel.
-- Check the instrument strip and Master routing, levels and mute controls.
-- Check that your clip contains a saved pattern and that the playhead passes through it.
-- Open the Runtime or Perform status display for an error or audio-queue warning. See [Live Status and Troubleshooting](performance/live_status_and_safety_controls.md).
+- Check your device volume, interact with the browser to enable audio, and read any message in the Perform status bar.
+- In **Arrange**, check that the playhead crosses the saved notes and that the lane targets **CH01 · First Sound**.
+- In **Mix → Routing**, follow First Sound to Master. In **Mix → Mixer**, check both mute buttons, gains and meters. See [Live Status and Troubleshooting](performance/live_status_and_safety_controls.md).
 
 **Navigation:** [Up](user_documentation.md) | [Previous](user_documentation.md) | [Next](instrument_design/instrument_design.md)

@@ -38,7 +38,7 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 ## What You Can Do Here
 
 - Assemble an instrument rack from saved patches and assign MIDI channels
-- Map WAV and MP3 files to MIDI notes on each Sample Player instance
+- Map WAV, MP3 and M4A files to MIDI notes on each Sample Player instance
 - Mix audio with dB faders, pan/balance, mute/solo, meters, inserts and pre/post sends
 - Route instruments and returns through Master or explicit direct paths
 - Start/stop the instrument engine session
@@ -55,10 +55,10 @@ New performances start in the [multitrack arranger](multitrack_arranger.md) with
 ## Practical Workflow
 
 1. Save at least one patch in Instrument Design.
-2. Open **Mix → Rack**, add instruments and assign channels.
+2. Open **Compact rack** and choose **＋** to add a saved instrument. Its entry shows its MIDI channel. Use **Mix → Rack** to change assignments or reorder instruments.
 3. Open **Mix → Routing**, click an output socket, then click the effect, Master or output destination. Guided instruments connect to Master automatically.
-4. Check the highlighted routes and ports, then choose **Start Instruments**. Adjust existing mixer controls during playback.
-5. Choose **Add track**, add clips and patterns, then edit their musical content. Choose the scope for shared content, then save the arrangement edits together.
+4. Open **Mix → Mixer** to check gain and mute on the instrument and Master strips. Choose **Start Instruments** when ready to play.
+5. In **Arrange**, choose **Add track**, assign the new lane to an instrument and open its first pattern. Choose the scope for shared content, then save the arrangement edits together.
 6. Save the performance to retain the rack, routes and current mix.
 7. Export the performance bundle for backup/sharing, or use `Export CSD (MIDI)` / `Export CSD (SCORE)` when you need an offline Csound render package.
 
@@ -133,7 +133,7 @@ On a narrow or short screen, **Back to overview** returns from the editor. With 
 
 On a short landscape screen, **Back to overview** sits beside the song transport. The grid opens above the keys. On a short screen, swipe across the editor toolbar to reach further actions. If a save or playback error appears, select the red message in the status bar to read and scroll its full text. Press Escape or tap the message again to close it.
 
-![Arrange on a 640 × 360 screen with editable steps above the keyboard and a save error in the status bar](../../screenshots/perform-arrange-short-error.png)
+![Arrange on a 640 × 360 screen with the drum editor, keyboard, Back to overview control and a transport message in the status bar](../../screenshots/arrange-small-editor.png)
 
 ![The Inspector drawer showing clip properties on a phone](../../screenshots/perform-workspace-shell-drawer.png)
 

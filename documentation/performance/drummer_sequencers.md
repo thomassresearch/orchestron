@@ -12,7 +12,7 @@ See [Sequencer timing](sequencer_timing.md) for triplets, beat grouping and edit
 
 ## Open and close the editor
 
-Double-click a pattern in the arranger to open its editor. **Cancel edits** discards this pattern draft. Closing a changed pattern lets you save, discard, or keep editing. Closing ends **Play edit** auditioning.
+Double-click a pattern in Arrange to open its editor. Closing the editor ends **Play edit** and keeps the draft. The arranger **Save** commits pending edits across tracks together. **Cancel** discards the pending batch.
 
 ![Drummer pattern editor during Play edit](../../screenshots/clip-arranger-edit-playback.png)
 
@@ -27,7 +27,7 @@ Compared to melodic sequencers, drummer sequencers:
 
 ## Adding / Removing Drummer Sequencers
 
-Choose **Add track → Drummer** in the arranger, then add a clip and a pattern. Select a clip on the track to access **Remove track**. A performance can contain up to 16 drummer sequencers.
+Choose **Add track → Drummer** in the arranger, choose the drum instrument in the new lane’s channel menu, then open its first clip to edit the pattern. Select a clip on the track to access **Remove track**. A performance can contain up to 16 drummer sequencers.
 
 ## Per-Drummer-Sequencer Controls
 

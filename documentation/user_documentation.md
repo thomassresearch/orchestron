@@ -26,13 +26,11 @@ Orchestron lets you build instruments, arrange music and perform it in your brow
 
 Follow [Getting Started](getting_started.md) to make a sound and save a short performance. No external MIDI keyboard or existing instrument library is required. If Orchestron is not running yet, use the [installation and startup instructions](../README.md#install-and-open-orchestron).
 
-The app has three working areas:
+The header gives access to the two workspaces and their settings.
 
 - **Instrument Design** creates, edits and saves individual instruments and effects.
-- **Perform** has three views. Build the song in **Arrange**, launch pads and play the keyboard in **Live**, and balance or route instruments in **Mix**. Each view remembers where you were.
+- **Perform** has three views. Build the song in **Arrange** and launch pads in **Live**. Under **Mix**, choose **Mixer** for levels, **Rack** for instrument assignments or **Routing** for connections. Each view remembers where you were.
 - The **Audio settings** gear opens project engine settings and browser playback preferences from either workspace. The adjacent language menu changes the interface and integrated help.
-
-Read Instrument Design before Performance when learning the whole app. For ready-made sounds, go directly to Supplied Instruments and Effects. Configuration and the optional authoring tools can be consulted when needed.
 
 ## Manual contents
 

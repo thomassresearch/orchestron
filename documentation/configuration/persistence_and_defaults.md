@@ -36,8 +36,8 @@ Save library entries to keep and share your work. Workspace recovery helps you r
 ## Before leaving a session
 
 1. Save instrument changes you want to keep in the library.
-2. Save or discard open pattern and structure drafts, with the intended linked/local editing scope.
-3. Save the performance.
+2. In Arrange, choose **Save** to keep pending pattern and clip edits together. **Cancel** discards the pending batch.
+3. Choose **Save Performance** to store the committed song, rack and mix in the library.
 4. Export important work as a native bundle for a separate backup.
 
 Recovered instrument tabs can contain unsaved graph edits. Musical and structural drafts are session-only: resolve them before reloading.

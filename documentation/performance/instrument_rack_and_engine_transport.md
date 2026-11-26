@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](sample_player.md)
 
-Open **Perform → Mix → Rack** to assign instruments and channels. **Start Instruments** and **Stop Instruments** are available from every Perform view.
+In any Perform view, open **Compact rack** and choose **＋** to add an instrument. Open **Mix → Rack** to change channel assignments and reorder instruments. **Start Instruments** and **Stop Instruments** are available from every Perform view.
 
 ## Adaptive Expanded Rack
 
@@ -18,7 +18,7 @@ See [Performance Controllers](performance_controllers.md) for grouping rules.
 
 **Mix → Rack** shows knobs, controller groups, MIDI CC assignments and sample maps on each instrument card. Click its patch number to select it. Shift-click another patch number to add or remove an instrument.
 
-![Full Mix rack with instrument assignments and controls](../../screenshots/perform-mix-full-rack.png)
+![Mix → Rack showing playable instruments, channel assignments and continuous effects](../../screenshots/perform-mix-full-rack.png)
 
 ## Add a Sample Player
 
@@ -26,19 +26,23 @@ Choose **Add instrument/effect**, search for **Sample Player** and select it to 
 Open **Samples** on the card to assign WAV, MP3 or M4A files to MIDI notes. Each instance has its own
 map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
-![Sample Player selected through the normal instrument rack](../../screenshots/performance_sample_player_rack.png)
+![Sample Player rack card with its MIDI channel and Samples control](../../screenshots/performance_sample_player_rack.png)
 
 ## Compact Rack
 
 Select **Compact rack** in the top band of Arrange, Live or Mix. The rack opens below the navigation tabs. Click one instrument. Hold **Shift** and click others to add or remove them. With the keyboard, focus an entry and press **Shift+Enter** or **Shift+Space**. The patch number and MIDI channel distinguish instances of the same instrument.
 
-With the instruments stopped, click the **+** at the right of the compact rack to browse instruments by category or search. To remove a rack instance, right-click it or focus it and press **Shift+F10**, then choose **Remove instrument**. If a track uses it, the warning lists the tracks to reassign first.
+With the instruments stopped, click **＋** (**Add Instrument**) at the right of the compact rack. Expand a category or search by name, then choose the patch. The selected entry shows the next available MIDI channel for a playable instrument, or **Continuous** for an effect.
+
+![First Sound selected in the compact rack in Arrange, with the add button at the far right](../../screenshots/first-sound-compact-rack.png)
+
+To remove a rack instance, right-click it or focus it and press **Shift+F10**, then choose **Remove instrument**. If a track uses it, the warning lists the tracks to reassign first.
 
 Choose **Instrument controls** beside the rack entries to open the selection and its insert effects. Arrange shows the controls below the timeline. Live opens them in Mix. To adjust one lane’s sound, click **Controllers** beside its **Mute** and **Solo**. Choose **Back to editor** to return to your open clip or pad.
 
 ![Arrange showing Controllers beside Mute and Solo, the selected clip on the timeline, and its instrument and Stereo Chorus insert in the lower panel](../../screenshots/perform-arrange-instrument-controls.png)
 
-**Samples** and **Routing** use the most recently selected instrument. **Manage rack** opens the full rack in Mix.
+From Arrange or Live, **Manage rack** opens **Mix → Rack**, **Routing** opens **Mix → Routing**, and **Samples** opens the selected Sample Player’s map. Inside Mix, use the **Mixer**, **Rack** and **Routing** tabs.
 
 ## Performance Metadata and Library Actions
 
@@ -72,14 +76,9 @@ With the instrument engine stopped, drag a card's `::` handle onto another card 
 
 The compact rack and mixer strips follow this order. Master stays pinned at the right of the mixer, and insert processors remain inside their owner's insert chain. Moving a rack card changes display order without changing MIDI channels, routing, insert processing order, or controller and mixer values. Autosave, Save/Load, Clone, and native export/import preserve the instrument order.
 
-<p align="center">
-  <img src="../../screenshots/perform_instrument_rack_transport_controls.png" alt="Instrument Rack with drag handles and a divider between note-triggered instruments and continuous effects" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>World Drumkit and Lake Bamboo Flute sit above the thin divider, with continuous compressor and reverb below. The :: handles reorder instruments within each group while the engine is stopped.</em></p>
-
 ### Instrument Controls
 
-Patches containing [`perf_controller`](performance_controllers.md) show five compact tuning knobs per standard rack-card row; extras wrap below. They remain editable while playing. New notes use updated values. Continuous controls marked **Live** update during playback. **Requires restart** identifies I-rate or mixed connections. Both CSD export modes use initialization values for continuous controls. Open the rack’s **?** help and look for **Performance Controllers** for details. Save Performance stores explicit overrides.
+Patches containing [`perf_controller`](performance_controllers.md) show knobs, integer fields or switches on their rack cards. The controls wrap to fit the available width. They remain editable while playing. New notes use updated values. Continuous controls marked **Live** update during playback. **Requires restart** identifies I-rate or mixed connections. Both CSD export modes use initialization values for continuous controls. Open the rack’s **?** help and look for **Performance Controllers** for details. Save Performance stores explicit overrides.
 
 The [Mixer in Mix](audio_mixer_and_routing.md) provides audio faders, pan/balance knobs, mute/solo, pre/post sends, inserts and meters. The old numeric Level field has been removed. Mixer gain affects held notes and external MIDI audio without changing note velocity.
 
@@ -93,7 +92,7 @@ While instruments run, adding/removing assignments, changing patch/channel assig
 - Continuous effects run as explicit rack instances. Adding an insert creates a dedicated instance automatically; simply saving an effect in the library does not start it.
 - The button is unavailable while the engine is running; stop instruments before changing rack assignments.
 
-![Add Instrument with the Melody category expanded above the full rack](../../screenshots/perform-rack-add-instrument.png)
+![Add instrument/effect with the Melody category expanded](../../screenshots/perform-rack-add-instrument.png)
 
 ## Rack Transport (Instrument Engine Control)
 
@@ -127,6 +126,6 @@ If an engine or transport action fails, read the full error in the status bar at
 
 - Save the performance after significant changes (rack assignments, sequencers, piano rolls, controller mappings).
 - Use distinct MIDI channels for note-triggered rack instances.
-- Use `sname` labels on source `outleta` nodes to name the available matrix channels. The label can be stored directly on the node or supplied by a direct `const_s` connection.
+- Use `sname` labels on source `outleta` nodes to name the output ports shown in **Mix → Routing**. The label can be stored directly on the node or supplied by a direct `const_s` connection.
 
 **Navigation:** [Up](performance.md) | [Previous](performance.md) | [Next](sample_player.md)

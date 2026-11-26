@@ -4,7 +4,7 @@
 
 Open **Live** for manual MIDI controllers. Each card shows its target MIDI channels and the rack instruments assigned to them. Use its channel checkboxes to change the destinations for the knob.
 
-Controllers use compact cards in both arranger layouts: one column on narrow screens, two on small screens, three on wide screens, and four on extra-wide screens. Additional controllers wrap onto the next row.
+In Live, controller cards wrap into rows as the window width changes.
 
 Use the pen beside the device name to rename it. See [Device Names](performance.md#device-names) for editing controls, validation, and import/export behavior.
 
@@ -38,7 +38,7 @@ Each controller lane includes:
 <p align="center">
   <img src="../../screenshots/perform_midi_controllers_knob_lanes_closeup.png" alt="MIDI controller knob lanes" width="980" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Compact manual MIDI controller cards below the clip arranger, with knobs, CC numbers, channel selections, and values.</em></p>
+<p align="center"><em>Manual MIDI controller cards in Live, with knobs, CC numbers, channel selections and values.</em></p>
 
 ## MIDI Channels
 

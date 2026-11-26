@@ -73,7 +73,9 @@ For DAW/app -> Orchestron MIDI routing on macOS:
 - Confirm `host-midi-helper` is running and uses the same token as the backend.
 - Restart the helper after changing system MIDI configuration.
 
-### Perform Page Footer Shows `midi input: internal:loopback`
+<a id="perform-page-footer-shows-midi-input-internalloopback"></a>
+
+### Perform shows Internal Loopback
 
 - Internal app MIDI is working.
 - External hardware/DAW MIDI will not reach the session until a helper-provided input is bound.

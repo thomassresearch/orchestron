@@ -4,7 +4,7 @@
 
 <a id="control-api"></a>
 
-Open **Perform**, then select **Mix** beneath the project and transport controls. In the row directly below **Mix**, choose **Mixer** for channel strips, **Rack** for instruments or **Routing** for audio connections. In **Mixer**, select a strip to edit its outputs and sends. The pinned Master controls audio routed into it. A **Direct Audio Output** badge identifies paths that bypass Master. These strips still respond to their own fader, balance, mute and solo.
+Open **Perform**, then select **Mix** beneath the project and transport controls. In the row directly below **Mix**, choose **Mixer** for channel strips, **Rack** for instruments or **Routing** for audio connections. In **Mixer**, select a strip to adjust its gain, balance and existing sends. Open **Routing** to connect its outputs. The pinned Master controls audio routed into it. A **Direct Audio Output** badge identifies paths that bypass Master. These strips still respond to their own fader, balance, mute and solo.
 
 Leaving Mixer releases its visible meters. When you return, the channel bank recalls its scroll position and shows current levels. Audio keeps playing while you work in another view.
 
@@ -18,7 +18,7 @@ The **?** beside **Arrange / Live / Mix** explains how the three Mix pages work 
 
 Open **Mix → Mixer** to balance the performance. Scroll the instrument and return strips left or right. **Master** stays on the right, and the stereo **Audio Output** meter below the strips shows what reaches the speakers. If Master is muted and that meter still moves, look for a strip marked **Direct Audio Output**. Mute that strip to check its contribution.
 
-![Mix with a direct-output strip selected, Master on the right and stereo Audio Output along the bottom](../../screenshots/perform-workspace-mix.png)
+![Mix → Mixer with the First Sound strip on the left, Master on the right and the stereo Audio Output meter below](../../screenshots/first-performance-mixer.png)
 
 Leave **Samples** open and start a preview. Use the kit’s **Mute** to silence and restore it, **Solo** to hear it on its own, or the dB field to match its level. These controls and the selected insert’s **Bypass** stay at the top of the strip. Scroll inside the lower part of the strip for pan, sends and routing.
 
@@ -30,22 +30,20 @@ Select a strip name and open **Instrument controls** to adjust the instrument an
 
 When the editor fills the pane, its header brings the focused channel, Master and the stereo **Audio Output** meter with it. On a short or narrow screen, use **Mixer channel** to switch between the focused instrument and Master. You can mute Master, adjust its level or compare a Master insert while the same sample or instrument stays open.
 
-![Landscape Mix with the keyboard open, channel controls above the instrument editor and the final stereo meter at the right](../../screenshots/perform-mix-short-comparison.png)
-
 To hear an insert change on a sustained sound, open **Keyboard** and hold a note or Autochord. You can start the chord in Live and carry it into Mix. With Space or Enter held on a piano key, drag a live insert knob with the mouse. On a touch screen, hold the key with one finger and turn the knob with another. Selecting an instrument for editing keeps the keyboard on its original MIDI channel.
 
 ![A held keyboard chord while adjusting the routed instrument’s filter cutoff in Mix](../../screenshots/perform-mix-held-chord.png)
 
-Use **Compact rack → Instrument controls** to open the whole selection below the Arrange timeline, or in Mix when opened from Live. In the full **Mix → Rack**, adjust controls directly on each instrument card. **Samples** and **Routing** follow the most recently selected instrument. **Manage rack** opens the full Rack for adding, assigning, reordering and removing instruments.
+Use **Compact rack → Instrument controls** to open the whole selection below the Arrange timeline, or in Mix when opened from Live. In the full **Mix → Rack**, adjust controls directly on each instrument card. **Samples** and **Routing** follow the most recently selected instrument. In Arrange or Live, **Manage rack** opens the full Rack. In Mix, select **Rack** in the second navigation row to assign, reorder or remove instruments.
 
 Open **Routing** while listening to inspect destinations, exact channel mappings, the routing diagram and diagnostics. Gain, balance, Mute/Solo, existing send controls and eligible insert Bypass work during playback. Choose **Stop to edit routing** or **Stop to edit rack** when you need to change connections or the rack itself.
 
 ## Build your first mix
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
-2. In **Mix → Rack**, use **Add instrument/effect** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
-3. Choose **Mixer**. Above each instrument name, a small label shows its rack patch number and MIDI channel, for example **Patch 2 · MIDI Ch. 3**. Continuous instruments and effects show **Patch 4 · Continuous**. Patch numbers match the rack even when insert processors have no separate mixer strip. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
-4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then click **Check routing** in the graph toolbar.
+2. Open **Compact rack**, choose **＋** and select the saved instrument. Read the MIDI channel on its entry. To change it, open **Mix → Rack**. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
+3. Choose **Mix → Mixer**. Above each instrument name, a small label shows its rack patch number and MIDI channel, for example **Patch 2 · MIDI Ch. 3**. Continuous instruments and effects show **Patch 4 · Continuous**. Patch numbers match the rack even when insert processors have no separate mixer strip. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
+4. Start with 0 dB gain and centered Pan / Balance. Open **Mix → Routing** to connect outputs and add inserts while stopped. Click **Check routing** in the graph toolbar.
 5. Click **Start Instruments** and play via a piano roll, sequencer or MIDI input. Change gain, balance, mute/solo and existing send settings while listening. Watch strip meters and the final Audio Output meter.
 6. Use **Save Performance** to retain this mix. Stop the engine before adding/removing routes, replacing assignments or reordering inserts.
 
@@ -163,11 +161,7 @@ Choose **Show offending connections** to open the routing diagram and enable **O
 
 The display shows one closed path for each connected group of feedback loops and highlights every cyclic connection in that group. A group may contain additional overlapping loops. Unrelated incoming routes and downstream output routes are not highlighted. Break every remaining loop, including both stereo channels; muting, bypassing or lowering a send does not remove its processing dependency.
 
-For example, sending a lead's processed strip into its own Reverb insert closes **Lead → Reverb → Stereo Widener → Lead**. Use a separate shared Reverb instance with its own output return if that is the intended effect. The first example below shows that three-instrument path. The second isolates a shorter loop between Glass Keys and its insert.
-
-<p align="center">
-  <img src="../../screenshots/perform_feedback_loop_diagnostics.png" alt="Effectomania feedback path showing the channel 7 PWM Lead, Reverb and Stereo Widener with stereo port mappings" width="1000" style="max-width: 100%; height: auto;" />
-</p>
+For example, sending a lead's processed strip into its own Reverb insert closes **Lead → Reverb → Stereo Widener → Lead**. Use a separate shared Reverb instance with its own output return if that is the intended effect. The filtered routing view below shows a shorter loop between Glass Keys and its insert.
 
 <p align="center">
   <img src="../../screenshots/perform-routing-canvas-feedback.png" alt="Filtered routing canvas with the processed Glass Keys send and its insert return highlighted in red" width="1000" style="max-width: 100%; height: auto;" />

@@ -42,13 +42,15 @@ Each piano roll has:
 - `Autochord` (off by default)
 - `Chord notes` (`3`, `4`, or `5`, default `3`; available when Autochord is on)
 
-MIDI Channel and Velocity are grouped together, with a small gap before Scale, Mode, Autochord, and Chord notes. All labels appear above their controls; the Autochord checkbox matches the height of the adjacent selectors.
+Open **Keyboard settings** above the keys to change these values. The keyboard header shows the selected piano roll and its destination.
+
+![Keyboard settings for MIDI channel, velocity, scale, mode and chord size](../../screenshots/keyboard-settings.png)
 
 Each MIDI-driven rack instrument requires a unique MIDI channel. Set the piano roll to the channel of the instrument you want to play.
 
 ## Play alongside the Live launcher
 
-In Perform, open **Live → Keyboard**. On a small screen the selected device and its eight pads stay above the keys. The device selector there changes which pads you launch. Beside the piano roll’s name, read the MIDI channel and rack instrument the keys will play. Change the channel in **Keyboard settings**. Hold a key with Space or Enter while clicking pads, or use two fingers on a touch screen. Choose **Edit** to put the pad editor in the dock.
+In Perform, open **Live → Keyboard**. On a small screen the selected device’s pad launcher stays above the keys. Arrangement tracks show their saved patterns. In physical-pad mode the device has eight pads. The device selector there changes which pads you launch. Beside the piano roll’s name, read the MIDI channel and rack instrument the keys will play. Change the channel in **Keyboard settings**. Hold a key with Space or Enter while clicking pads, or use two fingers on a touch screen. Choose **Edit** to put the pad editor in the dock.
 
 <p align="center"><img src="../../screenshots/perform-workspace-live-keyboard.png" alt="Compact pad launcher above the keyboard with Autochord held and pad 2 queued" width="280" /></p>
 
@@ -69,9 +71,9 @@ All chord notes use the keyboard’s MIDI channel and velocity. Sounding keys li
 Each piano roll retains its own toggle and size through Save/Load, Clone, autosave, and native JSON/ZIP export/import. Turning Autochord off retains the chosen size. Older performances default to off/3. These controls apply to the on-screen keyboard; live gestures are not recorded into sequencers or offline CSD exports.
 
 <p align="center">
-  <img src="../../screenshots/perform_piano_roll_autochord.jpg" alt="Piano roll Autochord controls and sounding chord tones" width="1100" style="max-width: 100%; height: auto;" />
+  <img src="../../screenshots/perform_piano_roll_autochord.jpg" alt="Piano roll playing a C major triad on First Sound" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Autochord with five notes selected and the generated chord highlighted.</em></p>
+<p align="center"><em>With Autochord on, pressing C4 on the First Sound keyboard also sounds E4 and G4.</em></p>
 
 ## Scale/Mode Following Behavior During Live Playback
 
@@ -100,11 +102,6 @@ If running melodic sequencers disagree:
 - only notes common to the active scales/modes are highlighted
 
 This is especially helpful when multiple tracks create potentially conflicting harmonic contexts.
-
-<p align="center">
-  <img src="../../screenshots/perform_piano_roll_mixed_highlighting.png" alt="Piano roll mixed highlighting" width="1100" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Piano roll with scale-aware key highlighting and mixed-theory display behavior.</em></p>
 
 ## Keyboard Range and Layout
 
