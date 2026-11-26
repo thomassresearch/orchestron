@@ -189,7 +189,7 @@ Explore the [clip arranger guide](documentation/performance/multitrack_arranger.
 
 ## Perform and shape the mix
 
-**Perform** opens in Arrange. The top band holds **Project** and the song transport. Just below it, choose **Arrange**, **Live** or **Mix**. Selecting **Mix** opens a second row with **Mixer**, **Rack** and **Routing**. [Perform navigation](screenshots/perform-navigation.png)
+**Perform** opens in Arrange. The top band holds **Project** and the song transport. Its **?** explains loading, saving, playback and looping. The **?** beside **Arrange**, **Live** and **Mix** explains the selected view. In **Mix**, the next row has its own **?** for **Mixer**, **Rack** or **Routing**. Each topic opens in your interface language. [Perform navigation](screenshots/perform-navigation.png)
 
 Select a chorus repeat and edit a variation below the timeline, or update a linked phrase across the song. Arrange and Live pattern editors open directly on the notes, drum hits or controller curve. **Settings** holds naming, routing and timing. Legacy performances open their original pads in the same editor area. The Inspector keeps instrument assignments and clip properties beside the timeline. [Arrange a performance](documentation/performance/performance.md#arrange)
 

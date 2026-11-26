@@ -2,7 +2,8 @@ import { workingSequencer } from "../../lib/clipArranger/editSession";
 import type { StructureFocus } from "../../lib/clipArranger/structure";
 import { useLayoutEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { useStore } from "zustand";
-import type { GuiLanguage, SequencerState } from "../../types";
+import type { GuiLanguage, HelpDocId, SequencerState } from "../../types";
+import { HelpIconButton } from "../HelpIconButton";
 import { arrangementTimings, sourceKeys } from "../../lib/clipArranger/migration";
 import type { OccurrenceTarget, SourceKind } from "../../lib/clipArranger/model";
 import { duplicatePattern, structureChildren } from "../../lib/clipArranger/structure";
@@ -133,7 +134,7 @@ export type ViewNavigation = (view: PerformView, target?: { id: string; pad: num
 function useKeyboardCompanionTap(keyboardOpen: boolean) {
   const tap = useRef<{ id: number; button: HTMLButtonElement; x: number; y: number } | null>(null);
   const handled = useRef<HTMLButtonElement | null>(null);
-  const commands = "[data-perform-view], [data-mix-page], [data-rack-choice], [data-lane-controllers], [data-mix-detail], [data-mix-toggle], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button, .ws-project-controls button";
+  const commands = "[data-perform-view], [data-mix-page], .ws-help, [data-rack-choice], [data-lane-controllers], [data-mix-detail], [data-mix-toggle], .ws-rack-links button, .ws-mix-tools button, .ws-commandbar button, .ws-project-controls button";
   return {
     onPointerDownCapture(event: PointerEvent<HTMLElement>) {
       handled.current = null;
@@ -162,19 +163,26 @@ function useKeyboardCompanionTap(keyboardOpen: boolean) {
   };
 }
 
-export function PerformNavigation({ view, language, navigate }: { view: PerformView; language: GuiLanguage; navigate: ViewNavigation }) {
+export function PerformNavigation({ view, language, navigate, onHelpRequest }: {
+  view: PerformView; language: GuiLanguage; navigate: ViewNavigation; onHelpRequest?: (id: HelpDocId) => void;
+}) {
   const labels = copy[language];
   const [surface] = usePerformanceEditorState<MixSurface>("mixer", "surface", "mixer");
+  const surfaceLabel = (item: MixSurface) => item === "mixer" ? audioCopy(language)("mixer") : mixCopy(language)(item);
   return <>
     <nav aria-label={labels.views} className="ws-views">
       {views.map(item => <button key={item} type="button" data-perform-view={item} aria-pressed={item === view}
         onClick={() => navigate(item)}>{labels[item]}</button>)}
+      {onHelpRequest && <HelpIconButton guiLanguage={language} topic={labels[view]} className="ws-help"
+        onClick={() => onHelpRequest(`perform_${view}`)} />}
     </nav>
     {view === "mix" && <nav aria-label={labels.mixPages} className="ws-mix-pages">
       {(["mixer", "rack", "routing"] as const).map(item => <button key={item} type="button" data-mix-page={item}
         aria-pressed={item === surface} onClick={() => { if (item !== surface) navigate("mix", { surface: item }); }}>
-        {item === "mixer" ? audioCopy(language)("mixer") : mixCopy(language)(item)}
+        {surfaceLabel(item)}
       </button>)}
+      {onHelpRequest && <HelpIconButton guiLanguage={language} topic={surfaceLabel(surface)} className="ws-help"
+        onClick={() => onHelpRequest(`perform_${surface}`)} />}
     </nav>}
   </>;
 }

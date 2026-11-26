@@ -13,11 +13,11 @@ import { SequencerPage } from "./SequencerPage";
 import type { SequencerPageProps } from "./sequencer/sequencerPageContracts";
 
 function actions<T>(): T { return new Proxy({}, { get: () => vi.fn() }) as T; }
-function Page({ language }: { language: GuiLanguage }) {
+function Page({ language, workspace = false }: { language: GuiLanguage; workspace?: boolean }) {
   const sequencer = useAppStore(s => s.sequencer);
   const [help, setHelp] = useState<HelpDocId | null>(null);
   return <>
-    <SequencerPage onHelpRequest={setHelp} collapsedPanels={INITIAL_PANEL_COLLAPSE_STATE} onPanelCollapsedChange={() => {}}
+    <SequencerPage performWorkspace={workspace} onHelpRequest={setHelp} collapsedPanels={INITIAL_PANEL_COLLAPSE_STATE} onPanelCollapsedChange={() => {}}
       instrumentActions={actions()} transportActions={actions()} melodicTrackActions={actions()}
       drummerTrackActions={actions()} pianoRollActions={actions()} midiControllerActions={actions()}
       controllerSequencerActions={actions()} arpeggiatorActions={actions()} performanceActions={actions()}
@@ -45,6 +45,48 @@ const cases = [
   ["french", "Mixeur", "Arrangeur multipiste", "Organiser les clips et les contenus réutilisables", "Boucles audio"],
   ["spanish", "Mezclador", "Arreglador multipista", "Organizar clips y contenido reutilizable", "Bucles de audio"]
 ] as const;
+
+const workspaceTopics = [
+  ["english", "Project and song transport", "Load and save a performance", ["Arrange", "Live", "Mix"], ["Mixer", "Rack", "Routing"]],
+  ["german", "Projekt und Songtransport", "Performance laden und speichern", ["Arrangement", "Live", "Mix"], ["Mischpult", "Rack", "Routing"]],
+  ["french", "Projet et lecture du morceau", "Charger et enregistrer une performance", ["Arrangement", "Live", "Mixage"], ["Mixeur", "Rack", "Routage"]],
+  ["spanish", "Proyecto y reproducción de la canción", "Cargar y guardar una interpretación", ["Arreglo", "En vivo", "Mezcla"], ["Mezclador", "Rack", "Rutas"]]
+] as const;
+
+it.each(workspaceTopics)("opens the project, view and Mix page topics from their own rows in %s", async (language, project, loadAndSave, views, pages) => {
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  useAppStore.setState({ guiLanguage: language });
+  const { container } = render(<Page language={language} workspace />);
+  const help = documentationUiCopy(language).help;
+  const viewNavigation = await screen.findByRole("navigation");
+  const song = useAppStore.getState().sequencer;
+
+  function openTopic(row: HTMLElement, title: string, section?: string) {
+    fireEvent.click(within(row).getByRole("button", { name: new RegExp(`^${help} · `) }));
+    const dialog = screen.getByRole("dialog", { name: help });
+    expect(within(dialog).getByRole("heading", { level: 2, name: title })).toBeTruthy();
+    if (section) expect(within(dialog).getByRole("heading", { name: section })).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  }
+
+  for (const view of views) {
+    const tab = within(viewNavigation).getByRole("button", { name: view });
+    fireEvent.click(tab);
+    openTopic(container.querySelector(".ws-control-band")!, project, loadAndSave);
+    openTopic(viewNavigation, view);
+    expect(tab.getAttribute("aria-pressed")).toBe("true");
+  }
+  const pageNavigation = screen.getAllByRole("navigation")[1];
+  for (const page of pages) {
+    const tab = within(pageNavigation).getByRole("button", { name: page });
+    fireEvent.click(tab);
+    openTopic(pageNavigation, page);
+    openTopic(viewNavigation, views[2]);
+    expect(tab.getAttribute("aria-pressed")).toBe("true");
+  }
+  expect(useAppStore.getState().sequencer).toBe(song);
+});
 
 it.each(cases)("offers explicit conversion in %s by default and hides it for the legacy override", language => {
   vi.stubEnv("VITE_CLIP_ARRANGER", undefined);

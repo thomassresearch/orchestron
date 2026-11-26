@@ -4,7 +4,9 @@
 
 Open **Perform** to arrange a song, play it live or mix its instruments. The top band holds **Project**, **Save Performance** and the song transport, including **Loop**, **Position** and **BPM**. Directly below, choose **Arrange**, **Live** or **Mix**. Choosing **Mix** reveals a second row with **Mixer** for levels, **Rack** for instruments and **Routing** for connections. Each view remembers its selection, scroll position and open panels. The engine controls and playback status bar are available in all three.
 
-![The project and transport band above both navigation rows, with Mix and Mixer selected](../../screenshots/perform-navigation.png)
+Choose **?** in the top band for help loading and saving a performance, moving through the song and looping a passage. The **?** in the view row explains the selected view. In **Mix**, use the **?** on the next row for the selected Mixer, Rack or Routing page. Each topic follows the language selected in the app header.
+
+![The three help buttons at the right of the project and transport band, the active Mix view and the active Mixer page](../../screenshots/perform-navigation.png)
 
 In **Project**, the performance description field displays three lines with automatic text wrapping and preserves manual line breaks. Longer descriptions scroll vertically within the field. Hover over the description to see its full text in a tooltip.
 

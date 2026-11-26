@@ -8,7 +8,7 @@ Open **Perform**, then select **Mix** beneath the project and transport controls
 
 Leaving Mixer releases its visible meters. When you return, the channel bank recalls its scroll position and shows current levels. Audio keeps playing while you work in another view.
 
-Use **?** for integrated help in English, German, French or Spanish.
+The **?** beside **Arrange / Live / Mix** explains how the three Mix pages work together. For help with channel levels, instrument assignments or audio connections, select **Mixer**, **Rack** or **Routing** and use the **?** in that row. Help is available in English, German, French and Spanish.
 
 ![Mixer integrated help](../../screenshots/mixer-integrated-help.png)
 

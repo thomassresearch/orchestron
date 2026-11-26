@@ -1177,7 +1177,7 @@ function SequencerPageContent(props: SequencerPageProps & (WorkspaceLocation | {
       save={<button className="ws-save" disabled={sampleUploads > 0} onClick={context.onSavePerformance}>{ui.savePerformance}</button>}
       engine={<button className="ws-engine" aria-pressed={instrumentsRunning} disabled={!instrumentsRunning && sampleUploads > 0}
         onClick={instrumentsRunning ? onStopInstruments : onStartInstruments}>{instrumentsRunning ? ui.stopInstruments : ui.startInstruments}</button>}
-      onHelp={onHelpRequest ? () => onHelpRequest(view === "mix" ? "sequencer_mixer" : view === "live" ? "sequencer_tracks" : sequencer.clipArrangement ? "sequencer_clip_arranger" : "sequencer_multitrack_arranger") : undefined}
+      onHelpRequest={onHelpRequest}
       session={localizedSessionState} midi={ui.midiInput(midiInputName ?? ui.none)} error={transportError}
       onSeek={onSequencerArrangerLoopSelectionChange} onTempo={onBpmChange}
       transport={<ClipTransport language={guiLanguage} copy={arrangerCopy} onRewind={onSequencerCycleRewind} onForward={onSequencerCycleForward}

@@ -2,6 +2,13 @@ export type SignalType = "a" | "k" | "i" | "S" | "f";
 export type AppPage = "instrument" | "sequencer" | "config";
 export type GuiLanguage = "english" | "german" | "french" | "spanish";
 export type HelpDocId =
+  | "perform_project_transport"
+  | "perform_arrange"
+  | "perform_live"
+  | "perform_mix"
+  | "perform_mixer"
+  | "perform_rack"
+  | "perform_routing"
   | "instrument_patch_toolbar"
   | "instrument_opcode_catalog"
   | "instrument_graph_editor"

@@ -11,7 +11,8 @@ import { hasChangedClipDrafts } from "../../lib/clipArranger/draftResolution";
 import { useStructureDraft } from "../../lib/clipArranger/structureStore";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useStore } from "zustand";
-import type { GuiLanguage } from "../../types";
+import type { GuiLanguage, HelpDocId } from "../../types";
+import { HelpIconButton } from "../HelpIconButton";
 import { useAppStore } from "../../store/useAppStore";
 import { clipCopy } from "../clipArranger/copy";
 import { QUARTER_TICKS } from "../../lib/clipArranger/model";
@@ -61,10 +62,10 @@ type Props = {
   transport: ReactNode; keyboard: ReactNode; name: string; midi: string; session: string;
   onSeek: SequencerPageTransportActions["onSequencerArrangerLoopSelectionChange"]; onTempo: (bpm: number) => void;
   diagnostics?: import("../../audio/browserClockWorkerProtocol").BrowserClockWorkerDiagnostics | null;
-  error: string | null; onHelp?: () => void;
+  error: string | null; onHelpRequest?: (id: HelpDocId) => void;
 };
 
-export default function WorkspaceShell({ diagnostics, view, navigate, language, children, project, save, engine, transport, keyboard, name, midi, session, error, onHelp, onSeek, onTempo }: Props) {
+export default function WorkspaceShell({ diagnostics, view, navigate, language, children, project, save, engine, transport, keyboard, name, midi, session, error, onHelpRequest, onSeek, onTempo }: Props) {
   const c = shellCopy[language], clip = clipCopy(language);
   const [layout, setLayout] = usePerformanceEditorState<PerformViewLayout>("page", "layout", {});
   const editorStore = usePerformanceEditorStore();
@@ -278,10 +279,11 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
             if (inspector) closeInspector();
             else { focusDrawer.current = narrow; change(narrow ? { drawerOpen: true } : { inspectorOpen: true }); }
           }}>{c.inspector}</button>{engine}
-          {onHelp && <button title={c.help} aria-label={c.help} onClick={onHelp}>?</button>}
+          {onHelpRequest && <HelpIconButton guiLanguage={language} topic={`${c.project} / ${c.transport}`}
+            className="ws-help" onClick={() => onHelpRequest("perform_project_transport")} />}
         </div>
       </div>
-      <PerformNavigation view={view} language={language} navigate={navigate} />
+      <PerformNavigation view={view} language={language} navigate={navigate} onHelpRequest={onHelpRequest} />
       {rackOpen && <div ref={rackMenu} className={floatingRack ? "ws-rack-menu" : undefined}><CompactRack language={language}
         onOpenControls={view === "mix" && mixSurface === "rack" ? undefined : openInstrumentControls} onNavigate={view === "mix" ? undefined : navigate} /></div>}
     </header>
