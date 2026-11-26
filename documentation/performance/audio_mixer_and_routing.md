@@ -28,6 +28,10 @@ Select a strip name and open **Instrument controls** to adjust the instrument an
 
 ![Compact knobs for Ambient Wavetable Cloud, its Stereo Chorus insert and Ambient Rounded Sub in the expanded dock](../../screenshots/perform-mix-instrument-controls.png)
 
+When **Instrument controls** leaves less room above the editor, the gain faders turn horizontal. The cyan fill runs from silence at the left edge to the knob. Read or enter the exact gain in the dB field beside it.
+
+![Compact mixer strip with the cyan gain fader set to −14.4 dB](../../screenshots/compact-mixer-gain.png)
+
 When the editor fills the pane, its header brings the focused channel, Master and the stereo **Audio Output** meter with it. On a short or narrow screen, use **Mixer channel** to switch between the focused instrument and Master. You can mute Master, adjust its level or compare a Master insert while the same sample or instrument stays open.
 
 To hear an insert change on a sustained sound, open **Keyboard** and hold a note or Autochord. You can start the chord in Live and carry it into Mix. With Space or Enter held on a piano key, drag a live insert knob with the mouse. On a touch screen, hold the key with one finger and turn the knob with another. Selecting an instrument for editing keeps the keyboard on its original MIDI channel.

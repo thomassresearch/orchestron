@@ -274,6 +274,25 @@
   .ws-strip-controls .ws-gain { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 2px 4px; }
   .ws-strip-controls .ws-gain > span:first-child { grid-column: 1 / -1; }
   .ws-strip-controls input[type=range] { writing-mode: horizontal-tb; direction: ltr; width: 90%; height: 20px; }
+  @media (forced-colors: none) {
+    .ws-gain input[type=range] {
+      appearance: none;
+      background: transparent;
+      --gain-track: linear-gradient(to right, #22d3ee var(--gain-fill), #475569 var(--gain-fill));
+    }
+    .ws-gain input[type=range]::-webkit-slider-runnable-track {
+      height: 4px; border-radius: 2px; background: var(--gain-track);
+    }
+    .ws-gain input[type=range]::-moz-range-track {
+      height: 4px; border-radius: 2px; background: var(--gain-track);
+    }
+    .ws-gain input[type=range]::-webkit-slider-thumb {
+      appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: #cffafe;
+    }
+    .ws-gain input[type=range]::-moz-range-thumb {
+      width: 14px; height: 14px; border: 0; border-radius: 50%; background: #cffafe;
+    }
+  }
   .ws-strip-controls input[type=number] { width: 3.5rem; padding: 1px 3px; }
 }
 @container mixer-bank (max-height: 245px) {
@@ -291,7 +310,7 @@
   .ws-console > .ws-output .ws-meter { height: 23px; }
   .ws-console > .ws-output { padding-block: 0; }
 }
-@container perform-panes (max-height: 155px) {
+.ws-panes[data-short-panes] {
   .ws-mix:has(> .ws-console) { grid-template: auto minmax(0,1fr) / minmax(0,1fr) auto minmax(95px,22%); }
   .ws-console { display: contents; }
   .ws-mix-tools { grid-area: 1 / 1; }
@@ -315,15 +334,15 @@
   .ws-detail-console .ws-output .ws-meter > div { margin: 0; }
   .ws-detail-console .ws-output .ws-meter > div > div { height: 9px; margin: 0; }
 }
-@container mixer-bank (max-height: 130px) {
+.ws-strip-area[data-short-strips] {
   .ws-strip-main .ws-strip-assignment, .ws-strip-main .ws-meter, .ws-strip-main .ws-gain input[type=range] { display: none; }
   .ws-strip-main .ws-strip-controls { grid-template-columns: auto minmax(0,1fr); align-items: center; }
   .ws-strip-main .ws-gain { display: flex; }
   .ws-strip-main .ws-compare-insert { grid-column: 1 / -1; }
 }
-@container mixer-bank (max-height: 75px) {
+.ws-strip-area[data-shortest-strips] {
   .ws-strip-bank article { width: min(100%,25rem); }
-  .ws-strip-area article { display: block; overflow-y: auto; overscroll-behavior: contain; }
+  & article { display: block; overflow-y: auto; overscroll-behavior: contain; }
   .ws-strip-main { display: flex; align-items: center; gap: 4px; padding: 1px 3px; }
   .ws-strip-main > button { flex: 1 1 4rem; min-width: 0; font-size: .7rem; }
   .ws-strip-main .ws-strip-controls { flex: 1 0 auto; display: flex; gap: 2px; }

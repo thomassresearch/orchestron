@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { audioCopy } from "../lib/audioCopy";
 import { MASTER, defaultStrip } from "../lib/audioRouting";
@@ -41,10 +41,13 @@ export function VisibleMeter({ id, name }: { id: string; name: string }) {
 
 export function Gain({ value, max = 12, label, onChange, onFinal, vertical = false, language }: { value: number | null; max?: number; label: string; onChange: (value: number | null) => void; onFinal: () => void; vertical?: boolean; language: GuiLanguage }) {
   const t = audioCopy(language);
+  const min = -61; // The position below −60 dB represents silence.
+  const position = value ?? min;
   return <label className={`ws-gain flex gap-2 ${vertical ? "flex-col items-center" : "items-center"}`}>
     <span className="text-xs text-slate-400">{label}</span>
-    {!vertical ? <MixerKnob value={value ?? -61} min={-61} max={max} step={0.1} label={label} valueText={value === null ? "−∞ dB" : `${value} dB`} onChange={(v) => onChange(v <= -61 ? null : Math.max(-60, v))} onFinal={onFinal} /> : <input type="range" min={-61} max={max} step={0.1} value={value ?? -61} aria-label={label} title={t("reset")}
-      onChange={(e) => onChange(Number(e.target.value) <= -61 ? null : Math.max(-60, Number(e.target.value)))} onPointerUp={onFinal} onKeyUp={onFinal} onDoubleClick={() => { onChange(0); onFinal(); }}
+    {!vertical ? <MixerKnob value={position} min={min} max={max} step={0.1} label={label} valueText={value === null ? "−∞ dB" : `${value} dB`} onChange={(v) => onChange(v <= min ? null : Math.max(-60, v))} onFinal={onFinal} /> : <input type="range" min={min} max={max} step={0.1} value={position} aria-label={label} title={t("reset")}
+      style={{ "--gain-fill": `${(position - min) / (max - min) * 100}%` } as CSSProperties}
+      onChange={(e) => onChange(Number(e.target.value) <= min ? null : Math.max(-60, Number(e.target.value)))} onPointerUp={onFinal} onKeyUp={onFinal} onDoubleClick={() => { onChange(0); onFinal(); }}
       className="h-36 accent-cyan-400 [direction:rtl] [writing-mode:vertical-lr]" />}
     <span className="ws-gain-value flex items-center gap-1"><input className={`${field} w-16 text-center`} aria-label={`${label} dB`} type="number" min={-60} max={max} step={0.1} placeholder="−∞" value={value ?? ""}
       onChange={(e) => { const n = e.target.value === "" ? null : Number(e.target.value); if (n === null || Number.isFinite(n)) onChange(n === null ? null : Math.max(-60, Math.min(max, n))); }} onBlur={onFinal} /><span className="text-[10px] text-slate-400">dB</span></span>

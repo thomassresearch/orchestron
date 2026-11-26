@@ -121,6 +121,18 @@ async page => {
     levels.runningEngine = await previewAndMute();
     await button("Solo", strip).click();
     const gain = strip.getByRole("spinbutton", { name: "Gain dB" });
+    const fader = strip.getByRole("slider", { name: "Gain", exact: true });
+    const track = await fader.boundingBox();
+    check(track && track.width > track.height, "Expected a compact horizontal gain fader");
+    await fader.press("Home");
+    check(await fader.evaluate(el => parseFloat(getComputedStyle(el).getPropertyValue("--gain-fill"))) === 0, "Silence still shows gain");
+    const y = track.y + track.height / 2;
+    await page.mouse.move(track.x + 6, y);
+    await page.mouse.down();
+    await page.mouse.move(track.x + track.width / 2, y, { steps: 8 });
+    await page.mouse.up();
+    const fill = await fader.evaluate(el => parseFloat(getComputedStyle(el).getPropertyValue("--gain-fill")));
+    check(Math.abs(fill - 50) < 2, "Gain fill did not follow the drag to the midpoint");
     await gain.fill("-6"); await gain.press("Tab");
     await bypass(strip).click();
     const strips = await state();

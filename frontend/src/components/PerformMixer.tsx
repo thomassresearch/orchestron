@@ -39,6 +39,19 @@ export async function editMixerPatch(patchId: string) {
 export function MixerBody({ onStop, surface, onShowRouting }: {
   onStop: () => void; surface?: "mixer" | "routing"; onShowRouting?: () => void;
 }) {
+  const stripArea = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const area = stripArea.current;
+    if (!area || typeof ResizeObserver === "undefined") return;
+    // Use the laid-out height so intrinsic grid sizing cannot hide a fader mid-drag.
+    const observer = new ResizeObserver(([entry]) => {
+      const height = entry.contentRect.height;
+      area.toggleAttribute("data-short-strips", height <= 130);
+      area.toggleAttribute("data-shortest-strips", height <= 75);
+    });
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [surface]);
   const graph = useAppStore((s) => s.audioGraph);
   const mixer = useAppStore((s) => s.mixer);
   const bindings = useAppStore((s) => s.sequencerInstruments);
@@ -315,7 +328,7 @@ export function MixerBody({ onStop, surface, onShowRouting }: {
   </div>;
   if (surface === "mixer") return <div className="ws-console">
     <div className="ws-mix-notices">{warnings}</div>
-    <div className="ws-strip-area">
+    <div ref={stripArea} className="ws-strip-area">
       <RetainedScroll owner="mixer" field="stripsScroll" className="ws-strip-bank" role="region" aria-label={t("mixer")} tabIndex={0}>
         {stripRows.map(row => strip(row.binding.id, row))}
       </RetainedScroll>

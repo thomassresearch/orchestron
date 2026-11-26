@@ -289,7 +289,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
         onOpenControls={view === "mix" && mixSurface === "rack" ? undefined : openInstrumentControls} onNavigate={view === "mix" ? undefined : navigate} /></div>}
     </header>
     <div className="ws-work" ref={work} data-sidebar={!narrow && inspector || undefined}>
-      <div className="ws-panes" ref={main} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined} data-scope-only={scopeOnly || undefined} data-compact-controllers={compactControls && !single || undefined}>
+      <div className="ws-panes" ref={main} data-short-panes={size.mainHeight <= 155 || undefined} style={{ "--dock-height": height + "px" } as CSSProperties} data-split={dock && !single || undefined} data-scope-only={scopeOnly || undefined} data-compact-controllers={compactControls && !single || undefined}>
         <RetainedScroll key={view} owner="page" field="overviewScroll" className="ws-overview" data-compact-launch={compactLauncher || undefined} hidden={single && !showOverview} role="region" aria-label={c.overview}>
           {compactLauncher && !single && <div className="ws-compact-launch" ref={setLauncherHost} />}{children}
         </RetainedScroll>
