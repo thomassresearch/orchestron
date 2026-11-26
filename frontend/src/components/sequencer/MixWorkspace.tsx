@@ -93,7 +93,7 @@ export function MixWorkspace({ navigate, language, running, onStop, onAdd, patch
       {bindings.length > 1 && surface !== "routing" && <small className="text-slate-400">{copy("multi")}</small>}
       {surface === "rack" && <>
         {running && <button type="button" onClick={onStop}>{copy("stopRack")}</button>}
-        <div className="ws-rack-add"><PatchPicker guiLanguage={language} label={ui.addInstrument} patches={patches}
+        <div className="ws-rack-add-picker"><PatchPicker guiLanguage={language} label={copy("addInstrumentEffect")} patches={patches}
           disabled={running} onSelectPatch={patchId => {
             const id = onAdd(patchId);
             if (id) select(id);

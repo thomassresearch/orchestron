@@ -79,8 +79,8 @@ async page => {
     await button("Mix").click();
     const tools = page.locator(".ws-mix-tools"), nav = page.getByRole("navigation", { name: "Mix pages" });
     await button("Rack", nav).click();
-    const add = button("Add Instrument", tools);
-    const picker = page.getByRole("dialog", { name: "Add Instrument" });
+    const add = button("Add instrument/effect", tools);
+    const picker = page.getByRole("dialog", { name: "Add instrument/effect" });
     const bindings = () => page.evaluate(() => window.__workspaceTest.store.getState().sequencerInstruments);
     const library = await page.evaluate(() => {
       const s = window.__workspaceTest.store.getState();

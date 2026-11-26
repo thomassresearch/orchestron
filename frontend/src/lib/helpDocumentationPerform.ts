@@ -176,25 +176,25 @@ Desplázate horizontalmente para ver más canales. El **Máster** permanece a la
   perform_rack: {
     english: {
       title: "Rack",
-      markdown: `Stop the instruments, choose **Add Instrument**, then select a saved patch. For a note-triggered instrument, set the MIDI channel to match its track or keyboard. Continuous instruments such as effects run when the engine starts. Drag the handle on a rack card to reorder it within its group.
+      markdown: `Stop the instruments, choose **Add instrument/effect**, then select a saved patch. For a note-triggered instrument, set the MIDI channel to match its track or keyboard. Continuous instruments such as effects run when the engine starts. Drag the handle on a rack card to reorder it within its group.
 
 ${performanceControllerHelp("english", "rack")}`
     },
     german: {
       title: "Rack",
-      markdown: `Stoppe die Instrumente und wähle über **Instrument hinzufuegen** einen gespeicherten Patch. Stelle bei einem durch Noten ausgelösten Instrument den MIDI-Kanal der zugehörigen Spur oder Klaviatur ein. Kontinuierliche Instrumente wie Effekte laufen, sobald die Engine startet. Ziehe eine Rack-Karte an ihrem Griff, um sie innerhalb ihrer Gruppe zu verschieben.
+      markdown: `Stoppe die Instrumente und wähle über **Instrument/Effekt hinzufügen** einen gespeicherten Patch. Stelle bei einem durch Noten ausgelösten Instrument den MIDI-Kanal der zugehörigen Spur oder Klaviatur ein. Kontinuierliche Instrumente wie Effekte laufen, sobald die Engine startet. Ziehe eine Rack-Karte an ihrem Griff, um sie innerhalb ihrer Gruppe zu verschieben.
 
 ${performanceControllerHelp("german", "rack")}`
     },
     french: {
       title: "Rack",
-      markdown: `Arrêtez les instruments, puis choisissez un patch enregistré avec **Ajouter instrument**. Pour un instrument déclenché par des notes, réglez le canal MIDI sur celui de la piste ou du clavier. Les instruments continus, comme les effets, fonctionnent dès le démarrage du moteur. Déplacez une carte par sa poignée pour changer sa place dans le groupe.
+      markdown: `Arrêtez les instruments, puis choisissez un patch enregistré avec **Ajouter un instrument/effet**. Pour un instrument déclenché par des notes, réglez le canal MIDI sur celui de la piste ou du clavier. Les instruments continus, comme les effets, fonctionnent dès le démarrage du moteur. Déplacez une carte par sa poignée pour changer sa place dans le groupe.
 
 ${performanceControllerHelp("french", "rack")}`
     },
     spanish: {
       title: "Rack",
-      markdown: `Detén los instrumentos, pulsa **Agregar instrumento** y elige un patch guardado. Para un instrumento que se activa con notas, selecciona el mismo canal MIDI que su pista o teclado. Los instrumentos continuos, como los efectos, funcionan desde que arranca el motor. Arrastra el asa de una tarjeta para cambiar su posición dentro del grupo.
+      markdown: `Detén los instrumentos, pulsa **Añadir instrumento/efecto** y elige un patch guardado. Para un instrumento que se activa con notas, selecciona el mismo canal MIDI que su pista o teclado. Los instrumentos continuos, como los efectos, funcionan desde que arranca el motor. Arrastra el asa de una tarjeta para cambiar su posición dentro del grupo.
 
 ${performanceControllerHelp("spanish", "rack")}`
     }

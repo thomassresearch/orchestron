@@ -3,6 +3,7 @@ import type { GuiLanguage } from "../../types";
 const labels = {
   monitorChannel: ["Mixer channel", "Mischpultkanal", "Tranche du mixeur", "Canal del mezclador"],
   compact: ["Compact rack", "Kompaktes Rack", "Rack compact", "Rack compacto"],
+  addInstrumentEffect: ["Add instrument/effect", "Instrument/Effekt hinzufügen", "Ajouter un instrument/effet", "Añadir instrumento/efecto"],
   rack: ["Rack", "Rack", "Rack", "Rack"],
   routing: ["Routing", "Routing", "Routage", "Rutas"],
   manage: ["Manage rack", "Rack verwalten", "Gérer le rack", "Gestionar rack"],

@@ -43,7 +43,7 @@ Open **Routing** while listening to inspect destinations, exact channel mappings
 ## Build your first mix
 
 1. In Instrument Design, choose **New → Playable instrument**, name the draft and **Save** it. Create and save an **Audio effect** when you need a processor. The built-in effect is a stereo pass-through starter; add your processing inside its graph.
-2. In **Mix → Rack**, use **Add Instrument** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
+2. In **Mix → Rack**, use **Add instrument/effect** and select the saved instrument. Set its MIDI channel. Guided instruments connect to the fixed internal Master automatically. For existing patches, inspect their destination labels and use **Route through Master** if needed.
 3. Choose **Mixer**. Above each instrument name, a small label shows its rack patch number and MIDI channel, for example **Patch 2 · MIDI Ch. 3**. Continuous instruments and effects show **Patch 4 · Continuous**. Patch numbers match the rack even when insert processors have no separate mixer strip. Each strip header selects its source for the routing editor. The Master strip stays pinned at the right; scroll horizontally when the rack has many strips. Strips follow the instrument rack’s order, with note-triggered instruments before continuous returns. Stop the instruments and drag the rack’s `::` handles to reorder within either group. This changes display order only; insert processors remain in their owner’s insert chain.
 4. Start with 0 dB gain and centered Pan / Balance. Build routes and insert chains while stopped, then click **Check routing** in the graph toolbar.
 5. Click **Start Instruments** and play via a piano roll, sequencer or MIDI input. Change gain, balance, mute/solo and existing send settings while listening. Watch strip meters and the final Audio Output meter.
@@ -85,7 +85,7 @@ To nest an effect, click **＋ Add insert** on the processor’s own card. Rack 
 
 For a custom-wired chain, edit individual connections in the graph. Removing an insert from a custom chain preserves connections between the surviving instances. Removing an entire instrument from the rack also removes its dedicated inserts, their connections and their mixer settings.
 
-A **return** is a continuous rack instance that can receive sends from several sources and has its own mixer strip. Add it with **Add Instrument**, connect its output to Master, then add sends from the source strips. For a parallel reverb/delay arrangement, design the return patch to output the desired wet signal; the starter pass-through would merely add another copy of the dry signal.
+A **return** is a continuous rack instance that can receive sends from several sources and has its own mixer strip. Add it with **Add instrument/effect**, connect its output to Master, then add sends from the source strips. For a parallel reverb/delay arrangement, design the return patch to output the desired wet signal; the starter pass-through would merely add another copy of the dry signal.
 
 ### Compare inserts with Bypass
 

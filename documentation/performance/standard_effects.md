@@ -27,7 +27,7 @@ An **effect send** adds a parallel path to a separate effect instrument, called 
 
 ## Add a Shared Send Effect
 
-1. Stop the instruments before changing the rack or routing. In **Perform → Add Instrument**, select the saved effect. It appears as a continuous instrument with its own mixer strip.
+1. Stop the instruments before changing the rack or routing. In **Mix → Rack → Add instrument/effect**, select the saved effect. It appears as a continuous instrument with its own mixer strip.
 2. Connect the effect's output to **Master**. Keep each source instrument's main output connected to Master as well, so its original signal remains audible.
 3. In **Mix → Routing**, click the source’s stereo output jack, choose **Send**, and click the return’s stereo input.
 4. On the source strip, adjust **Send → [effect name]** to control how much signal reaches the effect. New sends start at silence; try **−12 dB** initially. **Post-fader** follows the source's volume and balance; **Pre-fader** is independent of those controls. Repeat for other instruments that should share the effect.

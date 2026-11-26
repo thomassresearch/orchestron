@@ -22,7 +22,7 @@ See [Performance Controllers](performance_controllers.md) for grouping rules.
 
 ## Add a Sample Player
 
-Choose **Add Instrument**, search for **Sample Player** and select it to create a rack slot.
+Choose **Add instrument/effect**, search for **Sample Player** and select it to create a rack slot.
 Open **Samples** on the card to assign WAV, MP3 or M4A files to MIDI notes. Each instance has its own
 map. See [Sample Player](sample_player.md) for editing, preview and exports.
 
@@ -87,7 +87,7 @@ While instruments run, adding/removing assignments, changing patch/channel assig
 
 ### Add Instrument
 
-- Choose **Add Instrument**, expand a category such as **Melody** or **Bass**, then pick an instrument by name. The rack creates and selects its card when you choose the name. Press Escape to cancel.
+- Choose **Add instrument/effect**, expand a category such as **Melody** or **Bass**, then pick an instrument by name. The rack creates and selects its card when you choose the name. Press Escape to cancel.
 - Names are alphabetical within each category. To search across categories, enter at least four characters of a name or description. Open the patch name on an existing card to replace its instrument using the same picker.
 - This enables multi-instrument performances driven by different MIDI channels.
 - Continuous effects run as explicit rack instances. Adding an insert creates a dedicated instance automatically; simply saving an effect in the library does not start it.

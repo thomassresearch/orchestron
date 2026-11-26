@@ -220,10 +220,11 @@
 .ws-mix { height: 100%; min-width: 0; display: grid; grid-template-rows: auto minmax(0,1fr); }
 .ws-mix-tools, .ws-rack-picker, .ws-mix-actions { display: flex; align-items: center; gap: 5px; }
 .ws-mix-tools { flex-wrap: wrap; padding: 5px; }
-.ws-mix:has(.ws-rack-add) { position: relative; }
-.ws-rack-add > div { position: static; }
+.ws-mix:has(.ws-rack-add-picker) { position: relative; }
+.ws-rack-add-picker { margin-inline-start: auto; max-width: 100%; }
+.ws-rack-add-picker > div { position: static; }
 /* Place the dropdown in the rack's grid area, outside the short-screen toolbar's scroll box. */
-.ws-rack-add [role=dialog] {
+.ws-rack-add-picker [role=dialog] {
   grid-area: 2 / 1; inset: 0 5px auto auto; margin: 0; width: min(24rem, calc(100% - 10px));
   max-height: 100%; overflow: auto; overscroll-behavior: contain; white-space: normal;
 }

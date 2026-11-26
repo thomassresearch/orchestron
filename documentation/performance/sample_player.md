@@ -8,7 +8,7 @@ pitch and speed. Notes with no assignment are silent.
 
 ## Assign and hear a sample
 
-1. In **Perform → Mix → Rack**, choose **Add Instrument**, search for **Sample Player** and select its name to create the slot.
+1. In **Perform → Mix → Rack**, choose **Add instrument/effect**, search for **Sample Player** and select its name to create the slot.
 2. Open **Samples**. Enter a MIDI note from **0 to 127** and choose **Assign file**.
 3. Select a row and choose **Preview** to hear it through the instance’s mixer routing.
 4. To change a note number, type in its number field and press Enter or leave the field.
@@ -37,7 +37,7 @@ locked. You can still inspect and preview mapped notes while the instrument engi
 ## Use separate maps
 
 Two instances of the same patch can play different samples for the same note.
-Use **Add Instrument** and select the same Sample Player patch to start another empty map on a new MIDI channel.
+Use **Add instrument/effect** and select the same Sample Player patch to start another empty map on a new MIDI channel.
 Changing one instance’s map leaves the other instance alone.
 
 Choosing a different patch clears that instance’s map. If the existing patch was edited in

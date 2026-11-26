@@ -307,8 +307,8 @@ it("adds the chosen patch after browsing Rack and shows its channel only when it
   const { container } = renderMix();
   const nav = within(screen.getByRole("navigation", { name: "Mix pages" }));
   fireEvent.click(nav.getByRole("button", { name: "Rack" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add Instrument" }));
-  const menu = within(screen.getByRole("dialog", { name: "Add Instrument" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add instrument/effect" }));
+  const menu = within(screen.getByRole("dialog", { name: "Add instrument/effect" }));
   fireEvent.click(menu.getByRole("button", { name: /Continuous/ }));
   expect(useAppStore.getState().sequencerInstruments).toEqual(bindings);
   fireEvent.click(menu.getByRole("button", { name: effect.name }));

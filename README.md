@@ -27,7 +27,7 @@ This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, 
 
 ![FM6 voice editor](screenshots/fm6_voice_editor.png)
 
-In **Perform → Mix → Rack**, choose **Add Instrument**, then browse by instrument type or search for **Sample Player**
+In **Perform → Mix → Rack**, choose **Add instrument/effect**, then browse by instrument type or search for **Sample Player**
 to assign WAV, MP3 or M4A files to MIDI notes. Each rack
 instance has its own map, and repeated hits can overlap at the original pitch and speed.
 Sample Players can participate in parallel playback, including when a sample supplies the speech input to a Vocoder.
@@ -269,7 +269,7 @@ and [playback implementation selection](BACKEND.md#compiled-sequencer-playback).
 
 1. Open **Instrument Design**, choose **New**, and select **Playable instrument**.
 2. Give the patch a name and click **Save**.
-3. Switch to **Perform**, click **Add Instrument**, and select your saved patch. Note its MIDI channel.
+3. Switch to **Perform**, click **Add instrument/effect**, and select your saved patch. Note its MIDI channel.
 4. Add a piano-roll keyboard and set it to the same MIDI channel.
 5. Press the piano roll's **Start** button, then click the keys to play. This starts the instruments without starting the arranger.
 6. Use **Save Performance** to keep the setup.
