@@ -184,7 +184,7 @@
   gap: 0.4rem;
 }
 .mk-edge input[type="range"] {
-  width: 100%;
+  width: 90%;
   accent-color: #73dec2;
 }
 .mk-edge input[type="number"] {

@@ -79,8 +79,8 @@ export function CsdExportOptionsDialog({ guiLanguage, showCurveAccuracy, showSam
         </div>
         <input id={id} type="range" min={1} max={10} step={1} value={tolerance}
           aria-describedby={`${id}-help`} aria-valuetext={`${tolerance} CC`}
-          onChange={event => setTolerance(Number(event.target.value))} className="w-full accent-cyan-400" />
-        <div className="mt-1 flex justify-between text-xs text-slate-400">
+          onChange={event => setTolerance(Number(event.target.value))} className="w-[90%] accent-cyan-400" />
+        <div className="mt-1 flex w-[90%] justify-between text-xs text-slate-400">
           <span>1 · {copy.accurate}</span><span>10 · {copy.smaller}</span>
         </div>
         <p id={`${id}-help`} className="mt-5 text-sm leading-relaxed text-slate-300">{copy.help}</p>

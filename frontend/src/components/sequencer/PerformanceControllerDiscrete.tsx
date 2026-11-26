@@ -28,7 +28,7 @@ export function PerformanceControllerDiscrete({ definition, value, language, onC
     if (next !== value) onChange(next);
   };
   const triangleClass = "flex h-7 w-full items-center justify-center rounded border border-slate-600 bg-slate-800 text-cyan-200 hover:bg-slate-700 focus-visible:outline-cyan-300 disabled:opacity-30";
-  return <div className="flex w-20 min-w-0 max-w-full flex-none flex-col items-center gap-1" data-performance-controller={definition.node_id}
+  return <div className="flex w-full min-w-0 max-w-full flex-none flex-col items-center gap-1" data-performance-controller={definition.node_id}
     title={invalid ? copy.invalid : isBool ? copy.boolHelp : copy.integerHelp}>
     <span className="line-clamp-2 h-8 w-full break-words text-center text-xs text-slate-200" title={definition.label}>{definition.label}</span>
     {isBool ? <div className="flex h-[6.25rem] w-full items-center justify-center">

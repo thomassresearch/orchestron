@@ -26,7 +26,7 @@ Leave **Samples** open and start a preview. Use the kit’s **Mute** to silence 
 
 Select a strip name and open **Instrument controls** to adjust the instrument and its insert effects together. Shift-click another strip name or compact rack entry to add it to the selection. Shift-click it again to remove it. A plain click selects a single instrument. The Inspector and **Samples** follow the most recently selected instance. Its patch number and MIDI channel distinguish two copies of the same sound.
 
-![Selected instruments with their insert controls in the expanded dock](../../screenshots/perform-mix-instrument-controls.png)
+![Compact knobs for Ambient Wavetable Cloud, its Stereo Chorus insert and Ambient Rounded Sub in the expanded dock](../../screenshots/perform-mix-instrument-controls.png)
 
 When the editor fills the pane, its header brings the focused channel, Master and the stereo **Audio Output** meter with it. On a short or narrow screen, use **Mixer channel** to switch between the focused instrument and Master. You can mute Master, adjust its level or compare a Master insert while the same sample or instrument stays open.
 
@@ -128,14 +128,14 @@ Meters show stereo peak and RMS. CLIP indicates a peak at or above 0 dBFS; no au
 
 ## Routing and repair
 
-Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI channel or **Continuous** label, and short ID distinguish copies of the same instrument. Master and the final **Audio Output** have separate cards. Drag a card by its heading to arrange it, then use **Save Performance**. Card positions survive reopening, autosave and native performance export/import. Performances without saved positions open with an automatic layout. Pan and zoom are local viewing controls. **Fit graph** brings the cards into view.
+Open **Mix → Routing**. Each card is one rack instance. Its rack number, MIDI channel or **Continuous** label, and short ID distinguish copies of the same instrument. Master and the final **Audio Output** have separate cards. Drag a card by its heading to arrange it, then use **Save Performance**. Card positions survive reopening, autosave and native performance export/import. Performances without saved positions open with an automatic layout. Pinch on the canvas for fine zoom adjustments, or choose **Fit graph** to see all cards. Select an instrument and choose **Instrument controls** to open its knobs. To change the rack, choose **Rack** beside **Routing**.
 
 1. With the instruments stopped, click an output jack and choose **Main output**, **Send** or **Custom routing**.
 2. Choose a destination by name or click a highlighted input. **New effect from library…** creates a dedicated return and shows its onward output. Choose Master for a compatible stereo output or connect the output manually. Press **Escape** to cancel a pending connection. Clicking away or moving focus out of an open port menu also discards the pending cable. Use **Choose on graph** to close the menu and place the cable with the mouse or keyboard.
 3. Stereo sockets connect both channels in their declared order. Turn on **Individual ports** to wire a single channel, cross left and right, or connect an auxiliary output to a particular inlet. **Custom routing** also exposes the **Before inserts** output and **Insert return** input.
 4. Select a cable to inspect its exact channels and processing stages. **Reconnect source** or **Reconnect destination** moves that end while retaining the send’s settings. **Remove** deletes the selected connection. For a single-channel repair, enable **Individual ports** first and select that channel’s cable.
 
-![Routing diagram with an insert on Glass Keys, a shared Room Return, Master and Audio Output. The selected send shows its two channels, gain and tap.](../../screenshots/perform-routing-canvas.png)
+![Ambient Wavetable Cloud with a Stereo Chorus insert and a send to Stereo Delay. The selected send shows its gain, tap and stereo channel mapping.](../../screenshots/perform-routing-canvas.png)
 
 A dashed cable shows an automatic direct output. A patch with a direct output can reach the speakers independently on each channel. An explicit main route redirects that channel. Sends and custom routes can run alongside the main route. Select a send to adjust its gain or pre/post tap while listening.
 

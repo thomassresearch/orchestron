@@ -88,7 +88,7 @@ export function MixWorkspace({ navigate, language, running, onStop, onAdd, patch
   };
   return <div className="ws-mix" ref={overview}>
     <div className="ws-mix-tools">
-      {surface !== "rack" && <button type="button" onClick={() => switchSurface("rack")}>{copy("manage")}</button>}
+      {surface === "mixer" && <button type="button" onClick={() => switchSurface("rack")}>{copy("manage")}</button>}
       {details}
       {bindings.length > 1 && surface !== "routing" && <small className="text-slate-400">{copy("multi")}</small>}
       {surface === "rack" && <>

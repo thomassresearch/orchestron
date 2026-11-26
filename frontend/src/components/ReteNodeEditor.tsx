@@ -5,6 +5,7 @@ import { createReteViewportScrollbars } from "./reteViewportScrollbars";
 
 import { ClassicPreset, NodeEditor } from "rete";
 import { AreaExtensions, AreaPlugin } from "rete-area-plugin";
+import { GraphZoom } from "./GraphZoom";
 import { ConnectionPlugin, Presets as ConnectionPresets } from "rete-connection-plugin";
 import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
 
@@ -956,6 +957,7 @@ export function ReteNodeEditor({
 
       const editor = new NodeEditor<any>();
       const area = new AreaPlugin<any, any>(containerRef.current);
+      area.area.setZoomHandler(new GraphZoom());
       const connection = new ConnectionPlugin<any, any>();
       const render = new ReactPlugin<any, any>({ createRoot });
       const optionalInputPortsByReteNode = new Map<string, Set<string>>();

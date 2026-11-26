@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { controllerGroupGrid, groupControllers, layoutControllerGroups, RACK_GAP } from "../../lib/rackLayout";
+import { controllerGroupGrid, groupControllers, layoutControllerGroups, CONTROL_WIDTH, RACK_GAP } from "../../lib/rackLayout";
 import { useRackGeometry } from "./useRackGeometry";
 import { performanceControllerCopy } from "../../lib/performanceControllerCopy";
 import { useAppStore } from "../../store/useAppStore";
@@ -27,11 +27,11 @@ export function PerformanceControllerRack({ binding, patch, language }: {
         return <Group key={group.name} data-controller-group={group.name} className={group.name ? "m-0 min-w-0 max-w-full shrink-0 rounded border border-slate-500/70 px-2 pb-2" : "min-w-0 max-w-full shrink-0"}
           style={{ width: layout?.items[index].width ?? "100%", ...grid?.items[index] }}>
           {group.name && <legend className="max-w-full break-words px-1 text-xs text-slate-300 [overflow-wrap:anywhere]">{group.name}</legend>}
-          <div data-controller-grid className="grid items-stretch gap-x-2 gap-y-4" style={{ gridTemplateColumns: `repeat(${layout?.items[index].columns ?? 1}, ${metrics.controlWidth ?? 80}px)` }}>
+          <div data-controller-grid className="grid items-stretch gap-x-2 gap-y-4" style={{ gridTemplateColumns: `repeat(${layout?.items[index].columns ?? 1}, ${metrics.controlWidth ?? CONTROL_WIDTH}px)` }}>
             {group.controllers.map((definition) => {
               const Control = definition.controller_type === "integer" || definition.controller_type === "bool" ? PerformanceControllerDiscrete : PerformanceControllerKnob;
               const disabled = !!definition.error || !!patch?.always_on || binding.midiChannel === 0;
-              return <div key={definition.node_id} data-rack-controller-tile style={{ minHeight: metrics.controlHeight }} className="flex w-20 flex-none flex-col gap-2"><Control definition={definition} editorOwner={`binding:${binding.id}`}
+              return <div key={definition.node_id} data-rack-controller-tile style={{ minHeight: metrics.controlHeight }} className="flex w-[4.5rem] flex-none flex-col gap-2"><Control definition={definition} editorOwner={`binding:${binding.id}`}
               value={binding.performanceControllerValues?.[definition.node_id] ?? definition.default} language={language}
               onChange={(value) => setValue(binding.id, definition.node_id, value)} onReset={() => setValue(binding.id, definition.node_id, null)} />
                 <label data-rack-controller-footer className="mt-auto flex flex-col gap-1 text-[10px] text-slate-400" title={disabled ? (definition.error ? copy.invalid : copy.midiUnavailable) : copy.midiHelp}>

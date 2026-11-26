@@ -75,7 +75,7 @@ export function Fm6VoiceEditor({ node, language, drivenInputs, onChange, onClose
           inputMode="decimal" value={drafts[key] ?? String(value)} aria-invalid={drafts[key] !== undefined && !valid(key, drafts[key])}
           onChange={e => change(e.target.value)} />}</div>
       {source ? <span className="block break-words text-cyan-200">{copy.driven} · {source}</span> :
-        <input aria-label={`${label} · ${min}–${max}`} type="range" className="block h-4 w-full accent-cyan-300"
+        <input aria-label={`${label} · ${min}–${max}`} type="range" className="block h-4 w-[90%] accent-cyan-300"
           min={logarithmic ? Math.log(min) : min} max={logarithmic ? Math.log(max) : max} step="any"
           value={logarithmic ? Math.log(Math.max(min, value)) : value} aria-valuetext={String(value)}
           onChange={e => {

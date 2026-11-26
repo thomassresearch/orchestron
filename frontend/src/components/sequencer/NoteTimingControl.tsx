@@ -36,7 +36,7 @@ export function NoteTimingControl({ value, timing, language, onChange }: {
       <button type="button" className="shrink-0 px-0.5" onClick={() => onChange(0)} aria-label={copy.reset} title={copy.reset}>↺</button>
     </div>
     <input type="range" min={-50} max={50} step={1} value={value} aria-label={copy.timing} aria-valuetext={description}
-      className="block h-3 w-full accent-cyan-400" onChange={event => onChange(Number(event.target.value))} />
+      className="block h-3 w-[90%] accent-cyan-400" onChange={event => onChange(Number(event.target.value))} />
     <div className="text-[9px] text-slate-400">{description}</div>
   </div>;
 }

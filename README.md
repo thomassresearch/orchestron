@@ -56,7 +56,8 @@ editable dry synth voices from altamax: an evolving five-oscillator FM network
 and a phase-shaped tone. Each has Timbre, Evolution, Release and Level controls.
 
 The Perform rack uses the full available width and automatically sizes instrument
-cards to fit their controllers. Add **Controller Group** names to organize related
+cards to fit their controllers. Compact knobs and faders leave more room for
+instrument controls in the rack and mixer. Add **Controller Group** names to organize related
 settings inside closely fitted labeled borders. Groups favor compact horizontal
 rows and adapt to window resizing and browser zoom while preserving their order
 and unfinished value edits. Minimoog Monophonic, Granular Synthesis and

@@ -8,7 +8,7 @@ export function MixerKnob({ value, min, max, step, reset = 0, label, valueText, 
   const drag = useRef<{ y: number; value: number } | null>(null);
   const change = (next: number) => onChange(Math.max(min, Math.min(max, Math.round(next / step) * step)));
   return <div role="slider" tabIndex={0} aria-label={label} aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} aria-valuetext={valueText}
-    className="relative m-1 h-10 w-10 shrink-0 touch-none cursor-ns-resize rounded-full border-2 border-slate-500 bg-gradient-to-b from-slate-600 to-slate-900 shadow-md outline-none focus:ring-2 focus:ring-cyan-400"
+    className="rotary-knob relative m-1 h-10 w-10 shrink-0 touch-none cursor-ns-resize rounded-full border-2 border-slate-500 bg-gradient-to-b from-slate-600 to-slate-900 shadow-md outline-none focus:ring-2 focus:ring-cyan-400"
     onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); e.currentTarget.focus(); drag.current = { y: e.clientY, value }; }}
     onPointerMove={(e) => { if (drag.current) change(drag.current.value + (drag.current.y - e.clientY) * (max - min) / (e.shiftKey ? 1000 : 160)); }}
     onPointerUp={() => { drag.current = null; onFinal(); }} onPointerCancel={() => { drag.current = null; onFinal(); }}

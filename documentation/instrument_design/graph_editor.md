@@ -17,7 +17,7 @@ The graph editor is the central visual patching surface for instrument design.
 
 ## Canvas Navigation
 
-The graph editor supports pan/zoom navigation and includes a zoom HUD in the lower-right corner:
+Pinch on a trackpad or touchscreen to zoom in small increments around the pointer or between your fingers. The lower-right corner also has zoom controls.
 
 - Zoom percentage display
 - `-` zoom out

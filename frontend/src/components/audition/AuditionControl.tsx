@@ -37,7 +37,7 @@ export function AuditionControl({ definition: d, value, alwaysOn, language, onCh
       }} /> : <button type="button" role="slider" aria-label={d.label} aria-valuemin={d.min} aria-valuemax={d.max}
       aria-valuenow={value} aria-valuetext={Number(value.toPrecision(5)).toString()} disabled={!!d.error}
       title={`${d.label}: ${Number(value.toPrecision(5))}. ${copy.knob} ${timing}`}
-      className={`h-8 w-8 shrink-0 touch-none rounded-full ${focus}`} onDoubleClick={() => change(d.default)}
+      className={`rotary-knob h-8 w-8 shrink-0 touch-none rounded-full ${focus}`} onDoubleClick={() => change(d.default)}
       onPointerDown={e => {
         if (e.button !== 0) return;
         e.preventDefault(); e.currentTarget.focus(); e.currentTarget.setPointerCapture(e.pointerId);

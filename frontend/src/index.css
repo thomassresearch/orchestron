@@ -21,6 +21,12 @@
   border-radius: 999px;
 }
 
+/* Scale the control and its layout box together, including native slider thumbs. */
+.rotary-knob,
+input[type="range"] {
+  zoom: 0.9;
+}
+
 .rete-area {
   border-radius: 1rem;
 }

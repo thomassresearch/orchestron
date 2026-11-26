@@ -130,7 +130,7 @@ export function ArpeggiatorEditor({ arp, language, ui, name, help, presets, inst
           <span className="text-slate-400">{i + 1}</span><span>{s.kind === "next" ? "↑" : s.kind === "position" ? s.notePosition : s.kind === "rest" ? "·" : s.kind === "tie" ? "—" : "≡"}</span>
           <span className="w-full truncate text-center text-[18px] leading-6 text-cyan-200">{noteLabels}</span></button>
         {description ? <span id={`${previewId}-${i}`} className="sr-only">{description}</span> : null}
-        <input type="range" min={0} max={200} step={1} value={s.velocity} aria-label={`${c.velocity} ${i + 1}`} className="h-10 w-full accent-cyan-300" style={{ writingMode: "vertical-lr", direction: "rtl" }} onChange={e => updatePad({ steps: pad.steps.map((entry, j) => j === i ? { ...entry, velocity: Number(e.target.value) } : entry) })} />
+        <input type="range" min={0} max={200} step={1} value={s.velocity} aria-label={`${c.velocity} ${i + 1}`} className="h-10 w-[90%] accent-cyan-300" style={{ writingMode: "vertical-lr", direction: "rtl" }} onChange={e => updatePad({ steps: pad.steps.map((entry, j) => j === i ? { ...entry, velocity: Number(e.target.value) } : entry) })} />
       </div>; })}
     </div>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">

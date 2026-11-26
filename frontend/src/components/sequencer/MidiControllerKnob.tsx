@@ -100,7 +100,7 @@ export const MidiControllerKnob = memo(function MidiControllerKnob({ ariaLabel, 
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onLostPointerCapture={handlePointerCancel}
-      className={`relative h-16 w-16 touch-none rounded-full border transition ${
+      className={`rotary-knob relative h-16 w-16 touch-none rounded-full border transition ${
         disabled
           ? "cursor-not-allowed border-slate-700 bg-slate-900/80 opacity-50"
           : "border-cyan-400/70 bg-slate-900 hover:border-cyan-300"

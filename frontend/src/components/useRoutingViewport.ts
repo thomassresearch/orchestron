@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { AreaPlugin } from "rete-area-plugin";
+import { GraphZoom } from "./GraphZoom";
 import { cardWidth, type Point, type RoutingNode } from "../lib/routingCanvas";
 import { usePerformanceEditorState } from "./sequencer/PerformanceEditorState";
 
@@ -30,6 +31,7 @@ export function useRoutingViewport(nodes: Map<string, RoutingNode>, positions: R
   }
   useLayoutEffect(() => {
     const viewport = new AreaPlugin<never>(host.current!);
+    viewport.area.setZoomHandler(new GraphZoom());
     view.current = viewport;
     viewport.addPipe(event => event.type === "zoom" && (event.data.zoom < .001 || event.data.zoom > 3) ? undefined : event);
     const layer = document.createElement("div");

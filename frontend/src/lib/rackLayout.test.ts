@@ -68,11 +68,11 @@ const makeGroups = (counts: number[], names = counts.map((_, index) => `Group ${
 describe("compact controller groups", () => {
   it("fits the four Envelope controls horizontally within the 5% height allowance", () => {
     const groups = makeGroups([3, 3, 2, 4, 2], ["Wavetable", "Motion", "Stereo", "Envelope", "Output & MIDI"]);
-    const result = layoutControllerGroups(groups, 1070);
+    const result = layoutControllerGroups(groups, 970);
     expect(result.items.map(item => item.columns)).toEqual([3, 3, 2, 4, 2]);
     expect(result.items.map(item => item.row)).toEqual([0, 0, 0, 1, 1]);
-    expect(result.items.map(item => item.width)).toEqual([274, 274, 186, 362, 186]);
-    const minimum = packOrdered(groups.map(group => controllerGroupOptions(group, 1070)), 1070).height;
+    expect(result.items.map(item => item.width)).toEqual([250, 250, 170, 330, 170]);
+    const minimum = packOrdered(groups.map(group => controllerGroupOptions(group, 970)), 970).height;
     expect(result.height).toBeGreaterThan(minimum);
     expect(result.height).toBeLessThanOrEqual(minimum * 1.05);
   });

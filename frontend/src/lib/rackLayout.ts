@@ -2,7 +2,7 @@ import type { PerformanceControllerDefinition } from "../types";
 
 // Shared with the rack widgets. Heights include the value editor and MIDI selector.
 export const RACK_GAP = 8;
-export const CONTROL_WIDTH = 80;
+export const CONTROL_WIDTH = 72;
 export const CONTROL_GAP_Y = 16;
 export const CONTROL_HEIGHT = 216;
 export const CARD_PADDING = 18;

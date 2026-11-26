@@ -34,7 +34,7 @@
 .rc-menu-item:enabled:hover,.rc-menu-item:focus-visible { background: #324052; }
 .rc-menu-item:disabled { opacity: .5; }
 .rc-menu-search { border: 1px solid #526276; background: #12202d; color: #edf3f6; border-radius: 3px; padding: 5px 7px; }
-.rc-viewport { position: relative; isolation: isolate; width: 100%; flex: 1 0 96px; overflow: hidden; background-color: #0b1420; background-image: radial-gradient(#2d4052 1px, transparent 1px); background-size: 18px 18px; touch-action: none; cursor: grab; }
+.rc-viewport { position: relative; isolation: isolate; width: 100%; flex: 1 0 96px; overflow: hidden; background-color: #0b1420; touch-action: none; cursor: grab; }
 .rc-tools, .rc-status { flex: none; }
 .rc-report, .rc-validation, .rc-inspect { flex: 0 0 auto; max-height: 35%; overflow: auto; }
 .rc-report { border-bottom: 1px solid #42566b; background: #152333; padding: 6px 10px; }
