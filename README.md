@@ -9,325 +9,73 @@ Orchestron is a visual instrument workshop built on the power of Csound — not 
 
 Read the complete user documentation in [user_documentation.md](documentation/user_documentation.md).
 
-Use **Markov Generator** in Melodic, Score and Drummer editors to shape pitch or drum hits and rhythm. **Keep pitches** and **Keep durations** each use the notes or lengths in the current pattern and learn how often one follows another. Click an edge percentage, drag its slider and choose **Apply**. Audition the result, then choose **Use pattern**. [Markov Generator guide](documentation/performance/sequencer_tracks_and_steps.md#markov-generator)
+[Try it with Docker](#install-and-open-orchestron) · [Play *Evening at the Lake* in the Csound Web IDE](https://ide.csound.com/editor/cY2vOMFTGj823JGQSe3u)
 
-Sequencers offer meter, per-pad pattern length and named subdivisions, including triplets. Beat groups show how twelve steps fit into one 4/4 bar; advanced playback speed stays independent. [Timing guide (EN/DE/FR/ES)](documentation/performance/sequencer_timing.md).
+## Inside Orchestron
 
-Explore the [interactive architecture animation](documentation/orchestron_architecture_animated.html) to follow a patch from the editor to native Csound and browser playback. Download the HTML and open it in a browser; it works offline.
+### Instrument Design
 
-Double-click the clip arranger to create an empty four-beat clip, then use its inline **+** to add content. Move content into gaps, copy it between compatible tracks, and resize patterns directly in expanded tracks with live size and duration feedback. Trailing rests can be shortened at their right edge; clip trimming preserves hidden content and pending edits. See the [clip arranger guide](documentation/performance/multitrack_arranger.md).
+The plucked notes in *Evening at the Lake* come from this 18-node patch. Follow the green `foscili` oscillator through the high-pass and low-pass filters to the stereo panner. The three lit keys are a C major chord. Turn **Color** and play it again to hear the FM timbre change.
+
+![Prism FM Pluck in Instrument Design, with C, E and G held above the wired oscillator, filters and stereo panner](screenshots/instrument-design-prism-fm-pluck.png)
+
+### Perform · Arranger
+
+That pluck has a part called *Lantern reflections*. Read down the timeline to see where it answers the bamboo flute. The expanded *Light on the water* lane shows how a handful of pad patterns become a 144-bar arrangement.
+
+![Evening at the Lake in Arrange, with the pad lane expanded to show its nested groups and repeated patterns alongside the flute and pluck parts](screenshots/perform-arrange-evening-at-the-lake.png)
+
+### Perform · Mixer
+
+At the start of the song, the pad and Master meters are already moving while the percussion is still silent. Each strip has its own gain, stereo balance and sends. Bring up the flute’s reverb send to move it further into the room.
+
+![Live mixer for Evening at the Lake, with stereo meters, instrument faders, individual reverb sends and a pinned Master strip](screenshots/perform-mixer-evening-at-the-lake.png)
+
+### Perform · Routing
+
+In *Sunlit Strings*, two instances of the same physical guitar model play a duet. Trace the purple cable through the lead guitar’s Tube Overdrive insert. Both guitars send to one reverb. Select a cable to see its left/right mapping and adjust the send gain.
+
+![Sunlit Strings routing graph, with two guitars, a Tube Overdrive insert, a shared reverb and the selected pre-fader send feeding the reverb](screenshots/perform-routing-sunlit-strings.png)
+
+## Install and open Orchestron
+
+[Download Docker](https://docs.docker.com/get-docker/) for your platform and start it. Run these two commands in a terminal. The first creates a volume for your library and performances. The second downloads the prebuilt image from GitHub Container Registry and starts Orchestron.
+
+```sh
+docker volume create orchestron_data
+docker run --rm --pull=always -p 127.0.0.1:8000:8000 -v orchestron_data:/app/backend/data -e VISUALCSOUND_DEFAULT_RTMIDI_MODULE=null ghcr.io/thomassresearch/orchestron:latest
+```
+
+Open [Orchestron on localhost](http://localhost:8000/client/). In **Instrument Design**, choose **New → Playable instrument → Create**, click **Audition**, then press **C4** on the on-screen keyboard. Switch on **Autochord** and press C4 again to hear the triad.
+
+To explore the arrangement pictured above, download the [Evening at the Lake performance](examples/performances/Evening_at_the_Lake.orch.json) with GitHub’s **Download raw file** button. Stop the audition, open **Perform → Project → Import**, select the file, import the performance and its patches, then press **Play**.
+
+Press **Ctrl+C** in the terminal to stop Orchestron. Run the same `docker run` command to reopen your saved work. [First-song walkthrough](documentation/getting_started.md) · [macOS](INSTALL.macos.md) · [Linux](INSTALL.linux.md) · [Windows](INSTALL.windows.md)
 
 ## Built With Codex
 
-This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, `GPT-5.5`, `GPT-5.6-Sol` and `GPT-6-Astra` using **Extra High** reasoning effort. I started development and expected to hit a limit at some point where things fell apart, but that never happened up to now, given me a good intuition on how powerful today's coding agents have become...
+This application was built using the Codex App with `GPT-5.3-Codex`, `GPT-5.4`, `GPT-5.5`, `GPT-5.6-Sol` and `GPT-6.x-Astra` using **Extra High** reasoning effort. I started development and expected to hit a limit at some point where things fell apart, but that never happened up to now, given me a good intuition on how powerful today's coding agents have become...
 
-## What you can create
+## How it works
 
-[Almost DX7](documentation/instrument_design/fm6_voice.md) supplies 32 dry FM sounds, from electric pianos and basses to wind, metallic hits and sci-fi effects. Its integer preset selector, Brightness, Attack, Release, Vibrato and Output controls are available in Perform. In the `fm6_voice` editor, click an operator in any of the eight routing diagrams to adjust its sound. As you tune it, markers follow the ratio and detune beneath their exact values. Its envelope redraws as you adjust ADSR. Drag a modulation arrow up or down to set how strongly it feeds that destination. The line thickness and percentage show the source level multiplied by the branch weight. During audition, play another note to hear an edit.
+### From opcode graph to signal path
 
-![FM6 voice editor](screenshots/fm6_voice_editor.png)
+Each patch compiles to a Csound instrument. Wire audio- and control-rate signals, combine inputs with a formula, or use a **Switch** on MIDI note number to give each drum its own synthesis branch. Expose a parameter as a performance knob and two copies of the same instrument can have different settings. At rack level, named stereo ports carry those signals through inserts, pre- or post-fader sends, shared returns and Master. If a cable closes a feedback loop, the routing view highlights the connections involved. [Graph editor](documentation/instrument_design/graph_editor.md) · [Mixer and routing](documentation/performance/audio_mixer_and_routing.md)
 
-In **Perform → Mix → Rack**, choose **Add instrument/effect**, then browse by instrument type or search for **Sample Player**
-to assign WAV, MP3 or M4A files to MIDI notes. Each rack
-instance has its own map, and repeated hits can overlap at the original pitch and speed.
-Sample Players can participate in parallel playback, including when a sample supplies the speech input to a Vocoder.
-Save the performance to keep the assignments. Native bundles and both Csound render modes
-include the audio they need. See the [Sample Player guide](documentation/performance/sample_player.md).
+### Five ways to drive a rack
 
-![Sample Player added through the normal instrument rack](screenshots/performance_sample_player_rack.png)
+A **Melodic** sequencer programs steps, chords and strums. **Score** places notes at a resolution of 20,160 ticks per quarter note. **Drummer** adds velocity and ratchets per hit. **Controller** sends stepped MIDI CC values or interpolated curves. Feed chords into an **Arpeggiator** and it sends the resulting notes to another MIDI channel.
 
-In **Arrange**, use **+ Add track** below the lanes, then click the channel badge (such as **CH01**) to choose a rack instrument or browse the library by category. Clips show their pattern names. You can also add instruments with the **+** in **Compact rack**. Click **Controllers** beside Mute and Solo to adjust the instrument and its inserts below the timeline. **Back to editor** returns to your open clip or pad. To adjust several instruments together, Shift-click them in **Compact rack** and choose **Instrument controls**. **Mix → Rack** shows the controls directly on each card. In **Mix → Routing**, click an instrument’s output and then a destination to connect them. Rack numbers and MIDI channels distinguish copies of the same patch.
+Tracks share a tempo and can use different meters and subdivisions. For three bass pulses against two drum hits, set the bass track’s playback speed to **3:2** and leave the drums at **1:1**. Nest patterns into groups and supergroups, repeat or transpose a phrase, then make a variation on just the last pass. Edit a linked pattern to change every use. In **Live**, you can launch saved patterns while the arrangement plays. [Multitrack arranger](documentation/performance/multitrack_arranger.md) · [Sequencer timing](documentation/performance/sequencer_timing.md)
 
-The Perform status bar shows engine CPU usage and how much audio is ready to play. Its segmented buffer meter turns red as the queue runs low and green as it fills. Open a red status message to read the full error while the editor and keyboard keep their space. **Parallel playback** starts enabled. The engine uses multiple Csound processes when the instruments and available resources allow it, with single rendering as the fallback. Clear the checkbox while stopped to request single rendering. See [playback and CPU statistics](documentation/performance/live_status_and_safety_controls.md#engine-stats-and-parallel-playback).
+### How Rust workers render a guitar duet
 
-Switch between **Instrument Design** and **Perform** in the header. The gear opens **Audio settings** from either workspace. Use the language menu for Deutsch, English, Español or Français. [Workspace header](screenshots/workspace-header.png)
+Each guitar in *Sunlit Strings* has its own random sequence for pluck variation. If both drew from the same random stream, they would have to render together to draw the same values in the same order. The planner checks for shared state and partitions the performance graph at whole-instrument boundaries. Independent signal paths can then run in separate Csound processes. Their audio meets in a final process that runs the shared effects, Master and output.
 
-Sample rate, control rate and engine buffers apply to the whole project. **Save Performance** and native performance export keep those settings. Older projects start with the defaults.
+Python coordinates the workers and schedules events. Inside each worker, a Rust loop delivers MIDI and control changes at the synthesis step, calls Csound’s `performKsmps()` and transfers audio through shared memory. Perform selects a single renderer when the graph or host cannot support a parallel split. [Guitar duet bundle](examples/performances/Sunlit_Strings_Independent_Plucks.orch.json) · [Graph partitioning](specifications/parallel-csound-rendering/whole-instrument-partitioning.md) · [Rust render loop](backend/experiments/rust_worker/README.md)
 
-Set the parallel batch size in **Audio settings → Parallel Playback**: **32–1024 samples**, default **256**.
-Apply while stopped; the saved preference takes effect on the next parallel start. Instruments
-retain their synthesis and controller timing. Rack controller edits and live mixer changes
-also work with parallel playback enabled. See [parallel playback settings](documentation/configuration/audio_engine_settings.md#parallel-playback).
+### Export the song as Csound
 
-![Engine statistics and playback buffer in Perform](screenshots/perform-playback-status.png)
+Open **Perform → Project** and export a standard Csound `.csd` you can read, edit and render outside Orchestron. **Export CSD (SCORE)** puts notes and controller events in the Csound score. **Export CSD (MIDI)** pairs the orchestra with a separate MIDI file. Both packages include the required assets and a command to render a 48 kHz, 32-bit float WAV with the effect tails intact. [CSD export guide](documentation/performance/performance_import_export.md#render-with-csound)
 
-[Enough and Logan](documentation/instrument_design/enough_and_logan.md) bring two
-editable dry synth voices from altamax: an evolving five-oscillator FM network
-and a phase-shaped tone. Each has Timbre, Evolution, Release and Level controls.
-
-The Perform rack uses the full available width and automatically sizes instrument
-cards to fit their controllers. Compact knobs and faders leave more room for
-instrument controls in the rack and mixer. Add **Controller Group** names to organize related
-settings inside closely fitted labeled borders. Groups favor compact horizontal
-rows and adapt to window resizing and browser zoom while preserving their order
-and unfinished value edits. Minimoog Monophonic, Granular Synthesis and
-Ambient Wavetable Cloud include groups organized by synthesis function. [Controller and rack guide](documentation/performance/performance_controllers.md).
-
-![Compact controller groups with a horizontal Envelope](screenshots/performance_controller_groups_compact.png)
-
-[Granular Synthesis](documentation/supplied/instruments.md#granular-synthesis) is a
-sample-free stereo instrument with 30 performance controls for pitched clouds,
-sparse particles, metallic textures and sync-like tones. The supplied-instruments guide links to its editable native bundle.
-
-Hear seven contrasting instances in [Grain of Salt](examples/performances/grain_of_salt/README.md),
-a five-minute melodic electronic song with a recurring hook and a spacious middle section.
-
-[Trance Gate](documentation/instrument_design/trance_gate.md) combines direct CC24
-gating with a CC29-triggered triangle LFO that sweeps between two frequencies and
-returns smoothly on release, with adjustable sweep time and threshold.
-Its Stereo control adds triangle-driven balance during LFO sweeps and a held
-random position on each manual gate opening.
-
-The [Analog Drumkit](examples/instruments/analog_drumkit/README.md) provides 17
-sample-free percussion voices for breakbeats, with General MIDI note assignments,
-shared kick snappiness and hi-hat tuning, snare tuning, and individual controls
-for its side stick, clap, electric snare, six toms, crash, ride and tambourine.
-
-Build a sound from the inside out. In **Instrument Design**, connect Csound building blocks, called opcodes, into a patch: an oscillator makes a tone, an envelope shapes its attack and decay, a filter changes its colour, and modulation brings it into motion. Follow the connections to see how each part contributes to the result.
-
-Start with a playable instrument, a drumset, an audio effect, an audio output patch, or an empty canvas. Turn a promising experiment into a reusable template, keep several instruments open in tabs, and return to unfinished ideas later.
-
-- **Synths and textures:** combine oscillators, filters, envelopes, physical models, and effects for basses, leads, bells, pads, and evolving soundscapes.
-- **Sample-based sounds:** upload audio or SoundFonts, and use the table editor to build waveforms and shape how samples are played.
-- **Additive resynthesis:** upload a `hetro` analysis file into [`adsyn`](documentation/instrument_design/opcode_catalog_and_documentation.md#additive-resynthesis-with-adsyn), then control amplitude, pitch and playback speed.
-- **Drumsets:** give different notes their own synthesis voices with [If / Switch branches](documentation/instrument_design/control_flow.md), then sequence them together.
-- **Effects:** design stereo processors to use as inserts, shared effects, or part of your Master chain.
-
-![A stereo pad patch with connected oscillators, envelopes, filters, and modulation sources](screenshots/instrument_design.png)
-
-*An instrument takes shape as a graph: this pad combines oscillators, envelopes, filters, and delay.*
-
-Use [`midi_legato`](documentation/instrument_design/midi_legato.md) for monophonic instruments whose touching notes share a breath or envelope. Pitch changes immediately, velocity follows smoothly, and gaps start a new phrase.
-
-Play the [Expressive Tenor Saxophone](examples/instruments/tenor_saxophone/README.md)
-for a sample-free reed model with connected phrasing, fuller upper harmonics and
-velocity-sensitive reed response. Soft velocities give breathy notes, harder playing
-adds growl, and velocities 115–127 bring out an overblown squeal. The example guide
-includes level-matched previews of the original and balanced acoustic revision.
-
-Shape sounds with the [ZDF filters and `zfilter2`](documentation/instrument_design/opcode_catalog_and_documentation.md#zdf-and-custom-iir-filters): modulate cutoff and resonance at audio rate, use simultaneous filter outputs, or supply custom IIR coefficients.
-
-The [Goa Trance FM Lead](documentation/instrument_design/goa_trance_fm_lead.md)
-retains its original filters and sound at stable settings, with note-dependent
-resonance guards that prevent its high-register filter runaway.
-
-Use [`compress2`, `pareq`, and `hsboscil`](documentation/instrument_design/opcode_catalog_and_documentation.md#compression-equalization-and-cyclic-tonality) for sidechain compression, parametric EQ, and tones with independently controlled pitch and brightness.
-
-Build prepared-piano sounds with [`prepiano`](documentation/instrument_design/opcode_catalog_and_documentation.md#prepared-piano): stereo modeled strings, hammer controls, and optional GEN tables for rattles and rubbers. The [playable piano example](examples/instruments/Piano_prepiano.orch.instrument.json) uses MIDI pitch and velocity with ten performance controls, pitch-tracked treble excitation and no preparations.
-
-Play [HSB Mono](documentation/instrument_design/hsb_mono.md) for cyclic tonality,
-octave brightness and pitch slides across gaps of roughly 20 ms, with performance
-knobs and live MIDI control of all three settings.
-
-[Minimoog Monophonic](examples/instruments/minimoog_monophonic/README.md) combines
-three oscillators, noise, a ladder filter and separate loudness/filter contours
-with 40 performance controls, monophonic legato and adjustable glide timing.
-
-The [Parametric Equalizer](documentation/instrument_design/parametric_equalizer.md)
-provides seven stereo bands from 63 Hz to 16 kHz, with linear −20 to +20 dB
-performance controls and neutral 0 dB defaults.
-
-Build composite waveforms with the [GEN19 table editor](documentation/instrument_design/gen_table_editor.md#gen19-sinusoidal-partials-with-dc-offset), setting each partial’s frequency ratio, strength, phase and DC offset.
-
-Hover over an instrument's description in Instrument Design to read the full text in a tooltip.
-
-Edit [constant values](documentation/instrument_design/graph_editor.md#constant-nodes) directly on the node, including multi-digit numbers and decimals, while keeping the field focused.
-
-Bright-green input sockets reveal active stored values and formulas. Double-click any editable input—even without a cable—to inspect its value and source, edit it, or **Reset input** to the remaining connections or catalog default. See the [input value and formula guide](documentation/instrument_design/input_formula_assistant.md).
-
-Toggle [Audition](documentation/instrument_design/runtime_panel_and_compilation.md#audition-a-draft) to try an unfinished patch in isolation before saving it. Play the mini keyboard, or use **Autoplay** to repeat the last note or Autochord while you adjust the sound. Set the note duration from 0.2–1 s and the interval between attacks from 0.5–5 s. Effects use a built-in test instrument. Stop audition hides the controls and keyboard. The [Instrument Design guide](documentation/instrument_design/instrument_design.md) walks through the editor, formulas, tables, and patch library.
-
-## Build patterns and arrangements
-
-Build a song in the default **multitrack arranger**, with melodic, score, drummer, controller and arpeggiator tracks on one timeline. Compact lanes show note previews, drum hits, transposition badges and automation curves together. Click a track name to expand its clips and see their patterns, groups and supergroups. A faint cyan highlight runs across the expanded track. Point at a beat and pinch the trackpad on Mac or turn the mouse wheel on Windows or Linux to zoom there. The **Zoom** slider keeps the middle of the visible timeline centered. Move it all the way left to see the whole song, including trailing silence.
-
-When a clip looks narrow, grab it anywhere to move the whole window. Zoom in to reveal its trim handles and the inline **+** and **↕** controls.
-
-Enable **Follow playhead** beside **Zoom** to scroll the tracks beneath the playhead during playback. When the song end comes into view, the tracks stay still and the playhead moves to the end.
-
-![The First Pulse of a New Machine in the redesigned multitrack arranger, with compact tracks, note previews, transposition badges and automation at position 160](screenshots/perform_multitrack_arranger_redesigned.jpg)
-
-*The First Pulse of a New Machine centered on position 160 master beats (bar 41), with drums, bass, cloud harmonies, lead, bells and automation sharing the same timeline.*
-
-Choose **Add track**, then double-click empty lane space to create a four-beat clip. Its inline **+** adds a new pattern, reusable content or a rest. Drag a clip header to move it and its borders to trim its window; the inspector accepts exact start, length and source-offset values. **Once** plays the content once, while **Loop** repeats it within that window. Trimming preserves the underlying content, and **Fit clip to content** explicitly matches the window to its contents. Moving or removing a clip leaves the other clips in place.
-
-Right-click a clip header to select the whole window. **Duplicate clip** places a linked copy in the first later gap that fits. **Delete clip** leaves silence. Click a pattern or group to work inside the window, and Shift-click to extend the selection. Choose a local variation or a linked edit when changing shared content.
-
-Amber marks identify pending changes across tracks. **Play** previews them together. **Undo** reverses individual gestures until **Save** commits the whole batch as one undoable edit. **Cancel** restores the committed arrangement at the current playhead. The ruler and tracks share beat, bar and four-bar accents at close zoom. Expanded tracks with a different meter or playback speed show a second, local grid.
-
-![Pending changes on two tracks in the arranger](screenshots/arranger-edit-session.png)
-
-![Linked occurrences and lighter loop repetitions in the clip arranger](screenshots/clip-arranger-relationships.png)
-
-Use **Play**, **Pause**, **Stop** and the one-beat rewind/forward controls to work on a passage. Enter a destination in **Position** to seek in master beats; the ruler shows bars and beats. **Loop** repeats the selected pattern or contiguous pattern range across all tracks. Select just the clip header to loop the entire clip, or clear the selection to loop the whole song. **Song end** makes trailing silence explicit, and **Fit song to clips** moves that boundary to the last clip. Play starts stopped instruments automatically; Stop stops those instruments again, while instruments already running before Play stay running.
-
-Shift-click clip headers on one track and choose **Merge clips** to keep their timing and fill gaps with rests. Choose **Split clip…** on a single clip to place a scissors marker and confirm the cut. Both actions support arranger Undo and Redo.
-
-Mute or solo individual lanes without losing their place in the song, even when several lanes share an instrument. These temporary controls are independent of the mixer and are excluded from saved performances. Open **Sections** to copy, overwrite or insert a passage across all tracks or the selected track, as part of the current arrangement edit. Undo/Redo retains up to 25 clip edits through save/load, autosave recovery and native bundles.
-
-Create melodies, bass lines, drum patterns and movement with up to **16 sequencers of each type**—melodic, score, drummer and controller. Each sequencer can use its own meter, grid and beat ratio around a shared tempo. Melodic editors offer scales, modes, individual notes and chords; drummer editors shape each hit's velocity. Per-step timing moves notes, chords or hits early or late while preserving the pattern's meter and length. Beat-synchronized [arpeggiators](documentation/performance/arpeggiators.md) drive existing MIDI instruments with editable rhythms, ties and ratchets, with note previews and scale-degree colours.
-
-Draw longer polyphonic passages in the **[Score Sequencer](documentation/performance/score_sequencers.md)**. Add a pattern inside a Score-track clip and double-click it to open the scale-highlighted editor with independent note durations and velocities. Hold a piano key to audition it, or double-click to append a quarter note. Add chords, edit with snapping and undo, and grow a score to cover a whole performance. Shortening a pattern preserves hidden notes for later expansion; saving can create a local variation or update all linked occurrences.
-
-![Score Sequencer with a vertical piano keyboard, independent note durations and eight pattern pads](screenshots/score-sequencer.jpg)
-
-Use [nondestructive transposition](documentation/performance/multitrack_arranger.md#transpose-clips-without-changing-notes) to turn a shared pattern into a progression. Patterns, groups and supergroups support diatonic steps and chromatic semitones, with shared repetition settings and independent parent or placement offsets. Expanded tracks have clearly outlined **+** and **↕** buttons for inserting content and editing transposition, with separate space for content names and unchanged box sizes. Collapsed tracks use smaller transposition buttons. Timeline previews show the resulting pitches while the original notes remain editable.
-
-![Larger add-content and transpose controls in the expanded arranger](screenshots/clip-arranger-content-controls.png)
-
-Assign **MIDI CC 1–50** to [performance controls](documentation/performance/performance_controllers.md#receive-midi-cc-in-a-performance) in the rack, then **Generate automation** from an instrument clip. Bound controller lanes follow the instrument's MIDI channel and expose song-length curves with up to ten points directly inside expanded clips, with explicit Save/Discard. Hardware MIDI and manual controllers can also move the mapped knobs, integer values and toggles; assignments are saved with the performance.
-
-![Instrument automation edited inside a clip](screenshots/clip-arranger-instrument-automation.png)
-
-Controller sequencers offer both **Curve Mode** and **Step Mode**, retaining both datasets per pattern. Draw continuous motion or send exact MIDI CC values at individual steps, with silent gaps and a configurable reset value on start/stop. [Curve endpoints](documentation/performance/controller_sequencers.md#curve-editor-interactions) can retain independent start and end values or snap together for a seamless transition.
-
-Program drum rolls with **1–8 ratchets per hit** and an optional velocity ramp. Right-click a drum cell or press **Shift+F10** to set its repeat count and final velocity; **×N** badges show rolls in the grid. Early/late timing moves the whole roll, and native bundles and both CSD exports preserve it. See [drummer ratchets](documentation/performance/drummer_sequencers.md#ratchets-and-velocity-ramps).
-
-Strum melodic chords **Low → High** or **High → Low**, with a tempo-synced **Spread of 0–100%** of one step. At 100%, the last note starts at the next step; each note keeps its duration and can overlap later steps. Right-click a note or chord, press **Shift+F10**, or use its **⋮** button to open Timing and Strum together. See [strummed chords](documentation/performance/sequencer_tracks_and_steps.md#strummed-chords).
-
-Explore the [clip arranger guide](documentation/performance/multitrack_arranger.md), [sequencer editing](documentation/performance/sequencer_tracks_and_steps.md) and [instrument automation](documentation/performance/instrument_automation.md). The [Performance Creator CLI](integrations/skills/orchestron-performance-creator/references/song_workflow.md) can also author clip arrangements and shared content, including [strum settings](integrations/skills/orchestron-performance-creator/references/step_strum.md).
-
-## Perform and shape the mix
-
-**Perform** opens in Arrange. The top band holds **Project** and the song transport. Its **?** explains loading, saving, playback and looping. The **?** beside **Arrange**, **Live** and **Mix** explains the selected view. In **Mix**, the next row has its own **?** for **Mixer**, **Rack** or **Routing**. Each topic opens in your interface language. [Perform navigation](screenshots/perform-navigation.png)
-
-Select a chorus repeat and edit a variation below the timeline, or update a linked phrase across the song. Arrange and Live pattern editors open directly on the notes, drum hits or controller curve. **Settings** holds naming, routing and timing. Legacy performances open their original pads in the same editor area. The Inspector keeps instrument assignments and clip properties beside the timeline. [Arrange a performance](documentation/performance/performance.md#arrange)
-
-Open **Keyboard** in any Perform view. In **Arrange**, play along with an unsaved clip variation while **Play edit** runs. In **Live**, hold a chord while launching pads, then switch to **Mix** and adjust an insert while the chord sounds. Each Live device shows its MIDI channel and rack instrument. Melodic, drum and controller tracks share aligned columns, with an independently scrollable row of named pads for each device. Select a pattern and press **Play**, then tap another to queue it for the next pattern boundary. On a phone, the launcher stays above the keys. A hollow dot marks an empty or silent pattern. Hold a pad’s speaker to audition it, or choose **Pad actions** to copy and transpose a fill while the queued pad keeps its place. [Launch pads in Live](documentation/performance/performance.md#launch-pads-in-live)
-
-Set up a gig by dragging melodic devices into playing order in **Live**, or use the row arrows. **Save Performance** keeps that order. While editing a legacy phrase, choose **Open in arranger** to find its exact pad, group or supergroup in the track palette. Return to **Live** to continue the draft. [Build a legacy phrase](documentation/performance/pattern_pads_and_pad_looper.md#build-a-legacy-phrase-from-pads)
-
-In **Mix**, preview a sample or hold a chord while adjusting gain, Mute, Solo and a named insert’s Bypass. These controls stay in reach with the editor open, even on a short screen. Compact gain sliders show the selected level with a cyan fill from the left edge to the knob. Master and the final stereo Audio Output meter let you hear and see what reaches the speakers. Open **Routing** to trace a signal while the song plays. [Mix a performance](documentation/performance/audio_mixer_and_routing.md#mix-a-performance)
-
-Performance descriptions show three lines with automatic wrapping. Scroll vertically through longer descriptions or hover over the field to read the full text.
-
-Load instruments into the Perform rack, assign MIDI channels, and play from the on-screen keyboards or an external MIDI source. Open **?** beside the keyboard name for help with scales, MIDI channels and Autochord. Scale highlighting follows the currently playing melodic or score clip, including Play edit auditions, while you improvise. When no melodic source is playing, the keyboard keeps its own editable scale and mode. See [piano-roll scale following](documentation/performance/piano_rolls.md#scalemode-following-behavior-during-live-playback). Enable **Autochord** on a piano roll to play 3-, 4-, or 5-note chords by stacking every other highlighted note above the pressed key. In mixed scales it uses their common notes; keys outside the highlighted set remain single notes. Manual MIDI controls and controller sequencers can each send to your chosen MIDI channels, with all 16 selected by default (OMNI). Manual controllers use [compact cards](documentation/performance/midi_controllers.md) that sit side by side and wrap as needed, in the Live overview. Assignable MIDI controls let you adjust sounds as you play; instruments can also expose their own [performance controls](documentation/performance/performance_controllers.md) for settings such as envelope times or distortion. Choose Float knobs, Integer controls with step buttons and direct entry, or Bool on/off toggles for each setting.
-
-![Live with a held chord on the keyboard and the next Manual pad queued above it](screenshots/perform-workspace-live-launcher.png)
-
-*Keep the chord sounding while the next pad waits for its pattern boundary.*
-
-Mix instruments and effect returns with volume faders, pan or balance, mute, solo, and meters. Each instrument strip shows its rack patch number and MIDI channel above the instrument name; continuous instruments show **Continuous** instead of a channel. In **Mix → Routing**, click **＋ Add insert** on a strip or Master, or click a purple cable to insert an effect at that point. Drag an insert by its grip to change processing order. Press **Escape**, click elsewhere or tab out to dismiss an insert or audio-port menu. Drag card headings to arrange the graph and save the layout with the performance. Send several instruments to a shared effect and shape the combined sound through Master. Every performance has a fixed internal Master with its own controls and inserts, without adding an instrument to your library. The routing graph shows named ports, insert returns and automatic direct outputs. Select a cable to inspect its channels or reconnect it. Choose **Incoming connections** on a destination card to find a cable by name. **Check routing** opens diagnostics inside the graph.
-
-Continuous instruments automatically detect which performance controllers can update live. **Live** controls respond during playback; controls feeding I-rate or mixed inputs show **Requires restart**. Both CSD export modes retain initialization values. See [performance controller timing](documentation/performance/performance_controllers.md).
-
-Compare effects during playback with **Bypass** on each continuous insert. Switching uses a smooth 20 ms transition and preserves the rest of the chain. Save/load and native bundles retain each insert’s state; MIDI and SCORE CSD exports omit bypassed effect processing and its exclusive assets. See [insert bypass](documentation/performance/audio_mixer_and_routing.md#compare-inserts-with-bypass).
-
-Removing a rack instrument also removes its dedicated inserts and connections; removing one insert reconnects the remaining simple chain. The routing graph flags missing insert assignments and previews feedback as you place a cable. Routing diagnostics also checks the mix automatically after edits. Feedback errors show a closed routing path with instrument names, instance IDs, MIDI channels, audio ports and processing stages. **Show offending connections** highlights the affected mixer strips, inserts, sends and routes, and filters the diagram to the loop. Serial inserts, including Master inserts, are distinguished from parallel direct and processed output paths in routing checks and CSD export warnings. See the [routing diagnostics example](documentation/performance/audio_mixer_and_routing.md#troubleshoot-routing-and-silence).
-
-For optional instrument, composition and performance creation with a coding agent, see the [Agent Tooling Appendix](documentation/appendix/appendix.md) and its creator skills and command-line utilities.
-
-Performance Creator chooses sequencers by musical role and builds songs from reusable clip definitions, compact repetitions, scoped transposition and instrument-bound automation. Its [song workflow](integrations/skills/orchestron-performance-creator/references/song_workflow.md) supports exact timing, section edits, undo, contextual audition and native/MIDI/SCORE export, with structured results after each command. Custom Drummer patterns retain individual MIDI keys, hits and velocities; legacy pad and composition-score commands remain available.
-
-Bundle all four skills as a Codex plugin with `make -C integrations`. See the [plugin build and installation guide](integrations/README.md#build-the-plugin-zip) for the ZIP, prerequisites, and update workflow.
-
-Transcribe a sung or hummed melody with the independent [Sung Melody Transcription skill](documentation/appendix/sung_melody_transcription_skill.md): supply a recording, optionally with claps, and review a piano WAV, MIDI, note JSON and a complete edit log. Tempo, meter, phrase length and ending can be supplied. This plugin skill uses RMVPE and FluidSynth; piano previews run independently of Orchestron performance creation.
-
-Explore melodic ideas with [Composition Creator](documentation/appendix/composition_creator_skill.md): listen to candidate phrases, select favourites, leave feedback and lock passages you want to preserve. Expand each candidate's creation history to see the recorded arvo calls, inputs, combined sources and protected passages through earlier versions. Develop accepted ideas into a song, then hand its machine-readable score to Performance Creator for instruments, routing and saving. The local audition page supports EN/DE/FR/ES and works without a running Orchestron backend.
-
-Keep a motif's opening and compare four purposeful endings: settled, suspended,
-higher-reaching and spacious. After choosing an ending, hear the same melody over
-two harmonic settings. An original two-bar study provides a playable starting point;
-each round waits for your selection. See the [guided comparison workflow](documentation/appendix/composition_creator_skill.md#compare-endings-and-harmonic-settings).
-
-![Composition audition page with three playable melodies and saved selection controls](screenshots/composition_audition.png)
-
-![Ratchet drums demo mixer with patch numbers and MIDI channels above World Drumkit and Flute, continuous effects and pinned Master](screenshots/perform_mixer_sends_inserts_master.png)
-
-*The live “Ratchet drums demo” performance: Patch numbers and MIDI channels identify World Drumkit and Flute; the compressor and reverb show Continuous, with Master pinned at the right. Playback is stopped.*
-
-Notes, controller curves and steps, tempo, and arrangement edits can be applied while playback continues. Mixer controls stay available during performance; stop the instruments before changing rack assignments or audio connections. The rack separates note-triggered and continuous instruments with a thin line. While stopped, drag a card’s `::` handle to reorder instruments within its group; the mixer and compact rack follow the saved order. Collapsible panels let you focus on the part of the setup you are using.
-
-See [Audio Mixer and Routing](documentation/performance/audio_mixer_and_routing.md) and [Editing During Playback](documentation/performance/live_status_and_safety_controls.md#editing-during-playback) for the full workflow.
-
-## Learn and share
-
-The interface and integrated help are available in **English, German, French, and Spanish**. Open a tool's **?** button for guidance in context, including the Mixer and clip-based Multitrack Arranger, or explore an opcode's reference while building a patch. In the Instrument Rack help, **Performance Controllers** explains when continuous controls update live, require a restart, or use initialization values in CSD exports.
-
-![Spanish integrated help explaining the graph editor and input formulas](screenshots/integrated_help_pages_multilingual.png)
-
-*Help stays close to the task, with explanations of the editor and its controls in your chosen language.*
-
-Save instruments and performances to your library, or export native bundles to back them up and share them with another Orchestron user. Sample assets travel with ZIP bundles. Native imports validate the bundle before confirmation and save the selected instruments, performance, and new audio assets together; cancelling leaves the library and audio storage unchanged. You can also export an instrument as a Csound `.csd` file, or export an arranged performance as a Csound render package using MIDI or an embedded score. Score exports group events by master measure, with measure/timestamp comments and blank lines between groups. Each performance render package includes instructions for producing an audio file.
-
-Both performance CSD modes optimize offline rendering of the saved mix while preserving musical controller automation and effect tails. Render requests omit Undo/Redo history to leave room for music; saved performances and native bundles retain it. SCORE exports share original Catmull–Rom controller patterns, including parameters sampled when notes start, and remove redundant writes. Instrument comments are preserved. Both modes place sample files in `assets/` by default. Clear **Export samples in the assets/ subfolder** to place them beside the CSD. For SCORE exports, **Maximum deviation** offers **1–10 CC units**, default **1**, for curves that require fallback approximation; original curves retain their sampled values regardless of this setting. Step patterns and resets remain exact. See [offline export](documentation/performance/performance_import_export.md#offline-render-export-export-csd-midi--export-csd-score) for the dialog, exact-event export and compatibility details.
-
-Read about [instrument exchange](documentation/instrument_design/instrument_import_export.md), [performance exports](documentation/performance/performance_import_export.md), and [language and help settings](documentation/configuration/gui_language_and_integrated_help.md).
-
-## Get started
-
-### Install and open Orchestron
-
-Follow the guide for your environment: [macOS](INSTALL.macos.md), [Linux](INSTALL.linux.md), [Windows](INSTALL.windows.md), or [Docker](INSTALL.docker.md). Once Orchestron is running locally, open [Orchestron in your browser](http://localhost:8000/).
-
-macOS and Linux installs can compile the sequencer for faster playback processing;
-source installs also require Rust/Cargo to build the parallel audio worker.
-Docker includes both components prebuilt. See the platform guide for compiler setup
-and [playback implementation selection](BACKEND.md#compiled-sequencer-playback).
-
-### Make your first sound
-
-1. Open **Instrument Design**, choose **New**, and select **Playable instrument**.
-2. Give the patch a name and click **Save**.
-3. Switch to **Perform**, click **Add instrument/effect**, and select your saved patch. Note its MIDI channel.
-4. Add a piano-roll keyboard and set it to the same MIDI channel.
-5. Press the piano roll's **Start** button, then click the keys to play. This starts the instruments without starting the arranger.
-6. Use **Save Performance** to keep the setup.
-
-You can also [import example instruments](examples/instruments/) or [load an example performance](examples/performances/). The [examples guide](examples/README.md) explains both routes.
-
-The [Ambient Techno instruments](documentation/instrument_design/ambient_techno.md)
-pair a rounded sub-bass with a moving wavetable cloud. Per-instance controls set
-the base sound; separate MIDI CCs add live timbre, motion, width and shimmer.
-
-The [Supplied Instruments and Effects](documentation/supplied/supplied.md) chapter collects the sound and effect guides. For a first song using an empty library, follow [Getting Started](documentation/getting_started.md).
-
-[Tube Overdrive](documentation/instrument_design/tube_overdrive.md) adds warm stereo
-saturation as a continuous mixer insert, with per-instance Drive, Tone and Output
-controls. Restart the rack to apply changed settings.
-
-[Stereo Delay](documentation/instrument_design/stereo_delay.md) adds repeating
-echoes with manual Tempo and Beats controls, Feedback and adjustable left/right
-alternation. Its continuous insert preserves the original stereo signal.
-
-[Stereo Chorus](documentation/performance/performance_controllers.md#stereo-chorus-depth)
-provides twelve modulated delay taps with adjustable LFO rate and depth. Its Amount
-control supports 1–100 ms modulation; larger values also lengthen the wet delays.
-
-[Stereo Flanger](documentation/instrument_design/stereo_flanger.md) adds sweeping
-comb filtering with Rate, Delay, Depth, Feedback, Stereo Phase and Mix controls.
-Its continuous stereo insert supports signed feedback and a wet-only send return.
-
-[Autopanner](documentation/instrument_design/autopanner.md) sweeps stereo balance
-with manual Tempo, Beats per cycle and Depth controls. It preserves separate
-channels, passes audio unchanged at zero Depth, and supports automatic live updates
-after changing settings.
-
-[Stereo Widener, Bit Crusher, and Harmonizer](documentation/instrument_design/continuous_effects.md) provide continuous stereo processing with per-instance performance controls. [Granular Capture](documentation/instrument_design/granular_capture.md) adds MIDI-controlled stutter, freeze and granular playback driven by controller step patterns. [Vocoder](documentation/instrument_design/continuous_effects.md#vocoder) shapes a stereo carrier with compressed, 300 Hz–3 kHz speech. Its logarithmic Dry Mixin control adds a trace of the original carrier before stereo-linked output compression.
-
-[Stereo Moog Filter](documentation/instrument_design/stereo_moog_filter.md) provides
-resonant stereo low-pass filtering with per-instance Cutoff and Resonance settings.
-CC20 and CC21 scale those settings together for both channels during playback.
-
-[Stereo Auto Wah Wah](documentation/instrument_design/stereo_auto_wah_wah.md)
-follows input loudness with resonant stereo filters. Choose linked or independent
-envelopes, smooth sweeps or musical cutoff steps, and separate loudness integration
-and transition times. Restart the rack after changing its per-instance settings.
-
-The [acoustic steel-string guitar pair](documentation/instrument_design/midi_legato.md#steel-string-guitar-example)
-includes a lead with semitone-stepped legato and a polyphonic instrument for chords,
-with a waveguide string model, velocity-sensitive plucking and finger/plectrum,
-tone, and sustain controls.
-
-The [physical steel-string guitar](documentation/instrument_design/steel_string_waveguide.md)
-adds two string polarizations, twelve body resonances, pluck-position and palm-mute controls.
-Its reference-informed tuning preserves bass fundamentals and softens finger plucks,
-with dry listening previews and matched-level comparisons.
-
-The [Sunlit Strings duet with independent plucks](examples/performances/Sunlit_Strings_Independent_Plucks.orch.json) uses a separate random sequence for each guitar so the two parts can render in parallel.
-
-### Connect and tune
-
-The on-screen keyboards, sequencers, and MIDI controls work without external MIDI hardware. To connect a keyboard or DAW, follow [MIDI Setup and Inputs](documentation/configuration/midi_setup_and_inputs.md). On macOS, software-to-software MIDI can use the **IAC Driver** with the [host MIDI helper](host-midi-helper/README.md).
-
-Choose **Auto / Live / Listening** in **Audio settings** to balance responsiveness and smooth playback. Auto switches to Live for piano keyboards, manual MIDI controls and external MIDI input, then returns to Listening after a configurable inactivity timeout (10 seconds by default). Held notes, sustain and controller gestures keep Live active; sequencer automation does not. Switching preserves queued audio, so select Live in advance when the first note must respond promptly. See the [browser audio latency guide](documentation/configuration/browser_clock_latency.md#playback-mode) and [Audio settings screenshot](screenshots/config_browser_playback_modes.png) for modes, tuning and dropout diagnostics.
+Hear what those exports sound like and open their Csound source in the Web IDE. [Evening at the Lake](https://ide.csound.com/editor/cY2vOMFTGj823JGQSe3u) · [Sunlit Strings — A Guitar Duet](https://ide.csound.com/editor/YI93mfrDDAFyDtk7ZyIn) · [Grain of Salt](https://ide.csound.com/editor/QDGRs0r2DmBLGqXYKFmk) · [More Orchestron songs by Thomassresearch](https://ide.csound.com/profile/Thomassresearch)
