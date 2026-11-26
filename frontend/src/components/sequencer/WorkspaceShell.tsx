@@ -17,6 +17,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { clipCopy } from "../clipArranger/copy";
 import { QUARTER_TICKS } from "../../lib/clipArranger/model";
 import { PositionInput } from "../clipArranger/PositionInput";
+import { TempoInput } from "./SequencerTimingControls";
 import { mixCopy } from "./mixCopy";
 import { EngineStatusLine } from "../EngineStatusLine";
 import { clampDock, DockDivider, maxDockHeight, MIN_DOCK, DIVIDER_HEIGHT } from "./DockDivider";
@@ -53,7 +54,7 @@ function SongPositionControls({ language, onSeek, onTempo }: {
     <span className="ws-song-position">
       <span className="ws-bars" title={arrangeCopy(language).barBeat} aria-label={arrangeCopy(language).barBeat}>{Math.floor(beat / beatsPerBar) + 1}.{beat % beatsPerBar + 1}</span>
       <label>{c.position} <PositionInput className="ws-number" beats={position / QUARTER_TICKS} onSeek={step => onSeek(range, step)} /></label>
-      <label>BPM <input className="ws-number" type="number" min={30} max={300} value={bpm} onChange={e => onTempo(Number(e.target.value))} /></label>
+      <label>BPM <TempoInput className="ws-number" bpm={bpm} onChange={onTempo} /></label>
     </span></>;
 }
 

@@ -29,6 +29,10 @@ type Props = {
   onMove: (owner: string, chain: string[], from: number, to: number) => void; onEdit: (id: string) => void;
 };
 const kindLabel = (kind: AudioRoute["kind"]) => kind === "insert" ? "inserts" : kind;
+const cardDirections: Partial<Record<string, Point>> = {
+  ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }
+};
 const stageLabel = (s: Socket) => s.stage === "raw" ? "rawStage" : s.stage === "input" ? "inputStage" : s.side === "in" ? "insertReturn" : "stripStage";
 function isCompatibleJack(viewport: HTMLElement | null, target?: EventTarget | null) {
   return target instanceof Element && viewport?.contains(target.closest(".rc-socket[data-compatible]"));
@@ -207,15 +211,18 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
     const index = route.targetStage === "strip" && route.targetId === owner ? node.inserts.length : node.inserts.indexOf(route.targetId);
     if (index >= 0) setMenu({mode:"insert", owner, index, graph, target:menuTarget(anchor,point)});
   }
+  function savePosition(nodeId: string, point: Point) {
+    const routingLayout = Object.fromEntries([...model.nodes].map(([id, node]) => [id, { x: node.x, y: node.y }]));
+    routingLayout[nodeId] = point;
+    useAppStore.setState({ routingLayout });
+  }
   function finishDrag(e: PointerEvent, commit: boolean) {
     const d = drag.current;
     if (!d || d.pointer !== e.pointerId) return;
     drag.current = null; setDraft(null);
     const state = useAppStore.getState();
     if (commit && d.moved && d.generation === state.performanceWorkspaceGeneration && model.nodes.has(d.id)) {
-      const routingLayout = Object.fromEntries([...model.nodes].map(([id, node]) => [id, {x:node.x, y:node.y}]));
-      routingLayout[d.id] = d.moved;
-      useAppStore.setState({routingLayout});
+      savePosition(d.id, d.moved);
     }
   }
   function move(e: PointerEvent) {
@@ -315,10 +322,19 @@ export function RoutingCanvas({ bindings, patches, graph, mixer, language, exact
           return <article key={n.id} className="rc-node" data-routing-node={n.id} data-status={status} data-selected={!selectedCable && inspected?.id === n.id || undefined}
             data-role={n.id === MASTER ? "master" : n.id === OUTPUT ? "output" : owner ? "insert" : n.patch?.always_on ? "return" : "instrument"}
             style={{ left: p.x, top: p.y, width: cardWidth, height: n.height }} onPointerDown={e => e.stopPropagation()}>
-            <button type="button" className="rc-title" title={[name(n.id), n.id, owner && t("inserts") + " · " + name(owner), ...messages.map(diagnosticText)].filter(Boolean).join("\n")}
+            <button type="button" className="rc-title" aria-description={t("moveCardHint")} title={[name(n.id), t("moveCardHint"), n.id, owner && t("inserts") + " · " + name(owner), ...messages.map(diagnosticText)].filter(Boolean).join("\n")}
               onClick={() => {
                 if (hasStrip(n.id)) select(n.id);
                 showNode(n.id); choose(null); cancel();
+              }}
+              onKeyDown={e => {
+                if (e.altKey || e.ctrlKey || e.metaKey || drag.current) return;
+                const direction = cardDirections[e.key];
+                if (!direction) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const step = e.shiftKey ? 1 : 16;
+                savePosition(n.id, { x: p.x + direction.x * step, y: p.y + direction.y * step });
               }}
               onPointerDown={e => {
                 if (e.button !== 0) return;

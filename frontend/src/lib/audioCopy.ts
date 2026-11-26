@@ -16,6 +16,7 @@ const rows = {
   mismatch: ["Choose ports with matching channel counts", "Anschlüsse mit gleicher Kanalzahl wählen", "Choisissez des ports avec le même nombre de canaux", "Elige puertos con el mismo número de canales"],
   placeCable: ["Choose a highlighted socket", "Markierten Anschluss wählen", "Choisir une prise éclairée", "Elige un puerto resaltado"],
   cancel: ["Cancel", "Abbrechen", "Annuler", "Cancelar"],
+  moveCardHint: ["Move with the arrow keys. Hold Shift for fine movement.", "Mit den Pfeiltasten verschieben. Für feine Schritte die Umschalttaste halten.", "Déplacez la carte avec les flèches. Maintenez Maj pour un réglage fin.", "Mueve la tarjeta con las flechas. Mantén Mayús para un ajuste fino."],
   exactPorts: ["Individual ports", "Einzelne Anschlüsse", "Ports individuels", "Puertos individuales"],
   fit: ["Fit graph", "Graph einpassen", "Ajuster le graphe", "Ajustar grafo"],
   zoomIn: ["Zoom in", "Vergrößern", "Agrandir", "Acercar"],

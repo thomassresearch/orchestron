@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](../user_documentation.md) | [Previous](../instrument_design/supported_opcodes.md) | [Next](instrument_rack_and_engine_transport.md)
 
-Open **Perform** to arrange a song, play it live or mix its instruments. The top band holds **Project**, **Save Performance** and the song transport, including **Loop**, **Position** and **BPM**. Directly below, choose **Arrange**, **Live** or **Mix**. Choosing **Mix** reveals a second row with **Mixer** for levels, **Rack** for instruments and **Routing** for connections. Each view remembers its selection, scroll position and open panels. The engine controls and playback status bar are available in all three.
+Open **Perform** to arrange a song, play it live or mix its instruments. The top band holds **Project**, **Save Performance** and the song transport, including **Loop**, **Position** and **BPM**. Type a tempo and press Enter or leave the BPM field to apply it. Escape restores the previous tempo. Directly below, choose **Arrange**, **Live** or **Mix**. Choosing **Mix** reveals a second row with **Mixer** for levels, **Rack** for instruments and **Routing** for connections. Each view remembers its selection, scroll position and open panels. The engine controls and playback status bar are available in all three.
 
 Choose **?** in the top band for help loading and saving a performance, moving through the song and looping a passage. The **?** in the view row explains the selected view. In **Mix**, use the **?** on the next row for the selected Mixer, Rack or Routing page. Each topic follows the language selected in the app header.
 

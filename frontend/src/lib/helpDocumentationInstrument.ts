@@ -237,7 +237,7 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
 
 - Tabs are local working slots. Switching tabs keeps each draft graph open, but does not save anything to the backend library by itself.
 - \`Load Patch\` replaces the active tab with a saved patch snapshot, which is useful for comparing or reusing library patches without closing other tabs.
-- \`Save\` persists the current graph, metadata, layout, and engine settings only after compile validation succeeds. Template patches skip this validation so incomplete starter graphs can be saved.
+- Save the instrument to keep its graph, metadata and layout. Save Performance stores the engine settings. Instrument Save validates compilation first. Templates can be saved with incomplete graphs.
 - \`New from template\` creates a normal unsaved draft from a built-in or saved template. Template patches stay visible in Instrument Design, but are not available as Perform instruments.
 
 ### Action Differences
@@ -249,7 +249,7 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
 
 - Tabs sind lokale Arbeits-Slots. Beim Wechseln bleiben Entwuerfe offen, es wird aber nichts automatisch in der Backend-Bibliothek gespeichert.
 - \`Load Patch\` ersetzt den aktiven Tab durch einen gespeicherten Patch-Snapshot. Das ist praktisch, um Library-Patches zu vergleichen oder wiederzuverwenden, ohne andere Tabs zu schliessen.
-- \`Save\` persistiert den aktuellen Graphen, die Metadaten, das Layout und die Engine-Werte erst dann, wenn die Compile-Validierung erfolgreich war. Template-Patches ueberspringen diese Validierung, damit unvollstaendige Starter-Graphen gespeichert werden koennen.
+- Speichern sichert Graph, Metadaten und Layout des Instruments. Performance speichern sichert die Engine-Einstellungen. Beim Speichern des Instruments wird die Kompilierung geprüft. Templates dürfen unvollständige Graphen enthalten.
 - \`New from template\` erzeugt einen normalen ungespeicherten Entwurf aus einem integrierten oder gespeicherten Template. Template-Patches bleiben im Instrument-Design sichtbar, sind aber nicht als Perform-Instrumente verfuegbar.
 
 ### Unterschiede der Aktionen
@@ -261,7 +261,7 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
 
 - Les onglets sont des espaces de travail locaux. Changer d'onglet conserve chaque brouillon ouvert, mais ne sauvegarde rien dans la bibliotheque backend.
 - \`Load Patch\` remplace l'onglet actif par un snapshot de patch sauvegarde ; c'est pratique pour comparer ou reutiliser des patchs de la bibliotheque sans fermer les autres onglets.
-- \`Save\` persiste le graphe courant, les metadonnees, la mise en page et les reglages moteur uniquement apres une validation de compilation reussie. Les patchs template ignorent cette validation pour permettre d'enregistrer des graphes de depart incomplets.
+- Enregistrer sauvegarde le graphe, les métadonnées et la disposition de l’instrument. Enregistrer la performance conserve les réglages du moteur. L’enregistrement de l’instrument vérifie la compilation. Les modèles peuvent contenir des graphes incomplets.
 - \`New from template\` crée un brouillon normal non sauvegardé à partir d'un template intégré ou enregistré. Les patchs template restent visibles dans Instrument Design, mais ne sont pas disponibles comme instruments Perform.
 
 ### Differences entre les actions
@@ -273,7 +273,7 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
 
 - Las pestanas son espacios de trabajo locales. Cambiar de pestana mantiene cada borrador abierto, pero no guarda nada por si solo en la biblioteca del backend.
 - \`Load Patch\` reemplaza la pestana activa con un snapshot guardado del patch; esto sirve para comparar o reutilizar patches de la biblioteca sin cerrar otras pestanas.
-- \`Save\` persiste el grafo actual, los metadatos, el layout y los ajustes del motor solo despues de que la validacion de compilacion haya sido correcta. Los patches template omiten esta validacion para guardar grafos iniciales incompletos.
+- Guardar conserva el grafo, los metadatos y la disposición del instrumento. Guardar performance conserva los ajustes del motor. Al guardar el instrumento se comprueba la compilación. Las plantillas admiten grafos incompletos.
 - \`New from template\` crea un borrador normal sin guardar a partir de un template integrado o guardado. Los patches template siguen visibles en Instrument Design, pero no estan disponibles como instrumentos en Perform.
 
 ### Diferencias entre acciones

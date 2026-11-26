@@ -33,7 +33,7 @@
 .ws-commandbar button[aria-pressed=true], .ws-commandbar button[aria-expanded=true], .ws-transport > button[aria-pressed=true], [data-workspace-arranger] button[aria-pressed=true] { border-color: #55c6d4; color: #abedf5; background: #13303c; }
 .ws-project-controls .ws-save { border-color: #368566; color: #adf1d5; }
 .ws-commandbar .ws-engine { border-color: #99764b; color: #ffdb9b; }
-.ws-head button.ws-help { align-self: center; width: 24px; height: 24px; padding: 0; border: 1px solid #566a80; border-radius: 50%; color: #e0e8ef; font-weight: 600; }
+:is(.ws-head, .ws-keyboard) button.ws-help { align-self: center; width: 24px; height: 24px; padding: 0; border: 1px solid #566a80; border-radius: 50%; color: #e0e8ef; font-weight: 600; }
 .ws-views .ws-help, .ws-mix-pages .ws-help { margin-inline-start: auto; }
 .ws-title { font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: min(32vw,30rem); }
 .ws-editor-command:empty { display: none; }

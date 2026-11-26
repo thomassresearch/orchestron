@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import type { GuiLanguage, SequencerTimingConfig } from "../../types";
 import { MAX_STEPS_PER_PAD, SEQUENCER_BEAT_RATE_OPTIONS, SEQUENCER_STEPS_PER_BEAT_OPTIONS } from "../../lib/sequencer";
 import { patternLengthLabel, sequencerBeatGroups, subdivisionLabel, timingCopy, timingSummary } from "../../lib/sequencerTimingPresentation";
@@ -20,6 +20,26 @@ interface Props {
 }
 
 const field = "min-h-8 min-w-0 rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-200";
+
+export function TempoInput({ bpm, className, onChange }: {
+  bpm: number; className: string; onChange: (bpm: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return <input className={className} type="number" min={30} max={300} value={draft ?? bpm}
+    onChange={event => setDraft(event.target.value)}
+    onBlur={event => {
+      const input = event.currentTarget;
+      if (draft !== null && input.value !== "" && input.validity.valid) onChange(input.valueAsNumber);
+      setDraft(null);
+    }}
+    onKeyDown={event => {
+      if (event.key !== "Enter" && event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.key === "Escape") setDraft(null);
+      else event.currentTarget.blur();
+    }} />;
+}
 
 export function SubdivisionSelect({ timing, language, onChange, disabled }: {
   timing: SequencerTimingConfig; language: GuiLanguage; onChange: (value: number) => void; disabled?: (grid: number) => boolean;

@@ -33,7 +33,7 @@ it("keeps keyboard focus inside the dialog and supports Escape", () => {
   expect(document.activeElement).toBe(confirm);
   fireEvent.keyDown(confirm, { key: "Tab" });
   expect(document.activeElement).toBe(slider);
-  fireEvent.keyDown(window, { key: "Escape" });
+  fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
   expect(onClose).toHaveBeenCalledWith(null);
 });
 

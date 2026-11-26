@@ -36,7 +36,7 @@ function followPreviewMixer(client: BrowserClockAudioClient, initial: MixerState
 }
 
 export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (error: unknown) => void) {
-  const [playing, setPlaying] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "playing" | "stopping">("idle");
   const current = useRef<Preview | null>(null);
   const mounted = useRef(false);
   const report = useRef(onError);
@@ -61,11 +61,16 @@ export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (
     run.canceled = true;
     clearTimeout(run.timer);
     run.stopMixer?.();
-    if (mounted.current) setPlaying(false);
+    if (mounted.current) setPhase("stopping");
     await run.work;
     try { await cleanup(run); }
     catch (error) { if (mounted.current) report.current(error); }
-    finally { if (current.current === run) current.current = null; }
+    finally {
+      if (current.current === run) {
+        current.current = null;
+        if (mounted.current) setPhase("idle");
+      }
+    }
   }
   const stopRef = useRef(stop);
   stopRef.current = stop;
@@ -90,7 +95,7 @@ export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (
     const run: Preview = { assignment: binding.id, note, gesture: crypto.randomUUID(),
       work: Promise.resolve(), sent: false, canceled: false };
     current.current = run;
-    setPlaying(true);
+    setPhase("playing");
 
     let prime: Promise<unknown> = Promise.resolve();
     if (state.activeSessionState === "running" && state.activeSessionId) {
@@ -144,5 +149,5 @@ export function useSamplePreview(binding: SequencerInstrumentBinding, onError: (
       }
     })();
   }
-  return { playing, start, stop };
+  return { playing: phase !== "idle", stopping: phase === "stopping", start, stop };
 }

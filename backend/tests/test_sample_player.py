@@ -138,6 +138,9 @@ def test_composite_upload_quota_rolls_back_new_source_and_retains_existing(tmp_p
     with pytest.raises(ValueError, match="quota"):
         upload(store, "mono.wav")
     assert [item.name for item in tmp_path.iterdir()] == [existing.stored_name]
+    store.garbage_collect_unreferenced_assets(referenced_stored_names=set(), min_age_seconds=0)
+    asset = upload(store, "mono.wav").asset
+    assert {item.name for item in tmp_path.iterdir()} == {asset.source.stored_name, asset.playback.stored_name}
 
 
 @pytest.mark.parametrize("note", [-1, 128, True, 0.5, "36"])

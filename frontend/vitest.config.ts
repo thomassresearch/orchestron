@@ -6,6 +6,7 @@ const patchFixtures = new URL("../backend/tests/fixtures/patches/", import.meta.
 const examplesDirectory = fileURLToPath(new URL("../examples/", import.meta.url));
 
 export default defineConfig((environment) => mergeConfig(viteConfig(environment), {
+  test: { setupFiles: ["./tests/dialogSetup.ts"] },
   resolve: {
     // The production template loader imports the checked-in template patch.
     // Tests always resolve that import to their own fixed snapshot instead.

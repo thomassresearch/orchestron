@@ -34,6 +34,54 @@ function playback() {
   return runtimeSchedule(song, song.clipArrangement!.lanes[0]);
 }
 
+it("deletes the focused occurrence after moving focus away from the selected clip header", async () => {
+  const clip = lane().clips[0];
+  const original = lane().definitions[0];
+  lane().definitions.push({ ...original, id: "other-pattern", name: "Other pattern" });
+  clip.children = [clip.children[0], { definitionId: "other-pattern", id: "second" }];
+  show();
+  fireEvent.click(document.querySelector("[data-clip-header]")!);
+  const second = patterns()[1];
+  second.focus();
+  fireEvent.keyDown(second, { key: "Delete" });
+  await save();
+  expect(lane().clips).toHaveLength(1);
+  expect(lane().clips[0].children.filter(item => "definitionId" in item).map(item => item.definitionId))
+    .toEqual([original.id]);
+});
+
+it("leaves arrangement history alone while a dialog has keyboard focus", () => {
+  show();
+  fireEvent.click(context(patterns()[0]).getByRole('menuitem', { name: 'Duplicate' }));
+  const undo = within(structureSaveButton().parentElement!).getByRole("button", { name: "Undo" });
+  const { container } = render(<dialog open><button>Audition take</button></dialog>);
+  fireEvent.keyDown(within(container).getByRole("button"), { key: "z", ctrlKey: true });
+  expect(undo.hasAttribute("disabled")).toBe(false);
+  container.querySelector("dialog")!.close();
+  fireEvent.keyDown(undo, { key: "z", ctrlKey: true });
+  expect(undo.hasAttribute("disabled")).toBe(true);
+});
+
+it("continues a keyboard clip selection across virtualized gaps", async () => {
+  // jsdom lacks CSS.escape. The clip IDs in this fixture are plain identifiers.
+  vi.stubGlobal("CSS", { escape: (id: string) => id });
+  const model = useAppStore.getState().sequencer.clipArrangement!;
+  const target = model.lanes[0], first = target.clips[0];
+  for (const [index, start] of [200, 400].entries()) {
+    target.clips.push({ ...structuredClone(first), id: "far-" + index, start: start * Q });
+  }
+  model.end = 420 * Q;
+  show(false);
+  const header = (id: string) => document.querySelector<HTMLButtonElement>(
+    '[data-arranger-clip="' + id + '"] > [data-clip-header]');
+  expect(header("far-0")).toBeNull();
+  fireEvent.click(header(first.id)!);
+  for (const [from, to] of [[first.id, "far-0"], ["far-0", "far-1"]]) {
+    fireEvent.keyDown(header(from)!, { key: "ArrowRight", shiftKey: true });
+    await waitFor(() => { expect(header(to)).toBeTruthy(); expect(document.activeElement).toBe(header(to)); });
+  }
+});
+
 it('plays Duplicate and a timed nudge immediately, follows draft undo/redo and restores the saved rest on Discard', () => {
   show();
   const before = useAppStore.getState(), original = playback();

@@ -22,7 +22,7 @@ import { ScoreSequencers } from "./sequencer/ScoreSequencers";
 import { ControllerSequencerStepEditor, controllerModeCopy } from "./sequencer/ControllerSequencerStepEditor";
 import { MelodicStepProperties, melodicStepCopy } from "./sequencer/MelodicStepProperties";
 import { DrummerRatchetControl, drummerRatchetCopy, drummerCellDescription } from "./sequencer/DrummerRatchetControl";
-import { BeatGroupHeaders, SequencerTimingControls } from "./sequencer/SequencerTimingControls";
+import { BeatGroupHeaders, SequencerTimingControls, TempoInput } from "./sequencer/SequencerTimingControls";
 import { sequencerStepBoundary } from "../lib/sequencerTimingPresentation";
 import { transportStartButtonClass, transportStopButtonClass } from "./sequencer/transportButtonStyles";
 import { PatternWorkspace } from "./sequencer/PatternWorkspace";
@@ -1004,14 +1004,7 @@ function SequencerPageContent(props: SequencerPageProps & (WorkspaceLocation | {
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1">
               <span className={controlLabelClass}>{ui.bpm}</span>
-              <input
-                type="number"
-                min={30}
-                max={300}
-                value={sequencer.timing.tempoBPM}
-                onChange={(event) => onBpmChange(Number(event.target.value))}
-                className={`${controlFieldClass} w-24`}
-              />
+              <TempoInput className={`${controlFieldClass} w-24`} bpm={sequencer.timing.tempoBPM} onChange={onBpmChange} />
             </label>
           </div>
         </div>}
@@ -3239,9 +3232,11 @@ function PianoRollsBody({ context, compact = false }: { context: ReturnType<type
       highlightTheories
     };
   }, [runningSequencerTheories]);
+  const keyboardHelp = compact && context.onHelpRequest && <HelpIconButton guiLanguage={context.guiLanguage} topic={ui.pianoRolls}
+    className="ws-help" onClick={() => context.onHelpRequest?.("sequencer_piano_rolls")} />;
   const keyboard = sequencer.pianoRolls.find(roll => roll.id === keyboardId) ?? sequencer.pianoRolls[0];
   return <>
-    {compact && !keyboard && <button onClick={context.onAddPianoRoll}>{ui.addPianoRoll}</button>}
+    {compact && !keyboard && <div className="flex items-center gap-2"><button onClick={context.onAddPianoRoll}>{ui.addPianoRoll}</button>{keyboardHelp}</div>}
     <div className="space-y-3">
       {sequencer.pianoRolls.map((roll, rollIndex) => {
         if (compact && keyboard?.id !== roll.id) return null;
@@ -3268,6 +3263,7 @@ function PianoRollsBody({ context, compact = false }: { context: ReturnType<type
             <div className="mb-2 flex flex-wrap items-center gap-2">
               {compact && sequencer.pianoRolls.length > 1 && <label className="ws-keyboard-picker">{ui.pianoRolls} <select value={roll.id} onChange={e => setKeyboardId(e.target.value)}>{sequencer.pianoRolls.map(item => <option key={item.id} value={item.id}>{laneMidiLabel(item)} · {item.name}</option>)}</select></label>}
               {compact ? <div className="ws-keyboard-identity">{name}<span className="ws-keyboard-destination" title={destination}>{destination}</span></div> : name}
+              {keyboardHelp}
               <span className={transportStateClass}>{roll.enabled ? ui.running : ui.stopped}</span>
               <button
                 type="button"

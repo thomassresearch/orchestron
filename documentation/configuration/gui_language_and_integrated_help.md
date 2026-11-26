@@ -45,7 +45,9 @@ Examples include:
 - Sequencer sections (rack, Mixer, tracks, Score Sequencers, both multitrack arrangers, piano rolls, MIDI controllers)
 - Audio settings sections
 
-Clicking a context `?` opens a markdown help modal tailored to that UI area.
+Choose **?** to open help for the current tool. Keyboard focus moves into the dialog. Press Escape or choose **Close** to return to the help button. In Perform, open **Keyboard** and choose the **?** beside the keyboard name for help with scales, MIDI channels and Autochord.
+
+![Keyboard help button beside the piano roll name in Perform](../../screenshots/perform-keyboard-help.png)
 
 Mixer help covers levels, routing, sends, inserts, bypass and feedback diagnostics. Its button remains available while collapsed. The new Multitrack Arranger opens clip-specific guidance for fixed windows, reusable content, drafts, save scopes and playback; pad-based performances retain their compatibility-arranger help. Both use the same localized dialog as the rack, live keyboard and live MIDI controllers.
 

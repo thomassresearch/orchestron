@@ -341,7 +341,28 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
       const anchor = selected?.laneId === lane.id ? selected.anchor ?? clip.id : clip.id;
       structure.clearSelection();
       select({ laneId: lane.id, clipId: adjacent.clip.id, anchor });
+      const node = viewport.current;
+      if (node) {
+        const left = adjacent.clip.start * unit;
+        if (left < node.scrollLeft || left >= node.scrollLeft + timelineWidth) {
+          node.scrollLeft = left;
+          setScroll(node.scrollLeft);
+          retainScroll();
+        }
+      }
       focusHeader(adjacent.clip.id);
+    }
+  };
+  const handleHeaderKey = (e: React.KeyboardEvent<HTMLButtonElement>, lane: ClipLane, clip: Clip) => {
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      if (range.length < 2 || !rangeIds.has(clip.id)) clipAction(lane, clip, false);
+    } else if (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey)) {
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      showClipMenu(lane, clip, rect.left, rect.bottom);
+    } else {
+      extendHeader(e, lane, clip);
     }
   };
   const finishWindowEdit = (lane: ClipLane, action: Parameters<typeof stageClipWindowEdit>[0]) => {
@@ -610,12 +631,7 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
                     const target = hit?.definition ? { path: hit.path.slice(0, 1), pass: hit.pass } : firstVisibleTarget(lane, part, timing);
                     if (target) open(lane, part, target.path, target.pass);
                   }}
-                  onKeyDown={e => {
-                    extendHeader(e, lane, whole);
-                    if (e.key === "ContextMenu" || e.shiftKey && e.key === "F10") {
-                      e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); showClipMenu(lane, whole, r.left, r.bottom);
-                    } else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); if (range.length < 2) clipAction(lane, whole, false); }
-                  }}>{clipDisplayName(lane, whole)}</button>}
+                  onKeyDown={e => handleHeaderKey(e, lane, whole)}>{clipDisplayName(lane, whole)}</button>}
                 {window.parts.map(sourceClip => {
                 // The active tree retains its editable placement IDs. Other windows of a
                 // linked structural edit can draw their validated content and geometry directly.
@@ -670,33 +686,11 @@ export function ClipArranger({ editedNames, projected, impact, songEdits = [], o
                       e.preventDefault(); e.stopPropagation(); showClipMenu(lane, clip, e.clientX, e.clientY);
                     }
                   }}
-                  onKeyDownCapture={e => {
-                    if ((e.target as Element).closest("input,select,textarea,[contenteditable=true]")) return;
-                    const menuKey = e.key === "ContextMenu" || e.key === "F10" && e.shiftKey;
-                    const deleteKey = e.key === "Delete" || e.key === "Backspace";
-                    if (!menuKey && !deleteKey) return;
-                    if (selected?.clipId === clip.id && hasContentSelection) {
-                      e.preventDefault(); e.stopPropagation();
-                      if (deleteKey) structure.remove();
-                      else {
-                        const bounds = (e.target as Element).getBoundingClientRect();
-                        structure.openSelectionMenu(bounds.left, bounds.bottom);
-                      }
-                      return;
-                    }
-                    const header = (e.target as Element).closest("[data-clip-header]");
-                    if (!header && selected?.clipId !== clip.id) return;
-                    if (e.key === "ContextMenu" || e.key === "F10" && e.shiftKey) {
-                      e.preventDefault(); e.stopPropagation(); const rect = e.currentTarget.getBoundingClientRect();
-                      showClipMenu(lane, clip, rect.left, rect.top + 16);
-                    } else if (e.key === "Delete" || e.key === "Backspace") {
-                      e.preventDefault(); e.stopPropagation(); if (range.length < 2) clipAction(lane, clip, false);
-                    }
-                  }} onPointerDownCapture={event => {
+                  onPointerDownCapture={event => {
                     if (!shell && !event.shiftKey && event.button === 0) select({ laneId: lane.id, clipId: clip.id });
                     if (grabClip) startDrag(event, lane, clip, "move");
                   }} onClickCapture={e => { if (!e.shiftKey && (!shell || !(e.target as Element).closest("button, [role=separator]"))) select({ laneId: lane.id, clipId: clip.id }); }} className={`absolute isolate top-1 overflow-hidden rounded border ${selected?.clipId === clip.id && !hasContentSelection ? "border-cyan-300 ring-1 ring-cyan-900" : "border-slate-500"} bg-slate-900/90`} style={{ left: (left - (compound ? whole.start : 0)) * unit, width: Math.max(2, length * unit), height: detailed ? expandedHeight - 14 : 40 }}>
-                  <button className="relative z-10 block h-4 w-full cursor-grab active:cursor-grabbing truncate bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 touch-none" title={`${title} · ${grabClip ? c.grabClip : c.boundary}`} data-clip-header={!compound || undefined} aria-pressed={highlighted} onKeyDown={e => extendHeader(e, lane, whole)} tabIndex={compound ? -1 : undefined} aria-hidden={compound || undefined} onClick={e => selectHeader(lane, clip, e.shiftKey)}
+                  <button className="relative z-10 block h-4 w-full cursor-grab active:cursor-grabbing truncate bg-slate-800/90 px-2 text-left text-[10px] font-semibold text-slate-200 touch-none" title={`${title} · ${grabClip ? c.grabClip : c.boundary}`} data-clip-header={!compound || undefined} aria-pressed={highlighted} onKeyDown={e => handleHeaderKey(e, lane, whole)} tabIndex={compound ? -1 : undefined} aria-hidden={compound || undefined} onClick={e => selectHeader(lane, clip, e.shiftKey)}
                     onDoubleClick={event => {
                       const target = headerTarget(event);
                       if (target) open(lane, clip, target.path, target.pass);

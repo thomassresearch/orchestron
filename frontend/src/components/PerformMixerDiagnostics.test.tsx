@@ -104,6 +104,18 @@ function routingFixture() {
     menu: (id: string) => {action(`[data-insert-id="${id}"] .rc-insert-name`); return dialog();} };
 }
 
+it("moves the focused routing card in normal and fine steps while keeping the other card in place", () => {
+  const sourcePosition = { x: 80, y: 120 }, effectPosition = { x: 320, y: 80 };
+  useAppStore.setState({ routingLayout: { source: sourcePosition, insert: effectPosition } });
+  const { container } = routingFixture();
+  const heading = container.querySelector<HTMLButtonElement>('[data-routing-node="source"] .rc-title')!;
+  heading.focus();
+  fireEvent.keyDown(heading, { key: "ArrowRight" });
+  fireEvent.keyDown(heading, { key: "ArrowUp", shiftKey: true });
+  expect(useAppStore.getState().routingLayout).toMatchObject({ source: { x: 96, y: 119 }, insert: effectPosition });
+  expect(document.activeElement).toBe(heading);
+});
+
 it.each([
   ["Add insert", '[data-routing-node="$master"] .rc-add-insert'],
   ["an existing insert", '[data-insert-id="insert"] .rc-insert-name'],

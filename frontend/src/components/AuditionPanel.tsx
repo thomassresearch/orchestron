@@ -31,7 +31,7 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
   const emptySampler = draft.graph.nodes.some(node => node.opcode === "sample_player");
   return <div className="min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <button type="button" aria-pressed={running} disabled={emptySampler || audition.phase === "stopping"} onClick={audition.toggle}
+      <button type="button" aria-pressed={running} disabled={(emptySampler && audition.phase === "off") || audition.phase === "stopping"} onClick={audition.toggle}
         className={`rounded border px-3 py-1 text-xs focus-visible:outline-cyan-300 disabled:opacity-50 ${running ? "border-cyan-300 bg-cyan-800 text-white" : "border-cyan-500/60 bg-cyan-950 text-cyan-100"}`}>
         {audition.phase === "preparing" ? copy.preparing : audition.phase === "stopping" ? copy.stopping : running ? copy.stop : copy.start}
       </button>

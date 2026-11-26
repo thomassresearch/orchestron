@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { JSX, ReactNode } from "react";
 
 type ModalFrameProps = {
@@ -40,31 +40,21 @@ export function ModalFrame({
   closeOnBackdrop = true,
   closeOnEscape = false
 }: ModalFrameProps): JSX.Element {
-  useEffect(() => {
-    if (!closeOnEscape) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [closeOnEscape, onClose]);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    const element = dialog.current!;
+    element.showModal();
+    return () => element.close();
+  }, []);
 
   return (
-    <div className={overlayClassName} onMouseDown={closeOnBackdrop ? onClose : undefined}>
+    <dialog ref={dialog} aria-label={ariaLabel} aria-modal="true"
+      className={`${overlayClassName} m-0 h-full max-h-none w-full max-w-none border-0 text-inherit`}
+      onCancel={event => { event.preventDefault(); if (closeOnEscape) onClose(); }}
+      onMouseDown={event => { if (closeOnBackdrop && event.target === event.currentTarget) onClose(); }}>
       <section
         className={`flex ${maxHeightClassName} w-full ${maxWidthClassName} flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl`}
         onMouseDown={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={ariaLabel}
       >
         <header className={headerClassName}>
           <div>
@@ -91,6 +81,6 @@ export function ModalFrame({
 
         {footer ? <footer className={footerClassName}>{footer}</footer> : null}
       </section>
-    </div>
+    </dialog>
   );
 }

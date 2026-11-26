@@ -66,7 +66,7 @@ it.each(workspaceTopics)("opens the project, view and Mix page topics from their
     const dialog = screen.getByRole("dialog", { name: help });
     expect(within(dialog).getByRole("heading", { level: 2, name: title })).toBeTruthy();
     if (section) expect(within(dialog).getByRole("heading", { name: section })).toBeTruthy();
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
     expect(screen.queryByRole("dialog")).toBeNull();
   }
 
@@ -85,6 +85,10 @@ it.each(workspaceTopics)("opens the project, view and Mix page topics from their
     openTopic(viewNavigation, views[2]);
     expect(tab.getAttribute("aria-pressed")).toBe("true");
   }
+  const keyboard = container.querySelector<HTMLButtonElement>("[data-keyboard-toggle]")!;
+  if (keyboard.getAttribute("aria-pressed") !== "true") fireEvent.click(keyboard);
+  const chordHeading = { english: "Autochord", german: "Autoakkord", french: "Accord automatique", spanish: "Acorde automático" };
+  openTopic(container.querySelector(".ws-keyboard")!, "Piano Rolls", chordHeading[language]);
   expect(useAppStore.getState().sequencer).toBe(song);
 });
 
@@ -138,7 +142,7 @@ it.each(cases)("opens clip-specific Arranger help in %s and dismisses it with Es
   expect(within(dialog).getByRole("heading", { name: title })).toBeTruthy();
   expect(within(dialog).getByRole("heading", { name: intro })).toBeTruthy();
   expect(dialog.textContent).not.toContain("Playback source");
-  fireEvent.keyDown(window, { key: "Escape" });
+  fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(useAppStore.getState().sequencer).toBe(before);
 });

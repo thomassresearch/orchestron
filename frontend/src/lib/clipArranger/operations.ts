@@ -282,7 +282,9 @@ export function pasteClipRange(model: ClipArrangement, section: ClipSection, at:
       if (clip.start + clip.length <= at || clip.start >= at + section.length) return [clip];
       return [sliceWindow(clip, 0, at, id), sliceWindow(clip, at + section.length, next.end, id)].filter((c): c is Clip => c !== null);
     });
-    lane.clips.push(...copyClipWindows(copied.clips, id).map(clip => ({ ...clip, start: at + clip.start })));
+    const pasted = copyClipWindows(copied.clips, id);
+    if (pasted.some(clip => clip.windowGroupId || clip.continuityId)) next.version = 5;
+    lane.clips.push(...pasted.map(clip => ({ ...clip, start: at + clip.start })));
     lane.clips.sort((a, b) => a.start - b.start);
   }
   next.end = Math.max(next.end, at + section.length);

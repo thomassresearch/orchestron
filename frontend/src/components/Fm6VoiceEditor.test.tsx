@@ -213,8 +213,8 @@ describe("FM6 voice editor", () => {
     fireEvent.change(screen.getByRole("slider", { name: /Level/ }), { target: { value: "34" } });
     expect(tile.textContent).toContain("34%");
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ algorithm: 8, op6_level: 34 }));
-    if (exit === "Escape") fireEvent.keyDown(window, { key: "Escape" });
-    else if (exit === "backdrop") fireEvent.mouseDown(screen.getByRole("dialog").parentElement!);
+    if (exit === "Escape") fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    else if (exit === "backdrop") fireEvent.mouseDown(screen.getByRole("dialog"));
     else fireEvent.click(screen.getByRole("button", { name: exit }));
     expect(onChange).toHaveBeenLastCalledWith(node.params);
     expect(onClose).toHaveBeenCalledOnce();

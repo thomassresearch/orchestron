@@ -1,12 +1,34 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { useState } from "react";
-import { SequencerTimingControls, BeatGroupHeaders } from "./SequencerTimingControls";
+import { SequencerTimingControls, BeatGroupHeaders, TempoInput } from "./SequencerTimingControls";
 import { PerformanceEditorProvider } from "./PerformanceEditorState";
 import { DEFAULT_SEQUENCER_TIMING_CONFIG as base } from "../../lib/sequencer";
 import type { ControllerSequencerPadLengthBeats, GuiLanguage, SequencerTimingConfig } from "../../types";
 afterEach(cleanup);
+
+it("applies a complete tempo on Enter or blur and discards invalid or canceled edits", () => {
+  const change = vi.fn();
+  const view = render(<TempoInput className="" bpm={120} onChange={change} />);
+  const field = screen.getByRole<HTMLInputElement>("spinbutton");
+  field.focus();
+  for (const value of ["", "9", "90"]) fireEvent.change(field, { target: { value } });
+  expect(change).not.toHaveBeenCalled();
+  fireEvent.keyDown(field, { key: "Enter" });
+  expect(change).toHaveBeenCalledWith(90);
+  view.rerender(<TempoInput className="" bpm={90} onChange={change} />);
+  fireEvent.change(field, { target: { value: "60" } });
+  fireEvent.keyDown(field, { key: "Escape" });
+  expect(field.value).toBe("90");
+  fireEvent.change(field, { target: { value: "301" } });
+  fireEvent.blur(field);
+  expect(field.value).toBe("90");
+  expect(change).toHaveBeenCalledTimes(1);
+  fireEvent.change(field, { target: { value: "100" } });
+  fireEvent.blur(field);
+  expect(change).toHaveBeenLastCalledWith(100);
+});
 function Editor({ language = "english", controller = false }: { language?: GuiLanguage; controller?: boolean }) {
   const [timing, setTiming] = useState<SequencerTimingConfig>(base);
   const [length, setLength] = useState<ControllerSequencerPadLengthBeats>(4);

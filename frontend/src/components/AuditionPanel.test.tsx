@@ -50,6 +50,18 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => cleanup()); vi.useRealTimers(); vi.restoreAllMocks(); });
 
+it("keeps Stop available when a running draft gains a sample player", async () => {
+  mount();
+  await start();
+  const draft = useAppStore.getState().currentPatch;
+  act(() => useAppStore.setState({ currentPatch: { ...draft, graph: { ...draft.graph, nodes: [
+    ...draft.graph.nodes, { id: "sampler", opcode: "sample_player", params: {}, position: { x: 0, y: 0 } }
+  ] } } }));
+  expect(screen.getByRole("button", { name: "Stop audition" }).hasAttribute("disabled")).toBe(false);
+  await stop();
+  expect(screen.getByRole("button", { name: "Audition" }).hasAttribute("disabled")).toBe(true);
+});
+
 it("toggles an inline isolated preview and exposes only minimal controls while running", async () => {
   mount();
   expect(screen.queryByRole("group", { name: "Audition keyboard" })).toBeNull();

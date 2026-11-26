@@ -160,6 +160,19 @@ it("rejects a draft when undo and a new branch reuse a revision number", () => {
 });
 
 describe("arranger clip merge and split", () => {
+  it.each(["insert", "overwrite"] as const)("pastes copied split windows after Undo using %s", mode => {
+    const original = fixture();
+    const split = splitClip(original, "lane", "c", 2 * Q).model;
+    const copied = copyClipRange(split, ["lane"], 0, 20 * Q);
+    const pasted = pasteClipRange(original, copied, 40 * Q, mode, {});
+    expect(pasted.version).toBe(5);
+    const windows = pasted.lanes[0].clips.filter(clip => clip.start >= 40 * Q);
+    expect(windows).toHaveLength(2);
+    expect(windows[0].continuityId).toBeTruthy();
+    expect(windows[1].continuityId).toBe(windows[0].continuityId);
+    expect(windows[0].continuityId).not.toBe(split.lanes[0].clips[0].continuityId);
+  });
+
   it("joins whole linked content and intervening rests in one normal clip", () => {
     const model = fixture();
     Object.assign(model.lanes[0].clips[0], { mode: "once", offset: 0, length: 8 * Q });

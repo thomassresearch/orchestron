@@ -11306,6 +11306,32 @@ def test_sample_map_persistence_native_commit_and_active_reachability(tmp_path, 
         assert not list(container.gen_asset_service.audio_dir.iterdir())
 
 
+def test_sample_import_checks_capacity_for_the_selected_plan(tmp_path):
+    with _client(tmp_path / "source") as client:
+        exported = _sample_player_api_payload(client)[0]["performanceExport"]
+        bundle = client.post("/api/bundles/export/performance", json=exported).content
+
+    source_id = exported["performance"]["config"]["instruments"][0]["patchId"]
+    patch = {"type": "create", "id": source_id, "sourcePatchId": source_id, "name": "Sampler"}
+    with _client(tmp_path / "destination", gen_audio_assets_max_count=2, gen_audio_asset_gc_min_age_seconds=0) as client:
+        store = client.app.state.container.gen_asset_service
+        abandoned = store.store_audio_bytes(filename="abandoned.wav", content_type=None, payload=b"unused audio")
+        abandoned_path = store.resolve_audio_path(abandoned.stored_name)
+        preview = client.post("/api/bundles/import/expand?preview=true", content=bundle)
+        assert preview.status_code == 200, preview.text
+        patch_only = client.post("/api/bundles/import/commit", files={"bundle": ("kit.zip", bundle)},
+                                 data={"plan": json.dumps({"patches": [patch]})})
+        assert patch_only.status_code == 200, patch_only.text
+        assert list(store.audio_dir.iterdir()) == [abandoned_path]
+
+        plan = {"patches": [], "performance": {"type": "create", "payload": exported["performance"]}}
+        complete = client.post("/api/bundles/import/commit", files={"bundle": ("kit.zip", bundle)},
+                               data={"plan": json.dumps(plan)})
+        assert complete.status_code == 200, complete.text
+        assert not abandoned_path.exists()
+        assert len(list(store.audio_dir.iterdir())) == 2
+
+
 @pytest.mark.parametrize("force_cancel", [False, True], ids=["short-gate", "overlap-and-cancel"])
 @pytest.mark.parametrize("subfolder", [True, False], ids=["subfolder", "beside-csd"])
 def test_sample_csd_modes_render_identically_after_relocation(tmp_path, monkeypatch, force_cancel, subfolder):

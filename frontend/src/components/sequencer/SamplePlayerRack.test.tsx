@@ -30,6 +30,24 @@ afterEach(() => {
   useAppStore.setState(initial, true);
 });
 
+it("keeps Preview disabled until the previous gesture finishes stopping", async () => {
+  useAppStore.setState({ activeSessionState: "running", activeSessionId: "live-sampler" });
+  let finishStop!: () => void;
+  const request = vi.spyOn(api, "previewSample").mockResolvedValueOnce(undefined)
+    .mockImplementationOnce(() => new Promise(resolve => { finishStop = resolve; }))
+    .mockResolvedValue(undefined);
+  rack(true);
+  fireEvent.click(screen.getByRole("button", { name: /^36 ·/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole("button", { name: "Stop preview" }));
+  expect(screen.getByRole("button", { name: "Stopping…" }).hasAttribute("disabled")).toBe(true);
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+  await act(async () => finishStop());
+  fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+  await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
+});
+
 it("assigns M4A audio through the rack file picker", async () => {
   const { container } = rack();
   expect(screen.queryByRole("button", { name: "Duplicate instance" })).toBeNull();

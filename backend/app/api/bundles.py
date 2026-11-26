@@ -400,10 +400,6 @@ def _expand_zip_import_payload(
         manifest = sample_manifest_from_payload(parsed)
         if preview:
             if manifest:
-                _assert_zip_audio_members_fit_quota(
-                    container=container, member_by_normalized_name=member_by_normalized_name,
-                    referenced_names=referenced_names, collect=False,
-                )
                 _verify_sample_zip(archive, member_by_normalized_name, manifest, container)
             # Check decompression/CRC and all definitions before user confirmation.
             for stored_name in sorted(referenced_names):
@@ -563,7 +559,6 @@ def _assert_zip_audio_members_fit_quota(
     container: AppContainer,
     member_by_normalized_name: dict[str, zipfile.ZipInfo],
     referenced_names: set[str],
-    collect: bool = True,
 ) -> None:
     new_asset_count = 0
     new_total_bytes = 0
@@ -582,8 +577,6 @@ def _assert_zip_audio_members_fit_quota(
             action="Audio import",
         )
     except GenAudioAssetQuotaExceededError:
-        if not collect:
-            raise
         _run_asset_gc(container=container)
         container.gen_asset_service.assert_new_audio_assets_can_fit(
             asset_count=new_asset_count,

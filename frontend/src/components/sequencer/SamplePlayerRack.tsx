@@ -1,3 +1,4 @@
+import { auditionCopy } from "../../lib/auditionCopy";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { api } from "../../api/client";
 import { useSamplePreview } from "../../hooks/useSamplePreview";
@@ -152,12 +153,12 @@ export function SampleMapEditor({ binding, capable, label, language, running }: 
           value={newNote} onChange={event => setNewNote(event.target.value)} />
       </label>
       <button type="button" className={action} disabled={readOnly} onClick={() => choose(newNote, false)}>{copy.add}</button>
-      <button type="button" className={action} disabled={busy || !selectedSample}
+      <button type="button" className={action} disabled={busy || preview.stopping || (!preview.playing && !selectedSample)}
         onClick={() => {
           setError(null);
           if (preview.playing) void preview.stop();
           else if (current && selectedSample) preview.start(current.note, selectedSample.playback.frameCount / selectedSample.playback.sampleRate);
-        }}>{preview.playing ? copy.stopPreview : copy.preview}</button>
+        }}>{preview.stopping ? auditionCopy(language).stopping : preview.playing ? copy.stopPreview : copy.preview}</button>
       </>}
       {entries.length > 0 && <button type="button" className={action} disabled={readOnly}
         onClick={() => { if (mutate(undefined)) select(null); }}>{copy.clear}</button>}

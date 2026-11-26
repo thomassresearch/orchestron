@@ -39,11 +39,14 @@ export function ArrangeEditControls({ language, impact, endChanged, changed, err
   useEffect(() => {
     const field = (el: Element) => el.matches('textarea,input:not([type=range]):not([type=checkbox]):not([type=button]),[contenteditable=true]');
     const relevant = (el: EventTarget | null): el is Element => el instanceof Element && !!el.closest('[data-arranger-viewport],.ws-clip-editor-host,[data-clip-properties],fieldset,section[data-clip-performance],dialog[open],.ws-inspector');
+    const modal = 'dialog[open], [role="dialog"][aria-modal="true"]';
     const down = (e: PointerEvent) => { if (relevant(e.target)) beginArrangementGesture(e.target); };
     const focus = (e: FocusEvent) => { if (relevant(e.target) && field(e.target)) beginArrangementGesture(e.target); };
     const up = (e: PointerEvent) => { if (!(e.target instanceof Element && field(e.target))) endArrangementGesture(); };
     const key = (e: KeyboardEvent) => {
       if (e.defaultPrevented || !(e.metaKey || e.ctrlKey) || e.altKey || e.target instanceof Element && field(e.target)) return;
+      if (document.querySelector(modal) || !(e.target instanceof Element)) return;
+      if (e.target !== document.body && !e.target.closest('[data-clip-performance],.ws-clip-editor-host,.ws-inspector,.arranger-edit-controls,.ws-editor-command')) return;
       const key = e.key.toLowerCase();
       if (key !== "z" && !(key === "y" && e.ctrlKey && !e.shiftKey)) return;
       e.preventDefault(); step(key === "y" || e.shiftKey);

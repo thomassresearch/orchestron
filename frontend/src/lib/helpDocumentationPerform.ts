@@ -12,7 +12,7 @@ Open **Project** and choose a song under **Load Performance**, or choose **New**
 
 ### Play and move through the song
 
-**Play** starts or resumes the song and starts the instruments if needed. **Pause** holds the current position. **Stop** returns to the loop start or the beginning of the song. Rewind and fast-forward move one beat at a time. Enter a beat in **Position** and press Enter to jump there. **BPM** sets the tempo for the whole performance.
+**Play** starts or resumes the song and starts the instruments if needed. **Pause** holds the current position. **Stop** returns to the loop start or the beginning of the song. Rewind and fast-forward move one beat at a time. Enter a beat in **Position** and press Enter to jump there. Enter the tempo in **BPM** and press Enter or leave the field to apply it to the whole performance. Escape restores the previous value.
 
 ### Repeat a passage
 
@@ -26,7 +26,7 @@ In Arrange, select a clip or a range of patterns inside it, then turn on **Loop*
 
 ### Song abspielen und Position wechseln
 
-Mit der Wiedergabetaste startest du den Song oder setzt ihn fort. Bei Bedarf starten die Instrumente mit. **Pause** hält die aktuelle Position. **Stopp** kehrt zum Schleifenanfang oder zum Songanfang zurück. Mit Rücklauf und Vorlauf springst du jeweils einen Schlag. Gib unter **Position** einen Schlag ein und drücke die Eingabetaste, um dorthin zu springen. **BPM** legt das Tempo für die gesamte Performance fest.
+Mit der Wiedergabetaste startest du den Song oder setzt ihn fort. Bei Bedarf starten die Instrumente mit. **Pause** hält die aktuelle Position. **Stopp** kehrt zum Schleifenanfang oder zum Songanfang zurück. Mit Rücklauf und Vorlauf springst du jeweils einen Schlag. Gib unter **Position** einen Schlag ein und drücke die Eingabetaste, um dorthin zu springen. Gib das Tempo unter **BPM** ein. Mit der Eingabetaste oder beim Verlassen des Felds übernimmst du es für die gesamte Performance. Escape stellt den bisherigen Wert wieder her.
 
 ### Eine Passage wiederholen
 
@@ -40,7 +40,7 @@ Ouvrez **Projet** et choisissez un morceau dans **Charger performance**, ou cliq
 
 ### Lire le morceau et se déplacer
 
-Le bouton de lecture lance ou reprend le morceau et démarre les instruments si nécessaire. **Pause** garde la position actuelle. Le bouton d’arrêt ramène au début de la boucle ou du morceau. Les boutons de recul et d’avance déplacent le curseur d’un temps. Saisissez un temps dans **Position** et appuyez sur Entrée pour le rejoindre. **BPM** règle le tempo de toute la performance.
+Le bouton de lecture lance ou reprend le morceau et démarre les instruments si nécessaire. **Pause** garde la position actuelle. Le bouton d’arrêt ramène au début de la boucle ou du morceau. Les boutons de recul et d’avance déplacent le curseur d’un temps. Saisissez un temps dans **Position** et appuyez sur Entrée pour le rejoindre. Saisissez le tempo dans **BPM**, puis appuyez sur Entrée ou quittez le champ pour l’appliquer à toute la performance. Échap rétablit la valeur précédente.
 
 ### Répéter un passage
 
@@ -54,7 +54,7 @@ Abre **Proyecto** y elige una canción en **Cargar performance**, o pulsa **Nuev
 
 ### Reproducir y cambiar de posición
 
-El botón de reproducción inicia o reanuda la canción y arranca los instrumentos si hace falta. **Pausa** mantiene la posición actual. El botón de parada vuelve al inicio del bucle o de la canción. Los botones de retroceso y avance desplazan el cursor un pulso. Escribe un pulso en **Posición** y pulsa Intro para saltar hasta él. **BPM** ajusta el tempo de toda la interpretación.
+El botón de reproducción inicia o reanuda la canción y arranca los instrumentos si hace falta. **Pausa** mantiene la posición actual. El botón de parada vuelve al inicio del bucle o de la canción. Los botones de retroceso y avance desplazan el cursor un pulso. Escribe un pulso en **Posición** y pulsa Intro para saltar hasta él. Escribe el tempo en **BPM** y pulsa Intro o sal del campo para aplicarlo a toda la interpretación. Esc restaura el valor anterior.
 
 ### Repetir un pasaje
 
@@ -98,25 +98,25 @@ En un arreglo antiguo basado en pads, haz doble clic en una aparición para edit
   perform_live: {
     english: {
       title: "Live",
-      markdown: `Find the device by its name, MIDI channel and instrument. Select a pattern, then press **Play** in that device’s row. While it plays, tap another pad to queue it for the next pattern boundary. The playing and queued indicators show which pattern you hear now and which comes next.
+      markdown: `Find the device by its name, MIDI channel and instrument. Select a pattern, then press **Play** in that device’s row. During playback, tap another pad to queue it. For manual pads, the device row shows when it will switch. Score pads default to the next bar. The playing and queued indicators show which pattern you hear now and which comes next.
 
 Hold a pad’s speaker briefly to preview it. Release it to return to the underlying part. Open **Keyboard** to play along. To edit one of a device’s eight pads, choose **Edit physical pads**, select the pad and open its editor. Open **Arrange** to edit a saved arrangement pattern.`
     },
     german: {
       title: "Live",
-      markdown: `Suche das Gerät anhand von Name, MIDI-Kanal und Instrument. Wähle ein Pattern und drücke die Wiedergabetaste in der Gerätezeile. Tippe während der Wiedergabe auf ein anderes Pad, um es für den nächsten Patternwechsel vorzumerken. Die Markierungen zeigen, welches Pattern gerade spielt und welches als Nächstes kommt.
+      markdown: `Suche das Gerät anhand von Name, MIDI-Kanal und Instrument. Wähle ein Pattern und drücke die Wiedergabetaste in der Gerätezeile. Tippe während der Wiedergabe auf ein anderes Pad, um es vorzumerken. Bei manuellen Pads zeigt die Gerätezeile den Umschaltzeitpunkt an. Partitur-Pads wechseln standardmäßig zum nächsten Takt. Die Markierungen zeigen, welches Pattern gerade spielt und welches als Nächstes kommt.
 
 Halte das Lautsprechersymbol eines Pads kurz gedrückt, um es vorzuhören. Lass los, um wieder den ursprünglichen Part zu hören. Öffne die **Klaviatur**, um mitzuspielen. Um eines der acht Geräte-Pads zu bearbeiten, wechsle zu den physischen Pads, wähle das Pad aus und öffne seinen Editor. Gespeicherte Arrangement-Patterns bearbeitest du im **Arrangement**.`
     },
     french: {
       title: "Live",
-      markdown: `Repérez l’appareil grâce à son nom, son canal MIDI et son instrument. Sélectionnez un motif, puis appuyez sur le bouton de lecture de sa ligne. Pendant la lecture, touchez un autre pad pour le mettre en attente jusqu’à la fin du motif en cours. Les indicateurs distinguent le motif audible de celui qui prendra le relais.
+      markdown: `Repérez l’appareil grâce à son nom, son canal MIDI et son instrument. Sélectionnez un motif, puis appuyez sur le bouton de lecture de sa ligne. Pendant la lecture, touchez un autre pad pour le mettre en attente. Pour les pads manuels, la ligne de l’appareil indique le moment du changement. Les pads de partition passent par défaut à la mesure suivante. Les indicateurs distinguent le motif audible de celui qui prendra le relais.
 
 Maintenez brièvement le bouton du haut-parleur d’un pad pour le préécouter. Relâchez-le pour retrouver la partie en cours. Ouvrez le **Clavier** pour jouer en même temps. Pour modifier l’un des huit pads d’un appareil, passez aux pads physiques, sélectionnez le pad et ouvrez son éditeur. Ouvrez **Arrangement** pour modifier un motif enregistré dans l’arrangement.`
     },
     spanish: {
       title: "En vivo",
-      markdown: `Localiza el dispositivo por su nombre, canal MIDI e instrumento. Selecciona un patrón y pulsa el botón de reproducción de esa fila. Mientras suena, toca otro pad para ponerlo en cola hasta que termine el patrón actual. Los indicadores muestran el patrón que suena y el que entrará después.
+      markdown: `Localiza el dispositivo por su nombre, canal MIDI e instrumento. Selecciona un patrón y pulsa el botón de reproducción de esa fila. Durante la reproducción, toca otro pad para ponerlo en cola. En los pads manuales, la fila del dispositivo indica cuándo se producirá el cambio. Los pads de partitura cambian por defecto en el siguiente compás. Los indicadores muestran el patrón que suena y el que entrará después.
 
 Mantén pulsado un momento el altavoz de un pad para escucharlo. Suéltalo para volver a la parte que estaba sonando. Abre **Teclado** para tocar a la vez. Para editar uno de los ocho pads del dispositivo, cambia a los pads físicos, selecciona uno y abre su editor. Abre **Arreglo** para editar un patrón guardado del arreglo.`
     }
@@ -202,25 +202,25 @@ ${performanceControllerHelp("spanish", "rack")}`
   perform_routing: {
     english: {
       title: "Routing",
-      markdown: `Follow the cables from an instrument’s output through any effects to **Master** or **Audio Output**. You can inspect connections while the song plays. Stop the instruments to change them. Click an output socket, choose the connection type, then click a highlighted input. Select a cable to inspect its channel mapping.
+      markdown: `Follow the cables from an instrument’s output through any effects to **Master** or **Audio Output**. You can inspect connections while the song plays. Stop the instruments to change them. Click an output socket, choose the connection type, then click a highlighted input. Select a cable to inspect its channel mapping. To move a card, focus its heading and press the arrow keys. Hold Shift for one-pixel steps.
 
 Use an insert for an effect in series with one strip. Use a send to share a return effect across strips. **Check routing** lists errors and warnings. Select an issue to locate the affected card or cable. If the report shows a feedback loop, remove or redirect the connection that sends audio back into its own path.`
     },
     german: {
       title: "Routing",
-      markdown: `Verfolge die Kabel vom Instrumentenausgang über mögliche Effekte bis zum **Master** oder **Audioausgang**. Du kannst die Verbindungen während der Wiedergabe prüfen. Stoppe die Instrumente, um Verbindungen zu ändern. Klicke auf eine Ausgangsbuchse, wähle die Verbindungsart und klicke dann auf einen hervorgehobenen Eingang. Wähle ein Kabel aus, um seine Kanalzuordnung zu sehen.
+      markdown: `Verfolge die Kabel vom Instrumentenausgang über mögliche Effekte bis zum **Master** oder **Audioausgang**. Du kannst die Verbindungen während der Wiedergabe prüfen. Stoppe die Instrumente, um Verbindungen zu ändern. Klicke auf eine Ausgangsbuchse, wähle die Verbindungsart und klicke dann auf einen hervorgehobenen Eingang. Wähle ein Kabel aus, um seine Kanalzuordnung zu sehen. Um eine Karte zu verschieben, fokussiere ihre Überschrift und drücke die Pfeiltasten. Mit gedrückter Umschalttaste verschiebst du sie pixelweise.
 
 Ein Insert schaltet einen Effekt in Reihe mit einem Kanalzug. Über Sends können mehrere Kanäle denselben Effektweg nutzen. **Routing prüfen** listet Fehler und Warnungen auf. Wähle einen Eintrag, um die betroffene Karte oder das Kabel zu finden. Bei einer Rückkopplung entfernst du die Verbindung, die das Signal in seinen eigenen Pfad zurückführt, oder wählst ein anderes Ziel.`
     },
     french: {
       title: "Routage",
-      markdown: `Suivez les câbles depuis la sortie d’un instrument, à travers les effets éventuels, jusqu’au **Master** ou à la **Sortie audio**. Vous pouvez examiner les connexions pendant la lecture. Arrêtez les instruments pour les modifier. Cliquez sur une prise de sortie, choisissez le type de connexion, puis cliquez sur une entrée en surbrillance. Sélectionnez un câble pour voir les canaux reliés.
+      markdown: `Suivez les câbles depuis la sortie d’un instrument, à travers les effets éventuels, jusqu’au **Master** ou à la **Sortie audio**. Vous pouvez examiner les connexions pendant la lecture. Arrêtez les instruments pour les modifier. Cliquez sur une prise de sortie, choisissez le type de connexion, puis cliquez sur une entrée en surbrillance. Sélectionnez un câble pour voir les canaux reliés. Pour déplacer une carte, placez le focus sur son titre et utilisez les flèches. Maintenez Maj pour la déplacer d’un pixel à la fois.
 
 Un insert place un effet en série sur une tranche. Un envoi permet à plusieurs tranches de partager le même retour d’effet. **Vérifier le routage** affiche les erreurs et les avertissements. Sélectionnez un message pour retrouver la carte ou le câble concerné. En cas de boucle, supprimez ou redirigez la connexion qui renvoie le signal dans son propre chemin.`
     },
     spanish: {
       title: "Rutas",
-      markdown: `Sigue los cables desde la salida de un instrumento, pasando por sus efectos, hasta el **Máster** o la **Salida de audio**. Puedes examinar las conexiones durante la reproducción. Detén los instrumentos para modificarlas. Pulsa en un conector de salida, elige el tipo de conexión y pulsa en una de las entradas resaltadas. Selecciona un cable para ver qué canales conecta.
+      markdown: `Sigue los cables desde la salida de un instrumento, pasando por sus efectos, hasta el **Máster** o la **Salida de audio**. Puedes examinar las conexiones durante la reproducción. Detén los instrumentos para modificarlas. Pulsa en un conector de salida, elige el tipo de conexión y pulsa en una de las entradas resaltadas. Selecciona un cable para ver qué canales conecta. Para mover una tarjeta, lleva el foco a su título y usa las flechas. Mantén Mayús para moverla un píxel cada vez.
 
 Una inserción coloca un efecto en serie en un canal. Un envío permite que varios canales compartan el mismo retorno de efecto. **Comprobar rutas** muestra errores y avisos. Selecciona uno para localizar la tarjeta o el cable afectado. Si aparece un bucle de realimentación, elimina o redirige la conexión que devuelve la señal a su propia ruta.`
     }

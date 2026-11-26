@@ -203,7 +203,7 @@ it.each(["english", "german", "french", "spanish"] as const)("opens standard Sco
     expect(within(dialog).getByRole("heading", { name: c.name })).toBeTruthy();
     expect(dialog.textContent).toContain("100");
     expect(dialog.textContent).not.toContain("undefined");
-    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: c.title }));
     fireEvent.click(screen.getByRole("button", { name: ui.showDocumentation }));
