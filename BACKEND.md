@@ -421,6 +421,13 @@ Session creation accepts project-wide `engine_config`. Every target, preview and
 
 `compile_patch_bundle()` accepts an internal `CompilationProfile` (`LIVE` by default, or `OFFLINE`), independently of MIDI/score note delivery. Both performance CSD export modes select `OFFLINE`. Mixer compilation reuses `mixer_control_values()` and the same routing stages and instrument references, but emits fixed audio coefficients instead of mixer control-channel reads and ramps, and omits mixer metering. Offline manifests retain `initialControls` as parameter metadata and have an empty `meters` map. Legacy bundles without a mixer graph, standalone patch compilation, patch-authored channel operations, musical controllers and instance settings retain their existing paths. No request or persistence schema changes are needed.
 
+In live mixer graphs with `ksmps > 1`, each gain, pan, tap or bypass coefficient runs
+the sample-rate smoother during its 20 ms transition and emits a constant block once
+settled. Each control owns its ramp state, including during rapid reversals. At
+`ksmps=1` the compiler emits the original smoother directly. See the
+[mixer ramp qualification](specifications/mixer-ramps/implementation-record.md).
+
+
 The catalog's `limit` node retains its audio output for every accepted input rate. The emitter promotes literal, init-rate and control-rate inputs (including combined formulas) to audio before calling Csound's audio overload. Audio connections pass through unchanged. This applies to standalone, mixer, MIDI and SCORE compilation.
 
 Parameter emission retains the instance/route identity, parameter kind and field as the extension point for future mixer automation. An offline profile does not inherently require every future parameter to be constant: authored curves can later supply time-varying coefficients there. No curve schema or lane automation is introduced by the current profile. Csound logging remains unchanged. Run `uv run python -m backend.tools.benchmark_offline_mixer` for a reproducible live/offline mixer render comparison with identical sample timing and fixed inputs.

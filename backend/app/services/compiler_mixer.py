@@ -464,6 +464,27 @@ RAMP_OPCODE = """opcode vcs_mixer_ramp, a, ki
 endop"""
 
 
+# Preserve the sample-rate smoother while a target is moving. The extra
+# block lets it finish and store the exact target before its state is parked.
+SETTLED_RAMP_OPCODE = RAMP_OPCODE.replace("opcode vcs_mixer_ramp,", "opcode vcs_mixer_active_ramp,") + """
+opcode vcs_mixer_ramp, a, ki
+ kTarget, iInitial xin
+ kPrevious init iInitial
+ kBlocksLeft init 1
+ if kTarget != kPrevious then
+  kBlocksLeft = ceil(0.02 * sr / ksmps) + 1
+  kPrevious = kTarget
+ endif
+ if kBlocksLeft > 0 then
+  aValue vcs_mixer_active_ramp kTarget, iInitial
+  kBlocksLeft -= 1
+ else
+  aValue = kTarget
+ endif
+ xout aValue
+endop"""
+
+
 def _mixer_stage_comments(stage, resolved, mixer, names, manifest, routes_by_id):
     text = format_csd_comment_value
 
@@ -561,7 +582,7 @@ def lower_mixer_bundle(
         f"ksmps = {engine.ksmps}",
         f"nchnls = {engine.nchnls}",
         f"0dbfs = {engine.zero_dbfs}",
-        *([RAMP_OPCODE] if live_mixer else []),
+        *([RAMP_OPCODE if engine.ksmps == 1 else SETTLED_RAMP_OPCODE] if live_mixer else []),
         "; Mixer routing: patch, strip and route instruments execute in signal-flow order.",
     ]
     sample_targets = [target for target in targets if target.assignment_id not in omitted]

@@ -2,6 +2,8 @@
 
 from contextlib import contextmanager
 import math
+from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -76,6 +78,53 @@ def test_stored_gain_initial_value_dynamic_ramp_and_exact_silence(ksmps):
         assert abs(samples[-1]).max() == 0
         np.testing.assert_allclose(samples[960:], 0, atol=1e-12)
         assert np.diff(samples[:, 0]).max() < 1e-9
+
+
+@pytest.mark.parametrize(("rate", "block"), [
+    (48000, 1), (47999, 2), (22000, 32), (22050, 32),
+    (44100, 32), (48000, 32), (48000, 64), (48000, 1920),
+])
+def test_independent_ramps_match_historical_coefficients(rate, block):
+    from backend.app.services.compiler_mixer import RAMP_OPCODE, SETTLED_RAMP_OPCODE
+
+    reference = (Path(__file__).parent / "fixtures/csound/mixer_ramp_reference.orc").read_text()
+    reference = reference.replace("opcode vcs_mixer_ramp,", "opcode historical_ramp,")
+    emitted = RAMP_OPCODE if block == 1 else SETTLED_RAMP_OPCODE
+    orc = f"""sr={rate}
+ksmps={block}
+nchnls=4
+0dbfs=1
+{reference}
+{emitted}
+instr 1
+ kL chnget "left"
+ kR chnget "right"
+ aRefL historical_ramp kL, 0.25
+ aRefR historical_ramp kR, 0.75
+ aL vcs_mixer_ramp kL, 0.25
+ aR vcs_mixer_ramp kR, 0.75
+ outch 1,aRefL,2,aRefR,3,aL,4,aR
+endin"""
+    span = math.ceil(0.020 * rate / block)
+    # Start one channel at the saved value and the other at a different target.
+    # Retarget while active, at the last active block, at the first settled
+    # block and a block later. The second channel follows a different schedule.
+    writes = {0: {"left": .25, "right": .3}, 2: {"right": .9}, 3: {"right": .9}}
+    at = 8 + span
+    for interval, target in [(1, 1.5), (span, .4), (span + 1, 1.), (span + 2, .1), (3*span + 4, 0.)]:
+        writes[at] = {"left": target}
+        at += interval
+    writes[at] = {"right": 0.}
+    with engine(SimpleNamespace(orc=orc), score="i 1 0 60") as cs:
+        for index in range(at + span + 3):
+            for name, target in writes.get(index, {}).items():
+                cs.setControlChannel(name, target)
+            assert cs.performKsmps() == 0
+            frame = np.asarray(cs.spout()).reshape(block, 4)
+            assert frame[:, :2].tobytes() == frame[:, 2:].tobytes(), (rate, block, index)
+            if index == 0:
+                np.testing.assert_array_equal(frame[0, :2], [.25, .75])
+        assert not frame.any()
 
 
 def test_multiple_outs_sum_and_balance_preserves_other_channel():

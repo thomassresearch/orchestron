@@ -223,6 +223,9 @@ def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, mo
                     response = client.put(base + "/mixer", json={"strips": {"source0": {"gainDb": -6}}})
                     assert response.status_code == 200, response.text
                 if index == 2:
+                    # Reverse 512 frames into the 960-frame fade.
+                    response = client.put(base + "/mixer", json={"strips": {"source0": {"gainDb": 0}}})
+                    assert response.status_code == 200, response.text
                     service = client.app.state.container.session_service
                     previous = runtime.sequencer_request
                     async def fail_prepare(*args, **kwargs):
@@ -244,6 +247,57 @@ def test_parallel_session_live_edits_auditions_mixer_and_native_pcm(tmp_path, mo
         assert runtime.worker.render_sample_cursor == 0
         assert client.delete(base).status_code == 204
         assert runtime.worker._coordinator.shared_memory_name is None
+
+
+@pytest.mark.parametrize("mode", ["single", "parallel"])
+def test_live_fader_reversal_preserves_public_pcm_and_meter_timestamps(tmp_path, monkeypatch, mode):
+    import numpy as np
+    from backend.app.services import compiler_mixer
+    from backend.tests.session_parallel_support import create_session, options
+
+    frozen = (Path(__file__).parent / "fixtures/csound/mixer_ramp_reference.orc").read_text().rstrip("\n")
+    traces = {}
+    for arm in ("reference", "production", "stationary"):
+        frames, meters = [], []
+        with monkeypatch.context() as scope, _client(tmp_path / arm, renderer_options=options(mode)) as client:
+            scope.setenv("VISUALCSOUND_FORCE_MOCK_ENGINE", "false")
+            scope.delenv("VISUALCSOUND_PARALLEL_WORKER", raising=False)
+            if arm == "reference":
+                scope.setattr(compiler_mixer, "SETTLED_RAMP_OPCODE", frozen)
+            identity = create_session(client, ksmps=32)
+            base = f"/api/sessions/{identity}"
+            runtime = client.app.state.container.session_service._sessions[identity]
+            assert (frozen in runtime.compile_artifact.orc) == (arm == "reference")
+            if mode == "parallel":
+                assert client.get(base).json()["renderer"]["selected"] == mode
+            with client.websocket_connect(f"/ws/sessions/{identity}/browser-clock") as socket:
+                socket.send_json({"type": "claim_controller", "audio_context_sample_rate": 48000,
+                    "queue_low_water_frames": 1024, "queue_high_water_frames": 2048, "max_blocks_per_request": 16})
+                assert socket.receive_json()["type"] == "stream_config"
+                socket.send_json({"type": "manual_midi", "midi": {
+                    "type": "note_on", "channel": 1, "note": 60, "velocity": 100}})
+                for i in range(16):
+                    if arm != "stationary" and i in (5, 6):
+                        response = client.put(base + "/mixer", json={"strips": {"source0": {"gainDb": -12 if i == 5 else 0}}})
+                        assert response.status_code == 200, response.text
+                    socket.send_json({"type": "request_render", "block_count": 16})
+                    meta = socket.receive_json()
+                    assert meta["type"] == "render_chunk", meta
+                    assert (meta["engine_sample_start"], meta["engine_sample_end"], meta["target_frame_count"]) == (
+                        i * 512, (i + 1) * 512, 512)
+                    chunk = socket.receive_bytes()
+                    assert len(chunk) == 512 * 2 * 4
+                    frames.append(chunk)
+                    meters.extend(meta["mixer_meters"])
+                socket.send_json({"type": "release_controller"})
+            assert client.delete(base).status_code == 204
+        assert np.max(np.abs(np.frombuffer(b"".join(frames), dtype="<f4"))) > .0001
+        assert len(meters) >= 3 and meters[0]["levels"]["source0"]
+        traces[arm] = frames, meters
+    assert traces["reference"] == traces["production"]
+    moving, stationary = traces["production"][0], traces["stationary"][0]
+    assert moving[:5] == stationary[:5]
+    assert moving[5:7] != stationary[5:7]
 
 
 def test_parallel_manual_input_after_idle_refills_and_restart(tmp_path, monkeypatch):

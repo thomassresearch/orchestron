@@ -11,6 +11,7 @@ import pytest
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
 from backend.app.models.render_protocol import RendererPolicy
 from backend.app.services.compiler_common import CompilationError, CompilationProfile
+from backend.app.services.compiler_mixer import SETTLED_RAMP_OPCODE
 from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 from backend.app.services.render_partition_plan import plan_render_partitions
@@ -122,7 +123,13 @@ def test_canonical_csd_bytes_match_pre_t04_compiler(compiler, key, monkeypatch):
     targets, graph, mixer = planner_inputs(case, int(ksmps))
     result = compiler.compile_patch_bundle(targets, 'internal:loopback', 'null', audio_graph=graph, mixer=mixer,
         profile=CompilationProfile(profile), performance_input_mode=mode)
-    assert hashlib.sha256(result.csd.encode()).hexdigest() == CANONICAL[key]
+    csd = result.csd
+    if profile == "live" and int(ksmps) > 1 and graph is not None:
+        # Only the ramp definition may differ from the pre-T04 live artifact.
+        reference = (FIXTURE_DIR.parent / "csound/mixer_ramp_reference.orc").read_text().rstrip("\n")
+        assert csd.count(SETTLED_RAMP_OPCODE) == 1
+        csd = csd.replace(SETTLED_RAMP_OPCODE, reference)
+    assert hashlib.sha256(csd.encode()).hexdigest() == CANONICAL[key]
 
 
 @pytest.mark.parametrize('ksmps', [1, 32])
