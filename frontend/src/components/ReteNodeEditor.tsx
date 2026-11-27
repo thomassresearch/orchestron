@@ -55,7 +55,7 @@ export interface ReteNodeEditorProps {
   graphBadgeLabel?: string;
   opcodes: OpcodeSpec[];
   viewportKey: string;
-  onGraphChange: (graph: PatchGraph, options?: { positionedMembers: boolean }) => void;
+  onGraphChange: (graph: PatchGraph, options?: { positionedMembers?: boolean; voiceNodeId?: string }) => void;
   onSelectionChange: (selection: EditorSelection) => void;
   onAddOpcodeAtPosition?: (opcode: OpcodeSpec, position: NodePosition, target?: BranchTarget) => void;
   onOpcodeHelpRequest?: (opcodeName: string) => void;
@@ -529,10 +529,10 @@ export function ReteNodeEditor({
   const previousInputPresentation = useRef(new Map<string, string>());
 
   const updateGraph = useCallback(
-    (updater: (current: PatchGraph) => PatchGraph) => {
+    (updater: (current: PatchGraph) => PatchGraph, options?: Parameters<ReteNodeEditorProps["onGraphChange"]>[1]) => {
       const next = updater(graphRef.current);
       graphRef.current = next;
-      onGraphChange(next);
+      onGraphChange(next, options);
     },
     [onGraphChange]
   );
@@ -1766,13 +1766,15 @@ export function ReteNodeEditor({
           node.id === performanceControllerEditorNode.id ? { ...node, params: { ...node.params, ...params } } : node) }))} />}
 
       {dx7EditorNode && <Dx7VoiceEditor key={dx7EditorNode.id} node={dx7EditorNode} language={guiLanguage}
-        onClose={() => setDx7EditorId(null)} onChange={voice => updateGraph(current => ({ ...current, nodes: current.nodes.map(node => {
+        onClose={() => setDx7EditorId(null)} onChange={(voice, customVoice) => updateGraph(current => ({ ...current, nodes: current.nodes.map(node => {
           if (node.id !== dx7EditorNode.id) return node;
           const params = { ...node.params };
           if (voice === undefined) delete params.voice;
           else params.voice = voice;
+          if (customVoice === undefined) delete params.custom_voice;
+          else params.custom_voice = customVoice;
           return { ...node, params };
-        }) }))} />}
+        }) }), { voiceNodeId: dx7EditorNode.id })} />}
 
       {fm6EditorNode && <Fm6VoiceEditor key={fm6EditorNode.id} node={fm6EditorNode} language={guiLanguage}
         drivenInputs={Object.fromEntries((opcodeByName.get("fm6_voice")?.inputs ?? []).flatMap(port => {
@@ -1785,7 +1787,7 @@ export function ReteNodeEditor({
             ? [[port.id, [describeInputValue(state, guiLanguage), ...sources].join(" · ")]] : [];
         }))}
         onClose={() => setFm6EditorId(null)} onChange={params => updateGraph(current => ({ ...current, nodes: current.nodes.map(node =>
-          node.id === fm6EditorNode.id ? { ...node, params } : node) }))} />}
+          node.id === fm6EditorNode.id ? { ...node, params } : node) }), { voiceNodeId: fm6EditorNode.id })} />}
 
       {genEditor && (
         <GenNodeEditorModal

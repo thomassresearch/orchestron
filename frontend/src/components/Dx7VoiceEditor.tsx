@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import bank from "../../../backend/app/data/dx7-presets.json";
 import type { GuiLanguage, NodeInstance } from "../types";
 import { dx7Algorithms, dx7Frequency, dx7Name, dx7Offset, dx7OperatorMax, dx7Voice, encodeDx7 } from "../lib/dx7";
 import { dx7Copy } from "../lib/dx7Copy";
@@ -15,10 +16,12 @@ const group = "rounded-lg border border-slate-700 bg-slate-800/40 p-3";
 const heading = "mb-2 text-sm font-semibold text-slate-100";
 
 export function Dx7VoiceEditor({ node, language, onChange, onClose }: {
-  node: NodeInstance; language: GuiLanguage; onChange: (voice: NodeInstance["params"]["voice"] | undefined) => void; onClose: () => void;
+  node: NodeInstance; language: GuiLanguage;
+  onChange: (voice: NodeInstance["params"]["voice"] | undefined, customVoice?: string) => void; onClose: () => void;
 }) {
   const copy = dx7Copy(language), fm = fm6Copy(language);
-  const opening = useRef(node.params.voice);
+  const opening = useRef({ voice: node.params.voice, custom: typeof node.params.custom_voice === "string" ? node.params.custom_voice : undefined });
+  const [savedCustom, setSavedCustom] = useState(opening.current.custom);
   const [voice, setVoice] = useState(() => dx7Voice(node.params));
   const [name, setName] = useState(() => dx7Name(voice));
   const [selected, select] = useState<number | null>(null);
@@ -27,11 +30,24 @@ export function Dx7VoiceEditor({ node, language, onChange, onClose }: {
   const inspector = useRef<HTMLElement>(null);
   const route = dx7Algorithms[voice[134]];
   const offset = selected === null ? 0 : dx7Offset(selected);
-  const publish = (next: number[]) => { edited.current = true; setVoice(next); onChange(encodeDx7(next)); };
+  const encoded = encodeDx7(voice);
+  const preset = savedCustom === undefined ? undefined : bank.presets.find(p => p.voice === encoded);
+  const publish = (next: number[], custom?: string) => {
+    edited.current = true;
+    setVoice(next);
+    setSavedCustom(custom);
+    onChange(encodeDx7(next), custom);
+  };
+  const selectPreset = (id: number) => {
+    const next = bank.presets.find(p => p.id === id);
+    const bytes = dx7Voice({ voice: next?.voice ?? savedCustom ?? encoded });
+    setName(dx7Name(bytes));
+    publish(bytes, next ? savedCustom ?? encoded : undefined);
+  };
   const update = (index: number, value: number) => {
     const next = [...voice]; next[index] = value; publish(next);
   };
-  const cancel = () => { if (edited.current) onChange(opening.current); onClose(); };
+  const cancel = () => { if (edited.current) onChange(opening.current.voice, opening.current.custom); onClose(); };
   const range = (index: number, label: string, max: number, shift = 0) =>
     <label key={index} className="block min-w-0 text-xs text-slate-300">
       <span className="flex items-baseline justify-between gap-2"><span>{label}</span>
@@ -66,7 +82,15 @@ export function Dx7VoiceEditor({ node, language, onChange, onClose }: {
   return <><NodeEditorModalFrame ariaLabel={copy.title} title={copy.title} nodeId={node.id} nodeLabel={fm.node}
     closeLabel={fm.close} onClose={cancel} closeOnEscape maxWidthClassName="max-w-6xl" maxHeightClassName="max-h-[95dvh]" footer={footer}>
     <div className="space-y-3 text-slate-100">
-      <div className="grid items-end gap-3 sm:grid-cols-[2fr_1fr_1fr_auto]">
+      <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[1.6fr_1.25fr_.7fr_1fr_auto]">
+        <label className="text-xs text-slate-300">{fm.preset}
+          <select className={field} aria-label={fm.preset} value={preset?.id ?? 0} onChange={e => selectPreset(Number(e.target.value))}>
+            <option value={0}>0 · {fm.custom}</option>
+            {Object.entries(copy.groups).map(([key, label]) => <optgroup key={key} label={label}>
+              {bank.presets.filter(p => p.group === key).map(p => <option key={p.id} value={p.id}>{p.id} · {p.name}</option>)}
+            </optgroup>)}
+          </select>
+        </label>
         <label className="text-xs text-slate-300">{copy.name}<input className={field} maxLength={10} value={name} onBlur={() => setName(dx7Name(voice))}
           onChange={e => {
             const text = e.target.value.replace(/[^ -~]/g, " ").slice(0, 10);

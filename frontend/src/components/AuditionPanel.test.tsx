@@ -401,10 +401,11 @@ it("sends the complete opening DX7 voice before a note played immediately after 
   const edited = [...opening];
   edited[134] = 3;
   edited[dx7Offset(2) + 4] = 65;
-  const setVoice = (bytes: number[]) => act(() => useAppStore.setState({ currentPatch: { ...base, graph: {
-    ...base.graph, nodes: base.graph.nodes.map(n => n.id === node.id ? { ...node, params: { voice: encodeDx7(bytes) } } : n)
+  const setVoice = (bytes: number[], saved?: string) => act(() => useAppStore.setState({ currentPatch: { ...base, graph: {
+    ...base.graph, nodes: base.graph.nodes.map(n => n.id === node.id ? { ...node, params: { voice: encodeDx7(bytes), ...(saved ? { custom_voice: saved } : {}) } } : n)
   } } }));
-  setVoice(edited);
+  setVoice(edited, node.params.voice);
+  expect(screen.queryByRole("status")).toBeNull();
   expect(write).toHaveBeenCalledWith("preview-session", "dx", { ...initial, dx7_134: 3, dx7_88: 65 });
   setVoice(opening);
   fireEvent.keyDown(screen.getByRole("button", { name: "C4 (60)" }), { key: "Enter" });

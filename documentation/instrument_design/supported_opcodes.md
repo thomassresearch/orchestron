@@ -169,7 +169,7 @@ These nodes generate structured Csound conditionals; they are not ordinary opcod
 | crossfmpmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed frequency/phase-modulation oscillator pair. |
 | crosspmi | 9 (k, k, k, k, k, i, i, i, i) | 2 (a, a) | Interpolating crossed phase-modulation oscillator pair. |
 | fm6_voice | 10 (k, i, i, i, i, i, i, i, i, i) | 1 (a) | Dry six-operator voice, eight algorithms and preset editor. |
-| fm_dx7 | 4 (i, i, k, i) | 1 (a) | Edit six operators across 32 DX7 algorithms, import SysEx voices and audition each edit on the next note. |
+| fm_dx7 | 4 (i, i, k, i) | 1 (a) | Choose from 32 presets or a custom SysEx voice, edit six operators and audition each edit on the next note. |
 | fmb3 | 10 (k, k, k, k, k, i, i, i, i, i) | 1 (a) | B3 organ FM model. |
 | fmbell | 12 (k, k, k, k, k, k, i, i, i, i, i, i) | 1 (a) | Bell FM model. |
 | fmmetal | 11 (k, k, k, k, k, k, i, i, i, i, i) | 1 (a) | Metallic FM model. |

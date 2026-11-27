@@ -5,6 +5,7 @@ import { Dx7VoiceEditor } from "./Dx7VoiceEditor";
 import { dx7Algorithms, dx7Offset, dx7Voice, encodeDx7 } from "../lib/dx7";
 import { dx7Copy } from "../lib/dx7Copy";
 import { fm6Copy } from "../lib/fm6Copy";
+import bank from "../../../backend/app/data/dx7-presets.json";
 
 afterEach(cleanup);
 const base = { id: "dx", position: { x: 0, y: 0 }, opcode: "fm_dx7", params: {} };
@@ -27,7 +28,43 @@ it.each(["english", "german", "french", "spanish"] as const)("edits a selected D
   fireEvent.change(screen.getByRole("combobox", { name: fm.algorithm }), { target: { value: "3" } });
   expect(screen.getByRole("button", { name: `${fm.operator} 2 ${fm.modulator}` })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: fm.cancel }));
-  expect(change.mock.lastCall).toEqual([undefined]); expect(close).toHaveBeenCalledOnce();
+  expect(change.mock.lastCall).toEqual([undefined, undefined]); expect(close).toHaveBeenCalledOnce();
+});
+
+it("keeps Custom while browsing, reopens an applied preset and rolls back edits to both slots", () => {
+  const custom = dx7Voice({});
+  custom[134] = 19;
+  const original = encodeDx7(custom);
+  const fm = fm6Copy("english"), change = vi.fn(), close = vi.fn();
+  const mount = (voice: string, saved?: string) => render(<Dx7VoiceEditor language="english" onChange={change} onClose={close}
+    node={{ ...base, params: saved ? { voice, custom_voice: saved } : { voice } }} />);
+  const selector = () => screen.getByRole("combobox", { name: fm.preset }) as HTMLSelectElement;
+  const choose = (id: number) => fireEvent.change(selector(), { target: { value: String(id) } });
+  const first = bank.presets[0], last = bank.presets[31];
+  const view = mount(original);
+  expect(selector().options).toHaveLength(33);
+  choose(first.id);
+  expect(change.mock.lastCall).toEqual([first.voice, original]);
+  choose(last.id);
+  expect(change.mock.lastCall).toEqual([last.voice, original]);
+  choose(0);
+  expect(change.mock.lastCall).toEqual([original, undefined]);
+  choose(last.id);
+  fireEvent.click(screen.getByRole("button", { name: fm.apply }));
+  const [voice, saved] = change.mock.lastCall!;
+  view.unmount();
+  mount(voice, saved);
+  expect(selector().value).toBe(String(last.id));
+  choose(first.id);
+  fireEvent.change(screen.getByRole("textbox", { name: "Voice name" }), { target: { value: "My bass" } });
+  expect(selector().value).toBe("0");
+  const edited = change.mock.lastCall![0];
+  choose(first.id);
+  expect(change.mock.lastCall).toEqual([first.voice, edited]);
+  choose(0);
+  expect(change.mock.lastCall).toEqual([edited, undefined]);
+  fireEvent.click(screen.getByRole("button", { name: fm.cancel }));
+  expect(change.mock.lastCall).toEqual([last.voice, original]);
 });
 
 it("retains imported bytes, supports spaces in a voice name and applies the draft", () => {

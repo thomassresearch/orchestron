@@ -1,6 +1,7 @@
 import type { GuiLanguage } from "../types";
 
 const english = {
+  groups: { bass: "Bass", keys: "Keys & arpeggios", pads: "Pads & textures", leads: "Leads & accents" },
   title: "DX7 voice editor", edit: "Edit DX7 voice", name: "Voice name", import: "Import SysEx", level: "Output level",
   envelope: "Operator envelope", rate: "Rate", levelEG: "Level", keyOff: "Key release", feedback: "Feedback",
   oscillator: "Oscillator", mode: "Frequency mode", ratio: "Ratio", fixed: "Fixed Hz", coarse: "Coarse", fine: "Fine",
@@ -16,6 +17,7 @@ const english = {
 const copies: Record<GuiLanguage, typeof english> = {
   english,
   german: {
+    groups: { bass: "Bässe", keys: "Tasten & Arpeggien", pads: "Flächen & Texturen", leads: "Leads & Akzente" },
     title: "DX7-Stimmeneditor", edit: "DX7-Stimme bearbeiten", name: "Stimmenname", import: "SysEx importieren", level: "Ausgangspegel",
     envelope: "Operatorhüllkurve", rate: "Rate", levelEG: "Pegel", keyOff: "Taste loslassen", feedback: "Rückkopplung",
     oscillator: "Oszillator", mode: "Frequenzmodus", ratio: "Verhältnis", fixed: "Feste Hz", coarse: "Grob", fine: "Fein",
@@ -29,6 +31,7 @@ const copies: Record<GuiLanguage, typeof english> = {
     waves: ["Dreieck", "Sägezahn abwärts", "Sägezahn aufwärts", "Rechteck", "Sinus", "Sample & Hold"],
   },
   french: {
+    groups: { bass: "Basses", keys: "Claviers et arpèges", pads: "Nappes et textures", leads: "Sons solo et accents" },
     title: "Éditeur de voix DX7", edit: "Modifier la voix DX7", name: "Nom de la voix", import: "Importer un SysEx", level: "Niveau de sortie",
     envelope: "Enveloppe de l’opérateur", rate: "Vitesse", levelEG: "Niveau", keyOff: "Relâchement", feedback: "Rétroaction",
     oscillator: "Oscillateur", mode: "Mode de fréquence", ratio: "Rapport", fixed: "Hz fixes", coarse: "Grossier", fine: "Fin",
@@ -42,6 +45,7 @@ const copies: Record<GuiLanguage, typeof english> = {
     waves: ["Triangle", "Dent de scie descendante", "Dent de scie montante", "Carré", "Sinus", "Échantillonnage et maintien"],
   },
   spanish: {
+    groups: { bass: "Bajos", keys: "Teclas y arpegios", pads: "Colchones y texturas", leads: "Solistas y acentos" },
     title: "Editor de voces DX7", edit: "Editar voz DX7", name: "Nombre de voz", import: "Importar SysEx", level: "Nivel de salida",
     envelope: "Envolvente del operador", rate: "Velocidad", levelEG: "Nivel", keyOff: "Soltar tecla", feedback: "Realimentación",
     oscillator: "Oscilador", mode: "Modo de frecuencia", ratio: "Relación", fixed: "Hz fijos", coarse: "Grueso", fine: "Fino",

@@ -25,10 +25,10 @@ def validate_voice(data: bytes) -> bytes:
     return data
 
 
-def node_voice(params: dict) -> bytes:
-    if "voice" not in params:
+def node_voice(params: dict, key: str = "voice") -> bytes:
+    if key not in params:
         return INIT_VOICE
-    value = params["voice"]
+    value = params[key]
     if not isinstance(value, str) or len(value) != 208:
         raise ValueError("Expected a 155-byte base64 DX7 voice.")
     try:

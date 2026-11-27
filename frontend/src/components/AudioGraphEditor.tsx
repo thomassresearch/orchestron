@@ -22,6 +22,14 @@ export function AudioGraphEditor(props: ReteNodeEditorProps & { patchId?: string
   const latest = useRef({ projection, audioProjection, graph, onGraphChange, onSelectionChange: props.onSelectionChange, onOpcodeHelpRequest: props.onOpcodeHelpRequest });
   latest.current = { projection, audioProjection, graph, onGraphChange, onSelectionChange: props.onSelectionChange, onOpcodeHelpRequest: props.onOpcodeHelpRequest };
   const restoreGraph = useCallback<ReteNodeEditorProps["onGraphChange"]>((next, options) => {
+    // Voice edits touch one real node. Re-expanding collapsed blocks here can reorder
+    // unrelated nodes and make an active audition see a different instrument.
+    if (options?.voiceNodeId) {
+      const edited = next.nodes.find(node => node.id === options.voiceNodeId);
+      const { graph, onGraphChange } = latest.current;
+      if (edited) onGraphChange({ ...graph, nodes: graph.nodes.map(node => node.id === edited.id ? { ...node, params: edited.params } : node) });
+      return;
+    }
     const value = latest.current.audioProjection.restore(latest.current.projection.restore(next, options?.positionedMembers));
     // Wiring errors remain visible and compilable to diagnostics; explicit scope moves validate before applying.
     latest.current.onGraphChange(value);

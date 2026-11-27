@@ -116,6 +116,8 @@ class NodeInstance(BaseModel):
         elif self.opcode == "fm_dx7":
             from backend.app.models.dx7 import node_voice
             node_voice(self.params)
+            if "custom_voice" in self.params:
+                node_voice(self.params, "custom_voice")
         return self
 
     @field_validator("id")

@@ -3,12 +3,30 @@ import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ReteNodeEditor } from "./ReteNodeEditor";
+import { AudioGraphEditor } from "./AudioGraphEditor";
 import type { OpcodeSpec, PatchGraph } from "../types";
 
 beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+it("keeps the original graph order when choosing a DX7 preset beside a collapsed stereo output", async () => {
+  const { default: fixture } = await import("../../../backend/tests/fixtures/patches/dx7.patch.json");
+  const { default: catalog } = await import("../../../backend/app/data/opcodes.json");
+  const graph = structuredClone(fixture.graph) as unknown as PatchGraph;
+  graph.nodes.push({ id: "polyphony", opcode: "maxalloc", params: { icount: 16 }, position: { x: 40, y: 330 } });
+  const change = vi.fn();
+  render(<AudioGraphEditor graph={graph} opcodes={catalog as unknown as OpcodeSpec[]} guiLanguage="english"
+    viewportKey="dx7-stereo" onGraphChange={change} onSelectionChange={vi.fn()} onDeleteAudioGroup={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Edit DX7 voice" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Preset" }), { target: { value: "1" } });
+  const next: PatchGraph = change.mock.lastCall![0];
+  const params = next.nodes.find(n => n.opcode === "fm_dx7")!.params;
+  expect(params.custom_voice).toBeTruthy();
+  expect(params.voice).not.toBe(params.custom_voice);
+  expect(next).toEqual({ ...graph, nodes: graph.nodes.map(n => n.opcode === "fm_dx7" ? { ...n, params } : n) });
+});
 
 it("refreshes changed formulas without replacing unrelated nodes or resetting focus", async () => {
   const opcodes = [

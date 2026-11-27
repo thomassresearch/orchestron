@@ -11654,10 +11654,13 @@ def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
         payload = load_patch_fixture("dx7").model_dump(mode="json", exclude={"id", "created_at", "updated_at"})
         node = next(n for n in payload["graph"]["nodes"] if n["opcode"] == "fm_dx7")
         node["params"]["voice"] = entry["voice"]
+        node["params"]["custom_voice"] = client.post(path, content=cartridge).json()[0]["voice"]
         saved = client.post("/api/patches", json=payload)
         assert saved.status_code in (200, 201), saved.text
         stored = client.get("/api/patches/" + saved.json()["id"]).json()["graph"]["nodes"]
-        assert next(n for n in stored if n["opcode"] == "fm_dx7")["params"]["voice"] == entry["voice"]
+        assert next(n for n in stored if n["opcode"] == "fm_dx7")["params"] == node["params"]
+        node["params"]["custom_voice"] = "broken"
+        assert client.post("/api/patches", json=payload).status_code == 422
 
 
 def test_dx7_audition_accepts_full_voice_and_checks_native_ranges(tmp_path):

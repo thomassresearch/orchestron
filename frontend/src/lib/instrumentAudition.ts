@@ -10,6 +10,7 @@ export function auditionSignature(patch: EditablePatch, live?: import("./fm6Audi
     if (node.opcode === "fm_dx7" && "dx7_0" in live[node.id]) {
       const params = { ...node.params };
       delete params.voice;
+      delete params.custom_voice;
       return { ...node, params };
     }
     if (node.opcode !== "fm6_voice") return node;

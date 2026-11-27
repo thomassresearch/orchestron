@@ -8973,10 +8973,10 @@
   },
   "fm_dx7": {
     "description": {
-      "english": "Click DX7 and select an operator to edit its tuning, output level and four-stage envelope. Import a SysEx voice or choose from a 32-voice bank. Each new audition note uses the edited voice. Cancel restores the opening voice.",
-      "german": "Klicke auf DX7 und wähle einen Operator, um Stimmung, Ausgangspegel und vierstufige Hüllkurve zu bearbeiten. Importiere eine SysEx-Stimme oder wähle aus einer Bank mit 32 Stimmen. Beim Vorhören übernimmt jede neue Note die Änderungen. Abbrechen stellt die ursprüngliche Stimme wieder her.",
-      "french": "Cliquez sur DX7 et choisissez un opérateur pour régler son accordage, son niveau de sortie et son enveloppe à quatre segments. Importez une voix SysEx ou choisissez un programme dans une banque de 32 voix. Chaque nouvelle note jouée en écoute utilise la voix modifiée. Annuler rétablit la voix initiale.",
-      "spanish": "Pulsa DX7 y elige un operador para ajustar su afinación, nivel de salida y envolvente de cuatro etapas. Importa una voz SysEx o elige un programa de un banco de 32 voces. Cada nota nueva de la escucha usa la voz editada. Cancelar restaura la voz inicial."
+      "english": "Click DX7 and select an operator to edit its tuning, output level and four-stage envelope. Choose from 32 built-in presets, recall Custom or import a SysEx program. Each new audition note uses the edited voice. Cancel restores the opening voice.",
+      "german": "Klicke auf DX7 und wähle einen Operator, um Stimmung, Ausgangspegel und vierstufige Hüllkurve zu bearbeiten. Wähle eines der 32 Presets, rufe den eigenen Klang auf oder importiere ein SysEx-Programm. Beim Vorhören übernimmt jede neue Note die Änderungen. Abbrechen stellt die ursprüngliche Stimme wieder her.",
+      "french": "Cliquez sur DX7 et choisissez un opérateur pour régler son accordage, son niveau de sortie et son enveloppe à quatre segments. Choisissez un des 32 préréglages, rappelez votre voix personnalisée ou importez un programme SysEx. Chaque nouvelle note jouée en écoute utilise la voix modifiée. Annuler rétablit la voix initiale.",
+      "spanish": "Pulsa DX7 y elige un operador para ajustar su afinación, nivel de salida y envolvente de cuatro etapas. Elige uno de los 32 preajustes, recupera tu voz personalizada o importa un programa SysEx. Cada nota nueva de la escucha usa la voz editada. Cancelar restaura la voz inicial."
     },
     "inputs": {
       "ikey": {

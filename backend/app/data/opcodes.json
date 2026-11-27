@@ -17747,9 +17747,9 @@
   {
     "name": "fm_dx7",
     "category": "fm",
-    "description": "Edit and play a six-operator DX7 voice with 32 algorithms and SysEx import.",
+    "description": "Play and edit six-operator DX7 voices with 32 presets, 32 algorithms and SysEx import.",
     "documentation_url": "https://csound.com/docs/manual/opcode.html",
-    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to edit an operator in the algorithm diagram, shape its four-rate, four-level envelope or import a SysEx program. Audition takes the current voice on each new note. Cancel restores the opening voice. The voice travels with the instrument and CSD exports.",
+    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to choose one of 32 presets, recall Custom or import a SysEx program. Select an operator to shape its four-rate, four-level envelope. Audition takes the current voice on each new note. Cancel restores the opening selection and custom voice. The selected sound travels with the instrument and CSD exports.",
     "inputs": [
       {
         "id": "ikey",

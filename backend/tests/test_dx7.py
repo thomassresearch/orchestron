@@ -1,4 +1,5 @@
 from base64 import b64encode
+import json
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,18 @@ from backend.tests.csound_test_support import load_patch_fixture
 from backend.tests.guitar_audio_support import compile_guitars, note_events, render
 
 FIXTURES = Path(__file__).parent / "fixtures/dx7"
+
+
+def test_bundled_presets_are_distinct_playable_voices():
+    catalog = Path(__file__).resolve().parents[1] / "app/data/dx7-presets.json"
+    presets = json.loads(catalog.read_text())["presets"]
+    assert [preset["id"] for preset in presets] == list(range(1, 33))
+    voices = [node_voice(preset) for preset in presets]
+    assert len({voice[:145] for voice in voices}) == 32
+    for preset, voice in zip(presets, voices, strict=True):
+        compiled, targets = compile_guitars([patch(voice)], mode="host", ksmps=32)
+        audio, _ = render(compiled, targets, note_events([(0.032, 60, 108, 1.15)]), 1.4, mode="host")
+        assert np.isfinite(audio).all() and 0.001 < abs(audio).max() < 1, preset["name"]
 
 
 def patch(voice=INIT_VOICE):
