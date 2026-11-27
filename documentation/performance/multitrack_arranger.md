@@ -16,7 +16,7 @@ Click a track name to see the patterns and groups inside its clips. A faint cyan
 
 Click **Controllers** beside a lane’s **Mute** and **Solo** to adjust its instrument and insert effects in the lower panel. The button is available when at least one destination instrument publishes a usable performance control. An automation lane opens its bound instrument. Choose **Back to editor** to resume your open clip or pad, or **Close** if you opened controls from the timeline. On a very short screen the panel can occupy the working area.
 
-![Arrange with the rack instrument, MIDI channel, Mute, Solo and Controllers in each lane header and the selected instrument’s controls below the timeline](../../screenshots/perform-arrange-instrument-controls.png)
+![Arrange with Controllers selected on a melodic track. The lower panel shows Amount and Time knobs, a Count stepper and an Enabled toggle.](../../screenshots/perform-arrange-instrument-controls.png)
 
 The top-right **?** opens help specifically for this clip workflow in the selected GUI language (English, German, French or Spanish). It covers clip windows, reusable content, musical and structural drafts, editing scope, transport, sections, transposition and instrument automation. Close it with **Close**, Escape or a click outside the dialog.
 

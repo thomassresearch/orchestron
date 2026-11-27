@@ -12,7 +12,7 @@ To add or wire a control, follow [Defining Performance Controls](../instrument_d
 
 ## Tune a Rack Instrument
 
-In Arrange, click **Controllers** beside a lane’s **Mute** and **Solo**. Its instrument and dedicated inserts appear in the lower panel. Choose **Back to editor** to resume your open clip or pad. For a group of instruments, open **Compact rack**, click an instrument, Shift-click others and choose **Instrument controls**. Arrange shows the group below the timeline. In Live, this action opens the group in Mix.
+In Arrange, click **Controllers** beside a lane’s **Mute** and **Solo**. Its instrument and dedicated inserts appear in the lower panel. Choose **Back to editor** to resume your open clip or pad. For a group of instruments, open **Compact rack**, click an instrument, Shift-click others and choose **Instrument controls**. Both paths show compact knobs, integer steppers and toggles below the Arrange timeline. These controls are 10% smaller than in Mix and Rack. In Live, **Instrument controls** opens the group in Mix.
 
 **Mix → Rack** shows each instance’s controls beside its assignment. Related controls may appear in labeled groups such as Filter or Envelope. The layout adjusts to browser width and zoom without losing unfinished edits. To change group names or wiring, use [Defining Performance Controls](../instrument_design/performance_controls.md).
 

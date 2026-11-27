@@ -302,7 +302,7 @@ export default function WorkspaceShell({ diagnostics, view, navigate, language, 
           {editorDock === "editor" && view !== "mix" ? <div className="ws-clip-editor-host" hidden={!!controlsIds} ref={setEditorHost} /> : editorDock && <RetainedScroll key={view + editorDock + detailOwner} hidden={!!controlsIds} className="ws-dock-scroll" owner={detailOwner} field={editorDock + "Scroll"}>
             <div ref={setEditorHost} />
           </RetainedScroll>}
-          {controlsIds && <RetainedScroll key={controlsLaneId ?? "rackControls"} owner={controlsLaneId ? `device:${controlsLaneId}` : "rack"} field="instrumentControlsScroll" className="ws-dock-scroll">
+          {controlsIds && <RetainedScroll key={controlsLaneId ?? "rackControls"} owner={controlsLaneId ? `device:${controlsLaneId}` : "rack"} field="instrumentControlsScroll" className="ws-dock-scroll ws-arrange-instrument-controls">
             <InstrumentControls ids={controlsIds} language={language} />
           </RetainedScroll>}
         </section>}

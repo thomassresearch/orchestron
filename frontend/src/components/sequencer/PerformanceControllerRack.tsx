@@ -31,9 +31,12 @@ export function PerformanceControllerRack({ binding, patch, language }: {
             {group.controllers.map((definition) => {
               const Control = definition.controller_type === "integer" || definition.controller_type === "bool" ? PerformanceControllerDiscrete : PerformanceControllerKnob;
               const disabled = !!definition.error || !!patch?.always_on || binding.midiChannel === 0;
-              return <div key={definition.node_id} data-rack-controller-tile style={{ minHeight: metrics.controlHeight }} className="flex w-[4.5rem] flex-none flex-col gap-2"><Control definition={definition} editorOwner={`binding:${binding.id}`}
-              value={binding.performanceControllerValues?.[definition.node_id] ?? definition.default} language={language}
-              onChange={(value) => setValue(binding.id, definition.node_id, value)} onReset={() => setValue(binding.id, definition.node_id, null)} />
+              return <div key={definition.node_id} data-rack-controller-tile style={{ minHeight: metrics.controlHeight }} className="flex flex-none flex-col gap-2">
+                <div data-performance-controller={definition.node_id}>
+                  <Control definition={definition} editorOwner={`binding:${binding.id}`}
+                    value={binding.performanceControllerValues?.[definition.node_id] ?? definition.default} language={language}
+                    onChange={(value) => setValue(binding.id, definition.node_id, value)} onReset={() => setValue(binding.id, definition.node_id, null)} />
+                </div>
                 <label data-rack-controller-footer className="mt-auto flex flex-col gap-1 text-[10px] text-slate-400" title={disabled ? (definition.error ? copy.invalid : copy.midiUnavailable) : copy.midiHelp}>
                   {patch?.always_on && !definition.error && <span title={definition.update_mode === "mixed" ? copy.mixedHelp : copy.continuous}
                     className={definition.update_mode === "live" ? "text-emerald-300" : "text-amber-200"}>

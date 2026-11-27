@@ -21,7 +21,7 @@ The plucked notes in *Evening at the Lake* come from this 18-node patch. Follow 
 
 ### Perform · Arranger
 
-That pluck has a part called *Lantern reflections*. Read down the timeline to see where it answers the bamboo flute. The expanded *Light on the water* lane shows how a handful of pad patterns become a 144-bar arrangement.
+That pluck has a part called *Lantern reflections*. Read down the timeline to see where it answers the bamboo flute. The expanded *Light on the water* lane shows how a handful of pad patterns become a 144-bar arrangement. Open **Controllers** on a track to adjust its instrument with compact knobs, steppers and toggles below the timeline.
 
 ![Evening at the Lake in Arrange, with the pad lane expanded to show its nested groups and repeated patterns alongside the flute and pluck parts](screenshots/perform-arrange-evening-at-the-lake.png)
 
