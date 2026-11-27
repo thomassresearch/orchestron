@@ -6,6 +6,7 @@ import { api } from "../api/client";
 import { useAppStore } from "../store/useAppStore";
 import { audioTemplate } from "../lib/audioTemplates";
 import { controllerDefaults } from "../lib/performanceControllers";
+import { dx7Offset, dx7Voice, encodeDx7 } from "../lib/dx7";
 import { AuditionKeyboardProvider, AuditionPanel, InstrumentAuditionKeyboard } from "./AuditionPanel";
 import { isolatedAudition } from "../lib/instrumentAudition";
 
@@ -380,6 +381,37 @@ it("orders live FM6 edits and rollback before the next note without restarting a
   await act(async () => pending.resolve());
   await waitFor(() => expect(audio.midi).toHaveBeenCalledOnce());
   expect(write).toHaveBeenLastCalledWith("preview-session", "fm", { ...fm.params, weight_6_5: 1 });
+  expect(write.mock.invocationCallOrder[1]).toBeLessThan(audio.midi.mock.invocationCallOrder[0]);
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(api.compileSession).toHaveBeenCalledOnce();
+});
+
+it("sends the complete opening DX7 voice before a note played immediately after Cancel", async () => {
+  const base = patch();
+  const opening = dx7Voice({});
+  const node = { id: "dx", opcode: "fm_dx7", position: { x: 0, y: 0 }, params: { voice: encodeDx7(opening) } };
+  base.graph.nodes.push(node);
+  useAppStore.setState({ currentPatch: base });
+  const initial = Object.fromEntries(opening.slice(0, 145).map((value, i) => [`dx7_${i}`, value]));
+  vi.mocked(api.compileSession).mockResolvedValue({ session_id: "preview-session", state: "compiled", orc: "", csd: "", diagnostics: [],
+    manifest: { instrumentReferences: { preview: "1" }, fm6Preview: { preview: { dx: initial } } } });
+  const pending = deferred();
+  const write = vi.spyOn(api, "updateFm6Preview").mockResolvedValue(undefined).mockImplementationOnce(() => pending.promise);
+  mount(); await start();
+  const edited = [...opening];
+  edited[134] = 3;
+  edited[dx7Offset(2) + 4] = 65;
+  const setVoice = (bytes: number[]) => act(() => useAppStore.setState({ currentPatch: { ...base, graph: {
+    ...base.graph, nodes: base.graph.nodes.map(n => n.id === node.id ? { ...node, params: { voice: encodeDx7(bytes) } } : n)
+  } } }));
+  setVoice(edited);
+  expect(write).toHaveBeenCalledWith("preview-session", "dx", { ...initial, dx7_134: 3, dx7_88: 65 });
+  setVoice(opening);
+  fireEvent.keyDown(screen.getByRole("button", { name: "C4 (60)" }), { key: "Enter" });
+  expect(audio.midi).not.toHaveBeenCalled();
+  await act(async () => pending.resolve());
+  await waitFor(() => expect(audio.midi).toHaveBeenCalledOnce());
+  expect(write).toHaveBeenLastCalledWith("preview-session", "dx", initial);
   expect(write.mock.invocationCallOrder[1]).toBeLessThan(audio.midi.mock.invocationCallOrder[0]);
   expect(screen.queryByRole("status")).toBeNull();
   expect(api.compileSession).toHaveBeenCalledOnce();

@@ -2,23 +2,21 @@
 
 from base64 import b64decode, b64encode
 from binascii import Error
+import json
+from pathlib import Path
+
+DX7 = json.loads((Path(__file__).resolve().parents[1] / "data/dx7.json").read_text())
 
 # Some Dexed cartridges store fine tuning above the panel's 99. All seven
 # bits are safe in the frequency formula and survive a save/load unchanged.
-OP_MAX = (99,) * 11 + (3, 3, 7, 3, 7, 99, 1, 31, 127, 14)
+OP_MAX = tuple(DX7["operatorMax"])
 VOICE_MAX = OP_MAX * 6 + (99,) * 8 + (31, 7, 1, 99, 99, 99, 99, 1, 5, 7, 48) + (127,) * 10
 MAX_DUMP_BYTES = 4104
 
 # Operators are stored in Yamaha wire order, OP6 first. One audible carrier.
-_INIT_OP = bytes([99, 75, 60, 75, 99, 90, 80, 0, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 7])
-INIT_VOICE = (
-    _INIT_OP * 5
-    + _INIT_OP[:16]
-    + bytes([99])
-    + _INIT_OP[17:]
-    + bytes([99] * 4 + [50] * 4 + [31, 0, 1, 35, 0, 0, 0, 1, 4, 0, 24])
-    + b"INIT VOICE"
-)
+INIT_VOICE = b64decode(DX7["initialVoice"])
+DX7_PREVIEW_KEYS = tuple(f"dx7_{i}" for i in range(145))
+DX7_PREVIEW_LIMITS = dict(zip(DX7_PREVIEW_KEYS, VOICE_MAX[:145], strict=True))
 
 
 def validate_voice(data: bytes) -> bytes:

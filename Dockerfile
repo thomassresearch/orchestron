@@ -6,7 +6,7 @@ COPY frontend/ ./
 # Keep the repository-relative JSON imports available to Vite and TypeScript.
 COPY examples/instruments/template/analog_drumkit.patch.json ../examples/instruments/template/
 COPY backend/app/data/opcodes.json ../backend/app/data/
-COPY backend/app/data/fm6.json ../backend/app/data/
+COPY backend/app/data/fm6.json backend/app/data/dx7.json ../backend/app/data/
 # TypeScript checks frontend tests too, including their shared fixture imports.
 COPY backend/tests/fixtures/ ../backend/tests/fixtures/
 ARG VITE_CLIP_ARRANGER=1

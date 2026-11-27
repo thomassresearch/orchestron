@@ -19,7 +19,7 @@ The plucked notes in *Evening at the Lake* come from this 18-node patch. Follow 
 
 ![Prism FM Pluck in Instrument Design, with C, E and G held above the wired oscillator, filters and stereo panner](screenshots/instrument-design-prism-fm-pluck.png)
 
-Load an original Yamaha DX7 SysEx voice into an instrument with `fm_dx7`. Its six operators follow the program’s algorithm, tuning and envelopes. The voice travels with the instrument and its CSD exports. [DX7 voice import](documentation/instrument_design/opcode_catalog_and_documentation.md#load-a-dx7-voice)
+Open **Real DX7** to play a velocity-sensitive electric piano. Click **DX7** on its `fm_dx7` node, select an operator in the routing diagram and shape its four-stage envelope. Audition each edit on the next note, or import a DX7 SysEx program. The voice travels with the instrument and its CSD exports. [Sample instrument](examples/instruments/Real_DX7.orch.instrument.json) · [DX7 voice editor](documentation/instrument_design/opcode_catalog_and_documentation.md#load-a-dx7-voice)
 
 ### Perform · Arranger
 

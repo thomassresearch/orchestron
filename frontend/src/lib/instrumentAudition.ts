@@ -6,7 +6,13 @@ import { audioTemplate } from "./audioTemplates";
 
 export function auditionSignature(patch: EditablePatch, live?: import("./fm6Audition").Fm6PreviewValues) {
   const graph = live ? { ...patch.graph, nodes: patch.graph.nodes.map(node => {
-    if (!Object.prototype.hasOwnProperty.call(live, node.id) || node.opcode !== "fm6_voice") return node;
+    if (!Object.prototype.hasOwnProperty.call(live, node.id)) return node;
+    if (node.opcode === "fm_dx7" && "dx7_0" in live[node.id]) {
+      const params = { ...node.params };
+      delete params.voice;
+      return { ...node, params };
+    }
+    if (node.opcode !== "fm6_voice") return node;
     const params = Object.fromEntries(Object.entries(node.params).filter(([key, value]) =>
       !Object.prototype.hasOwnProperty.call(live[node.id], key) || !Number.isFinite(Number(value))));
     return { ...node, params };

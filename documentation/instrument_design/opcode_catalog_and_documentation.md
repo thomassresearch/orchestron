@@ -58,7 +58,17 @@ These same categories influence node coloring in the graph editor for quick visu
 
 Add **fm_dx7** from the **fm** category in a polyphonic note instrument. Connect **notnum** to **MIDI key**, **ampmidi** with a scale of 1 to **Velocity**, and the mono output to your instrument’s audio path. The initial voice is a sine tone. **Pitch bend** accepts semitones during a note.
 
-Click **SYX** on the node and choose a Yamaha DX7 **.syx** file. A single-voice dump has one entry. A 32-voice bank lists each program by slot, name and algorithm. Select the program and click **Use voice**. **Cancel** keeps the previous voice. Restart an active draft audition to hear a newly imported voice. The selected program travels with the patch and both CSD export modes.
+To try a complete instrument, import **Real_DX7.orch.instrument.json** from the example instruments. Its **Tine Keys** electric piano uses three modulator–carrier pairs in algorithm 5. Play softly and then strike the same key harder to hear how velocity changes the attack.
+
+Click **DX7** on the node to open the voice editor. Choose one of the 32 algorithms and click an operator in the diagram. Cyan carriers feed the audio output. Amber modulators feed other operators. Each card shows oscillator tuning, detune, output level and its envelope. A thicker connection indicates a higher source output level.
+
+Adjust **Rate 1–4** and **Level 1–4** to reshape the envelope on the card and in the inspector. Each rate controls how quickly the envelope approaches its corresponding level. Level 3 holds while the key is down. Releasing the key starts the move toward Level 4. The dashed line marks key release and the horizontal scale compresses long stages. The inspector also offers ratio or fixed-frequency tuning, velocity sensitivity and keyboard scaling. Expand **Pitch and modulation** for the voice-wide pitch envelope and LFO.
+
+Click **Audition** and play the keyboard in the editor. Held notes finish with the voice they started with. The next note uses the current settings, including a changed algorithm or imported program. **Apply to draft** keeps the edits. **Cancel**, **Close** or Escape restores the voice you opened, including its name. Save the instrument to keep the voice for later or include it in a CSD export.
+
+![The Real DX7 electric piano with operator 2 selected, its four envelope stages and the audition keyboard](../../screenshots/dx7_voice_editor.png)
+
+To load a Yamaha DX7 **.syx** file, choose **Import SysEx** in the voice editor. A single-voice dump has one entry. A 32-voice bank lists each program by slot, name and algorithm. Select a program and click **Use voice** to bring it into the editor.
 
 ![Selecting an imported DX7 voice and its algorithm](../../screenshots/dx7_sysex_import.png)
 

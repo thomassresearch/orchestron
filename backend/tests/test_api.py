@@ -11658,3 +11658,25 @@ def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
         assert saved.status_code in (200, 201), saved.text
         stored = client.get("/api/patches/" + saved.json()["id"]).json()["graph"]["nodes"]
         assert next(n for n in stored if n["opcode"] == "fm_dx7")["params"]["voice"] == entry["voice"]
+
+
+def test_dx7_audition_accepts_full_voice_and_checks_native_ranges(tmp_path):
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture("dx7")
+    with _client(tmp_path) as client:
+        session = {"instruments": [{"id": "preview", "patch_id": patch.id, "midi_channel": 1}]}
+        created = client.post("/api/sessions/preview", json={"session": session, "patches": [patch.model_dump(mode="json")]})
+        base = "/api/sessions/" + created.json()["session_id"]
+        compiled = client.post(base + "/compile")
+        assert compiled.status_code == 200, compiled.text
+        initial = compiled.json()["manifest"]["fm6Preview"]["preview"]["dx7"]
+        assert len(initial) == 145 and initial["dx7_134"] == 31
+        url = base + "/instruments/preview/fm6-preview"
+        edited = {"node_id": "dx7", "values": initial | {"dx7_134": 3, "dx7_0": 7}}
+        assert client.patch(url, json=edited).status_code == 409
+        assert client.post(base + "/start").status_code == 200
+        assert client.patch(url, json=edited).status_code == 204
+        for invalid in ({"dx7_134": 32}, {"dx7_0": 12.5}, {"dx7_140": -1}, {"dx7_145": 0}):
+            assert client.patch(url, json={"node_id": "dx7", "values": invalid}).status_code == 422
+        assert client.patch(url, json={"node_id": "dx7", "values": initial}).status_code == 204

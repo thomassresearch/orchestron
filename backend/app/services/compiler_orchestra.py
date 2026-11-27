@@ -232,7 +232,8 @@ class OrchestraEmitter:
                 continue
 
             if compiled.spec.name == "fm_dx7":
-                instrument_lines.extend(dx7_node_lines(compiled.node, env))
+                instrument_lines.extend(dx7_node_lines(compiled.node, env, (fm6_preview or {}).get(node_id),
+                                                       instance_id, global_header_lines))
                 continue
 
             if compiled.spec.name == "fm6_voice":

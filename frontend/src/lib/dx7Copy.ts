@@ -1,0 +1,58 @@
+import type { GuiLanguage } from "../types";
+
+const english = {
+  title: "DX7 voice editor", edit: "Edit DX7 voice", name: "Voice name", import: "Import SysEx", level: "Output level",
+  envelope: "Operator envelope", rate: "Rate", levelEG: "Level", keyOff: "Key release", feedback: "Feedback",
+  oscillator: "Oscillator", mode: "Frequency mode", ratio: "Ratio", fixed: "Fixed Hz", coarse: "Coarse", fine: "Fine",
+  detune: "Detune", velocity: "Velocity sensitivity", ams: "Amplitude modulation sensitivity",
+  scaling: "Keyboard scaling", breakpoint: "Breakpoint", leftDepth: "Left depth", rightDepth: "Right depth",
+  leftCurve: "Left curve", rightCurve: "Right curve", rateScale: "Rate scaling", globals: "Pitch and modulation",
+  pitchEG: "Pitch envelope", transpose: "Transpose", oscSync: "Oscillator key sync", lfoSync: "LFO key sync",
+  lfoSpeed: "LFO speed", lfoDelay: "LFO delay", lfoWave: "LFO waveform", pmd: "Pitch modulation depth",
+  amd: "Amplitude modulation depth", pms: "Pitch modulation sensitivity", select: "Select an operator to edit its sound.",
+  next: "Each new audition note uses the current voice. Cancel restores the opening voice.",
+  waves: ["Triangle", "Saw down", "Saw up", "Square", "Sine", "Sample & hold"],
+};
+const copies: Record<GuiLanguage, typeof english> = {
+  english,
+  german: {
+    title: "DX7-Stimmeneditor", edit: "DX7-Stimme bearbeiten", name: "Stimmenname", import: "SysEx importieren", level: "Ausgangspegel",
+    envelope: "Operatorhüllkurve", rate: "Rate", levelEG: "Pegel", keyOff: "Taste loslassen", feedback: "Rückkopplung",
+    oscillator: "Oszillator", mode: "Frequenzmodus", ratio: "Verhältnis", fixed: "Feste Hz", coarse: "Grob", fine: "Fein",
+    detune: "Verstimmung", velocity: "Anschlagempfindlichkeit", ams: "Empfindlichkeit für Amplitudenmodulation",
+    scaling: "Tastaturskalierung", breakpoint: "Teilungspunkt", leftDepth: "Tiefe links", rightDepth: "Tiefe rechts",
+    leftCurve: "Kurve links", rightCurve: "Kurve rechts", rateScale: "Ratenskalierung", globals: "Tonhöhe und Modulation",
+    pitchEG: "Tonhöhenhüllkurve", transpose: "Transposition", oscSync: "Oszillator-Tastensynchronisation", lfoSync: "LFO-Tastensynchronisation",
+    lfoSpeed: "LFO-Geschwindigkeit", lfoDelay: "LFO-Verzögerung", lfoWave: "LFO-Wellenform", pmd: "Tonhöhenmodulationstiefe",
+    amd: "Amplitudenmodulationstiefe", pms: "Empfindlichkeit für Tonhöhenmodulation", select: "Wähle einen Operator, um seinen Klang zu bearbeiten.",
+    next: "Neue Vorhörnoten verwenden die aktuelle Stimme. Abbrechen stellt die ursprüngliche Stimme wieder her.",
+    waves: ["Dreieck", "Sägezahn abwärts", "Sägezahn aufwärts", "Rechteck", "Sinus", "Sample & Hold"],
+  },
+  french: {
+    title: "Éditeur de voix DX7", edit: "Modifier la voix DX7", name: "Nom de la voix", import: "Importer un SysEx", level: "Niveau de sortie",
+    envelope: "Enveloppe de l’opérateur", rate: "Vitesse", levelEG: "Niveau", keyOff: "Relâchement", feedback: "Rétroaction",
+    oscillator: "Oscillateur", mode: "Mode de fréquence", ratio: "Rapport", fixed: "Hz fixes", coarse: "Grossier", fine: "Fin",
+    detune: "Désaccord", velocity: "Sensibilité à la vélocité", ams: "Sensibilité à la modulation d’amplitude",
+    scaling: "Suivi du clavier", breakpoint: "Point de rupture", leftDepth: "Profondeur gauche", rightDepth: "Profondeur droite",
+    leftCurve: "Courbe gauche", rightCurve: "Courbe droite", rateScale: "Suivi de vitesse", globals: "Hauteur et modulation",
+    pitchEG: "Enveloppe de hauteur", transpose: "Transposition", oscSync: "Synchro de l’oscillateur à la note", lfoSync: "Synchro du LFO à la note",
+    lfoSpeed: "Vitesse du LFO", lfoDelay: "Délai du LFO", lfoWave: "Forme d’onde du LFO", pmd: "Profondeur de modulation de hauteur",
+    amd: "Profondeur de modulation d’amplitude", pms: "Sensibilité à la modulation de hauteur", select: "Sélectionnez un opérateur pour modifier le son.",
+    next: "Chaque nouvelle note utilise la voix actuelle. Annuler rétablit la voix initiale.",
+    waves: ["Triangle", "Dent de scie descendante", "Dent de scie montante", "Carré", "Sinus", "Échantillonnage et maintien"],
+  },
+  spanish: {
+    title: "Editor de voces DX7", edit: "Editar voz DX7", name: "Nombre de voz", import: "Importar SysEx", level: "Nivel de salida",
+    envelope: "Envolvente del operador", rate: "Velocidad", levelEG: "Nivel", keyOff: "Soltar tecla", feedback: "Realimentación",
+    oscillator: "Oscilador", mode: "Modo de frecuencia", ratio: "Relación", fixed: "Hz fijos", coarse: "Grueso", fine: "Fino",
+    detune: "Desafinación", velocity: "Sensibilidad a la pulsación", ams: "Sensibilidad a la modulación de amplitud",
+    scaling: "Seguimiento del teclado", breakpoint: "Punto de división", leftDepth: "Profundidad izquierda", rightDepth: "Profundidad derecha",
+    leftCurve: "Curva izquierda", rightCurve: "Curva derecha", rateScale: "Escala de velocidad", globals: "Altura y modulación",
+    pitchEG: "Envolvente de altura", transpose: "Transposición", oscSync: "Sincronizar oscilador al pulsar", lfoSync: "Sincronizar LFO al pulsar",
+    lfoSpeed: "Velocidad del LFO", lfoDelay: "Retardo del LFO", lfoWave: "Forma del LFO", pmd: "Profundidad de modulación de altura",
+    amd: "Profundidad de modulación de amplitud", pms: "Sensibilidad a la modulación de altura", select: "Selecciona un operador para editar su sonido.",
+    next: "Cada nota nueva usa la voz actual. Cancelar restaura la voz inicial.",
+    waves: ["Triángulo", "Sierra descendente", "Sierra ascendente", "Cuadrada", "Seno", "Muestreo y retención"],
+  }
+};
+export const dx7Copy = (language: GuiLanguage) => copies[language];

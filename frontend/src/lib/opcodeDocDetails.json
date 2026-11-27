@@ -8973,10 +8973,10 @@
   },
   "fm_dx7": {
     "description": {
-      "english": "Play a six-operator DX7 voice. Click SYX to load one original-format SysEx voice or select a program from a 32-voice bank. The instrument and its CSD exports include the selected voice.",
-      "german": "Spielt eine DX7-Stimme mit sechs Operatoren. Mit SYX lädst du eine SysEx-Einzelstimme im Originalformat oder wählst ein Programm aus einer Bank mit 32 Stimmen. Instrument und CSD-Export enthalten die Stimme.",
-      "french": "Joue une voix DX7 à six opérateurs. Cliquez sur SYX pour charger une voix SysEx au format original ou choisir un programme dans une banque de 32 voix. La voix est intégrée à l’instrument et aux exports CSD.",
-      "spanish": "Reproduce una voz DX7 de seis operadores. Pulsa SYX para cargar una voz SysEx en el formato original o elegir un programa de un banco de 32 voces. La voz se guarda en el instrumento y en las exportaciones CSD."
+      "english": "Click DX7 and select an operator to edit its tuning, output level and four-stage envelope. Import a SysEx voice or choose from a 32-voice bank. Each new audition note uses the edited voice. Cancel restores the opening voice.",
+      "german": "Klicke auf DX7 und wähle einen Operator, um Stimmung, Ausgangspegel und vierstufige Hüllkurve zu bearbeiten. Importiere eine SysEx-Stimme oder wähle aus einer Bank mit 32 Stimmen. Beim Vorhören übernimmt jede neue Note die Änderungen. Abbrechen stellt die ursprüngliche Stimme wieder her.",
+      "french": "Cliquez sur DX7 et choisissez un opérateur pour régler son accordage, son niveau de sortie et son enveloppe à quatre segments. Importez une voix SysEx ou choisissez un programme dans une banque de 32 voix. Chaque nouvelle note jouée en écoute utilise la voix modifiée. Annuler rétablit la voix initiale.",
+      "spanish": "Pulsa DX7 y elige un operador para ajustar su afinación, nivel de salida y envolvente de cuatro etapas. Importa una voz SysEx o elige un programa de un banco de 32 voces. Cada nota nueva de la escucha usa la voz editada. Cancelar restaura la voz inicial."
     },
     "inputs": {
       "ikey": {

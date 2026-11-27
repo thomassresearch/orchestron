@@ -508,10 +508,10 @@ class SessionService:
         async with runtime.lifecycle_lock:
             self._assert_session_open(runtime)
             if runtime.state != SessionState.RUNNING:
-                raise HTTPException(status_code=409, detail="Start audition to edit the sounding FM6 voice.")
+                raise HTTPException(status_code=409, detail="Start audition to edit the sounding FM voice.")
             nodes = runtime.compile_artifact.manifest.get("fm6Preview", {}).get(assignment_id, {})
             if node_id not in nodes:
-                raise HTTPException(status_code=404, detail="Unknown FM6 preview node.")
+                raise HTTPException(status_code=404, detail="Unknown FM preview node.")
             try:
                 writes = preview_writes(assignment_id, node_id, nodes[node_id], values)
             except ValueError as error:

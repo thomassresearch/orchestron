@@ -1,5 +1,6 @@
 import { api } from "../api/client";
 import type { PatchGraph } from "../types";
+import { dx7Voice } from "./dx7";
 import { FM6, FM6_GLOBALS } from "./fm6";
 
 export type Fm6PreviewValues = Record<string, Record<string, number>>;
@@ -18,7 +19,13 @@ export class Fm6Audition {
 
   read(graph: PatchGraph) {
     for (const node of graph.nodes) {
-      if (node.opcode !== "fm6_voice" || !Object.prototype.hasOwnProperty.call(this.initial, node.id)) continue;
+      if (!Object.prototype.hasOwnProperty.call(this.initial, node.id)) continue;
+      if (node.opcode === "fm_dx7" && "dx7_0" in this.initial[node.id]) {
+        const voice = dx7Voice(node.params);
+        this.wanted[node.id] = Object.fromEntries(voice.slice(0, 145).map((value, i) => [`dx7_${i}`, value]));
+        continue;
+      }
+      if (node.opcode !== "fm6_voice" || "dx7_0" in this.initial[node.id]) continue;
       const next: Record<string, number> = {};
       for (const key of Object.keys(this.initial[node.id])) {
         const value = Number(node.params[key] ?? defaults[key]);

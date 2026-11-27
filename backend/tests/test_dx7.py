@@ -118,3 +118,31 @@ def test_exported_midi_and_score_use_same_voice_and_release():
         assert abs(audio[5000:6000]).max() > 0.0001
         signals.append(audio)
     np.testing.assert_allclose(*signals, atol=1e-8)
+
+
+def test_preview_latches_operator_algorithm_and_cancel_per_note():
+    from backend.app.services.compiler_fm6 import preview_channel, preview_values, preview_writes
+
+    opening, = read_sysex((FIXTURES / "tine_keys.syx").read_bytes())
+    edited = bytearray(opening)
+    edited[134] = 3  # algorithm 4 includes a three-operator feedback loop
+    edited[135] = 7
+    edited[5 * 21 + 3] = 35
+    edited[5 * 21 + 16] = 70
+    before, after = patch(opening), patch(edited)
+    compiled, targets = compile_guitars([before], mode="host", ksmps=32, fm6_preview=True)
+    initial = preview_values(before)["dx7"]
+    values = preview_values(after)["dx7"]
+    assert len(initial) == 145 and len(preview_writes("guitar0", "dx7", initial, values)) == 145
+    with pytest.raises(ValueError, match="DX7"):
+        preview_writes("guitar0", "dx7", initial, {"dx7_134": 32})
+    updates = [(time, preview_channel("guitar0","dx7",key), v) for time, changes in [(0.064, values), (.192, initial)]
+               for key, v in changes.items()]
+    notes = [(0, 60, 112, .24), (.128, 65, 100, .08), (.256, 72, 90, .08)]
+    mixed, _ = render(compiled, targets, note_events(notes), .48, mode="host", controller_updates=updates)
+    expected = np.zeros_like(mixed)
+    for p, events in [(before, [notes[0], notes[2]]), (after, [notes[1]])]:
+        ordinary, t = compile_guitars([p], mode="host", ksmps=32)
+        signal, _ = render(ordinary, t, note_events(events), .48, mode="host")
+        expected += signal
+    np.testing.assert_allclose(mixed, expected, atol=1e-9)

@@ -13,7 +13,7 @@ type Run = {
   client: BrowserClockAudioClient; cancelled: boolean; id?: string; connected: boolean;
   startup: Promise<void>; cleanup?: Promise<void>; midiWork: Promise<void>; controlWork?: Promise<void>;
   timer?: ReturnType<typeof setTimeout>; pendingValues?: Record<string, number>;
-  fm6?: Fm6Audition;
+  fm6?: Fm6Audition; signature?: string;
   midi: number[]; notes: Map<number, { count: number; release: () => void }>;
   original?: { runtime: SequencerRuntimeState; generation: number; session: string | null };
 };
@@ -85,7 +85,6 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
   function start() {
     if (active.current) return;
     const current = latest.current;
-    const signature = auditionSignature(current.draft);
     const definitions = performanceControllersForGraph(current.draft.graph);
     const reconciled = Object.fromEntries(definitions.filter(d => !d.error && overrides.current[d.node_id] !== undefined)
       .map(d => [d.node_id, normalizeControllerValue(overrides.current[d.node_id], d)]));
@@ -113,7 +112,9 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
         if (run.cancelled) return;
         const compiled = await api.compileSession(run.id);
         if (run.cancelled) return;
-        if (signature !== auditionSignature(latest.current.draft)) throw new Error(current.messages.stale);
+        const fm6 = (compiled.manifest?.fm6Preview as Record<string, Fm6PreviewValues> | undefined)?.preview;
+        const signature = auditionSignature(current.draft, fm6);
+        if (signature !== auditionSignature(latest.current.draft, fm6)) throw new Error(current.messages.stale);
         const state = useAppStore.getState();
         const original = { runtime: structuredClone(state.sequencerRuntime), generation: state.performanceWorkspaceGeneration, session: state.activeSessionId };
         await current.stopPerformance();
@@ -126,9 +127,11 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
         if (run.cancelled) return;
         run.connected = true;
         const controllers = compiled.manifest?.performanceControllers as Record<string, Record<string, PerformanceControllerDefinition>> | undefined;
-        const fm6 = (compiled.manifest?.fm6Preview as Record<string, Fm6PreviewValues> | undefined)?.preview;
-        if (fm6) run.fm6 = new Fm6Audition(run.id, fm6);
-        setSnapshot({ signature: auditionSignature(current.draft, fm6), fm6, midi: run.midi, alwaysOn: current.draft.always_on,
+        if (fm6) {
+          run.fm6 = new Fm6Audition(run.id, fm6);
+          run.signature = signature;
+        }
+        setSnapshot({ signature, fm6, midi: run.midi, alwaysOn: current.draft.always_on,
           definitions: definitions.map(d => ({ ...d, update_mode: controllers?.preview?.[d.node_id]?.update_mode })) });
         setPhase("running");
       } catch (e) {
@@ -178,6 +181,8 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
       const midi = (type: "note_on" | "note_off") => {
         run.midiWork = run.midiWork.then(async () => {
           if (type === "note_on") {
+            const draft = latest.current.draft;
+            if (run.fm6 && run.signature === auditionSignature(draft, run.fm6.initial)) run.fm6.read(draft.graph);
             await Promise.all([flush(run), run.fm6?.flush()]);
             if (run.cancelled) return;
           }

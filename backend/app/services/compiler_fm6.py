@@ -4,6 +4,7 @@ from hashlib import sha256
 from math import isfinite
 
 from backend.app.services.compiler_formula import formula_target_key, lookup_input_formula_config
+from backend.app.models.dx7 import DX7_PREVIEW_KEYS, DX7_PREVIEW_LIMITS, node_voice
 from backend.app.models.fm6 import (
     FM6_DATA, FM6_FIELDS, FM6_INPUT_RANGES, FM6_KEYS, FM6_PRESETS, fm6_voice, packed_voice, validate_fm6_value,
 )
@@ -24,6 +25,9 @@ def preview_values(patch):
     connected = {(link.to_node_id, link.to_port_id) for link in patch.graph.connections}
     nodes = {}
     for node in patch.graph.nodes:
+        if node.opcode == "fm_dx7":
+            nodes[node.id] = dict(zip(DX7_PREVIEW_KEYS, node_voice(node.params)[:145], strict=True))
+            continue
         if node.opcode != "fm6_voice":
             continue
         values = fm6_voice(node.params)
@@ -52,7 +56,10 @@ def preview_writes(assignment, node, initial, changes):
         if key not in initial:
             raise ValueError(f"FM6 field {key} is not editable in this preview.")
         # Old scalar defaults can lie outside the editor range. Allow an exact restoration.
-        if value != initial[key]:
+        if key in DX7_PREVIEW_LIMITS:
+            if not isfinite(value) or int(value) != value or not 0 <= value <= DX7_PREVIEW_LIMITS[key]:
+                raise ValueError(f"Invalid DX7 parameter {key}.")
+        elif value != initial[key]:
             validate_fm6_value(key, value)
         writes[preview_channel(assignment, node, key)] = value
     return writes

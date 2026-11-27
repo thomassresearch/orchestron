@@ -10,10 +10,6 @@ const labels = {
   spanish: ["Cargar voz DX7", "Nodo", "Cancelar", "Elegir archivo SysEx", "Voz", "Algoritmo", "Usar voz", "Voz actual", "Datos DX7 no válidos. Elige una voz o un banco de 32 voces.", "No se pudo cargar el archivo.", "Cargando…"]
 };
 
-export function dx7ImportLabel(language: GuiLanguage) {
-  return labels[language][0];
-}
-
 function currentName(node: NodeInstance) {
   if (typeof node.params.voice !== "string") return "INIT VOICE";
   try {
@@ -47,7 +43,7 @@ export function Dx7VoiceImport({ node, language, onClose, onSelect }: {
     }
   }
   return <NodeEditorModalFrame ariaLabel={title} title={title} nodeId={node.id} nodeLabel={nodeLabel} closeLabel={cancel}
-    onClose={onClose} maxWidthClassName="max-w-md"
+    onClose={onClose} closeOnEscape maxWidthClassName="max-w-md"
     footer={<button type="button" disabled={!voices[index]} className="rounded bg-cyan-300 px-3 py-1.5 text-sm font-semibold text-slate-950 disabled:opacity-40"
       onClick={() => { onSelect(voices[index].voice); onClose(); }}>{apply}</button>}>
     <p className="mb-4 text-sm text-slate-300">{current} · <strong>{currentName(node)}</strong></p>

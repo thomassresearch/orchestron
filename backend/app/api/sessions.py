@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from backend.app.models.engine_stats import EngineStats
+from backend.app.models.dx7 import DX7_PREVIEW_KEYS
 from backend.app.models.fm6 import FM6_INPUT_RANGES, FM6_KEYS
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -60,7 +61,7 @@ async def preview_session(request_body: PreviewSessionRequest, request: Request,
 
 class Fm6PreviewUpdate(BaseModel):
     node_id: str
-    values: dict[str, FiniteFloat] = Field(min_length=1, max_length=len(FM6_KEYS) + len(FM6_INPUT_RANGES))
+    values: dict[str, FiniteFloat] = Field(min_length=1, max_length=max(len(DX7_PREVIEW_KEYS), len(FM6_KEYS) + len(FM6_INPUT_RANGES)))
 
 
 @router.patch("/{session_id}/instruments/{assignment_id}/fm6-preview", status_code=204)
