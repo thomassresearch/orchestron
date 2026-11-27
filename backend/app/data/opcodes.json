@@ -17745,6 +17745,69 @@
     "icon_filename": "adsr.svg"
   },
   {
+    "name": "fm_dx7",
+    "category": "fm",
+    "description": "Play an original DX7 SysEx voice with six operators and 32 algorithms.",
+    "documentation_url": "https://csound.com/docs/manual/opcode.html",
+    "documentation_markdown": "### FM DX7\n\nLoad a single DX7 SysEx voice or choose a program from a 32-voice bank. Connect MIDI key and normalized velocity. The selected voice travels with the instrument and CSD exports.",
+    "inputs": [
+      {
+        "id": "ikey",
+        "name": "MIDI key",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 60,
+        "description": "MIDI key number (0–127)."
+      },
+      {
+        "id": "ivelocity",
+        "name": "Velocity",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 1,
+        "description": "Normalized note velocity (0–1)."
+      },
+      {
+        "id": "kbend",
+        "name": "Pitch bend",
+        "signal_type": "k",
+        "accepted_signal_types": [
+          "i"
+        ],
+        "required": false,
+        "default": 0,
+        "description": "Pitch offset in semitones."
+      },
+      {
+        "id": "igain",
+        "name": "Output gain",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": -12,
+        "description": "Dry output gain in dB (−90 to 0)."
+      }
+    ],
+    "outputs": [
+      {
+        "id": "aout",
+        "name": "Audio",
+        "signal_type": "a",
+        "description": "Dry mono audio; route through Stereo Output to external mixer effects."
+      }
+    ],
+    "template": "{aout} fm_dx7 {ikey}, {ivelocity}, {kbend}, {igain}, <voice>",
+    "tags": [
+      "FM",
+      "DX7",
+      "SysEx",
+      "polyphonic"
+    ],
+    "icon_filename": "vco.svg"
+  },
+  {
     "name": "fm6_voice",
     "category": "fm",
     "description": "Dry six-operator FM voice with eight algorithms, independent ADSRs, operator-6 feedback and 32 starter presets. Open FM6 to edit the custom voice.",

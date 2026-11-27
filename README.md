@@ -19,6 +19,8 @@ The plucked notes in *Evening at the Lake* come from this 18-node patch. Follow 
 
 ![Prism FM Pluck in Instrument Design, with C, E and G held above the wired oscillator, filters and stereo panner](screenshots/instrument-design-prism-fm-pluck.png)
 
+Load an original Yamaha DX7 SysEx voice into an instrument with `fm_dx7`. Its six operators follow the program’s algorithm, tuning and envelopes. The voice travels with the instrument and its CSD exports. [DX7 voice import](documentation/instrument_design/opcode_catalog_and_documentation.md#load-a-dx7-voice)
+
 ### Perform · Arranger
 
 That pluck has a part called *Lantern reflections*. Read down the timeline to see where it answers the bamboo flute. The expanded *Light on the water* lane shows how a handful of pad patterns become a 144-bar arrangement. Open **Controllers** on a track to adjust its instrument with compact knobs, steppers and toggles below the timeline.

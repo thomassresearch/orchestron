@@ -11632,3 +11632,29 @@ def test_joined_and_split_clip_windows_round_trip_and_validate_before_replacing_
             assert client.put(url, json={"config": bad}).status_code == 422
         assert client.put(url, json={"config": {**config, "version": 27}}).status_code == 422
         assert client.get(url).json()["config"] == config
+
+
+def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_dx7 import bank
+    from backend.app.models.dx7 import INIT_VOICE, read_sysex
+
+    with _client(tmp_path) as client:
+        spec = client.get("/api/opcodes/fm_dx7").json()
+        assert [p["id"] for p in spec["inputs"]] == ["ikey", "ivelocity", "kbend", "igain"]
+        assert spec["documentation_url"].endswith("/opcode.html")
+        path = "/api/opcodes/fm_dx7/voices"
+        dump = (Path(__file__).parent / "fixtures/dx7/tine_keys.syx").read_bytes()
+        [entry] = client.post(path, content=dump).json()
+        assert entry["name"] == "Tine Keys" and entry["algorithm"] == 5
+        cartridge = bank([INIT_VOICE] * 31 + read_sysex(dump))
+        assert client.post(path, content=cartridge).json()[31] == entry
+        assert client.post(path, content=dump[:-1]).status_code == 422
+        assert client.post(path, content=bytes(4105)).status_code == 413
+        payload = load_patch_fixture("dx7").model_dump(mode="json", exclude={"id", "created_at", "updated_at"})
+        node = next(n for n in payload["graph"]["nodes"] if n["opcode"] == "fm_dx7")
+        node["params"]["voice"] = entry["voice"]
+        saved = client.post("/api/patches", json=payload)
+        assert saved.status_code in (200, 201), saved.text
+        stored = client.get("/api/patches/" + saved.json()["id"]).json()["graph"]["nodes"]
+        assert next(n for n in stored if n["opcode"] == "fm_dx7")["params"]["voice"] == entry["voice"]

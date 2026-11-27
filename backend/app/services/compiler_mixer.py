@@ -35,6 +35,7 @@ from backend.app.services.compiler_legato import LEGATO_OPCODES, collector_lines
 from backend.app.services.compiler_waveguide import waveguide_header
 from backend.app.services.compiler_granular import granular_header
 from backend.app.services.compiler_swept_gate import swept_gate_header
+from backend.app.services.compiler_dx7 import dx7_header
 from backend.app.services.compiler_fm6 import fm6_header
 from backend.app.services.insert_bypass import bypass_ports
 from backend.app.models.render_plan import RenderConnection
@@ -599,7 +600,9 @@ def lower_mixer_bundle(
     header += waveguide_header([target for target in targets if target.assignment_id not in omitted])
     header += granular_header([target for target in targets if target.assignment_id not in omitted])
     header += swept_gate_header([target for target in targets if target.assignment_id not in omitted])
-    header += fm6_header([target for target in targets if target.assignment_id not in omitted])
+    included_targets = [target for target in targets if target.assignment_id not in omitted]
+    header += fm6_header(included_targets)
+    header += dx7_header(included_targets)
     if live_mixer:
         header += [ControlInit(name, value) for name, value in controls.items()]
     else:

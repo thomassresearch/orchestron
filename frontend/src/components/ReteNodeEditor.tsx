@@ -1,3 +1,4 @@
+import { Dx7VoiceImport, dx7ImportLabel } from "./Dx7VoiceImport";
 import { inputFormulasByNode, nodeInputPresentation } from "../lib/graphInputPresentation";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -511,6 +512,8 @@ export function ReteNodeEditor({
   const performanceControllerEditorNode = graph.nodes.find((node) => node.id === performanceControllerEditorId && node.opcode === "perf_controller");
   const [genEditor, setGenEditor] = useState<GenEditorState | null>(null);
   const [sfloadEditor, setSfloadEditor] = useState<SfloadEditorState | null>(null);
+  const [dx7EditorId, setDx7EditorId] = useState<string | null>(null);
+  const dx7EditorNode = graph.nodes.find(node => node.id === dx7EditorId && node.opcode === "fm_dx7");
   const [fm6EditorId, setFm6EditorId] = useState<string | null>(null);
   const fm6EditorNode = graph.nodes.find(node => node.id === fm6EditorId && node.opcode === "fm6_voice");
 
@@ -988,6 +991,7 @@ export function ReteNodeEditor({
               const isGenNode = opcodeName === "GEN";
               const isSfloadNode = opcodeName === "sfload" || opcodeName === "adsyn";
               const isPerformanceController = opcodeName === "perf_controller";
+              const isDx7 = opcodeName === "fm_dx7";
               const isFm6 = opcodeName === "fm6_voice";
 
               function ColoredNode(props: any) {
@@ -1011,15 +1015,15 @@ export function ReteNodeEditor({
                       <button className="mt-1 text-cyan-200" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? "−" : "+"} {fmCopy.controls}</button>
                     </div>}
                     {patchNodeId && <div data-node-actions className="absolute -bottom-7 left-0">{presentationRef.current.renderNodeActions?.(patchNodeId)}</div>}
-                    {isGenNode || isSfloadNode || isPerformanceController || isFm6 ? (
+                    {isGenNode || isSfloadNode || isPerformanceController || isFm6 || isDx7 ? (
                       <button
                         type="button"
                         aria-label={
-                          isFm6 ? fmCopy.edit : isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode
+                          isDx7 ? dx7ImportLabel(guiLanguage) : isFm6 ? fmCopy.edit : isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode
                             ? `Configure GEN node ${patchNodeId ?? ""}`.trim()
                             : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).configureSfloadAria(patchNodeId ?? "") : `Configure sfload node ${patchNodeId ?? ""}`.trim()
                         }
-                        title={isFm6 ? fmCopy.edit : isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode ? "Configure GEN routine" : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).title : "Configure SoundFont file"}
+                        title={isDx7 ? dx7ImportLabel(guiLanguage) : isFm6 ? fmCopy.edit : isPerformanceController ? performanceControllerCopy(guiLanguage).configure : isGenNode ? "Configure GEN routine" : opcodeName === "adsyn" ? adsynEditorCopy(guiLanguage).title : "Configure SoundFont file"}
                         onPointerDown={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -1031,6 +1035,7 @@ export function ReteNodeEditor({
                             return;
                           }
                           if (isPerformanceController) { setPerformanceControllerEditorId(patchNodeId); return; }
+                          if (isDx7) { setDx7EditorId(patchNodeId); return; }
                           if (isFm6) { setFm6EditorId(patchNodeId); return; }
                           if (isGenNode) {
                             openGenEditor(patchNodeId);
@@ -1058,7 +1063,7 @@ export function ReteNodeEditor({
                           justifyContent: "center"
                         }}
                       >
-                        {isFm6 ? "FM6" : isPerformanceController ? "⚙" : isGenNode ? "GEN" : opcodeName === "adsyn" ? "HET" : "SF2"}
+                        {isDx7 ? "SYX" : isFm6 ? "FM6" : isPerformanceController ? "⚙" : isGenNode ? "GEN" : opcodeName === "adsyn" ? "HET" : "SF2"}
                       </button>
                     ) : null}
                     {hasDocumentation && onOpcodeHelpRequest ? (
@@ -1758,6 +1763,10 @@ export function ReteNodeEditor({
       {performanceControllerEditorNode && <PerformanceControllerEditor key={performanceControllerEditorNode.id} node={performanceControllerEditorNode} language={guiLanguage}
         onClose={() => setPerformanceControllerEditorId(null)} onSave={(params) => updateGraph((current) => ({ ...current, nodes: current.nodes.map((node) =>
           node.id === performanceControllerEditorNode.id ? { ...node, params: { ...node.params, ...params } } : node) }))} />}
+
+      {dx7EditorNode && <Dx7VoiceImport key={dx7EditorNode.id} node={dx7EditorNode} language={guiLanguage}
+        onClose={() => setDx7EditorId(null)} onSelect={voice => updateGraph(current => ({ ...current, nodes: current.nodes.map(node =>
+          node.id === dx7EditorNode.id ? { ...node, params: { ...node.params, voice } } : node) }))} />}
 
       {fm6EditorNode && <Fm6VoiceEditor key={fm6EditorNode.id} node={fm6EditorNode} language={guiLanguage}
         drivenInputs={Object.fromEntries((opcodeByName.get("fm6_voice")?.inputs ?? []).flatMap(port => {

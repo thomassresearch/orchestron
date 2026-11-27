@@ -54,6 +54,14 @@ Each catalog entry shows:
 
 These same categories influence node coloring in the graph editor for quick visual grouping.
 
+## Load a DX7 voice
+
+Add **fm_dx7** from the **fm** category in a polyphonic note instrument. Connect **notnum** to **MIDI key**, **ampmidi** with a scale of 1 to **Velocity**, and the mono output to your instrument’s audio path. The initial voice is a sine tone. **Pitch bend** accepts semitones during a note.
+
+Click **SYX** on the node and choose a Yamaha DX7 **.syx** file. A single-voice dump has one entry. A 32-voice bank lists each program by slot, name and algorithm. Select the program and click **Use voice**. **Cancel** keeps the previous voice. Restart an active draft audition to hear a newly imported voice. The selected program travels with the patch and both CSD export modes.
+
+![Selecting an imported DX7 voice and its algorithm](../../screenshots/dx7_sysex_import.png)
+
 ## Integrated Opcode Documentation (`?` on node)
 
 After placing an opcode in the graph, use the node's `?` button to open the opcode documentation modal.

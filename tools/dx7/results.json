@@ -1,0 +1,410 @@
+{
+  "iron_bell": {
+    "comparison": [
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999418692751754,
+        "body_cosine": 0.9999876304641715,
+        "body_db_delta": -0.13725611861912057,
+        "release_db_delta": 0.007633436074087285
+      },
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999418692751754,
+        "body_cosine": 0.9991921583626893,
+        "body_db_delta": -0.041556163375517485,
+        "release_db_delta": -0.018907053822715625
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9997601841515903,
+        "body_cosine": 0.9999322119424119,
+        "body_db_delta": -0.10416750723835122,
+        "release_db_delta": -0.019436715946348215
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9997601841515903,
+        "body_cosine": 0.9999002057667907,
+        "body_db_delta": -0.03263368241692177,
+        "release_db_delta": 0.05449516695939138
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9998930585051196,
+        "body_cosine": 0.9999867496941253,
+        "body_db_delta": -0.2272644649388127,
+        "release_db_delta": 0.173537857792752
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9998930585051196,
+        "body_cosine": 0.9982095819770541,
+        "body_db_delta": -0.03917563855782191,
+        "release_db_delta": -0.05849735020449032
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9995482375498697,
+        "body_cosine": 0.999937877888461,
+        "body_db_delta": -0.1918484364438129,
+        "release_db_delta": 0.14022079562501233
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9995482375498697,
+        "body_cosine": 0.9996385500524807,
+        "body_db_delta": -0.023947091505490903,
+        "release_db_delta": 0.018922754313564383
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999180719394479,
+        "body_cosine": 0.9999597726284687,
+        "body_db_delta": -0.18625495092059907,
+        "release_db_delta": 0.01323459713788111
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999180719394479,
+        "body_cosine": 0.9978771052123523,
+        "body_db_delta": -0.014575232282538764,
+        "release_db_delta": -0.18310172803434455
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9996254357621647,
+        "body_cosine": 0.9999712734272178,
+        "body_db_delta": -0.17078214454659246,
+        "release_db_delta": 0.0038578404382505482
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9996254357621647,
+        "body_cosine": 0.9995280746721937,
+        "body_db_delta": 0.005817967807359992,
+        "release_db_delta": -0.10619847511793523
+      }
+    ],
+    "timing": [
+      {
+        "voices": 8,
+        "rendered_seconds": 4.1066666666666665,
+        "realtime_factor": 18.183485970026055,
+        "p99_ms": 0.7258068909868584,
+        "max_ms": 6.0628330102190375,
+        "attack_ms": 6.0628330102190375,
+        "late_chunks": 0,
+        "late_after_attack": 0,
+        "peak": 0.10017435932744514
+      },
+      {
+        "voices": 16,
+        "rendered_seconds": 4.1066666666666665,
+        "realtime_factor": 9.534795761449331,
+        "p99_ms": 1.3979259273037303,
+        "max_ms": 11.239749961532652,
+        "attack_ms": 11.239749961532652,
+        "late_chunks": 1,
+        "late_after_attack": 0,
+        "peak": 0.08994508597177772
+      }
+    ]
+  },
+  "loop_brass": {
+    "comparison": [
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9885021401550561,
+        "body_cosine": 0.9999813746773492,
+        "body_db_delta": -0.0052293662651123896,
+        "release_db_delta": 0.29870841954461014
+      },
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9885021401550561,
+        "body_cosine": 0.9999631872715684,
+        "body_db_delta": -0.008627760149686026,
+        "release_db_delta": 0.18632039697872926
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9775502867709922,
+        "body_cosine": 0.9555616939019393,
+        "body_db_delta": -0.07218024661435862,
+        "release_db_delta": 0.32399827155073524
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9775502867709922,
+        "body_cosine": 0.9975531993836727,
+        "body_db_delta": 0.015790823325829706,
+        "release_db_delta": -0.18089085938072458
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9893925299257699,
+        "body_cosine": 0.9994282189454408,
+        "body_db_delta": 0.0014478005344784606,
+        "release_db_delta": 0.2095306529772074
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9893925299257699,
+        "body_cosine": 0.9999719000577543,
+        "body_db_delta": -0.001574486715810508,
+        "release_db_delta": 0.21967304615394312
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9705095649786013,
+        "body_cosine": 0.94354548500396,
+        "body_db_delta": -0.1518999364627831,
+        "release_db_delta": 0.5528974553513706
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9705095649786013,
+        "body_cosine": 0.9945676673208392,
+        "body_db_delta": 0.05521907494743772,
+        "release_db_delta": 0.059470857714750025
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9951466217564835,
+        "body_cosine": 0.999977447762858,
+        "body_db_delta": -0.00235077891211688,
+        "release_db_delta": 0.2906609582430093
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9951466217564835,
+        "body_cosine": 0.9999815008236235,
+        "body_db_delta": -0.003767046933319307,
+        "release_db_delta": 0.2704781217401404
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9723503876171273,
+        "body_cosine": 0.9459734970422606,
+        "body_db_delta": 0.06797149968725336,
+        "release_db_delta": 0.2895655755921993
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9723503876171273,
+        "body_cosine": 0.9953473467063547,
+        "body_db_delta": -0.03679414604539488,
+        "release_db_delta": 0.27939256494916975
+      }
+    ],
+    "timing": [
+      {
+        "voices": 8,
+        "rendered_seconds": 4.1066666666666665,
+        "realtime_factor": 10.12584965227722,
+        "p99_ms": 1.3160519069060679,
+        "max_ms": 6.993292015977204,
+        "attack_ms": 6.993292015977204,
+        "late_chunks": 0,
+        "late_after_attack": 0,
+        "peak": 0.170532529796009
+      },
+      {
+        "voices": 16,
+        "rendered_seconds": 4.1066666666666665,
+        "realtime_factor": 5.1617480288776045,
+        "p99_ms": 2.516404949128627,
+        "max_ms": 12.199832941405475,
+        "attack_ms": 12.199832941405475,
+        "late_chunks": 1,
+        "late_after_attack": 0,
+        "peak": 0.24657999567526662
+      }
+    ]
+  },
+  "tine_keys": {
+    "comparison": [
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999954291852456,
+        "body_cosine": 0.9999958648345599,
+        "body_db_delta": -0.0791281674851021,
+        "release_db_delta": 0.11599690162258014
+      },
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999954291852456,
+        "body_cosine": 0.9999983864856983,
+        "body_db_delta": -0.04065243865969137,
+        "release_db_delta": 0.07857126909167533
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999622390907027,
+        "body_cosine": 0.9999947764653311,
+        "body_db_delta": -0.06951364543388294,
+        "release_db_delta": 0.10668600853670185
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999622390907027,
+        "body_cosine": 0.9999991525878236,
+        "body_db_delta": -0.04080536472892504,
+        "release_db_delta": 0.0836752984458542
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999937363038075,
+        "body_cosine": 0.9999947232415398,
+        "body_db_delta": -0.10226776241474056,
+        "release_db_delta": 0.08569662512273624
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999937363038075,
+        "body_cosine": 0.9999864361123234,
+        "body_db_delta": -0.029683488339031783,
+        "release_db_delta": 0.03485589702044933
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999493019095554,
+        "body_cosine": 0.9999937026920898,
+        "body_db_delta": -0.09610462082216031,
+        "release_db_delta": 0.07984812562333587
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999493019095554,
+        "body_cosine": 0.9999972388561866,
+        "body_db_delta": -0.03015702095729722,
+        "release_db_delta": 0.04500126418216155
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999856973738332,
+        "body_cosine": 0.9999873729794619,
+        "body_db_delta": -0.1450102479586448,
+        "release_db_delta": 0.12603694703371815
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999856973738332,
+        "body_cosine": 0.9999309242795154,
+        "body_db_delta": -0.024947846190855216,
+        "release_db_delta": 0.07178422353123892
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9999463099367529,
+        "body_cosine": 0.999987409660075,
+        "body_db_delta": -0.1432574207464974,
+        "release_db_delta": 0.12439774531447867
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9999463099367529,
+        "body_cosine": 0.9999779824972201,
+        "body_db_delta": -0.02382536383970546,
+        "release_db_delta": 0.07366337662200095
+      }
+    ],
+    "timing": [
+      {
+        "voices": 8,
+        "rendered_seconds": 4.1066666666666665,
+        "realtime_factor": 13.165018192459343,
+        "p99_ms": 1.0118082677945492,
+        "max_ms": 6.490375031717122,
+        "attack_ms": 6.490375031717122,
+        "late_chunks": 0,
+        "late_after_attack": 0,
+        "peak": 0.19222322276796308
+      },
+      {
+        "voices": 16,
+        "rendered_seconds": 4.1066666666666665,
+        "realtime_factor": 6.770508538652155,
+        "p99_ms": 1.8523136153817175,
+        "max_ms": 11.304124956950545,
+        "attack_ms": 11.304124956950545,
+        "late_chunks": 1,
+        "late_after_attack": 0,
+        "peak": 0.20569616085741385
+      }
+    ]
+  }
+}

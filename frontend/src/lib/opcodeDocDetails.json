@@ -8971,6 +8971,48 @@
       }
     }
   },
+  "fm_dx7": {
+    "description": {
+      "english": "Play a six-operator DX7 voice. Click SYX to load one original-format SysEx voice or select a program from a 32-voice bank. The instrument and its CSD exports include the selected voice.",
+      "german": "Spielt eine DX7-Stimme mit sechs Operatoren. Mit SYX lädst du eine SysEx-Einzelstimme im Originalformat oder wählst ein Programm aus einer Bank mit 32 Stimmen. Instrument und CSD-Export enthalten die Stimme.",
+      "french": "Joue une voix DX7 à six opérateurs. Cliquez sur SYX pour charger une voix SysEx au format original ou choisir un programme dans une banque de 32 voix. La voix est intégrée à l’instrument et aux exports CSD.",
+      "spanish": "Reproduce una voz DX7 de seis operadores. Pulsa SYX para cargar una voz SysEx en el formato original o elegir un programa de un banco de 32 voces. La voz se guarda en el instrumento y en las exportaciones CSD."
+    },
+    "inputs": {
+      "ikey": {
+        "english": "MIDI key number (0–127).",
+        "german": "MIDI-Tastennummer (0–127).",
+        "french": "Numéro de touche MIDI (0 à 127).",
+        "spanish": "Número de tecla MIDI (0–127)."
+      },
+      "ivelocity": {
+        "english": "Normalized note velocity (0–1).",
+        "german": "Anschlagstärke der Note (0–1).",
+        "french": "Vélocité de la note (0 à 1).",
+        "spanish": "Velocidad de pulsación de la nota (0–1)."
+      },
+      "kbend": {
+        "english": "Pitch offset in semitones.",
+        "german": "Tonhöhenversatz in Halbtönen.",
+        "french": "Décalage de hauteur en demi-tons.",
+        "spanish": "Desplazamiento de tono en semitonos."
+      },
+      "igain": {
+        "english": "Dry output gain in dB (−90 to 0).",
+        "german": "Trockenausgangsverstärkung in dB (−90 bis 0).",
+        "french": "Gain de sortie sèche en dB (−90 à 0).",
+        "spanish": "Ganancia de salida seca en dB (−90 a 0)."
+      }
+    },
+    "outputs": {
+      "aout": {
+        "english": "Dry mono audio output.",
+        "german": "Unbearbeitetes Mono-Ausgangssignal.",
+        "french": "Sortie audio mono sans effets.",
+        "spanish": "Salida de audio mono sin efectos."
+      }
+    }
+  },
   "fm6_voice": {
     "description": {
       "english": "Dry six-operator sine phase-modulation synthesizer, inspired by 1980s FM. Click FM6 on the node to edit its voice. Choose eight algorithms, operator-6 self-feedback, and a separate ADSR, ratio (0.25–32), detune (±100 cents), level, enable switch and velocity sensitivity for every operator. Editing a starter copies it to Custom (0); selecting a starter preserves your custom settings. Level changes loudness on carriers and modulation depth on modulators. Brightness scales inter-operator modulation; it has no effect with six carriers. Feedback can add bright or noisy harmonics. Select an operator in the diagram to open its sliders. Drag a modulation arrow up or down to set its weight (0–1). Its thickness and percentage show source level × weight. During audition each new note uses your edits. Cancel restores the opening voice. Frequency follows the graph; other inputs are sampled on each new note. Use polyphonic MIDI notes, not Continuous or midi_legato. Route the mono output through pan2 to Stereo Output. No reverb, chorus or other effects. This is not a DX7 emulator or SysEx reader; high ratios, brightness and feedback can alias at high pitches.\n\nAlgorithms: 1: 2→1, 4→3, 6→5; 2: 3→2→1, 6→5→4; 3: 6→5→4→3, 2→1; 4: 6→5→4→3→2→1; 5: (2+3+4+5+6)→1; 6: 6→5→(1,2,3,4); 7: 6→5→4, 3→2, 1; 8: 1+2+3+4+5+6.",

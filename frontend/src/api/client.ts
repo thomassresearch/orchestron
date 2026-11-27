@@ -119,7 +119,12 @@ async function requestBlob(path: string, init?: RequestInit): Promise<{ blob: Bl
   return { blob: await response.blob(), headers: response.headers };
 }
 
+export type Dx7Voice = { name: string; algorithm: number; voice: string };
+
 export const api = {
+  dx7Voices: (file: File) => request<Dx7Voice[]>("/opcodes/fm_dx7/voices", {
+    method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: file
+  }),
   repairPerformanceMaster: (config: SequencerConfigSnapshot) => request<SequencerConfigSnapshot>("/performances/repair-master", { method: "POST", body: JSON.stringify({ config }) }),
   listOpcodes: () => request<OpcodeSpec[]>("/opcodes"),
   exportPatchBundle: (payload: Record<string, unknown>) =>

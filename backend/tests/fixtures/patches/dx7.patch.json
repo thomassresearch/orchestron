@@ -1,0 +1,158 @@
+{
+  "name": "DX7 reference",
+  "description": "Polyphonic DX7 SysEx comparison instrument.",
+  "instrument_type": "melody",
+  "is_template": false,
+  "schema_version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "key",
+        "opcode": "notnum",
+        "params": {},
+        "position": {
+          "x": 40,
+          "y": 40
+        }
+      },
+      {
+        "id": "velocity_scale_const",
+        "opcode": "const_i",
+        "params": {
+          "value": 1
+        },
+        "position": {
+          "x": 40,
+          "y": 190
+        }
+      },
+      {
+        "id": "velocity_ampmidi",
+        "opcode": "ampmidi",
+        "params": {},
+        "position": {
+          "x": 290,
+          "y": 190
+        }
+      },
+      {
+        "id": "dx7",
+        "opcode": "fm_dx7",
+        "params": {},
+        "position": {
+          "x": 630,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_pan2",
+        "opcode": "pan2",
+        "params": {
+          "kpan": 0.5
+        },
+        "position": {
+          "x": 980,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_left",
+        "opcode": "outleta",
+        "params": {
+          "sname": "left"
+        },
+        "position": {
+          "x": 1270,
+          "y": 40
+        }
+      },
+      {
+        "id": "output_right",
+        "opcode": "outleta",
+        "params": {
+          "sname": "right"
+        },
+        "position": {
+          "x": 1270,
+          "y": 240
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "velocity_scale_const_velocity_ampmidi_iscal",
+        "from_node_id": "velocity_scale_const",
+        "from_port_id": "iout",
+        "to_node_id": "velocity_ampmidi",
+        "to_port_id": "iscal"
+      },
+      {
+        "id": "key_dx7_ikey",
+        "from_node_id": "key",
+        "from_port_id": "inote",
+        "to_node_id": "dx7",
+        "to_port_id": "ikey"
+      },
+      {
+        "id": "velocity_ampmidi_dx7_ivelocity",
+        "from_node_id": "velocity_ampmidi",
+        "from_port_id": "iamp",
+        "to_node_id": "dx7",
+        "to_port_id": "ivelocity"
+      },
+      {
+        "id": "dx7_output_pan2_asig",
+        "from_node_id": "dx7",
+        "from_port_id": "aout",
+        "to_node_id": "output_pan2",
+        "to_port_id": "asig"
+      },
+      {
+        "id": "output_pan2_output_left_asignal",
+        "from_node_id": "output_pan2",
+        "from_port_id": "aleft",
+        "to_node_id": "output_left",
+        "to_port_id": "asignal"
+      },
+      {
+        "id": "output_pan2_output_right_asignal",
+        "from_node_id": "output_pan2",
+        "from_port_id": "aright",
+        "to_node_id": "output_right",
+        "to_port_id": "asignal"
+      }
+    ],
+    "ui_layout": {
+      "audio_blocks": {
+        "main-output": true
+      }
+    },
+    "engine_config": {
+      "sr": 48000,
+      "ksmps": 16,
+      "control_rate": 3000,
+      "nchnls": 2,
+      "software_buffer": 128,
+      "hardware_buffer": 512,
+      "0dbfs": 1
+    },
+    "audio_interface": {
+      "role": "instrument",
+      "groups": [
+        {
+          "id": "main-output",
+          "name": "Stereo Output",
+          "direction": "output",
+          "layout": "stereo",
+          "ports": [
+            "left",
+            "right"
+          ],
+          "purpose": "main"
+        }
+      ],
+      "mainOutput": "main-output",
+      "guided": true
+    }
+  }
+}

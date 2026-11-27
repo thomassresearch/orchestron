@@ -109,10 +109,13 @@ class NodeInstance(BaseModel):
     position: NodePosition = Field(default_factory=NodePosition)
 
     @model_validator(mode="after")
-    def validate_fm6(self) -> "NodeInstance":
+    def validate_fm_voice(self) -> "NodeInstance":
         if self.opcode == "fm6_voice":
             from backend.app.models.fm6 import fm6_voice
             fm6_voice(self.params)
+        elif self.opcode == "fm_dx7":
+            from backend.app.models.dx7 import node_voice
+            node_voice(self.params)
         return self
 
     @field_validator("id")
