@@ -39,17 +39,21 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
         {audition.phase === "preparing" ? copy.preparing : audition.phase === "stopping" ? copy.stopping : running ? copy.stop : copy.start}
       </button>;
   const error = audition.error && <p role="alert" className="mt-2 text-xs text-rose-300">{audition.error}</p>;
+  const snapshot = audition.snapshot;
+  const controllers = running && snapshot && snapshot.definitions.length > 0 && (
+    <div role="group" aria-label={copy.controls} className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1">
+      {snapshot.definitions.map(d => <AuditionControl key={d.node_id} definition={d}
+        value={audition.values[d.node_id] ?? d.default} alwaysOn={snapshot.alwaysOn} language={language}
+        onChange={value => audition.changeValue(d, value)} />)}
+    </div>
+  );
   return <div className="min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      {editorHosts?.controls ? createPortal(toggle, editorHosts.controls) : toggle}
+      {editorHosts?.controls ? createPortal(<div className="flex flex-wrap items-center gap-4">{toggle}{controllers}</div>, editorHosts.controls) : toggle}
       {children}
     </div>
     {running && audition.snapshot && <div className="mt-2 flex min-w-0 flex-col gap-2 border-t border-slate-700/60 pt-2">
-      {audition.snapshot.definitions.length > 0 && <div role="group" aria-label={copy.controls} className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1">
-        {audition.snapshot.definitions.map(d => <AuditionControl key={d.node_id} definition={d}
-          value={audition.values[d.node_id] ?? d.default} alwaysOn={audition.snapshot!.alwaysOn} language={language}
-          onChange={value => audition.changeValue(d, value)} />)}
-      </div>}
+      {!editorHosts?.controls && controllers}
       <AuditionPlayer initialNote={defaultAuditionNote(draft.graph)} disabled={!audition.snapshot.midi.length}
         language={language} pressNote={audition.pressNote} keyboardHost={keyboardHost} />
       {audition.stale && <p role="status" className="text-xs text-amber-200">{copy.stale}</p>}

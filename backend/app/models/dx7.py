@@ -5,7 +5,8 @@ from binascii import Error
 import json
 from pathlib import Path
 
-DX7 = json.loads((Path(__file__).resolve().parents[1] / "data/dx7.json").read_text())
+DATA = Path(__file__).resolve().parents[1] / "data"
+DX7 = json.loads((DATA / "dx7.json").read_text())
 
 # Some Dexed cartridges store fine tuning above the panel's 99. All seven
 # bits are safe in the frequency formula and survive a save/load unchanged.
@@ -35,6 +36,22 @@ def node_voice(params: dict, key: str = "voice") -> bytes:
         return validate_voice(b64decode(value, validate=True))
     except (Error, ValueError) as exc:
         raise ValueError("Invalid DX7 voice data.") from exc
+
+
+DX7_PRESETS = {
+    preset["id"]: node_voice(preset)[:145]
+    for preset in json.loads((DATA / "dx7-presets.json").read_text())["presets"]
+}
+
+
+def validate_preset_input(value: str | int | float | bool) -> None:
+    if isinstance(value, str):
+        try:
+            value = float(value)
+        except ValueError:
+            return  # The graph compiler resolves scalar expressions.
+    if isinstance(value, bool) or value not in range(len(DX7_PRESETS) + 1):
+        raise ValueError(f"DX7 ipreset must be a whole number in 0..{len(DX7_PRESETS)}.")
 
 
 def _unpack(data: bytes) -> bytes:

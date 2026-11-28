@@ -48,13 +48,15 @@ Open **Content** for the selected clip to adopt existing definitions, create a n
 
 **Sections** copies a range of all tracks or the selected track. Pasting, inserting or closing time stages the result on the timeline. The track-order arrows also stage their changes. Adding or removing a track and generating automation set up devices immediately. If pending edits involve a track you want to remove, use the arranger’s **Save** or **Cancel** first.
 
+When you edit a pattern or clip, an amber border highlights the **Undo / Redo / Save / Cancel** strip in the arranger toolbar. **Save** fills with amber when you can commit the edits.
+
 Amber edges and edit marks identify pending changes, including on collapsed tracks. A plus marks a new clip. Hatching shows the former position of a moved or deleted window. Open the change count beside **Save** to review affected tracks and clips, including linked uses outside the viewport.
 
 Arrange **Play** previews valid edits together. You can edit a copy, move it, close its editor and continue on another track. **Undo** and **Redo** step through gestures across tracks and editors. While typing, the keyboard shortcut edits the text. Elsewhere use Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z.
 
 **Save** commits the complete batch. One Undo then restores the previous arrangement. **Cancel** restores it at the current transport position and preserves its Undo/Redo history. Undoing every pending gesture leaves Redo available until you cancel. A collision keeps the draft available for correction. **Save Performance** writes the committed arrangement to the library. Autosave and export also use committed data. Up to 25 saved edits survive reload and native bundle import.
 
-![A duplicated Verse and a deleted drum clip, with the shared Save and Cancel controls](../../screenshots/arranger-edit-session.png)
+![A duplicated Verse and a deleted drum clip, with Save highlighted in the arranger toolbar](../../screenshots/arranger-edit-session.png)
 
 ## Temporary lane mute and solo
 

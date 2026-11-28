@@ -7,10 +7,11 @@ import pytest
 from pydantic import ValidationError
 
 from backend.app.models.dx7 import INIT_VOICE, node_voice, read_sysex
-from backend.app.models.patch import NodeInstance
+from backend.app.models.patch import Connection, NodeInstance
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_render_resources import analyze_render_resources
 from backend.app.services.opcode_service import OpcodeService
+from backend.app.services.performance_controller_service import controller_bindings
 from backend.tests.csound_test_support import load_patch_fixture
 from backend.tests.guitar_audio_support import compile_guitars, note_events, render
 
@@ -25,14 +26,59 @@ def test_bundled_presets_are_distinct_playable_voices():
     assert len({voice[:145] for voice in voices}) == 32
     for preset, voice in zip(presets, voices, strict=True):
         compiled, targets = compile_guitars([patch(voice)], mode="host", ksmps=32)
-        audio, _ = render(compiled, targets, note_events([(0.032, 60, 108, 1.15)]), 1.4, mode="host")
+        events = note_events([(0.032, 60, 108, 1.15)])
+        audio, _ = render(compiled, targets, events, 1.4, mode="host")
         assert np.isfinite(audio).all() and 0.001 < abs(audio).max() < 1, preset["name"]
+        selected = patch()
+        next(n for n in selected.graph.nodes if n.opcode == "fm_dx7").params["ipreset"] = preset["id"]
+        selected_orc, selected_targets = compile_guitars([selected], mode="host", ksmps=32)
+        actual, _ = render(selected_orc, selected_targets, events, 1.4, mode="host")
+        np.testing.assert_array_equal(actual, audio, err_msg=preset["name"])
 
 
 def patch(voice=INIT_VOICE):
     result = load_patch_fixture("dx7")
     next(n for n in result.graph.nodes if n.opcode == "fm_dx7").params["voice"] = b64encode(voice).decode()
     return result
+
+
+def controlled_patch():
+    result = patch(read_sysex((FIXTURES / "tine_keys.syx").read_bytes())[0])
+    result.graph.nodes.append(NodeInstance(
+        id="selector", opcode="perf_controller", position={"x": 0, "y": 0},
+        params={"label": "DX7 preset", "controller_type": "integer", "min": 0, "max": 32, "default": 0},
+    ))
+    result.graph.connections.append(Connection(
+        from_node_id="selector", from_port_id="iout", to_node_id="dx7", to_port_id="ipreset",
+    ))
+    return result
+
+
+@pytest.mark.parametrize("preview", [False, True])
+def test_preset_controller_latches_new_notes_and_returns_to_editor_voice(preview):
+    p = controlled_patch()
+    bank = json.loads((Path(__file__).resolve().parents[1] / "app/data/dx7-presets.json").read_text())["presets"]
+    compiled, targets = compile_guitars([p], mode="host", ksmps=32, fm6_preview=preview)
+    channel = controller_bindings(targets[0], "guitar0")["selector"]["channel"]
+    notes = [(0, 60, 96, .32), (.096, 48, 108, .24), (.192, 72, 96, .18)]
+    actual, _ = render(compiled, targets, note_events(notes), .55, mode="host",
+                       controller_updates=[(.064, channel, 7), (.16, channel, 0)])
+    expected = np.zeros_like(actual)
+    for source, events in [(p, [notes[0], notes[2]]), (patch(node_voice(bank[6])), [notes[1]])]:
+        artifact, parts = compile_guitars([source], mode="host", ksmps=32)
+        signal, _ = render(artifact, parts, note_events(events), .55, mode="host")
+        expected += signal
+    np.testing.assert_allclose(actual, expected, atol=1e-10)
+
+
+@pytest.mark.parametrize("mode", ["score", "midi"])
+def test_csd_exports_embed_controller_selected_preset(mode):
+    preset = json.loads((Path(__file__).resolve().parents[1] / "app/data/dx7-presets.json").read_text())["presets"][-1]
+    events = note_events([(.032, 60, 96, .12)])
+    def play(instrument, settings):
+        artifact, targets = compile_guitars([instrument], mode=mode, ksmps=1, settings=[settings])
+        return render(artifact, targets, events, .35, mode=mode)[0]
+    np.testing.assert_array_equal(play(controlled_patch(), {"selector": 32}), play(patch(node_voice(preset)), {}))
 
 
 def pack_voice(voice):

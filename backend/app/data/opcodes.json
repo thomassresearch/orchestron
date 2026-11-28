@@ -17749,7 +17749,7 @@
     "category": "fm",
     "description": "Play and edit six-operator DX7 voices with 32 presets, 32 algorithms and SysEx import.",
     "documentation_url": "https://csound.com/docs/manual/opcode.html",
-    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to choose one of 32 presets, recall Custom or import a SysEx program. Select an operator to shape its four-rate, four-level envelope. Audition takes the current voice on each new note. Cancel restores the opening selection and custom voice. The selected sound travels with the instrument and CSD exports.",
+    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to choose one of 32 presets, recall Custom or import a SysEx program. Select an operator to shape its four-rate, four-level envelope. Connect an Integer performance controller (0–32) to Preset to select the sound at note start. Zero plays the editor voice and 1–32 recall the numbered factory sounds. Cancel restores the opening selection and custom voice. CSD exports include the preset bank.",
     "inputs": [
       {
         "id": "ikey",
@@ -17788,6 +17788,15 @@
         "required": false,
         "default": -12,
         "description": "Dry output gain in dB (−90 to 0)."
+      },
+      {
+        "id": "ipreset",
+        "name": "Preset",
+        "signal_type": "i",
+        "accepted_signal_types": [],
+        "required": false,
+        "default": 0,
+        "description": "Integer sampled at note start. 0 plays the editor voice and 1–32 select the numbered DX7 factory presets."
       }
     ],
     "outputs": [
@@ -17798,7 +17807,7 @@
         "description": "Dry mono audio; route through Stereo Output to external mixer effects."
       }
     ],
-    "template": "{aout} fm_dx7 {ikey}, {ivelocity}, {kbend}, {igain}, <voice>",
+    "template": "{aout} fm_dx7 {ikey}, {ivelocity}, {kbend}, {igain}, <voice>, {ipreset}",
     "tags": [
       "FM",
       "DX7",

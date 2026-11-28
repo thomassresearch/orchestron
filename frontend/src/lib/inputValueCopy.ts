@@ -3,6 +3,7 @@ import type { InputValueState } from "./inputValue";
 
 const copy = {
   english: {
+    presetRange: "Enter a whole preset number from 0 to 32.",
     formula: "Saved formula", connections: "Connected signals", parameter: "Stored value", default: "Catalog default", unset: "Unset",
     edit: "Double-click to edit the input value or formula.", fallback: "Inactive stored fallback", afterReset: "After reset",
     reset: "Reset input", save: "Save input", value: "Value or formula", string: "Text value", number: "Numeric value",
@@ -11,6 +12,7 @@ const copy = {
     required: "Required input will be unset.", title: "Input value and formula"
   },
   german: {
+    presetRange: "Gib eine ganze Presetnummer von 0 bis 32 ein.",
     formula: "Gespeicherte Formel", connections: "Verbundene Signale", parameter: "Gespeicherter Wert", default: "Katalogstandard", unset: "Nicht gesetzt",
     edit: "Doppelklick zum Bearbeiten des Eingangswerts oder der Formel.", fallback: "Inaktiver gespeicherter Ersatzwert", afterReset: "Nach dem Zurücksetzen",
     reset: "Eingang zurücksetzen", save: "Eingang speichern", value: "Wert oder Formel", string: "Textwert", number: "Zahlenwert",
@@ -19,6 +21,7 @@ const copy = {
     required: "Der erforderliche Eingang ist danach nicht gesetzt.", title: "Eingangswert und Formel"
   },
   french: {
+    presetRange: "Saisissez un numéro de préréglage entier de 0 à 32.",
     formula: "Formule enregistrée", connections: "Signaux connectés", parameter: "Valeur enregistrée", default: "Valeur par défaut du catalogue", unset: "Non défini",
     edit: "Double-cliquez pour modifier la valeur ou la formule de l’entrée.", fallback: "Valeur de repli enregistrée inactive", afterReset: "Après réinitialisation",
     reset: "Réinitialiser l’entrée", save: "Enregistrer l’entrée", value: "Valeur ou formule", string: "Valeur texte", number: "Valeur numérique",
@@ -27,6 +30,7 @@ const copy = {
     required: "L’entrée obligatoire ne sera plus définie.", title: "Valeur et formule de l’entrée"
   },
   spanish: {
+    presetRange: "Introduce un número entero de preajuste entre 0 y 32.",
     formula: "Fórmula guardada", connections: "Señales conectadas", parameter: "Valor guardado", default: "Valor predeterminado del catálogo", unset: "Sin definir",
     edit: "Haz doble clic para editar el valor o la fórmula de la entrada.", fallback: "Valor de respaldo guardado inactivo", afterReset: "Después de restablecer",
     reset: "Restablecer entrada", save: "Guardar entrada", value: "Valor o fórmula", string: "Valor de texto", number: "Valor numérico",

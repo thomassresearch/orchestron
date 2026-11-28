@@ -64,11 +64,15 @@ Click **DX7** on the node and open **Preset** to browse 32 sounds by instrument 
 
 **0 · Custom voice** recalls your own sound after browsing. Editing a preset copies the result into Custom, replacing the previous custom sound. Importing a program also puts it in Custom. **Apply to draft** keeps the selection and Custom together. **Cancel** restores both to the state they had when you opened the editor.
 
+To switch sounds from Perform, connect **perf_controller → iout** to the **Preset** input on the **fm_dx7** node. Set the controller type to **Integer**, minimum **0**, maximum **32** and default **0**. At **0** each new note plays the voice shown in the DX7 editor, including your edits or an imported program. At **1–32** each new note plays the corresponding factory preset. For example, with a softened Hollow Bass in the editor, switch between **0** and **7** to compare it with the original. Held notes keep their sound through release. Both CSD export modes include the bank.
+
+![The DX7 editor and its integer preset controller during audition](../../screenshots/dx7_preset_controller.png)
+
 Choose one of the 32 algorithms and click an operator in the diagram. Cyan carriers feed the audio output. Amber modulators feed other operators. Each card shows oscillator tuning, detune, output level and its envelope. A thicker connection indicates a higher source output level.
 
 Adjust **Rate 1–4** and **Level 1–4** to reshape the envelope on the card and in the inspector. Each rate controls how quickly the envelope approaches its corresponding level. Level 3 holds while the key is down. Releasing the key starts the move toward Level 4. The dashed line marks key release and the horizontal scale compresses long stages. The inspector also offers ratio or fixed-frequency tuning, velocity sensitivity and keyboard scaling. Expand **Pitch and modulation** for the voice-wide pitch envelope and LFO.
 
-Click **Audition** and play the keyboard in the editor. Held notes finish with the voice they started with. The next note uses the current settings, including a changed algorithm or imported program. **Apply to draft** keeps the edits. **Cancel**, **Close** or Escape restores the voice you opened, including its name. Save the instrument to keep the voice for later or include it in a CSD export.
+Click **Audition** and play the keyboard in the editor. With the Preset input at 0, the next note uses the current editor settings, including a changed algorithm or imported program. **Apply to draft** keeps the edits. **Cancel**, **Close** or Escape restores the voice you opened, including its name. Save the instrument to keep the voice for later or include it in a CSD export.
 
 ![A built-in DX7 preset with its selected operator, four envelope stages and audition keyboard](../../screenshots/dx7_voice_editor.png)
 

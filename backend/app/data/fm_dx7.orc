@@ -91,8 +91,14 @@ opcode vcs_dx7_operator, aai, i[]iiikkkki
  xout aPhase, aAmp, iTail
 endop
 
-opcode fm_dx7, a, iikii[]
- iNote, iVelocityIn, kBend, iGainDb, iVoice[] xin
+opcode fm_dx7, a, iikii[]o
+ iNote, iVelocityIn, kBend, iGainDb, iEditorVoice[], iPresetIn xin
+ iPreset = limit(round(iPresetIn), 0, lenarray(giDx7Presets))
+ if iPreset == 0 then
+  iVoice[] = iEditorVoice
+ else
+  iVoice[] getrow giDx7Presets, iPreset - 1
+ endif
  iKey = limit(round(iNote),0,127) + iVoice[144]-24
  iVelocity = round(limit(iVelocityIn,0,1)*127)
  iGain = ampdb(limit(iGainDb,-90,0))/6

@@ -19,7 +19,7 @@ The plucked notes in *Evening at the Lake* come from this 18-node patch. Follow 
 
 ![Prism FM Pluck in Instrument Design, with C, E and G held above the wired oscillator, filters and stereo panner](screenshots/instrument-design-prism-fm-pluck.png)
 
-Open **Real DX7** to play a velocity-sensitive electric piano. Its **DX7** editor includes 32 presets for synth-pop, darkwave and new wave, alongside a Custom slot and SysEx import. Pick a sound, click an operator and audition its four-stage envelope on the next note. The selected voice travels with the instrument and its CSD exports. [Sample instrument](examples/instruments/Real_DX7.orch.instrument.json) · [DX7 voice editor and preset bank](documentation/instrument_design/opcode_catalog_and_documentation.md#load-a-dx7-voice)
+Open **Real DX7** to play a velocity-sensitive electric piano. Its **DX7** editor includes 32 presets for synth-pop, darkwave and new wave, alongside a Custom slot and SysEx import. Pick a sound, click an operator and audition its four-stage envelope on the next note. An Integer performance controller on the **Preset** input selects the sound for each new note. Use **0** for the editor voice or **1–32** for the factory presets. [Sample instrument](examples/instruments/Real_DX7.orch.instrument.json) · [DX7 voice editor and preset bank](documentation/instrument_design/opcode_catalog_and_documentation.md#load-a-dx7-voice)
 
 ### Perform · Arranger
 
@@ -68,7 +68,7 @@ Each patch compiles to a Csound instrument. Wire audio- and control-rate signals
 
 A **Melodic** sequencer programs steps, chords and strums. **Score** places notes at a resolution of 20,160 ticks per quarter note. **Drummer** adds velocity and ratchets per hit. **Controller** sends stepped MIDI CC values or interpolated curves. Feed chords into an **Arpeggiator** and it sends the resulting notes to another MIDI channel.
 
-Tracks share a tempo and can use different meters and subdivisions. For three bass pulses against two drum hits, set the bass track’s playback speed to **3:2** and leave the drums at **1:1**. Nest patterns into groups and supergroups, repeat or transpose a phrase, then make a variation on just the last pass. Edit a linked pattern to change every use. In **Live**, you can launch saved patterns while the arrangement plays. [Multitrack arranger](documentation/performance/multitrack_arranger.md) · [Sequencer timing](documentation/performance/sequencer_timing.md)
+Tracks share a tempo and can use different meters and subdivisions. For three bass pulses against two drum hits, set the bass track’s playback speed to **3:2** and leave the drums at **1:1**. Nest patterns into groups and supergroups, repeat or transpose a phrase, then make a variation on just the last pass. Edit a linked pattern to change every use, then click the amber **Save** button in the arranger toolbar to keep your edits together. In **Live**, you can launch saved patterns while the arrangement plays. [Multitrack arranger](documentation/performance/multitrack_arranger.md) · [Sequencer timing](documentation/performance/sequencer_timing.md)
 
 ### How Rust workers render a guitar duet
 

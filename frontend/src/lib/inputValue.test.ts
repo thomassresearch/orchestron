@@ -18,6 +18,14 @@ const body = (graph: PatchGraph) => graph.nodes.find((n) => n.id === "sax_body")
 const state = (graph: PatchGraph, id = "xcf") => resolveInputValue(graph, body(graph), port(id));
 
 describe("input values presented as compiled", () => {
+  it("accepts DX7 preset integers and formulas and rejects out-of-bank literals", () => {
+    const graph = fixture();
+    const node = { ...body(graph), opcode: "fm_dx7", params: {} };
+    const port = catalog.find(op => op.name === "fm_dx7")!.inputs.find(p => p.id === "ipreset")! as PortSpec;
+    const input = resolveInputValue(graph, node, port);
+    for (const value of ["0", "7", "32", "2 + 3"]) expect(validateInputValue(input, value).isValid).toBe(true);
+    for (const value of ["-1", "7.5", "33"]) expect(validateInputValue(input, value).error).toBe("presetRange");
+  });
   it("reveals the saxophone's four stored filter parameters without mutating its graph", () => {
     const graph = fixture(); const before = structuredClone(graph);
     for (const [id, expected] of [["sax_body", ["850", "600", "1", "1"]], ["sax_presence", ["2400", "1200", "1", "1"]]] as const) {

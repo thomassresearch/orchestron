@@ -17,8 +17,10 @@ it("keeps the original graph order when choosing a DX7 preset beside a collapsed
   const graph = structuredClone(fixture.graph) as unknown as PatchGraph;
   graph.nodes.push({ id: "polyphony", opcode: "maxalloc", params: { icount: 16 }, position: { x: 40, y: 330 } });
   const change = vi.fn();
+  const selection = vi.fn();
   render(<AudioGraphEditor graph={graph} opcodes={catalog as unknown as OpcodeSpec[]} guiLanguage="english"
-    viewportKey="dx7-stereo" onGraphChange={change} onSelectionChange={vi.fn()} onDeleteAudioGroup={vi.fn()} />);
+    viewportKey="dx7-stereo" onGraphChange={change} onSelectionChange={selection} onDeleteAudioGroup={vi.fn()} />);
+  await waitFor(() => expect(selection).toHaveBeenCalled(), { timeout: 3000 });
   fireEvent.click(await screen.findByRole("button", { name: "Edit DX7 voice" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Preset" }), { target: { value: "1" } });
   const next: PatchGraph = change.mock.lastCall![0];

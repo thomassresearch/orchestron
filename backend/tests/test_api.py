@@ -11641,7 +11641,9 @@ def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
 
     with _client(tmp_path) as client:
         spec = client.get("/api/opcodes/fm_dx7").json()
-        assert [p["id"] for p in spec["inputs"]] == ["ikey", "ivelocity", "kbend", "igain"]
+        assert [p["id"] for p in spec["inputs"]] == ["ikey", "ivelocity", "kbend", "igain", "ipreset"]
+        preset = spec["inputs"][-1]
+        assert (preset["signal_type"], preset["required"], preset["default"]) == ("i", False, 0)
         assert spec["documentation_url"].endswith("/opcode.html")
         path = "/api/opcodes/fm_dx7/voices"
         dump = (Path(__file__).parent / "fixtures/dx7/tine_keys.syx").read_bytes()
@@ -11655,10 +11657,15 @@ def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
         node = next(n for n in payload["graph"]["nodes"] if n["opcode"] == "fm_dx7")
         node["params"]["voice"] = entry["voice"]
         node["params"]["custom_voice"] = client.post(path, content=cartridge).json()[0]["voice"]
+        node["params"]["ipreset"] = 32
         saved = client.post("/api/patches", json=payload)
         assert saved.status_code in (200, 201), saved.text
         stored = client.get("/api/patches/" + saved.json()["id"]).json()["graph"]["nodes"]
         assert next(n for n in stored if n["opcode"] == "fm_dx7")["params"] == node["params"]
+        for invalid in (-1, 33, 1.5, "2.5", True):
+            node["params"]["ipreset"] = invalid
+            assert client.post("/api/patches", json=payload).status_code == 422
+        node["params"]["ipreset"] = 0
         node["params"]["custom_voice"] = "broken"
         assert client.post("/api/patches", json=payload).status_code == 422
 

@@ -8973,10 +8973,10 @@
   },
   "fm_dx7": {
     "description": {
-      "english": "Click DX7 and select an operator to edit its tuning, output level and four-stage envelope. Choose from 32 built-in presets, recall Custom or import a SysEx program. Each new audition note uses the edited voice. Cancel restores the opening voice.",
-      "german": "Klicke auf DX7 und wähle einen Operator, um Stimmung, Ausgangspegel und vierstufige Hüllkurve zu bearbeiten. Wähle eines der 32 Presets, rufe den eigenen Klang auf oder importiere ein SysEx-Programm. Beim Vorhören übernimmt jede neue Note die Änderungen. Abbrechen stellt die ursprüngliche Stimme wieder her.",
-      "french": "Cliquez sur DX7 et choisissez un opérateur pour régler son accordage, son niveau de sortie et son enveloppe à quatre segments. Choisissez un des 32 préréglages, rappelez votre voix personnalisée ou importez un programme SysEx. Chaque nouvelle note jouée en écoute utilise la voix modifiée. Annuler rétablit la voix initiale.",
-      "spanish": "Pulsa DX7 y elige un operador para ajustar su afinación, nivel de salida y envolvente de cuatro etapas. Elige uno de los 32 preajustes, recupera tu voz personalizada o importa un programa SysEx. Cada nota nueva de la escucha usa la voz editada. Cancelar restaura la voz inicial."
+      "english": "Click DX7 and select an operator to edit its tuning, output level and four-stage envelope. Choose from 32 built-in presets, recall Custom or import a SysEx program. Each new audition note uses the edited voice. Cancel restores the opening voice. Set the Preset input to 0 to audition editor changes.",
+      "german": "Klicke auf DX7 und wähle einen Operator, um Stimmung, Ausgangspegel und vierstufige Hüllkurve zu bearbeiten. Wähle eines der 32 Presets, rufe den eigenen Klang auf oder importiere ein SysEx-Programm. Beim Vorhören übernimmt jede neue Note die Änderungen. Abbrechen stellt die ursprüngliche Stimme wieder her. Stelle den Preset-Eingang auf 0, um Änderungen im Editor zu hören.",
+      "french": "Cliquez sur DX7 et choisissez un opérateur pour régler son accordage, son niveau de sortie et son enveloppe à quatre segments. Choisissez un des 32 préréglages, rappelez votre voix personnalisée ou importez un programme SysEx. Chaque nouvelle note jouée en écoute utilise la voix modifiée. Annuler rétablit la voix initiale. Réglez l’entrée de préréglage sur 0 pour écouter les modifications de l’éditeur.",
+      "spanish": "Pulsa DX7 y elige un operador para ajustar su afinación, nivel de salida y envolvente de cuatro etapas. Elige uno de los 32 preajustes, recupera tu voz personalizada o importa un programa SysEx. Cada nota nueva de la escucha usa la voz editada. Cancelar restaura la voz inicial. Pon la entrada de preajuste en 0 para escuchar los cambios del editor."
     },
     "inputs": {
       "ikey": {
@@ -9002,6 +9002,12 @@
         "german": "Trockenausgangsverstärkung in dB (−90 bis 0).",
         "french": "Gain de sortie sèche en dB (−90 à 0).",
         "spanish": "Ganancia de salida seca en dB (−90 a 0)."
+      },
+      "ipreset": {
+        "english": "Integer sampled at note start. 0 plays the editor voice and 1–32 select the numbered DX7 factory presets.",
+        "german": "Ganze Zahl beim Anschlag. 0 spielt die Stimme aus dem Editor, 1–32 wählen die nummerierten DX7-Werksklänge.",
+        "french": "Numéro entier lu au début de chaque note. 0 joue la voix de l’éditeur et 1 à 32 sélectionnent les préréglages DX7 numérotés.",
+        "spanish": "Número entero leído al inicio de cada nota. 0 reproduce la voz del editor y los valores de 1 a 32 seleccionan los preajustes DX7 numerados."
       }
     },
     "outputs": {

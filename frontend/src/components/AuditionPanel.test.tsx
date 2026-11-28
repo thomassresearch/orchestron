@@ -282,6 +282,17 @@ it("keeps the repeat in time when the FM6 editor takes the keyboard and releases
   expect((screen.getByRole("checkbox", { name: "Autoplay" }) as HTMLInputElement).checked).toBe(false);
 });
 
+it("makes the integer performance control available inside the DX7 audition dialog", async () => {
+  render(<AuditionKeyboardProvider>
+    <AuditionPanel stopPerformance={stopPerformance} />
+    <div role="dialog"><InstrumentAuditionKeyboard withControls /></div>
+  </AuditionKeyboardProvider>);
+  await start();
+  const dialog = screen.getByRole("dialog");
+  expect(dialog.contains(screen.getByRole("button", { name: "Stop audition" }))).toBe(true);
+  expect(dialog.contains(screen.getByRole("spinbutton", { name: "Octave" }))).toBe(true);
+});
+
 it("preserves the original playhead with transport stopped", async () => {
   const runtime = { ...useAppStore.getState().sequencerRuntime, playhead: 12, isPlaying: true };
   useAppStore.setState({ sequencerRuntime: runtime });

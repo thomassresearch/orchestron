@@ -20,7 +20,7 @@ The ruler and tracks share subdivisions, beats, bars and four-bar accents. Zoom 
 
 ### Edit and save
 
-Amber marks identify pending edits. A plus marks a new clip and hatching marks a former position. Open the change count to see affected clips, including linked uses. Arrange Play previews the batch across tracks. Close the editor to continue elsewhere.
+Pending edits give the arranger’s edit controls an amber border. **Save** fills with amber when you can commit the edits. A plus marks a new clip and hatching marks a former position. Open the change count to see affected clips, including linked uses. Arrange Play previews the batch across tracks. Close the editor to continue elsewhere.
 
 **Undo** and **Redo** step through gestures. **Save** commits them together, so one Undo restores the previous arrangement. **Cancel** restores it at the current playhead. Save Performance, autosave and export use the committed arrangement.
 
@@ -57,7 +57,7 @@ Lineal und Spuren teilen Unterteilungen, Schläge, Takte und Viertaktmarken. Bei
 
 ### Bearbeiten und speichern
 
-Bernsteinfarbene Markierungen zeigen Änderungen. Ein Plus kennzeichnet neue Clips, eine Schraffur die frühere Position. Die Änderungsübersicht nennt auch verknüpfte Verwendungen außerhalb des sichtbaren Bereichs. Die Wiedergabe berücksichtigt alle Spuren. Beim Schließen des Editors bleiben die Änderungen erhalten.
+Bei ausstehenden Änderungen erhält die Bearbeitungsleiste im Arranger einen bernsteinfarbenen Rahmen. Sobald du die Änderungen speichern kannst, leuchtet **Speichern** in derselben Farbe. Ein Plus kennzeichnet neue Clips, eine Schraffur die frühere Position. Die Änderungsübersicht nennt auch verknüpfte Verwendungen außerhalb des sichtbaren Bereichs. Die Wiedergabe berücksichtigt alle Spuren. Beim Schließen des Editors bleiben die Änderungen erhalten.
 
 **Rückgängig** und **Wiederholen** gelten für einzelne Bearbeitungsschritte. **Speichern** übernimmt sie gemeinsam als einen Schritt. **Abbrechen** stellt das gespeicherte Arrangement an der aktuellen Abspielposition wieder her. Performance-Speicherung, Autosave und Export verwenden das übernommene Arrangement.
 
@@ -94,7 +94,7 @@ La règle et les pistes partagent subdivisions, temps, mesures et accents toutes
 
 ### Modifier et enregistrer
 
-Les marques ambre indiquent les modifications. Un plus signale un nouveau clip, les hachures son ancienne position. Ouvrez le récapitulatif pour voir les utilisations liées hors écran. La lecture tient compte de toutes les pistes. Fermer l’éditeur conserve les modifications.
+Un cadre ambré entoure les commandes d’édition de l’arrangeur en cas de modifications en attente. Le bouton **Enregistrer** prend un fond ambré dès que vous pouvez enregistrer ces modifications. Un plus signale un nouveau clip, les hachures son ancienne position. Ouvrez le récapitulatif pour voir les utilisations liées hors écran. La lecture tient compte de toutes les pistes. Fermer l’éditeur conserve les modifications.
 
 Avant l’enregistrement, vous pouvez annuler ou rétablir chaque geste. **Enregistrer** valide tout le lot en une seule opération réversible. **Annuler** restaure l’arrangement enregistré à la position de lecture actuelle. La bibliothèque, la sauvegarde automatique et l’export utilisent la version validée.
 
@@ -131,7 +131,7 @@ La regla y las pistas comparten subdivisiones, pulsos, compases y acentos cada c
 
 ### Editar y guardar
 
-Las marcas ámbar identifican los cambios. Un signo más indica un clip nuevo y el rayado muestra la posición anterior. Abre el resumen para ver los usos vinculados fuera de pantalla. La reproducción incluye los cambios de todas las pistas. Cerrar el editor conserva los cambios.
+Un borde ámbar rodea los controles de edición del arreglador cuando hay cambios pendientes. El botón **Guardar** adquiere un fondo ámbar cuando puedes guardar los cambios. Un signo más indica un clip nuevo y el rayado muestra la posición anterior. Abre el resumen para ver los usos vinculados fuera de pantalla. La reproducción incluye los cambios de todas las pistas. Cerrar el editor conserva los cambios.
 
 **Deshacer** y **Rehacer** recorren los gestos individuales. **Guardar** confirma el conjunto como una sola operación reversible. **Cancelar** restaura el arreglo guardado en la posición de reproducción actual. La biblioteca, el autoguardado y la exportación utilizan el arreglo confirmado.
 

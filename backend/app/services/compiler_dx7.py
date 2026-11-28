@@ -4,7 +4,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
-from backend.app.models.dx7 import DX7, DX7_PREVIEW_KEYS, node_voice
+from backend.app.models.dx7 import DX7, DX7_PRESETS, DX7_PREVIEW_KEYS, node_voice
 from backend.app.services.compiler_fm6 import preview_channel
 from backend.app.services.compiler_common import CompilationError
 
@@ -36,7 +36,8 @@ def dx7_node_lines(node, env, preview, assignment, header):
     else:
         array = _voice_array(_voice_data(node))
         lines = []
-    return [*lines, f"{env['aout']} fm_dx7 {env['ikey']}, {env['ivelocity']}, {env['kbend']}, {env['igain']}, {array}"]
+    args = (env["ikey"], env["ivelocity"], env["kbend"], env["igain"], array, env["ipreset"])
+    return [*lines, f"{env['aout']} fm_dx7 " + ", ".join(args)]
 
 
 def _feedback_loop(count):
@@ -96,6 +97,7 @@ def dx7_header(targets):
                 audition |= node.id in target.fm6_preview
     if not voices:
         return []
+    voices.update(DX7_PRESETS.values())
     algorithms = range(1, 33) if audition else sorted({voice[134] + 1 for voice in voices})
     curves = json.loads((DATA / "dx7_curves.json").read_text())
     lines = [
@@ -105,6 +107,9 @@ def dx7_header(targets):
     ]
     lines += [f"giDx7_{name}[] fillarray " + ", ".join(map(str, values)) for name, values in curves.items()]
     lines += [f"{_voice_array(v)}[] fillarray " + ", ".join(map(str, v)) for v in sorted(voices)]
+    lines.append(f"giDx7Presets[][] init {len(DX7_PRESETS)}, {len(DX7_PREVIEW_KEYS)}")
+    for slot, voice in DX7_PRESETS.items():
+        lines.append(f"giDx7Presets setrow {_voice_array(voice)}, {slot - 1}")
     feedback_routes = (ALGORITHMS[a - 1]["feedback"] for a in algorithms)
     loop_lengths = {end - start + 1 for start, end in feedback_routes}
     lines += [_feedback_loop(n) for n in sorted(loop_lengths)]

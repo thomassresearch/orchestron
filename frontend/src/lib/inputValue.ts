@@ -13,6 +13,7 @@ export interface InputValueState {
   highlighted: boolean;
   storedValue?: string | number | boolean;
   mode: InputEditorMode;
+  dx7Preset?: boolean;
 }
 
 export function numericInputLiteral(text: string): number | null {
@@ -61,10 +62,11 @@ export function resolveInputValue(graph: PatchGraph, node: NodeInstance, port: P
     typeof node.params.sname === "string" && group.ports.includes(node.params.sname));
   const mode: InputEditorMode = managedName ? "managed" : node.opcode === "zfilter2" && port.id === "icoeffs" ? "coefficients"
     : node.opcode === "maxalloc" && port.id === "icount" ? "number" : port.signal_type === "S" ? "string" : "expression";
-  return { source, expression, bindings, storedValue, mode, highlighted: source === "formula" || source === "parameter" };
+  return { source, expression, bindings, storedValue, mode, dx7Preset: node.opcode === "fm_dx7" && port.id === "ipreset",
+    highlighted: source === "formula" || source === "parameter" };
 }
 
-export type InputValueError = "number" | "connectedLiteral" | "specialized";
+export type InputValueError = "number" | "connectedLiteral" | "specialized" | "presetRange";
 export function validateInputValue(state: InputValueState, expression: string): { isValid: boolean; errors: string[]; error?: InputValueError } {
   if (state.mode === "managed" || state.mode === "coefficients") return { isValid: false, errors: [], error: "specialized" };
   if (state.mode === "string" || state.mode === "number") {
@@ -72,7 +74,13 @@ export function validateInputValue(state: InputValueState, expression: string): 
     if (state.mode === "string") return { isValid: true, errors: [] };
     return numericInputLiteral(expression) === null ? { isValid: false, errors: [], error: "number" } : { isValid: true, errors: [] };
   }
-  if (!state.bindings.length && numericInputLiteral(expression) !== null) return { isValid: true, errors: [] };
+  const literal = numericInputLiteral(expression);
+  if (!state.bindings.length && literal !== null) {
+    if (state.dx7Preset && (!Number.isInteger(literal) || literal < 0 || literal > 32)) {
+      return { isValid: false, errors: [], error: "presetRange" };
+    }
+    return { isValid: true, errors: [] };
+  }
   return validateGraphFormulaExpression(expression, new Set(state.bindings.map((binding) => binding.token)));
 }
 

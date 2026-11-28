@@ -20,6 +20,16 @@ from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 
 
+def test_dx7_preset_input_compiles_a_graph_formula():
+    from backend.tests.csound_test_support import load_patch_fixture
+
+    patch = load_patch_fixture("dx7")
+    patch.graph.ui_layout["input_formulas"] = {"dx7::ipreset": {"expression": "3 + 4", "inputs": []}}
+    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(patch, "0", "none")
+    call = next(line for line in orc_code_lines(artifact.orc) if " fm_dx7 " in line)
+    assert "3 + 4" in call
+
+
 @pytest.mark.parametrize("name,params,suffix", [
     ("phasor", {}, " phasor 440, 0"),
     ("phasor", {"xcps": -220, "iphs": .25}, " phasor -220, 0.25"),

@@ -63,10 +63,10 @@ export function ArrangeEditControls({ language, impact, endChanged, changed, err
     };
   }, []);
   const count = [...impact.values()].reduce((n, lane) => n + lane.clips.size, 0);
-  return <span className="arranger-edit-controls" role="group" aria-label={t.changes}>
+  return <span className="arranger-edit-controls" data-pending={changed || undefined} role="group" aria-label={t.changes}>
     <button className={clipButtonClass("edit")} disabled={!undo} onClick={() => step(false)}>{c.undo}</button>
     <button className={clipButtonClass("edit")} disabled={!redo} onClick={() => step(true)}>{c.redo}</button>
-    <button className={clipButtonClass("save")} disabled={!changed || !!error} onClick={() => void apply(true)}>{c.save}</button>
+    <button className={`${clipButtonClass("save")} arranger-save`} disabled={!changed || !!error} onClick={() => void apply(true)}>{c.save}</button>
     <button className={clipButtonClass("remove")} disabled={!session && !changed} onClick={() => void apply(false)}>{c.cancel}</button>
     {changed && <button className="arranger-change-summary" onClick={() => setReview(true)} title={t.changes}>
       ✎ {count ? `${count} ${count === 1 ? t.oneClip : t.clips} · ${impact.size} ${impact.size === 1 ? t.oneTrack : t.tracks}` : endChanged ? c.songEnd : t.changes}

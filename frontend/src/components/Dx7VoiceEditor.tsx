@@ -15,8 +15,8 @@ const button = "rounded border border-slate-600 px-3 py-1.5 text-xs text-slate-2
 const group = "rounded-lg border border-slate-700 bg-slate-800/40 p-3";
 const heading = "mb-2 text-sm font-semibold text-slate-100";
 
-export function Dx7VoiceEditor({ node, language, onChange, onClose }: {
-  node: NodeInstance; language: GuiLanguage;
+export function Dx7VoiceEditor({ node, language, presetDriven, onChange, onClose }: {
+  node: NodeInstance; language: GuiLanguage; presetDriven?: boolean;
   onChange: (voice: NodeInstance["params"]["voice"] | undefined, customVoice?: string) => void; onClose: () => void;
 }) {
   const copy = dx7Copy(language), fm = fm6Copy(language);
@@ -75,7 +75,7 @@ export function Dx7VoiceEditor({ node, language, onChange, onClose }: {
     if (window.matchMedia?.("(max-width: 639px)").matches) requestAnimationFrame(() => inspector.current?.scrollIntoView({ block: "nearest" }));
   };
   const footer = <div className="flex w-full flex-wrap items-center justify-between gap-2">
-    <span className="text-xs text-slate-400">{copy.next}</span><div className="flex gap-2">
+    <span className="flex-1 text-xs text-slate-400">{presetDriven ? fm.presetDriven : copy.next}</span><div className="flex gap-2">
       <button className={button} onClick={cancel}>{fm.cancel}</button>
       <button className="rounded bg-cyan-300 px-3 py-1.5 text-sm font-semibold text-slate-950" onClick={onClose}>{fm.apply}</button>
     </div></div>;
