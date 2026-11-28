@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 
 from backend.app.models.dx7 import DX7, DX7_PRESETS, DX7_PREVIEW_KEYS, node_voice
+from backend.app.models.opcode import SignalType
+from backend.app.services.compiler_formula import formula_target_key, lookup_input_formula_config
 from backend.app.services.compiler_fm6 import preview_channel
 from backend.app.services.compiler_common import CompilationError
 
@@ -23,6 +25,52 @@ def _voice_array(data):
     return "giDx7Voice_" + sha256(data).hexdigest()[:24]
 
 
+def can_retire_dx7_instrument(context, layout):
+    """Only end the parent early when every audio path follows the DX7 envelopes."""
+    for compiled in context.compiled_nodes.values():
+        spec, node = compiled.spec, compiled.node
+        if spec.name == "fm_dx7":
+            continue
+        if any(p.signal_type == SignalType.AUDIO for p in spec.outputs) and spec.name not in {"pan2", "If", "Switch"}:
+            return False  # Another generator or a processor with its own tail.
+        for port in spec.inputs:
+            if port.signal_type != SignalType.AUDIO:
+                continue
+            if lookup_input_formula_config(layout, formula_target_key(node.id, port.id)):
+                return False
+            inputs = context.inbound_index.get((node.id, port.id), [])
+            if not inputs and node.params.get(port.id, port.default) not in (None, 0, "0"):
+                return False
+            for link in inputs:
+                source = context.compiled_nodes[link.from_node_id].spec
+                if not any(p.id == link.from_port_id and p.signal_type == SignalType.AUDIO for p in source.outputs):
+                    return False
+    return True
+
+
+def dx7_lifetime_lines(instrument_number, limit, retire_when_silent, outlets, header):
+    done = "(k_vcs_dx7_sounding == 0 ? 1 : 0)" if retire_when_silent else "0"
+    lines = [f"k_vcs_dx7_done = {done}"]
+    stop = "k_vcs_dx7_done"
+    if limit is not None:
+        header.append((DATA / "dx7_allocation.orc").read_text().replace("SCOPE", str(instrument_number)))
+        lines.append("k_vcs_dx7_level = 0")
+        for index, signal in enumerate(outlets):
+            meter = f"k_vcs_dx7_rms_{index}"
+            lines.extend([f"{meter} rms {signal}, 25", f"k_vcs_dx7_level = max(k_vcs_dx7_level, {meter})"])
+        stop = "k_vcs_dx7_stop"
+        lines.append(f"a_vcs_dx7_fade, {stop} vcs_dx7_allocation_{instrument_number} "
+                     f"int({limit}), k_vcs_dx7_level, k_vcs_dx7_done")
+        lines.extend(f"{out} = {signal} * a_vcs_dx7_fade" for signal, out in outlets.items())
+
+    # Csound 6 turnoff honors xtratim and ignores an already-releasing voice.
+    # Orchestron dispatches integer instrument references. Tag only this finished
+    # instance for exact removal within the same pass, before publishing outlets.
+    return [*lines, f"if {stop} == 1 then", " reinit VCS_DX7_FINISHED", " turnoff2 p1, 4, 0", "endif",
+            "igoto VCS_DX7_END", "kgoto VCS_DX7_END", "VCS_DX7_FINISHED:", "p1 = int(p1) + 0.5",
+            "rireturn", "VCS_DX7_END:"]
+
+
 def dx7_node_lines(node, env, preview, assignment, header):
     if preview:
         # chnget:i runs once per note. The engine applies each host update as a batch.
@@ -36,8 +84,8 @@ def dx7_node_lines(node, env, preview, assignment, header):
     else:
         array = _voice_array(_voice_data(node))
         lines = []
-    args = (env["ikey"], env["ivelocity"], env["kbend"], env["igain"], array, env["ipreset"])
-    return [*lines, f"{env['aout']} fm_dx7 " + ", ".join(args)]
+    args = (env["ikey"], env["ivelocity"], env["kbend"], env["igain"], array, env["ipreset"], env["imaxrelease"])
+    return [*lines, f"{env['aout']}, k_{env['aout']}_done fm_dx7 " + ", ".join(args)]
 
 
 def _feedback_loop(count):
@@ -116,19 +164,13 @@ def dx7_header(targets):
     lines += [(DATA / "fm_dx7.orc").read_text()]
     for op in range(6, 0, -1):
         lines.append(
-            f"aPhase{op}, aAmp{op}, iTail{op} vcs_dx7_operator iVoice, {(6 - op) * 21}, iKey, iVelocity, kPitch, kBend, kAM, kGate, iStart"
+            f"aPhase{op}, aAmp{op}, iTail{op}, kSilent{op} vcs_dx7_operator iVoice, {(6 - op) * 21}, iKey, iVelocity, kPitch, kBend, kAM, kGate, kReleaseFloor, iStart"
         )
     for index, algorithm in enumerate(algorithms):
         lines.append(f"{'if' if index == 0 else 'elseif'} iAlgorithm == {algorithm} then")
         lines += _route(algorithm)
         carriers = ALGORITHMS[algorithm - 1]["outputs"]
         lines.append("iTail = max(" + ", ".join(["0.005", *(f"iTail{i}" for i in carriers)]) + ")")
-    lines += [
-        "endif",
-        "xtratim iTail",
-        "aFade linsegr 1, 0.001, 1, iTail, 0",
-        # Only taper the last few milliseconds, including patches with nonzero L4.
-        "xout aMix * iGain * limit(aFade * iTail * 200, 0, 1)",
-        "endop",
-    ]
+        lines.append("kSilent = " + " * ".join(f"kSilent{i}" for i in carriers))
+    lines += ["endif", (DATA / "dx7_release.orc").read_text()]
     return ["\n".join(lines)]

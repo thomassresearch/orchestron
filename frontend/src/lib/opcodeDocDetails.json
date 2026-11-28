@@ -8973,10 +8973,10 @@
   },
   "fm_dx7": {
     "description": {
-      "english": "Click DX7 and select an operator to edit its tuning, output level and four-stage envelope. Choose from 32 built-in presets, recall Custom or import a SysEx program. Each new audition note uses the edited voice. Cancel restores the opening voice. Set the Preset input to 0 to audition editor changes.",
-      "german": "Klicke auf DX7 und wähle einen Operator, um Stimmung, Ausgangspegel und vierstufige Hüllkurve zu bearbeiten. Wähle eines der 32 Presets, rufe den eigenen Klang auf oder importiere ein SysEx-Programm. Beim Vorhören übernimmt jede neue Note die Änderungen. Abbrechen stellt die ursprüngliche Stimme wieder her. Stelle den Preset-Eingang auf 0, um Änderungen im Editor zu hören.",
-      "french": "Cliquez sur DX7 et choisissez un opérateur pour régler son accordage, son niveau de sortie et son enveloppe à quatre segments. Choisissez un des 32 préréglages, rappelez votre voix personnalisée ou importez un programme SysEx. Chaque nouvelle note jouée en écoute utilise la voix modifiée. Annuler rétablit la voix initiale. Réglez l’entrée de préréglage sur 0 pour écouter les modifications de l’éditeur.",
-      "spanish": "Pulsa DX7 y elige un operador para ajustar su afinación, nivel de salida y envolvente de cuatro etapas. Elige uno de los 32 preajustes, recupera tu voz personalizada o importa un programa SysEx. Cada nota nueva de la escucha usa la voz editada. Cancelar restaura la voz inicial. Pon la entrada de preajuste en 0 para escuchar los cambios del editor."
+      "english": "Click DX7 and select an operator to edit its tuning, output level and four-stage envelope. Choose from 32 built-in presets, recall Custom or import a SysEx program. Each new audition note uses the edited voice. Cancel restores the opening voice. Set the Preset input to 0 to audition editor changes. At the voice limit, the quietest released voice fades as the new note starts. If all keys are held, the oldest voice fades.",
+      "german": "Klicke auf DX7 und wähle einen Operator, um Stimmung, Ausgangspegel und vierstufige Hüllkurve zu bearbeiten. Wähle eines der 32 Presets, rufe den eigenen Klang auf oder importiere ein SysEx-Programm. Beim Vorhören übernimmt jede neue Note die Änderungen. Abbrechen stellt die ursprüngliche Stimme wieder her. Stelle den Preset-Eingang auf 0, um Änderungen im Editor zu hören. Am Stimmenlimit klingt die leiseste bereits losgelassene Stimme kurz aus, sobald die neue Note beginnt. Sind alle Tasten gehalten, klingt die älteste Stimme aus.",
+      "french": "Cliquez sur DX7 et choisissez un opérateur pour régler son accordage, son niveau de sortie et son enveloppe à quatre segments. Choisissez un des 32 préréglages, rappelez votre voix personnalisée ou importez un programme SysEx. Chaque nouvelle note jouée en écoute utilise la voix modifiée. Annuler rétablit la voix initiale. Réglez l’entrée de préréglage sur 0 pour écouter les modifications de l’éditeur. À la limite de polyphonie, la voix relâchée la plus faible s’efface au début de la nouvelle note. Si toutes les touches sont enfoncées, la voix la plus ancienne s’efface.",
+      "spanish": "Pulsa DX7 y elige un operador para ajustar su afinación, nivel de salida y envolvente de cuatro etapas. Elige uno de los 32 preajustes, recupera tu voz personalizada o importa un programa SysEx. Cada nota nueva de la escucha usa la voz editada. Cancelar restaura la voz inicial. Pon la entrada de preajuste en 0 para escuchar los cambios del editor. Al alcanzar el límite de voces, la voz liberada más silenciosa se atenúa al comenzar la nota nueva. Si todas las teclas siguen pulsadas, se atenúa la voz más antigua."
     },
     "inputs": {
       "ikey": {
@@ -9008,6 +9008,12 @@
         "german": "Ganze Zahl beim Anschlag. 0 spielt die Stimme aus dem Editor, 1–32 wählen die nummerierten DX7-Werksklänge.",
         "french": "Numéro entier lu au début de chaque note. 0 joue la voix de l’éditeur et 1 à 32 sélectionnent les préréglages DX7 numérotés.",
         "spanish": "Número entero leído al inicio de cada nota. 0 reproduce la voz del editor y los valores de 1 a 32 seleccionan los preajustes DX7 numerados."
+      },
+      "imaxrelease": {
+        "english": "Sampled at key-down. 0 keeps the native release. A value from 1 to 120 seconds limits the tail after key-up.",
+        "german": "Beim Anschlag übernommen. 0 erhält die ursprüngliche Ausklingzeit. 1–120 Sekunden begrenzen die Dauer nach dem Loslassen der Taste.",
+        "french": "La valeur est lue à l’attaque. 0 conserve le relâchement d’origine. Une durée de 1 à 120 secondes limite le son après le relâchement de la touche.",
+        "spanish": "El valor se toma al pulsar la tecla. 0 conserva la liberación original. Un valor de 1 a 120 segundos limita la duración del sonido después de soltar la tecla."
       }
     },
     "outputs": {

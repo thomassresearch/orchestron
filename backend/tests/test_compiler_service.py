@@ -26,7 +26,7 @@ def test_dx7_preset_input_compiles_a_graph_formula():
     patch = load_patch_fixture("dx7")
     patch.graph.ui_layout["input_formulas"] = {"dx7::ipreset": {"expression": "3 + 4", "inputs": []}}
     artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(patch, "0", "none")
-    call = next(line for line in orc_code_lines(artifact.orc) if " fm_dx7 " in line)
+    call = next(line for line in orc_code_lines(artifact.orc) if line.lstrip().startswith("a_dx7_aout_") and " fm_dx7 " in line)
     assert "3 + 4" in call
 
 

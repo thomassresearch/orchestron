@@ -1840,6 +1840,8 @@ export function ReteNodeEditor({
 
             <div className="space-y-1 border-b border-slate-700 px-4 py-3 text-sm" data-testid="input-value-source">
               <p>{describeInputValue(formulaEditor.valueState, guiLanguage)}</p>
+              {formulaEditor.valueState.dx7Input === "imaxrelease" && formulaValidation?.error !== "releaseRange" &&
+                <p className="text-slate-300">{valueCopy.releaseRange}</p>}
               {formulaEditor.valueState.storedValue !== undefined && ["connections", "formula"].includes(formulaEditor.valueState.source) &&
                 <p className="text-slate-400">{valueCopy.fallback}: {String(formulaEditor.valueState.storedValue)}</p>}
               <p className="text-slate-400">{valueCopy.afterReset}: {describeInputValue(formulaEditor.resetState, guiLanguage)}
@@ -2008,7 +2010,8 @@ export function ReteNodeEditor({
                 </div>}
 
                 {formulaValidation?.error && <p role="alert" className="text-sm text-rose-300">{formulaValidation.error === "number" ? valueCopy.numberError
-                  : formulaValidation.error === "presetRange" ? valueCopy.presetRange : valueCopy.connectedLiteral}</p>}
+                  : formulaValidation.error === "presetRange" ? valueCopy.presetRange
+                  : formulaValidation.error === "releaseRange" ? valueCopy.releaseRange : valueCopy.connectedLiteral}</p>}
                 {!formulaValidation?.isValid && formulaValidation?.errors.length ? (
                   <div className="rounded-xl border border-rose-500/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">
                     {formulaValidation.errors.map((error, index) => (

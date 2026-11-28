@@ -13,7 +13,7 @@ export interface InputValueState {
   highlighted: boolean;
   storedValue?: string | number | boolean;
   mode: InputEditorMode;
-  dx7Preset?: boolean;
+  dx7Input?: string;
 }
 
 export function numericInputLiteral(text: string): number | null {
@@ -62,11 +62,11 @@ export function resolveInputValue(graph: PatchGraph, node: NodeInstance, port: P
     typeof node.params.sname === "string" && group.ports.includes(node.params.sname));
   const mode: InputEditorMode = managedName ? "managed" : node.opcode === "zfilter2" && port.id === "icoeffs" ? "coefficients"
     : node.opcode === "maxalloc" && port.id === "icount" ? "number" : port.signal_type === "S" ? "string" : "expression";
-  return { source, expression, bindings, storedValue, mode, dx7Preset: node.opcode === "fm_dx7" && port.id === "ipreset",
+  return { source, expression, bindings, storedValue, mode, dx7Input: node.opcode === "fm_dx7" ? port.id : undefined,
     highlighted: source === "formula" || source === "parameter" };
 }
 
-export type InputValueError = "number" | "connectedLiteral" | "specialized" | "presetRange";
+export type InputValueError = "number" | "connectedLiteral" | "specialized" | "presetRange" | "releaseRange";
 export function validateInputValue(state: InputValueState, expression: string): { isValid: boolean; errors: string[]; error?: InputValueError } {
   if (state.mode === "managed" || state.mode === "coefficients") return { isValid: false, errors: [], error: "specialized" };
   if (state.mode === "string" || state.mode === "number") {
@@ -76,8 +76,11 @@ export function validateInputValue(state: InputValueState, expression: string): 
   }
   const literal = numericInputLiteral(expression);
   if (!state.bindings.length && literal !== null) {
-    if (state.dx7Preset && (!Number.isInteger(literal) || literal < 0 || literal > 32)) {
+    if (state.dx7Input === "ipreset" && (!Number.isInteger(literal) || literal < 0 || literal > 32)) {
       return { isValid: false, errors: [], error: "presetRange" };
+    }
+    if (state.dx7Input === "imaxrelease" && literal !== 0 && (literal < 1 || literal > 120)) {
+      return { isValid: false, errors: [], error: "releaseRange" };
     }
     return { isValid: true, errors: [] };
   }

@@ -54,6 +54,16 @@ def validate_preset_input(value: str | int | float | bool) -> None:
         raise ValueError(f"DX7 ipreset must be a whole number in 0..{len(DX7_PRESETS)}.")
 
 
+def validate_max_release(value: str | int | float | bool) -> None:
+    if isinstance(value, str):
+        try:
+            value = float(value)
+        except ValueError:
+            return  # Scalar expressions are resolved by the compiler.
+    if isinstance(value, bool) or not (value == 0 or 1 <= value <= 120):
+        raise ValueError("DX7 imaxrelease must be 0 (native) or 1–120 seconds.")
+
+
 def _unpack(data: bytes) -> bytes:
     voice = bytearray()
     for offset in range(0, 102, 17):

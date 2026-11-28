@@ -35,7 +35,7 @@ from backend.app.services.compiler_formula import (
     resolve_input_expression,
 )
 from backend.app.services.compiler_graph import find_port
-from backend.app.services.compiler_dx7 import dx7_node_lines
+from backend.app.services.compiler_dx7 import can_retire_dx7_instrument, dx7_lifetime_lines, dx7_node_lines
 from backend.app.services.compiler_fm6 import fm6_node_lines
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.adsyn_analysis import validate_adsyn_analysis
@@ -89,6 +89,13 @@ class OrchestraEmitter:
         global_header_lines: list[str] = []
         sfload_global_requests: list[SfloadGlobalRequest] = []
         sampler = has_sample_player(patch)
+        dx7 = any(n.opcode == "fm_dx7" for n in patch.graph.nodes)
+        dx7_pool = dx7 and any(n.opcode == "maxalloc" for n in patch.graph.nodes)
+        dx7_retire = dx7 and can_retire_dx7_instrument(graph_context, ui_layout)
+        dx7_outlets: dict[str, str] = {}
+        dx7_limit = "0"
+        if dx7_retire:
+            instrument_lines.append("k_vcs_dx7_sounding = 0")
         if sampler:
             instrument_lines.extend(voice_prefix(sampler_mapped))
             if not sampler_mapped:
@@ -234,6 +241,8 @@ class OrchestraEmitter:
             if compiled.spec.name == "fm_dx7":
                 instrument_lines.extend(dx7_node_lines(compiled.node, env, (fm6_preview or {}).get(node_id),
                                                        instance_id, global_header_lines))
+                if dx7_retire:
+                    instrument_lines.append(f"k_vcs_dx7_sounding += 1 - k_{env['aout']}_done")
                 continue
 
             if compiled.spec.name == "fm6_voice":
@@ -260,7 +269,7 @@ class OrchestraEmitter:
                 instrument_lines.extend(sample_node_lines(env["aleft"], env["aright"], mapped=sampler_mapped))
                 continue
 
-            if compiled.spec.name == "outleta" or (compiled.spec.name == "outs" and (direct_output_ports is not None or legato or sampler)):
+            if compiled.spec.name == "outleta" or (compiled.spec.name == "outs" and (direct_output_ports is not None or legato or sampler or dx7_pool)):
                 if compiled.spec.name == "outleta":
                     outlet_names = {"asignal": env["sname"]}
                 elif direct_output_ports is not None:
@@ -289,6 +298,9 @@ class OrchestraEmitter:
                         faded = self._allocate_var_name(rate_counters, compiled.node.id, input_port)
                         deferred_audio_declicks.append(f"{faded} = {signal} * a_vcs_sample_cancel_gain")
                         signal = faded
+                    if dx7_pool:
+                        dx7_outlets.setdefault(signal, f"a_vcs_dx7_out_{len(dx7_outlets)}")
+                        signal = dx7_outlets[signal]
                     if not outlet_names[input_port.id]:
                         direct_signals.append(signal)
                     else:
@@ -377,6 +389,10 @@ class OrchestraEmitter:
                     if not found or not icount or icount == OPTIONAL_OMIT_MARKER:
                         raise CompilationError([f"maxalloc node '{compiled.node.id}' requires icount."])
 
+                if dx7_pool:
+                    # Native maxalloc rejects the incoming event before it can claim a released slot.
+                    dx7_limit = icount
+                    continue
                 instrument_ref = (
                     self._format_csound_string(instrument_name)
                     if instrument_name is not None
@@ -548,6 +564,10 @@ class OrchestraEmitter:
                 instrument_lines.append("k_vcs_legato_release = k_vcs_legato_current_release")
             instrument_lines.append("rireturn")
         instrument_lines.extend(deferred_audio_declicks)
+        if dx7_retire or dx7_pool:
+            instrument_lines.extend(dx7_lifetime_lines(
+                instrument_number, dx7_limit if dx7_pool else None, dx7_retire, dx7_outlets, global_header_lines,
+            ))
         instrument_lines.extend(deferred_audio_outlets)
         return CompiledInstrumentLines(
             instrument_lines=instrument_lines,

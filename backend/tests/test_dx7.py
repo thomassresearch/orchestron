@@ -134,7 +134,7 @@ def test_dexed_cartridge_preserves_extended_operator_fine():
 
 def test_udo_emitted_once_shared_readonly_voice_and_per_note_state():
     artifact, targets = compile_guitars([patch(), patch()], mode="host")
-    assert artifact.orc.count("opcode fm_dx7,") == 1
+    assert artifact.orc.count("opcode fm_dx7, ak,") == 1
     assert artifact.orc.count("[] fillarray " + ", ".join(map(str, INIT_VOICE[:145]))) == 1
     assert not analyze_render_resources(targets, OpcodeService("/static/icons")).blockers
     p = patch()
@@ -205,3 +205,153 @@ def test_preview_latches_operator_algorithm_and_cancel_per_note():
         signal, _ = render(ordinary, t, note_events(events), .48, mode="host")
         expected += signal
     np.testing.assert_allclose(mixed, expected, atol=1e-9)
+
+
+def release_patch(preset, seconds=0, voices=None):
+    instrument = patch()
+    node = next(n for n in instrument.graph.nodes if n.opcode == "fm_dx7")
+    node.params.update(ipreset=preset, imaxrelease=seconds)
+    if voices is not None:
+        instrument.graph.nodes.append(NodeInstance(id="polyphony", opcode="maxalloc", params={"icount": voices}))
+    return instrument
+
+
+def render_observed(instrument, notes, seconds, mode="host", *, block=32):
+    artifact, targets = compile_guitars([instrument], mode=mode, ksmps=block)
+    # The normal instrument is centered. Add the physical instance count to the
+    # right channel after mixing, so subtraction leaves a sample-aligned trace.
+    artifact.orc += """
+instr dx7_test_observer
+ kCount active 1
+ outch 2, a(kCount)
+endin
+alwayson "dx7_test_observer"
+"""
+    audio, _ = render(artifact, targets, note_events(notes), seconds, mode=mode)
+    return audio[:, 0], np.rint(audio[:, 1] - audio[:, 0])
+
+
+@pytest.mark.parametrize(("mode", "block"), [("host", 32), ("midi", 1), ("score", 1)])
+@pytest.mark.parametrize("preset", [9, 30])
+def test_fast_dx7_voices_have_smooth_note_edges(mode, block, preset):
+    audio, _ = render_observed(release_patch(preset), [(.032, 60, 108, .16)], .23, mode, block=block)
+    start, release = 1536, 9216  # Block-aligned at 48 kHz.
+    peak = np.max(abs(audio[start:release]))
+    assert peak > .01
+    assert audio[start] == 0
+    assert np.max(abs(audio[start:start + 48])) < .16 * peak
+    # The fast R4 used to drop into silence in under 3 ms. Follow the
+    # tail through the taper and check that its final cut is inaudible.
+    assert np.max(abs(audio[release + 240:release + 384])) > .05 * peak
+    assert np.max(abs(audio[release + 480:])) < .001 * peak
+
+
+@pytest.mark.parametrize(("mode", "block"), [("host", 32), ("midi", 1), ("score", 1)])
+def test_release_cap_starts_at_keyup_and_fades_long_patch(mode, block):
+    notes = [(0, 60, 96, 1.28)]
+    capped, count = render_observed(release_patch(21, 1), notes, 2.35, mode, block=block)
+    native, _ = render_observed(release_patch(21), notes, 2.35, mode, block=block)
+    np.testing.assert_array_equal(capped[:100000], native[:100000])
+    assert np.max(abs(native[-960:])) > .0001
+    assert np.max(abs(capped[int(2.28*48000):])) < 1e-10
+    assert count[-1] == 0
+    # A still-loud Low Mist tapers progressively before the deadline.
+    for time, expected in [(2.23, .5), (2.27, .028)]:
+        window = slice(int(time * 48000), int(time * 48000) + 32)
+        assert np.max(abs(capped[window])) / np.max(abs(native[window])) == pytest.approx(expected, abs=.025)
+
+
+def test_expired_clock_click_retires_while_held_and_rising_release_voices_are_preserved():
+    note = [(0, 60, 96, .64)]
+    _, count = render_observed(release_patch(16, voices=2), note, .9)
+    assert count[1200] == 1
+    assert count[24000] == 0  # All remaining carrier targets are already silent while held.
+    assert count[-1] == 0  # Previously retained a slot for another 25.48 seconds.
+    v = bytearray(INIT_VOICE)
+    v[105:113] = bytes([99, 99, 99, 25, 0, 0, 0, 99])  # OP1 rises from silence on release.
+    sound, count = render_observed(patch(v), note, 1.5)
+    assert count[-1] == 1
+    assert np.max(abs(sound[-4800:])) > np.max(abs(sound[24000:28800])) * 3
+
+
+@pytest.mark.parametrize(("mode", "block"), [("host", 32), ("midi", 1), ("score", 1)])
+def test_steal_fades_quietest_released_voice_and_preserves_louder_tail(mode, block):
+    # Make loudness velocity-dependent and use a long release. The oldest and
+    # loudest note must survive when the third note replaces the quieter tail.
+    v = bytearray(INIT_VOICE)
+    v[108], v[120] = 20, 7
+    p = patch(v)
+    p.graph.nodes.append(NodeInstance(id="limit", opcode="maxalloc", params={"icount": 2}))
+    notes = [(0, 48, 120, .16), (.032, 55, 85, .128), (.224, 72, 110, .096)]
+    poly, count = render_observed(p, notes, .48, mode, block=block)
+    singles = [render_observed(p, [n], .48, mode, block=block)[0] for n in notes]
+    victim = singles[1]
+    outgoing = poly - singles[0] - singles[2]
+    start = round(.224 * 48000)
+    np.testing.assert_allclose(outgoing[:start], victim[:start], atol=1e-10)
+    assert np.max(abs(victim[start:start+960])) > 1e-5
+    # Throughout the handoff the removed contribution follows a smooth gain
+    # ramp. A hard cut, rejected attack, or wrong victim fails this comparison.
+    valid = np.flatnonzero(abs(victim[start:start+960]) > 1e-7) + start
+    gain = outgoing[valid] / victim[valid]
+    assert gain[0] > .95 and np.min(gain) >= -1e-6
+    assert np.max(np.abs(np.diff(gain) / np.diff(valid))) < .004
+    np.testing.assert_allclose(outgoing[start+600:], 0, atol=1e-10)
+    assert count[start+600] == 2
+
+
+def test_stolen_held_voice_finishes_and_its_later_keyup_leaves_successor_playing():
+    notes = [(0, 48, 110, .24), (.096, 72, 96, .38)]
+    instrument = release_patch(28, voices=1)
+    audio, count = render_observed(instrument, notes, .52)
+    successor, _ = render_observed(instrument, notes[1:], .52)
+    np.testing.assert_allclose(audio[5600:], successor[5600:], atol=1e-10)
+    assert count[6000] == 1 and count[14000] == 1
+
+
+def test_other_audio_source_keeps_its_own_release_after_dx7_silence():
+    instrument = release_patch(16, voices=2)
+    instrument.graph.nodes.append(NodeInstance(id="other", opcode="const_a", params={"value": .25}))
+    instrument.graph.connections.append(Connection(from_node_id="other", from_port_id="aout",
+                                                   to_node_id="output_pan2", to_port_id="asig"))
+    audio, count = render_observed(instrument, [(0, 60, 96, .64)], 1)
+    assert count[-1] == 1 and np.max(abs(audio[-480:])) > .01
+
+
+def test_release_controller_is_sampled_only_at_note_start():
+    p = controlled_patch()
+    node = next(n for n in p.graph.nodes if n.opcode == "fm_dx7")
+    node.params["ipreset"] = 21
+    p.graph.connections[-1].to_port_id = "imaxrelease"
+    compiled, targets = compile_guitars([p], mode="host", ksmps=32)
+    channel = controller_bindings(targets[0], "guitar0")["selector"]["channel"]
+    notes = [(0, 60, 96, .16), (.096, 67, 96, .24)]
+    actual, _ = render(compiled, targets, note_events(notes), 1.6, mode="host",
+                       controller_updates=[(.064, channel, 1), (.224, channel, 0)])
+    native, _ = render_observed(release_patch(21), notes[:1], 1.6)
+    capped, _ = render_observed(release_patch(21, 1), notes[1:], 1.6)
+    np.testing.assert_allclose(actual[:, 0], native + capped, atol=1e-10)
+
+
+def test_sixteen_occupied_slots_accept_a_new_chord_and_reclaim_the_fading_instances():
+    p = release_patch(24, voices=16)
+    chord = [(0, key, 96, .064) for key in range(48, 64)]
+    replacement = [(.096, key, 96, .128) for key in range(64, 80)]
+    mix, count = render_observed(p, chord + replacement, .3)
+    new, _ = render_observed(p, replacement, .3)
+    old, _ = render_observed(p, chord, .3)
+    np.testing.assert_allclose(mix[:4608], old[:4608], atol=1e-10)
+    np.testing.assert_allclose(mix[5400:], new[5400:], atol=1e-10)
+    assert count[3000] == count[5400] == 16
+    assert count[4700] == 32  # Both chords render during the short handoff.
+
+
+def test_rack_instances_have_independent_voice_limits():
+    p = release_patch(24, voices=1)
+    a = [(0, 48, 96, .08), (.16, 60, 96, .14)]
+    b = [(.032, 72, 110, .28)]
+    compiled, targets = compile_guitars([p, p], mode="host", ksmps=32)
+    mix, _ = render(compiled, targets, note_events(a, 0) + note_events(b, 1), .4, mode="host")
+    first, _ = render_observed(p, a, .4)
+    second, _ = render_observed(p, b, .4)
+    np.testing.assert_allclose(mix[:, 0], first + second, atol=1e-10)

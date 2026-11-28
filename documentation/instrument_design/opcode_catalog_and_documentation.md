@@ -68,6 +68,12 @@ To switch sounds from Perform, connect **perf_controller → iout** to the **Pre
 
 ![The DX7 editor and its integer preset controller during audition](../../screenshots/dx7_preset_controller.png)
 
+Double-click the **Max release (s)** input socket on the graph node. Leave it at **0** for the native envelope or enter **1–120** seconds, including fractional values. For example, **5** gives a long pad up to five seconds after key-up. Shorter tails end naturally and you can hold the key as long as you like. You can also wire a performance controller to this input. Each note keeps the setting it had at key-down.
+
+![Setting a five-second maximum release on the fm_dx7 node](../../screenshots/dx7_max_release.png)
+
+DX7 voices free their slots once all carriers reach silence and their remaining envelope stages stay silent. This can happen while you hold a percussive sound. A voice that swells again on key-up keeps its slot. If the instrument also has another sound source or an effect with its own tail, that sound can continue. With **maxalloc**, each new note takes a free slot first. At the limit, the quietest released voice fades out over 8 ms as the new note starts. When every slot holds a pressed key, the oldest voice fades.
+
 Choose one of the 32 algorithms and click an operator in the diagram. Cyan carriers feed the audio output. Amber modulators feed other operators. Each card shows oscillator tuning, detune, output level and its envelope. A thicker connection indicates a higher source output level.
 
 Adjust **Rate 1–4** and **Level 1–4** to reshape the envelope on the card and in the inspector. Each rate controls how quickly the envelope approaches its corresponding level. Level 3 holds while the key is down. Releasing the key starts the move toward Level 4. The dashed line marks key release and the horizontal scale compresses long stages. The inspector also offers ratio or fixed-frequency tuning, velocity sensitivity and keyboard scaling. Expand **Pitch and modulation** for the voice-wide pitch envelope and LFO.

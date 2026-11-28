@@ -12,8 +12,8 @@ opcode vcs_dx7_level, i, i
  xout iLevel
 endop
 
-opcode vcs_dx7_operator, aai, i[]iiikkkki
- iV[], iO, iKey, iVel, kPitch, kBend, kAM, kRelease, iStart xin
+opcode vcs_dx7_operator, aaik, i[]iiikkkkki
+ iV[], iO, iKey, iVel, kPitch, kBend, kAM, kRelease, kReleaseFloor, iStart xin
  iDiff = iKey - iV[iO+8] - 17
  iSide = (iDiff < 0 ? 0 : 1)
  iGroup = int((abs(iDiff)+1) / 3)
@@ -27,10 +27,14 @@ opcode vcs_dx7_operator, aai, i[]iiikkkki
  iTargets[] init 4
  iSpeeds[] init 4
  iHold[] init 4
+ iLastAudibleStage = -1
  iStage = 0
  while iStage < 4 do
   iLevel vcs_dx7_level iV[iO+4+iStage]
   iTargets[iStage] = max(16, int(iLevel/2)*64 + iOut - 4256)/256
+  if iTargets[iStage] > 16/256 then
+   iLastAudibleStage = iStage
+  endif
   iRate = min(63, int(iV[iO+iStage]*41/64) + iRateScale)
   iSpeeds[iStage] = (4 + iRate%4) * 2^(2+int(iRate/4)) * 44100/16777216
   iStaticRate = min(99, iV[iO+iStage]+iRateScale)
@@ -87,12 +91,23 @@ opcode vcs_dx7_operator, aai, i[]iiikkkki
  iAMS[] fillarray 0, 0.259, 0.427, 1
  kAtten = (iV[iO+14] == 0 ? 0 : exp(12.2 + 4.48*kAM*iAMS[iV[iO+14]])/16777216)
  kAmp = 2^(kValue*(1-kAtten)-14)
+ ; Start each carrier and modulator's release from its last held amplitude.
+ ; A slower native release (including a rising L4) passes through untouched.
+ kHeldAmp init 0
+ if kRelease == 0 then
+  kHeldAmp = kAmp
+ else
+  kAmp = max(kAmp, kHeldAmp*kReleaseFloor)
+ endif
  aAmp interp kAmp
- xout aPhase, aAmp, iTail
+ ; A held percussive voice may finish before key-up. Include all future
+ ; targets (especially L4), so a delayed attack or rising release survives.
+ kSilent = (kValue <= 16/256 && (kStage > iLastAudibleStage || (kReleased == 1 && iTargets[3] <= 16/256)) ? 1 : 0)
+ xout aPhase, aAmp, iTail, kSilent
 endop
 
-opcode fm_dx7, a, iikii[]o
- iNote, iVelocityIn, kBend, iGainDb, iEditorVoice[], iPresetIn xin
+opcode fm_dx7, ak, iikii[]oo
+ iNote, iVelocityIn, kBend, iGainDb, iEditorVoice[], iPresetIn, iMaxRelease xin
  iPreset = limit(round(iPresetIn), 0, lenarray(giDx7Presets))
  if iPreset == 0 then
   iVoice[] = iEditorVoice
@@ -105,7 +120,17 @@ opcode fm_dx7, a, iikii[]o
  iAlgorithm = iVoice[134]+1
  iFeedback = (iVoice[135] == 0 ? 0 : 2^(iVoice[135]-8))
  iStart times
+ kSleeping init 0
+ if kSleeping == 1 kgoto DX7_SILENT
  kGate release
+ iEdgeRelease = 0.010
+ kReleaseAge init 0
+ kReleaseFloor = 0
+ if kGate == 1 then
+  kReleaseAge += 1/kr
+  kRemaining = max(0, 1 - kReleaseAge/iEdgeRelease)
+  kReleaseFloor = kRemaining*kRemaining*(3 - 2*kRemaining)
+ endif
  iSpeed = max(1,int(iVoice[137]*165/64))
  iLfoHz = iSpeed*(11+max(0,int((iSpeed-160)/16)))*25190424/4294967296
  iLfoPhase = (iVoice[141] == 1 ? 0.5 : frac(iStart*iLfoHz))

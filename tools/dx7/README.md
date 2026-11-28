@@ -4,6 +4,8 @@ The three original single-voice SysEx fixtures in [backend/tests/fixtures/dx7](.
 
 ## Measured results
 
+These measurements predate note-edge smoothing. The current UDO fades in the mixed voice over 4 ms. At key-up, each operator can fall smoothly from its held amplitude over 10 ms or follow its programmed release when that stays louder. The regression renders cover the factory Solid Lead and Soft Pluck voices in live, MIDI-export and score-export playback.
+
 The comparison used the dry voice output of **Dexed 0.9.4, EngineMkI**, with equal temperament, the velocity-normalization option off and the same SysEx bytes in both engines. The C++ harness links Dexed’s own note, envelope, LFO and Mark I code. Orchestron used its compiled graph, MIDI scheduler, stereo panner and mixer. The reference received the same fixed output gain and center pan. Files for listening use one common gain for both renderers and velocities within each patch.
 
 Each patch played MIDI keys 48, 60 and 84 at velocities 40 and 112, with both a 64 ms and a 640 ms gate. Attack covers the first 64 ms. Body covers the second half of the gate. The spectral metric is cosine similarity of mean Hann-windowed FFT magnitudes (1,024 samples, 512-sample hop). A value of 1 means equal spectral shape under this metric. Level and release measurements use unnormalized RMS. Release compares the first 128 ms after key-up relative to the body for that note.
