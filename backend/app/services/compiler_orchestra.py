@@ -35,6 +35,8 @@ from backend.app.services.compiler_formula import (
     resolve_input_expression,
 )
 from backend.app.services.compiler_graph import find_port
+from backend.app.models.dx7 import Dx7Banks
+from backend.app.services.performance_controller_service import dx7_preset_driven
 from backend.app.services.compiler_dx7 import can_retire_dx7_instrument, dx7_lifetime_lines, dx7_node_lines
 from backend.app.services.compiler_fm6 import fm6_node_lines
 from backend.app.services.gen_asset_service import GenAssetService
@@ -71,6 +73,7 @@ class OrchestraEmitter:
         legato_identity: str | None = None,
         private_table_limit: int | None = None,
         sampler_mapped: bool = False,
+        dx7_banks: Dx7Banks | None = None,
         fm6_preview: dict | None = None,
     ) -> CompiledInstrumentLines:
         deferred_audio_outlet_inputs: list[str] = []
@@ -240,7 +243,8 @@ class OrchestraEmitter:
 
             if compiled.spec.name == "fm_dx7":
                 instrument_lines.extend(dx7_node_lines(compiled.node, env, (fm6_preview or {}).get(node_id),
-                                                       instance_id, global_header_lines))
+                                                       instance_id, global_header_lines, dx7_banks, performance_controllers,
+                                                       dx7_preset_driven(patch.graph, compiled.node)))
                 if dx7_retire:
                     instrument_lines.append(f"k_vcs_dx7_sounding += 1 - k_{env['aout']}_done")
                 continue

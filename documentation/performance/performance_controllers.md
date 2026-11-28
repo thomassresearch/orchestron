@@ -6,6 +6,15 @@
 
 Use an instrument’s performance controls to adjust envelope times, tone or other sound parameters for your song. Each rack instance owns its settings, even when several instances use the same patch.
 
+
+## DX7 banks
+
+In Perform, select a Real DX7 instance and open **Instrument controls**. With the instruments stopped, choose **Cartridge slot** 1–16 and **Import .syx**. Select a Yamaha DX7 32-voice bank, then choose its **Bank** and **Program**. Repeat on another instance to give the same instrument two different sounds. Replace or remove a cartridge from its slot while stopped.
+
+Bank **0 · Instrument** is read-only here. Its programs 1–32 are the factory sounds. In any bank, **0 · Editor voice** plays the voice saved on the node. **Use instrument setting** follows the node's preset setting. When the graph drives the preset input, its controller or formula chooses the program in the selected bank. Bank and program changes take effect on new notes. Held notes keep their sound through release.
+
+![DX7 bank and program selection in Instrument controls](../../screenshots/performance_dx7_banks.png)
+
 ## Define a Controller
 
 To add or wire a control, follow [Defining Performance Controls](../instrument_design/performance_controls.md) in Instrument Design. The rest of this guide explains using controls already supplied by an instrument.

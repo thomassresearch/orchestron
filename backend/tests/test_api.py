@@ -11721,3 +11721,31 @@ def test_dx7_audition_accepts_full_voice_and_checks_native_ranges(tmp_path):
         for invalid in ({"dx7_134": 32}, {"dx7_0": 12.5}, {"dx7_140": -1}, {"dx7_145": 0}):
             assert client.patch(url, json={"node_id": "dx7", "values": invalid}).status_code == 422
         assert client.patch(url, json={"node_id": "dx7", "values": initial}).status_code == 204
+
+
+def test_dx7_cartridges_save_recover_and_validate(tmp_path):
+    from base64 import b64encode
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_dx7 import FIXTURES, bank, read_sysex
+    single = (FIXTURES / "tine_keys.syx").read_bytes()
+    dump = bank(read_sysex(single) * 32)
+    entry = {"name": "keys.syx", "data": b64encode(dump).decode()}
+    row = {"id": "keys", "patchId": "patch-1", "midiChannel": 1, "dx7Banks": {"16": entry}}
+    exported = _performance_csd_export_payload()["performanceExport"]
+    exported["patch_definitions"][0]["graph"] = load_patch_fixture("dx7").graph.model_dump(mode="json")
+    config = exported["performance"]["config"]
+    config.update(version=29, instruments=[row])
+    with _client(tmp_path) as client:
+        saved = client.post("/api/performances", json=exported["performance"])
+        assert saved.status_code == 201, saved.text
+        url = "/api/performances/" + saved.json()["id"]
+        assert client.get(url).json()["config"]["instruments"] == [row]
+        state = {"version": 11, "sequencerInstruments": [row]}
+        assert client.put("/api/app-state", json={"state": state}).status_code == 200
+        assert client.get("/api/app-state").json()["state"]["sequencerInstruments"] == [row]
+        native = client.post("/api/bundles/export/performance", json=exported)
+        assert native.status_code == 200 and native.json()["performance"]["config"]["instruments"] == [row]
+        for slot, raw in [("0", dump), ("17", dump), ("1", single), ("1", dump[:-2] + bytes([dump[-2] ^ 1, 247]))]:
+            row["dx7Banks"] = {slot: {**entry, "data": b64encode(raw).decode()}}
+            assert client.put(url, json={"config": config}).status_code == 422
+        assert client.get(url).json()["config"]["instruments"][0]["dx7Banks"] == {"16": entry}

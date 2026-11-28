@@ -411,10 +411,10 @@ def validate_source(track, source):
 def validate(config):
     m = model(config)
     if (
-        config.get("version") not in (23, 24, 25, 26, 27, 28)
+        config.get("version") not in (23, 24, 25, 26, 27, 28, 29)
         or type(m.get("version")) is not int
         or m["version"] not in (1, 2, 3, 4, 5)
-        or m["version"] == 5 and config["version"] != 28
+        or m["version"] == 5 and config["version"] not in (28, 29)
         or config["version"] < m["version"] + 22
     ):
         fail("Unsupported or incompatible performance/clip version.", "version")

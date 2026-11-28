@@ -114,7 +114,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function performanceHasSamples(payload: PerformanceExportPayload): boolean {
-  if (payload.performance.config.instruments.some(instrument => instrument.sampleMap?.entries.length)) return true;
+  if (payload.performance.config.instruments.some(instrument => instrument.dx7Banks || instrument.sampleMap?.entries.length)) return true;
   return payload.patch_definitions.some(({ graph }) =>
     ["gen_nodes", "sfload_nodes", "adsyn_nodes"].some(key => {
       const configs = graph.ui_layout[key];

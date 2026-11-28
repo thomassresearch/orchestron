@@ -68,6 +68,7 @@ class SessionInstrumentResolver:
                         performance_controller_values=assignment.performance_controller_values,
                         performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
                         patch_id=assignment.patch_id,
+                        dx7_banks=assignment.dx7_banks,
                         sample_map=assignment.sample_map,
                         midi_channel=0,
                         effect_source_ids=source_ids,
@@ -97,6 +98,7 @@ class SessionInstrumentResolver:
                 SessionInstrumentAssignment(
                     id=assignment_id,
                     patch_id=assignment.patch_id,
+                    dx7_banks=assignment.dx7_banks,
                     sample_map=assignment.sample_map,
                     performance_controller_values=assignment.performance_controller_values,
                     performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
@@ -119,6 +121,7 @@ class SessionInstrumentResolver:
             performance_controller_values=assignment.performance_controller_values,
             performance_controller_midi_ccs=assignment.performance_controller_midi_ccs,
             always_on=patch.always_on,
+            dx7_banks=assignment.dx7_banks,
             samples={entry.note: sample_assets[entry.asset_id].playback for entry in assignment.sample_map.entries}
                     if sample_assets is not None and assignment.sample_map is not None else {},
             effect_source_ids=tuple(assignment.effect_source_ids if patch.always_on else []),

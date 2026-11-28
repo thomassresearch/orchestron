@@ -1939,7 +1939,7 @@ def normalize_performance_config(
     config: dict[str, Any],
     patches: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    if config.get("version", 1) not in range(1, 29):
+    if config.get("version", 1) not in range(1, 30):
         raise OrchestronCliError("unsupported_version", "Unsupported performance version.")
     from orchestron.timing_migration import migrate_sequencer_timing
     migrated = migrate_sequencer_timing(config)
@@ -1950,6 +1950,8 @@ def normalize_performance_config(
     if not normalize_samples(config):
         clips = config.get("sequencer", {}).get("clipArrangement")
         config["version"] = CURRENT_CONFIG_VERSION if clips is None else {2: 24, 3: 25, 4: 26, 5: 28}.get(clips.get("version"), 23)
+    if any(i.get("dx7Banks") for i in config.get("instruments", [])):
+        config["version"] = 29
     graph = config.setdefault("audioGraph", {"routes": [], "masterId": "$master", "insertOwners": {}})
     graph["masterId"] = graph.get("masterId") or "$master"
     mixer = config.setdefault("mixer", {"strips": {}, "sends": {}})
@@ -2237,6 +2239,7 @@ def clear_effect_routes_for_target(config: dict[str, Any], *, target_id: str) ->
 def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, Any]]:
     if "audioGraph" in config:
         return [{"id": i.get("id"), "patch_id": i.get("patchId"), "midi_channel": int(i.get("midiChannel", 1)),
+                 **({"dx7_banks": i["dx7Banks"]} if i.get("dx7Banks") else {}),
                  **({"sample_map": sample_player.wire_map(i["sampleMap"])} if "sampleMap" in i else {}),
                  "performance_controller_midi_ccs": performance_controller_midi_ccs(i.get("performanceControllerMidiCCs", {})),
                  "performance_controller_values": performance_controller_values(i.get("performanceControllerValues", {}))} for i in config_instruments(config)]
@@ -2247,7 +2250,9 @@ def session_assignments_from_config(config: dict[str, Any]) -> list[dict[str, An
             {
                 "id": instrument.get("id"),
                 "patch_id": instrument.get("patchId"),
-                **({"sample_map": sample_player.wire_map(instrument["sampleMap"])} if "sampleMap" in instrument else {}),
+                **({"dx7_banks": i["dx7Banks"]} if i.get("dx7Banks") else {}),
+                 **({"dx7_banks": instrument["dx7Banks"]} if instrument.get("dx7Banks") else {}),
+                 **({"sample_map": sample_player.wire_map(instrument["sampleMap"])} if "sampleMap" in instrument else {}),
                 "midi_channel": int(instrument.get("midiChannel", 1)),
                 "performance_controller_values": performance_controller_values(instrument.get("performanceControllerValues", {})),
                 "performance_controller_midi_ccs": performance_controller_midi_ccs(instrument.get("performanceControllerMidiCCs", {})),
@@ -4389,6 +4394,7 @@ def canonical_runtime_assignments(assignments: Any) -> list[dict[str, Any]]:
                 "id": assignment.get("id"),
                 "patch_id": assignment.get("patch_id", assignment.get("patchId")),
                 "midi_channel": int(assignment.get("midi_channel", assignment.get("midiChannel", 1))),
+                "dx7_banks": assignment.get("dx7_banks", {}),
                 "sample_map": sorted((entry["note"], entry.get("asset_id", entry.get("assetId")))
                                      for entry in (assignment.get("sample_map") or {}).get("entries", [])),
                 "effect_routes": sorted(
@@ -4795,6 +4801,8 @@ def update_session_config(ctx: CliContext, mutator) -> dict[str, Any]:
     result = mutator(config)
     if "sampleAssets" in config or any(isinstance(row, dict) and "sampleMap" in row for row in config.get("instruments", [])):
         normalize_samples(config, enforce_version=False)
+    if any(i.get("dx7Banks") for i in config.get("instruments", [])):
+        config["version"] = 29
     if before.get("sequencer", {}).get("clipArrangement") is not None:
         keys = ("tracks", "scoreTracks", "drummerTracks", "controllerSequencers", "arpeggiators")
         if any(before["sequencer"].get(key) != config["sequencer"].get(key) for key in keys):
@@ -4957,6 +4965,7 @@ def command_edit_instruments_list(args: argparse.Namespace, ctx: CliContext) -> 
                 "patchName": patch.get("name", instrument.get("patchName")),
                 "alwaysOn": patch_is_always_on(patch),
                 "midiChannel": instrument.get("midiChannel"),
+                **({"dx7Banks": instrument["dx7Banks"]} if instrument.get("dx7Banks") else {}),
                 **({"sampleMap": instrument["sampleMap"]} if "sampleMap" in instrument else {}),
                 "performanceControllers": patch.get("performance_controllers", []),
                 "performanceControllerValues": instrument.get("performanceControllerValues", {}),

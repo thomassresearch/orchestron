@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from backend.app.models.sequencer_constants import TRANSPORT_SUBUNITS_PER_STEP
+from backend.app.models.dx7 import Dx7Banks
 from backend.app.models.sample_player import SampleAssets, SampleMap
 from backend.app.engine.lane_output import lane_id
 from backend.app.models.clip_arrangement import ClipSchedule, MAX_AUTHORED_CLIP_PADS, MAX_RUNTIME_CLIP_PADS
@@ -103,6 +104,7 @@ class SessionEffectRoute(BaseModel):
 
 
 class SessionInstrumentAssignment(BaseModel):
+    dx7_banks: Dx7Banks = Field(default_factory=dict, exclude_if=lambda banks: not banks)
     sample_map: SampleMap | None = Field(default=None, exclude_if=lambda value: value is None)
     performance_controller_values: dict[str, ControllerNumber] = Field(default_factory=dict)
     performance_controller_midi_ccs: dict[str, PerformanceMidiCC] = Field(default_factory=dict)

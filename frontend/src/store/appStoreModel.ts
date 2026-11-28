@@ -18,6 +18,7 @@ import { controlFlowIssues, patchSchemaVersion } from "../lib/controlFlow";
 import { normalizeStereoChannelNames } from "../lib/audioBlocks";
 import { readRoutingLayout } from "../lib/routingLayout";
 import type { AudioGraph, MixerState, RoutingLayout } from "../types";
+import { readDx7Banks } from "../lib/dx7Banks";
 import { hasSampleMaps, parseSampleAssets, readSampleBinding, sampleManifest, wireSampleMap, sampleMapSignature } from "../lib/samplePlayer";
 import { emptyAudioGraph, emptyMixer, cleanBindings, migrateAudio } from "../lib/audioRouting";
 import { api } from "../api/client";
@@ -128,6 +129,7 @@ export const APP_STATE_VERSION = 4 as const;
 
 export function authoredFormatVersions(sequencer: SequencerState, instruments: SequencerInstrumentBinding[]) {
   const clipVersion = sequencer.clipArrangement?.version ?? 0;
+  if (instruments.some(b => b.dx7Banks)) return { performance: 29, recovery: 11 } as const;
   if (clipVersion === 5) return { performance: 28, recovery: 10 } as const;
   if (hasSampleMaps(instruments)) return { performance: 27, recovery: 9 } as const;
   const performance = ([22, 23, 24, 25, 26] as const)[clipVersion];
@@ -2384,6 +2386,7 @@ export function normalizePersistedSequencerInstruments(
       bindings.push({
         id: typeof candidate.id === "string" && candidate.id.length > 0 ? candidate.id : crypto.randomUUID(),
         patchId: candidate.patchId,
+        ...readDx7Banks(candidate.dx7Banks),
         ...readSampleBinding(candidate.sampleMap, assets),
         ...(Object.keys(normalizeControllerMidiCCs(candidate.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(candidate.performanceControllerMidiCCs) } : {}),
         performanceControllerValues: normalizeControllerValues(candidate.performanceControllerValues),
@@ -2994,6 +2997,7 @@ export function buildSequencerConfigSnapshot(
       .filter((instrument) => instrument.patchId.length > 0)
       .map((instrument) => ({
         patchId: instrument.patchId,
+        ...(instrument.dx7Banks ? {dx7Banks: structuredClone(instrument.dx7Banks)} : {}),
         ...(instrument.sampleMap ? { sampleMap: structuredClone(instrument.sampleMap) } : {}),
         id: instrument.id,
         midiChannel: clampInt(instrument.midiChannel, 0, 16),
@@ -3219,7 +3223,7 @@ export function parseSequencerConfigSnapshot(
     payload.version !== 20 &&
     payload.version !== 21 &&
     payload.version !== 22 &&
-    payload.version !== 23 && payload.version !== 24 && payload.version !== 25 && payload.version !== 26 && payload.version !== 27 && payload.version !== 28
+    payload.version !== 23 && payload.version !== 24 && payload.version !== 25 && payload.version !== 26 && payload.version !== 27 && payload.version !== 28 && payload.version !== 29
   ) {
     throw new Error("Unsupported sequencer config version.");
   }
@@ -3228,6 +3232,7 @@ export function parseSequencerConfigSnapshot(
   if (clipVersion && (payload.version < 23 || clipVersion === 2 && payload.version < 24 || clipVersion === 3 && payload.version < 25 || clipVersion === 4 && payload.version < 26 || clipVersion === 5 && payload.version < 28)) throw new Error("This clip arrangement requires a newer performance format.");
   const sequencer = normalizeSequencerState(payload.sequencer);
   const instrumentsRaw = Array.isArray(payload.instruments) ? payload.instruments : [];
+  if (payload.version < 29 && instrumentsRaw.some(entry => entry?.dx7Banks)) throw new Error("DX7 banks require performance version 29.");
   if (payload.version < 27 && (payload.sampleAssets !== undefined || instrumentsRaw.some(entry => entry?.sampleMap !== undefined))) {
     throw new Error("Sample maps require performance format 27 or later.");
   }
@@ -3253,6 +3258,7 @@ export function parseSequencerConfigSnapshot(
     instruments.push({
       id: typeof record.id === "string" && record.id.length > 0 ? record.id : crypto.randomUUID(),
       patchId: record.patchId,
+      ...readDx7Banks(record.dx7Banks),
       ...readSampleBinding(record.sampleMap, assets),
       ...(Object.keys(normalizeControllerMidiCCs(record.performanceControllerMidiCCs)).length ? { performanceControllerMidiCCs: normalizeControllerMidiCCs(record.performanceControllerMidiCCs) } : {}),
         performanceControllerValues: normalizeControllerValues(record.performanceControllerValues),
@@ -3312,6 +3318,7 @@ export function normalizeSessionInstrumentAssignments(
     assignments.push({
       id: binding.id,
       patch_id: binding.patchId,
+      ...(binding.dx7Banks ? {dx7_banks: binding.dx7Banks} : {}),
       ...(binding.sampleMap ? { sample_map: wireSampleMap(binding.sampleMap) } : {}),
       performance_controller_values: normalizeControllerValues(binding.performanceControllerValues),
       performance_controller_midi_ccs: normalizeControllerMidiCCs(binding.performanceControllerMidiCCs),
@@ -3357,6 +3364,7 @@ export function sameAssignments(a: SessionInstrumentAssignment[], b: SessionInst
     if ((aSorted[index].id ?? "") !== (bSorted[index].id ?? "")) {
       return false;
     }
+    if (JSON.stringify(aSorted[index].dx7_banks) !== JSON.stringify(bSorted[index].dx7_banks)) return false;
     if (sampleMapSignature(aSorted[index].sample_map) !== sampleMapSignature(bSorted[index].sample_map)) return false;
     const aSources = normalizeEffectSourceIds(aSorted[index].effect_source_ids).sort();
     const bSources = normalizeEffectSourceIds(bSorted[index].effect_source_ids).sort();

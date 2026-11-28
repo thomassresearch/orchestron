@@ -257,6 +257,7 @@ export function createSequencerTrackStoreActions(
               ? {
                   ...binding,
                   patchId,
+                  dx7Banks: binding.patchId === patchId ? binding.dx7Banks : undefined,
                   sampleMap: binding.patchId === patchId ? binding.sampleMap : undefined,
                   sampleAssets: binding.patchId === patchId ? binding.sampleAssets : undefined,
                   performanceControllerValues: binding.patchId === patchId ? binding.performanceControllerValues : {},

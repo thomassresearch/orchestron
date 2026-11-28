@@ -110,6 +110,7 @@ def analyze_render_graph(targets, audio_graph, opcode_service, *, engine_config=
                      "midi_channel": t.midi_channel, "always_on": t.always_on,
                      "controllers": t.performance_controller_values, "ccs": t.performance_controller_midi_ccs,
                      "legacy_sources": t.effect_source_ids, "legacy_routes": t.effect_routes,
+                     **({"dx7_banks": {slot: bank.digest for slot, bank in t.dx7_banks.items()}} if t.dx7_banks else {}),
                      **({"sample_map": {note: sample.sha256 for note, sample in t.samples.items()}} if t.samples else {})}
                     for identity, t in zip(identities, targets, strict=True)],
         "audio_graph": audio_graph.model_dump(mode="json") if audio_graph is not None else None,

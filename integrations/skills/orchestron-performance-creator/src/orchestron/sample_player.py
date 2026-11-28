@@ -22,7 +22,7 @@ def canonicalize(config, *, enforce_version=True):
     maps = [row for row in instruments if isinstance(row, dict) and "sampleMap" in row]
     if not maps and "sampleAssets" not in config:
         return False
-    if enforce_version and config.get("version") not in (VERSION, 28):
+    if enforce_version and config.get("version") not in (VERSION, 28, 29):
         raise ValueError("Sample maps require performance version 27 or later.")
     assets = config.get("sampleAssets", {})
     if not isinstance(assets, dict) or len(assets) > 2048:
@@ -65,7 +65,10 @@ def canonicalize(config, *, enforce_version=True):
         config.pop("sampleAssets", None)
         return False
     config["sampleAssets"] = {identity: assets[identity] for identity in sorted(used)}
-    config["version"] = 28 if (config.get("sequencer", {}).get("clipArrangement") or {}).get("version") == 5 else VERSION
+    clip_version = (config.get("sequencer", {}).get("clipArrangement") or {}).get("version")
+    config["version"] = 28 if clip_version == 5 else VERSION
+    if any(i.get("dx7Banks") for i in instruments):
+        config["version"] = 29
     return True
 
 

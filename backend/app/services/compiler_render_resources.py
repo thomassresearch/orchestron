@@ -257,6 +257,12 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                 for sample in {item.sha256: item for item in target.samples.values()}.values():
                     resource("sample-table:" + sample.sha256, node, "replicated", "read",
                              (sample.frame_count + 2) * sample.channels * 8)
+            elif name == "fm_dx7":
+                for controller in controllers.values():
+                    if controller.get("dx7_role"):
+                        resource("channel:" + controller["channel"], node, "host", "read")
+                for bank in target.dx7_banks.values():
+                    resource("dx7-bank:" + bank.digest, node, "replicated", "read", 32 * 145 * 8 * 2)
             elif name == "perf_controller":
                 resource("channel:" + controllers[node.id]["channel"], node, "host", "read")
             elif name == "maxalloc":

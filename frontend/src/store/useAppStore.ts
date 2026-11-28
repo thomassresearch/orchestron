@@ -343,7 +343,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
           if (persistedState && typeof persistedState === "object" && !Array.isArray(persistedState)) {
             const payload = migrateSequencerTiming(persistedState, true) as Partial<PersistedAppState>;
-            if (payload.version === 10 || payload.version === 9 || payload.version === 8 || payload.version === 7 || payload.version === 6 || payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
+            if (payload.version === 11 || payload.version === 10 || payload.version === 9 || payload.version === 8 || payload.version === 7 || payload.version === 6 || payload.version === 5 || payload.version === APP_STATE_VERSION || payload.version === 3 || payload.version === 2 || payload.version === 1) {
               const restoredTabs = normalizePersistedInstrumentTabs(payload.instrumentTabs);
               if (restoredTabs.length > 0) {
                 instrumentTabs = restoredTabs;
@@ -845,6 +845,15 @@ export const useAppStore = create<AppStore>((set, get) => {
         ...get().engineConfig, sr, control_rate: controlRate,
         software_buffer: softwareBuffer, hardware_buffer: hardwareBuffer
       }) });
+    },
+
+    applyDx7Banks: (original, generation, banks) => {
+      const state = get();
+      if (state.activeSessionState === "running" || state.loading || sessionStartInFlight || sessionCreationInFlight ||
+          generation !== state.performanceWorkspaceGeneration || !state.sequencerInstruments.includes(original)) return false;
+      set({ sequencerInstruments: state.sequencerInstruments.map(row => row === original ?
+        {...row, dx7Banks: Object.keys(banks).length ? banks : undefined} : row) });
+      return true;
     },
 
     applySampleMap: (original, generation, map, assets) => {

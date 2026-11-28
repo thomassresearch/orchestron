@@ -185,6 +185,7 @@ class CompilerService:
                 score_midi_channel=target.midi_channel,
                 performance_controllers=controller_manifest.get(target.assignment_id or f"instrument-{instrument_number}", {}),
                 live_continuous_controllers=target.always_on and profile == CompilationProfile.LIVE,
+                dx7_banks=target.dx7_banks,
                 sampler_mapped=bool(target.samples),
                 fm6_preview=target.fm6_preview,
                 legato_identity=f"{instrument_number}_{target.patch.id}" if instrument_number in legato_targets else None,

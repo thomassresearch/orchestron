@@ -17749,7 +17749,7 @@
     "category": "fm",
     "description": "Play and edit six-operator DX7 voices with 32 presets, 32 algorithms and SysEx import.",
     "documentation_url": "https://csound.com/docs/manual/opcode.html",
-    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to choose one of 32 presets, recall Custom or import a SysEx program. Select an operator to shape its four-rate, four-level envelope. Connect an Integer performance controller (0–32) to Preset to select the sound at note start. Zero plays the editor voice and 1–32 recall the numbered factory sounds. Cancel restores the opening selection and custom voice. CSD exports include the preset bank. Set Max release (s) to 0 for the native envelope or 1–120 seconds to limit the tail. Under voice pressure the quietest released note fades as the new note starts.",
+    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to choose one of 32 presets, recall Custom or import a SysEx program. Select an operator to shape its four-rate, four-level envelope. Connect an Integer performance controller (0–32) to Preset to select the sound at note start. Zero plays the editor voice. Programs 1–32 select sounds from the active rack bank. Bank 0 contains the factory sounds. In Perform, each instance can import a 32-voice Yamaha SysEx cartridge in each of slots 1–16. Cancel restores the opening selection and custom voice. Both CSD exports include the original cartridges and embed their voices. Set Max release (s) to 0 for the native envelope or 1–120 seconds to limit the tail. Under voice pressure the quietest released note fades as the new note starts.",
     "inputs": [
       {
         "id": "ikey",
@@ -17796,7 +17796,7 @@
         "accepted_signal_types": [],
         "required": false,
         "default": 0,
-        "description": "Integer sampled at note start. 0 plays the editor voice and 1–32 select the numbered DX7 factory presets."
+        "description": "Integer sampled at note start. 0 plays the editor voice and 1–32 select programs in the active rack bank (factory presets in bank 0)."
       },
       {
         "id": "imaxrelease",

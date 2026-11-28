@@ -355,3 +355,135 @@ def test_rack_instances_have_independent_voice_limits():
     first, _ = render_observed(p, a, .4)
     second, _ = render_observed(p, b, .4)
     np.testing.assert_allclose(mix[:, 0], first + second, atol=1e-10)
+
+
+@pytest.mark.parametrize("mode,subfolder", [("midiFile", False), ("score", True)])
+def test_instance_banks_render_from_standalone_archives(tmp_path, mode, subfolder):
+    from copy import deepcopy
+    from io import BytesIO
+    import shutil
+    import subprocess
+    import zipfile
+
+    from backend.app.models.export import PerformanceCsdExportRequest
+    from backend.app.services.compiler_service import CompilerService
+    from backend.app.services.gen_asset_service import GenAssetService
+    from backend.app.services.performance_export_service import PerformanceExportService
+    from backend.app.services.sample_asset_service import _wav_format
+    from backend.tests.test_api import _performance_csd_export_payload
+
+    csound = shutil.which("csound")
+    if not csound:
+        pytest.skip("Standalone Csound required")
+    payload = _performance_csd_export_payload()
+    payload.update(eventSource=mode, samplesInSubfolder=subfolder)
+    exported = payload["performanceExport"]
+    definition = exported["patch_definitions"][0]
+    definition["graph"] = load_patch_fixture("dx7").graph.model_dump(mode="json")
+    config = exported["performance"]["config"]
+    config.update(version=29, instruments=[], audioGraph={"routes": []})
+    tracks = payload["sequencerConfig"]["tracks"]
+    tracks.append({**deepcopy(tracks[0]), "track_id": "second", "midi_channel": 2})
+    voices = [read_sysex((FIXTURES / filename).read_bytes())[0] for filename in ("iron_bell.syx", "tine_keys.syx")]
+    shared = bank([INIT_VOICE] * 32)
+    dumps = [bank([INIT_VOICE] * 31 + [voice]) for voice in voices]
+    def cartridge(raw):
+        return {"name": "cartridge.syx", "data": b64encode(raw).decode()}
+
+    for index, (side, dump) in enumerate(zip(("left", "right"), dumps, strict=True), 1):
+        config["instruments"].append(dict(id=side, midiChannel=index, patchId=definition["sourcePatchId"],
+            dx7Banks={"1": cartridge(shared), "16": cartridge(dump)},
+            performanceControllerValues={"__dx7_bank": 16, "__dx7_program": 32}))
+        config["audioGraph"]["routes"].append(dict(id=side, sourceId=side, sourcePort=side, targetId="$output", targetPort=side))
+    config["instruments"].append(dict(id="unused", midiChannel=3, patchId=definition["sourcePatchId"],
+        dx7Banks={"2": cartridge(bank(list(reversed([INIT_VOICE] * 31 + [voices[0]]))))}))
+
+    expected = deepcopy(payload)
+    reference = expected["performanceExport"]
+    reference["patch_definitions"] = []
+    reference["performance"]["config"]["instruments"].pop()
+    for row, voice in zip(reference["performance"]["config"]["instruments"], voices, strict=True):
+        row.pop("dx7Banks")
+        row.pop("performanceControllerValues")
+        row["patchId"] = row["id"]
+        reference["patch_definitions"].append({**definition, "sourcePatchId": row["id"],
+            "graph": patch(voice).graph.model_dump(mode="json")})
+
+    exporter = PerformanceExportService(CompilerService(OpcodeService("/static/icons")), GenAssetService(tmp_path / "assets"))
+    signals = []
+    for index, data in enumerate((payload, expected)):
+        package = exporter.build_performance_csd_archive(PerformanceCsdExportRequest.model_validate(data))
+        dest = tmp_path / str(index)
+        with zipfile.ZipFile(BytesIO(package)) as archive:
+            members = [n for n in archive.namelist() if n.endswith(".syx")]
+            if index == 0:
+                assert len(members) == 3 and {archive.read(n) for n in members} == {*dumps, shared}
+                assert all(("/assets/" in n) == subfolder for n in members)
+            archive.extractall(dest)
+        csd = next(dest.rglob("*.csd"))
+        completed = subprocess.run([csound, csd.name], cwd=csd.parent, capture_output=True, timeout=30)
+        assert completed.returncode == 0, completed.stderr
+        wav = csd.with_suffix(".wav")
+        _, channels, rate, _, _, offset, size = _wav_format(wav)
+        assert rate == 48000 and channels == 2
+        signals.append(np.frombuffer(wav.read_bytes(), dtype="<f4", count=size // 4, offset=offset).reshape(-1, 2))
+    np.testing.assert_array_equal(*signals)
+    assert min(abs(signals[0]).max(axis=0)) > .001
+    assert not np.array_equal(signals[0][:, 0], signals[0][:, 1])
+
+
+@pytest.mark.parametrize("wired", [True, False])
+def test_instance_bank_and_program_latch_per_note(wired):
+    from backend.app.models.dx7 import Dx7Cartridge
+    voice, = read_sysex((FIXTURES / "loop_brass.syx").read_bytes())
+    cartridge = Dx7Cartridge(name="brass.syx", data=b64encode(bank([voice] * 32)).decode())
+    source = controlled_patch() if wired else patch()
+    artifact, targets = compile_guitars([source], mode="host", ksmps=32, dx7_banks=[{"1": cartridge}])
+    controls = controller_bindings(targets[0], "guitar0")
+    assert ("__dx7_program" in controls) != wired
+    bank_channel = controls["__dx7_bank"]["channel"]
+    program_channel = controls["selector" if wired else "__dx7_program"]["channel"]
+    notes = [(0, 60, 96, .34), (.096, 68, 108, .22), (.192, 72, 96, .16)]
+    signal, _ = render(artifact, targets, note_events(notes), .5, mode="host",
+        controller_updates=[(.064, bank_channel, 1), (.064, program_channel, 32), (.16, program_channel, 0)])
+    expected = np.zeros_like(signal)
+    for instrument, events in [(source, [notes[0], notes[2]]), (patch(voice), [notes[1]])]:
+        ordinary, parts = compile_guitars([instrument], mode="host", ksmps=32)
+        audio, _ = render(ordinary, parts, note_events(events), .5, mode="host")
+        expected += audio
+    np.testing.assert_allclose(signal, expected, atol=1e-10)
+
+
+def test_parallel_workers_own_their_dx7_banks():
+    from backend.app.models.audio import AudioGraph, MixerState
+    from backend.app.models.dx7 import Dx7Cartridge
+    from backend.app.models.render_protocol import RendererPolicy
+    from backend.app.services.compiler_common import PatchInstrumentTarget
+    from backend.app.services.compiler_service import CompilerService
+    from backend.app.services.render_partition_plan import plan_render_partitions
+    from backend.tests.render_plan_support import synthetic_costs
+    from backend.tools._sequential_partition_probe import compare_sequential
+    from backend.app.engine.ctcsound_loader import load_ctcsound_module
+
+    targets, routes = [], []
+    for i, voice in enumerate(("iron_bell", "loop_brass")):
+        cartridge = Dx7Cartridge(name=voice + ".syx", data=b64encode(
+            bank(read_sysex((FIXTURES / (voice + ".syx")).read_bytes()) * 32)).decode())
+        identity = f"source{i}"
+        targets.append(PatchInstrumentTarget(patch(), i + 1, identity, dx7_banks={"1": cartridge},
+            performance_controller_values={"__dx7_bank": 1, "__dx7_program": 1}))
+        routes.extend(dict(id=identity+side, sourceId=identity, sourcePort=side, targetId="$master", targetPort=side)
+                      for side in ("left", "right"))
+    graph = AudioGraph(masterId="$master", routes=routes)
+    compiler = CompilerService(OpcodeService("/static/icons"))
+    deps = compiler.analyze_realtime_graph(targets, graph)
+    plan = plan_render_partitions(deps, policy=RendererPolicy(mode="parallel", max_workers=4), costs=synthetic_costs(deps))
+    compiled = compiler.compile_realtime_partitions(targets, graph, MixerState(), plan)
+    assert len(compiled.programs) >= 2
+    for target in targets:
+        for program in compiled.programs:
+            assert (target.dx7_banks["1"].digest in program.csd) == ("patch:" + target.assignment_id in program.stages)
+    result = compare_sequential(compiled, plan, frames=6144, events=[(0, [144, 60, 100]), (256, [145, 72, 100])],
+                                module=load_ctcsound_module())
+    assert np.max(abs(result.canonical)) > .001
+    np.testing.assert_array_equal(result.partitioned, result.canonical)

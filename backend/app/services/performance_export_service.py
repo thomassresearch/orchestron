@@ -207,6 +207,9 @@ class PerformanceExportService:
             sample_filecodes[sample] = code
             sample_files.append(BundledAsset(self._gen_asset_service.resolve_audio_path(sample),
                                              str(asset_directory / f"soundin.{code}")))
+        cartridges = {bank.digest: bank for instrument in request.performance_export.performance.config.instruments
+                      for bank in instrument.dx7_banks.values()}
+        bank_files = {str(asset_directory / f"dx7-{digest}.syx"): bank for digest, bank in cartridges.items()}
         base_name = self._sanitize_file_base_name(request.performance_export.performance.name)
         bundle_root = PurePosixPath(base_name)
         midi_file_name = f"{base_name}.mid"
@@ -214,6 +217,7 @@ class PerformanceExportService:
         output_wave_name = f"{base_name}.wav"
 
         reserved_names = {PurePosixPath(file.archive_path).name for file in sample_files}
+        reserved_names.update(PurePosixPath(path).name for path in bank_files)
         if not request.samples_in_subfolder:
             reserved_names.update({csd_file_name, midi_file_name, output_wave_name, "README.txt", "WARNINGS.txt"})
         bundle_index = _AssetBundleIndex(self._gen_asset_service, asset_directory, reserved_names)
@@ -366,6 +370,11 @@ class PerformanceExportService:
                     "and source stops. Re-export from Orchestron to change the sampler part.\n"
                 )
 
+        if bank_files:
+            readme += "\nDX7 bank assignments (original Yamaha cartridges):\n"
+            for instrument in config.instruments:
+                for slot, bank in sorted(instrument.dx7_banks.items(), key=lambda item: int(item[0])):
+                    readme += f"{instrument.id or instrument.patch_id} / bank {slot} ({bank.name}): {asset_directory / ('dx7-' + bank.digest + '.syx')}\n"
         archive_buffer = output if output is not None else BytesIO()
         with zipfile.ZipFile(archive_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(str(bundle_root / csd_file_name), csd.encode("utf-8"))
@@ -374,6 +383,8 @@ class PerformanceExportService:
             archive.writestr(str(bundle_root / "README.txt"), readme.encode("utf-8"))
             if warnings:
                 archive.writestr(str(bundle_root / "WARNINGS.txt"), "\n".join(warnings).encode("utf-8"))
+            for path, bank in bank_files.items():
+                archive.writestr(str(bundle_root / path), bank.raw)
             for asset in [*bundle_index.assets, *sample_files]:
                 archive.write(asset.source_path, str(bundle_root / asset.archive_path))
 
@@ -486,6 +497,7 @@ class PerformanceExportService:
                     performance_controller_values=instrument.performance_controller_values,
                     performance_controller_midi_ccs=instrument.performance_controller_midi_ccs,
                     always_on=definition.always_on,
+                    dx7_banks=instrument.dx7_banks,
                     samples={
                         entry.note: performance_export.performance.config.sample_assets[entry.asset_id].playback
                         for entry in instrument.sample_map.entries

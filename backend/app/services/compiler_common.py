@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 
 from backend.app.models.sample_player import SamplePlayback
+from backend.app.models.dx7 import Dx7Banks
 from backend.app.models.patch import Connection, NodeInstance, PatchDocument
 from backend.app.models.opcode import OpcodeSpec
 from backend.app.models.audio import AudioDiagnostic
@@ -63,6 +64,7 @@ class PatchInstrumentTarget:
     samples: dict[int, SamplePlayback] = field(default_factory=dict)
     sample_filecodes: dict[str, int] = field(default_factory=dict)
     fm6_preview: dict[str, dict[str, float]] = field(default_factory=dict)
+    dx7_banks: Dx7Banks = field(default_factory=dict)
 
 
 @dataclass(slots=True)

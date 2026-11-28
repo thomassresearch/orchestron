@@ -9004,10 +9004,10 @@
         "spanish": "Ganancia de salida seca en dB (−90 a 0)."
       },
       "ipreset": {
-        "english": "Integer sampled at note start. 0 plays the editor voice and 1–32 select the numbered DX7 factory presets.",
-        "german": "Ganze Zahl beim Anschlag. 0 spielt die Stimme aus dem Editor, 1–32 wählen die nummerierten DX7-Werksklänge.",
-        "french": "Numéro entier lu au début de chaque note. 0 joue la voix de l’éditeur et 1 à 32 sélectionnent les préréglages DX7 numérotés.",
-        "spanish": "Número entero leído al inicio de cada nota. 0 reproduce la voz del editor y los valores de 1 a 32 seleccionan los preajustes DX7 numerados."
+        "english": "Integer sampled at note start. 0 plays the editor voice and 1–32 select programs in the active rack bank (factory presets in bank 0).",
+        "german": "Ganze Zahl beim Anschlag. 0 spielt die Stimme aus dem Editor, 1–32 wählen Programme der aktiven Rack-Bank (Werksklänge in Bank 0).",
+        "french": "Numéro entier lu au début de chaque note. 0 joue la voix de l’éditeur et 1 à 32 sélectionnent les programmes de la banque active du rack (sons d’usine dans la banque 0).",
+        "spanish": "Número entero leído al inicio de cada nota. 0 reproduce la voz del editor y los valores de 1 a 32 seleccionan los programas del banco activo del rack (sonidos de fábrica en el banco 0)."
       },
       "imaxrelease": {
         "english": "Sampled at key-down. 0 keeps the native release. A value from 1 to 120 seconds limits the tail after key-up.",

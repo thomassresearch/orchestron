@@ -15,6 +15,7 @@ def is_safe_integer(value: float) -> bool:
 
 class PerformanceControllerDefinition(BaseModel):
     node_id: str
+    dx7_role: Literal["bank", "program"] | None = Field(default=None, exclude_if=lambda role: role is None)
     # Derived from graph wiring, never trusted from node parameters/imports.
     update_mode: Literal["live", "init", "mixed", "unused"] = "init"
     controller_type: Literal["float", "integer", "bool"] = "float"

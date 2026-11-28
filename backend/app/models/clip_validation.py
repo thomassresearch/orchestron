@@ -18,18 +18,18 @@ def validate_authored_clips(document):
         if isinstance(sequencer, dict) and any(isinstance(t, dict) and t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])):
             raise ValueError("Instrument automation requires a clip arrangement.")
         return document
-    if document.get("version") not in (5, 6, 7, 8, 9, 10, 23, 24, 25, 26, 27, 28):
-        raise ValueError("Clip arrangements require performance v23–28 or app state v5–10.")
+    if document.get("version") not in (5, 6, 7, 8, 9, 10, 11, 23, 24, 25, 26, 27, 28, 29):
+        raise ValueError("Clip arrangements require performance v23–29 or app state v5–11.")
     model = sequencer["clipArrangement"]
     if not isinstance(model, dict) or model.get("version") not in (1, 2, 3, 4, 5):
         raise ValueError("Unsupported clip arrangement version.")
-    if model["version"] >= 2 and document.get("version") not in (6, 7, 8, 9, 10, 24, 25, 26, 27, 28):
+    if model["version"] >= 2 and document.get("version") not in (6, 7, 8, 9, 10, 11, 24, 25, 26, 27, 28, 29):
         raise ValueError("Instrument automation requires performance v24 or app state v6.")
-    if model["version"] >= 3 and document.get("version") not in (7, 8, 9, 10, 25, 26, 27, 28):
+    if model["version"] >= 3 and document.get("version") not in (7, 8, 9, 10, 11, 25, 26, 27, 28, 29):
         raise ValueError("Clip transposition requires performance v25 or app state v7.")
-    if model["version"] == 4 and document.get("version") not in (8, 9, 10, 26, 27, 28):
+    if model["version"] == 4 and document.get("version") not in (8, 9, 10, 11, 26, 27, 28, 29):
         raise ValueError("Content repetition indices require performance v26 or app state v8.")
-    if model["version"] == 5 and document.get("version") not in (10, 28):
+    if model["version"] == 5 and document.get("version") not in (10, 11, 28, 29):
         raise ValueError("Clip joins and cuts require performance v28 or app state v10.")
     _integer(model.get("revision"))
     end = _integer(model.get("end"), 1)

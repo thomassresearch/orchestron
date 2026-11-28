@@ -2,8 +2,13 @@
 
 from base64 import b64decode, b64encode
 from binascii import Error
+from functools import cached_property
+from hashlib import sha256
 import json
 from pathlib import Path
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 DX7 = json.loads((DATA / "dx7.json").read_text())
@@ -113,3 +118,37 @@ def read_sysex(dump: bytes) -> list[bytes]:
 def describe_voice(data: bytes) -> dict[str, str | int]:
     name = "".join(chr(v) if 32 <= v < 127 else " " for v in data[145:]).strip()
     return {"name": name, "algorithm": data[134] + 1, "voice": b64encode(data).decode("ascii")}
+
+
+class Dx7Cartridge(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    name: str = Field(min_length=1, max_length=255)
+    data: str = Field(min_length=5472, max_length=5472)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, name):
+        if any(ord(char) < 32 or char in "/\\\x7f" for char in name):
+            raise ValueError("Invalid DX7 cartridge filename.")
+        return name
+
+    @field_validator("data")
+    @classmethod
+    def validate_dump(cls, value):
+        raw = b64decode(value, validate=True)
+        if len(raw) != MAX_DUMP_BYTES:
+            raise ValueError("Expected a complete 32-voice DX7 bank.")
+        read_sysex(raw)
+        return value
+
+    @cached_property
+    def raw(self) -> bytes:
+        return b64decode(self.data)
+
+    @cached_property
+    def digest(self) -> str:
+        return sha256(self.raw).hexdigest()
+
+
+Dx7Banks = Annotated[dict[Annotated[str, StringConstraints(pattern=r"^(?:[1-9]|1[0-6])$")], Dx7Cartridge],
+                     Field(max_length=16)]

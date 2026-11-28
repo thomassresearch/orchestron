@@ -591,6 +591,7 @@ export type SampleAssets = Record<string, SampleAsset>;
 export type SampleMap = { version: 1; entries: Array<{ note: number; assetId: string }> };
 
 export interface SessionInstrumentAssignment {
+  dx7_banks?: Dx7Banks;
   sample_map?: { version: 1; entries: Array<{ note: number; asset_id?: string; assetId?: string }> };
   performance_controller_values?: Record<string, number>;
   performance_controller_midi_ccs?: Record<string, number>;
@@ -603,7 +604,10 @@ export interface SessionInstrumentAssignment {
 
 export type PerformanceControllerType = "float" | "integer" | "bool";
 
+export type Dx7Banks = Record<string, {name: string; data: string}>;
+
 export interface PerformanceControllerDefinition {
+  dx7_role?: "bank" | "program";
   node_id: string;
   update_mode?: "live" | "init" | "mixed" | "unused";
   controller_group?: string;
@@ -617,6 +621,7 @@ export interface PerformanceControllerDefinition {
 }
 
 export interface SequencerInstrumentBinding {
+  dx7Banks?: Dx7Banks;
   sampleMap?: SampleMap;
   sampleAssets?: SampleAssets;
   performanceControllerValues?: Record<string, number>;
@@ -635,10 +640,11 @@ export interface SequencerConfigSnapshot {
   sampleAssets?: SampleAssets;
   routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   instruments: Array<{
+    dx7Banks?: Dx7Banks;
     sampleMap?: SampleMap;
     performanceControllerValues?: Record<string, number>;
   performanceControllerMidiCCs?: Record<string, number>;
@@ -809,7 +815,7 @@ export interface PersistedAppState {
   sampleAssets?: SampleAssets;
   routingLayout?: RoutingLayout;
   arrangerHistory?: import("../store/arrangerHistory").ArrangerHistory;
-  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
   audioGraph?: AudioGraph;
   mixer?: MixerState;
   activePage: AppPage;

@@ -1173,7 +1173,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     // CSD export validates routing after the backend selects device/routing
     // instruments. Native exports still validate the complete saved rack.
     if (purpose === "native") {
-      await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel, performance_controller_values: b.performanceControllerValues, performance_controller_midi_ccs: b.performanceControllerMidiCCs, sample_map: wireSampleMap(b.sampleMap) })), snapshot.audioGraph!, snapshot.mixer!, snapshot.sampleAssets);
+      await api.validateAudio(snapshot.instruments.map((b) => ({ id: b.id, patch_id: b.patchId, midi_channel: b.midiChannel, performance_controller_values: b.performanceControllerValues, performance_controller_midi_ccs: b.performanceControllerMidiCCs, dx7_banks: b.dx7Banks, sample_map: wireSampleMap(b.sampleMap) })), snapshot.audioGraph!, snapshot.mixer!, snapshot.sampleAssets);
     }
     const patchIds = [...new Set(snapshot.instruments.map((instrument) => instrument.patchId.trim()).filter(Boolean))];
     const selectedPatches = await Promise.all(patchIds.map((patchId) => api.getPatch(patchId)));

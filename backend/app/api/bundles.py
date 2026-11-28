@@ -73,7 +73,7 @@ def _normalize_import_payload(parsed: object, container: AppContainer) -> object
             _strip_patch_engine_settings(performance["config"])
             config = validate_authored_samples(normalize_project_engine(performance["config"]))
             parsed = {**parsed, "performance": {**performance, "config": config}}
-        elif "sampleAssets" in parsed or parsed.get("version") == 27:
+        elif "sampleAssets" in parsed or parsed.get("version") in (27, 29):
             parsed = validate_authored_samples(parsed)
         elif isinstance(parsed.get("audioGraph"), dict):
             parsed = container.performance_service.normalize_config(parsed)

@@ -63,6 +63,8 @@ When instruments use uploaded audio samples, SoundFonts or analysis files, Orche
 [Sample Player](sample_player.md) bundles keep every instance’s note map, including unused
 instances, and include both the original uploads and the audio prepared for playback.
 
+DX7 rack instances retain their original SysEx cartridges in native performance bundles. Both CSD exports include the original `.syx` files for every loaded slot on exported instances, including inactive slots. Identical cartridges share a file. The package README lists the assignments. The orchestra embeds the voices used for playback. The asset-folder choice also applies to DX7 cartridges.
+
 ## Import a performance
 
 1. Choose **Project → Import** and select an Orchestron performance bundle.

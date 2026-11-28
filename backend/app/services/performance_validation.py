@@ -19,6 +19,7 @@ def validate_performance(container, body: dict) -> dict:
             {
                 "id": i.get("id"),
                 "patch_id": i.get("patchId"),
+                "dx7_banks": i.get("dx7Banks", {}),
                 "sample_map": i.get("sampleMap"),
                 "midi_channel": i.get("midiChannel", 1),
                 "performance_controller_values": i.get("performanceControllerValues", {}),

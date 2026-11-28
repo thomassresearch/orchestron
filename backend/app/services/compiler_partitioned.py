@@ -18,8 +18,9 @@ from backend.app.services.compiler_orchestra import OrchestraEmitter
 from backend.app.services.compiler_render_resources import stable_hash
 from backend.app.services.compiler_private_tables import AUTO_TABLE_BASE, TABLE_CACHE_ENTRIES
 from backend.app.services.compiler_sample_player import setup_sample_tables
+from backend.app.services.compiler_dx7 import dx7_header
 from backend.app.services.compiler_stage_lowering import (
-    AlwaysOn, ControlInit, MidiAssignment, SampleTableSetup, ScopedSetup, header_lines,
+    AlwaysOn, ControlInit, Dx7BankSetup, MidiAssignment, SampleTableSetup, ScopedSetup, header_lines,
 )
 from backend.app.services.render_partition_plan import validate_partition_plan
 
@@ -141,6 +142,8 @@ def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: Rend
                     lines.append(f"connect {quote(names[entry.source])}, {quote(entry.outlet)}, {quote(egress)}, {quote(bus.id)}")
                 elif bus.consumer == partition.id:
                     lines.append(f"connect {quote(ingress)}, {quote(bus.id)}, {quote(names[entry.target])}, {quote(entry.inlet)}")
+            elif isinstance(entry, Dx7BankSetup):
+                lines.extend(dx7_header([t for t in targets if "patch:" + t.assignment_id in names]))
             elif isinstance(entry, SampleTableSetup):
                 local = [t for t in targets if "patch:" + t.assignment_id in names]
                 setup, _ = setup_sample_tables(local, [refs["patch:" + t.assignment_id] for t in local],

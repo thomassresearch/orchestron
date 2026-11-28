@@ -44,6 +44,7 @@ import { performanceDeviceDisplayName, type PerformanceDeviceKind } from "../lib
 import { CollapsiblePanel, type PanelCollapseState } from "./CollapsiblePanel";
 import { PatchPicker } from "./PatchPicker";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./sequencer/PerformanceControllerRack";
+import { Dx7BankRack } from "./sequencer/Dx7BankRack";
 import { SamplePlayerRack } from "./sequencer/SamplePlayerRack";
 import { sampleCopy } from "../lib/sampleCopy";
 import { AdaptiveInstrumentRack } from "./sequencer/AdaptiveInstrumentRack";
@@ -1504,6 +1505,7 @@ function RackBody({ context, showProject, selectable = false }: { context: Retur
           </button>
         </div>
         <PerformanceControllerRack binding={binding} patch={selectedPatch} language={guiLanguage} />
+        {selectedPatch?.performance_controllers?.some(d => d.dx7_role === "bank") && <Dx7BankRack key={binding.id + binding.patchId} binding={binding} definitions={selectedPatch.performance_controllers} language={guiLanguage} running={instrumentsRunning} />}
         {(selectedPatch?.has_sample_player || binding.sampleMap?.entries.length) ?
           <SamplePlayerRack key={binding.patchId} binding={binding} label={`${ui.patch(index + 1)} · ${name} · ${ui.channel} ${binding.midiChannel}`}
             capable={!!selectedPatch?.has_sample_player && !isAlwaysOn} language={guiLanguage} running={instrumentsRunning} /> : null}

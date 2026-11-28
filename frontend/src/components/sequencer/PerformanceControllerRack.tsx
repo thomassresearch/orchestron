@@ -13,7 +13,7 @@ export function PerformanceControllerRack({ binding, patch, language }: {
   const setCC = useAppStore((state) => state.setPerformanceControllerMidiCC);
   const setValue = useAppStore((state) => state.setPerformanceControllerValue);
   const copy = performanceControllerCopy(language);
-  const definitions = patch?.performance_controllers ?? [];
+  const definitions = patch?.performance_controllers?.filter(d => !d.dx7_role) ?? [];
   const contentKey = JSON.stringify([language, definitions, !!patch?.always_on]);
   const { ref, width, metrics } = useRackGeometry(contentKey);
   const groups = useMemo(() => groupControllers((JSON.parse(contentKey) as [string, typeof definitions])[1]), [contentKey]);

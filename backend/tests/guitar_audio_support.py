@@ -30,7 +30,7 @@ def note_events(notes, channel=0):
     return sorted(events, key=lambda e: (e[0], bool(e[1][0] & 0x10)))
 
 
-def compile_guitars(patches, *, mode="score", settings=None, ksmps=None, fm6_preview=False):
+def compile_guitars(patches, *, mode="score", settings=None, ksmps=None, fm6_preview=False, dx7_banks=None):
     settings = settings or [{} for _ in patches]
     targets, routes = [], []
     for index, (patch, values) in enumerate(zip(patches, settings, strict=True)):
@@ -40,6 +40,7 @@ def compile_guitars(patches, *, mode="score", settings=None, ksmps=None, fm6_pre
         patch.graph.engine_config.control_rate = 48000 / block
         identity = f"guitar{index}"
         targets.append(PatchInstrumentTarget(patch=patch, midi_channel=index + 1, assignment_id=identity,
+                                             dx7_banks=dx7_banks[index] if dx7_banks else {},
                                              performance_controller_values=values))
         if fm6_preview:
             from backend.app.services.compiler_fm6 import preview_values

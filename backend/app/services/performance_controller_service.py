@@ -66,7 +66,24 @@ def controller_definitions(graph, *, strict=True, opcode_service=None) -> list[P
                 raise CompilationError([message]) from exc
             definition = PerformanceControllerDefinition(node_id=node.id, error=message)
         result.append(definition)
+    dx7_nodes = [node for node in graph.nodes if node.opcode == "fm_dx7"]
+    if dx7_nodes:
+        used = {node.id for node in graph.nodes}
+        for role, maximum, default in [("bank", 16, 0), ("program", 32, -1)]:
+            if role == "program" and all(dx7_preset_driven(graph, node) for node in dx7_nodes):
+                continue
+            identity = "__dx7_" + role
+            while identity in used:
+                identity += "_"
+            result.append(PerformanceControllerDefinition(node_id=identity, dx7_role=role, label="DX7 " + role,
+                controller_type="integer", min=default, max=maximum, default=default))
     return result
+
+
+def dx7_preset_driven(graph, node):
+    from backend.app.services.compiler_formula import formula_target_key, lookup_input_formula_config
+    return (any(link.to_node_id == node.id and link.to_port_id == "ipreset" for link in graph.connections)
+            or bool(lookup_input_formula_config(graph.ui_layout, formula_target_key(node.id, "ipreset"))))
 
 
 def validate_controller_values(definitions, values: dict[str, float]) -> dict[str, float]:

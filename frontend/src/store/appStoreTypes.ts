@@ -157,6 +157,7 @@ export interface AppStore {
   saveCurrentPerformance: () => Promise<void>;
 
   sampleUploads: number;
+  applyDx7Banks: (binding: import("../types").SequencerInstrumentBinding, generation: number, banks: import("../types").Dx7Banks) => boolean;
   applySampleMap: (binding: import("../types").SequencerInstrumentBinding, generation: number,
     map: import("../types").SampleMap | undefined, assets: import("../types").SampleAssets) => void;
   duplicateSamplePlayer: (bindingId: string) => void;

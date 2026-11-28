@@ -4,7 +4,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
-from backend.app.models.dx7 import DX7, DX7_PRESETS, DX7_PREVIEW_KEYS, node_voice
+from backend.app.models.dx7 import DX7, DX7_PRESETS, DX7_PREVIEW_KEYS, node_voice, read_sysex
 from backend.app.models.opcode import SignalType
 from backend.app.services.compiler_formula import formula_target_key, lookup_input_formula_config
 from backend.app.services.compiler_fm6 import preview_channel
@@ -71,7 +71,7 @@ def dx7_lifetime_lines(instrument_number, limit, retire_when_silent, outlets, he
             "rireturn", "VCS_DX7_END:"]
 
 
-def dx7_node_lines(node, env, preview, assignment, header):
+def dx7_node_lines(node, env, preview, assignment, header, banks, controllers, driven):
     if preview:
         # chnget:i runs once per note. The engine applies each host update as a batch.
         array = "i" + env["aout"][1:] + "_dx7"
@@ -84,7 +84,27 @@ def dx7_node_lines(node, env, preview, assignment, header):
     else:
         array = _voice_array(_voice_data(node))
         lines = []
-    args = (env["ikey"], env["ivelocity"], env["kbend"], env["igain"], array, env["ipreset"], env["imaxrelease"])
+    prefix = "i" + env["aout"][1:]
+    preset = env["ipreset"]
+    for controller in (controllers or {}).values():
+        role = controller.get("dx7_role")
+        if not role or role == "program" and driven:
+            continue
+        channel = controller["channel"]
+        header.append(f'chnset {controller["value"]:.17g}, "{channel}"')
+        lines.append(f'{prefix}_{role} chnget "{channel}"')
+        if role == "program":
+            preset = f"({prefix}_program < 0 ? {preset} : {prefix}_program)"
+    if banks:
+        selected = prefix + "_selected"
+        lines.append(f"{selected} = limit(round({preset}), 0, 32)")
+        for slot, bank in sorted(banks.items()):
+            lines.extend([f"if {prefix}_bank == {slot} && {selected} > 0 then",
+                          f" {selected} += giDx7Offset_{bank.digest}", "endif"])
+        preset = selected
+    else:
+        preset = f"limit(round({preset}), 0, 32)"
+    args = (env["ikey"], env["ivelocity"], env["kbend"], env["igain"], array, preset, env["imaxrelease"])
     return [*lines, f"{env['aout']}, k_{env['aout']}_done fm_dx7 " + ", ".join(args)]
 
 
@@ -131,8 +151,14 @@ def _route(algorithm):
 
 def dx7_header(targets):
     voices = set()
+    cartridges = {}
     audition = False
     for target in targets:
+        if target.dx7_banks and not any(node.opcode == "fm_dx7" for node in target.patch.graph.nodes):
+            raise CompilationError(["DX7 banks require an fm_dx7 instrument."])
+        for bank in target.dx7_banks.values():
+            if bank.digest not in cartridges:
+                cartridges[bank.digest] = [voice[:145] for voice in read_sysex(bank.raw)]
         for node in target.patch.graph.nodes:
             if node.opcode == "fm_dx7":
                 if (
@@ -145,7 +171,12 @@ def dx7_header(targets):
                 audition |= node.id in target.fm6_preview
     if not voices:
         return []
-    voices.update(DX7_PRESETS.values())
+    presets = list(DX7_PRESETS.values())
+    offsets = []
+    for digest, programs in sorted(cartridges.items()):
+        offsets.append(f"giDx7Offset_{digest} init {len(presets)}")
+        presets.extend(programs)
+    voices.update(presets)
     algorithms = range(1, 33) if audition else sorted({voice[134] + 1 for voice in voices})
     curves = json.loads((DATA / "dx7_curves.json").read_text())
     lines = [
@@ -155,8 +186,9 @@ def dx7_header(targets):
     ]
     lines += [f"giDx7_{name}[] fillarray " + ", ".join(map(str, values)) for name, values in curves.items()]
     lines += [f"{_voice_array(v)}[] fillarray " + ", ".join(map(str, v)) for v in sorted(voices)]
-    lines.append(f"giDx7Presets[][] init {len(DX7_PRESETS)}, {len(DX7_PREVIEW_KEYS)}")
-    for slot, voice in DX7_PRESETS.items():
+    lines.extend(offsets)
+    lines.append(f"giDx7Presets[][] init {len(presets)}, {len(DX7_PREVIEW_KEYS)}")
+    for slot, voice in enumerate(presets, 1):
         lines.append(f"giDx7Presets setrow {_voice_array(voice)}, {slot - 1}")
     feedback_routes = (ALGORITHMS[a - 1]["feedback"] for a in algorithms)
     loop_lengths = {end - start + 1 for start, end in feedback_routes}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from backend.app.models.performance_controller import ControllerNumber, PerformanceMidiCC
 
+from backend.app.models.dx7 import Dx7Banks
 from backend.app.models.sample_player import SampleAssets, SampleMap, validate_authored_samples
 from backend.app.models.audio import AudioGraph, MixerState
 
@@ -65,6 +66,7 @@ class ExportPerformanceEffectRoute(BaseModel):
 
 
 class ExportPerformanceInstrumentAssignment(BaseModel):
+    dx7_banks: Dx7Banks = Field(default_factory=dict, alias="dx7Banks", exclude_if=lambda banks: not banks)
     sample_map: SampleMap | None = Field(default=None, alias="sampleMap", exclude_if=lambda value: value is None)
     performance_controller_values: dict[str, ControllerNumber] = Field(default_factory=dict, alias="performanceControllerValues")
     performance_controller_midi_ccs: dict[str, PerformanceMidiCC] = Field(default_factory=dict, alias="performanceControllerMidiCCs")
@@ -95,7 +97,7 @@ class ExportPerformanceConfig(BaseModel):
     sample_assets: SampleAssets = Field(default_factory=dict, alias="sampleAssets", exclude_if=lambda value: not value)
     audio_graph: AudioGraph | None = Field(default=None, alias="audioGraph")
     mixer: MixerState = Field(default_factory=MixerState)
-    version: int = Field(default=1, ge=1, le=28)
+    version: int = Field(default=1, ge=1, le=29)
     instruments: list[ExportPerformanceInstrumentAssignment] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")

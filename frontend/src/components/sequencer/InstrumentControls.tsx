@@ -6,6 +6,7 @@ import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage } from "../../types";
 import { InsertBypass } from "../MixerStripControls";
 import { editMixerPatch } from "../PerformMixer";
+import { Dx7BankRack } from "./Dx7BankRack";
 import { AdaptiveInstrumentRack } from "./AdaptiveInstrumentRack";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./PerformanceControllerRack";
 import { mixCopy } from "./mixCopy";
@@ -16,6 +17,7 @@ export function InstrumentControls({ ids, language, onSamples }: {
 }) {
   const audio = audioCopy(language), copy = mixCopy(language), ui = SEQUENCER_UI_COPY[language];
   const bindings = useAppStore(s => s.sequencerInstruments);
+  const running = useAppStore(s => s.activeSessionState === "running");
   const patches = useAppStore(s => s.patches);
   const graph = useAppStore(s => s.audioGraph);
   const patchesById = useMemo(() => new Map(patches.map(p => [p.id, p])), [patches]);
@@ -38,6 +40,8 @@ export function InstrumentControls({ ids, language, onSamples }: {
           {owner && <InsertBypass id={row.id} name={item?.name ?? row.patchId} patch={item} language={language} />}
         </header>
         <PerformanceControllerRack key={row.patchId} binding={row} patch={item} language={language} />
+        {item?.performance_controllers?.some(d => d.dx7_role === "bank") &&
+          <Dx7BankRack key={`dx7-${row.patchId}`} binding={row} definitions={item.performance_controllers} language={language} running={running} />}
         {!item?.performance_controllers?.length && <p>{copy("noControls")}</p>}
         <div className="ws-mix-actions">
           {onSamples && item?.has_sample_player && !item.always_on && <button onClick={() => onSamples(row.id)}>{copy("samples")}</button>}

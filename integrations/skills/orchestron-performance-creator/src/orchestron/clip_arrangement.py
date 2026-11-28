@@ -24,17 +24,17 @@ def project_clips(config):
     result = deepcopy(config)
     sequencer = result["sequencer"]
     model = sequencer.pop("clipArrangement")
-    if config.get("version") not in (23, 24, 25, 26, 27, 28) or model.get("version") not in (1, 2, 3, 4, 5):
+    if config.get("version") not in (23, 24, 25, 26, 27, 28, 29) or model.get("version") not in (1, 2, 3, 4, 5):
         raise ValueError("Unsupported clip arrangement version.")
-    if model["version"] == 5 and config["version"] != 28:
+    if model["version"] == 5 and config["version"] not in (28, 29):
         raise ValueError("Clip joins and cuts require performance v28.")
-    if model["version"] == 4 and config["version"] not in (26, 27, 28):
+    if model["version"] == 4 and config["version"] not in (26, 27, 28, 29):
         raise ValueError("Content repetition indices require performance v26.")
-    if model["version"] >= 2 and config["version"] not in (24, 25, 26, 27, 28):
+    if model["version"] >= 2 and config["version"] not in (24, 25, 26, 27, 28, 29):
         raise ValueError("Clip model v2 requires performance v24.")
     if sum(not t.get("automationTarget") for t in sequencer.get("controllerSequencers", [])) > 16:
         raise ValueError("At most 16 generic controller sequencers are allowed.")
-    if model["version"] >= 3 and config["version"] not in (25, 26, 27, 28):
+    if model["version"] >= 3 and config["version"] not in (25, 26, 27, 28, 29):
         raise ValueError("Clip transposition requires performance v25.")
     from .clip_transposition import validate_transpositions
     identities = set()
@@ -64,7 +64,7 @@ def project_clips(config):
         track = next(t for t in tracks if t["id"] == lane["id"])
         target = track.get("automationTarget")
         if target:
-            if model["version"] < 2 or config["version"] not in (24, 25, 26, 27, 28) or lane["source"] != "controller":
+            if model["version"] < 2 or config["version"] not in (24, 25, 26, 27, 28, 29) or lane["source"] != "controller":
                 raise ValueError("Instrument automation requires clip model v2 and performance v24.")
             nodes = target.get("controllerNodeIds")
             if (not isinstance(target.get("instrumentId"), str) or not 1 <= len(target["instrumentId"]) <= 128

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter, field_validator, model_validator
 
 SAMPLE_RATE = 48_000
 MAX_SAMPLE_SECONDS = 120
@@ -121,7 +121,7 @@ def validate_authored_samples(value, *, recovery: bool = False):
         return value
     version = value.get("version")
     minimum_sample_version = 9 if recovery else 27
-    maximum = minimum_sample_version + 1
+    maximum = minimum_sample_version + 2
     if version is not None and (type(version) is not int or not 1 <= version <= maximum):
         raise ValueError("Unsupported application state or performance version.")
     # Recovery flattens the current rack into the app-state snapshot.
@@ -129,13 +129,23 @@ def validate_authored_samples(value, *, recovery: bool = False):
     if not isinstance(raw_instruments, list):
         raw_instruments = []
     has_sample_data = "sampleAssets" in value or any(isinstance(i, dict) and "sampleMap" in i for i in raw_instruments)
-    if not has_sample_data:
+    bank_maps = [i["dx7Banks"] for i in raw_instruments if isinstance(i, dict) and "dx7Banks" in i]
+    if not has_sample_data and not bank_maps:
         return value
-    if version not in (minimum_sample_version, maximum):
-        raise ValueError(f"Sample maps require format version {minimum_sample_version} or later.")
-    from pydantic import TypeAdapter
     if len(raw_instruments) > 64:
         raise ValueError("Too many instrument assignments.")
+    if bank_maps:
+        if version != maximum:
+            raise ValueError(f"DX7 banks require format version {maximum}.")
+        from backend.app.models.dx7 import Dx7Banks
+        adapter = TypeAdapter(Dx7Banks)
+        for banks in bank_maps:
+            adapter.validate_python(banks)
+    if not has_sample_data:
+        return value
+    if version not in range(minimum_sample_version, maximum + 1):
+        raise ValueError(f"Sample maps require format version {minimum_sample_version} or later.")
+
     manifest = TypeAdapter(SampleAssets).validate_python(value.get("sampleAssets", {}))
     instruments = []
     maps = []
