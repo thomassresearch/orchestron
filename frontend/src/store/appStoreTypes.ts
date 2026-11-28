@@ -157,6 +157,8 @@ export interface AppStore {
   newPerformanceWorkspace: () => Promise<void>;
   saveCurrentPerformance: () => Promise<boolean>;
 
+  /** Original cartridge slots for rack instances edited since the last performance save. */
+  dx7BankEdits: Record<string, import("../types").Dx7Banks>;
   sampleUploads: number;
   applyDx7Banks: (binding: import("../types").SequencerInstrumentBinding, generation: number, banks: import("../types").Dx7Banks) => boolean;
   applySampleMap: (binding: import("../types").SequencerInstrumentBinding, generation: number,

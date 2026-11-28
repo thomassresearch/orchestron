@@ -115,14 +115,9 @@ opcode vcs_dx7_operator, aaik, i[]iiikkkkki
  xout aPhase, aAmp, iTail, kSilent
 endop
 
-opcode fm_dx7, ak, iikii[]oo
- iNote, iVelocityIn, kBend, iGainDb, iEditorVoice[], iPresetIn, iMaxRelease xin
- iPreset = limit(round(iPresetIn), 0, lenarray(giDx7Presets))
- if iPreset == 0 then
-  iVoice[] = iEditorVoice
- else
-  iVoice[] getrow giDx7Presets, iPreset - 1
- endif
+; Give the voice its own unambiguous UDO name for live preallocation.
+opcode vcs_dx7_voice, ak, iikii[]o
+ iNote, iVelocityIn, kBend, iGainDb, iVoice[], iMaxRelease xin
  iKey = limit(round(iNote),0,127) + iVoice[144]-24
  iVelocity = round(limit(iVelocityIn,0,1)*127)
  iGain = ampdb(limit(iGainDb,-90,0))

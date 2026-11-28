@@ -602,11 +602,9 @@ def lower_mixer_bundle(
     header += swept_gate_header([target for target in targets if target.assignment_id not in omitted])
     included_targets = [target for target in targets if target.assignment_id not in omitted]
     header += fm6_header(included_targets)
-    dx7_setup = dx7_header(included_targets)
-    if any(target.dx7_banks for target in included_targets):
+    dx7_setup = dx7_header(included_targets, preallocate=live_mixer)
+    if dx7_setup:
         header.append(Dx7BankSetup(tuple(dx7_setup)))
-    else:
-        header.extend(dx7_setup)
     if live_mixer:
         header += [ControlInit(name, value) for name, value in controls.items()]
     else:
@@ -695,6 +693,7 @@ def lower_mixer_bundle(
                 legato_identity=identity if identity in legato_refs else None,
                 private_table_limit=(private_table_limits or {}).get(stage),
                 dx7_banks=target.dx7_banks,
+                preallocate_dx7=live_mixer,
                 sampler_mapped=bool(target.samples),
                 fm6_preview=target.fm6_preview,
             )

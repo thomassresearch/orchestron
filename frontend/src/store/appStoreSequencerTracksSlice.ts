@@ -227,6 +227,7 @@ export function createSequencerTrackStoreActions(
       if (!state.sequencerInstruments.some(binding => binding.id === bindingId)) return;
       const next = removeRackInstrument(state.audioGraph, state.mixer, state.sequencerInstruments, state.patches, bindingId);
       set({
+        dx7BankEdits: Object.fromEntries(Object.entries(state.dx7BankEdits).filter(([id]) => id !== bindingId)),
         routingLayout: readRoutingLayout(state.routingLayout, next.bindings, next.audioGraph),
         audioGraph: next.audioGraph,
         mixer: next.mixer,
@@ -251,6 +252,8 @@ export function createSequencerTrackStoreActions(
       const availablePatches = performablePatches(state.patches);
       const patch = availablePatches.find((candidate) => candidate.id === patchId);
       set({
+        dx7BankEdits: state.sequencerInstruments.some(row => row.id === bindingId && row.patchId !== patchId)
+          ? Object.fromEntries(Object.entries(state.dx7BankEdits).filter(([id]) => id !== bindingId)) : state.dx7BankEdits,
         sequencerInstruments: normalizeEffectRoutesForBindings(
           state.sequencerInstruments.map((binding) =>
             binding.id === bindingId
@@ -342,6 +345,7 @@ export function createSequencerTrackStoreActions(
 
         set({
           performanceWorkspaceGeneration: state.performanceWorkspaceGeneration + 1,
+          dx7BankEdits: {},
           savedPerformanceSequencer: null,
           sequencerEditingPads: {},
           performanceAuditions: {},

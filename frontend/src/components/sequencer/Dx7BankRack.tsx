@@ -1,101 +1,126 @@
-import {useEffect, useRef, useState} from "react";
-import {api} from "../../api/client";
-import {cartridgeNames} from "../../lib/dx7Banks";
-import {useAppStore} from "../../store/useAppStore";
-import type {GuiLanguage, PerformanceControllerDefinition, SequencerInstrumentBinding} from "../../types";
-import { SEQUENCER_UI_COPY } from "./sequencerUiCopy";
+import { useEffect, useRef, useState } from "react";
+import { ChevronRight, Trash2, Upload } from "lucide-react";
 import factory from "../../../../backend/app/data/dx7-presets.json";
+import { api } from "../../api/client";
+import { cartridgeNames } from "../../lib/dx7Banks";
+import { dx7Name, dx7Voice } from "../../lib/dx7";
+import { performanceControllerCopy } from "../../lib/performanceControllerCopy";
+import { useAppStore } from "../../store/useAppStore";
+import type { GuiLanguage, PerformanceControllerDefinition, SequencerInstrumentBinding } from "../../types";
+import "./dx7BankRack.css";
 
-const labels = {
-  english: ["Bank", "Program", "Instrument", "Editor voice", "Use instrument setting", "Cartridge slot", "Import .syx", "Replace .syx", "Remove", "Choose a 32-voice DX7 cartridge.", "The rack changed. Try again.", "Graph-controlled program", "Performance saved."],
-  german: ["Bank", "Programm", "Instrument", "Editorstimme", "Instrumenteinstellung", "Speicherplatz", ".syx importieren", ".syx ersetzen", "Entfernen", "Eine DX7-Bank mit 32 Stimmen auswählen.", "Rack geändert. Erneut versuchen.", "Programm über Graph gesteuert", "Performance gespeichert."],
-  french: ["Banque", "Programme", "Instrument", "Voix de l’éditeur", "Réglage de l’instrument", "Emplacement", "Importer .syx", "Remplacer .syx", "Retirer", "Choisissez une banque DX7 de 32 voix.", "Le rack a changé. Réessayez.", "Programme piloté par le graphe", "Performance enregistrée."],
-  spanish: ["Banco", "Programa", "Instrumento", "Voz del editor", "Ajuste del instrumento", "Ranura", "Importar .syx", "Reemplazar .syx", "Quitar", "Elige un banco DX7 de 32 voces.", "El rack ha cambiado. Inténtalo de nuevo.", "Programa controlado por el grafo", "Performance guardada."]
+const copy = {
+  english: { bank: "Bank", preset: "Preset", factory: "Factory", editor: "Editor voice", manage: "Manage banks", slot: "Cartridge slot", load: "Import .syx", replace: "Replace .syx", remove: "Remove", invalid: "Choose a 32-voice DX7 cartridge.", stale: "The rack changed. Try again.", saved: "Performance saved.", display: "Selected preset" },
+  german: { bank: "Bank", preset: "Preset", factory: "Werkspresets", editor: "Editorstimme", manage: "Bänke verwalten", slot: "Speicherplatz", load: ".syx importieren", replace: ".syx ersetzen", remove: "Entfernen", invalid: "Eine DX7-Bank mit 32 Stimmen auswählen.", stale: "Rack geändert. Erneut versuchen.", saved: "Performance gespeichert.", display: "Gewähltes Preset" },
+  french: { bank: "Banque", preset: "Préréglage", factory: "Usine", editor: "Voix de l’éditeur", manage: "Gérer les banques", slot: "Emplacement", load: "Importer .syx", replace: "Remplacer .syx", remove: "Retirer", invalid: "Choisissez une banque DX7 de 32 voix.", stale: "Le rack a changé. Réessayez.", saved: "Performance enregistrée.", display: "Préréglage sélectionné" },
+  spanish: { bank: "Banco", preset: "Preajuste", factory: "Fábrica", editor: "Voz del editor", manage: "Gestionar bancos", slot: "Ranura", load: "Importar .syx", replace: "Reemplazar .syx", remove: "Quitar", invalid: "Elige un banco DX7 de 32 voces.", stale: "El rack ha cambiado. Inténtalo de nuevo.", saved: "Performance guardada.", display: "Preajuste seleccionado" }
 };
 const slots = Array.from({length: 16}, (_, i) => i + 1);
-const control = "min-w-0 max-w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs disabled:opacity-50";
-type Props = {binding: SequencerInstrumentBinding; language: GuiLanguage; running: boolean; definitions: PerformanceControllerDefinition[]};
+const digits = (value: number) => String(value).padStart(2, "0");
 
-export function Dx7BankRack({binding, language, running, definitions}: Props) {
-  const [bankLabel, programLabel, instrument, editor, inherit, slotLabel, load, replace, remove, invalid, stale, driven, savedMessage] = labels[language];
+type Props = { binding: SequencerInstrumentBinding; language: GuiLanguage; running: boolean;
+  definitions: PerformanceControllerDefinition[]; patchRevision?: string };
+
+export function Dx7BankRack({binding, language, running, definitions, patchRevision}: Props) {
+  const t = copy[language];
   const [slot, setSlot] = useState(1);
   const [error, setError] = useState("");
-  const [savedBinding, setSavedBinding] = useState<SequencerInstrumentBinding | null>(null);
+  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [editorName, setEditorName] = useState("");
   const alive = useRef(true);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const file = useRef<HTMLInputElement>(null);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  useEffect(() => {
+    let current = true;
+    setEditorName("");
+    void api.getPatch(binding.patchId).then(patch => {
+      const names = patch.graph.nodes.filter(node => node.opcode === "fm_dx7").map(node => dx7Name(dx7Voice(node.params)).trim());
+      if (current && names.length && names.every(name => name === names[0])) setEditorName(names[0]);
+    }).catch(() => {});
+    return () => { current = false; };
+  }, [binding.patchId, patchRevision]);
   const preparing = useAppStore(s => s.loading);
   const uploadingSamples = useAppStore(s => s.sampleUploads > 0);
+  const dirty = useAppStore(s => !!s.dx7BankEdits[binding.id]);
   const setValue = useAppStore(s => s.setPerformanceControllerValue);
   const bank = definitions.find(d => d.dx7_role === "bank");
   const program = definitions.find(d => d.dx7_role === "program");
-  if (!bank) return null;
+  if (!bank || !program) return null;
   const banks = binding.dx7Banks ?? {};
-  const selected = binding.performanceControllerValues?.[bank.node_id] ?? 0;
-  const current = banks[selected];
+  const values = binding.performanceControllerValues ?? {};
+  const selectedBank = values[bank.node_id] ?? 0;
+  const current = banks[selectedBank];
+  const bankNumber = current ? selectedBank : 0;
   const names = current ? cartridgeNames(current.data) : factory.presets.map(p => p.name);
+  const selected = values[program.node_id] ?? 0;
+  const name = selected === 0 ? editorName || t.editor : names[selected - 1] || t.preset;
   const locked = running || busy || preparing;
 
   async function importBank(source: File) {
     const state = useAppStore.getState();
     setError("");
-    setSavedBinding(null);
-    if (source.size !== 4104) { setError(invalid); return; }
+    setSaved(false);
+    if (source.size !== 4104) { setError(t.invalid); return; }
     setBusy(true);
     try {
       await api.dx7Voices(source);
       const data = btoa(String.fromCharCode(...new Uint8Array(await source.arrayBuffer())));
       if (!alive.current) return;
-      if (!state.applyDx7Banks(binding, state.performanceWorkspaceGeneration, {...banks, [slot]: {name: source.name, data}})) setError(stale);
-    } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : invalid); }
+      if (!state.applyDx7Banks(binding, state.performanceWorkspaceGeneration, {...banks, [slot]: {name: source.name, data}})) setError(t.stale);
+    } catch (cause) { if (alive.current) setError(cause instanceof Error ? cause.message : t.invalid); }
     finally { if (alive.current) setBusy(false); }
   }
 
-  async function savePerformance() {
+  async function save() {
     setError("");
-    setSavedBinding(null);
-    const saved = await useAppStore.getState().saveCurrentPerformance();
+    const success = await useAppStore.getState().saveCurrentPerformance();
     if (!alive.current) return;
-    if (saved) setSavedBinding(binding);
-    else setError(useAppStore.getState().error ?? "");
+    setSaved(success);
+    if (!success) setError(useAppStore.getState().error ?? "");
   }
 
-  function clear() {
+  function remove() {
     const next = {...banks};
     delete next[slot];
     const state = useAppStore.getState();
-    if (!state.applyDx7Banks(binding, state.performanceWorkspaceGeneration, next)) { setError(stale); return; }
-    if (selected === slot && bank) setValue(binding.id, bank.node_id, null);
+    setSaved(false);
+    if (!state.applyDx7Banks(binding, state.performanceWorkspaceGeneration, next)) { setError(t.stale); return; }
+    if (selectedBank === slot && bank) setValue(binding.id, bank.node_id, null);
     setError("");
   }
 
-  return <fieldset className="mt-3 w-fit min-w-0 max-w-full rounded border border-slate-600 px-3 pb-3 text-xs text-slate-300">
-    <legend className="px-1 text-cyan-200">DX7</legend>
-    <div className="flex flex-wrap items-end gap-2">
-      <label className="grid min-w-0 max-w-full gap-1">{bankLabel}<select aria-label={bankLabel} className={control} value={current ? selected : 0} onChange={e => setValue(binding.id, bank.node_id, Number(e.target.value))}>
-        <option value={0}>0 · {instrument}</option>{slots.filter(n => banks[n]).map(n => <option key={n} value={n}>{n} · {banks[n].name}</option>)}
+  return <fieldset className="dx7-rack">
+    <legend>DX7</legend>
+    <output className="dx7-readout" aria-label={t.display} aria-live="polite">
+      <span className="dx7-address">B{digits(bankNumber)} <span>/</span> P{digits(selected)}</span>
+      <span className="dx7-voice-name">{name}</span>
+    </output>
+    <div className="dx7-selectors">
+      <label>{t.bank}<select aria-label={t.bank} value={bankNumber} onChange={e => setValue(binding.id, bank.node_id, Number(e.target.value))}>
+        <option value={0}>00 · {t.factory}</option>
+        {slots.filter(n => banks[n]).map(n => <option key={n} value={n}>{digits(n)} · {banks[n].name}</option>)}
       </select></label>
-      {program ? <label className="grid min-w-0 max-w-full gap-1">{programLabel}<select aria-label={programLabel} className={control} value={binding.performanceControllerValues?.[program.node_id] ?? -1}
-        onChange={e => setValue(binding.id, program.node_id, Number(e.target.value))}>
-        <option value={-1}>{inherit}</option><option value={0}>0 · {editor}</option>
-        {names.map((name, i) => <option key={i} value={i + 1}>{i + 1} · {name}</option>)}
-      </select></label> : <span>{driven}</span>}
-    </div>
-    <div className="mt-3 flex flex-wrap items-end gap-2">
-      <label className="grid min-w-0 max-w-full gap-1">{slotLabel}<select aria-label={slotLabel} className={control} disabled={locked} value={slot} onChange={e => setSlot(Number(e.target.value))}>
-        {slots.map(n => <option key={n} value={n}>{n} · {banks[n]?.name ?? "—"}</option>)}
+      <label>{t.preset}<select aria-label={t.preset} value={selected} onChange={e => setValue(binding.id, program.node_id, Number(e.target.value))}>
+        <option value={0}>00 · {t.editor}</option>
+        {names.map((label, i) => <option key={i} value={i + 1}>{digits(i + 1)} · {label || "—"}</option>)}
       </select></label>
-      <input hidden ref={file} type="file" accept=".syx" onChange={e => {
-        const source = e.target.files?.[0]; e.target.value = ""; if (source) void importBank(source);
-      }} />
-      <button className={control} disabled={locked} onClick={() => file.current?.click()}>{banks[slot] ? replace : load}</button>
-      {banks[slot] && <button className={control} disabled={locked} onClick={clear}>{remove}</button>}
-      <button type="button" className={control} disabled={busy || preparing || uploadingSamples} onClick={savePerformance}>
-        {SEQUENCER_UI_COPY[language].savePerformance}
-      </button>
     </div>
-    {savedBinding === binding && <p role="status" className="mt-2 text-cyan-200">{savedMessage}</p>}
-    {error && <p role="alert" className="mt-2 text-rose-300">{error}</p>}
+    <details className="dx7-cartridges">
+      <summary><ChevronRight size={14} aria-hidden="true"/>{t.manage}</summary>
+      <div className="dx7-bank-actions">
+        <label>{t.slot}<select aria-label={t.slot} disabled={locked} value={slot} onChange={e => setSlot(Number(e.target.value))}>
+          {slots.map(n => <option key={n} value={n}>{digits(n)} · {banks[n]?.name ?? "—"}</option>)}
+        </select></label>
+        <input hidden ref={file} type="file" accept=".syx" onChange={e => {
+          const source = e.target.files?.[0]; e.target.value = ""; if (source) void importBank(source);
+        }} />
+        <button type="button" disabled={locked} onClick={() => file.current?.click()}><Upload size={13} aria-hidden="true"/>{banks[slot] ? t.replace : t.load}</button>
+        {banks[slot] && <button type="button" disabled={locked} onClick={remove}><Trash2 size={13} aria-hidden="true"/>{t.remove}</button>}
+        {dirty && <button type="button" className="dx7-save" disabled={busy || preparing || uploadingSamples} onClick={() => void save()}>{performanceControllerCopy(language).save}</button>}
+      </div>
+      {saved && !dirty && <p role="status">{t.saved}</p>}
+      {error && <p role="alert">{error}</p>}
+    </details>
   </fieldset>;
 }

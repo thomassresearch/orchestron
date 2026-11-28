@@ -112,8 +112,8 @@ class ParallelCsoundRenderer(CsoundWorker):
         if self._qualification and self._qualification.runtime != runtime_fingerprint():
             raise RenderAdmissionError("qualification_build_changed")
         private = self._qualification.private_memory_bytes if self._qualification else workers * 128 * MIB
-        # Compiler-owned table allocations are charged once per process/resource;
-        # built-in read-only tables are already covered by the native base budget.
+        # Charge compiler-owned tables and voice reserves once per process/resource.
+        # Built-in read-only tables are already covered by the native base budget.
         sample_bytes = 0
         for partition in plan.partitions:
             allocations = {}

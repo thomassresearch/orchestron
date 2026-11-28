@@ -114,8 +114,7 @@ class NodeInstance(BaseModel):
             from backend.app.models.fm6 import fm6_voice
             fm6_voice(self.params)
         elif self.opcode == "fm_dx7":
-            from backend.app.models.dx7 import node_voice, validate_max_release, validate_preset_input
-            validate_preset_input(self.params.get("ipreset", 0))
+            from backend.app.models.dx7 import node_voice, validate_max_release
             validate_max_release(self.params.get("imaxrelease", 0))
             node_voice(self.params)
             if "custom_voice" in self.params:

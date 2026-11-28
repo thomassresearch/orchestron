@@ -1,3 +1,4 @@
+import { sameDx7Banks } from "../lib/dx7Banks";
 import { observeMusicalEdit, observeStructuralEdit } from "./arrangementEdits";
 import { useArrangementEdits, workingArrangement, workingSequencer } from "../lib/clipArranger/editSession";
 import { sameSongEdits, songPatternEdits } from "../lib/clipArranger/songDrafts";
@@ -154,6 +155,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     error: null,
     hasLoadedBootstrap: false,
     sampleUploads: 0,
+    dx7BankEdits: {},
 
     activePage: "instrument",
     guiLanguage: "english",
@@ -567,6 +569,7 @@ export const useAppStore = create<AppStore>((set, get) => {
           routingLayout: parsed.routingLayout,
           audioGraph: parsed.audioGraph, mixer: parsed.mixer, migrationNotice: parsed.migrationNotice,
           performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
+          dx7BankEdits: {},
           sequencerEditingPads: {},
           performanceAuditions: {},
           savedPerformanceSequencer: parsed.sequencer,
@@ -645,6 +648,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       const nextSequencer = newPerformanceSequencerState();
       set({
         performanceWorkspaceGeneration: get().performanceWorkspaceGeneration + 1,
+        dx7BankEdits: {},
         sequencerEditingPads: {},
         performanceAuditions: {},
         engineConfig: normalizeEngineConfig(undefined),
@@ -825,6 +829,9 @@ export const useAppStore = create<AppStore>((set, get) => {
         set({
           performances,
           savedPerformanceSequencer: state.sequencer,
+          // Cartridge edits are locked while saving. Establish the new baseline
+          // before unlocking the rack, including saves from the main toolbar.
+          dx7BankEdits: {},
           currentPerformanceId: saved.id,
           performanceName: saved.name,
           performanceDescription: saved.description,
@@ -859,7 +866,12 @@ export const useAppStore = create<AppStore>((set, get) => {
       const state = get();
       if (state.activeSessionState === "running" || state.loading || sessionStartInFlight || sessionCreationInFlight ||
           generation !== state.performanceWorkspaceGeneration || !state.sequencerInstruments.includes(original)) return false;
-      set({ sequencerInstruments: state.sequencerInstruments.map(row => row === original ?
+      if (sameDx7Banks(original.dx7Banks, banks)) return true;
+      const edits = { ...state.dx7BankEdits };
+      const before = edits[original.id] ?? original.dx7Banks ?? {};
+      if (sameDx7Banks(before, banks)) delete edits[original.id];
+      else edits[original.id] = before;
+      set({ dx7BankEdits: edits, sequencerInstruments: state.sequencerInstruments.map(row => row === original ?
         {...row, dx7Banks: Object.keys(banks).length ? banks : undefined} : row) });
       return true;
     },

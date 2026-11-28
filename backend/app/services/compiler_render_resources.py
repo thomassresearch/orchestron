@@ -21,6 +21,7 @@ from backend.app.models.render_plan import (
 from backend.app.services.compiler_common import CompilationError
 from backend.app.services.compiler_formula import lookup_input_formula_config, resolve_input_expression
 from backend.app.services.compiler_fm6 import preview_channel
+from backend.app.services.compiler_dx7 import DX7_LIVE_VOICES
 from backend.app.services.compiler_graph import compile_graph_context
 from backend.app.services.compiler_legato import has_legato, validate_legato
 from backend.app.services.performance_controller_service import controller_bindings
@@ -128,7 +129,7 @@ def _midi_colocations(writers, readers):
     return [RenderCoLocation(stages, "midi_controller_initialization") for stages in sorted(constraints)]
 
 
-def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
+def analyze_render_resources(targets, opcode_service, *, ksmps=None) -> RenderResourceAnalysis:
     accesses, colocations, helpers, blockers = [], [], [], []
     hashes, legato_stages = {}, []
     cc_writers, cc_readers = defaultdict(set), defaultdict(set)
@@ -258,6 +259,12 @@ def analyze_render_resources(targets, opcode_service) -> RenderResourceAnalysis:
                     resource("sample-table:" + sample.sha256, node, "replicated", "read",
                              (sample.frame_count + 2) * sample.channels * 8)
             elif name == "fm_dx7":
+                # The live UDO pool is shared within one Csound process. Admission
+                # deduplicates matching resource keys per partition. Allow for
+                # native instance data and audio-rate buffers (see tools/dx7).
+                block_size = ksmps if ksmps is not None else patch.graph.engine_config.ksmps
+                reserve_bytes = DX7_LIVE_VOICES * (8 * 1024**2 + block_size * 16 * 1024)
+                resource("dx7:voice-reserve", node, "voice", "read_write", reserve_bytes)
                 for controller in controllers.values():
                     if controller.get("dx7_role"):
                         resource("channel:" + controller["channel"], node, "host", "read")

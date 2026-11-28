@@ -20,14 +20,18 @@ from backend.app.services.compiler_service import CompilerService
 from backend.app.services.opcode_service import OpcodeService
 
 
-def test_dx7_preset_input_compiles_a_graph_formula():
+def test_dx7_preset_is_selected_by_the_rack():
     from backend.tests.csound_test_support import load_patch_fixture
 
     patch = load_patch_fixture("dx7")
-    patch.graph.ui_layout["input_formulas"] = {"dx7::ipreset": {"expression": "3 + 4", "inputs": []}}
-    artifact = CompilerService(OpcodeService("/static/icons")).compile_patch(patch, "0", "none")
-    call = next(line for line in orc_code_lines(artifact.orc) if line.lstrip().startswith("a_dx7_aout_") and " fm_dx7 " in line)
-    assert "3 + 4" in call
+    compiler = CompilerService(OpcodeService("/static/icons"))
+    artifact = compiler.compile_patch(patch, "0", "none")
+    assert "prealloc 1, 16" in artifact.orc.splitlines()
+    patch.graph.connections.append(Connection(from_node_id="velocity_scale_const", from_port_id="iout",
+                                             to_node_id="dx7", to_port_id="ipreset"))
+    with pytest.raises(CompilationError) as error:
+        compiler.compile_patch(patch, "0", "none")
+    assert any("Unknown target port 'ipreset'" in message for message in error.value.diagnostics)
 
 
 @pytest.mark.parametrize("name,params,suffix", [

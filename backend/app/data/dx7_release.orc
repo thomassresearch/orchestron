@@ -37,9 +37,15 @@ DX7_OUTPUT:
 xout aVoice, kDone
 endop
 
-; Standalone Csound callers can use the original single audio output.
-opcode fm_dx7, a, iikii[]oo
- iKey, iVelocity, kBend, iGain, iVoice[], iPreset, iMaxRelease xin
- aVoice, kDone fm_dx7 iKey, iVelocity, kBend, iGain, iVoice, iPreset, iMaxRelease
+; Public signatures use the same voice in live, MIDI and SCORE orchestras.
+opcode fm_dx7, ak, iikii[]o
+ iKey, iVelocity, kBend, iGain, iVoice[], iMaxRelease xin
+ aVoice, kDone vcs_dx7_voice iKey, iVelocity, kBend, iGain, iVoice, iMaxRelease
+ xout aVoice, kDone
+endop
+
+opcode fm_dx7, a, iikii[]o
+ iKey, iVelocity, kBend, iGain, iVoice[], iMaxRelease xin
+ aVoice, kDone vcs_dx7_voice iKey, iVelocity, kBend, iGain, iVoice, iMaxRelease
  xout aVoice
 endop

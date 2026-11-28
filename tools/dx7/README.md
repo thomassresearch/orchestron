@@ -21,7 +21,7 @@ The dry reference uses the previous fixed gain of one sixth, plus the same −12
 
 ### Polyphony
 
-An Apple M2 Max with double-precision Csound 6.18 rendered 385 consecutive 512-frame refills at 48 kHz with `ksmps=32`. All notes started at sample zero. The run includes host MIDI scheduling and the compiled mixer. Each refill has 10.67 ms available.
+Before live voice preallocation, an Apple M2 Max with double-precision Csound 6.18 rendered 385 consecutive 512-frame refills at 48 kHz with `ksmps=32`. All notes started at sample zero. The run includes host MIDI scheduling and the compiled mixer. Each refill has 10.67 ms available.
 
 | Voice | 8 voices, speed | 16 voices, speed | 16 voices, first refill | 16 voices, p99 refill |
 | --- | ---: | ---: | ---: | ---: |
@@ -30,6 +30,19 @@ An Apple M2 Max with double-precision Csound 6.18 rendered 385 consecutive 512-f
 | Loop Brass | 5.6× | 2.7× | 20.50 ms | 4.39 ms |
 
 Before the change, 16-voice Loop Brass rendered at 4.4× real time. Each 16-voice run exceeded the deadline on its first refill. All subsequent refills met the deadline at both voice counts. The full measurements include the eight-voice attack timings.
+
+Live startup now reserves Csound instrument instances and the operator, envelope-level and feedback opcode instances for 16 DX7 voices. The reserve is shared across DX7 voices in each renderer, with a separate parent-instrument reserve for each DX7 rack instrument. Additional voices can still start. Exported CSDs use the same synthesis code and allocate on demand.
+
+In 24 shuffled pairs of fresh engines on the same machine, 16 simultaneous Loop Brass notes produced identical float32 PCM across all 48 runs. Each run rendered 12 refills. Median engine preparation took 58.70 ms without the reserve and 71.84 ms with it.
+
+Across three fresh processes per configuration, median peak RSS at startup was 107 MiB on demand and 219 MiB with preallocation. After the chord it was 217 MiB and 220 MiB respectively. Parallel renderer admission charges the reserve once per DX7 worker. Its memory estimate allows 8 MiB of instance data and 16 KiB per control-block frame per reserved voice. Single-voice startup probes with all routings enabled measured increases of about 5, 7 and 24 MiB at `ksmps=1`, `32` and `1920`.
+
+| First refill | Median | 95th percentile | Maximum | Within 10.67 ms |
+| --- | ---: | ---: | ---: | ---: |
+| Allocate at note-on | 18.79 ms | 20.28 ms | 20.71 ms | 0 / 24 |
+| Preallocate at startup | 6.16 ms | 7.64 ms | 19.27 ms | 23 / 24 |
+
+A separate 48 kHz, `ksmps=1` comparison sent 16 simultaneous notes to the live renderer and exported the same performance in MIDI and SCORE modes. Stock Csound rendered both extracted archives. All three outputs had exactly the same 120,000 stereo float32 frames, including the attack and release (PCM SHA-256 `9fe453b6f7f54f9d729d71a318b106594825ec02792e7239a003e213224846fd`).
 
 ## Reproduce
 

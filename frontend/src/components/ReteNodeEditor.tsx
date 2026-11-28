@@ -459,8 +459,6 @@ export function ReteNodeEditor({
   // Graph projections recreate arrays during drags. Rebuild Rete only when port metadata changes.
   const opcodeKey = JSON.stringify(opcodes);
   const opcodeByName = useMemo(() => new Map((JSON.parse(opcodeKey) as OpcodeSpec[]).map((opcode) => [opcode.name, opcode])), [opcodeKey]);
-  const dx7PresetPort = opcodeByName.get("fm_dx7")?.inputs.find(port => port.id === "ipreset");
-  const dx7PresetInput = dx7EditorNode && dx7PresetPort && resolveInputValue(graph, dx7EditorNode, dx7PresetPort);
   // Projections recreate layout objects during drags; equivalent formulas share one index.
   const formulaKey = JSON.stringify(graph.ui_layout.input_formulas ?? {});
   const formulasByNode = useMemo(() => inputFormulasByNode(graph.ui_layout), [formulaKey]);
@@ -1742,7 +1740,6 @@ export function ReteNodeEditor({
           node.id === performanceControllerEditorNode.id ? { ...node, params: { ...node.params, ...params } } : node) }))} />}
 
       {dx7EditorNode && <Dx7VoiceEditor key={dx7EditorNode.id} node={dx7EditorNode} language={guiLanguage}
-        presetDriven={Boolean(dx7PresetInput && numericInputLiteral(dx7PresetInput.expression) !== 0)}
         onClose={() => setDx7EditorId(null)} onChange={(voice, customVoice) => updateGraph(current => ({ ...current, nodes: current.nodes.map(node => {
           if (node.id !== dx7EditorNode.id) return node;
           const params = { ...node.params };
@@ -1984,7 +1981,6 @@ export function ReteNodeEditor({
                 </div>}
 
                 {formulaValidation?.error && <p role="alert" className="text-sm text-rose-300">{formulaValidation.error === "number" ? valueCopy.numberError
-                  : formulaValidation.error === "presetRange" ? valueCopy.presetRange
                   : formulaValidation.error === "releaseRange" ? valueCopy.releaseRange : valueCopy.connectedLiteral}</p>}
                 {!formulaValidation?.isValid && formulaValidation?.errors.length ? (
                   <div className="rounded-xl border border-rose-500/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">

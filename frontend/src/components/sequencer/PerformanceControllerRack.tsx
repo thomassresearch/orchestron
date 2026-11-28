@@ -65,7 +65,7 @@ export function PerformanceControllerRack({ binding, patch, language, running = 
   if (!dx7Definitions) return controllers;
   return <div className="flex min-w-0 flex-wrap items-start gap-x-3">
     <Dx7BankRack key={binding.id + binding.patchId} binding={binding} language={language}
-      definitions={dx7Definitions} running={running} />
+      definitions={dx7Definitions} patchRevision={patch?.updated_at} running={running} />
     {controllers}
   </div>;
 }

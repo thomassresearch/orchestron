@@ -1,4 +1,3 @@
-import { formulaTargetKey, readInputFormulaMap } from "./graphFormula";
 import type { PatchGraph, PerformanceControllerDefinition, PerformanceControllerType, SequencerInstrumentBinding } from "../types";
 
 export const performanceControllerDefaults = { controller_type: "float" as const, controller_group: "", min: 0, max: 1, default: 0.5, scale: "linear" as const, label: "Parameter" };
@@ -30,18 +29,12 @@ export function performanceControllersForGraph(graph: PatchGraph, includeDx7Rack
     // Invalid imported fields must still produce a safe, disabled rack control.
     return error ? { ...performanceControllerDefaults, node_id: node.id, error } : { ...config, controller_group: config.controller_group?.trim() ?? "", error: null };
   });
-  const dx7 = graph.nodes.filter(node => node.opcode === "fm_dx7");
-  if (includeDx7Rack && dx7.length) {
-    const formulas = readInputFormulaMap(graph.ui_layout);
-    const hasFreePreset = dx7.some(node => !formulas[formulaTargetKey(node.id, "ipreset")] &&
-      !graph.connections.some(link => link.to_node_id === node.id && link.to_port_id === "ipreset"));
+  if (includeDx7Rack && graph.nodes.some(node => node.opcode === "fm_dx7")) {
     for (const role of ["bank", "program"] as const) {
-      if (role === "program" && !hasFreePreset) continue;
       let id = "__dx7_" + role;
       while (graph.nodes.some(node => node.id === id)) id += "_";
-      const min = role === "bank" ? 0 : -1;
-      definitions.push({...controllerDefaults("integer"), node_id: id, dx7_role: role, min,
-        max: role === "bank" ? 16 : 32, default: min, label: "DX7 " + role, update_mode: "init"});
+      definitions.push({...controllerDefaults("integer"), node_id: id, dx7_role: role, min: 0,
+        max: role === "bank" ? 16 : 32, default: 0, label: "DX7 " + role, update_mode: "init"});
     }
   }
   return definitions;

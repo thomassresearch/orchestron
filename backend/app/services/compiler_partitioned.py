@@ -143,7 +143,7 @@ def compile_realtime_partitions(service, targets, audio_graph, mixer, plan: Rend
                 elif bus.consumer == partition.id:
                     lines.append(f"connect {quote(ingress)}, {quote(bus.id)}, {quote(names[entry.target])}, {quote(entry.inlet)}")
             elif isinstance(entry, Dx7BankSetup):
-                lines.extend(dx7_header([t for t in targets if "patch:" + t.assignment_id in names]))
+                lines.extend(dx7_header([t for t in targets if "patch:" + t.assignment_id in names], preallocate=True))
             elif isinstance(entry, SampleTableSetup):
                 local = [t for t in targets if "patch:" + t.assignment_id in names]
                 setup, _ = setup_sample_tables(local, [refs["patch:" + t.assignment_id] for t in local],

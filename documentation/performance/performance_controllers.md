@@ -9,19 +9,19 @@ Use an instrument’s performance controls to adjust envelope times, tone or oth
 
 ## DX7 banks
 
-In Perform, select a Real DX7 instance, open **Instrument controls**, and stop the instruments before importing.
+Open **Instrument controls** for a rack instrument that uses **fm_dx7**. Choose a **Bank**, then a **Preset**. The amber display shows the bank number, preset number and voice name. You can switch sounds while playing. Each new note takes the current sound and held notes keep their sound through release.
 
-1. Set **Cartridge slot** to **1**, click **Import .syx**, and select a Yamaha DX7 32-voice cartridge.
-2. Click **Save Performance** beside the cartridge controls. The panel confirms when the performance is saved.
-3. Set **Cartridge slot** to **2** and import the next file. Click **Save Performance** again to keep both cartridges. You can fill slots 1–16 this way, or import several before saving once.
+Bank **00 · Factory** contains the 32 built-in presets. In any bank, **00 · Editor voice** plays the voice saved on the node. Presets **01–32** play the numbered programs in the selected bank.
 
-Use **Bank** to choose which cartridge plays. Choose its **Program** or use the instrument’s wired preset control. Each rack instance has its own slots. To update one, select its **Cartridge slot** and choose **Replace .syx** or **Remove**, then save.
+To manage a rack instance’s cartridges, stop the instruments and open **Manage banks**.
 
-Bank **0 · Instrument** is read-only here. Its programs 1–32 are the factory sounds. In any bank, **0 · Editor voice** plays the voice saved on the node. **Use instrument setting** follows the node's preset setting. When the graph drives the preset input, its controller or formula chooses the program in the selected bank. Bank and program changes take effect on new notes. Held notes keep their sound through release.
+1. Choose a **Cartridge slot** from 01 to 16 and click **Import .syx**. Select a Yamaha DX7 32-voice cartridge. It becomes available in the **Bank** menu.
+2. To update an occupied slot, choose **Replace .syx** or **Remove**. Removing the selected bank returns the selector to the factory bank.
+3. Click **Save** to keep your changes in the performance. It appears after a cartridge change and disappears after a successful save. You can edit several slots and save once. Use the main **Save Performance** command to keep changes to the bank and preset selections alone.
 
-When an instrument has a wired **Preset** control, it sits beside the cartridge loader if the panel is wide enough. In the example below, **Bank 2** and **Preset 23** select *RaspySax* from `vrc108a.syx`.
+Both CSD export modes include the selected settings and imported cartridges.
 
-![DX7 cartridge loader beside the Preset control set to 23](../../screenshots/performance_dx7_banks.png)
+![DX7 bank and preset selectors, amber voice display and cartridge manager](../../screenshots/performance_dx7_banks.png)
 
 ## Define a Controller
 

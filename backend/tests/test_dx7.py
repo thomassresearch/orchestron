@@ -29,9 +29,7 @@ def test_bundled_presets_are_distinct_playable_voices():
         events = note_events([(0.032, 60, 108, 1.15)])
         audio, _ = render(compiled, targets, events, 1.4, mode="host")
         assert np.isfinite(audio).all() and 0.001 < abs(audio).max() < 1, preset["name"]
-        selected = patch()
-        next(n for n in selected.graph.nodes if n.opcode == "fm_dx7").params["ipreset"] = preset["id"]
-        selected_orc, selected_targets = compile_guitars([selected], mode="host", ksmps=32)
+        selected_orc, selected_targets = compile_guitars([patch()], mode="host", ksmps=32, settings=[{"__dx7_program": preset["id"]}])
         actual, _ = render(selected_orc, selected_targets, events, 1.4, mode="host")
         np.testing.assert_array_equal(actual, audio, err_msg=preset["name"])
 
@@ -42,24 +40,12 @@ def patch(voice=INIT_VOICE):
     return result
 
 
-def controlled_patch():
-    result = patch(read_sysex((FIXTURES / "tine_keys.syx").read_bytes())[0])
-    result.graph.nodes.append(NodeInstance(
-        id="selector", opcode="perf_controller", position={"x": 0, "y": 0},
-        params={"label": "DX7 preset", "controller_type": "integer", "min": 0, "max": 32, "default": 0},
-    ))
-    result.graph.connections.append(Connection(
-        from_node_id="selector", from_port_id="iout", to_node_id="dx7", to_port_id="ipreset",
-    ))
-    return result
-
-
 @pytest.mark.parametrize("preview", [False, True])
-def test_preset_controller_latches_new_notes_and_returns_to_editor_voice(preview):
-    p = controlled_patch()
+def test_rack_preset_latches_new_notes_and_returns_to_editor_voice(preview):
+    p = patch(read_sysex((FIXTURES / "tine_keys.syx").read_bytes())[0])
     bank = json.loads((Path(__file__).resolve().parents[1] / "app/data/dx7-presets.json").read_text())["presets"]
     compiled, targets = compile_guitars([p], mode="host", ksmps=32, fm6_preview=preview)
-    channel = controller_bindings(targets[0], "guitar0")["selector"]["channel"]
+    channel = controller_bindings(targets[0], "guitar0")["__dx7_program"]["channel"]
     notes = [(0, 60, 96, .32), (.096, 48, 108, .24), (.192, 72, 96, .18)]
     actual, _ = render(compiled, targets, note_events(notes), .55, mode="host",
                        controller_updates=[(.064, channel, 7), (.16, channel, 0)])
@@ -72,13 +58,13 @@ def test_preset_controller_latches_new_notes_and_returns_to_editor_voice(preview
 
 
 @pytest.mark.parametrize("mode", ["score", "midi"])
-def test_csd_exports_embed_controller_selected_preset(mode):
+def test_csd_exports_embed_rack_selected_preset(mode):
     preset = json.loads((Path(__file__).resolve().parents[1] / "app/data/dx7-presets.json").read_text())["presets"][-1]
     events = note_events([(.032, 60, 96, .12)])
     def play(instrument, settings):
         artifact, targets = compile_guitars([instrument], mode=mode, ksmps=1, settings=[settings])
         return render(artifact, targets, events, .35, mode=mode)[0]
-    np.testing.assert_array_equal(play(controlled_patch(), {"selector": 32}), play(patch(node_voice(preset)), {}))
+    np.testing.assert_array_equal(play(patch(), {"__dx7_program": 32}), play(patch(node_voice(preset)), {}))
 
 
 def pack_voice(voice):
@@ -142,6 +128,25 @@ def test_udo_emitted_once_shared_readonly_voice_and_per_note_state():
     p.always_on = True
     with pytest.raises(CompilationError):
         compile_guitars([p])
+
+
+def test_live_reserves_shared_udos_and_matches_both_portable_exports():
+    voice, = read_sysex((FIXTURES / "loop_brass.syx").read_bytes())
+    notes = note_events([(0, 48 + key, 96, .032 if key % 2 else .064) for key in range(16)])
+    rendered = []
+    orchestras = []
+    for mode in ("host", "midi", "score"):
+        artifact, targets = compile_guitars([patch(voice)], mode=mode, ksmps=1)
+        assert ('prealloc "vcs_dx7_voice", 16, 1' in artifact.orc) == (mode == "host")
+        assert ('prealloc "vcs_dx7_operator", 96, 1' in artifact.orc) == (mode == "host")
+        orchestras.append(artifact.orc.split("opcode vcs_dx7_voice,", 1)[1].split("endop", 1)[0])
+        # The live PCM stream and exported WAV both use IEEE 32-bit float.
+        audio, _ = render(artifact, targets, notes, .15, mode=mode)
+        rendered.append(audio.astype("<f4"))
+    assert orchestras[0] == orchestras[1] == orchestras[2]
+    assert np.max(abs(rendered[0])) > .001
+    np.testing.assert_array_equal(rendered[0], rendered[1])
+    np.testing.assert_array_equal(rendered[0], rendered[2])
 
 
 def test_all_algorithms_render_including_multi_operator_feedback():
@@ -223,9 +228,9 @@ def test_preview_latches_operator_algorithm_and_cancel_per_note():
 
 
 def release_patch(preset, seconds=0, voices=None):
-    instrument = patch()
-    node = next(n for n in instrument.graph.nodes if n.opcode == "fm_dx7")
-    node.params.update(ipreset=preset, imaxrelease=seconds)
+    catalog = json.loads((Path(__file__).resolve().parents[1] / "app/data/dx7-presets.json").read_text())
+    instrument = patch(node_voice(catalog["presets"][preset - 1]))
+    next(n for n in instrument.graph.nodes if n.opcode == "fm_dx7").params["imaxrelease"] = seconds
     if voices is not None:
         instrument.graph.nodes.append(NodeInstance(id="polyphony", opcode="maxalloc", params={"icount": voices}))
     return instrument
@@ -334,12 +339,12 @@ def test_other_audio_source_keeps_its_own_release_after_dx7_silence():
 
 
 def test_release_controller_is_sampled_only_at_note_start():
-    p = controlled_patch()
-    node = next(n for n in p.graph.nodes if n.opcode == "fm_dx7")
-    node.params["ipreset"] = 21
-    p.graph.connections[-1].to_port_id = "imaxrelease"
+    p = release_patch(21)
+    p.graph.nodes.append(NodeInstance(id="tail", opcode="perf_controller", params={
+        "label": "Max release", "controller_type": "integer", "min": 0, "max": 120, "default": 0}))
+    p.graph.connections.append(Connection(from_node_id="tail", from_port_id="iout", to_node_id="dx7", to_port_id="imaxrelease"))
     compiled, targets = compile_guitars([p], mode="host", ksmps=32)
-    channel = controller_bindings(targets[0], "guitar0")["selector"]["channel"]
+    channel = controller_bindings(targets[0], "guitar0")["tail"]["channel"]
     notes = [(0, 60, 96, .16), (.096, 67, 96, .24)]
     actual, _ = render(compiled, targets, note_events(notes), 1.6, mode="host",
                        controller_updates=[(.064, channel, 1), (.224, channel, 0)])
@@ -435,7 +440,7 @@ def test_instance_banks_render_from_standalone_archives(tmp_path, mode, subfolde
             assert main.count(f'#include "{prefix}fm_dx7.udo"') == 1
             voice = archive.read(f"Offline_Export/{prefix}fm_dx7.udo").decode()
             assert [line for line in voice.splitlines() if line.startswith("opcode ")] == [
-                "opcode fm_dx7, ak, iikii[]oo", "opcode fm_dx7, a, iikii[]oo"]
+                "opcode fm_dx7, ak, iikii[]o", "opcode fm_dx7, a, iikii[]o"]
             members = [n for n in archive.namelist() if n.endswith(".syx")]
             if index == 0:
                 assert len(members) == 3 and {archive.read(n) for n in members} == {*dumps, shared}
@@ -453,17 +458,16 @@ def test_instance_banks_render_from_standalone_archives(tmp_path, mode, subfolde
     assert not np.array_equal(signals[0][:, 0], signals[0][:, 1])
 
 
-@pytest.mark.parametrize("wired", [True, False])
-def test_instance_bank_and_program_latch_per_note(wired):
+def test_instance_bank_and_program_latch_per_note():
     from backend.app.models.dx7 import Dx7Cartridge
     voice, = read_sysex((FIXTURES / "loop_brass.syx").read_bytes())
     cartridge = Dx7Cartridge(name="brass.syx", data=b64encode(bank([voice] * 32)).decode())
-    source = controlled_patch() if wired else patch()
+    source = patch()
     artifact, targets = compile_guitars([source], mode="host", ksmps=32, dx7_banks=[{"1": cartridge}])
     controls = controller_bindings(targets[0], "guitar0")
-    assert ("__dx7_program" in controls) != wired
+    assert "__dx7_program" in controls
     bank_channel = controls["__dx7_bank"]["channel"]
-    program_channel = controls["selector" if wired else "__dx7_program"]["channel"]
+    program_channel = controls["__dx7_program"]["channel"]
     notes = [(0, 60, 96, .34), (.096, 68, 108, .22), (.192, 72, 96, .16)]
     signal, _ = render(artifact, targets, note_events(notes), .5, mode="host",
         controller_updates=[(.064, bank_channel, 1), (.064, program_channel, 32), (.16, program_channel, 0)])
@@ -475,7 +479,8 @@ def test_instance_bank_and_program_latch_per_note(wired):
     np.testing.assert_allclose(signal, expected, atol=1e-10)
 
 
-def test_parallel_workers_own_their_dx7_banks():
+@pytest.mark.parametrize("with_cartridges", [True, False])
+def test_parallel_workers_own_their_dx7_banks_and_voice_reserves(with_cartridges):
     from backend.app.models.audio import AudioGraph, MixerState
     from backend.app.models.dx7 import Dx7Cartridge
     from backend.app.models.render_protocol import RendererPolicy
@@ -491,19 +496,26 @@ def test_parallel_workers_own_their_dx7_banks():
         cartridge = Dx7Cartridge(name=voice + ".syx", data=b64encode(
             bank(read_sysex((FIXTURES / (voice + ".syx")).read_bytes()) * 32)).decode())
         identity = f"source{i}"
-        targets.append(PatchInstrumentTarget(patch(), i + 1, identity, dx7_banks={"1": cartridge},
-            performance_controller_values={"__dx7_bank": 1, "__dx7_program": 1}))
+        targets.append(PatchInstrumentTarget(patch(), i + 1, identity,
+            dx7_banks={"1": cartridge} if with_cartridges else {},
+            performance_controller_values={"__dx7_bank": int(with_cartridges), "__dx7_program": 1}))
         routes.extend(dict(id=identity+side, sourceId=identity, sourcePort=side, targetId="$master", targetPort=side)
                       for side in ("left", "right"))
     graph = AudioGraph(masterId="$master", routes=routes)
     compiler = CompilerService(OpcodeService("/static/icons"))
     deps = compiler.analyze_realtime_graph(targets, graph)
+    reserves = [r for r in deps.resources if r.resource == "dx7:voice-reserve"]
+    assert {r.stage for r in reserves} == {"patch:source0", "patch:source1"}
+    assert all(r.memory_bytes >= 112 * 1024**2 for r in reserves)
     plan = plan_render_partitions(deps, policy=RendererPolicy(mode="parallel", max_workers=4), costs=synthetic_costs(deps))
     compiled = compiler.compile_realtime_partitions(targets, graph, MixerState(), plan)
     assert len(compiled.programs) >= 2
-    for target in targets:
-        for program in compiled.programs:
-            assert (target.dx7_banks["1"].digest in program.csd) == ("patch:" + target.assignment_id in program.stages)
+    for program in compiled.programs:
+        local_dx7 = any("patch:" + target.assignment_id in program.stages for target in targets)
+        assert ('prealloc "vcs_dx7_voice", 16, 1' in program.csd) == local_dx7
+        for target in targets:
+            if with_cartridges:
+                assert (target.dx7_banks["1"].digest in program.csd) == ("patch:" + target.assignment_id in program.stages)
     result = compare_sequential(compiled, plan, frames=6144, events=[(0, [144, 60, 100]), (256, [145, 72, 100])],
                                 module=load_ctcsound_module())
     assert np.max(abs(result.canonical)) > .001

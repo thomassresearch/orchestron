@@ -36,8 +36,7 @@ from backend.app.services.compiler_formula import (
 )
 from backend.app.services.compiler_graph import find_port
 from backend.app.models.dx7 import Dx7Banks
-from backend.app.services.performance_controller_service import dx7_preset_driven
-from backend.app.services.compiler_dx7 import can_retire_dx7_instrument, dx7_lifetime_lines, dx7_node_lines
+from backend.app.services.compiler_dx7 import DX7_LIVE_VOICES, can_retire_dx7_instrument, dx7_lifetime_lines, dx7_node_lines
 from backend.app.services.compiler_fm6 import fm6_node_lines
 from backend.app.services.gen_asset_service import GenAssetService
 from backend.app.services.adsyn_analysis import validate_adsyn_analysis
@@ -74,6 +73,7 @@ class OrchestraEmitter:
         private_table_limit: int | None = None,
         sampler_mapped: bool = False,
         dx7_banks: Dx7Banks | None = None,
+        preallocate_dx7: bool = False,
         fm6_preview: dict | None = None,
     ) -> CompiledInstrumentLines:
         deferred_audio_outlet_inputs: list[str] = []
@@ -243,8 +243,7 @@ class OrchestraEmitter:
 
             if compiled.spec.name == "fm_dx7":
                 instrument_lines.extend(dx7_node_lines(compiled.node, env, (fm6_preview or {}).get(node_id),
-                                                       instance_id, global_header_lines, dx7_banks, performance_controllers,
-                                                       dx7_preset_driven(patch.graph, compiled.node)))
+                                                       instance_id, global_header_lines, dx7_banks, performance_controllers))
                 if dx7_retire:
                     instrument_lines.append(f"k_vcs_dx7_sounding += 1 - k_{env['aout']}_done")
                 continue
@@ -568,6 +567,12 @@ class OrchestraEmitter:
                 instrument_lines.append("k_vcs_legato_release = k_vcs_legato_current_release")
             instrument_lines.append("rireturn")
         instrument_lines.extend(deferred_audio_declicks)
+        if dx7 and preallocate_dx7:
+            reference = self._format_csound_string(instrument_name) if instrument_name else str(instrument_number)
+            reserve = str(DX7_LIVE_VOICES)
+            if dx7_pool:
+                reserve = f"({dx7_limit} > 0 ? min({reserve}, int({dx7_limit})) : {reserve})"
+            global_header_lines.append(f"prealloc {reference}, {reserve}")
         if dx7_retire or dx7_pool:
             instrument_lines.extend(dx7_lifetime_lines(
                 instrument_number, dx7_limit if dx7_pool else None, dx7_retire, dx7_outlets, global_header_lines,

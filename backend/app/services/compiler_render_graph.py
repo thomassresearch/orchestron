@@ -32,7 +32,7 @@ def analyze_render_graph(targets, audio_graph, opcode_service, *, engine_config=
     engine = RenderEngineSettings(config.sr, config.ksmps, config.nchnls, config.zero_dbfs,
                                   config.software_buffer, config.hardware_buffer)
     resolved = ResolvedMixerGraph(targets, audio_graph) if audio_graph is not None else None
-    resources = analyze_render_resources(targets, opcode_service)
+    resources = analyze_render_resources(targets, opcode_service, ksmps=engine.ksmps)
     legato = {h.stages[0]: h.instrument_reference for h in resources.helpers if h.id.startswith("legato:collector:")}
     offset = len(legato) + bool(legato)
     colocations, blockers = list(resources.colocations), list(resources.blockers)

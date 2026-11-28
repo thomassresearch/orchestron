@@ -24,3 +24,8 @@ export function cartridgeNames(data: string): string[] {
   const raw = atob(data);
   return Array.from({length: 32}, (_, i) => raw.slice(124 + i * 128, 134 + i * 128).replace(/[^ -~]/g, " ").trim());
 }
+
+export function sameDx7Banks(a: Dx7Banks = {}, b: Dx7Banks = {}) {
+  return Object.keys(a).length === Object.keys(b).length &&
+    Object.entries(a).every(([slot, bank]) => b[slot]?.name === bank.name && b[slot]?.data === bank.data);
+}

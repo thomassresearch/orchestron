@@ -21,7 +21,7 @@ export function GraphInputField({ language, port, state, unit, save, openFormula
   const validation = validateInputValue(state, value);
   const valid = validation.isValid && (state.mode === "string" || numericInputLiteral(value) !== null);
   const labels = inputValueCopy(language);
-  const error = validation.error === "presetRange" ? labels.presetRange : validation.error === "releaseRange" ? labels.releaseRange : labels.numberError;
+  const error = validation.error === "releaseRange" ? labels.releaseRange : labels.numberError;
   const commit = () => {
     if (draft !== null && draft !== state.expression && valid) save(draft);
     setDraft(null);

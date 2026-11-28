@@ -14,6 +14,7 @@ DATA = Path(__file__).resolve().parents[1] / "data"
 ALGORITHMS = DX7["algorithms"]
 # OPS COM ROM, in eighths of a base-two logarithm, indexed by carrier count - 1.
 _CARRIER_ATTENUATION = (0, 8, 13, 16, 19, 21)
+DX7_LIVE_VOICES = 16
 
 
 def _voice_data(node):
@@ -73,7 +74,7 @@ def dx7_lifetime_lines(instrument_number, limit, retire_when_silent, outlets, he
             "rireturn", "VCS_DX7_END:"]
 
 
-def dx7_node_lines(node, env, preview, assignment, header, banks, controllers, driven):
+def dx7_node_lines(node, env, preview, assignment, header, banks, controllers):
     if preview:
         # chnget:i runs once per note. The engine applies each host update as a batch.
         array = "i" + env["aout"][1:] + "_dx7"
@@ -87,26 +88,27 @@ def dx7_node_lines(node, env, preview, assignment, header, banks, controllers, d
         array = _voice_array(_voice_data(node))
         lines = []
     prefix = "i" + env["aout"][1:]
-    preset = env["ipreset"]
+    program = None
     for controller in (controllers or {}).values():
         role = controller.get("dx7_role")
-        if not role or role == "program" and driven:
+        if not role:
             continue
         channel = controller["channel"]
         header.append(f'chnset {controller["value"]:.17g}, "{channel}"')
         lines.append(f'{prefix}_{role} chnget "{channel}"')
         if role == "program":
-            preset = f"({prefix}_program < 0 ? {preset} : {prefix}_program)"
-    if banks:
-        selected = prefix + "_selected"
-        lines.append(f"{selected} = limit(round({preset}), 0, 32)")
-        for slot, bank in sorted(banks.items()):
-            lines.extend([f"if {prefix}_bank == {slot} && {selected} > 0 then",
-                          f" {selected} += giDx7Offset_{bank.digest}", "endif"])
-        preset = selected
-    else:
-        preset = f"limit(round({preset}), 0, 32)"
-    args = (env["ikey"], env["ivelocity"], env["kbend"], env["igain"], array, preset, env["imaxrelease"])
+            program = prefix + "_program"
+
+    if program is not None:
+        selected = prefix + "_voice"
+        index = prefix + "_index"
+        lines.extend([f"if {program} > 0 then", f" {index} = limit(round({program}), 1, 32) - 1"])
+        for slot, bank in sorted((banks or {}).items()):
+            lines.extend([f" if {prefix}_bank == {slot} then",
+                          f"  {index} += giDx7Offset_{bank.digest}", " endif"])
+        lines.extend([f" {selected}[] getrow giDx7Presets, {index}", "else", f" {selected}[] = {array}", "endif"])
+        array = selected
+    args = (env["ikey"], env["ivelocity"], env["kbend"], env["igain"], array, env["imaxrelease"])
     return [*lines, f"{env['aout']}, k_{env['aout']}_done fm_dx7 " + ", ".join(args)]
 
 
@@ -164,7 +166,7 @@ def _route(algorithm):
     return [*lines, f"aMix = ({mix}) * {gain:.17g}"]
 
 
-def dx7_header(targets):
+def dx7_header(targets, *, preallocate=False):
     voices = set()
     cartridges = {}
     audition = False
@@ -221,4 +223,11 @@ def dx7_header(targets):
         lines.append("iTail = max(" + ", ".join(["0.005", *(f"iTail{i}" for i in carriers)]) + ")")
         lines.append("kSilent = " + " * ".join(f"kSilent{i}" for i in carriers))
     lines += ["endif", (DATA / "dx7_release.orc").read_text()]
+    if preallocate:
+        # Csound's third prealloc argument selects a UDO by name. These pools
+        # belong to this engine, shared across its rack instruments. Further
+        # concurrent notes can still allocate normally.
+        for name, per_voice in [("vcs_dx7_voice", 1), ("vcs_dx7_operator", 6), ("vcs_dx7_level", 12)]:
+            lines.append(f'prealloc "{name}", {DX7_LIVE_VOICES * per_voice}, 1')
+        lines.extend(f'prealloc "vcs_dx7_fb{n}", {DX7_LIVE_VOICES}, 1' for n in sorted(loop_lengths))
     return ["\n".join(lines)]

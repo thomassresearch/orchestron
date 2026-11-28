@@ -66,7 +66,7 @@ export function resolveInputValue(graph: PatchGraph, node: NodeInstance, port: P
     highlighted: source === "formula" || source === "parameter" };
 }
 
-export type InputValueError = "number" | "connectedLiteral" | "specialized" | "presetRange" | "releaseRange";
+export type InputValueError = "number" | "connectedLiteral" | "specialized" | "releaseRange";
 export function validateInputValue(state: InputValueState, expression: string): { isValid: boolean; errors: string[]; error?: InputValueError } {
   if (state.mode === "managed" || state.mode === "coefficients") return { isValid: false, errors: [], error: "specialized" };
   if (state.mode === "string" || state.mode === "number") {
@@ -76,9 +76,6 @@ export function validateInputValue(state: InputValueState, expression: string): 
   }
   const literal = numericInputLiteral(expression);
   if (!state.bindings.length && literal !== null) {
-    if (state.dx7Input === "ipreset" && (!Number.isInteger(literal) || literal < 0 || literal > 32)) {
-      return { isValid: false, errors: [], error: "presetRange" };
-    }
     if (state.dx7Input === "imaxrelease" && literal !== 0 && (literal < 1 || literal > 120)) {
       return { isValid: false, errors: [], error: "releaseRange" };
     }

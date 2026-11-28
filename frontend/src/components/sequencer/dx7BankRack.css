@@ -1,0 +1,38 @@
+.dx7-rack {
+  box-sizing: border-box; width: 24rem; max-width: 100%; min-width: 0;
+  margin: .65rem 0 0; padding: .25rem .85rem .65rem;
+  border: 1px solid #58606a; border-radius: .5rem; color: #d4dce3;
+  background: linear-gradient(155deg, #30343a, #20242b 65%);
+  font-size: .75rem;
+}
+.dx7-rack legend { padding: 0 .35rem; color: #e1e4e6; font-weight: 700; letter-spacing: .12em; }
+.dx7-readout {
+  display: grid; gap: .2rem; padding: .55rem .8rem; overflow-wrap: anywhere;
+  border: 1px solid #67523b; border-radius: .25rem; background: #191611;
+  box-shadow: inset 0 1px 5px #070604; font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.dx7-address { color: #edaa69; font-size: .68rem; letter-spacing: .09em; }
+.dx7-address span { color: #916746; }
+.dx7-voice-name {
+  color: #ffb56d; font-weight: 700; line-height: 1.12; font-size: 1.45rem; letter-spacing: .065em;
+  text-shadow: 0 0 5px #f7873c80;
+  mask-image: repeating-linear-gradient(to bottom, black 0 2px, #000a 2px 3px);
+}
+.dx7-selectors { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(8rem,100%),1fr)); gap: .55rem; margin: .65rem 0; }
+.dx7-rack label { display: grid; gap: .2rem; min-width: 0; }
+.dx7-rack select, .dx7-rack button {
+  min-width: 0; max-width: 100%; min-height: 1.8rem; padding: .2rem .4rem; border: 1px solid #59616b;
+  border-radius: .25rem; background: #20252d; color: #edf1f4; font-size: .75rem;
+}
+.dx7-rack button { display: inline-flex; align-items: center; gap: .3rem; }
+.dx7-rack :is(select,button,summary):focus-visible { outline: 2px solid #87d8ea; outline-offset: 2px; }
+.dx7-rack :disabled { opacity: .5; }
+.dx7-cartridges { border-top: 1px solid #464c54; padding-top: .5rem; }
+.dx7-cartridges summary { display: flex; align-items: center; gap: .28rem; cursor: pointer; width: fit-content; }
+.dx7-cartridges summary::-webkit-details-marker { display: none; }
+.dx7-cartridges[open] summary svg { transform: rotate(90deg); }
+.dx7-bank-actions { display: flex; flex-wrap: wrap; align-items: end; gap: .4rem; margin-top: .5rem; }
+.dx7-bank-actions label { flex: 0 0 100%; }
+.dx7-rack .dx7-save { color: #ffe5c4; border-color: #a67c50; }
+.dx7-cartridges p { margin: .5rem 0 0; color: #a5e5e7; }
+.dx7-cartridges [role=alert] { color: #ffc4c4; }

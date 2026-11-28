@@ -143,7 +143,7 @@ class CompilerService:
         orc_lines.extend(granular_header(targets))
         orc_lines.extend(swept_gate_header(targets))
         orc_lines.extend(fm6_header(targets))
-        orc_lines.extend(dx7_header(targets))
+        orc_lines.extend(dx7_header(targets, preallocate=profile == CompilationProfile.LIVE))
         if legato_targets:
             orc_lines.extend([LEGATO_OPCODES, ""])
             for index, target in legato_targets.items():
@@ -186,6 +186,7 @@ class CompilerService:
                 performance_controllers=controller_manifest.get(target.assignment_id or f"instrument-{instrument_number}", {}),
                 live_continuous_controllers=target.always_on and profile == CompilationProfile.LIVE,
                 dx7_banks=target.dx7_banks,
+                preallocate_dx7=profile == CompilationProfile.LIVE,
                 sampler_mapped=bool(target.samples),
                 fm6_preview=target.fm6_preview,
                 legato_identity=f"{instrument_number}_{target.patch.id}" if instrument_number in legato_targets else None,

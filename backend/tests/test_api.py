@@ -11664,9 +11664,9 @@ def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
 
     with _client(tmp_path) as client:
         spec = client.get("/api/opcodes/fm_dx7").json()
-        assert [p["id"] for p in spec["inputs"]] == ["ikey", "ivelocity", "kbend", "igain", "ipreset", "imaxrelease"]
-        for port in spec["inputs"][-2:]:
-            assert (port["signal_type"], port["required"], port["default"]) == ("i", False, 0)
+        assert [p["id"] for p in spec["inputs"]] == ["ikey", "ivelocity", "kbend", "igain", "imaxrelease"]
+        port = spec["inputs"][-1]
+        assert (port["signal_type"], port["required"], port["default"]) == ("i", False, 0)
         assert spec["documentation_url"].endswith("/opcode.html")
         path = "/api/opcodes/fm_dx7/voices"
         dump = (Path(__file__).parent / "fixtures/dx7/tine_keys.syx").read_bytes()
@@ -11682,16 +11682,11 @@ def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
         node = next(n for n in payload["graph"]["nodes"] if n["opcode"] == "fm_dx7")
         node["params"]["voice"] = entry["voice"]
         node["params"]["custom_voice"] = client.post(path, content=cartridge).json()[22]["voice"]
-        node["params"]["ipreset"] = 32
         node["params"]["imaxrelease"] = 5.25
         saved = client.post("/api/patches", json=payload)
         assert saved.status_code in (200, 201), saved.text
         stored = client.get("/api/patches/" + saved.json()["id"]).json()["graph"]["nodes"]
         assert next(n for n in stored if n["opcode"] == "fm_dx7")["params"] == node["params"]
-        for invalid in (-1, 33, 1.5, "2.5", True):
-            node["params"]["ipreset"] = invalid
-            assert client.post("/api/patches", json=payload).status_code == 422
-        node["params"]["ipreset"] = 0
         for invalid in (-1, 0.5, "121", True):
             node["params"]["imaxrelease"] = invalid
             assert client.post("/api/patches", json=payload).status_code == 422
@@ -11720,6 +11715,8 @@ def test_dx7_opcode_preview_applies_hardware_carrier_gain_per_algorithm(tmp_path
         assert compiled.status_code == 200, compiled.text
         artifact = CompileResponse.model_validate(compiled.json())
 
+    assert 'prealloc "vcs_dx7_voice", 16, 1' in artifact.orc
+    assert 'prealloc "vcs_dx7_fb3", 16, 1' in artifact.orc
     # One representative routing for each of the six COM ROM entries.
     algorithms = [16, 1, 5, 21, 31, 32]
     starts = [.064 + index * .256 for index in range(len(algorithms))]
@@ -11742,10 +11739,10 @@ def test_dx7_factory_preset_preview_renders_smooth_edges_without_voice_edits(tmp
     from backend.tests.guitar_audio_support import note_events, render
 
     patch = load_patch_fixture("dx7")
-    next(node for node in patch.graph.nodes if node.opcode == "fm_dx7").params = {"ipreset": 30}
     routes = [dict(id=side, sourceId="lead", sourcePort=side, targetId="$master", targetPort=side)
               for side in ("left", "right")]
-    session = {"instruments": [{"id": "lead", "patch_id": patch.id, "midi_channel": 1}],
+    session = {"instruments": [{"id": "lead", "patch_id": patch.id, "midi_channel": 1,
+                                "performance_controller_values": {"__dx7_program": 30}}],
                "audio_graph": {"masterId": "$master", "routes": routes}}
     with _client(tmp_path) as client:
         created = client.post("/api/sessions/preview", json={"session": session, "patches": [patch.model_dump(mode="json")]})

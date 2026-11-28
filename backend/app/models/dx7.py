@@ -49,16 +49,6 @@ DX7_PRESETS = {
 }
 
 
-def validate_preset_input(value: str | int | float | bool) -> None:
-    if isinstance(value, str):
-        try:
-            value = float(value)
-        except ValueError:
-            return  # The graph compiler resolves scalar expressions.
-    if isinstance(value, bool) or value not in range(len(DX7_PRESETS) + 1):
-        raise ValueError(f"DX7 ipreset must be a whole number in 0..{len(DX7_PRESETS)}.")
-
-
 def validate_max_release(value: str | int | float | bool) -> None:
     if isinstance(value, str):
         try:

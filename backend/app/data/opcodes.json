@@ -17749,7 +17749,7 @@
     "category": "fm",
     "description": "Play and edit six-operator DX7 voices with 32 presets, 32 algorithms and SysEx import.",
     "documentation_url": "https://csound.com/docs/manual/opcode.html",
-    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to choose one of 32 presets, recall Custom or import a SysEx program. Select an operator to shape its four-rate, four-level envelope. Connect an Integer performance controller (0–32) to Preset to select the sound at note start. Zero plays the editor voice. Programs 1–32 select sounds from the active rack bank. Bank 0 contains the factory sounds. In Perform, each instance can import a 32-voice Yamaha SysEx cartridge in each of slots 1–16. Cancel restores the opening selection and custom voice. Both CSD exports include the original cartridges and embed their voices. Set Max release (s) to 0 for the native envelope or 1–120 seconds to limit the tail. Under voice pressure the quietest released note fades as the new note starts.",
+    "documentation_markdown": "### FM DX7\n\nConnect MIDI key and normalized velocity. Click DX7 to choose one of 32 presets, recall Custom or import a SysEx program. Select an operator to shape its four-rate, four-level envelope. Choose Bank and Preset in Perform → Instrument controls. Preset 0 plays the saved editor voice. Presets 1–32 select a sound from that bank at note start. Bank 0 contains the factory sounds. In Perform, each instance can import a 32-voice Yamaha SysEx cartridge in each of slots 1–16. Cancel restores the opening selection and custom voice. Both CSD exports include the original cartridges and embed their voices. Set Max release (s) to 0 for the native envelope or 1–120 seconds to limit the tail. Under voice pressure the quietest released note fades as the new note starts.",
     "inputs": [
       {
         "id": "ikey",
@@ -17790,15 +17790,6 @@
         "description": "Dry output gain in dB (−90 to 0)."
       },
       {
-        "id": "ipreset",
-        "name": "Preset",
-        "signal_type": "i",
-        "accepted_signal_types": [],
-        "required": false,
-        "default": 0,
-        "description": "Integer sampled at note start. 0 plays the editor voice and 1–32 select programs in the active rack bank (factory presets in bank 0)."
-      },
-      {
         "id": "imaxrelease",
         "name": "Max release (s)",
         "signal_type": "i",
@@ -17816,7 +17807,7 @@
         "description": "Dry mono audio; route through Stereo Output to external mixer effects."
       }
     ],
-    "template": "{aout} fm_dx7 {ikey}, {ivelocity}, {kbend}, {igain}, <voice>, {ipreset}, {imaxrelease}",
+    "template": "{aout} fm_dx7 {ikey}, {ivelocity}, {kbend}, {igain}, <voice>, {imaxrelease}",
     "tags": [
       "FM",
       "DX7",

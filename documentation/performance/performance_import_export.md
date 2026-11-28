@@ -88,6 +88,8 @@ For patch-name conflicts, choose overwrite, rename or skip. For the performance 
 
 The packages render at **48 kHz**, `ksmps=1`, with **32-bit float WAV** output and effect release tails. Keep those settings when you need the documented timing and controller accuracy. Floating-point output retains headroom; check levels before converting to an integer audio format.
 
+Live playback and both exports use the same Csound synthesis code for **fm_dx7**. For a sample-by-sample comparison, set the live performance to 48 kHz and `ksmps=1` and use the same preset, note and controller timings, and mix. A different live control interval changes when the DX7 envelopes update.
+
 Both modes include instrument instance settings and seed enabled manual MIDI controller values on their selected channels. Live keyboard gestures are not recordings and are not added to the exported arrangement.
 
 Each user-defined instrument opcode (UDO) has its own `.udo` file, including helper opcodes. Instruments that use the same opcode share one file. To edit its implementation, follow the `#include` path in the main CSD. Keep the extracted folder structure when moving or sharing a render package.

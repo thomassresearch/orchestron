@@ -127,7 +127,7 @@ Continuous generators start immediately. If there is no note-triggered instrumen
 
 Stopping audition releases held notes, removes the temporary session and restores the original performance playhead with transport stopped. Restart that performance explicitly when ready. Switching instruments or leaving Instrument Design also ends audition. Temporary patches, test sources and routes are never saved into the library.
 
-The FM6 and DX7 voice editors show the keyboard during audition. The DX7 editor also shows the audition toggle and the instrument’s temporary performance controls. With its **Preset** input at **0**, each new DX7 note plays the editor voice. Values **1–32** select factory voices. Each note keeps the sound it had at key-down through release. **Cancel** restores the opening editor voice for subsequent notes. [FM6 voice editor](fm6_voice.md#design-a-voice) · [DX7 voice editor](opcode_catalog_and_documentation.md#load-a-dx7-voice)
+The FM6 and DX7 voice editors show the keyboard during audition. The DX7 editor also shows the audition toggle and the instrument’s temporary performance controls. Each new audition note plays the current DX7 editor voice. In Perform, choose the bank and preset in **Instrument controls**. Each note keeps the sound it had at key-down through release. **Cancel** restores the opening editor voice for subsequent notes. [FM6 voice editor](fm6_voice.md#design-a-voice) · [DX7 voice editor](opcode_catalog_and_documentation.md#load-a-dx7-voice)
 
 For other graph edits during audition, a **Draft changed** message reminds you to stop and restart audition to hear the updated draft. Performance controls continue to address the running snapshot until then.
 
