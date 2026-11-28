@@ -12,7 +12,7 @@ import numpy as np
 
 from backend.app.engine.csound_worker import CsoundWorker
 from backend.app.engine.ctcsound_loader import load_ctcsound_module
-from backend.app.models.dx7 import describe_voice, read_sysex
+from backend.app.models.dx7 import INIT_VOICE, describe_voice, read_sysex
 from backend.tests.csound_test_support import load_patch_fixture
 from backend.tests.guitar_audio_support import compile_guitars, note_events, render
 
@@ -53,7 +53,8 @@ def compare(path, reference, out):
                     udo = audio[start : start + samples, 0]
                     subprocess.run([reference, path, str(key), str(velocity), str(gate), str(samples), raw], check=True)
                     dex = np.fromfile(raw, "<f4").astype(float)
-                    # Remove the known graph gain and equal-power pan only. Preserve dynamics.
+                    # Keep the original fixed reference gain for comparisons across revisions.
+                    # The dry EngineMkI harness does not apply the OPS carrier compensation.
                     dex *= 10 ** (-12 / 20) / (6 * np.sqrt(2))
                     if len(dex) != samples or min(max(abs(dex)), max(abs(udo))) < 1e-6:
                         raise ValueError("Missing or silent audio")
@@ -79,6 +80,40 @@ def compare(path, reference, out):
         wav.setparams((1, 2, SR, 0, "NONE", "PCM"))
         wav.writeframes(np.round(audio / max(abs(audio)) * 0.85 * 32767).astype("<i2").tobytes())
     return cases
+
+
+def control_comparisons(reference, out):
+    def write_voice(path, voice):
+        path.write_bytes(b"\xf0\x43\x00\x00\x01\x1b" + voice + bytes([-sum(voice) % 128, 0xf7]))
+
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "loop_brass_feedback_off.syx"
+        brass = bytearray(read_sysex((FIXTURES / "loop_brass.syx").read_bytes())[0])
+        brass[135] = 0
+        write_voice(path, brass)
+        feedback_off = compare(path, reference, out)
+
+        # Freeze an independent target for each feedback loop length. Tests
+        # can compare the production render without building Dexed at runtime.
+        brass[135] = 7
+        spectra = {}
+        raw = Path(tmp) / "feedback.f32"
+        for algorithm in (3, 4, 6):
+            brass[134] = algorithm - 1
+            write_voice(path, brass)
+            subprocess.run([reference, path, "60", "112", "3072", "3072", raw], check=True)
+            spectra[f"algorithm_{algorithm}"] = spectrum(np.fromfile(raw, "<f4")[1536:3072]).astype("<f4")
+        np.savez_compressed(out / "mark_i_feedback_spectra.npz", **spectra)
+
+        carrier_levels = {}
+        for algorithm in (16, 32):
+            voice = bytearray(INIT_VOICE)
+            voice[134] = algorithm - 1
+            write_voice(path, voice)
+            artifact, targets = compile_guitars([instrument(path)], mode="host", ksmps=32)
+            audio, _ = render(artifact, targets, note_events([(.064, 60, 96, .512)]), .65, mode="host")
+            carrier_levels[str(algorithm)] = level(audio[9600:19200, 0])
+    return {"loop_brass_feedback_off": feedback_off, "carrier_probe_db": carrier_levels}
 
 
 def polyphony(path, count):
@@ -140,6 +175,7 @@ def main():
             comparison=compare(path, args.reference.resolve(), args.output),
             timing=[polyphony(path, n) for n in (8, 16)],
         )
+    result["controls"] = control_comparisons(args.reference.resolve(), args.output)
     (args.output / "results.json").write_text(json.dumps(result, indent=2) + "\n")
 
 

@@ -153,6 +153,20 @@ def test_all_algorithms_render_including_multi_operator_feedback():
         assert np.isfinite(audio).all() and max(abs(audio[:, 0])) > 0.001, algo
 
 
+@pytest.mark.parametrize("algorithm", [3, 6, 4], ids=["one-operator", "two-operator", "three-operator"])
+@pytest.mark.parametrize("mode,block", [("host", 32), ("midi", 1), ("score", 1)])
+def test_maximum_feedback_matches_mark_i_body_spectrum(algorithm, mode, block):
+    from tools.dx7.qualify import spectrum
+
+    voice = bytearray(read_sysex((FIXTURES / "loop_brass.syx").read_bytes())[0])
+    voice[134] = algorithm - 1
+    artifact, targets = compile_guitars([patch(voice)], mode=mode, ksmps=block)
+    audio, _ = render(artifact, targets, note_events([(.064, 60, 112, .064)]), .16, mode=mode)
+    body = spectrum(audio[4608:6144, 0])
+    with np.load(FIXTURES / "mark_i_feedback_spectra.npz") as reference:
+        assert body @ reference[f"algorithm_{algorithm}"] > .998
+
+
 def test_sixteen_notes_equal_independent_voices_with_early_releases():
     (voice,) = read_sysex((FIXTURES / "loop_brass.syx").read_bytes())
     artifact, targets = compile_guitars([patch(voice)], mode="host", ksmps=32)

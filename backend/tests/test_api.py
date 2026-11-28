@@ -11677,6 +11677,42 @@ def test_dx7_opcode_import_and_save(tmp_path: Path) -> None:
         assert client.post("/api/patches", json=payload).status_code == 422
 
 
+def test_dx7_opcode_preview_applies_hardware_carrier_gain_per_algorithm(tmp_path):
+    import numpy as np
+
+    from backend.app.models.session import CompileResponse
+    from backend.app.services.compiler_fm6 import preview_channel
+    from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.guitar_audio_support import note_events, render
+
+    patch = load_patch_fixture("dx7")  # Only OP1 has a nonzero output level.
+    routes = [dict(id=side, sourceId="keys", sourcePort=side, targetId="$master", targetPort=side)
+              for side in ("left", "right")]
+    session = {"instruments": [{"id": "keys", "patch_id": patch.id, "midi_channel": 1}],
+               "audio_graph": {"masterId": "$master", "routes": routes}}
+    with _client(tmp_path) as client:
+        preview = client.post("/api/sessions/preview", json={"session": session, "patches": [patch.model_dump(mode="json")]})
+        assert preview.status_code == 201, preview.text
+        compiled = client.post(f"/api/sessions/{preview.json()['session_id']}/compile")
+        assert compiled.status_code == 200, compiled.text
+        artifact = CompileResponse.model_validate(compiled.json())
+
+    # One representative routing for each of the six COM ROM entries.
+    algorithms = [16, 1, 5, 21, 31, 32]
+    starts = [.064 + index * .256 for index in range(len(algorithms))]
+    channel = preview_channel("keys", "dx7", "dx7_134")
+    updates = [(start - .032, channel, algorithm - 1) for start, algorithm in zip(starts, algorithms, strict=True)]
+    notes = note_events([(start, 60, 96, .16) for start in starts])
+    audio, _ = render(artifact, [], notes, starts[-1] + .2, mode="host", controller_updates=updates)
+    levels = []
+    for start in starts:
+        offset = round(start * 48000)
+        levels.append(np.mean(audio[offset + 3072:offset + 6144, 0] ** 2))
+    measured_db = 10 * np.log10(np.array(levels) / levels[0])
+    expected_db = -20 * np.log10(2) * np.array([0, 1, 1.625, 2, 2.375, 2.625])
+    np.testing.assert_allclose(measured_db, expected_db, atol=.03)
+
+
 def test_dx7_factory_preset_preview_renders_smooth_edges_without_voice_edits(tmp_path):
     from backend.app.models.session import CompileResponse
     from backend.tests.csound_test_support import load_patch_fixture

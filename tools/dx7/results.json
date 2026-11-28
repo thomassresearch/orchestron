@@ -5,133 +5,133 @@
         "key": 48,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999418692751754,
+        "attack_cosine": 0.9999276682490856,
         "body_cosine": 0.9999876304641715,
-        "body_db_delta": -0.13725611861912057,
-        "release_db_delta": 0.007633436074087285
+        "body_db_delta": 9.405168975774131,
+        "release_db_delta": 0.008229640487051881
       },
       {
         "key": 48,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999418692751754,
-        "body_cosine": 0.9991921583626893,
-        "body_db_delta": -0.041556163375517485,
-        "release_db_delta": -0.018907053822715625
+        "attack_cosine": 0.9999276682490856,
+        "body_cosine": 0.9991921583626895,
+        "body_db_delta": 9.500868931017735,
+        "release_db_delta": -0.016664234462609784
       },
       {
         "key": 48,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9997601841515903,
-        "body_cosine": 0.9999322119424119,
-        "body_db_delta": -0.10416750723835122,
-        "release_db_delta": -0.019436715946348215
+        "attack_cosine": 0.999743444443348,
+        "body_cosine": 0.9999322119424122,
+        "body_db_delta": 9.4382575871549,
+        "release_db_delta": -0.01861175148965799
       },
       {
         "key": 48,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9997601841515903,
+        "attack_cosine": 0.999743444443348,
         "body_cosine": 0.9999002057667907,
-        "body_db_delta": -0.03263368241692177,
-        "release_db_delta": 0.05449516695939138
+        "body_db_delta": 9.509791411976323,
+        "release_db_delta": 0.056727121171135764
       },
       {
         "key": 60,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9998930585051196,
-        "body_cosine": 0.9999867496941253,
-        "body_db_delta": -0.2272644649388127,
-        "release_db_delta": 0.173537857792752
+        "attack_cosine": 0.9998615067699947,
+        "body_cosine": 0.9999867496941255,
+        "body_db_delta": 9.315160629454432,
+        "release_db_delta": 0.1753069814890864
       },
       {
         "key": 60,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9998930585051196,
+        "attack_cosine": 0.9998615067699947,
         "body_cosine": 0.9982095819770541,
-        "body_db_delta": -0.03917563855782191,
-        "release_db_delta": -0.05849735020449032
+        "body_db_delta": 9.50324945583543,
+        "release_db_delta": -0.056415553840750476
       },
       {
         "key": 60,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9995482375498697,
+        "attack_cosine": 0.9995052710426919,
         "body_cosine": 0.999937877888461,
-        "body_db_delta": -0.1918484364438129,
-        "release_db_delta": 0.14022079562501233
+        "body_db_delta": 9.35057665794944,
+        "release_db_delta": 0.14205298917909204
       },
       {
         "key": 60,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9995482375498697,
-        "body_cosine": 0.9996385500524807,
-        "body_db_delta": -0.023947091505490903,
-        "release_db_delta": 0.018922754313564383
+        "attack_cosine": 0.9995052710426919,
+        "body_cosine": 0.9996385500524809,
+        "body_db_delta": 9.518478002887761,
+        "release_db_delta": 0.021003752253776042
       },
       {
         "key": 84,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999180719394479,
+        "attack_cosine": 0.9998912053852049,
         "body_cosine": 0.9999597726284687,
-        "body_db_delta": -0.18625495092059907,
-        "release_db_delta": 0.01323459713788111
+        "body_db_delta": 9.356170143472639,
+        "release_db_delta": 0.025465856532747466
       },
       {
         "key": 84,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999180719394479,
-        "body_cosine": 0.9978771052123523,
-        "body_db_delta": -0.014575232282538764,
-        "release_db_delta": -0.18310172803434455
+        "attack_cosine": 0.9998912053852049,
+        "body_cosine": 0.9978771052123522,
+        "body_db_delta": 9.527849862110713,
+        "release_db_delta": -0.1709007299002252
       },
       {
         "key": 84,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9996254357621647,
-        "body_cosine": 0.9999712734272178,
-        "body_db_delta": -0.17078214454659246,
-        "release_db_delta": 0.0038578404382505482
+        "attack_cosine": 0.9995545176595465,
+        "body_cosine": 0.9999712734272176,
+        "body_db_delta": 9.371642949846652,
+        "release_db_delta": 0.013933961824562857
       },
       {
         "key": 84,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9996254357621647,
+        "attack_cosine": 0.9995545176595465,
         "body_cosine": 0.9995280746721937,
-        "body_db_delta": 0.005817967807359992,
-        "release_db_delta": -0.10619847511793523
+        "body_db_delta": 9.548243062200598,
+        "release_db_delta": -0.09332709936943218
       }
     ],
     "timing": [
       {
         "voices": 8,
         "rendered_seconds": 4.1066666666666665,
-        "realtime_factor": 18.183485970026055,
-        "p99_ms": 0.7258068909868584,
-        "max_ms": 6.0628330102190375,
-        "attack_ms": 6.0628330102190375,
+        "realtime_factor": 13.486271340815888,
+        "p99_ms": 0.9880083194002507,
+        "max_ms": 9.179041953757405,
+        "attack_ms": 9.179041953757405,
         "late_chunks": 0,
         "late_after_attack": 0,
-        "peak": 0.10017435932744514
+        "peak": 0.30052307798233546
       },
       {
         "voices": 16,
         "rendered_seconds": 4.1066666666666665,
-        "realtime_factor": 9.534795761449331,
-        "p99_ms": 1.3979259273037303,
-        "max_ms": 11.239749961532652,
-        "attack_ms": 11.239749961532652,
+        "realtime_factor": 6.658541356537557,
+        "p99_ms": 1.9891314348205922,
+        "max_ms": 16.884124954231083,
+        "attack_ms": 16.884124954231083,
         "late_chunks": 1,
         "late_after_attack": 0,
-        "peak": 0.08994508597177772
+        "peak": 0.2698352579153332
       }
     ]
   },
@@ -141,133 +141,133 @@
         "key": 48,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9885021401550561,
-        "body_cosine": 0.9999813746773492,
-        "body_db_delta": -0.0052293662651123896,
-        "release_db_delta": 0.29870841954461014
+        "attack_cosine": 0.9905658994595268,
+        "body_cosine": 0.9999992499579703,
+        "body_db_delta": 9.541257952605108,
+        "release_db_delta": 0.338698754599676
       },
       {
         "key": 48,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9885021401550561,
-        "body_cosine": 0.9999631872715684,
-        "body_db_delta": -0.008627760149686026,
-        "release_db_delta": 0.18632039697872926
+        "attack_cosine": 0.9905658994595268,
+        "body_cosine": 0.9999994570809496,
+        "body_db_delta": 9.541160990513042,
+        "release_db_delta": 0.17610930298786087
       },
       {
         "key": 48,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9775502867709922,
-        "body_cosine": 0.9555616939019393,
-        "body_db_delta": -0.07218024661435862,
-        "release_db_delta": 0.32399827155073524
+        "attack_cosine": 0.9828486042376086,
+        "body_cosine": 0.9999997733245616,
+        "body_db_delta": 9.543041619374087,
+        "release_db_delta": 0.6103927538862735
       },
       {
         "key": 48,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9775502867709922,
-        "body_cosine": 0.9975531993836727,
-        "body_db_delta": 0.015790823325829706,
-        "release_db_delta": -0.18089085938072458
+        "attack_cosine": 0.9828486042376086,
+        "body_cosine": 0.9999998546645413,
+        "body_db_delta": 9.54320161027485,
+        "release_db_delta": -0.20545626015048413
       },
       {
         "key": 60,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9893925299257699,
-        "body_cosine": 0.9994282189454408,
-        "body_db_delta": 0.0014478005344784606,
-        "release_db_delta": 0.2095306529772074
+        "attack_cosine": 0.9896497949622023,
+        "body_cosine": 0.9999994271461019,
+        "body_db_delta": 9.540982395359087,
+        "release_db_delta": 0.15865851801356
       },
       {
         "key": 60,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9893925299257699,
-        "body_cosine": 0.9999719000577543,
-        "body_db_delta": -0.001574486715810508,
-        "release_db_delta": 0.21967304615394312
+        "attack_cosine": 0.9896497949622023,
+        "body_cosine": 0.9999994609331405,
+        "body_db_delta": 9.540938853521624,
+        "release_db_delta": 0.2573118531935634
       },
       {
         "key": 60,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9705095649786013,
-        "body_cosine": 0.94354548500396,
-        "body_db_delta": -0.1518999364627831,
-        "release_db_delta": 0.5528974553513706
+        "attack_cosine": 0.9828699501385056,
+        "body_cosine": 0.9999998052579189,
+        "body_db_delta": 9.543258713110877,
+        "release_db_delta": 0.547316514954904
       },
       {
         "key": 60,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9705095649786013,
-        "body_cosine": 0.9945676673208392,
-        "body_db_delta": 0.05521907494743772,
-        "release_db_delta": 0.059470857714750025
+        "attack_cosine": 0.9828699501385056,
+        "body_cosine": 0.9999998592983046,
+        "body_db_delta": 9.543129570880417,
+        "release_db_delta": -0.12833071059442602
       },
       {
         "key": 84,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9951466217564835,
-        "body_cosine": 0.999977447762858,
-        "body_db_delta": -0.00235077891211688,
-        "release_db_delta": 0.2906609582430093
+        "attack_cosine": 0.9947723081535761,
+        "body_cosine": 0.9999994052196499,
+        "body_db_delta": 9.541100704951617,
+        "release_db_delta": 0.1698668139309092
       },
       {
         "key": 84,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9951466217564835,
-        "body_cosine": 0.9999815008236235,
-        "body_db_delta": -0.003767046933319307,
-        "release_db_delta": 0.2704781217401404
+        "attack_cosine": 0.9947723081535761,
+        "body_cosine": 0.9999994675454199,
+        "body_db_delta": 9.541035289180044,
+        "release_db_delta": 0.13909313965071135
       },
       {
         "key": 84,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9723503876171273,
-        "body_cosine": 0.9459734970422606,
-        "body_db_delta": 0.06797149968725336,
-        "release_db_delta": 0.2895655755921993
+        "attack_cosine": 0.9871048324095226,
+        "body_cosine": 0.9999997281123972,
+        "body_db_delta": 9.542788733797941,
+        "release_db_delta": 0.8936875318366759
       },
       {
         "key": 84,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9723503876171273,
-        "body_cosine": 0.9953473467063547,
-        "body_db_delta": -0.03679414604539488,
-        "release_db_delta": 0.27939256494916975
+        "attack_cosine": 0.9871048324095226,
+        "body_cosine": 0.999999869688385,
+        "body_db_delta": 9.543020022383327,
+        "release_db_delta": 0.9071564283586433
       }
     ],
     "timing": [
       {
         "voices": 8,
         "rendered_seconds": 4.1066666666666665,
-        "realtime_factor": 10.12584965227722,
-        "p99_ms": 1.3160519069060679,
-        "max_ms": 6.993292015977204,
-        "attack_ms": 6.993292015977204,
-        "late_chunks": 0,
+        "realtime_factor": 5.562201719308612,
+        "p99_ms": 2.1507832873612642,
+        "max_ms": 11.991542065516114,
+        "attack_ms": 11.991542065516114,
+        "late_chunks": 1,
         "late_after_attack": 0,
-        "peak": 0.170532529796009
+        "peak": 0.4987346692271278
       },
       {
         "voices": 16,
         "rendered_seconds": 4.1066666666666665,
-        "realtime_factor": 5.1617480288776045,
-        "p99_ms": 2.516404949128627,
-        "max_ms": 12.199832941405475,
-        "attack_ms": 12.199832941405475,
+        "realtime_factor": 2.7266458802908438,
+        "p99_ms": 4.38901301473379,
+        "max_ms": 20.498541998676956,
+        "attack_ms": 20.498541998676956,
         "late_chunks": 1,
         "late_after_attack": 0,
-        "peak": 0.24657999567526662
+        "peak": 0.7513782997270307
       }
     ]
   },
@@ -277,134 +277,250 @@
         "key": 48,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999954291852456,
-        "body_cosine": 0.9999958648345599,
-        "body_db_delta": -0.0791281674851021,
-        "release_db_delta": 0.11599690162258014
+        "attack_cosine": 0.9999874473425998,
+        "body_cosine": 0.9999960219593491,
+        "body_db_delta": 5.700494250714126,
+        "release_db_delta": 0.1215193494432718
       },
       {
         "key": 48,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999954291852456,
-        "body_cosine": 0.9999983864856983,
-        "body_db_delta": -0.04065243865969137,
-        "release_db_delta": 0.07857126909167533
+        "attack_cosine": 0.9999874473425998,
+        "body_cosine": 0.9999985220345801,
+        "body_db_delta": 5.738890238938183,
+        "release_db_delta": 0.11043291415315792
       },
       {
         "key": 48,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999622390907027,
-        "body_cosine": 0.9999947764653311,
-        "body_db_delta": -0.06951364543388294,
-        "release_db_delta": 0.10668600853670185
+        "attack_cosine": 0.9999594448672164,
+        "body_cosine": 0.9999947868009025,
+        "body_db_delta": 5.7103774787466755,
+        "release_db_delta": 0.11221115802684878
       },
       {
         "key": 48,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999622390907027,
-        "body_cosine": 0.9999991525878236,
-        "body_db_delta": -0.04080536472892504,
-        "release_db_delta": 0.0836752984458542
+        "attack_cosine": 0.9999594448672164,
+        "body_cosine": 0.9999993286611016,
+        "body_db_delta": 5.738762116994273,
+        "release_db_delta": 0.11570863703554579
       },
       {
         "key": 60,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999937363038075,
-        "body_cosine": 0.9999947232415398,
-        "body_db_delta": -0.10226776241474056,
-        "release_db_delta": 0.08569662512273624
+        "attack_cosine": 0.9999903564297485,
+        "body_cosine": 0.999994909831359,
+        "body_db_delta": 5.677195986337004,
+        "release_db_delta": 0.12074254608781843
       },
       {
         "key": 60,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999937363038075,
-        "body_cosine": 0.9999864361123234,
-        "body_db_delta": -0.029683488339031783,
-        "release_db_delta": 0.03485589702044933
+        "attack_cosine": 0.9999903564297485,
+        "body_cosine": 0.9999865742121213,
+        "body_db_delta": 5.7499615695092885,
+        "release_db_delta": 0.08027537042551813
       },
       {
         "key": 60,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999493019095554,
-        "body_cosine": 0.9999937026920898,
-        "body_db_delta": -0.09610462082216031,
-        "release_db_delta": 0.07984812562333587
+        "attack_cosine": 0.9999463754977307,
+        "body_cosine": 0.9999937663150567,
+        "body_db_delta": 5.683512554739384,
+        "release_db_delta": 0.11761155998469164
       },
       {
         "key": 60,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999493019095554,
-        "body_cosine": 0.9999972388561866,
-        "body_db_delta": -0.03015702095729722,
-        "release_db_delta": 0.04500126418216155
+        "attack_cosine": 0.9999463754977307,
+        "body_cosine": 0.999997436313731,
+        "body_db_delta": 5.7495183680486335,
+        "release_db_delta": 0.09049211785603717
       },
       {
         "key": 84,
         "velocity": 40,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999856973738332,
-        "body_cosine": 0.9999873729794619,
-        "body_db_delta": -0.1450102479586448,
-        "release_db_delta": 0.12603694703371815
+        "attack_cosine": 0.9999810774861464,
+        "body_cosine": 0.9999875705470409,
+        "body_db_delta": 5.634606453749221,
+        "release_db_delta": 0.31566470565254434
       },
       {
         "key": 84,
         "velocity": 40,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999856973738332,
-        "body_cosine": 0.9999309242795154,
-        "body_db_delta": -0.024947846190855216,
-        "release_db_delta": 0.07178422353123892
+        "attack_cosine": 0.9999810774861464,
+        "body_cosine": 0.9999310931564439,
+        "body_db_delta": 5.754592821292931,
+        "release_db_delta": 0.25897831382554415
       },
       {
         "key": 84,
         "velocity": 112,
         "gate_ms": 64.0,
-        "attack_cosine": 0.9999463099367529,
-        "body_cosine": 0.999987409660075,
-        "body_db_delta": -0.1432574207464974,
-        "release_db_delta": 0.12439774531447867
+        "attack_cosine": 0.9999426169633656,
+        "body_cosine": 0.999987552234531,
+        "body_db_delta": 5.636377254196169,
+        "release_db_delta": 0.3134183595781579
       },
       {
         "key": 84,
         "velocity": 112,
         "gate_ms": 640.0,
-        "attack_cosine": 0.9999463099367529,
-        "body_cosine": 0.9999779824972201,
-        "body_db_delta": -0.02382536383970546,
-        "release_db_delta": 0.07366337662200095
+        "attack_cosine": 0.9999426169633656,
+        "body_cosine": 0.9999782559899439,
+        "body_db_delta": 5.755668166807361,
+        "release_db_delta": 0.26124920697170495
       }
     ],
     "timing": [
       {
         "voices": 8,
         "rendered_seconds": 4.1066666666666665,
-        "realtime_factor": 13.165018192459343,
-        "p99_ms": 1.0118082677945492,
-        "max_ms": 6.490375031717122,
-        "attack_ms": 6.490375031717122,
-        "late_chunks": 0,
+        "realtime_factor": 8.492512144050083,
+        "p99_ms": 1.4594749966636296,
+        "max_ms": 11.261500068940222,
+        "attack_ms": 11.261500068940222,
+        "late_chunks": 1,
         "late_after_attack": 0,
-        "peak": 0.19222322276796308
+        "peak": 0.3738059576429885
       },
       {
         "voices": 16,
         "rendered_seconds": 4.1066666666666665,
-        "realtime_factor": 6.770508538652155,
-        "p99_ms": 1.8523136153817175,
-        "max_ms": 11.304124956950545,
-        "attack_ms": 11.304124956950545,
+        "realtime_factor": 4.1632263535472305,
+        "p99_ms": 2.949519455432889,
+        "max_ms": 18.41579203028232,
+        "attack_ms": 18.41579203028232,
         "late_chunks": 1,
         "late_after_attack": 0,
-        "peak": 0.20569616085741385
+        "peak": 0.40017299018102803
       }
     ]
+  },
+  "controls": {
+    "loop_brass_feedback_off": [
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9977454100507371,
+        "body_cosine": 0.9999900172328012,
+        "body_db_delta": 9.541286819039797,
+        "release_db_delta": -0.05702844114227901
+      },
+      {
+        "key": 48,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9977454100507371,
+        "body_cosine": 0.9999898858824807,
+        "body_db_delta": 9.540744279436957,
+        "release_db_delta": -0.0007906576208327465
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9993653651045288,
+        "body_cosine": 0.9999609889139094,
+        "body_db_delta": 9.532119254864636,
+        "release_db_delta": 0.18074720490983864
+      },
+      {
+        "key": 48,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9993653651045288,
+        "body_cosine": 0.9999628183408251,
+        "body_db_delta": 9.534509279629532,
+        "release_db_delta": 0.04204275492919152
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9983650427050286,
+        "body_cosine": 0.9999859678403036,
+        "body_db_delta": 9.54163429001352,
+        "release_db_delta": -0.016841327793706284
+      },
+      {
+        "key": 60,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9983650427050286,
+        "body_cosine": 0.999986379909169,
+        "body_db_delta": 9.541056063866506,
+        "release_db_delta": -0.0042373124518775285
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9974946831160595,
+        "body_cosine": 0.9999616572719701,
+        "body_db_delta": 9.535165691859568,
+        "release_db_delta": 0.6055700584310415
+      },
+      {
+        "key": 60,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9974946831160595,
+        "body_cosine": 0.9999634201263272,
+        "body_db_delta": 9.534637366841814,
+        "release_db_delta": 0.052873017078560736
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.999380891480274,
+        "body_cosine": 0.9999851066876335,
+        "body_db_delta": 9.541053185693592,
+        "release_db_delta": -0.13960775242841095
+      },
+      {
+        "key": 84,
+        "velocity": 40,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.999380891480274,
+        "body_cosine": 0.9999874423127836,
+        "body_db_delta": 9.540960623363247,
+        "release_db_delta": -0.13895625106678722
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 64.0,
+        "attack_cosine": 0.9990133048157337,
+        "body_cosine": 0.9999604868955759,
+        "body_db_delta": 9.536304511094546,
+        "release_db_delta": 0.5963965593830487
+      },
+      {
+        "key": 84,
+        "velocity": 112,
+        "gate_ms": 640.0,
+        "attack_cosine": 0.9990133048157337,
+        "body_cosine": 0.9999671067398197,
+        "body_db_delta": 9.533457516215762,
+        "release_db_delta": 0.6176826221110545
+      }
+    ],
+    "carrier_probe_db": {
+      "16": -25.534677874334427,
+      "32": -41.332167373711115
+    }
   }
 }

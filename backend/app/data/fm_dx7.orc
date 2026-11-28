@@ -1,4 +1,4 @@
-; Floating-point DX7 voice. Phase modulation is expressed in cycles.
+; DX7 voice. Phase modulation is expressed in cycles.
 ; Envelope, tuning and scaling adapted from MSFA (Apache-2.0).
 ; Copyright 2012-2013 Google Inc. and 2016-2017 Pascal Gauthier.
 ; See tools/dx7/README.md for the calibration source and known approximations.
@@ -43,6 +43,11 @@ opcode vcs_dx7_operator, aaik, i[]iiikkkkki
  od
  iTail = max(0.006, max(iTargets[0],iTargets[1],iTargets[2],iTargets[3])/iSpeeds[3]+0.006)
  iHz = cpsmidinn(iKey)
+ if iV[135] != 0 then
+  ; MSFA's Q24 log-frequency semitone. A single phase-address change
+  ; can produce a different sequence after several high-feedback passes.
+  iHz = cpsmidinn(0) * 2^(iKey * int(16777216/12) / 16777216)
+ endif
  iFine = iV[iO+19]
  iCoarse = iV[iO+18]
  iDetune = iV[iO+20]-7
@@ -54,7 +59,11 @@ opcode vcs_dx7_operator, aaik, i[]iiikkkkki
   iHz *= (iCoarse == 0 ? 0.5 : iCoarse)*(1+iFine/100)*2^(0.0209*exp(-0.396*iLog)*iLog*iDetune/7)
  endif
  iPhase = (iV[136] == 1 ? 0 : frac(iStart*iHz))
- aPhase phasor iHz * 2^(kBend/12 + (iFixed == 1 ? 0 : kPitch)), iPhase
+ kHz = iHz * 2^(kBend/12 + (iFixed == 1 ? 0 : kPitch))
+ if iV[135] != 0 then
+  kHz = floor(kHz * 16777216 / sr) * sr / 16777216
+ endif
+ aPhase phasor kHz, iPhase
  kStage init 0
  kValue init 0
  kWait init -1
@@ -116,7 +125,7 @@ opcode fm_dx7, ak, iikii[]oo
  endif
  iKey = limit(round(iNote),0,127) + iVoice[144]-24
  iVelocity = round(limit(iVelocityIn,0,1)*127)
- iGain = ampdb(limit(iGainDb,-90,0))/6
+ iGain = ampdb(limit(iGainDb,-90,0))
  iAlgorithm = iVoice[134]+1
  iFeedback = (iVoice[135] == 0 ? 0 : 2^(iVoice[135]-8))
  iStart times

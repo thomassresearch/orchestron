@@ -12,6 +12,8 @@ from backend.app.services.compiler_common import CompilationError
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 ALGORITHMS = DX7["algorithms"]
+# OPS COM ROM, in eighths of a base-two logarithm, indexed by carrier count - 1.
+_CARRIER_ATTENUATION = (0, 8, 13, 16, 19, 21)
 
 
 def _voice_data(node):
@@ -109,7 +111,8 @@ def dx7_node_lines(node, env, preview, assignment, header, banks, controllers, d
 
 
 def _feedback_loop(count):
-    pairs = [v for i in range(count) for v in (f"aPhase{i}", f"aAmp{i}")]
+    """Generate the sample-by-sample loop with note-local signed feedback history."""
+    pairs = [v for i in range(count) for v in (f"aPhase{i}", f"aAtten{i}")]
     lines = [
         f"opcode vcs_dx7_fb{count}, a, i{'aa' * count}",
         "setksmps 1",
@@ -120,9 +123,12 @@ def _feedback_loop(count):
     ]
     for i in range(count):
         lines += [
-            f"kPhase{i} downsamp aPhase{i}",
-            f"kAmp{i} downsamp aAmp{i}",
-            f"kMod = sin(2 * $M_PI * (kPhase{i} + kMod)) * kAmp{i}",
+            f"kPhase downsamp aPhase{i}",
+            f"kAtten downsamp aAtten{i}",
+            "kAddress = floor((kPhase + kMod) * 4096) & 4095",
+            "kLoss = giDx7LogSine[kAddress & 2047] + kAtten",
+            "kMag = giDx7Magnitude[limit(kLoss, 0, 13312)]",
+            "kMod = (kAddress < 2048 ? kMag : -kMag - 1) / 2048",
         ]
     return "\n".join([*lines, "kOlder = kPrev", "kPrev = kMod", "aOut = kMod", "xout aOut", "endop"])
 
@@ -135,18 +141,27 @@ def _route(algorithm):
     for op in range(6, 0, -1):
         if loop_end <= op <= feedback:
             if op == loop_end:
-                args = ", ".join(f"aPhase{i}, aAmp{i}" for i in range(feedback, loop_end - 1, -1))
+                loop_ops = range(feedback, loop_end - 1, -1)
+                args = ", ".join(f"aPhase{i}, aAtten{i}" for i in loop_ops)
                 scale = "iFeedback / 4" if algorithm in (4, 6, 32) else "iFeedback"
                 lines.append("if iFeedback == 0 then")
                 phase = f"aPhase{feedback}"
-                for i in range(feedback, loop_end - 1, -1):
+                for i in loop_ops:
                     lines.append(f"aOp{i} = sin(2 * $M_PI * ({phase})) * aAmp{i}")
                     phase = f"aPhase{i - 1} + aOp{i}"
-                lines += ["else", f"aOp{op} vcs_dx7_fb{count} {scale}, {args}", "endif"]
+                lines.append("else")
+                for i in loop_ops:
+                    lines.append(f"aAtten{i} = 2048 - floor(1024 * log2(limit(aAmp{i}, 1e-15, 4)))")
+                lines += [f"aOp{op} vcs_dx7_fb{count} {scale}, {args}", "endif"]
             continue
         phase = " + ".join([f"aPhase{op}", *(f"aOp{source}" for source, dest in route["edges"] if dest == op)])
         lines.append(f"aOp{op} = sin(2 * $M_PI * ({phase})) * aAmp{op}")
-    return [*lines, "aMix = " + " + ".join(f"aOp{i}" for i in route["outputs"])]
+    carriers = route["outputs"]
+    mix = " + ".join(f"aOp{i}" for i in carriers)
+    # Use all wired carriers, including silent ones. The return tap above
+    # already has the calibrated feedback gain for loops ending in a carrier.
+    gain = 2 ** (-_CARRIER_ATTENUATION[len(carriers) - 1] / 8)
+    return [*lines, f"aMix = ({mix}) * {gain:.17g}"]
 
 
 def dx7_header(targets):
@@ -192,6 +207,7 @@ def dx7_header(targets):
         lines.append(f"giDx7Presets setrow {_voice_array(voice)}, {slot - 1}")
     feedback_routes = (ALGORITHMS[a - 1]["feedback"] for a in algorithms)
     loop_lengths = {end - start + 1 for start, end in feedback_routes}
+    lines.append((DATA / "dx7_feedback.orc").read_text())
     lines += [_feedback_loop(n) for n in sorted(loop_lengths)]
     lines += [(DATA / "fm_dx7.orc").read_text()]
     for op in range(6, 0, -1):
