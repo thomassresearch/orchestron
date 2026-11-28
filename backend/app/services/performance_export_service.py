@@ -365,7 +365,7 @@ class PerformanceExportService:
             location = "in the assets/ subfolder" if request.samples_in_subfolder else "beside the CSD"
             readme += f"\nKeep the bundled companion files {location}.\n"
         if udo_files:
-            readme += "The main CSD includes each instrument opcode from its .udo file. Instruments can share these files.\n"
+            readme += "The main CSD includes each user-defined instrument opcode from its .udo file. Instruments share these files.\n"
         if sample_files:
             readme += "Rendering includes any sample tails that continue after the selected range.\n"
             if midi_bytes is not None:

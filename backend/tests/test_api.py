@@ -3158,6 +3158,8 @@ def test_performance_csd_export_uses_offline_mixer_profile(tmp_path: Path, event
     with zipfile.ZipFile(BytesIO(response.content)) as archive:
         csd = archive.read("Offline_Export/Offline_Export.csd").decode()
         readme = archive.read("Offline_Export/README.txt").decode()
+        assert not any(name.endswith(".udo") for name in archive.namelist())
+        assert '#include "' not in csd
         assert ("Offline_Export/Offline_Export.mid" in archive.namelist()) == (event_source == "midiFile")
     assert "a_gain = 0.5" in csd
     assert "vcs_mixer_ramp" not in csd and "__vcs_mixer_" not in csd
@@ -8692,18 +8694,36 @@ def test_physical_guitar_opcodes_and_saved_graph_compile(tmp_path: Path) -> None
 
 
 @pytest.mark.parametrize('event_source', ['midiFile', 'score'])
-def test_waveguide_performance_csd_export_embeds_udo(tmp_path: Path, event_source: str) -> None:
+@pytest.mark.parametrize("subfolder", [True, False])
+def test_waveguide_performance_csd_export_shares_udos(tmp_path: Path, event_source: str, subfolder: bool) -> None:
     from backend.tests.csound_test_support import load_patch_fixture
+    from backend.tests.test_performance_csd_selection import add_instrument
     payload = _performance_csd_export_payload()
     payload['eventSource'] = event_source
-    payload['performanceExport']['patch_definitions'][0]['graph'] = load_patch_fixture('steel_string_waveguide').graph.model_dump(mode='json')
+    if not subfolder:  # Exercise the default as well as the explicit flat option.
+        payload["samplesInSubfolder"] = False
+    definition = payload['performanceExport']['patch_definitions'][0]
+    definition['graph'] = load_patch_fixture('steel_string_waveguide').graph.model_dump(mode='json')
+    add_instrument(payload, "second-guitar", 2, patch=definition)
+    add_instrument(payload, "unused", 3, patch={"graph": load_patch_fixture("almost_dx7").graph.model_dump(mode="json")})
+    tracks = payload["sequencerConfig"]["tracks"]
+    tracks.append({**tracks[0], "track_id": "second-track", "midi_channel": 2})
     with _client(tmp_path) as client:
         response = client.post('/api/bundles/export/performance-csd',json=payload)
         assert response.status_code == 200, response.text
         with zipfile.ZipFile(BytesIO(response.content)) as archive:
             csd = archive.read('Offline_Export/Offline_Export.csd').decode()
-            assert csd.count('opcode vcs_waveguide_string,') == 1
-            assert csd.count('opcode vcs_wg_rail,') == 1
+            directory = "assets/" if subfolder else ""
+            opcodes = ["vcs_wg_dc", "vcs_wg_rail", "vcs_waveguide_string"]
+            includes = [f'#include "{directory}{opcode}.udo"' for opcode in opcodes]
+            assert [line for line in csd.splitlines() if line.startswith("#include")] == includes
+            assert sorted(name for name in archive.namelist() if name.endswith(".udo")) == sorted(
+                f"Offline_Export/{directory}{opcode}.udo" for opcode in opcodes)
+            for opcode in opcodes:
+                body = archive.read(f"Offline_Export/{directory}{opcode}.udo").decode()
+                assert body.startswith(f"opcode {opcode},") and body.rstrip().endswith("endop")
+                assert f"opcode {opcode}," not in csd
+            assert csd.count(" vcs_waveguide_string ") == 2
             assert 'ksmps = 1' in csd
             assert ' mode ' in csd
 
@@ -8987,6 +9007,8 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
         assert exported.status_code == 200, exported.text
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read("Offline_Export/Offline_Export.csd").decode()
+            if fixture == "trance_gate":
+                gate = archive.read("Offline_Export/assets/vcs_swept_gate.udo").decode()
         assert "ksmps = 1" in csd
         if fixture == "stereo_auto_wah_wah":
             from backend.tests.csound_test_support import orc_code_lines
@@ -8997,9 +9019,9 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
             assert code.count(" interp ") == 2
             assert listed["performance_controllers"][-1]["controller_type"] == "bool"
         elif fixture == "trance_gate":
-            assert csd.count("opcode vcs_swept_gate,") == 1
+            assert csd.count('#include "assets/vcs_swept_gate.udo"') == 1
             assert (" ctrl7 " in csd) == (event_source == "midiFile")
-            assert "setksmps 1" in csd and " follow2 " in csd
+            assert "setksmps 1" in gate and " follow2 " in csd
         elif fixture == "autopanner":
             from backend.tests.csound_test_support import orc_code_lines
             code = "\n".join(orc_code_lines(csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]))
@@ -9013,7 +9035,7 @@ def test_continuous_effect_create_save_and_performance_exports(tmp_path, event_s
             if event_source == "score":
                 assert code.count("init ((1) * 127 + 0.5)") == 2
         elif fixture == "granular_capture":
-            assert csd.count("opcode vcs_stereo_capture,") == 1
+            assert csd.count('#include "assets/vcs_stereo_capture.udo"') == 1
             assert (" ctrl7 " in csd) == (event_source == "midiFile")
             if event_source == "score":
                 assert "gk_vcs_score_cc[(int(limit(" in csd
@@ -9724,7 +9746,7 @@ def test_capture_step_export_reads_unassigned_control_channel_and_resets(tmp_pat
         assert response.status_code == 200, response.text
     with zipfile.ZipFile(BytesIO(response.content)) as archive:
         csd = archive.read('Offline_Export/Offline_Export.csd').decode()
-        assert 'opcode vcs_stereo_capture,' in csd
+        assert '#include "assets/vcs_stereo_capture.udo"' in csd
         if event_source == 'midiFile':
             messages = [m for _, m in _midi_messages_with_absolute_ticks(archive.read('Offline_Export/Offline_Export.mid'))
                         if m.type == 'control_change']
@@ -10115,7 +10137,7 @@ def test_trance_gate_export_preserves_lfo_commands_and_stop_reset(tmp_path, even
         assert response.status_code == 200, response.text
     with zipfile.ZipFile(BytesIO(response.content)) as archive:
         csd = archive.read('Offline_Export/Offline_Export.csd').decode()
-        assert csd.count('opcode vcs_swept_gate,') == 1
+        assert csd.count('#include "assets/vcs_swept_gate.udo"') == 1
         if event_source == 'midiFile':
             events = [(tick, message.value) for tick, message in
                       _midi_messages_with_absolute_ticks(archive.read('Offline_Export/Offline_Export.mid'))
@@ -11544,8 +11566,9 @@ def test_fm6_native_roundtrip_and_csd_preserve_preset_and_custom_voice(tmp_path,
         assert exported.status_code == 200, exported.text
         with zipfile.ZipFile(BytesIO(exported.content)) as archive:
             csd = archive.read('Offline_Export/Offline_Export.csd').decode()
-        assert 'ksmps = 1' in csd and csd.count('opcode vcs_fm6_voice,') == 1
-        assert 'aOutput = kSum * iGain' in csd
+            voice = archive.read('Offline_Export/assets/vcs_fm6_voice.udo').decode()
+        assert 'ksmps = 1' in csd and csd.count('#include "assets/vcs_fm6_voice.udo"') == 1
+        assert 'aOutput = kSum * iGain' in voice
         assert f'fillarray {packed_voice(fm6_voice(fm6.params))}' in csd
 
 

@@ -176,7 +176,10 @@ class PerformanceCsdExportRequest(BaseModel):
     performance_export: PerformanceExportPayload = Field(alias="performanceExport")
     sequencer_config: SessionSequencerConfigRequest = Field(alias="sequencerConfig")
     event_source: Literal["midiFile", "score"] = Field(default="midiFile", alias="eventSource")
-    samples_in_subfolder: bool = Field(default=True, alias="samplesInSubfolder", strict=True)
+    samples_in_subfolder: bool = Field(
+        default=True, alias="samplesInSubfolder", strict=True,
+        description="Place instrument .udo files, samples and other companion files in assets/. Set false for a flat layout.",
+    )
     approximate_controller_curves: bool = Field(default=True, alias="approximateControllerCurves", strict=True)
     use_original_controller_curves: bool = Field(default=True, alias="useOriginalControllerCurves", strict=True)
     controller_curve_tolerance: int = Field(default=1, alias="controllerCurveTolerance", strict=True, ge=1, le=10)

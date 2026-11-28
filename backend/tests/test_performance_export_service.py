@@ -29,6 +29,21 @@ def test_flat_asset_names_avoid_render_output_and_other_assets(tmp_path):
     assert index.add_stored_asset("song.wav") is first
 
 
+def test_udo_includes_share_the_asset_namespace_and_deduplicate_definitions(tmp_path):
+    from pathlib import PurePosixPath
+    from backend.app.services.performance_export_service import _AssetBundleIndex
+
+    index = _AssetBundleIndex(None, PurePosixPath("assets"), {"VOICE.udo"})
+    body = "opcode Voice, i, i\n iNote xin\n xout iNote\nendop"
+    source = f"giPitch init 60\n{body}\n{body}\n"
+    rewritten, files = index.extract_instrument_udos(source, source)
+    path, = files
+    assert path.casefold() != "assets/voice.udo"
+    assert files[path] == body + "\n"
+    assert rewritten.splitlines()[:2] == ["giPitch init 60", f'#include "{path}"']
+    assert rewritten.count("#include") == 1 and "opcode Voice," not in rewritten
+
+
 @pytest.fixture
 def exporter():
     return PerformanceExportService(compiler_service=None, gen_asset_service=None)

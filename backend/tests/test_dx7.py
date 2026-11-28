@@ -430,6 +430,12 @@ def test_instance_banks_render_from_standalone_archives(tmp_path, mode, subfolde
         package = exporter.build_performance_csd_archive(PerformanceCsdExportRequest.model_validate(data))
         dest = tmp_path / str(index)
         with zipfile.ZipFile(BytesIO(package)) as archive:
+            prefix = "assets/" if subfolder else ""
+            main = archive.read("Offline_Export/Offline_Export.csd").decode()
+            assert main.count(f'#include "{prefix}fm_dx7.udo"') == 1
+            voice = archive.read(f"Offline_Export/{prefix}fm_dx7.udo").decode()
+            assert [line for line in voice.splitlines() if line.startswith("opcode ")] == [
+                "opcode fm_dx7, ak, iikii[]oo", "opcode fm_dx7, a, iikii[]oo"]
             members = [n for n in archive.namelist() if n.endswith(".syx")]
             if index == 0:
                 assert len(members) == 3 and {archive.read(n) for n in members} == {*dumps, shared}

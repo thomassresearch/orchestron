@@ -113,11 +113,14 @@ def export_payload(mode="score", *, missing_asset=False):
 @pytest.mark.parametrize("mode", ["midiFile", "score"])
 def test_csd_archive_omits_bypassed_synthesis_assets_and_renders_active_chain(tmp_path, mode):
     payload = export_payload(mode, missing_asset=True)
+    payload["performanceExport"]["patch_definitions"][1]["graph"]["nodes"].append(
+        {"id": "bypassed-gate", "opcode": "swept_gate", "params": {}})
     original = deepcopy(payload)
     with _client(tmp_path) as client:
         csd, files = read_export(client, payload)
     assert payload == original
     assert "sfload" not in csd
+    assert not any(name.endswith(".udo") for name in files)
     assert not any("/assets/" in name for name in files)
     assert "vcs_mix_" + token("patch:first") not in csd
     assert "vcs_mix_" + token("patch:second") in csd

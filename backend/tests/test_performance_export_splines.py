@@ -2,6 +2,8 @@
 from copy import deepcopy
 from io import BytesIO
 import re
+import shutil
+import subprocess
 import zipfile
 
 import numpy as np
@@ -59,6 +61,48 @@ def render_csd(csd):
     orc = csd.split("<CsInstruments>")[1].split("</CsInstruments>")[0]
     score = csd.split("<CsScore>")[1].split("</CsScore>")[0]
     return render(orc, score.splitlines())
+
+
+@pytest.mark.parametrize("mode", ["score", "midiFile"])
+@pytest.mark.parametrize("subfolder", [False, True])
+def test_standalone_udo_render_matches_inline_orchestra(tmp_path, monkeypatch, mode, subfolder):
+    from backend.app.services.performance_export_service import _AssetBundleIndex
+    from backend.app.services.sample_asset_service import _wav_format
+    from backend.tests.test_performance_csd_selection import add_instrument
+
+    csound = shutil.which("csound")
+    if not csound:
+        pytest.skip("Standalone Csound required")
+    payload = spline_payload()
+    payload.update(eventSource=mode, samplesInSubfolder=subfolder)
+    add_instrument(payload, "fm", 2, patch={"graph": load_patch_fixture("almost_dx7").graph.model_dump(mode="json")})
+    tracks = payload["sequencerConfig"]["tracks"]
+    tracks.append({**tracks[0], "track_id": "fm-notes", "midi_channel": 2})
+    payload["performanceExport"]["performance"]["config"]["audioGraph"] = {"routes": [
+        dict(id=side, sourceId="fm", sourcePort=side, targetId="$output", targetPort=side) for side in ("left", "right")]}
+    request = PerformanceCsdExportRequest.model_validate(payload)
+    service = PerformanceExportService(CompilerService(OpcodeService("/static/icons")), GenAssetService(tmp_path / "assets"))
+
+    def render_package(folder):
+        package = service.build_performance_csd_archive(request)
+        with zipfile.ZipFile(BytesIO(package)) as archive:
+            archive.extractall(tmp_path / folder)
+        root = tmp_path / folder / "Offline_Export"
+        main = root / "Offline_Export.csd"
+        result = subprocess.run([csound, "-m0", main.name], cwd=root, capture_output=True, timeout=30)
+        assert result.returncode == 0, result.stderr.decode()
+        wav = main.with_suffix(".wav")
+        _, _, _, _, _, offset, size = _wav_format(wav)
+        return main.read_text(), wav.read_bytes()[offset:offset + size]
+
+    main, packaged = render_package("packaged")
+    assert ('opcode VcsSplineI,' in main) == (mode == "score")
+    prefix = "assets/" if subfolder else ""
+    assert f'#include "{prefix}vcs_fm6_voice.udo"' in main
+    monkeypatch.setattr(_AssetBundleIndex, "extract_instrument_udos", lambda self, orchestra, original: (orchestra, {}))
+    main, inline = render_package("inline")
+    assert "opcode vcs_fm6_voice," in main
+    assert any(packaged) and packaged == inline
 
 
 @pytest.mark.parametrize("variant", ["basic", "seek", "rational", "tempo162", "finite", "queued", "logarithmic", "integer", "bool"])

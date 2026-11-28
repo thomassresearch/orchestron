@@ -36,7 +36,7 @@ it.each(["waveguide_string", "stereo_capture", "swept_gate", "fm6_voice", "fm_dx
   "offers a folder choice for a %s instrument without samples", opcode => {
     const exported = bundle();
     const graph = exported.patch_definitions[0].graph;
-    graph.nodes = [{ id: "voice", opcode: "oscili", params: {} }];
+    graph.nodes = [{ id: "voice", opcode: "oscili", params: {}, position: { x: 0, y: 0 } }];
     expect(performanceHasCsdCompanionFiles(exported)).toBe(false);
     graph.nodes[0].opcode = opcode;
     expect(performanceHasCsdCompanionFiles(exported)).toBe(true);

@@ -415,7 +415,7 @@ app state and active sessions protect both files from collection.
 - Emits both `orc` and full `csd` strings.
 - Supports multi-instrument session compilation by assigning MIDI channels with `massign`.
 - Requires GEN01 and `sfload` runtime sample loading to use uploaded/imported assets. Raw `samplePath` values and legacy `sfload` `filename` parameters are rejected for live session compile/start.
-- Offline performance CSD export may compile only relative paths on the export service’s list of bundled assets. The `samplesInSubfolder` request option defaults to true and places files under `assets/`. A false value places files beside the CSD.
+- Offline performance CSD export may compile only relative paths on the export service’s list of bundled assets. The `samplesInSubfolder` request option defaults to true and places instrument `.udo` includes and other companion files under `assets/`. A false value places them beside the CSD. Both modes package one file per opcode name from the selected instruments, including its overloads. SCORE controller-curve helpers stay inline.
 
 Session creation accepts project-wide `engine_config`. Every target, preview and parallel worker uses the same settings. Missing settings use the engine defaults. Saved performances, native bundles and workspace recovery use `engineConfig`. Legacy patch values are ignored.
 
