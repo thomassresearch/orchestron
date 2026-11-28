@@ -114,3 +114,25 @@ it("opens FM6, preserves formulas and connections, and keeps connected controls 
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(change.mock.lastCall?.[0].nodes[0].params).toEqual({ ipreset: 1 });
 });
+
+it("edits a literal on a keyboard-selected node and keeps a wired input in the formula editor", async () => {
+  const { default: catalog } = await import("../../../backend/app/data/opcodes.json");
+  const { audioTemplate } = await import("../lib/audioTemplates");
+  const graph = audioTemplate("instrument").graph;
+  const selection = vi.fn(), change = vi.fn();
+  render(<ReteNodeEditor graph={graph} opcodes={catalog as unknown as OpcodeSpec[]} viewportKey="inline-input"
+    guiLanguage="english" onGraphChange={change} onSelectionChange={selection} />);
+  await waitFor(() => expect(selection).toHaveBeenCalled());
+  fireEvent.click(await screen.findByRole("button", { name: "madsr" }));
+  const attack = await screen.findByRole("textbox", { name: "Attack" });
+  fireEvent.change(attack, { target: { value: ".04" } });
+  fireEvent.blur(attack);
+  const next: PatchGraph = change.mock.lastCall![0];
+  expect(next.nodes.find(n => n.id === "envelope")?.params.iatt).toBe(.04);
+  expect(next.connections).toEqual(graph.connections);
+  fireEvent.click(screen.getByRole("button", { name: "oscili" }));
+  const formula = await screen.findByRole("button", { name: "Edit formula · Frequency" });
+  expect(screen.queryByRole("textbox", { name: "Frequency" })).toBeNull();
+  fireEvent.click(formula);
+  expect((await screen.findByRole("textbox", { name: "Value or formula" }) as HTMLTextAreaElement).value).toBe("in1");
+});

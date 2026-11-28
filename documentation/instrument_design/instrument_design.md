@@ -39,7 +39,7 @@ Create or load an instrument, connect its graph, compile and audition it, then s
 <p align="center">
   <img src="../../screenshots/instrument_toolbar_current.jpg" alt="Instrument Design page overview" width="1100" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>Instrument Design with the First Sound starter. The page and language selectors stay above the graph. Choose Show Runtime to inspect compilation output.</em></p>
+<p align="center"><em>Instrument Design with the First Sound starter. The starter opens with the full signal path in view. Audition, Compile and Save stay together above the graph. Choose Show Runtime to inspect compilation output.</em></p>
 
 ## Recommended Workflow
 
@@ -53,8 +53,8 @@ Create or load an instrument, connect its graph, compile and audition it, then s
 
 ## Important Behavior
 
-- The compile status badge is per active instrument tab/patch snapshot (`compiled`, `pending changes`, `errors`).
-- Runtime starts collapsed to give more graph space; open it with `Show runtime`. Collapse `Patch controls` to hide metadata and file actions while keeping instrument tabs visible. Both choices survive view switches until browser reload.
+- The graph header shows whether the current draft has compiled and whether its contents match the library copy.
+- Runtime starts collapsed to give more graph space; open it with `Show runtime`. Open **Patch details** to edit metadata. Closing it gives the space back to the graph. Both choices survive view switches until browser reload.
 - Saving a normal patch performs compile validation first; a failing compile prevents a bad save.
 - Saving a patch marked `Template?` skips compile validation so incomplete starter graphs can be stored and reused. Template patches remain loadable in Instrument Design but are not selectable as Perform rack instruments.
 

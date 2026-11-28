@@ -25,11 +25,11 @@ export function InstrumentAuditionKeyboard({ withControls = false }: { withContr
     <div ref={target.setHost} className="empty:hidden" /></>;
 }
 
-export function AuditionPanel({ stopPerformance, children }: { stopPerformance: () => Promise<void>; children?: ReactNode }) {
+export function AuditionPanel({ stopPerformance, onCompiled, children }: { onCompiled?: () => void; stopPerformance: () => Promise<void>; children?: ReactNode }) {
   const draft = useAppStore(s => s.currentPatch);
   const language = useAppStore(s => s.guiLanguage);
   const copy = auditionCopy(language);
-  const audition = useInstrumentAudition(draft, stopPerformance, copy);
+  const audition = useInstrumentAudition(draft, stopPerformance, copy, onCompiled);
   const editorHosts = useContext(KeyboardHost);
   const keyboardHost = editorHosts?.host;
   const running = audition.phase === "running";
@@ -48,7 +48,7 @@ export function AuditionPanel({ stopPerformance, children }: { stopPerformance: 
     </div>
   );
   return <div className="min-w-0">
-    <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="design-command-row">
       {editorHosts?.controls ? createPortal(<div className="flex flex-wrap items-center gap-4">{toggle}{controllers}</div>, editorHosts.controls) : toggle}
       {children}
     </div>

@@ -282,7 +282,7 @@ export function projectAudioBlocks(graph: PatchGraph, labels: { input: string; o
       if (Object.prototype.hasOwnProperty.call(node.params, "asignal")) params[i ? "right" : "left"] = node.params.asignal;
     });
     synthetic.push({ id, opcode, params, position: pair[0].position });
-    const ports = ["left", "right"].map((id, i) => ({ id, name: group.ports[i], signal_type: "a" as const, required: true, description: group.ports[i] }));
+    const ports = ["left", "right"].map((id, i) => ({ id, name: group.ports[i] === id ? (i === 0 ? "L" : "R") : group.ports[i], signal_type: "a" as const, required: true, description: group.ports[i] }));
     specs.push({ name: opcode, category: "audio", description: group.ports.join(" / "), inputs: group.direction === "output" ? ports : [], outputs: group.direction === "input" ? ports : [], icon: opcodes.find((s) => s.name === opcodeFor(group.direction))?.icon ?? "", documentation_markdown: group.name, documentation_url: `https://csound.com/docs/manual/${opcodeFor(group.direction)}.html`, template: "", tags: [] });
   }
   const visible = (c: Connection) => !(hidden.has(c.to_node_id) && c.to_port_id === "sname");

@@ -64,6 +64,13 @@ export function AudioGraphEditor(props: ReteNodeEditorProps & { patchId?: string
     onOpcodeHelpRequest?.(members ? members[0].opcode === "inleta" ? STEREO_INPUT : STEREO_OUTPUT : name);
   }, []);
   const nodeTitles: Record<string, string> = {};
+  for (const group of graph.audio_interface?.groups ?? []) {
+    const id = "__audio_block_" + group.id;
+    if (audioProjection.members.has(id)) {
+      const standard = group.direction === "input" ? "Stereo Input" : "Stereo Output";
+      nodeTitles[id] = group.name === standard ? t(group.direction === "input" ? "stereoInput" : "stereoOutput") : group.name;
+    }
+  }
   const regions: NonNullable<ReteNodeEditorProps["regions"]> = [];
   for (const [id, block] of Object.entries(graph.control_flow ?? {})) {
     nodeTitles[id] = `${controlFlowConditionLabel(graph, id)}\n${flowCopy("noteStart")}\n${block.cases.map((c) => `${c.value !== null ? `${c.value} ` : ""}${c.name}`).join(" / ")}`;

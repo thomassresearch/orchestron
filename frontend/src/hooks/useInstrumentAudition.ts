@@ -18,7 +18,7 @@ type Run = {
   original?: { runtime: SequencerRuntimeState; generation: number; session: string | null };
 };
 
-export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () => Promise<void>, messages: { mapping: string; stale: string; stopFailed: string }) {
+export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () => Promise<void>, messages: { mapping: string; stale: string; stopFailed: string }, onCompiled?: () => void) {
   const [phase, setPhase] = useState<Phase>("off");
   const [error, setError] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, number>>({});
@@ -26,8 +26,8 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
   const overrides = useRef<Record<string, number>>({});
   const active = useRef<Run | null>(null);
   const mounted = useRef(true);
-  const latest = useRef({ draft, stopPerformance, messages });
-  latest.current = { draft, stopPerformance, messages };
+  const latest = useRef({ draft, stopPerformance, messages, onCompiled });
+  latest.current = { draft, stopPerformance, messages, onCompiled };
   const report = (e: unknown) => { if (mounted.current) setError(e instanceof Error ? e.message : String(e)); };
 
   async function cleanup(run: Run) {
@@ -112,6 +112,7 @@ export function useInstrumentAudition(draft: EditablePatch, stopPerformance: () 
         if (run.cancelled) return;
         const compiled = await api.compileSession(run.id);
         if (run.cancelled) return;
+        current.onCompiled?.();
         const fm6 = (compiled.manifest?.fm6Preview as Record<string, Fm6PreviewValues> | undefined)?.preview;
         const signature = auditionSignature(current.draft, fm6);
         if (signature !== auditionSignature(latest.current.draft, fm6)) throw new Error(current.messages.stale);

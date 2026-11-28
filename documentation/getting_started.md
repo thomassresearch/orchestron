@@ -6,12 +6,12 @@ This walkthrough creates a playable instrument and a short song using only the b
 
 ## Create your first instrument
 
-1. Open **Instrument Design** and choose **New**.
+1. Open **Instrument Design** and choose **New instrument**.
 2. Choose **Playable instrument**, then **Create**. This built-in starter contains an oscillator, an envelope and a stereo output; it does not require a saved template.
-3. Enter **First Sound** as the patch name. Keep the default Melody instrument type.
+3. Open **Patch details** and enter **First Sound** as the patch name. Keep the default Melody instrument type.
 4. Choose **Compile**. A successful compile shows that the graph is valid; it does not save or start it.
 
-![First Sound in the patch controls, with Melody selected and Compile and Save available](../screenshots/first-sound-patch-controls.png)
+![First Sound in Patch details, with Melody selected and Compile and Save available](../screenshots/first-sound-patch-controls.png)
 
 See [the patch toolbar](instrument_design/patch_toolbar_and_tabs.md) if you want to import an existing sound instead.
 

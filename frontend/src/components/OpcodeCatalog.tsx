@@ -1,7 +1,9 @@
 import { stereoOpcodeLabel } from "../lib/stereoCatalog";
 import { audioCopy } from "../lib/audioCopy";
 import { controlFlowCopy } from "../lib/controlFlowCopy";
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
+import { instrumentDesignCopy } from "../lib/instrumentDesignCopy";
 
 import { documentationUiCopy } from "../lib/documentationUi";
 import { setDraggedOpcode, clearDraggedOpcode } from "../lib/opcodeDragDrop";
@@ -11,34 +13,38 @@ interface OpcodeCatalogProps {
   guiLanguage: GuiLanguage;
   opcodes: OpcodeSpec[];
   onAddOpcode: (opcode: OpcodeSpec) => void;
+  drawerOpen?: boolean;
+  onCloseDrawer?: () => void;
   onOpcodeHelpRequest?: (opcodeName: string) => void;
 }
 
-const OPCODE_CATALOG_COPY: Record<GuiLanguage, { title: string; searchPlaceholder: string; add: string }> = {
+const OPCODE_CATALOG_COPY: Record<GuiLanguage, { title: string; searchPlaceholder: string }> = {
   english: {
     title: "Opcode Catalog",
-    searchPlaceholder: "Search opcode",
-    add: "Add"
+    searchPlaceholder: "Search opcode"
   },
   german: {
     title: "Opcode-Katalog",
-    searchPlaceholder: "Opcode suchen",
-    add: "Add"
+    searchPlaceholder: "Opcode suchen"
   },
   french: {
     title: "Catalogue Opcode",
-    searchPlaceholder: "Rechercher opcode",
-    add: "Ajouter"
+    searchPlaceholder: "Rechercher opcode"
   },
   spanish: {
     title: "Catalogo de Opcode",
-    searchPlaceholder: "Buscar opcode",
-    add: "Agregar"
+    searchPlaceholder: "Buscar opcode"
   }
 };
 
-export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpRequest }: OpcodeCatalogProps) {
+export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpRequest, drawerOpen, onCloseDrawer }: OpcodeCatalogProps) {
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listId = useId();
+  const search = useRef<HTMLInputElement>(null);
+  const results = useRef<HTMLDivElement>(null);
+  const design = instrumentDesignCopy(guiLanguage);
+  useEffect(() => { if (drawerOpen) search.current?.focus(); }, [drawerOpen]);
   const copy = OPCODE_CATALOG_COPY[guiLanguage];
   const documentationCopy = documentationUiCopy(guiLanguage);
   const iconBase =
@@ -52,63 +58,57 @@ export function OpcodeCatalog({ guiLanguage, opcodes, onAddOpcode, onOpcodeHelpR
     }
 
     const aliases: Record<string, string> = { outs: "speakers audio output lautsprecher audioausgang haut-parleurs sortie audio altavoces salida audio", inleta: "audio input stereo bus audioeingang entrée audio entrada audio", outleta: "send bus stereo output senden sortie audio envío salida audio" };
-    return opcodes.filter((opcode) => [opcode.name, opcode.description, ...opcode.tags, aliases[opcode.name] ?? ""].join(" ").toLowerCase().includes(q));
-  }, [opcodes, query]);
+    return opcodes.filter((opcode) => [opcode.name, opcode.category, stereoOpcodeLabel(opcode.name, guiLanguage), opcode.description, ...opcode.tags, aliases[opcode.name] ?? ""].join(" ").toLowerCase().includes(q));
+  }, [opcodes, query, guiLanguage]);
 
+  const index = Math.min(activeIndex, filtered.length - 1);
+  const active = filtered[index];
+  const add = (opcode: OpcodeSpec) => { onAddOpcode(opcode); if (drawerOpen) onCloseDrawer?.(); };
+  const move = (next: number) => {
+    const row = Math.max(0, Math.min(filtered.length - 1, next));
+    setActiveIndex(row);
+    results.current?.children[row]?.scrollIntoView?.({ block: "nearest" });
+  };
   return (
-    <aside className="flex h-full min-h-0 flex-col studio-panel">
-      <h2 className="font-display text-sm uppercase tracking-[0.24em] text-slate-300">{copy.title}</h2>
-      <input
-        className="mt-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-body text-sm text-slate-100 outline-none ring-accent/40 transition focus:ring"
-        placeholder={copy.searchPlaceholder}
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
-
-      <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-scroll pr-1">
-        {filtered.map((opcode) => (
-          <div key={opcode.name} className="relative">
-            <button
-              type="button"
-              onClick={() => onAddOpcode(opcode)}
-              draggable
-              onDragEnd={clearDraggedOpcode}
-              onDragStart={(event) => {
-                setDraggedOpcode(event.dataTransfer, opcode.name);
-              }}
-              className="group flex w-full items-center gap-3 rounded-xl border border-slate-700 bg-slate-950/80 p-2 pr-9 text-left transition hover:border-accent/70 hover:bg-slate-900"
-            >
-              <img
-                src={new URL(opcode.icon, iconBase).toString()}
-                alt={stereoOpcodeLabel(opcode.name, guiLanguage)}
-                className="h-8 w-8 rounded-md border border-slate-700 bg-slate-800"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-mono text-xs text-slate-200">{opcode.name === "outs" ? `${audioCopy(guiLanguage)("direct")} · outs` : stereoOpcodeLabel(opcode.name, guiLanguage)}</div>
-                <div className="truncate text-[11px] uppercase tracking-[0.16em] text-slate-500">{opcode.category === "control_flow" ? controlFlowCopy(guiLanguage)("title") : opcode.category}</div>
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-accent opacity-0 transition group-hover:opacity-100">
-                {copy.add}
-              </span>
-            </button>
-            {onOpcodeHelpRequest ? (
-              <button
-                type="button"
-                aria-label={`${documentationCopy.showDocumentation}: ${stereoOpcodeLabel(opcode.name, guiLanguage)}`}
-                title={`${documentationCopy.showDocumentation}: ${stereoOpcodeLabel(opcode.name, guiLanguage)}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onOpcodeHelpRequest(opcode.name);
-                }}
-                className="absolute right-1.5 top-1.5 z-10 inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/25 bg-black/45 text-[10px] font-bold leading-none text-white transition hover:border-accent hover:text-accent"
-              >
-                ?
-              </button>
-            ) : null}
+    <aside className="studio-panel opcode-catalog" onKeyDown={e => {
+      if (e.key === "Escape" && drawerOpen) { e.preventDefault(); onCloseDrawer?.(); }
+    }}>
+      <div className="catalog-heading"><h2>{copy.title}</h2>
+        <button className="catalog-close" type="button" aria-label={design.close} onClick={onCloseDrawer}><X size={16} /></button>
+      </div>
+      <div className="catalog-search"><Search size={15} aria-hidden="true" />
+        <input ref={search} role="combobox" aria-label={copy.searchPlaceholder} aria-controls={listId} aria-expanded="true"
+          aria-autocomplete="list" aria-activedescendant={active ? listId + "-" + index : undefined}
+          placeholder={copy.searchPlaceholder} value={query}
+          onChange={e => { setQuery(e.target.value); setActiveIndex(0); if (results.current) results.current.scrollTop = 0; }}
+          onKeyDown={e => {
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+              e.preventDefault(); move(index + (e.key === "ArrowDown" ? 1 : -1));
+            } else if (e.key === "Enter" && active && !e.nativeEvent.isComposing) {
+              e.preventDefault(); add(active);
+            }
+          }} />
+      </div>
+      <div ref={results} id={listId} role="listbox" aria-label={design.results} className="catalog-results">
+        {filtered.map((opcode, i) => (
+          <div key={opcode.name} role="option" id={listId + "-" + i} aria-selected={i === index}
+            onPointerEnter={() => setActiveIndex(i)} onClick={() => add(opcode)}
+            draggable onDragEnd={clearDraggedOpcode}
+            onDragStart={event => setDraggedOpcode(event.dataTransfer, opcode.name)}
+            className="catalog-option">
+            <img src={new URL(opcode.icon, iconBase).toString()} alt="" />
+            <span><strong>{opcode.name === "outs" ? audioCopy(guiLanguage)("direct") + " · outs" : stereoOpcodeLabel(opcode.name, guiLanguage)}</strong>
+              <small>{opcode.category === "control_flow" ? controlFlowCopy(guiLanguage)("title") : opcode.category}</small></span>
+            {onOpcodeHelpRequest && <button type="button" tabIndex={-1} className="catalog-row-help"
+              title={documentationCopy.showDocumentation + " · " + opcode.name} aria-label={documentationCopy.showDocumentation + " · " + opcode.name}
+              onClick={e => { e.stopPropagation(); onOpcodeHelpRequest(opcode.name); }}>?</button>}
           </div>
         ))}
       </div>
+      {!active && <p className="catalog-empty" role="status">{design.noMatches}</p>}
+      {active && onOpcodeHelpRequest && <button type="button" className="catalog-help"
+        onClick={() => onOpcodeHelpRequest(active.name)}><span aria-hidden="true">?</span>
+        {documentationCopy.help} · {stereoOpcodeLabel(active.name, guiLanguage)}</button>}
     </aside>
   );
 }

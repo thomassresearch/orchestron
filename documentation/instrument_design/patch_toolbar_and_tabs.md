@@ -4,24 +4,16 @@
 
 The patch toolbar is the main control surface for patch metadata, patch library operations, and instrument-level file actions.
 
-## Collapse Patch Controls
+## Patch details and library actions
 
-Use Patch controls to collapse metadata and load/save/compile/import/export actions. Instrument tabs, including add and close, stay visible. Controls start expanded; your choice survives view switches until browser reload.
+**New instrument** opens the starter chooser. **Load Patch** browses the library. Under **File** you can clone, import, export or delete an instrument. **Audition**, **Compile** and **Save** stay above the graph.
 
-## Patch Toolbar Layout
-
-The toolbar includes:
-
-- Instrument tabs (multiple editable patch workspaces)
-- Patch metadata fields (`Patch Name`, `Description`)
-- Instrument Type selector
-- Grouped, searchable patch picker (`Load Patch`)
-- Action buttons (`New`, `Clone`, `Delete`, `Save`, `Compile`, `Export`, `Import`, `Export CSD`)
+Open **Patch details** to change the name, description, template flag or instrument type. Closing it gives the graph more height. The panel starts closed and remembers your choice when switching views until the browser reloads.
 
 <p align="center">
   <img src="../../screenshots/instrument_toolbar_current.jpg" alt="Patch toolbar and instrument tabs" width="900" style="max-width: 100%; height: auto;" />
 </p>
-<p align="center"><em>The saved First Sound starter: Instrument Type, library actions and Audition are available above the graph.</em></p>
+<p align="center"><em>First Sound after compilation and saving to the library.</em></p>
 
 ## Instrument Tabs
 
@@ -48,19 +40,11 @@ The toolbar includes:
 
 ## Actions
 
-### New
+### New instrument
 
-- Opens the built-in creation chooser: Playable instrument, Drumset, Audio effect, Audio Output, or Empty patch.
-- Creates an unsaved draft from the selected starter graph. Compilation and audition use the current project’s engine settings.
-- This draft is not yet stored in the patch library until `Save` is used.
+Choose a built-in starter or a saved template and click **Create**. The new draft takes the template’s graph and description. Its signal path fits the canvas. Subsequent edits keep your framing. Click **Save** to add the draft to the library.
 
-### New from Template
-
-- Lists the five built-in starters along with any saved templates.
-- Creates a new unsaved normal patch with the chosen template's graph and description.
-- Built-in choices remain available when the library has no saved templates.
-
-![New from template dialog](../../screenshots/instrument_new_from_template_chooser.png)
+![Choosing a starter for a new instrument](../../screenshots/instrument_new_from_template_chooser.png)
 
 ### Clone
 
@@ -110,7 +94,7 @@ The toolbar includes:
 
 ## Built-in creation choices
 
-New and New from template offer Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Drumset, Audio effect (stereo pass-through), Audio Output (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to the fixed Master when added to a performance.
+New instrument offers Playable instrument (MIDI pitch/velocity, sine oscillator and madsr), Drumset, Audio effect (stereo pass-through), Audio Output (stereo input to direct output), and Empty patch. These choices work without saved templates. Guided instruments connect to the fixed Master when added to a performance.
 
 ### Choose a starter
 

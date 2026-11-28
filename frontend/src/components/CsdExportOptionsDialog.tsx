@@ -6,8 +6,8 @@ import { ModalFrame } from "./ModalFrame";
 const COPY = {
   english: {
     title: "CSD export options",
-    sampleLocation: "Export samples in the assets/ subfolder",
-    sampleHelp: "Clear to place the files beside the CSD.",
+    companionLocation: "Place companion files in the assets/ subfolder",
+    companionHelp: "Clear to place instrument opcodes (.udo), samples and other companion files beside the CSD.",
     description: "Original controller curves are preserved whenever possible.",
     label: "Maximum deviation", accurate: "More accurate", smaller: "Smaller file",
     help: "This limit applies only to curves that need approximation. Original curves, including note-start parameters, keep their sampled values. Higher limits can reduce fallback curve data but change the sound more. Step patterns and resets remain exact.",
@@ -15,8 +15,8 @@ const COPY = {
   },
   german: {
     title: "CSD-Exportoptionen",
-    sampleLocation: "Samples im Unterordner assets/ exportieren",
-    sampleHelp: "Ohne Häkchen liegen die Dateien im selben Ordner wie die CSD-Datei.",
+    companionLocation: "Begleitdateien im Unterordner assets/ ablegen",
+    companionHelp: "Ohne Häkchen liegen Instrumenten-Opcodes (.udo), Samples und andere Begleitdateien neben der CSD-Datei.",
     description: "Originale Controller-Kurven bleiben nach Möglichkeit erhalten.",
     label: "Maximale Abweichung", accurate: "Genauer", smaller: "Kleinere Datei",
     help: "Diese Grenze gilt nur für Kurven, die angenähert werden müssen. Originalkurven behalten ihre abgetasteten Werte, auch für Parameter beim Notenstart. Höhere Grenzen können die Näherungsdaten verkleinern, aber den Klang stärker verändern. Step-Patterns und Rücksetzwerte bleiben exakt.",
@@ -24,8 +24,8 @@ const COPY = {
   },
   french: {
     title: "Options d’export CSD",
-    sampleLocation: "Exporter les échantillons dans le sous-dossier assets/",
-    sampleHelp: "Décochez cette case pour placer les fichiers dans le même dossier que le CSD.",
+    companionLocation: "Placer les fichiers associés dans le sous-dossier assets/",
+    companionHelp: "Décochez pour placer les opcodes d’instruments (.udo), les échantillons et les autres fichiers associés à côté du CSD.",
     description: "Les courbes de contrôleur originales sont conservées lorsque c’est possible.",
     label: "Écart maximal", accurate: "Plus précis", smaller: "Fichier plus petit",
     help: "Cette limite concerne uniquement les courbes nécessitant une approximation. Les courbes originales conservent leurs valeurs échantillonnées, y compris pour les paramètres au début des notes. Une limite plus élevée peut réduire les données approximatives, mais modifier davantage le son. Les motifs Step et les réinitialisations restent exacts.",
@@ -33,8 +33,8 @@ const COPY = {
   },
   spanish: {
     title: "Opciones de exportación CSD",
-    sampleLocation: "Exportar las muestras en la subcarpeta assets/",
-    sampleHelp: "Desmarca la casilla para guardar los archivos en la misma carpeta que el CSD.",
+    companionLocation: "Guardar los archivos asociados en la subcarpeta assets/",
+    companionHelp: "Desmarca la casilla para guardar los opcodes de instrumentos (.udo), las muestras y los demás archivos asociados junto al CSD.",
     description: "Las curvas de controlador originales se conservan siempre que sea posible.",
     label: "Desviación máxima", accurate: "Más preciso", smaller: "Archivo más pequeño",
     help: "Este límite solo afecta a las curvas que necesitan aproximación. Las curvas originales mantienen sus valores muestreados, incluidos los parámetros al inicio de las notas. Un límite mayor puede reducir los datos aproximados, pero cambiar más el sonido. Los patrones Step y los reinicios permanecen exactos.",
@@ -42,7 +42,7 @@ const COPY = {
   }
 } satisfies Record<GuiLanguage, Record<string, string>>;
 
-export function CsdExportOptionsDialog({ guiLanguage, showCurveAccuracy, showSampleLocation, onClose }: CsdExportControls & {
+export function CsdExportOptionsDialog({ guiLanguage, showCurveAccuracy, showCompanionLocation, onClose }: CsdExportControls & {
   guiLanguage: GuiLanguage;
   onClose: (options: CsdExportOptions | null) => void;
 }) {
@@ -63,7 +63,7 @@ export function CsdExportOptionsDialog({ guiLanguage, showCurveAccuracy, showSam
       event.preventDefault();
       onClose({
         ...(showCurveAccuracy && { controllerCurveTolerance: tolerance }),
-        ...(showSampleLocation && { samplesInSubfolder })
+        ...(showCompanionLocation && { samplesInSubfolder })
       });
     }} onKeyDown={event => {
       if (event.key !== "Tab") return;
@@ -85,13 +85,13 @@ export function CsdExportOptionsDialog({ guiLanguage, showCurveAccuracy, showSam
         </div>
         <p id={`${id}-help`} className="mt-5 text-sm leading-relaxed text-slate-300">{copy.help}</p>
       </>}
-      {showSampleLocation && <div className={showCurveAccuracy ? "mt-4 border-t border-slate-700 pt-4" : undefined}>
+      {showCompanionLocation && <div className={showCurveAccuracy ? "mt-4 border-t border-slate-700 pt-4" : undefined}>
         <label className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-          <input type="checkbox" checked={samplesInSubfolder} aria-describedby={`${id}-samples`}
+          <input type="checkbox" checked={samplesInSubfolder} aria-describedby={`${id}-companions`}
             onChange={event => setSamplesInSubfolder(event.target.checked)} className="accent-cyan-400" />
-          {copy.sampleLocation}
+          {copy.companionLocation}
         </label>
-        <p id={`${id}-samples`} className="mt-1 text-sm text-slate-300">{copy.sampleHelp}</p>
+        <p id={`${id}-companions`} className="mt-1 text-sm text-slate-300">{copy.companionHelp}</p>
       </div>}
       <div className="mt-5 flex justify-end gap-2 border-t border-slate-700 pt-4">
         <button type="button" onClick={() => onClose(null)} className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:border-slate-400">{copy.cancel}</button>

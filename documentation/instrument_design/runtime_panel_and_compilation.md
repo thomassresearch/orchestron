@@ -72,13 +72,9 @@ This is especially useful on smaller displays or complex patches.
 
 ## Compile Status Badge (Graph Header)
 
-The instrument page header above the graph displays a compile-state badge for the current patch/tab snapshot:
+**Compiled** means this draft passed compilation. **Compile unchecked** appears on a new or edited draft, and **Compile failed** follows an unsuccessful compile. A successful audition also confirms compilation. **Stop audition** indicates an active preview. If you edit the graph during that preview, a message tells you when a restart is needed to hear the edit.
 
-- `compiled` - the current graph snapshot matches the last successful compile
-- `pending changes` - the graph changed since the last successful compile
-- `errors` - the last compile for this exact snapshot failed
-
-This helps you avoid assuming a graph is live-valid after edits.
+The separate library status shows **Unsaved draft**, **Unsaved changes** or **Saved to library**. Saving a normal instrument validates it first. Templates can be saved while still incomplete.
 
 ## Recommended Test Loop
 

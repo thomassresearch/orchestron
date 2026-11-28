@@ -13,6 +13,10 @@ The opcode catalog is the source list of all supported building blocks you can p
 - Click to add an opcode to the graph
 - Drag-and-drop an opcode into the graph canvas at a chosen position
 
+On narrower screens, choose **Add opcode** above the graph to open the catalog. Search, use the up and down arrow keys to highlight a result, then press Enter to insert it. Tab moves from search to help for the highlighted result. Escape returns to the graph toolbar. You can also drag a result onto the canvas.
+
+![Opcode catalog open beside a patch on a laptop](../../screenshots/instrument-design-catalog-drawer.jpg)
+
 ## Search Behavior
 
 The **fm** category includes [`fm6_voice`](fm6_voice.md), with an **FM6** voice-editor button, eight routing diagrams and 32 starter presets covering keys, basses, percussion, wind, metallic hits and sci-fi sounds.
@@ -25,11 +29,6 @@ The search field filters on these opcode fields:
 - `tags`
 
 This makes it easy to find opcodes by function (for example `filter`, `midi`, `reverb`, `soundfont`) even if you do not remember the exact Csound opcode name.
-
-<p align="center">
-  <img src="../../screenshots/instrument_opcode_catalog_search_filtered.png" alt="Opcode catalog with filtered search" width="420" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Opcode catalog filtered by search text.</em></p>
 
 ## Adding Opcodes
 

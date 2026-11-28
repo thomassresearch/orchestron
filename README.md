@@ -15,7 +15,7 @@ Read the complete user documentation in [user_documentation.md](documentation/us
 
 ### Instrument Design
 
-The plucked notes in *Evening at the Lake* come from this 18-node patch. Follow the green `foscili` oscillator through the high-pass and low-pass filters to the stereo panner. The three lit keys are a C major chord. Turn **Color** and play it again to hear the FM timbre change.
+The plucked notes in *Evening at the Lake* come from this 18-node patch. Follow the green `foscili` oscillator through the high-pass and low-pass filters to the stereo panner. Hover or focus a socket to highlight its signal path. Select a node to edit its input values, or use **ƒx** to shape a connected signal. The three lit keys are a C major chord. Turn **Color** and play it again to hear the FM timbre change.
 
 ![Prism FM Pluck in Instrument Design, with C, E and G held above the wired oscillator, filters and stereo panner](screenshots/instrument-design-prism-fm-pluck.png)
 
@@ -48,7 +48,7 @@ docker volume create orchestron_data
 docker run --rm --pull=always -p 127.0.0.1:8000:8000 -v orchestron_data:/app/backend/data -e VISUALCSOUND_DEFAULT_RTMIDI_MODULE=null ghcr.io/thomassresearch/orchestron:latest
 ```
 
-Open [Orchestron on localhost](http://localhost:8000/client/). In **Instrument Design**, choose **New → Playable instrument → Create**, click **Audition**, then press **C4** on the on-screen keyboard. Switch on **Autochord** and press C4 again to hear the triad.
+Open [Orchestron on localhost](http://localhost:8000/client/). In **Instrument Design**, choose **New instrument → Playable instrument → Create**, click **Audition**, then press **C4** on the on-screen keyboard. Switch on **Autochord** and press C4 again to hear the triad.
 
 To explore the arrangement pictured above, download the [Evening at the Lake performance](examples/performances/Evening_at_the_Lake.orch.json) with GitHub’s **Download raw file** button. Stop the audition, open **Perform → Project → Import**, select the file, import the performance and its patches, then press **Play**.
 

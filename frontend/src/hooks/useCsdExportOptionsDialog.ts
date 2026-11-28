@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PerformanceCsdExportRequestPayload } from "../lib/bundleImportExport";
 
 export type CsdExportOptions = Pick<PerformanceCsdExportRequestPayload, "controllerCurveTolerance" | "samplesInSubfolder">;
-export type CsdExportControls = { showCurveAccuracy: boolean; showSampleLocation: boolean };
+export type CsdExportControls = { showCurveAccuracy: boolean; showCompanionLocation: boolean };
 
 export function useCsdExportOptionsDialog() {
   const [controls, setControls] = useState<CsdExportControls | null>(null);

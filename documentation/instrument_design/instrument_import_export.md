@@ -2,7 +2,7 @@
 
 **Navigation:** [Up](instrument_design.md) | [Previous](runtime_panel_and_compilation.md) | [Next](supported_opcodes.md)
 
-This page documents all user-facing import/export options available from the Instrument Design page.
+Open **File** in Instrument Design to access **Import**, **Export**, and **Export CSD**.
 
 ## Instrument Export Types
 

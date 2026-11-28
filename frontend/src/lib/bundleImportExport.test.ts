@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { audioTemplate } from "./audioTemplates";
 import { useAppStore } from "../store/useAppStore";
-import { buildPerformanceExportPayload, parsePerformanceExportPayload, performanceHasSamples, planPatchImports, resolveImportedPerformanceConfig } from "./bundleImportExport";
+import { buildPerformanceExportPayload, parsePerformanceExportPayload, performanceHasCsdCompanionFiles, planPatchImports, resolveImportedPerformanceConfig } from "./bundleImportExport";
 import { buildSequencerConfigSnapshot, defaultSequencerState } from "../store/appStoreModel";
 import { migrateClipArrangement } from "./clipArranger/migration";
 import { emptyClipHistory, recordClipEdit } from "./clipArranger/history";
@@ -12,23 +12,36 @@ function bundle() {
     selectedPatches: [audioTemplate("empty")], performanceName: "Song", performanceDescription: "" }).payload;
 }
 
-it("offers sample placement for mapped notes and managed patch assets", () => {
+it("offers companion file placement for mapped notes, cartridges and managed patch assets", () => {
   const exported = bundle();
   const instrument = { id: "rack", patchId: "kit", midiChannel: 1 };
   exported.performance.config.instruments = [{ ...instrument, sampleMap: { version: 1, entries: [] } }];
-  expect(performanceHasSamples(exported)).toBe(false);
+  expect(performanceHasCsdCompanionFiles(exported)).toBe(false);
   exported.performance.config.instruments[0].sampleMap!.entries.push({ note: 60, assetId: "kick" });
-  expect(performanceHasSamples(exported)).toBe(true);
+  expect(performanceHasCsdCompanionFiles(exported)).toBe(true);
 
+  exported.performance.config.instruments = [{ ...instrument, dx7Banks: { "1": { name: "voices.syx", data: "AQ==" } } }];
+  expect(performanceHasCsdCompanionFiles(exported)).toBe(true);
   exported.performance.config.instruments = [instrument];
   for (const key of ["gen_nodes", "sfload_nodes", "adsyn_nodes"]) {
     const graph = exported.patch_definitions[0].graph;
     graph.ui_layout = { [key]: { node: { sampleAsset: null } } };
-    expect(performanceHasSamples(exported)).toBe(false);
+    expect(performanceHasCsdCompanionFiles(exported)).toBe(false);
     graph.ui_layout = { [key]: { node: { sampleAsset: { stored_name: "instrument-file" } } } };
-    expect(performanceHasSamples(exported)).toBe(true);
+    expect(performanceHasCsdCompanionFiles(exported)).toBe(true);
   }
 });
+
+it.each(["waveguide_string", "stereo_capture", "swept_gate", "fm6_voice", "fm_dx7", "midi_legato"])(
+  "offers a folder choice for a %s instrument without samples", opcode => {
+    const exported = bundle();
+    const graph = exported.patch_definitions[0].graph;
+    graph.nodes = [{ id: "voice", opcode: "oscili", params: {} }];
+    expect(performanceHasCsdCompanionFiles(exported)).toBe(false);
+    graph.nodes[0].opcode = opcode;
+    expect(performanceHasCsdCompanionFiles(exported)).toBe(true);
+  }
+);
 
 it("rejects ambiguous and malformed definitions instead of silently dropping them", () => {
   const exported = bundle();

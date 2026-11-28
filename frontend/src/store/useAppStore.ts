@@ -38,7 +38,6 @@ import type {
   GuiLanguage,
   NodeInstance,
   Patch,
-  PatchGraph,
   PersistedAppState,
   SequencerConfigSnapshot,
   SessionEvent
@@ -101,10 +100,10 @@ let sessionStartInFlight: Promise<void> | null = null;
 let sessionRequestGeneration = 0;
 
 export const useAppStore = create<AppStore>((set, get) => {
-  const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>) => {
+  const commitCurrentPatch = (patch: EditablePatch, extra?: Partial<AppStore>, replaceDraft = false) => {
     patch = { ...patch, ...instrumentMetadata(patch), schema_version: patchSchemaVersion(patch.schema_version, patch.graph) };
     const state = get();
-    const instrumentTabs = updatePatchInTabs(state.instrumentTabs, state.activeInstrumentTabId, patch);
+    const instrumentTabs = updatePatchInTabs(state.instrumentTabs, state.activeInstrumentTabId, patch, replaceDraft);
     set({
       ...extra,
       currentPatch: patch,
@@ -140,7 +139,7 @@ export const useAppStore = create<AppStore>((set, get) => {
     }
     set({
       ...extra,
-      instrumentTabs: updatePatchInTabs(state.instrumentTabs, request.tabId, patch),
+      instrumentTabs: updatePatchInTabs(state.instrumentTabs, request.tabId, patch, !preserveEdits),
       ...(state.activeInstrumentTabId === request.tabId ? { currentPatch: patch } : {})
     });
   };
@@ -586,19 +585,21 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     newPatch: () => {
-      commitCurrentPatch(defaultEditablePatch());
+      commitCurrentPatch(defaultEditablePatch(), undefined, true);
     },
 
     newPatchFromTemplate: (template) => {
       const draft = defaultEditablePatch();
+      const graph = normalizePatchGraph(structuredClone(template.graph));
+      delete graph.ui_layout.editor_state;
       commitCurrentPatch({
         ...draft,
         description: template.description,
         is_template: false,
         always_on: template.always_on === true,
         instrument_type: template.instrument_type,
-        graph: normalizePatchGraph(JSON.parse(JSON.stringify(template.graph)) as PatchGraph)
-      });
+        graph
+      }, undefined, true);
     },
 
     setCurrentPatchMeta: (name, description) => {

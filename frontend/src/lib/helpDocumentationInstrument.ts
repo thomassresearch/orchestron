@@ -78,6 +78,8 @@ Cada pestaña de instrumento mantiene su propio estado editable del grafo.`
 
 Browse and insert opcodes into the graph editor.
 
+On smaller screens, choose Add opcode. Search, move through results with ↑ and ↓, and press Enter to insert. Tab reaches help for the highlighted opcode. Escape closes the drawer.
+
 - Search by opcode name, category, tags, or description.
 - Click an opcode to add it to the graph.
 - Drag and drop opcodes from this list into the graph canvas.
@@ -89,6 +91,8 @@ The icon and category help identify the signal role of each opcode.`
       markdown: `## Opcode-Katalog
 
 Hier werden Opcodes für den Graph Editor gesucht und eingefügt.
+
+Auf kleinen Bildschirmen öffnet Opcode hinzufügen den Katalog. Suche, wähle mit ↑ oder ↓ und füge mit Eingabe ein. Tab führt zur Hilfe für den markierten Opcode. Escape schließt den Katalog.
 
 - Suche nach Opcode-Name, Kategorie, Tags oder Beschreibung.
 - Klick auf ein Opcode fügt es in den Graphen ein.
@@ -102,6 +106,8 @@ Icon und Kategorie helfen bei der Einordnung der Signalrolle.`
 
 Parcourez et insérez des opcodes dans l'éditeur de graphe.
 
+Sur un petit écran, choisissez Ajouter un opcode. Recherchez, parcourez les résultats avec ↑ et ↓ puis insérez avec Entrée. Tab mène à l’aide du résultat actif. Échap ferme le catalogue.
+
 - Rechercher par nom, catégorie, tags ou description.
 - Cliquer sur un opcode pour l'ajouter au graphe.
 - Glisser-deposer des opcodes vers le canevas du graphe.
@@ -113,6 +119,8 @@ L'icône et la catégorie aident à identifier le rôle du signal.`
       markdown: `## Catálogo de Opcode
 
 Explora e inserta opcodes en el editor de grafos.
+
+En pantallas pequeñas, elige Añadir opcode. Busca, recorre los resultados con ↑ y ↓ e inserta con Intro. Tab lleva a la ayuda del resultado activo. Escape cierra el catálogo.
 
 - Busca por nombre, categoría, etiquetas o descripción.
 - Haz clic en un opcode para agregarlo al grafo.
@@ -128,6 +136,8 @@ El ícono y la categoría ayudan a identificar el rol de la señal.`
 
 This is the visual patching area for signal routing.
 
+Select a node by clicking its title or focusing the title and pressing Enter. Edit an unconnected value in the node. Enter applies it, Escape cancels, and ƒx opens the formula editor. Hover or focus a socket to trace its cables and endpoints.
+
 - Connect compatible ports between nodes.
 - Edit node parameters in controls on each node.
 - Select nodes or cables to inspect and delete them.
@@ -140,6 +150,8 @@ Compilation order is derived from graph dependencies.`
       markdown: `## Graph Editor
 
 Dies ist der visuelle Patch-Bereich für Signalrouting.
+
+Klicke auf den Knotentitel oder fokussiere ihn und drücke Eingabe. Bearbeite unverbundene Werte im Knoten. Eingabe übernimmt, Escape verwirft und ƒx öffnet den Formeleditor. Zeige auf einen Anschluss oder fokussiere ihn, um Kabel und Endpunkte hervorzuheben.
 
 - Kompatible Ports zwischen Nodes verbinden.
 - Parameter direkt auf den Nodes bearbeiten.
@@ -154,6 +166,8 @@ Die Kompilierungsreihenfolge folgt den Graph-Abhängigkeiten.`
 
 Zone visuelle de patch pour le routage des signaux.
 
+Cliquez sur le titre du nœud ou sélectionnez-le au clavier avec Entrée. Modifiez les valeurs non connectées dans le nœud. Entrée applique la valeur, Échap annule et ƒx ouvre l’éditeur de formule. Survolez un port ou placez-y le focus pour suivre ses câbles et leurs extrémités.
+
 - Connecter des ports compatibles entre nœuds.
 - Modifier les paramètres sur chaque nœud.
 - Sélectionner nœuds ou connexions pour inspection/suppression.
@@ -166,6 +180,8 @@ L'ordre de compilation suit les dépendances du graphe.`
       markdown: `## Editor de grafos
 
 Zona visual de patch para enrutar señales.
+
+Pulsa el título del nodo o enfócalo y pulsa Intro. Edita los valores sin conectar en el nodo. Intro aplica el valor, Escape cancela y ƒx abre el editor de fórmulas. Pasa el puntero por un puerto o enfócalo para resaltar sus cables y extremos.
 
 - Conectar puertos compatibles entre nodos.
 - Editar parámetros en cada nodo.
@@ -238,48 +254,48 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
 - Tabs are local working slots. Switching tabs keeps each draft graph open, but does not save anything to the backend library by itself.
 - \`Load Patch\` replaces the active tab with a saved patch snapshot, which is useful for comparing or reusing library patches without closing other tabs.
 - Save the instrument to keep its graph, metadata and layout. Save Performance stores the engine settings. Instrument Save validates compilation first. Templates can be saved with incomplete graphs.
-- \`New from template\` creates a normal unsaved draft from a built-in or saved template. Template patches stay visible in Instrument Design, but are not available as Perform instruments.
+- \`New instrument\` creates a normal unsaved draft from a built-in or saved template. Template patches stay visible in Instrument Design, but are not available as Perform instruments.
 
 ### Action Differences
 
 - \`Compile\` refreshes the generated ORC/CSD artifacts and compile status, but does not store the patch in the library.
-- \`New\` starts a fresh unsaved draft, while \`Clone\` creates another saved patch from the current one.
+- New instrument starts a fresh unsaved draft, while \`Clone\` creates another saved patch from the current one.
 - \`Export\` / \`Import\` move Orchestron instrument bundles, while \`Export CSD\` downloads the raw compiled Csound file for use outside the app.`,
     german: `### Workflow der Patch-Bibliothek
 
 - Tabs sind lokale Arbeits-Slots. Beim Wechseln bleiben Entwuerfe offen, es wird aber nichts automatisch in der Backend-Bibliothek gespeichert.
 - \`Load Patch\` ersetzt den aktiven Tab durch einen gespeicherten Patch-Snapshot. Das ist praktisch, um Library-Patches zu vergleichen oder wiederzuverwenden, ohne andere Tabs zu schliessen.
 - Speichern sichert Graph, Metadaten und Layout des Instruments. Performance speichern sichert die Engine-Einstellungen. Beim Speichern des Instruments wird die Kompilierung geprüft. Templates dürfen unvollständige Graphen enthalten.
-- \`New from template\` erzeugt einen normalen ungespeicherten Entwurf aus einem integrierten oder gespeicherten Template. Template-Patches bleiben im Instrument-Design sichtbar, sind aber nicht als Perform-Instrumente verfuegbar.
+- \`Neues Instrument\` erzeugt einen normalen ungespeicherten Entwurf aus einem integrierten oder gespeicherten Template. Template-Patches bleiben im Instrument-Design sichtbar, sind aber nicht als Perform-Instrumente verfuegbar.
 
 ### Unterschiede der Aktionen
 
 - \`Compile\` aktualisiert die erzeugten ORC/CSD-Artefakte und den Compile-Status, speichert den Patch aber nicht in der Bibliothek.
-- \`New\` startet einen neuen ungespeicherten Entwurf, waehrend \`Clone\` einen zweiten gespeicherten Patch aus dem aktuellen erzeugt.
+- Neues Instrument startet einen neuen ungespeicherten Entwurf, waehrend \`Clone\` einen zweiten gespeicherten Patch aus dem aktuellen erzeugt.
 - \`Export\` / \`Import\` bewegen Orchestron-Instrument-Bundles; \`Export CSD\` laedt die rohe kompilierte Csound-Datei fuer die Nutzung ausserhalb der App herunter.`,
     french: `### Workflow de la bibliotheque de patchs
 
 - Les onglets sont des espaces de travail locaux. Changer d'onglet conserve chaque brouillon ouvert, mais ne sauvegarde rien dans la bibliotheque backend.
 - \`Load Patch\` remplace l'onglet actif par un snapshot de patch sauvegarde ; c'est pratique pour comparer ou reutiliser des patchs de la bibliotheque sans fermer les autres onglets.
 - Enregistrer sauvegarde le graphe, les métadonnées et la disposition de l’instrument. Enregistrer la performance conserve les réglages du moteur. L’enregistrement de l’instrument vérifie la compilation. Les modèles peuvent contenir des graphes incomplets.
-- \`New from template\` crée un brouillon normal non sauvegardé à partir d'un template intégré ou enregistré. Les patchs template restent visibles dans Instrument Design, mais ne sont pas disponibles comme instruments Perform.
+- \`Nouvel instrument\` crée un brouillon normal non sauvegardé à partir d'un template intégré ou enregistré. Les patchs template restent visibles dans Instrument Design, mais ne sont pas disponibles comme instruments Perform.
 
 ### Differences entre les actions
 
 - \`Compile\` rafraichit les artefacts ORC/CSD generes et l'etat de compilation, mais n'enregistre pas le patch dans la bibliotheque.
-- \`New\` demarre un nouveau brouillon non sauvegarde, tandis que \`Clone\` cree un deuxieme patch sauvegarde a partir du patch courant.
+- Nouvel instrument demarre un nouveau brouillon non sauvegarde, tandis que \`Clone\` cree un deuxieme patch sauvegarde a partir du patch courant.
 - \`Export\` / \`Import\` deplacent des bundles d'instrument Orchestron, alors que \`Export CSD\` telecharge le fichier Csound compile brut pour une utilisation hors de l'app.`,
     spanish: `### Flujo de biblioteca de patches
 
 - Las pestanas son espacios de trabajo locales. Cambiar de pestana mantiene cada borrador abierto, pero no guarda nada por si solo en la biblioteca del backend.
 - \`Load Patch\` reemplaza la pestana activa con un snapshot guardado del patch; esto sirve para comparar o reutilizar patches de la biblioteca sin cerrar otras pestanas.
 - Guardar conserva el grafo, los metadatos y la disposición del instrumento. Guardar performance conserva los ajustes del motor. Al guardar el instrumento se comprueba la compilación. Las plantillas admiten grafos incompletos.
-- \`New from template\` crea un borrador normal sin guardar a partir de un template integrado o guardado. Los patches template siguen visibles en Instrument Design, pero no estan disponibles como instrumentos en Perform.
+- \`Nuevo instrumento\` crea un borrador normal sin guardar a partir de un template integrado o guardado. Los patches template siguen visibles en Instrument Design, pero no estan disponibles como instrumentos en Perform.
 
 ### Diferencias entre acciones
 
 - \`Compile\` actualiza los artefactos ORC/CSD generados y el estado de compilacion, pero no guarda el patch en la biblioteca.
-- \`New\` inicia un borrador nuevo sin guardar, mientras que \`Clone\` crea otro patch guardado a partir del actual.
+- Nuevo instrumento inicia un borrador nuevo sin guardar, mientras que \`Clone\` crea otro patch guardado a partir del actual.
 - \`Export\` / \`Import\` mueven bundles de instrumento de Orchestron, mientras que \`Export CSD\` descarga el archivo Csound compilado en bruto para usarlo fuera de la app.`
   },
   instrument_opcode_catalog: {
@@ -331,7 +347,7 @@ export const instrumentHelpAppendices: HelpDocumentAppendixSet<InstrumentHelpDoc
   instrument_graph_editor: {
     english: `### Working In The Graph
 
-- Use the horizontal and vertical canvas scrollbars to navigate large patches, including expanded branch frames, even with Patch controls collapsed. Drag a scrollbar or focus it with Tab and use the arrow keys. Scrolling preserves node positions and selection and stays synchronized with pan, zoom, and Fit.
+- Use the horizontal and vertical canvas scrollbars to navigate large patches, including expanded branch frames, even with Patch details closed. Drag a scrollbar or focus it with Tab and use the arrow keys. Scrolling preserves node positions and selection and stays synchronized with pan, zoom, and Fit.
 - The canvas stores node positions, input-formula metadata, and other UI layout details with the patch, so reopening a saved patch restores the last arranged view.
 - Connections should follow compatible port types, but the backend compiler remains the final source of truth for missing inputs, invalid formulas, and compile errors.
 - The delete action only removes explicitly selected nodes or cables; casual socket interaction is intentionally prevented from tearing down existing wiring.

@@ -27,7 +27,10 @@ import { useCsdExportOptionsDialog } from "./hooks/useCsdExportOptionsDialog";
 import { HelpIconButton } from "./components/HelpIconButton";
 import { ImportDialogs } from "./components/ImportDialogs";
 import { OpcodeCatalog } from "./components/OpcodeCatalog";
-import { PatchToolbar } from "./components/PatchToolbar";
+import { instrumentDesignCopy } from "./lib/instrumentDesignCopy";
+import { patchSignature } from "./lib/patchSignature";
+import { usePatchLibraryStatus } from "./hooks/usePatchLibraryStatus";
+import { PatchToolbar, PATCH_TOOLBAR_COPY } from "./components/PatchToolbar";
 import { type EditorSelection } from "./components/ReteNodeEditor";
 import { RuntimePanel } from "./components/RuntimePanel";
 import {
@@ -36,7 +39,7 @@ import {
   collectPerformanceImportConflictItems,
   extractImportPatchDefinitions,
   hasResolvableImportedPerformance,
-  performanceHasSamples,
+  performanceHasCsdCompanionFiles,
   parsePerformanceExportPayload,
   partitionImportConflictItems,
   resolveImportedPerformanceConfig,
@@ -51,7 +54,7 @@ import {
   APP_COPY,
   IMPORT_DIALOG_COPY
 } from "./lib/appUiCopy";
-import { CircuitBoard, Music, Settings } from "lucide-react";
+import { CircuitBoard, Music, Settings, ListPlus, PanelRight } from "lucide-react";
 import { GUI_LANGUAGE_OPTIONS } from "./lib/guiLanguage";
 import { validateImportConflictItems } from "./lib/importDialogs";
 import { mergedSequencerState } from "./lib/mergedSequencerState";
@@ -85,7 +88,6 @@ import {
   enabledForSequencerConfigExport,
   normalizeMidiChannel,
   normalizeMidiVelocity,
-  patchCompileSignatureFor,
   pianoRollNoteKey,
   sanitizeCsdFileBaseName,
   sanitizeInstrumentDefinitionFileBaseName,
@@ -351,8 +353,29 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   const [instrumentPatchIoError, setInstrumentPatchIoError] = useState<string | null>(null);
   const [newFromTemplateDialogOpen, setNewFromTemplateDialogOpen] = useState(false);
   const [selectedTemplatePatchId, setSelectedTemplatePatchId] = useState("");
-  const [lastCompiledPatchSignature, setLastCompiledPatchSignature] = useState<string | null>(null);
-  const [lastFailedPatchSignature, setLastFailedPatchSignature] = useState<string | null>(null);
+  const draftGeneration = instrumentTabs.find(tab => tab.id === activeInstrumentTabId)?.viewGeneration ?? 0;
+  const draftViewKey = activeInstrumentTabId + ":" + draftGeneration;
+  const [compileResults, setCompileResults] = useState<Record<string, { generation: number; signature: string; status: "compiled" | "errors" }>>({});
+  const recordCompile = useCallback((signature: string, status: "compiled" | "errors") => {
+    const tabs = useAppStore.getState().instrumentTabs;
+    const tab = tabs.find(item => item.id === activeInstrumentTabId);
+    if (!tab || (tab.viewGeneration ?? 0) !== draftGeneration) return;
+    setCompileResults(results => ({
+      ...Object.fromEntries(tabs.filter(item => results[item.id]).map(item => [item.id, results[item.id]])),
+      [activeInstrumentTabId]: { generation: draftGeneration, signature, status }
+    }));
+  }, [activeInstrumentTabId, draftGeneration]);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const catalogTrigger = useRef<HTMLButtonElement>(null);
+  const closeCatalog = () => { setCatalogOpen(false); catalogTrigger.current?.focus(); };
+  useEffect(() => {
+    if (!catalogOpen) return;
+    const media = window.matchMedia("(min-width: 1280px)");
+    const reset = () => setCatalogOpen(false);
+    if (media.matches || activePage !== "instrument") reset();
+    media.addEventListener("change", reset);
+    return () => media.removeEventListener("change", reset);
+  }, [catalogOpen, activePage]);
   const [runtimePanelCollapsed, setRuntimePanelCollapsed] = useState(true);
   const [collapsedPanels, setCollapsedPanels] = useState(INITIAL_PANEL_COLLAPSE_STATE);
   const setPanelCollapsed = useCallback((panel: PanelId, collapsed: boolean) => {
@@ -625,31 +648,23 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
   });
 
   const currentPatchCompileSignature = useMemo(
-    () => patchCompileSignatureFor(currentPatch, activeInstrumentTabId, engineConfig),
-    [activeInstrumentTabId, currentPatch, engineConfig]
+    () => patchSignature(currentPatch, engineConfig),
+    [currentPatch, engineConfig]
   );
-  const patchCompileBadge = useMemo<"compiled" | "pending" | "errors">(() => {
-    if (lastFailedPatchSignature === currentPatchCompileSignature) {
-      return "errors";
-    }
-    if (lastCompiledPatchSignature === currentPatchCompileSignature) {
-      return "compiled";
-    }
-    return "pending";
-  }, [currentPatchCompileSignature, lastCompiledPatchSignature, lastFailedPatchSignature]);
+  const lastCompile = compileResults[activeInstrumentTabId];
+  const patchCompileBadge = lastCompile?.generation === draftGeneration && lastCompile.signature === currentPatchCompileSignature ? lastCompile.status : "pending";
 
   const compileCurrentPatchWithStatus = useCallback(async () => {
     const signature = currentPatchCompileSignature;
     const compileArtifact = await compileSession();
     if (!compileArtifact) {
-      setLastFailedPatchSignature(signature);
+      recordCompile(signature, "errors");
       return null;
     }
 
-    setLastFailedPatchSignature(null);
-    setLastCompiledPatchSignature(signature);
+    recordCompile(signature, "compiled");
     return compileArtifact;
-  }, [compileSession, currentPatchCompileSignature]);
+  }, [compileSession, currentPatchCompileSignature, recordCompile]);
 
   const onCompileCurrentPatch = useCallback(() => {
     void compileCurrentPatchWithStatus();
@@ -667,18 +682,13 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
         return;
       }
 
+      const compiledState = useAppStore.getState();
+      const tab = compiledState.instrumentTabs.find(item => item.id === activeInstrumentTabId);
+      if (compiledState.activeInstrumentTabId !== activeInstrumentTabId || (tab?.viewGeneration ?? 0) !== draftGeneration ||
+        patchSignature(compiledState.currentPatch, compiledState.engineConfig) !== currentPatchCompileSignature) return;
       await saveCurrentPatch();
-      const latestState = useAppStore.getState();
-      if (latestState.error) {
-        return;
-      }
-
-      setLastFailedPatchSignature(null);
-      setLastCompiledPatchSignature(
-        patchCompileSignatureFor(latestState.currentPatch, latestState.activeInstrumentTabId, engineConfig)
-      );
     })();
-  }, [compileCurrentPatchWithStatus, currentPatch.is_template, engineConfig, saveCurrentPatch]);
+  }, [compileCurrentPatchWithStatus, currentPatch, currentPatchCompileSignature, activeInstrumentTabId, draftGeneration, saveCurrentPatch]);
 
   const onCloneCurrentPatch = useCallback(() => {
     void (async () => {
@@ -956,7 +966,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
 
   useEffect(() => {
     setSelection({ nodeIds: [], connections: [] });
-  }, [activeInstrumentTabId, currentPatch.id]);
+  }, [draftViewKey]);
 
   const onSequencerTrackEnabledChange = useCallback((id: string, enabled: boolean) => {
     void transportDevice(id, enabled);
@@ -1227,9 +1237,9 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
           }))
       };
       const showCurveAccuracy = eventSource === "score" && exportState.controllerSequencers.length > 0;
-      const showSampleLocation = performanceHasSamples(payload);
-      if (showCurveAccuracy || showSampleLocation) {
-        const options = await requestCsdExportOptions({ showCurveAccuracy, showSampleLocation });
+      const showCompanionLocation = performanceHasCsdCompanionFiles(payload);
+      if (showCurveAccuracy || showCompanionLocation) {
+        const options = await requestCsdExportOptions({ showCurveAccuracy, showCompanionLocation });
         if (!options) return;
         Object.assign(exportPayload, options);
       }
@@ -1421,17 +1431,15 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
     applyDeleteSelectionPlan(plan);
   }, [appCopy, applyDeleteSelectionPlan, currentPatch.graph, opcodes, selectedCount, selection, guiLanguage]);
 
-  const instrumentLayoutClassName = runtimePanelCollapsed
-    ? "grid h-[68vh] grid-cols-1 gap-3 xl:grid-cols-[280px_1fr]"
-    : "grid h-[68vh] grid-cols-1 gap-3 xl:grid-cols-[280px_1fr_340px]";
+  const design = instrumentDesignCopy(guiLanguage);
+  const patchActions = PATCH_TOOLBAR_COPY[guiLanguage];
+  const libraryStatus = usePatchLibraryStatus(currentPatch, patches.find(p => p.id === currentPatch.id)?.updated_at, activePage === "instrument");
   const patchCompileBadgeText =
     patchCompileBadge === "compiled"
       ? appCopy.patchCompileStatusCompiled
       : patchCompileBadge === "errors"
         ? appCopy.patchCompileStatusErrors
         : appCopy.patchCompileStatusPending;
-  const patchCompileBadgeClass =
-    patchCompileBadge === "errors" ? "text-[11px] font-medium text-rose-300" : "text-[11px] font-medium text-orange-300";
   const performableInstrumentPatches = useMemo(() => patches.filter((patch) => patch.is_template !== true), [patches]);
   const sequencerPageData = {
     browserAudioDiagnostics: browserAudioStatus === "live" ? browserAudioDiagnostics : null,
@@ -1803,15 +1811,8 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
                   void loadPatch(patchId);
                 }}
                 onNewPatch={openNewFromTemplateDialog}
-                onNewFromTemplate={openNewFromTemplateDialog}
                 onClonePatch={onCloneCurrentPatch}
                 onDeletePatch={onDeleteCurrentPatch}
-                onSavePatch={() => {
-                  onSavePatchWithCompileValidation();
-                }}
-                onCompile={() => {
-                  onCompileCurrentPatch();
-                }}
                 onExportPatch={() => {
                   onExportInstrumentDefinition();
                 }}
@@ -1838,49 +1839,40 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
               />
             </div>
 
-            <main className={instrumentLayoutClassName}>
-              <div className="relative h-full min-h-0">
+            <main className="instrument-workspace" data-runtime-open={!runtimePanelCollapsed || undefined}
+              onPointerDownCapture={e => {
+                if (catalogOpen && e.target instanceof Element && !e.target.closest("#design-catalog, .catalog-toggle")) setCatalogOpen(false);
+              }}>
+              <div id="design-catalog" className="design-catalog" data-open={catalogOpen || undefined}>
                 <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_opcode_catalog")} />
                 <OpcodeCatalog
                   guiLanguage={guiLanguage}
                   opcodes={editorOpcodes}
+                  drawerOpen={catalogOpen}
+                  onCloseDrawer={closeCatalog}
                   onAddOpcode={addNodeFromOpcode}
                   onOpcodeHelpRequest={onOpcodeHelpRequest}
                 />
               </div>
 
-              <section className="relative flex h-full min-h-[440px] flex-col gap-2">
+              <section className="design-graph-column">
                 <AuditionKeyboardProvider>
                 <div className="studio-panel">
-                  <AuditionPanel key={`${activeInstrumentTabId}:${currentPatch.id}`} stopPerformance={() => stopPerformance(false)}>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                        {appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}
-                      </div>
-                      <div className={patchCompileBadgeClass}>{patchCompileBadgeText}</div>
+                  <AuditionPanel onCompiled={() => recordCompile(currentPatchCompileSignature, "compiled")} key={draftViewKey} stopPerformance={() => stopPerformance(false)}>
+                    <button className="design-action" type="button" onClick={onCompileCurrentPatch} disabled={loading}>{patchActions.compilePatch}</button>
+                    <button className="design-action design-save" type="button" onClick={onSavePatchWithCompileValidation} disabled={loading}>{patchActions.savePatch}</button>
+                    <div className="design-status" role="status"><span data-status={patchCompileBadge}>{patchCompileBadgeText}</span><span>{design[libraryStatus]}</span></div>
+                    <div className="graph-tools">
+                      <span className="graph-stats" title={appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}>
+                        {selectedCount > 0 ? appCopy.selectedSummary(selection.nodeIds.length, selection.connections.length) : appCopy.graphStats(currentPatch.graph.nodes.length, currentPatch.graph.connections.length)}
+                      </span>
+                      <button ref={catalogTrigger} className="design-action catalog-toggle" type="button" aria-controls="design-catalog" aria-expanded={catalogOpen}
+                        onClick={() => { setCatalogOpen(!catalogOpen); }}><ListPlus />{design.addOpcode}</button>
+                      {runtimePanelCollapsed && <button type="button" className="design-action" onClick={() => setRuntimePanelCollapsed(false)}
+                        aria-label={appCopy.showRuntimePanel} title={appCopy.showRuntimePanel}><PanelRight />{appCopy.showRuntime}</button>}
+                      <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_graph_editor")} className="design-help" />
                     </div>
-                    <HelpIconButton
-                      guiLanguage={guiLanguage}
-                      onClick={() => onHelpRequest("instrument_graph_editor")}
-                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-slate-500 bg-slate-950/90 text-xs font-bold text-slate-100 transition hover:border-accent hover:text-accent"
-                    />
                   </AuditionPanel>
-                  <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
-                    <div className="rounded-md border border-slate-700 bg-slate-950/70 px-2 py-1">
-                      {appCopy.selectedSummary(selection.nodeIds.length, selection.connections.length)}
-                    </div>
-                    {runtimePanelCollapsed ? (
-                      <button
-                        type="button"
-                        onClick={() => setRuntimePanelCollapsed(false)}
-                        className="rounded-md border border-accent/70 bg-accent/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent transition hover:bg-accent/25"
-                        aria-label={appCopy.showRuntimePanel}
-                        title={appCopy.showRuntimePanel}
-                      >
-                        {appCopy.showRuntime}
-                      </button>
-                    ) : null}
-                  </div>
                 </div>
                 <div className="min-h-0 flex-1">
                   <Suspense fallback={<DeferredPageFallback />}>
@@ -1890,12 +1882,14 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
                       guiLanguage={guiLanguage}
                       graph={currentPatch.graph}
                       graphLabel={currentPatch.name.trim().length > 0 ? currentPatch.name.trim() : "Untitled Patch"}
-                      graphBadgeLabel={currentPatch.is_template ? appCopy.templateToken : undefined}
                       opcodes={editorOpcodes}
-                      viewportKey={`${activeInstrumentTabId}:${currentPatch.id ?? "draft"}`}
+                      viewportKey={draftViewKey}
                       onGraphChange={onGraphChange}
                       onSelectionChange={setSelection}
-                      onAddOpcodeAtPosition={addNodeFromOpcode}
+                      onAddOpcodeAtPosition={(opcode, position, target) => {
+                        addNodeFromOpcode(opcode, position, target);
+                        if (catalogOpen) closeCatalog();
+                      }}
                       onOpcodeHelpRequest={onOpcodeHelpRequest}
                       opcodeHelpLabel={documentationCopy.showDocumentation}
                       onDeleteSelection={onDeleteSelection}
@@ -1907,7 +1901,7 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
               </section>
 
               {!runtimePanelCollapsed ? (
-                <div className="relative h-full min-h-0">
+                <div className="design-runtime">
                   <HelpIconButton guiLanguage={guiLanguage} onClick={() => onHelpRequest("instrument_runtime_panel")} />
                   <RuntimePanel
                     guiLanguage={guiLanguage}
@@ -1985,11 +1979,11 @@ export default function App({ performWorkspace = true }: { performWorkspace?: bo
             className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl"
             role="dialog"
             aria-modal="true"
-            aria-label={appCopy.newFromTemplateDialogTitle}
+            aria-label={design.newInstrument}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <h2 className="font-display text-lg font-semibold text-slate-100">
-              {appCopy.newFromTemplateDialogTitle}
+              {design.newInstrument}
             </h2>
             <p className="mt-1 text-sm text-slate-300">{appCopy.newFromTemplateDialogDescription}</p>
             <label className="mt-4 flex flex-col gap-1">

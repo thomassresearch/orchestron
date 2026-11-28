@@ -113,9 +113,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function performanceHasSamples(payload: PerformanceExportPayload): boolean {
-  if (payload.performance.config.instruments.some(instrument => instrument.dx7Banks || instrument.sampleMap?.entries.length)) return true;
+const instrumentUdoNodes = new Set(["waveguide_string", "stereo_capture", "swept_gate", "fm6_voice", "fm_dx7", "midi_legato"]);
+
+export function performanceHasCsdCompanionFiles(payload: PerformanceExportPayload): boolean {
+  if (payload.performance.config.instruments.some(instrument =>
+    Object.keys(instrument.dx7Banks ?? {}).length > 0 || instrument.sampleMap?.entries.length)) return true;
   return payload.patch_definitions.some(({ graph }) =>
+    graph.nodes.some(node => instrumentUdoNodes.has(node.opcode)) ||
     ["gen_nodes", "sfload_nodes", "adsyn_nodes"].some(key => {
       const configs = graph.ui_layout[key];
       return isRecord(configs) && Object.values(configs).some(config =>

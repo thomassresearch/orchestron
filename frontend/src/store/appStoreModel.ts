@@ -2269,7 +2269,7 @@ export function createInstrumentTab(patch = defaultEditablePatch()): InstrumentT
   };
 }
 
-export function updatePatchInTabs(tabs: InstrumentTabState[], tabId: string, patch: EditablePatch): InstrumentTabState[] {
+export function updatePatchInTabs(tabs: InstrumentTabState[], tabId: string, patch: EditablePatch, replaceDraft = false): InstrumentTabState[] {
   let found = false;
   const next = tabs.map((tab) => {
     if (tab.id !== tabId) {
@@ -2278,6 +2278,7 @@ export function updatePatchInTabs(tabs: InstrumentTabState[], tabId: string, pat
     found = true;
     return {
       ...tab,
+      ...(replaceDraft ? { viewGeneration: (tab.viewGeneration ?? 0) + 1 } : {}),
       patch
     };
   });

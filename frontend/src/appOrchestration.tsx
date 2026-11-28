@@ -18,7 +18,6 @@ import type {
   Connection,
   GuiLanguage,
   DrummerSequencerTrackState,
-  EngineConfig,
   OpcodeSpec,
   PatchGraph,
   SequencerState,
@@ -260,31 +259,6 @@ export function buildDrummerRowTrackConfigs(
       };
     })
   }));
-}
-
-export function patchCompileSignatureFor(
-  patch: {
-    id?: string;
-    name: string;
-    description: string;
-    is_template: boolean;
-    always_on: boolean;
-    schema_version: number;
-    graph: PatchGraph;
-  },
-  tabId: string,
-  engineConfig: EngineConfig
-): string {
-  return JSON.stringify({
-    patchKey: patch.id ?? `draft:${tabId}`,
-    name: patch.name,
-    description: patch.description,
-    is_template: patch.is_template,
-    always_on: patch.always_on,
-    schema_version: patch.schema_version,
-    graph: patch.graph,
-    engineConfig
-  });
 }
 
 export function patchGraphHasOpcode(graph: PatchGraph, opcode: string): boolean {

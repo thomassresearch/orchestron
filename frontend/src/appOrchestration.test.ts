@@ -1,6 +1,7 @@
 import fixture from "../../backend/tests/fixtures/performances/arranger_seek.json";
-import { normalizeSequencerState, normalizeArpeggiatorState } from "./store/appStoreModel";
+import { defaultEditablePatch, normalizeEngineConfig, normalizeSequencerState, normalizeArpeggiatorState } from "./store/appStoreModel";
 import { arrangerTransportExtent } from "./lib/arrangerTransport";
+import { patchSignature } from "./lib/patchSignature";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -14,6 +15,22 @@ import {
 } from "./appOrchestration";
 
 describe("application orchestration helpers", () => {
+  it("retains compilation status after arranging the graph and invalidates it after a sound edit", () => {
+    const patch = defaultEditablePatch();
+    const engine = normalizeEngineConfig(undefined);
+    const node = { id: "value", opcode: "const_i", position: { x: 0, y: 0 }, params: { value: 1 } };
+    patch.graph.nodes = [node];
+    const original = patchSignature(patch, engine);
+    patch.graph.control_flow = {};
+    patch.graph.audio_interface ??= null;
+    expect(patchSignature(patch, engine)).toBe(original);
+    node.position.x = 150;
+    patch.graph.ui_layout.editor_state = { viewport: { x: 10, y: 4, k: 1.2 } };
+    expect(patchSignature(patch, engine)).toBe(original);
+    node.params.value = 2;
+    expect(patchSignature(patch, engine)).not.toBe(original);
+  });
+
   it("preserves authored MIDI velocity regardless of legacy rack Level", () => {
     expect(normalizeMidiVelocity(127)).toBe(127);
     expect(normalizeMidiVelocity(110)).toBe(110);

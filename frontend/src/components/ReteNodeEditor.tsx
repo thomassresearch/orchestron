@@ -7,6 +7,8 @@ import { createReteViewportScrollbars } from "./reteViewportScrollbars";
 
 import { ClassicPreset, NodeEditor } from "rete";
 import { AreaExtensions, AreaPlugin } from "rete-area-plugin";
+import { GraphInputField } from "./GraphInputField";
+import { getDOMSocketPosition } from "rete-render-utils";
 import { GraphZoom } from "./GraphZoom";
 import { ConnectionPlugin, Presets as ConnectionPresets } from "rete-connection-plugin";
 import { Presets as ReactPresets, ReactPlugin } from "rete-react-plugin";
@@ -52,7 +54,6 @@ export interface ReteNodeEditorProps {
   guiLanguage: GuiLanguage;
   graph: PatchGraph;
   graphLabel?: string;
-  graphBadgeLabel?: string;
   opcodes: OpcodeSpec[];
   viewportKey: string;
   onGraphChange: (graph: PatchGraph, options?: { positionedMembers?: boolean; voiceNodeId?: string }) => void;
@@ -213,56 +214,14 @@ const CONSTANT_OPCODES = new Set(["const_a", "const_i", "const_k", "const_s"]);
 class CoefficientListControl extends ClassicPreset.InputControl<"text"> {}
 const CONST_S_DEFAULT_VALUE = "string";
 const CONST_S_MAX_LENGTH = 50;
-const GENERATOR_CATEGORIES = new Set(["oscillator", "envelope"]);
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
 
-type NodePalette = {
-  background: string;
-  border: string;
-  hover: string;
-  selectedBackground: string;
-  selectedBorder: string;
-};
-
 type ViewportTransform = GraphViewport;
 
-const CATEGORY_NODE_PALETTES: Record<string, NodePalette> = {
-  generator: {
-    background: "#b8dcc4",
-    border: "#7aa58a",
-    hover: "#c8e6d1",
-    selectedBackground: "#ecf8f0",
-    selectedBorder: "#b7dec3"
-  },
-  filter: {
-    background: "#e9b8be",
-    border: "#bf7f88",
-    hover: "#f0c8cd",
-    selectedBackground: "#fdf0f2",
-    selectedBorder: "#eebac0"
-  },
-  midi: {
-    background: "#b9d4f5",
-    border: "#7ea6d4",
-    hover: "#c8def8",
-    selectedBackground: "#edf5fe",
-    selectedBorder: "#bdd5ef"
-  },
-  constant: {
-    background: "#c8cdd6",
-    border: "#8f98a8",
-    hover: "#d5d9e1",
-    selectedBackground: "#f2f4f7",
-    selectedBorder: "#cfd4dd"
-  },
-  default: {
-    background: "#b8cce6",
-    border: "#7c97bd",
-    hover: "#c7d8ee",
-    selectedBackground: "#ecf2fb",
-    selectedBorder: "#bfd0e7"
-  }
+const CATEGORY_ACCENTS: Record<string, string> = {
+  oscillator: "#a3dbc6", envelope: "#a3dbc6", filter: "#edb4af", midi: "#a6caf1",
+  constants: "#ccd0dd", control_flow: "#cbbbf1", audio: "#a0d6dc"
 };
 
 const CONSTANT_INPUT_CSS = `
@@ -284,16 +243,21 @@ const CONSTANT_INPUT_CSS = `
 
 type SocketGlyphProps = {
   optional: boolean;
+  endpoint: string;
+  connected: boolean;
+  label: string;
   title?: string;
   hasStoredValue?: boolean;
   onDoubleClick?: () => void;
 };
 
-function SocketGlyph({ optional, title, hasStoredValue, onDoubleClick }: SocketGlyphProps) {
+function SocketGlyph({ optional, endpoint, connected, label, title, hasStoredValue, onDoubleClick }: SocketGlyphProps) {
   const showValueHighlight = hasStoredValue === true;
   return (
     <div
-      style={{ borderRadius: "18px", padding: "6px" }}
+      className="graph-socket" data-endpoint={endpoint} data-connected={connected || undefined}
+      tabIndex={0} role={onDoubleClick ? "button" : "group"} aria-label={label}
+      onKeyDown={e => { if (onDoubleClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onDoubleClick(); } }}
       onDoubleClick={(event) => {
         if (!onDoubleClick) {
           return;
@@ -310,11 +274,11 @@ function SocketGlyph({ optional, title, hasStoredValue, onDoubleClick }: SocketG
           cursor: "pointer",
           border: showValueHighlight ? "1px solid #dcfce7" : "1px solid #f8fafc",
           borderRadius: "12px",
-          width: "24px",
-          height: "24px",
+          width: "17px",
+          height: "17px",
           verticalAlign: "middle",
           boxSizing: "border-box",
-          background: showValueHighlight ? "#22c55e" : optional ? "rgba(148, 163, 184, 0.35)" : "#96b38a",
+          background: showValueHighlight ? "#40c98d" : connected ? "#81a7c2" : optional ? "#293b52" : "#778d9f",
           opacity: showValueHighlight ? 1 : optional ? 0.62 : 1,
           boxShadow: showValueHighlight ? "0 0 0 2px rgba(34, 197, 94, 0.35)" : "none"
         }}
@@ -337,26 +301,6 @@ function connectionKey(connection: Connection): string {
   return `${connection.from_node_id}|${connection.from_port_id}|${connection.to_node_id}|${connection.to_port_id}`;
 }
 
-function paletteForCategory(category: string | undefined): NodePalette {
-  if (!category) {
-    return CATEGORY_NODE_PALETTES.default;
-  }
-  if (GENERATOR_CATEGORIES.has(category)) {
-    return CATEGORY_NODE_PALETTES.generator;
-  }
-  if (category === "control_flow") return { background: "#ddd6fe", border: "#8b5cf6", hover: "#ede9fe", selectedBackground: "#f5f3ff", selectedBorder: "#a78bfa" };
-  if (category === "midi") {
-    return CATEGORY_NODE_PALETTES.midi;
-  }
-  if (category === "filter") {
-    return CATEGORY_NODE_PALETTES.filter;
-  }
-  if (category === "constants") {
-    return CATEGORY_NODE_PALETTES.constant;
-  }
-  return CATEGORY_NODE_PALETTES.default;
-}
-
 function normalizeConstStringValue(value: string): string {
   const sanitized = value
     .toLowerCase()
@@ -375,21 +319,17 @@ function normalizeConstantControlValue(opcode: string, value: string): string {
 }
 
 function nodeCssForCategory(category: string | undefined, selected: boolean): string {
-  const palette = paletteForCategory(category);
-  const background = selected ? palette.selectedBackground : palette.background;
-  const border = selected ? palette.selectedBorder : palette.border;
+  const accent = CATEGORY_ACCENTS[category ?? ""] ?? "#b8c9e3";
   return `
-    background: ${background};
-    border-color: ${border};
-    &:hover {
-      background: ${palette.hover};
-    }
-    ${selected ? "box-shadow: 0 0 0 3px rgba(248, 250, 252, 0.45);" : ""}
-    .title, .input-title, .output-title {
-      color: #0f172a;
-      font-weight: 600;
-    }
+    background: #172537; border: 1.5px solid ${selected ? "#9ce9fa" : "#506279"}; border-radius: 7px;
+    ${selected ? "box-shadow: 0 0 0 2px #75d9f2;" : ""}
+    &:hover { background: #1b2b3e; }
+    .title { background: ${accent}; border-radius: 5px 5px 0 0; color: #102130; font: 700 16px/1.2 system-ui; padding: 6px 27px 6px 9px; overflow-wrap: anywhere; }
+    .input-title, .output-title { color: #edf4fb; font: 500 14px/1.25 system-ui; margin: 3px 5px; }
+    .input:has(.graph-input-field) { display: flex; align-items: center; }
+    .input:has(.graph-input-field) .input-title { flex: 1; min-width: 0; }
   `;
+
 }
 
 function graphStructureKey(graph: PatchGraph): string {
@@ -463,7 +403,6 @@ export function ReteNodeEditor({
   guiLanguage,
   graph,
   graphLabel,
-  graphBadgeLabel,
   opcodes,
   viewportKey,
   onGraphChange,
@@ -486,7 +425,6 @@ export function ReteNodeEditor({
   const valueCopy = inputValueCopy(guiLanguage);
   const flowCopy = controlFlowCopy(guiLanguage);
   const resolvedGraphLabel = typeof graphLabel === "string" ? graphLabel.trim() : "";
-  const resolvedGraphBadgeLabel = typeof graphBadgeLabel === "string" ? graphBadgeLabel.trim() : "";
   const resolvedOpcodeHelpLabel = opcodeHelpLabel ?? copy.showDocumentation;
   const resolvedDeleteSelectionLabel = deleteSelectionLabel ?? copy.deleteSelectedElements;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -827,6 +765,25 @@ export function ReteNodeEditor({
     [zoomToViewportCenter]
   );
 
+  const traceEndpoint = (target: EventTarget | null) => {
+    const area = containerRef.current;
+    if (!area) return;
+    const endpoint = target instanceof Element ? target.closest<HTMLElement>("[data-endpoint]")?.dataset.endpoint : undefined;
+    if ((area.dataset.trace || undefined) === endpoint) return;
+    area.dataset.trace = endpoint ?? "";
+    area.querySelectorAll(".graph-traced").forEach(el => el.classList.remove("graph-traced"));
+    if (!endpoint) return;
+    const peers = new Set([endpoint]);
+    for (const edge of area.querySelectorAll<HTMLElement>(".vs-connection-edge")) {
+      if (edge.dataset.from !== endpoint && edge.dataset.to !== endpoint) continue;
+      edge.classList.add("graph-traced");
+      peers.add(edge.dataset.from!); peers.add(edge.dataset.to!);
+    }
+    area.querySelectorAll<HTMLElement>("[data-endpoint]").forEach(port => {
+      if (peers.has(port.dataset.endpoint!)) port.classList.add("graph-traced");
+    });
+  };
+
   const fitGraphInView = useCallback(() => {
     const area = areaRef.current;
     const editor = editorRef.current;
@@ -953,6 +910,9 @@ export function ReteNodeEditor({
       const initialGraph = graphRef.current;
       initializingRef.current = true;
 
+      const connectedEndpoints = new Set(initialGraph.connections.flatMap(link => [
+        JSON.stringify([link.from_node_id, "output", link.from_port_id]), JSON.stringify([link.to_node_id, "input", link.to_port_id])
+      ]));
       const sockets: Record<SignalType, ClassicPreset.Socket> = {
         a: new ClassicPreset.Socket("audio"),
         k: new ClassicPreset.Socket("control"),
@@ -976,12 +936,14 @@ export function ReteNodeEditor({
       function ColoredControl(props: any) {
         const input = <ReactPresets.classic.InputControl {...props} styles={() => CONSTANT_INPUT_CSS} />;
         return props.data instanceof CoefficientListControl
-          ? <label className="block text-xs text-slate-900">{copy.coefficients}{input}</label>
+          ? <label className="block text-xs text-slate-100">{copy.coefficients}{input}</label>
           : input;
       }
 
       render.addPreset(
         ReactPresets.classic.setup({
+          // Our glyphs sit inside a larger pointer target. Land cables at the visual center.
+          socketPositionWatcher: getDOMSocketPosition({ offset: position => position }),
           customize: {
             node(context) {
               const nodeId = String(context.payload.id);
@@ -1005,11 +967,25 @@ export function ReteNodeEditor({
                 const fmVoice = isFm6 && patchNode ? fm6Voice(patchNode.params) : null;
                 const inputs = isFm6 && !expanded ? Object.fromEntries(Object.entries(props.data.inputs).filter(([key]) =>
                   ["kfreq", "ivelocity", "ipreset"].includes(key) || graphRef.current.connections.some(c => c.to_node_id === patchNodeId && c.to_port_id === key))) : props.data.inputs;
+                const selectedInputs = { ...inputs };
+                if (props.data.selected && patchNode && spec) {
+                  for (const port of spec.inputs) {
+                    if (!inputs[port.id] || presentationRef.current.readOnlyInputs?.has(`${patchNode.id}::${port.id}`)) continue;
+                    const state = resolveInputValue(graphRef.current, patchNode, port);
+                    if (state.mode === "managed" || state.mode === "coefficients") continue;
+                    const unit = opcodeName === "madsr" && ["iatt", "idec", "irel", "idel", "ireltim"].includes(port.id) ? "s" : undefined;
+                    selectedInputs[port.id] = { ...inputs[port.id], label: <GraphInputField language={guiLanguage} port={port} state={state} unit={unit}
+                      save={value => updateGraph(current => saveInputValue(current, patchNode.id, port, value))}
+                      openFormula={() => openFormulaEditor(patchNode.id, port.id)} /> };
+                  }
+                }
+                const title = presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label;
                 return (
                   <div style={{ position: "relative" }} data-patch-node={patchNodeId} title={opcodeName.startsWith("__result_") ? flowCopy("resizeHelp") : undefined}>
                     <ReactPresets.classic.Node
                       {...props}
-                      data={{ ...props.data, inputs, label: presentationRef.current.nodeTitles?.[patchNodeId ?? ""] ?? props.data.label, width: opcodeName.startsWith("__branch_") ? 320 : isPerformanceController || isFm6 ? 240 : props.data.width }}
+                      data={{ ...props.data, inputs: selectedInputs, label: <button type="button" className="graph-node-title" aria-pressed={Boolean(props.data.selected)}
+                        onClick={e => { if (e.detail === 0) void selectable.select(nodeId, e.ctrlKey).then(emitSelection); }}>{title}</button>, width: opcodeName.startsWith("__branch_") ? 320 : isPerformanceController || isFm6 ? 240 : props.data.width }}
                       styles={(styleProps: any) => nodeCssForCategory(opcodeCategory, Boolean(styleProps.selected)) + (opcodeName.startsWith("__branch_") ? "width: 320px; .title { white-space: pre-line; }" : "") + (isPerformanceController || isFm6 ? "width: 240px;" : "") + (opcodeName.startsWith("__result_") ? "cursor: nwse-resize; .title { cursor: nwse-resize; }" : "")}
                     />
                     {fmVoice && <div className="w-[240px] rounded-b-lg border border-slate-600 bg-slate-900 p-2 text-xs text-slate-100" onPointerDown={e => e.stopPropagation()}>
@@ -1133,7 +1109,10 @@ export function ReteNodeEditor({
                   : state?.mode === "coefficients" ? labels.coefficients : labels.edit;
                 const title = state ? `${describeInputValue(state, guiLanguage)}\n${help}` : undefined;
                 const editable = state && !readOnly && state.mode !== "managed" && state.mode !== "coefficients";
-                return <SocketGlyph optional={optional} title={title} hasStoredValue={state?.highlighted}
+                const connected = connectedEndpoints.has(JSON.stringify([patchNodeId, context.side, context.key]));
+                const portName = context.side === "input" ? port?.name : node && opcodeByName.get(node.opcode)?.outputs.find(p => p.id === context.key)?.name;
+                return <SocketGlyph optional={optional} endpoint={JSON.stringify([patchNodeId, context.side, context.key])} connected={connected}
+                  label={node?.opcode + " · " + (portName ?? context.key)} title={title ?? portName} hasStoredValue={state?.highlighted}
                   onDoubleClick={editable ? () => { connection.drop(); openFormulaEditor(patchNodeId!, context.key); } : undefined} />;
               };
             }
@@ -1223,6 +1202,11 @@ export function ReteNodeEditor({
           }
 
           view.element.classList.add("vs-connection-edge");
+          const link = connectionByKey.get(key);
+          if (link) {
+            view.element.dataset.from = JSON.stringify([link.from_node_id, "output", link.from_port_id]);
+            view.element.dataset.to = JSON.stringify([link.to_node_id, "input", link.to_port_id]);
+          }
           if (selectedConnectionKeys.has(key)) {
             view.element.classList.add("vs-connection-selected");
           } else {
@@ -1684,21 +1668,11 @@ export function ReteNodeEditor({
         }}
       >
         <div className="relative min-h-0 min-w-0">
-        <div ref={containerRef} className="h-full w-full" />
+        <div ref={containerRef} role="region" aria-label={resolvedGraphLabel || undefined} className="graph-surface h-full w-full" data-overview={zoomPercent < 75 || undefined}
+          onPointerOver={e => traceEndpoint(e.target)} onPointerOut={e => traceEndpoint(e.relatedTarget ?? document.activeElement)}
+          onFocus={e => traceEndpoint(e.target)} onBlur={e => traceEndpoint(e.relatedTarget)} />
         {dropMessage && <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-12 left-3 z-20 max-h-32 max-w-[80%] overflow-auto whitespace-pre-wrap rounded border border-purple-600 bg-slate-950/95 p-2 text-xs text-purple-100">{dropMessage}</div>}
         {Object.keys(graph.control_flow ?? {}).length > 0 && <div className="pointer-events-none absolute bottom-2 left-3 max-w-[70%] text-[10px] text-slate-400">{flowCopy("dragHint")}</div>}
-        {resolvedGraphLabel ? (
-          <div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[70%] rounded-md border border-slate-700/90 bg-slate-950/90 px-2.5 py-1.5 shadow-lg shadow-black/30">
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="truncate text-xs font-semibold text-slate-100">{resolvedGraphLabel}</div>
-              {resolvedGraphBadgeLabel ? (
-                <span className="shrink-0 rounded border border-amber-400/60 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200">
-                  {resolvedGraphBadgeLabel}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
         {onDeleteSelection ? (
           <button
             type="button"

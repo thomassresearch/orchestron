@@ -21,7 +21,7 @@ It is also useful for advanced cases with only one or even zero connected inputs
 
 ## How To Open It
 
-- Double-click an **input socket** in the graph editor.
+- Select the node and choose **ƒx** beside the input. You can also double-click the input socket or focus it and press Enter.
 - The assistant opens for that exact target node + target input port.
 
 ## What The Assistant Shows

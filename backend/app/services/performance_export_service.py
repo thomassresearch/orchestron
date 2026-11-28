@@ -282,9 +282,9 @@ class PerformanceExportService:
         )
         if dropped:
             warnings.append(f"Sample Player skipped {dropped} attacks at the voice limit.")
+        orchestra = compile_artifact.orc
         if request.event_source == "score":
             spline_export = None
-            orchestra = compile_artifact.orc
             if spline_capture is not None and not any(
                 not target.always_on and any(node.opcode == "initc7" for node in target.patch.graph.nodes)
                 for target in targets
@@ -312,11 +312,14 @@ class PerformanceExportService:
                 sample_lines=sample_lines,
             )
             warnings.extend(score_warnings)
+            if any(is_curve_score_line(line) for line in score_lines):
+                orchestra += "\n" + "\n".join(curve_orchestra_lines(request.controller_curve_tolerance))
+
+        orchestra, udo_files = bundle_index.extract_instrument_udos(orchestra, compile_artifact.orc)
+        orchestra = self._rewrite_orc_for_offline_render(orchestra)
+        if request.event_source == "score":
             csd = self._build_offline_score_csd(
-                orc=self._rewrite_orc_for_offline_render(orchestra) + (
-                    "\n" + "\n".join(curve_orchestra_lines(request.controller_curve_tolerance))
-                    if any(is_curve_score_line(line) for line in score_lines) else ""
-                ),
+                orc=orchestra,
                 performance_title=request.performance_export.performance.name,
                 performance_description=request.performance_export.performance.description,
                 created_at=request.performance_export.exported_at,
@@ -334,7 +337,7 @@ class PerformanceExportService:
             midi_bytes = None
         else:
             csd = self._build_offline_midi_csd(
-                orc=self._rewrite_orc_for_offline_render(compile_artifact.orc),
+                orc=orchestra,
                 performance_title=request.performance_export.performance.name,
                 performance_description=request.performance_export.performance.description,
                 created_at=request.performance_export.exported_at,
@@ -358,9 +361,11 @@ class PerformanceExportService:
                 output_wave_name=output_wave_name,
             )
 
-        if bundle_index.assets or sample_files:
+        if bundle_index.assets or sample_files or bank_files or udo_files:
             location = "in the assets/ subfolder" if request.samples_in_subfolder else "beside the CSD"
-            readme += f"\nKeep the bundled sample and instrument files {location}.\n"
+            readme += f"\nKeep the bundled companion files {location}.\n"
+        if udo_files:
+            readme += "The main CSD includes each instrument opcode from its .udo file. Instruments can share these files.\n"
         if sample_files:
             readme += "Rendering includes any sample tails that continue after the selected range.\n"
             if midi_bytes is not None:
@@ -383,6 +388,8 @@ class PerformanceExportService:
             archive.writestr(str(bundle_root / "README.txt"), readme.encode("utf-8"))
             if warnings:
                 archive.writestr(str(bundle_root / "WARNINGS.txt"), "\n".join(warnings).encode("utf-8"))
+            for path, source in udo_files.items():
+                archive.writestr(str(bundle_root / path), source)
             for path, bank in bank_files.items():
                 archive.writestr(str(bundle_root / path), bank.raw)
             for asset in [*bundle_index.assets, *sample_files]:
@@ -1491,6 +1498,10 @@ class PerformanceExportService:
         return candidate or "performance"
 
 
+_UDO_DECLARATION = re.compile(r"^opcode[ \t]+([A-Za-z_]\w*)[ \t]*,", re.MULTILINE)
+_UDO_BLOCK = re.compile(_UDO_DECLARATION.pattern + r"[^\n]*\n.*?^endop[ \t]*$", re.MULTILINE | re.DOTALL)
+
+
 class _AssetBundleIndex:
     def __init__(self, gen_asset_service: GenAssetService, directory: PurePosixPath, reserved_names: set[str]) -> None:
         self._directory = directory
@@ -1509,15 +1520,41 @@ class _AssetBundleIndex:
         existing = self._archive_path_by_source.get(source_key)
         if existing is not None:
             return existing
-        name = stored_name
-        suffix = PurePosixPath(stored_name).suffix[:16]
+        archive_path = self._reserve_path(stored_name)
+        bundled = BundledAsset(source_path=source_path, archive_path=archive_path)
+        self._archive_path_by_source[source_key] = bundled
+        self.assets.append(bundled)
+        return bundled
+
+    def _reserve_path(self, name: str) -> str:
+        suffix = PurePosixPath(name).suffix[:16]
         number = len(self.assets) + 1
         while name.casefold() in self._used_names:
             name = f"asset-{number}{suffix}"
             number += 1
         self._used_names.add(name.casefold())
-        archive_path = self._directory / name
-        bundled = BundledAsset(source_path=source_path, archive_path=str(archive_path))
-        self._archive_path_by_source[source_key] = bundled
-        self.assets.append(bundled)
-        return bundled
+        return str(self._directory / name)
+
+    def extract_instrument_udos(self, orchestra: str, compiled_orchestra: str) -> tuple[str, dict[str, str]]:
+        # SCORE may add its own opcodes while rewriting controller reads. Only
+        # declarations from the instrument compiler belong in companion files.
+        instrument_names = set(_UDO_DECLARATION.findall(compiled_orchestra))
+        if not instrument_names:
+            return orchestra, {}
+        paths: dict[str, str] = {}
+        definitions: dict[str, list[str]] = defaultdict(list)
+
+        def include(match: re.Match[str]) -> str:
+            name = match[1]
+            if name not in instrument_names:
+                return match[0]
+            # A Csound opcode can have multiple overloads (e.g. fm_dx7).
+            if match[0] not in definitions[name]:
+                definitions[name].append(match[0])
+            if name in paths:
+                return ""
+            paths[name] = self._reserve_path(f"{name}.udo")
+            return f'#include "{paths[name]}"'
+
+        rewritten = _UDO_BLOCK.sub(include, orchestra)
+        return rewritten, {path: "\n\n".join(definitions[name]) + "\n" for name, path in paths.items()}

@@ -5,7 +5,7 @@ export type PanelId = "patchControls" | PerformPanelId;
 export type PanelCollapseState = Record<PanelId, boolean>;
 
 export const INITIAL_PANEL_COLLAPSE_STATE: PanelCollapseState = {
-  patchControls: false,
+  patchControls: true,
   rack: false,
   melodic: false,
   score: false,

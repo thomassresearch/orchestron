@@ -45,6 +45,7 @@ export interface EditablePatch {
 }
 
 export interface InstrumentTabState {
+  viewGeneration?: number;
   id: string;
   patch: EditablePatch;
 }

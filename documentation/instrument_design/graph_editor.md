@@ -26,18 +26,13 @@ Pinch on a trackpad or touchscreen to zoom in small increments around the pointe
 
 If the graph is empty, `Fit` resets toward a centered default view.
 
-Horizontal and vertical scrollbars along the canvas edges let you reach every part of a large patch, including expanded If/Switch case frames. They remain available when **Patch controls** is collapsed and adjust when Runtime or the browser window changes the canvas size. Drag a scrollbar, or focus it with **Tab** and use the arrow keys for that direction. Scrolling moves the view without moving nodes or clearing selection. The scrollbars stay synchronized with background panning, zoom, and `Fit`.
-
-<p align="center">
-  <img src="../../screenshots/instrument_graph_editor_selection_zoom_delete.png" alt="Graph editor selection and zoom controls" width="520" style="max-width: 100%; height: auto;" />
-</p>
-<p align="center"><em>Graph editor detail showing selection state, delete button, and zoom controls.</em></p>
+Horizontal and vertical scrollbars along the canvas edges let you reach every part of a large patch, including expanded If/Switch case frames. They remain available when **Patch details** is collapsed and adjust when Runtime or the browser window changes the canvas size. Drag a scrollbar, or focus it with **Tab** and use the arrow keys for that direction. Scrolling moves the view without moving nodes or clearing selection. The scrollbars stay synchronized with background panning, zoom, and `Fit`.
 
 ## Node Appearance and Visual Cues
 
 ### Category Coloring
 
-Nodes are color-coded by category (for example generator, filter, MIDI, constants, etc.) to help visually scan signal flow.
+Node headers show their category. A light outline marks the selection. At overview zoom, node names and connected port labels have more emphasis. Hover or focus a socket to highlight its cables and their endpoints. Standard stereo channels appear as **L** and **R**. Custom channel names appear at their ports.
 
 ### Optional Inputs
 
@@ -46,6 +41,10 @@ Optional inputs are visually distinct from required inputs.
 ### Stored Values and Formulas
 
 Bright-green input sockets have an active stored value or saved formula. Zero, false, and explicitly stored values equal to the catalog default count as stored values. A connection overriding a stored value is not highlighted unless it also has a formula. Inherited catalog defaults remain unhighlighted.
+
+Select a node, or focus its title and press Enter, to see editable values beside its unconnected inputs. For example, change **Attack** on **madsr** and press Enter to apply the time in seconds. Leaving the field applies a valid value. Escape restores the previous entry. **ƒx** opens the formula editor for that input, including inputs already connected by cables.
+
+![Selected envelope with editable times and the oscillator output traced to both stereo channels](../../screenshots/instrument-design-port-edit.png)
 
 Hover over an input to see its source and value. Double-click an input, with or without cables, to inspect or edit its effective value in the [Input Formula Assistant](input_formula_assistant.md). The dialog distinguishes **Stored value**, **Saved formula**, **Connected signals**, **Catalog default**, and **Unset**. Opening or cancelling it leaves the patch unchanged.
 

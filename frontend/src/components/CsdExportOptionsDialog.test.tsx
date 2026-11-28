@@ -8,7 +8,7 @@ afterEach(cleanup);
 
 it.each(["english", "german", "french", "spanish"] as const)("opens at 1 CC and exports the selected accuracy in %s", guiLanguage => {
   const onClose = vi.fn();
-  render(<CsdExportOptionsDialog showCurveAccuracy showSampleLocation guiLanguage={guiLanguage} onClose={onClose} />);
+  render(<CsdExportOptionsDialog showCurveAccuracy showCompanionLocation guiLanguage={guiLanguage} onClose={onClose} />);
   const slider = screen.getByRole("slider") as HTMLInputElement;
   expect(slider.value).toBe("1");
   expect(slider.min).toBe("1");
@@ -25,7 +25,7 @@ it.each(["english", "german", "french", "spanish"] as const)("opens at 1 CC and 
 
 it("keeps keyboard focus inside the dialog and supports Escape", () => {
   const onClose = vi.fn();
-  render(<CsdExportOptionsDialog showCurveAccuracy showSampleLocation={false} guiLanguage="english" onClose={onClose} />);
+  render(<CsdExportOptionsDialog showCurveAccuracy showCompanionLocation={false} guiLanguage="english" onClose={onClose} />);
   expect(screen.queryByRole("checkbox")).toBeNull();
   const slider = screen.getByRole("slider");
   const confirm = screen.getByRole("button", { name: "Export CSD" });
@@ -42,7 +42,7 @@ it("cancel never exports and each new export starts at the default", async () =>
   function Harness() {
     const { controls, request, close } = useCsdExportOptionsDialog();
     return <>
-      <button onClick={async () => { const value = await request({ showCurveAccuracy: false, showSampleLocation: true }); if (value !== null) exported(value); }}>Start export</button>
+      <button onClick={async () => { const value = await request({ showCurveAccuracy: false, showCompanionLocation: true }); if (value !== null) exported(value); }}>Start export</button>
       {controls && <CsdExportOptionsDialog {...controls} guiLanguage="english" onClose={close} />}
     </>;
   }

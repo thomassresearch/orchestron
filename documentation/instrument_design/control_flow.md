@@ -28,7 +28,7 @@ Drag the **Case Result title or unused body** to resize a branch in both dimensi
 
 ### Play the Drumset template
 
-Choose **New from template → Drumset** for 17 analog percussion voices: **35/36** kicks, **37** side stick, **38** snare, **39** clap, **40** electric snare, **41/43/45/47/48/50** toms, **42/46** closed/open hi-hat, **49** crash, **51** ride and **54** tambourine. Other notes select Default Silence. Velocity scales finite envelopes; branch-local `xtratim` preserves tails after short note-offs. Shared BD snappiness, shared hi-hat tuning and snare tuning default to **1**, preserving the previous sounds. Each added voice has one characteristic control. Save, assign a MIDI channel in Perform and route Stereo Output through the mixer. Controls affect newly started notes.
+Choose **New instrument → Drumset** for 17 analog percussion voices: **35/36** kicks, **37** side stick, **38** snare, **39** clap, **40** electric snare, **41/43/45/47/48/50** toms, **42/46** closed/open hi-hat, **49** crash, **51** ride and **54** tambourine. Other notes select Default Silence. Velocity scales finite envelopes; branch-local `xtratim` preserves tails after short note-offs. Shared BD snappiness, shared hi-hat tuning and snare tuning default to **1**, preserving the previous sounds. Each added voice has one characteristic control. Save, assign a MIDI channel in Perform and route Stereo Output through the mixer. Controls affect newly started notes.
 
 Processing after the block runs **once per voice**. Put effects in the performance mixer when they should process the **sum of the whole kit**. For velocity-dependent timbre, feed `ampmidi` into an If selector and place the alternative sounds in its cases.
 

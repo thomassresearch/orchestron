@@ -1,4 +1,6 @@
-import { CollapsiblePanel } from "./CollapsiblePanel";
+import { useRef } from "react";
+import { FolderOpen, Plus } from "lucide-react";
+import { instrumentDesignCopy } from "../lib/instrumentDesignCopy";
 import { PatchPicker } from "./PatchPicker";
 import { INSTRUMENT_TYPES, instrumentTypeCopy } from "../lib/instrumentTypes";
 import type { GuiLanguage, InstrumentType, PatchListItem } from "../types";
@@ -30,18 +32,14 @@ interface PatchToolbarProps {
   onPatchTypeChange: (value: InstrumentType) => void;
   onSelectPatch: (patchId: string) => void;
   onNewPatch: () => void;
-  onNewFromTemplate: () => void;
   onClonePatch: () => void;
   onDeletePatch: () => void;
-  onSavePatch: () => void;
-  onCompile: () => void;
   onExportCsd: () => void;
   onExportPatch: () => void;
   onImportPatch: () => void;
 }
 
 type PatchToolbarCopy = {
-  patchControls: string;
   closeTabAria: string;
   addInstrumentTab: string;
   patchName: string;
@@ -50,12 +48,7 @@ type PatchToolbarCopy = {
   descriptionPlaceholder: string;
   template: string;
   templateToken: string;
-  alwaysOn: string;
-  alwaysOnToken: string;
   loadPatch: string;
-  currentPatch: string;
-  newPatch: string;
-  newFromTemplate: string;
   clonePatch: string;
   deletePatch: string;
   savePatch: string;
@@ -65,9 +58,8 @@ type PatchToolbarCopy = {
   importPatch: string;
 };
 
-const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
+export const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
   english: {
-    patchControls: "Patch controls",
     closeTabAria: "Close tab",
     addInstrumentTab: "Add instrument tab",
     patchName: "Patch Name",
@@ -76,12 +68,7 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Warm filter-swept lead",
     template: "Template?",
     templateToken: "TEMPLATE",
-    alwaysOn: "Always On?",
-    alwaysOnToken: "ALWAYS ON",
     loadPatch: "Load Patch",
-    currentPatch: "Current",
-    newPatch: "New",
-    newFromTemplate: "New from template",
     clonePatch: "Clone",
     deletePatch: "Delete",
     savePatch: "Save",
@@ -91,7 +78,6 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     importPatch: "Import"
   },
   german: {
-    patchControls: "Patch-Steuerung",
     closeTabAria: "Tab schliessen",
     addInstrumentTab: "Instrument-Tab hinzufuegen",
     patchName: "Patch-Name",
@@ -100,12 +86,7 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Warmer Filter-Sweep-Lead",
     template: "Template?",
     templateToken: "TEMPLATE",
-    alwaysOn: "Immer an?",
-    alwaysOnToken: "IMMER AN",
     loadPatch: "Patch laden",
-    currentPatch: "Aktuell",
-    newPatch: "Neu",
-    newFromTemplate: "Neu aus Template",
     clonePatch: "Klonen",
     deletePatch: "Loeschen",
     savePatch: "Speichern",
@@ -115,7 +96,6 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     importPatch: "Importieren"
   },
   french: {
-    patchControls: "Commandes du patch",
     closeTabAria: "Fermer onglet",
     addInstrumentTab: "Ajouter onglet instrument",
     patchName: "Nom du patch",
@@ -124,12 +104,7 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Lead chaud avec sweep de filtre",
     template: "Template ?",
     templateToken: "TEMPLATE",
-    alwaysOn: "Toujours actif ?",
-    alwaysOnToken: "TOUJOURS ACTIF",
     loadPatch: "Charger patch",
-    currentPatch: "Actuel",
-    newPatch: "Nouveau",
-    newFromTemplate: "Nouveau depuis template",
     clonePatch: "Cloner",
     deletePatch: "Supprimer",
     savePatch: "Enregistrer",
@@ -139,7 +114,6 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     importPatch: "Importer"
   },
   spanish: {
-    patchControls: "Controles del patch",
     closeTabAria: "Cerrar pestana",
     addInstrumentTab: "Agregar pestana de instrumento",
     patchName: "Nombre del patch",
@@ -148,12 +122,7 @@ const PATCH_TOOLBAR_COPY: Record<GuiLanguage, PatchToolbarCopy> = {
     descriptionPlaceholder: "Lead calido con barrido de filtro",
     template: "Template?",
     templateToken: "TEMPLATE",
-    alwaysOn: "Siempre activo?",
-    alwaysOnToken: "SIEMPRE ACTIVO",
     loadPatch: "Cargar patch",
-    currentPatch: "Actual",
-    newPatch: "Nuevo",
-    newFromTemplate: "Nuevo desde template",
     clonePatch: "Clonar",
     deletePatch: "Eliminar",
     savePatch: "Guardar",
@@ -170,15 +139,23 @@ export function PatchToolbar(props: PatchToolbarProps) {
   const copy = PATCH_TOOLBAR_COPY[props.guiLanguage];
   const typeCopy = instrumentTypeCopy(props.guiLanguage);
 
+  const design = instrumentDesignCopy(props.guiLanguage);
+  const fileMenu = useRef<HTMLDetailsElement>(null);
+  const fileActions = [
+    [copy.clonePatch, props.onClonePatch], [copy.importPatch, props.onImportPatch],
+    [copy.exportPatch, props.onExportPatch], [copy.exportCsd, props.onExportCsd], [copy.deletePatch, props.onDeletePatch]
+  ] as const;
   return (
-    <section className="studio-panel">
-      <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1">
+    <section className="studio-panel patch-toolbar">
+      <div className="patch-toolbar-row">
+      <div className="patch-tabs">
         {props.tabs.map((tab) => {
           const isActive = tab.id === props.activeTabId;
           return (
             <div key={tab.id} className="inline-flex items-stretch rounded-lg border border-slate-600 bg-slate-950/70">
               <button
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => props.onSelectTab(tab.id)}
                 className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition ${
                   isActive ? "bg-accent/30 text-accent" : "text-slate-300 hover:bg-slate-800"
@@ -210,12 +187,24 @@ export function PatchToolbar(props: PatchToolbarProps) {
         </button>
       </div>
 
-      <CollapsiblePanel
-        title={copy.patchControls}
-        collapsed={props.collapsed}
-        onCollapsedChange={props.onCollapsedChange}
-        titleClassName="text-slate-200"
-      >
+      <div className="patch-library-actions">
+        <button type="button" className="design-action" disabled={props.loading} onClick={props.onNewPatch}><Plus />{design.newInstrument}</button>
+        <PatchPicker patches={props.patches} guiLanguage={props.guiLanguage} label={copy.loadPatch}
+          templateToken={copy.templateToken} onSelectPatch={props.onSelectPatch} triggerClassName="design-action" />
+        <details ref={fileMenu} className="patch-file" onBlur={e => {
+          if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.open = false;
+        }} onKeyDown={e => { if (e.key === "Escape") { e.currentTarget.open = false; e.currentTarget.querySelector("summary")?.focus(); } }}>
+          <summary className="design-action"><FolderOpen />{design.file}</summary>
+          <div className="patch-file-items">
+            {fileActions.map(([label, action]) => <button type="button" key={label}
+              disabled={props.loading || (action === props.onDeletePatch && !props.currentPatchId)}
+              onClick={() => { if (fileMenu.current) fileMenu.current.open = false; action(); }}>{label}</button>)}
+          </div>
+        </details>
+        <button type="button" className="design-action" aria-expanded={!props.collapsed} aria-controls="instrument-patch-details"
+          onClick={() => props.onCollapsedChange(!props.collapsed)}>{design.details} {props.collapsed ? "▸" : "▾"}</button>
+      </div></div>
+      <div id="instrument-patch-details" className="patch-metadata" hidden={props.collapsed}>
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-6">
         <div className="flex h-full flex-col gap-2 lg:col-span-2">
           <label className="flex flex-col gap-1">
@@ -247,7 +236,7 @@ export function PatchToolbar(props: PatchToolbarProps) {
           </div>
         </div>
 
-        <label className="flex flex-col gap-1 lg:col-span-3">
+        <label className="flex flex-col gap-1 lg:col-span-4">
           <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.description}</span>
           <textarea
             className="h-[4.5rem] resize-none rounded-lg border border-slate-600 bg-slate-950 px-3 py-1.5 font-body text-sm leading-5 text-slate-100 outline-none ring-accent/40 transition focus:ring"
@@ -262,87 +251,8 @@ export function PatchToolbar(props: PatchToolbarProps) {
           />
         </label>
 
-        <div className="flex flex-col justify-start gap-1">
-          <span aria-hidden="true" className="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">{copy.loadPatch}</span>
-          <PatchPicker patches={props.patches} guiLanguage={props.guiLanguage} label={copy.loadPatch}
-            templateToken={copy.templateToken} onSelectPatch={props.onSelectPatch} />
-        </div>
       </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button
-          className="rounded-lg border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:border-slate-300 hover:text-white"
-          onClick={props.onNewPatch}
-          type="button"
-        >
-          {copy.newPatch}
-        </button>
-        <button
-          className="rounded-lg border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:border-slate-300 hover:text-white"
-          onClick={props.onNewFromTemplate}
-          type="button"
-          disabled={props.loading}
-        >
-          {copy.newFromTemplate}
-        </button>
-        <button
-          className="rounded-lg border border-slate-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:border-slate-300 hover:text-white"
-          onClick={props.onClonePatch}
-          type="button"
-          disabled={props.loading}
-        >
-          {copy.clonePatch}
-        </button>
-        <button
-          className="rounded-lg border border-mint/50 bg-mint/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-mint transition hover:bg-mint/25"
-          onClick={props.onSavePatch}
-          type="button"
-          disabled={props.loading}
-        >
-          {copy.savePatch}
-        </button>
-        <button
-          className="rounded-lg border border-accent/50 bg-accent/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-accent transition hover:bg-accent/25"
-          onClick={props.onCompile}
-          type="button"
-          disabled={props.loading}
-        >
-          {copy.compilePatch}
-        </button>
-        <button
-          className="rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-200 transition hover:bg-emerald-500/25"
-          onClick={props.onExportPatch}
-          type="button"
-          disabled={props.loading}
-        >
-          {copy.exportPatch}
-        </button>
-        <button
-          className="rounded-lg border border-teal-500/50 bg-teal-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-teal-200 transition hover:bg-teal-500/25"
-          onClick={props.onImportPatch}
-          type="button"
-          disabled={props.loading}
-        >
-          {copy.importPatch}
-        </button>
-        <button
-          className="rounded-lg border border-cyan-500/50 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-200 transition hover:bg-cyan-500/25"
-          onClick={props.onExportCsd}
-          type="button"
-          disabled={props.loading}
-        >
-          {copy.exportCsd}
-        </button>
-        <button
-          className="ml-auto rounded-lg border border-rose-500/55 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={props.onDeletePatch}
-          type="button"
-          disabled={props.loading || !props.currentPatchId}
-        >
-          {copy.deletePatch}
-        </button>
       </div>
-      </CollapsiblePanel>
     </section>
   );
 }
