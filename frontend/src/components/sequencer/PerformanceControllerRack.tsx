@@ -6,21 +6,22 @@ import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage, PatchListItem, SequencerInstrumentBinding } from "../../types";
 import { PerformanceControllerKnob } from "./PerformanceControllerKnob";
 import { PerformanceControllerDiscrete } from "./PerformanceControllerDiscrete";
+import { Dx7BankRack } from "./Dx7BankRack";
 
-export function PerformanceControllerRack({ binding, patch, language }: {
-  binding: SequencerInstrumentBinding; patch?: PatchListItem; language: GuiLanguage;
+export function PerformanceControllerRack({ binding, patch, language, running = false }: {
+  binding: SequencerInstrumentBinding; patch?: PatchListItem; language: GuiLanguage; running?: boolean;
 }) {
   const setCC = useAppStore((state) => state.setPerformanceControllerMidiCC);
   const setValue = useAppStore((state) => state.setPerformanceControllerValue);
   const copy = performanceControllerCopy(language);
   const definitions = patch?.performance_controllers?.filter(d => !d.dx7_role) ?? [];
-  const contentKey = JSON.stringify([language, definitions, !!patch?.always_on]);
+  const dx7Definitions = patch?.performance_controllers?.some(def => def.dx7_role === "bank") ? patch.performance_controllers : undefined;
+  const contentKey = JSON.stringify([language, definitions, !!patch?.always_on, !!dx7Definitions]);
   const { ref, width, metrics } = useRackGeometry(contentKey);
   const groups = useMemo(() => groupControllers((JSON.parse(contentKey) as [string, typeof definitions])[1]), [contentKey]);
   const layout = useMemo(() => width ? layoutControllerGroups(groups, width, metrics) : null, [groups, width, metrics]);
   const grid = useMemo(() => layout ? controllerGroupGrid(layout) : null, [layout]);
-  if (!definitions.length && !binding.performanceControllerNotice) return null;
-  return <div className="mt-3 min-w-0 border-t border-slate-600/50 pt-2">
+  const controllers = definitions.length || binding.performanceControllerNotice ? <div className="mt-3 min-w-0 flex-[1_1_6rem] border-t border-slate-600/50 pt-2">
     <div ref={ref} className="grid min-w-0 max-w-full items-start" style={{ gridTemplateColumns: grid?.columns, rowGap: RACK_GAP }} aria-label={copy.title}>
       {groups.map((group, index) => {
         const Group = group.name ? "fieldset" : "div";
@@ -60,6 +61,12 @@ export function PerformanceControllerRack({ binding, patch, language }: {
     </div>
     {definitions.some((definition) => definition.error) && <p role="alert" className="mt-2 text-xs text-rose-300">{copy.invalid}</p>}
     {binding.performanceControllerNotice && <p role="status" className="mt-2 text-xs text-amber-200">{copy.reconciled}</p>}
+  </div> : null;
+  if (!dx7Definitions) return controllers;
+  return <div className="flex min-w-0 flex-wrap items-start gap-x-3">
+    <Dx7BankRack key={binding.id + binding.patchId} binding={binding} language={language}
+      definitions={dx7Definitions} running={running} />
+    {controllers}
   </div>;
 }
 

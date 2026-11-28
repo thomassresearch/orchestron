@@ -9,11 +9,19 @@ Use an instrument’s performance controls to adjust envelope times, tone or oth
 
 ## DX7 banks
 
-In Perform, select a Real DX7 instance and open **Instrument controls**. With the instruments stopped, choose **Cartridge slot** 1–16 and **Import .syx**. Select a Yamaha DX7 32-voice bank, then choose its **Bank** and **Program**. Repeat on another instance to give the same instrument two different sounds. Replace or remove a cartridge from its slot while stopped.
+In Perform, select a Real DX7 instance, open **Instrument controls**, and stop the instruments before importing.
+
+1. Set **Cartridge slot** to **1**, click **Import .syx**, and select a Yamaha DX7 32-voice cartridge.
+2. Click **Save Performance** beside the cartridge controls. The panel confirms when the performance is saved.
+3. Set **Cartridge slot** to **2** and import the next file. Click **Save Performance** again to keep both cartridges. You can fill slots 1–16 this way, or import several before saving once.
+
+Use **Bank** to choose which cartridge plays. Choose its **Program** or use the instrument’s wired preset control. Each rack instance has its own slots. To update one, select its **Cartridge slot** and choose **Replace .syx** or **Remove**, then save.
 
 Bank **0 · Instrument** is read-only here. Its programs 1–32 are the factory sounds. In any bank, **0 · Editor voice** plays the voice saved on the node. **Use instrument setting** follows the node's preset setting. When the graph drives the preset input, its controller or formula chooses the program in the selected bank. Bank and program changes take effect on new notes. Held notes keep their sound through release.
 
-![DX7 bank and program selection in Instrument controls](../../screenshots/performance_dx7_banks.png)
+When an instrument has a wired **Preset** control, it sits beside the cartridge loader if the panel is wide enough. In the example below, **Bank 2** and **Preset 23** select *RaspySax* from `vrc108a.syx`.
+
+![DX7 cartridge loader beside the Preset control set to 23](../../screenshots/performance_dx7_banks.png)
 
 ## Define a Controller
 

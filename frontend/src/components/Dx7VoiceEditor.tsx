@@ -141,7 +141,7 @@ export function Dx7VoiceEditor({ node, language, presetDriven, onChange, onClose
           </div>
           <details className="mt-3 border-t border-slate-700 pt-2"><summary className="cursor-pointer text-sm">{copy.scaling}</summary>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              {range(offset + 8, copy.breakpoint, 99)}{range(offset + 9, copy.leftDepth, 99)}{range(offset + 10, copy.rightDepth, 99)}
+              {range(offset + 8, copy.breakpoint, voice[offset + 8] > 99 ? dx7OperatorMax[8] : 99)}{range(offset + 9, copy.leftDepth, 99)}{range(offset + 10, copy.rightDepth, 99)}
               {range(offset + 13, copy.rateScale, 7)}{choice(offset + 11, copy.leftCurve, ["−LIN", "−EXP", "+EXP", "+LIN"])}
               {choice(offset + 12, copy.rightCurve, ["−LIN", "−EXP", "+EXP", "+LIN"])}{range(offset + 14, copy.ams, 3)}
             </div></details>

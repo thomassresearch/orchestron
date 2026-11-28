@@ -68,7 +68,7 @@ it("keeps Custom while browsing, reopens an applied preset and rolls back edits 
 });
 
 it("retains imported bytes, supports spaces in a voice name and applies the draft", () => {
-  const bytes = dx7Voice({}); bytes[19] = 127; bytes[144] = 36;
+  const bytes = dx7Voice({}); bytes[8] = 127; bytes[19] = 127; bytes[144] = 36;
   const change = vi.fn(), close = vi.fn();
   render(<Dx7VoiceEditor language="english" node={{ ...base, params: { voice: encodeDx7(bytes) } }} onClose={close} onChange={change} />);
   const name = screen.getByRole("textbox", { name: "Voice name" });

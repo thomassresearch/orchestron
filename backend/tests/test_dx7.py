@@ -126,9 +126,10 @@ def test_cartridge_and_invalid_dumps():
     assert node_voice({}) == INIT_VOICE
 
 
-def test_dexed_cartridge_preserves_extended_operator_fine():
+@pytest.mark.parametrize("parameter", [8, 19], ids=["scaling-breakpoint", "fine-tuning"])
+def test_cartridge_preserves_extended_operator_values(parameter):
     extended = bytearray(INIT_VOICE)
-    extended[4 * 21 + 19] = 127
+    extended[4 * 21 + parameter] = 127
     assert read_sysex(bank([INIT_VOICE] * 31 + [extended]))[-1] == bytes(extended)
 
 

@@ -90,7 +90,7 @@ export { ALWAYS_ON_REQUIRES_INLETA_MESSAGE } from "./appStoreModel";
 
 
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
-let persistInFlight = false;
+let persistInFlight: Promise<void> | null = null;
 let persistFailures = 0;
 let pendingPersistSnapshot: PersistedAppState | null = null;
 let lastPersistedSignature: string | null = null;
@@ -773,11 +773,11 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     saveCurrentPerformance: async () => {
       const state = get();
-      if (state.sampleUploads) { set({ error: sampleCopy(state.guiLanguage).wait }); return; }
+      if (state.sampleUploads) { set({ error: sampleCopy(state.guiLanguage).wait }); return false; }
       const name = state.performanceName.trim();
       if (name.length === 0) {
         set({ error: "Performance name is required." });
-        return;
+        return false;
       }
 
       set({ loading: true, error: null });
@@ -819,7 +819,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
         if (get().performanceWorkspaceGeneration !== state.performanceWorkspaceGeneration) {
           set({ performances });
-          return;
+          return false;
         }
         set({
           performances,
@@ -830,11 +830,18 @@ export const useAppStore = create<AppStore>((set, get) => {
           loading: false,
           error: null
         });
+        if (get().hasLoadedBootstrap) {
+          // Reload opens the recovery snapshot. Finish its queued write before confirming Save.
+          await persistInFlight;
+          await flushPersistedAppState();
+        }
+        return true;
       } catch (error) {
         set({
           loading: false,
           error: error instanceof Error ? error.message : "Failed to save performance"
         });
+        return false;
       }
     },
 
@@ -1162,7 +1169,7 @@ export const useAppStore = create<AppStore>((set, get) => {
 
 async function flushPersistedAppState(): Promise<void> {
   if (persistInFlight) {
-    return;
+    return persistInFlight;
   }
 
   const snapshot = pendingPersistSnapshot;
@@ -1176,17 +1183,15 @@ async function flushPersistedAppState(): Promise<void> {
     return;
   }
 
-  persistInFlight = true;
-  try {
-    await api.saveAppState(snapshot);
+  persistInFlight = api.saveAppState(snapshot).then(() => {
     lastPersistedSignature = signature;
     persistFailures = 0;
-  } catch {
+  }).catch(() => {
     // A newer edit may already be waiting while this request was in flight.
     pendingPersistSnapshot ??= snapshot;
     persistFailures += 1;
-  } finally {
-    persistInFlight = false;
+  }).finally(() => {
+    persistInFlight = null;
     if (pendingPersistSnapshot) {
       if (persistTimer !== null) {
         clearTimeout(persistTimer);
@@ -1196,7 +1201,8 @@ async function flushPersistedAppState(): Promise<void> {
         void flushPersistedAppState();
       }, Math.min(30_000, APP_STATE_PERSIST_DEBOUNCE_MS * 2 ** Math.min(persistFailures, 7)));
     }
-  }
+  });
+  return persistInFlight;
 }
 
 function schedulePersistedAppState(snapshot: PersistedAppState): void {

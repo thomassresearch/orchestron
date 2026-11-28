@@ -1,6 +1,6 @@
 {
   "initialVoice": "Y0s8S2NaUAAnAAAAAAAAAAAAAQAHY0s8S2NaUAAnAAAAAAAAAAAAAQAHY0s8S2NaUAAnAAAAAAAAAAAAAQAHY0s8S2NaUAAnAAAAAAAAAAAAAQAHY0s8S2NaUAAnAAAAAAAAAAAAAQAHY0s8S2NaUAAnAAAAAAAAAGMAAQAHY2NjYzIyMjIfAAEjAAAAAQQAGElOSVQgVk9JQ0U=",
-  "operatorMax": [99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 3, 3, 7, 3, 7, 99, 1, 31, 127, 14],
+  "operatorMax": [99, 99, 99, 99, 99, 99, 99, 99, 127, 99, 99, 3, 3, 7, 3, 7, 99, 1, 31, 127, 14],
   "algorithms": [
     {"edges": [[6, 5], [5, 4], [4, 3], [2, 1]], "outputs": [3, 1], "feedback": [6, 6]},
     {"edges": [[6, 5], [5, 4], [4, 3], [2, 1]], "outputs": [3, 1], "feedback": [2, 2]},

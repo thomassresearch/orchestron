@@ -89,6 +89,28 @@ it("retries the newest autosave after an older in-flight save fails", async () =
   useAppStore.setState({ hasLoadedBootstrap: false });
 });
 
+it("finishes the newest recovery snapshot on explicit Save while an older autosave is in flight", async () => {
+  const older = deferred<void>();
+  const recover = vi.spyOn(api, "saveAppState").mockReturnValueOnce(older.promise).mockResolvedValue(undefined);
+  vi.spyOn(api, "createPerformance").mockImplementation(async payload => ({
+    ...payload, id: "saved-performance", created_at: "", updated_at: ""
+  }));
+  vi.spyOn(api, "listPerformances").mockResolvedValue([]);
+  useAppStore.setState({ hasLoadedBootstrap: true, performanceName: "First draft" });
+  await vi.advanceTimersByTimeAsync(400);
+  useAppStore.setState({ performanceName: "Two cartridges" });
+  const saving = useAppStore.getState().saveCurrentPerformance();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(recover).toHaveBeenCalledTimes(1);
+  older.resolve();
+  expect(await saving).toBe(true);
+  expect(recover).toHaveBeenCalledTimes(2);
+  expect(recover.mock.calls[1][0]).toMatchObject({
+    performanceName: "Two cartridges", currentPerformanceId: "saved-performance"
+  });
+  useAppStore.setState({ hasLoadedBootstrap: false });
+});
+
 it("does not autosave every automation value and flushes the latest rack value on stop", async () => {
   const save = vi.spyOn(api, "saveAppState").mockResolvedValue(undefined);
   useAppStore.setState({ hasLoadedBootstrap: true, sequencerInstruments: [{ id: "bass", patchId: "patch",

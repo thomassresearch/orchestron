@@ -13,8 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 DATA = Path(__file__).resolve().parents[1] / "data"
 DX7 = json.loads((DATA / "dx7.json").read_text())
 
-# Some Dexed cartridges store fine tuning above the panel's 99. All seven
-# bits are safe in the frequency formula and survive a save/load unchanged.
+# Cartridges can use all seven bits for keyboard scaling breakpoint and fine
+# tuning. Both parameters enter arithmetic in the synth and round-trip unchanged.
 OP_MAX = tuple(DX7["operatorMax"])
 VOICE_MAX = OP_MAX * 6 + (99,) * 8 + (31, 7, 1, 99, 99, 99, 99, 1, 5, 7, 48) + (127,) * 10
 MAX_DUMP_BYTES = 4104

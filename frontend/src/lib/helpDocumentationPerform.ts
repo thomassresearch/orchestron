@@ -126,25 +126,25 @@ Mantén pulsado un momento el altavoz de un pad para escucharlo. Suéltalo para 
       title: "Mix",
       markdown: `Start in **Rack** to add an instrument and assign its MIDI channel. Open **Routing** to connect its output to an effect or Master. In **Mixer**, play the song and balance the channels while listening.
 
-Use **Compact rack** to select an instrument. Open its controls to adjust the sound, or choose **Samples** for a Sample Player. In DX7 instrument controls, import a 32-voice SysEx bank into slot 1–16 while stopped. Bank 0 contains the instrument sounds. Bank and program changes apply to new notes. Switching Mix pages keeps the song playing. Use **Save Performance** to keep the instruments, their connections and the mix together.`
+Use **Compact rack** to select an instrument. Open its controls to adjust the sound, or choose **Samples** for a Sample Player. In DX7 instrument controls, import a 32-voice SysEx bank into slot 1–16 while stopped. Click **Save Performance** in the DX7 controls, then choose another cartridge slot for the next file. Use the adjacent **Preset** control when the instrument supplies one. Bank 0 contains the instrument sounds. Bank and program changes apply to new notes. Switching Mix pages keeps the song playing. Use **Save Performance** to keep the instruments, their connections and the mix together.`
     },
     german: {
       title: "Mix",
       markdown: `Füge im **Rack** ein Instrument hinzu und weise ihm einen MIDI-Kanal zu. Verbinde unter **Routing** seinen Ausgang mit einem Effekt oder dem Master. Starte den Song und stimme im **Mischpult** die Kanalpegel beim Hören aufeinander ab.
 
-Wähle im **kompakten Rack** ein Instrument aus. Öffne die Instrumentregler, um den Klang einzustellen, oder **Samples** für einen Sample Player. Importiere bei gestoppten Instrumenten eine SysEx-Bank mit 32 Stimmen in Platz 1–16 der DX7-Instrumentregler. Bank 0 enthält die Instrumentklänge. Bank und Programm gelten ab der nächsten Note. Beim Wechsel zwischen den Mix-Seiten spielt der Song weiter. Mit **Performance speichern** sicherst du die Instrumente, ihre Verbindungen und den Mix zusammen.`
+Wähle im **kompakten Rack** ein Instrument aus. Öffne die Instrumentregler, um den Klang einzustellen, oder **Samples** für einen Sample Player. Importiere bei gestoppten Instrumenten eine SysEx-Bank mit 32 Stimmen in Platz 1–16 der DX7-Instrumentregler. Klicke dort auf **Performance speichern** und wähle für die nächste Datei einen anderen Speicherplatz. Hat das Instrument einen **Preset**-Regler, findest du ihn neben der Bankauswahl. Bank 0 enthält die Instrumentklänge. Bank und Programm gelten ab der nächsten Note. Beim Wechsel zwischen den Mix-Seiten spielt der Song weiter. Mit **Performance speichern** sicherst du die Instrumente, ihre Verbindungen und den Mix zusammen.`
     },
     french: {
       title: "Mixage",
       markdown: `Dans **Rack**, ajoutez un instrument et affectez-lui un canal MIDI. Ouvrez **Routage** pour relier sa sortie à un effet ou au Master. Lancez le morceau et équilibrez les niveaux à l’oreille dans le **Mixeur**.
 
-Sélectionnez un instrument dans le **Rack compact**. Ouvrez ses commandes pour régler le son, ou choisissez **Échantillons** pour un Sample Player. Dans les commandes DX7, importez à l’arrêt une banque SysEx de 32 voix dans un emplacement de 1 à 16. La banque 0 contient les sons de l’instrument. Les changements s’appliquent aux nouvelles notes. La lecture continue quand vous changez de page de mixage. **Enregistrer performance** conserve ensemble les instruments, leurs connexions et le mixage.`
+Sélectionnez un instrument dans le **Rack compact**. Ouvrez ses commandes pour régler le son, ou choisissez **Échantillons** pour un Sample Player. Dans les commandes DX7, importez à l’arrêt une banque SysEx de 32 voix dans un emplacement de 1 à 16. Cliquez sur **Enregistrer performance** dans les commandes DX7, puis choisissez un autre emplacement pour le fichier suivant. Si l’instrument possède une commande **Preset**, elle se trouve à côté du sélecteur de banque. La banque 0 contient les sons de l’instrument. Les changements s’appliquent aux nouvelles notes. La lecture continue quand vous changez de page de mixage. **Enregistrer performance** conserve ensemble les instruments, leurs connexions et le mixage.`
     },
     spanish: {
       title: "Mezcla",
       markdown: `En **Rack**, añade un instrumento y asígnale un canal MIDI. Abre **Rutas** para conectar su salida a un efecto o al Máster. Reproduce la canción y equilibra los niveles de oído en el **Mezclador**.
 
-Selecciona un instrumento en **Rack compacto**. Abre sus controles para ajustar el sonido, o elige **Muestras** si usas un Sample Player. Con los instrumentos detenidos, importa un banco SysEx de 32 voces en las ranuras 1–16 de los controles DX7. El banco 0 contiene los sonidos del instrumento. Los cambios se aplican a las notas nuevas. La canción sigue sonando cuando cambias de página de mezcla. **Guardar performance** conserva juntos los instrumentos, sus conexiones y la mezcla.`
+Selecciona un instrumento en **Rack compacto**. Abre sus controles para ajustar el sonido, o elige **Muestras** si usas un Sample Player. Con los instrumentos detenidos, importa un banco SysEx de 32 voces en las ranuras 1–16 de los controles DX7. Pulsa **Guardar performance** en esos controles y elige otra ranura para el siguiente archivo. Si el instrumento tiene un control **Preset**, aparece junto al selector de banco. El banco 0 contiene los sonidos del instrumento. Los cambios se aplican a las notas nuevas. La canción sigue sonando cuando cambias de página de mezcla. **Guardar performance** conserva juntos los instrumentos, sus conexiones y la mezcla.`
     }
   },
   perform_mixer: {

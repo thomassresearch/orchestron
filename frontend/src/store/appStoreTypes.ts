@@ -154,7 +154,7 @@ export interface AppStore {
   setCurrentPerformanceMeta: (name: string, description: string) => void;
   clearCurrentPerformanceSelection: () => void;
   newPerformanceWorkspace: () => Promise<void>;
-  saveCurrentPerformance: () => Promise<void>;
+  saveCurrentPerformance: () => Promise<boolean>;
 
   sampleUploads: number;
   applyDx7Banks: (binding: import("../types").SequencerInstrumentBinding, generation: number, banks: import("../types").Dx7Banks) => boolean;

@@ -6,7 +6,6 @@ import { useAppStore } from "../../store/useAppStore";
 import type { GuiLanguage } from "../../types";
 import { InsertBypass } from "../MixerStripControls";
 import { editMixerPatch } from "../PerformMixer";
-import { Dx7BankRack } from "./Dx7BankRack";
 import { AdaptiveInstrumentRack } from "./AdaptiveInstrumentRack";
 import { PerformanceControllerRack, PerformanceControllerSyncStatus } from "./PerformanceControllerRack";
 import { mixCopy } from "./mixCopy";
@@ -39,9 +38,7 @@ export function InstrumentControls({ ids, language, onSamples }: {
           {owner && <small>{audio("inserts")} · {ownerIndex >= 0 && `${ui.patch(ownerIndex + 1)} · `}{owner === MASTER ? audio("master") : patchesById.get(bindings[ownerIndex]?.patchId)?.name ?? owner}</small>}
           {owner && <InsertBypass id={row.id} name={item?.name ?? row.patchId} patch={item} language={language} />}
         </header>
-        <PerformanceControllerRack key={row.patchId} binding={row} patch={item} language={language} />
-        {item?.performance_controllers?.some(d => d.dx7_role === "bank") &&
-          <Dx7BankRack key={`dx7-${row.patchId}`} binding={row} definitions={item.performance_controllers} language={language} running={running} />}
+        <PerformanceControllerRack key={row.patchId} binding={row} patch={item} language={language} running={running} />
         {!item?.performance_controllers?.length && <p>{copy("noControls")}</p>}
         <div className="ws-mix-actions">
           {onSamples && item?.has_sample_player && !item.always_on && <button onClick={() => onSamples(row.id)}>{copy("samples")}</button>}
